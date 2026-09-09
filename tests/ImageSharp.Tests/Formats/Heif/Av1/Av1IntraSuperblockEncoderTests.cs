@@ -107,6 +107,7 @@ public class Av1IntraSuperblockEncoderTests
 
         // Keep frame filtering outside this motion-search allocation and interpolation test.
         keyEncoder.SequenceHeader.EnableCdef = false;
+        keyEncoder.SequenceHeader.EnableRestoration = false;
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
         using Av1EncoderModeInfoBuffer modeInfo = new(configuration, Width, Height, disallow4x4AllFrames: true);
@@ -294,6 +295,7 @@ public class Av1IntraSuperblockEncoderTests
 
         // Keep frame filtering outside this motion-search allocation and interpolation test.
         keyEncoder.SequenceHeader.EnableCdef = false;
+        keyEncoder.SequenceHeader.EnableRestoration = false;
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
         using Av1EncoderModeInfoBuffer modeInfo = new(configuration, Width, Height, disallow4x4AllFrames: true);
@@ -3689,6 +3691,7 @@ public class Av1IntraSuperblockEncoderTests
             colorFormatValue,
             8,
             false,
+            false,
             HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
@@ -3707,6 +3710,7 @@ public class Av1IntraSuperblockEncoderTests
             colorFormatValue,
             bitDepth,
             false,
+            false,
             HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
@@ -3721,6 +3725,7 @@ public class Av1IntraSuperblockEncoderTests
             colorFormatValue,
             8,
             true,
+            false,
             speed,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
@@ -3739,7 +3744,42 @@ public class Av1IntraSuperblockEncoderTests
             colorFormatValue,
             bitDepth,
             true,
+            false,
             speed,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+
+    [Theory]
+    [InlineData((int)Av1ColorFormat.Yuv400)]
+    [InlineData((int)Av1ColorFormat.Yuv420)]
+    [InlineData((int)Av1ColorFormat.Yuv422)]
+    [InlineData((int)Av1ColorFormat.Yuv444)]
+    public void RestorationPreservesEightBitReconstruction(int colorFormatValue)
+        => VerifyProductionDeblocking<byte, HeifByteSampleConverter>(
+            colorFormatValue,
+            8,
+            true,
+            true,
+            HeifEncodingSpeed.Level0,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+
+    [Theory]
+    [InlineData((int)Av1ColorFormat.Yuv400, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv400, 12)]
+    [InlineData((int)Av1ColorFormat.Yuv420, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv420, 12)]
+    [InlineData((int)Av1ColorFormat.Yuv422, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv422, 12)]
+    [InlineData((int)Av1ColorFormat.Yuv444, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv444, 12)]
+    public void RestorationPreservesHighBitDepthReconstruction(int colorFormatValue, int bitDepth)
+        => VerifyProductionDeblocking<ushort, HeifUShortSampleConverter>(
+            colorFormatValue,
+            bitDepth,
+            true,
+            true,
+            HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
 
@@ -3751,18 +3791,20 @@ public class Av1IntraSuperblockEncoderTests
     /// <param name="colorFormatValue">The component layout.</param>
     /// <param name="bitDepth">The component precision.</param>
     /// <param name="enableCdef">Whether directional enhancement follows deblocking.</param>
+    /// <param name="enableRestoration">Whether restoration follows directional enhancement.</param>
     /// <param name="speed">The directional-enhancement selection policy.</param>
     /// <param name="createWriter">The typed production tile constructor.</param>
     private static void VerifyProductionDeblocking<TSample, TConverter>(
         int colorFormatValue,
         int bitDepth,
         bool enableCdef,
+        bool enableRestoration,
         HeifEncodingSpeed speed,
         TileWriterFactory<TSample> createWriter)
         where TSample : unmanaged, IBinaryInteger<TSample>
         where TConverter : struct, IHeifSampleConverter<TSample>
     {
-        int width = enableCdef ? 129 : 33;
+        int width = enableRestoration ? 385 : enableCdef ? 129 : 33;
         const int Height = 137;
         int qIndex = enableCdef ? 128 : 37;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
@@ -3782,6 +3824,11 @@ public class Av1IntraSuperblockEncoderTests
         {
             Buffer2DRegion<TSample> plane = source.Frame.View.GetPlane((Av1Plane)planeIndex);
             unfiltered[planeIndex] = new TSample[plane.Width * plane.Height];
+            if (enableCdef)
+            {
+                continue;
+            }
+
             for (int y = 0; y < plane.Height; y++)
             {
                 Span<TSample> row = plane.DangerousGetRowSpan(y);
@@ -3815,6 +3862,9 @@ public class Av1IntraSuperblockEncoderTests
         ObuFrameHeader header = template.Parent.FrameHeader;
         header.FrameSize.FrameWidth = width;
         header.FrameSize.FrameHeight = Height;
+        header.FrameSize.SuperResolutionUpscaledWidth = width;
+        header.FrameSize.SuperResolutionDenominator = Av1Constants.ScaleNumerator;
+        template.Sequence.SequenceHeader.EnableRestoration = enableRestoration;
         using Av1EncoderPictureBuffer picture = new(
             Configuration.Default, template.Sequence.SequenceHeader, header, width, Height, disallow4x4AllFrames: true);
 
@@ -3822,6 +3872,9 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
         using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture, 8192);
+
+        // Reserve the final pass's restoration decisions, but measure the baseline before any in-loop filtering.
+        template.Sequence.SequenceHeader.EnableRestoration = false;
         _ = createWriter(symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace);
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
@@ -3839,6 +3892,7 @@ public class Av1IntraSuperblockEncoderTests
         header.LoopFilterParameters.SharpnessLevel = 3;
         header.LoopFilterParameters.ReferenceDeltaModeEnabled = true;
         template.Sequence.SequenceHeader.EnableCdef = enableCdef;
+        template.Sequence.SequenceHeader.EnableRestoration = enableRestoration;
         template.Sequence.SequenceHeader.IsStillPicture = true;
         picture.Picture.Parent.EncodingSpeed = speed;
         picture.Reset(header);
@@ -3855,6 +3909,11 @@ public class Av1IntraSuperblockEncoderTests
             }
 
             Assert.True(hasStrength);
+        }
+
+        if (enableRestoration)
+        {
+            Assert.True(header.LoopRestorationParameters.UsesLoopRestoration);
         }
 
         byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, width, Height);

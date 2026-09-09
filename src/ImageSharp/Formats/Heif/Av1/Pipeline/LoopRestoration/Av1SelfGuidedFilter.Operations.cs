@@ -17,46 +17,39 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 internal static partial class Av1SelfGuidedFilter
 {
     /// <summary>
-    /// Applies self-guided restoration with the 256-bit traversal.
+    /// Produces unprojected filter results with 256-bit traversal.
     /// </summary>
     /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="destination">The destination processing-unit rectangle.</param>
-    /// <param name="destinationStride">The number of samples between destination rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
     /// <param name="height">The processing-unit height in samples.</param>
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     /// <param name="parameterSetIndex">The decoded self-guided parameter-set index.</param>
-    /// <param name="projectionCoefficients">The two transmitted projection coefficients.</param>
+    /// <param name="filtered0">The packed radius-two results.</param>
+    /// <param name="filtered1">The packed radius-one results.</param>
     /// <param name="scratch">The caller-owned work storage.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void FilterBlock<TSample>(
+    private static void GenerateFilters256<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<TSample> destination,
-        int destinationStride,
         int width,
         int height,
         int bitDepth,
         int parameterSetIndex,
-        ReadOnlySpan<int> projectionCoefficients,
+        Span<int> filtered0,
+        Span<int> filtered1,
         Span<int> scratch,
         Vector256<int> vector)
         where TSample : unmanaged
     {
-        // The caller-owned span contains two visible filtered planes followed by four identically strided coefficient
-        // planes. Keeping these regions disjoint allows projection to read either radius after the integral buffers
-        // have been reused as immutable inputs, without per-unit allocation or copying.
-        int filteredLength = width * height;
+        // The supplied result planes survive coefficient workspace reuse across radius calculations.
         int bufferLength = GetBufferLength(width, height);
         int bufferStride = GetBufferStride(width);
-        Span<int> filtered0 = scratch[..filteredLength];
-        Span<int> filtered1 = scratch.Slice(filteredLength, filteredLength);
-        Span<int> blendFactors = scratch.Slice(filteredLength * 2, bufferLength);
-        Span<int> localMeans = scratch.Slice((filteredLength * 2) + bufferLength, bufferLength);
-        Span<int> squareIntegral = scratch.Slice((filteredLength * 2) + (bufferLength * 2), bufferLength);
-        Span<int> sumIntegral = scratch.Slice((filteredLength * 2) + (bufferLength * 3), bufferLength);
+        Span<int> blendFactors = scratch[..bufferLength];
+        Span<int> localMeans = scratch.Slice(bufferLength, bufferLength);
+        Span<int> squareIntegral = scratch.Slice(bufferLength * 2, bufferLength);
+        Span<int> sumIntegral = scratch.Slice(bufferLength * 3, bufferLength);
 
         BuildIntegralImages(source, sourceStride, width + (Border * 2), height + (Border * 2), bufferStride, squareIntegral, sumIntegral, vector);
 
@@ -100,64 +93,42 @@ internal static partial class Av1SelfGuidedFilter
 
             CalculateRadiusOneFilter(source, sourceStride, width, height, bufferStride, blendFactors, localMeans, filtered1, vector);
         }
-
-        DecodeProjectionCoefficients(radii, projectionCoefficients, out int projection0, out int projection1);
-        Project(
-            source,
-            sourceStride,
-            destination,
-            destinationStride,
-            width,
-            height,
-            bitDepth,
-            radii,
-            projection0,
-            projection1,
-            filtered0,
-            filtered1,
-            vector);
     }
 
     /// <summary>
-    /// Applies self-guided restoration with the cross-platform 128-bit traversal.
+    /// Produces unprojected filter results with cross-platform 128-bit traversal.
     /// </summary>
     /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="destination">The destination processing-unit rectangle.</param>
-    /// <param name="destinationStride">The number of samples between destination rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
     /// <param name="height">The processing-unit height in samples.</param>
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     /// <param name="parameterSetIndex">The decoded self-guided parameter-set index.</param>
-    /// <param name="projectionCoefficients">The two transmitted projection coefficients.</param>
+    /// <param name="filtered0">The packed radius-two results.</param>
+    /// <param name="filtered1">The packed radius-one results.</param>
     /// <param name="scratch">The caller-owned work storage.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void FilterBlock<TSample>(
+    private static void GenerateFilters128<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<TSample> destination,
-        int destinationStride,
         int width,
         int height,
         int bitDepth,
         int parameterSetIndex,
-        ReadOnlySpan<int> projectionCoefficients,
+        Span<int> filtered0,
+        Span<int> filtered1,
         Span<int> scratch,
         Vector128<int> vector)
         where TSample : unmanaged
     {
-        // Use the same scratch partition as the 256-bit path. Vector width changes only the number of adjacent columns
-        // advanced by each stage; all offsets and fixed-point representations remain identical.
-        int filteredLength = width * height;
+        // The supplied result planes survive coefficient workspace reuse across radius calculations.
         int bufferLength = GetBufferLength(width, height);
         int bufferStride = GetBufferStride(width);
-        Span<int> filtered0 = scratch[..filteredLength];
-        Span<int> filtered1 = scratch.Slice(filteredLength, filteredLength);
-        Span<int> blendFactors = scratch.Slice(filteredLength * 2, bufferLength);
-        Span<int> localMeans = scratch.Slice((filteredLength * 2) + bufferLength, bufferLength);
-        Span<int> squareIntegral = scratch.Slice((filteredLength * 2) + (bufferLength * 2), bufferLength);
-        Span<int> sumIntegral = scratch.Slice((filteredLength * 2) + (bufferLength * 3), bufferLength);
+        Span<int> blendFactors = scratch[..bufferLength];
+        Span<int> localMeans = scratch.Slice(bufferLength, bufferLength);
+        Span<int> squareIntegral = scratch.Slice(bufferLength * 2, bufferLength);
+        Span<int> sumIntegral = scratch.Slice(bufferLength * 3, bufferLength);
 
         BuildIntegralImages(source, sourceStride, width + (Border * 2), height + (Border * 2), bufferStride, squareIntegral, sumIntegral, vector);
 
@@ -201,22 +172,6 @@ internal static partial class Av1SelfGuidedFilter
 
             CalculateRadiusOneFilter(source, sourceStride, width, height, bufferStride, blendFactors, localMeans, filtered1, vector);
         }
-
-        DecodeProjectionCoefficients(radii, projectionCoefficients, out int projection0, out int projection1);
-        Project(
-            source,
-            sourceStride,
-            destination,
-            destinationStride,
-            width,
-            height,
-            bitDepth,
-            radii,
-            projection0,
-            projection1,
-            filtered0,
-            filtered1,
-            vector);
     }
 
     /// <summary>

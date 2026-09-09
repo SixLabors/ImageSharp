@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -120,6 +121,21 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     private Av1ReferenceMotionVectors referenceMotionVectors;
 
     /// <summary>
+    /// The restoration stripe rows retained across frames once restoration is enabled.
+    /// </summary>
+    private Av1LoopRestorationBoundary? restorationBoundary;
+
+    /// <summary>
+    /// The eight-bit trial planes retained across frames.
+    /// </summary>
+    private Av1EncoderFrameBuffer<byte>? restorationByteTrial;
+
+    /// <summary>
+    /// The high-bit-depth trial planes retained across frames.
+    /// </summary>
+    private Av1EncoderFrameBuffer<ushort>? restorationHighBitDepthTrial;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderBlockWorkspace"/> class.
     /// </summary>
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
@@ -136,7 +152,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <param name="allocateDisplacementCosts">Whether the worker can encode intra-block copy.</param>
     public Av1EncoderBlockWorkspace(Configuration configuration, bool allocateInterMotionCosts, bool allocateDisplacementCosts)
     {
-        this.MemoryAllocator = configuration.MemoryAllocator;
+        this.Configuration = configuration;
 
         // Motion rates belong to the worker, not a block candidate or frame. Keep both precision pairs after
         // the existing scratch regions so sequence frames can change precision while retaining one owner.
@@ -161,7 +177,17 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Gets the allocator used by frame-scoped encoder stages.
     /// </summary>
-    public MemoryAllocator MemoryAllocator { get; }
+    public MemoryAllocator MemoryAllocator => this.Configuration.MemoryAllocator;
+
+    /// <summary>
+    /// Gets the configuration used by frame-scoped encoder buffers.
+    /// </summary>
+    public Configuration Configuration { get; }
+
+    /// <summary>
+    /// Gets the preserved restoration stripe rows for this worker.
+    /// </summary>
+    public Av1LoopRestorationBoundary RestorationBoundary => this.restorationBoundary ??= new(this.MemoryAllocator);
 
     /// <summary>
     /// Gets the maximum-size spatial residual workspace as a compact 16-bit view of the aligned owner.
@@ -191,6 +217,46 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the reusable reference-vector stack used by inter mode decision and syntax writing.
     /// </summary>
     public ref Av1ReferenceMotionVectors ReferenceMotionVectors => ref this.referenceMotionVectors;
+
+    /// <summary>
+    /// Gets the trial reconstruction reused by restoration searches in this worker.
+    /// </summary>
+    /// <typeparam name="TSample">The worker's fixed unsigned sample storage type.</typeparam>
+    /// <param name="source">The source frame defining the worker's plane geometry.</param>
+    /// <param name="colorFormat">The source plane sampling layout.</param>
+    /// <returns>The reusable trial frame.</returns>
+    public Av1EncoderFrame<TSample> GetRestorationTrial<TSample>(Av1EncoderFrame<TSample> source, Av1ColorFormat colorFormat)
+        where TSample : unmanaged
+    {
+        // A worker belongs to one still image or fixed-size sequence. Its sample type and chroma
+        // layout remain fixed, so the same typed frame can serve every candidate and subsequent frame.
+        if (typeof(TSample) == typeof(byte))
+        {
+            Av1EncoderFrameBuffer<byte> trial = this.restorationByteTrial ??= new(
+                this.Configuration,
+                source.Width,
+                source.Height,
+                source.LumaBitDepth,
+                colorFormat,
+                source.ChromaPositionX,
+                source.ChromaPositionY,
+                32);
+
+            return ((Av1EncoderFrameBuffer<TSample>)(object)trial).Frame;
+        }
+
+        Av1EncoderFrameBuffer<ushort> highBitDepthTrial = this.restorationHighBitDepthTrial ??= new(
+            this.Configuration,
+            source.Width,
+            source.Height,
+            source.LumaBitDepth,
+            colorFormat,
+            source.ChromaPositionX,
+            source.ChromaPositionY,
+            32);
+
+        return ((Av1EncoderFrameBuffer<TSample>)(object)highBitDepthTrial).Frame;
+    }
 
     /// <summary>
     /// Borrows the inter-motion rate tables for the current frame's precision.
@@ -313,5 +379,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Releases the reusable block workspace.
     /// </summary>
-    public void Dispose() => this.owner.Dispose();
+    public void Dispose()
+    {
+        this.restorationByteTrial?.Dispose();
+        this.restorationHighBitDepthTrial?.Dispose();
+        this.restorationBoundary?.Dispose();
+        this.owner.Dispose();
+    }
 }

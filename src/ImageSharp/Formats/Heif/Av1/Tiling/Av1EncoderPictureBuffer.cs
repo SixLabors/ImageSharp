@@ -178,7 +178,30 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             int cdefPresetLength = tileCount * Av1Constants.CdefUnitsPerSuperblock;
             int tileStateLength = cdefPresetLength + (3 * tileCount);
             int tileStateStorageLength = tileStateLength * sizeof(int);
-            int stateStorageLength = checked(tileStateStorageOffset + tileStateStorageLength);
+            int restorationStorageOffset = checked(tileStateStorageOffset + tileStateStorageLength);
+            InlineArray3<int> restorationLengths = default;
+            int restorationUnitCount = 0;
+            int restorationReferenceCount = 0;
+            if (sequenceHeader.EnableRestoration)
+            {
+                int minimumUnitSize = 1 << sequenceHeader.SuperblockSizeLog2;
+                for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
+                {
+                    int subX = plane != 0 && colorConfig.SubSamplingX ? 1 : 0;
+                    int subY = plane != 0 && colorConfig.SubSamplingY ? 1 : 0;
+                    int planeWidth = Av1Math.DivideLog2Ceiling(width, subX);
+                    int planeHeight = Av1Math.DivideLog2Ceiling(height, subY);
+                    int columns = Math.Max(1, (planeWidth + (minimumUnitSize >> 1)) / minimumUnitSize);
+                    int rows = Math.Max(1, (planeHeight + (minimumUnitSize >> 1)) / minimumUnitSize);
+                    restorationLengths[plane] = checked(columns * rows);
+                    restorationUnitCount = checked(restorationUnitCount + restorationLengths[plane]);
+                }
+
+                restorationReferenceCount = checked(tileCount * colorConfig.PlaneCount);
+            }
+
+            int restorationStorageLength = checked((restorationUnitCount + restorationReferenceCount) * Unsafe.SizeOf<Av1LoopRestorationUnit>());
+            int stateStorageLength = checked(restorationStorageOffset + restorationStorageLength);
 
             // Segmentation and every tile edge share one clean picture lifetime. The partition region begins at its
             // native alignment. CDEF, quantizer, and encoded-tile bounds occupy one aligned trailing integer region
@@ -260,6 +283,27 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             Memory<int> previousQIndex = tileState.Slice(cdefPresetLength, tileCount);
             Memory<int> tileDataOffsets = tileState.Slice(cdefPresetLength + tileCount, tileCount);
             Memory<int> tileDataLengths = tileState.Slice(cdefPresetLength + (2 * tileCount), tileCount);
+            InlineArray3<Memory<Av1LoopRestorationUnit>> restorationUnits = default;
+            Memory<Av1LoopRestorationUnit> restorationReferences = default;
+            if (sequenceHeader.EnableRestoration)
+            {
+                // Unit decisions and tile histories share the existing picture owner. The smallest
+                // allowed unit size determines capacity; selecting larger units uses a shorter prefix.
+                ByteMemoryManager<Av1LoopRestorationUnit> restorationMemory = new(
+                    stateStorage.Slice(restorationStorageOffset, restorationStorageLength));
+
+                Memory<Av1LoopRestorationUnit> restorationStorage = restorationMemory.Memory;
+                int offset = 0;
+                for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
+                {
+                    restorationUnits[plane] = restorationStorage.Slice(offset, restorationLengths[plane]);
+                    offset += restorationLengths[plane];
+                }
+
+                restorationReferences = restorationStorage.Slice(offset, restorationReferenceCount);
+                restorationReferences.Span.Fill(Av1LoopRestorationUnit.CreateDefault());
+            }
+
             cdefPreset.Span.Fill(-1);
             for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
             {
@@ -361,7 +405,9 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 Disallow4x4AllFrames = this.modeInfo.Disallow4x4AllFrames,
                 CdefPreset = cdefPreset,
                 TileDataOffsets = tileDataOffsets,
-                TileDataLengths = tileDataLengths
+                TileDataLengths = tileDataLengths,
+                RestorationUnits = restorationUnits,
+                RestorationReferences = restorationReferences
             };
         }
         catch
@@ -398,6 +444,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         }
 
         this.Picture.CdefPreset.Span.Fill(-1);
+        this.Picture.RestorationReferences.Span.Fill(Av1LoopRestorationUnit.CreateDefault());
         this.Picture.Parent.PreviousQIndex.Span.Fill(frameHeader.QuantizationParameters.BaseQIndex);
         this.Picture.Parent.FrameHeader = frameHeader;
         this.Picture.Parent.Common.FrameSize = frameHeader.FrameSize;

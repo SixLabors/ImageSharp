@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// <summary>
 /// Encodes AV1 tile syntax elements and transform coefficients with tile-local adaptive distributions.
 /// </summary>
-internal sealed class Av1SymbolEncoder : IDisposable
+internal sealed partial class Av1SymbolEncoder : IDisposable
 {
     /// <summary>
     /// The largest coefficient-context plane required after AV1 removes the uncoded half of 64-point transforms.
@@ -384,7 +384,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the retained mode rates.
     /// </summary>
-    private Av1ModeCosts ModeCosts => new(this.entropyWorkspace.Memory.Span[..Av1ModeCosts.StorageLength]);
+    public Av1ModeCosts ModeCosts => new(this.entropyWorkspace.Memory.Span[..Av1ModeCosts.StorageLength]);
 
     /// <summary>
     /// Gets the retained coefficient rates.

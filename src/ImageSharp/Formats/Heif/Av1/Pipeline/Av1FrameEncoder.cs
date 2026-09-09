@@ -323,6 +323,7 @@ internal static class Av1FrameEncoder
             height,
             colorConfig,
             effort,
+            speed,
             true);
 
         ObuFrameHeader frameHeader = CreateFrameHeader(
@@ -392,6 +393,7 @@ internal static class Av1FrameEncoder
         int height,
         ObuColorConfig colorConfig,
         int effort,
+        HeifEncodingSpeed speed,
         bool isStillPicture)
     {
         Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
@@ -420,7 +422,7 @@ internal static class Av1FrameEncoder
             EnableIntraEdgeFilter = true,
             EnableSuperResolution = false,
             EnableCdef = true,
-            EnableRestoration = false,
+            EnableRestoration = !isStillPicture || speed < HeifEncodingSpeed.Level5,
             ColorConfig = colorConfig
         };
     }
@@ -1563,7 +1565,7 @@ internal static class Av1FrameEncoder
             bool usesHighBitDepth)
         {
             this.Configuration = configuration;
-            this.SequenceHeader = CreateSequenceHeader(width, height, colorConfig, effort, false);
+            this.SequenceHeader = CreateSequenceHeader(width, height, colorConfig, effort, speed, false);
             this.QIndex = qIndex;
             this.Effort = effort;
             this.Speed = speed;

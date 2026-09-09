@@ -128,42 +128,18 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
     /// <param name="frameBuffer">The reconstructed samples before CDEF.</param>
     public void SaveDeblockedRows(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameBuffer<byte> frameBuffer)
     {
-        _ = this.GetStripeSaveBuffer();
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
         ObuFrameSize frameSize = frameHeader.FrameSize;
-        this.bytesPerSample = frameBuffer.BytesPerSample;
-
-        // The allocation grid uses the mode-info-aligned luma height for all planes. Chroma stripes
-        // share the same indices even when their sample height is halved. Two context rows are kept
-        // on each side; four horizontal samples allow the three-tap context to be copied in aligned rows.
-        int stripeCount = (ProcessingStripeOffset + (frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) + 63) / ProcessingStripeSize;
+        int activePlaneMask = 0;
         for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
-            int subsamplingX = planeIndex != 0 && colorConfig.SubSamplingX ? 1 : 0;
-            int planeWidth = Av1Math.DivideLog2Ceiling(frameSize.SuperResolutionUpscaledWidth, subsamplingX);
-            int stride = Av1Math.AlignPowerOf2(planeWidth + (2 * HorizontalBorder), 5);
-            int storageLength = stripeCount * ContextRowCount * stride * this.bytesPerSample;
-            this.planeWidths[planeIndex] = planeWidth;
-            this.planeStrides[planeIndex] = stride;
-            this.stripeCounts[planeIndex] = frameHeader.LoopRestorationParameters.Items[planeIndex].Type == ObuRestorationType.None
-                ? 0
-                : stripeCount;
-
-            // Reuse is determined by physical byte size, including changes of sample precision.
-            // Owners belong to the decoder, so an allocation failure leaves earlier owners available
-            // for its normal disposal path; no frame or header is retained by this storage.
-            if (this.storageLengths[planeIndex] != storageLength)
+            if (frameHeader.LoopRestorationParameters.Items[planeIndex].Type != ObuRestorationType.None)
             {
-                this.rowsAbove[planeIndex]?.Dispose();
-                this.rowsAbove[planeIndex] = null;
-                this.rowsBelow[planeIndex]?.Dispose();
-                this.rowsBelow[planeIndex] = null;
-                this.storageLengths[planeIndex] = 0;
-                this.rowsAbove[planeIndex] = this.allocator.Allocate<byte>(storageLength);
-                this.rowsBelow[planeIndex] = this.allocator.Allocate<byte>(storageLength);
-                this.storageLengths[planeIndex] = storageLength;
+                activePlaneMask |= 1 << planeIndex;
             }
         }
+
+        this.PrepareFrame(sequenceHeader, frameHeader, frameBuffer.BytesPerSample, activePlaneMask);
 
         int bitDepth = frameBuffer.BitDepth.GetBitCount();
         bool usesSuperResolution = frameSize.FrameWidth != frameSize.SuperResolutionUpscaledWidth;
@@ -177,18 +153,7 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
             Av1Plane plane = (Av1Plane)planeIndex;
             int subsamplingX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
-            int codedWidth = Av1Math.DivideLog2Ceiling(frameSize.FrameWidth, subsamplingX);
-            int upscaledWidth = this.planeWidths[planeIndex];
-            int reconstructedWidth = frameHeader.ModeInfoColumnCount
-                << (Av1Constants.ModeInfoSizeLog2 - subsamplingX);
-
-            // Super-resolution phase uses the coded width, while its filter taps can consume the
-            // complete mode-info-aligned reconstruction at the right edge.
-            int planeHeight = Av1Math.DivideLog2Ceiling(frameSize.FrameHeight, subsamplingY);
-            int stripeHeight = ProcessingStripeSize >> subsamplingY;
-            int stripeOffset = ProcessingStripeOffset >> subsamplingY;
             int sourceBorder = usesSuperResolution ? Av1SuperResolutionFilter.SourceBorder : 0;
-
             Span<byte> lowBitDepthPlane = default;
             Span<ushort> highBitDepthPlane = default;
             int sourceStride;
@@ -201,7 +166,7 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
                     subsamplingY,
                     out sourceStride);
 
-                highBitDepthPlane = MemoryMarshal.Cast<short, ushort>(signedPlane);
+                highBitDepthPlane = MemoryMarshal.Cast<short, ushort>(signedPlane)[sourceStride..];
             }
             else
             {
@@ -210,78 +175,173 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
                     new Point(-sourceBorder, 0),
                     subsamplingX,
                     subsamplingY,
-                    out sourceStride);
+                    out sourceStride)[sourceStride..];
             }
 
-            int step = usesSuperResolution
-                ? Av1SuperResolutionFilter.GetConvolveStep(codedWidth, upscaledWidth)
-                : 0;
+            this.SaveDeblockedPlane(
+                frameHeader,
+                planeIndex,
+                subsamplingX,
+                subsamplingY,
+                bitDepth,
+                lowBitDepthPlane,
+                highBitDepthPlane,
+                sourceStride,
+                sourceBorder);
+        }
+    }
 
-            int initialSubpixel = usesSuperResolution
-                ? Av1SuperResolutionFilter.GetInitialSubpixel(codedWidth, upscaledWidth, step)
-                : 0;
+    /// <summary>
+    /// Prepares the row storage for the planes that can use restoration in this frame.
+    /// </summary>
+    /// <param name="sequenceHeader">The active sequence chroma layout.</param>
+    /// <param name="frameHeader">The active frame dimensions.</param>
+    /// <param name="bytesPerSample">The physical sample size.</param>
+    /// <param name="activePlaneMask">The planes whose boundary rows must be retained.</param>
+    public void PrepareFrame(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, int bytesPerSample, int activePlaneMask)
+    {
+        _ = this.GetStripeSaveBuffer();
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
+        ObuFrameSize frameSize = frameHeader.FrameSize;
+        this.bytesPerSample = bytesPerSample;
 
-            for (int stripe = 0; stripe < this.stripeCounts[planeIndex]; stripe++)
+        // The allocation grid uses the mode-info-aligned luma height for all planes. Chroma stripes
+        // share the same indices even when their sample height is halved. Two context rows are kept
+        // on each side; four horizontal samples allow the three-tap context to be copied in aligned rows.
+        int stripeCount = (ProcessingStripeOffset + (frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) + 63) / ProcessingStripeSize;
+        for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
+        {
+            int subsamplingX = planeIndex != 0 && colorConfig.SubSamplingX ? 1 : 0;
+            int planeWidth = Av1Math.DivideLog2Ceiling(frameSize.SuperResolutionUpscaledWidth, subsamplingX);
+            int stride = Av1Math.AlignPowerOf2(planeWidth + (2 * HorizontalBorder), 5);
+            int storageLength = stripeCount * ContextRowCount * stride * this.bytesPerSample;
+            this.planeWidths[planeIndex] = planeWidth;
+            this.planeStrides[planeIndex] = stride;
+            this.stripeCounts[planeIndex] = (activePlaneMask & (1 << planeIndex)) == 0
+                ? 0
+                : stripeCount;
+
+            // Reuse is determined by physical byte size, including changes of sample precision.
+            // Owners belong to this boundary storage, so an allocation failure leaves earlier owners available
+            // for the normal disposal path; no frame or header is retained by this storage.
+            if (this.storageLengths[planeIndex] != storageLength)
             {
-                int stripeStart = Math.Max(0, (stripe * stripeHeight) - stripeOffset);
-                int stripeEnd = Math.Min(((stripe + 1) * stripeHeight) - stripeOffset, planeHeight);
-                if (stripe > 0)
-                {
-                    // Internal top context is the two deblocked rows immediately preceding the
-                    // stripe; restoration later expands the first row to fill its three-row border.
-                    SaveDeblockedRow(
-                        lowBitDepthPlane,
-                        highBitDepthPlane,
-                        sourceStride,
-                        stripeStart - ContextRowCount,
-                        reconstructedWidth,
-                        step,
-                        initialSubpixel,
-                        sourceBorder,
-                        bitDepth,
-                        this.GetBoundaryRow(this.rowsAbove, planeIndex, stripe, 0));
+                this.rowsAbove[planeIndex]?.Dispose();
+                this.rowsAbove[planeIndex] = null;
+                this.rowsBelow[planeIndex]?.Dispose();
+                this.rowsBelow[planeIndex] = null;
+                this.storageLengths[planeIndex] = 0;
+                this.rowsAbove[planeIndex] = this.allocator.Allocate<byte>(storageLength);
+                this.rowsBelow[planeIndex] = this.allocator.Allocate<byte>(storageLength);
+                this.storageLengths[planeIndex] = storageLength;
+            }
+        }
+    }
 
-                    SaveDeblockedRow(
-                        lowBitDepthPlane,
-                        highBitDepthPlane,
-                        sourceStride,
-                        stripeStart - 1,
-                        reconstructedWidth,
-                        step,
-                        initialSubpixel,
-                        sourceBorder,
-                        bitDepth,
-                        this.GetBoundaryRow(this.rowsAbove, planeIndex, stripe, 1));
-                }
+    /// <summary>
+    /// Preserves one reconstructed plane's internal stripe boundaries before CDEF.
+    /// </summary>
+    /// <param name="frameHeader">The active coded and upscaled dimensions.</param>
+    /// <param name="planeIndex">The plane whose context is retained.</param>
+    /// <param name="subsamplingX">The horizontal chroma shift.</param>
+    /// <param name="subsamplingY">The vertical chroma shift.</param>
+    /// <param name="bitDepth">The significant sample bits.</param>
+    /// <param name="lowBitDepthPlane">The byte plane, empty for high-bit-depth samples.</param>
+    /// <param name="highBitDepthPlane">The ushort plane, empty for byte samples.</param>
+    /// <param name="sourceStride">The row stride in samples.</param>
+    /// <param name="sourceBorder">The samples preceding the visible row origin.</param>
+    public void SaveDeblockedPlane(
+        ObuFrameHeader frameHeader,
+        int planeIndex,
+        int subsamplingX,
+        int subsamplingY,
+        int bitDepth,
+        Span<byte> lowBitDepthPlane,
+        Span<ushort> highBitDepthPlane,
+        int sourceStride,
+        int sourceBorder)
+    {
+        ObuFrameSize frameSize = frameHeader.FrameSize;
+        bool usesSuperResolution = frameSize.FrameWidth != frameSize.SuperResolutionUpscaledWidth;
+        int codedWidth = Av1Math.DivideLog2Ceiling(frameSize.FrameWidth, subsamplingX);
+        int upscaledWidth = this.planeWidths[planeIndex];
+        int reconstructedWidth = frameHeader.ModeInfoColumnCount
+            << (Av1Constants.ModeInfoSizeLog2 - subsamplingX);
 
-                if (stripeEnd < planeHeight)
-                {
-                    // Internal bottom context begins at the exclusive stripe end. A one-row tail
-                    // duplicates its final sample row, matching AV1 crop-edge clamping.
-                    SaveDeblockedRow(
-                        lowBitDepthPlane,
-                        highBitDepthPlane,
-                        sourceStride,
-                        stripeEnd,
-                        reconstructedWidth,
-                        step,
-                        initialSubpixel,
-                        sourceBorder,
-                        bitDepth,
-                        this.GetBoundaryRow(this.rowsBelow, planeIndex, stripe, 0));
+        // Super-resolution phase uses the coded width, while its filter taps can consume the
+        // complete mode-info-aligned reconstruction at the right edge.
+        int planeHeight = Av1Math.DivideLog2Ceiling(frameSize.FrameHeight, subsamplingY);
+        int stripeHeight = ProcessingStripeSize >> subsamplingY;
+        int stripeOffset = ProcessingStripeOffset >> subsamplingY;
 
-                    SaveDeblockedRow(
-                        lowBitDepthPlane,
-                        highBitDepthPlane,
-                        sourceStride,
-                        Math.Min(stripeEnd + 1, planeHeight - 1),
-                        reconstructedWidth,
-                        step,
-                        initialSubpixel,
-                        sourceBorder,
-                        bitDepth,
-                        this.GetBoundaryRow(this.rowsBelow, planeIndex, stripe, 1));
-                }
+        int step = usesSuperResolution
+            ? Av1SuperResolutionFilter.GetConvolveStep(codedWidth, upscaledWidth)
+            : 0;
+
+        int initialSubpixel = usesSuperResolution
+            ? Av1SuperResolutionFilter.GetInitialSubpixel(codedWidth, upscaledWidth, step)
+            : 0;
+
+        for (int stripe = 0; stripe < this.stripeCounts[planeIndex]; stripe++)
+        {
+            int stripeStart = Math.Max(0, (stripe * stripeHeight) - stripeOffset);
+            int stripeEnd = Math.Min(((stripe + 1) * stripeHeight) - stripeOffset, planeHeight);
+            if (stripe > 0)
+            {
+                // Internal top context is the two deblocked rows immediately preceding the
+                // stripe; restoration later expands the first row to fill its three-row border.
+                SaveDeblockedRow(
+                    lowBitDepthPlane,
+                    highBitDepthPlane,
+                    sourceStride,
+                    stripeStart - ContextRowCount,
+                    reconstructedWidth,
+                    step,
+                    initialSubpixel,
+                    sourceBorder,
+                    bitDepth,
+                    this.GetBoundaryRow(this.rowsAbove, planeIndex, stripe, 0));
+
+                SaveDeblockedRow(
+                    lowBitDepthPlane,
+                    highBitDepthPlane,
+                    sourceStride,
+                    stripeStart - 1,
+                    reconstructedWidth,
+                    step,
+                    initialSubpixel,
+                    sourceBorder,
+                    bitDepth,
+                    this.GetBoundaryRow(this.rowsAbove, planeIndex, stripe, 1));
+            }
+
+            if (stripeEnd < planeHeight)
+            {
+                // Internal bottom context begins at the exclusive stripe end. A one-row tail
+                // duplicates its final sample row, matching AV1 crop-edge clamping.
+                SaveDeblockedRow(
+                    lowBitDepthPlane,
+                    highBitDepthPlane,
+                    sourceStride,
+                    stripeEnd,
+                    reconstructedWidth,
+                    step,
+                    initialSubpixel,
+                    sourceBorder,
+                    bitDepth,
+                    this.GetBoundaryRow(this.rowsBelow, planeIndex, stripe, 0));
+
+                SaveDeblockedRow(
+                    lowBitDepthPlane,
+                    highBitDepthPlane,
+                    sourceStride,
+                    Math.Min(stripeEnd + 1, planeHeight - 1),
+                    reconstructedWidth,
+                    step,
+                    initialSubpixel,
+                    sourceBorder,
+                    bitDepth,
+                    this.GetBoundaryRow(this.rowsBelow, planeIndex, stripe, 1));
             }
         }
     }
@@ -320,7 +380,7 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
                     subsamplingY,
                     out sourceStride);
 
-                highBitDepthPlane = MemoryMarshal.Cast<short, ushort>(signedPlane);
+                highBitDepthPlane = MemoryMarshal.Cast<short, ushort>(signedPlane)[sourceStride..];
             }
             else
             {
@@ -329,22 +389,40 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
                     Point.Empty,
                     subsamplingX,
                     subsamplingY,
-                    out sourceStride);
+                    out sourceStride)[sourceStride..];
             }
 
-            Span<byte> topRow0 = this.GetBoundaryRow(this.rowsAbove, planeIndex, 0, 0);
-            Span<byte> topRow1 = this.GetBoundaryRow(this.rowsAbove, planeIndex, 0, 1);
-            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, 0, topRow0);
-
-            // Frame boundaries use post-CDEF/post-super-resolution samples and replicate the outer row.
-            topRow0.CopyTo(topRow1);
-
-            int lastStripe = stripeCount - 1;
-            Span<byte> bottomRow0 = this.GetBoundaryRow(this.rowsBelow, planeIndex, lastStripe, 0);
-            Span<byte> bottomRow1 = this.GetBoundaryRow(this.rowsBelow, planeIndex, lastStripe, 1);
-            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, planeHeight - 1, bottomRow0);
-            bottomRow0.CopyTo(bottomRow1);
+            this.SaveFrameEdgePlane(planeIndex, planeHeight, lowBitDepthPlane, highBitDepthPlane, sourceStride);
         }
+    }
+
+    /// <summary>
+    /// Preserves the outer rows after CDEF and super-resolution.
+    /// </summary>
+    /// <param name="planeIndex">The plane whose frame edges are retained.</param>
+    /// <param name="planeHeight">The visible plane height.</param>
+    /// <param name="lowBitDepthPlane">The byte plane, empty for high-bit-depth samples.</param>
+    /// <param name="highBitDepthPlane">The ushort plane, empty for byte samples.</param>
+    /// <param name="sourceStride">The row stride in samples.</param>
+    public void SaveFrameEdgePlane(
+        int planeIndex,
+        int planeHeight,
+        ReadOnlySpan<byte> lowBitDepthPlane,
+        ReadOnlySpan<ushort> highBitDepthPlane,
+        int sourceStride)
+    {
+        Span<byte> topRow0 = this.GetBoundaryRow(this.rowsAbove, planeIndex, 0, 0);
+        Span<byte> topRow1 = this.GetBoundaryRow(this.rowsAbove, planeIndex, 0, 1);
+        CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, 0, topRow0);
+
+        // Frame boundaries use post-CDEF/post-super-resolution samples and replicate the outer row.
+        topRow0.CopyTo(topRow1);
+
+        int lastStripe = this.stripeCounts[planeIndex] - 1;
+        Span<byte> bottomRow0 = this.GetBoundaryRow(this.rowsBelow, planeIndex, lastStripe, 0);
+        Span<byte> bottomRow1 = this.GetBoundaryRow(this.rowsBelow, planeIndex, lastStripe, 1);
+        CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, planeHeight - 1, bottomRow0);
+        bottomRow0.CopyTo(bottomRow1);
     }
 
     /// <summary>
@@ -423,7 +501,7 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
         // Boundary rows use the same phase and reconstructed right edge as full-frame upscaling.
         // Padding the source supplies interpolation taps; destination padding repeats the final
         // upscaled edge and is never used to advance the interpolation phase.
-        int sourceOffset = sourceStride + (row * sourceStride);
+        int sourceOffset = row * sourceStride;
         if (!highBitDepthPlane.IsEmpty)
         {
             Span<ushort> source = highBitDepthPlane.Slice(sourceOffset, reconstructedWidth + (sourceBorder * 2));
@@ -470,7 +548,7 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
         int row,
         Span<byte> destination)
     {
-        int sourceOffset = sourceStride + (row * sourceStride);
+        int sourceOffset = row * sourceStride;
         if (!highBitDepthPlane.IsEmpty)
         {
             Span<ushort> destinationSamples = MemoryMarshal.Cast<byte, ushort>(destination);

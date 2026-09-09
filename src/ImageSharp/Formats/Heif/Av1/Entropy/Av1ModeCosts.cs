@@ -679,6 +679,27 @@ internal readonly ref struct Av1ModeCosts
     }
 
     /// <summary>
+    /// Gets the probability cost of a switchable restoration choice.
+    /// </summary>
+    /// <param name="symbol">The selected unit filter.</param>
+    /// <returns>The fixed-point symbol cost.</returns>
+    public int GetSwitchableRestoration(int symbol) => this.SwitchableRestoration[symbol];
+
+    /// <summary>
+    /// Gets the probability cost of enabling or skipping Wiener restoration.
+    /// </summary>
+    /// <param name="symbol">Zero to skip the unit or one to filter it.</param>
+    /// <returns>The fixed-point symbol cost.</returns>
+    public int GetWienerRestoration(int symbol) => this.WienerRestoration[symbol];
+
+    /// <summary>
+    /// Gets the probability cost of enabling or skipping self-guided restoration.
+    /// </summary>
+    /// <param name="symbol">Zero to skip the unit or one to filter it.</param>
+    /// <returns>The fixed-point symbol cost.</returns>
+    public int GetSgrProjectionRestoration(int symbol) => this.SgrProjectionRestoration[symbol];
+
+    /// <summary>
     /// Replaces the retained rates with the costs of the supplied entropy distributions.
     /// </summary>
     public void Update(Av1FrameEntropyContext context)

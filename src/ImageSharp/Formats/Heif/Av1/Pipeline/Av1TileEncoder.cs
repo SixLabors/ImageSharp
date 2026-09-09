@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -291,12 +292,38 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.MaximumMotionVectorMagnitude = 0;
         }
 
+        // Restoration decisions belong to the completed reconstruction. A reused sequence header
+        // must not expose the preceding frame's choices during block analysis.
+        for (int plane = 0; plane < picture.Sequence.SequenceHeader.ColorConfig.PlaneCount; plane++)
+        {
+            frameHeader.LoopRestorationParameters.Items[plane].Type = ObuRestorationType.None;
+        }
+
+        frameHeader.LoopRestorationParameters.UsesLoopRestoration = false;
+        frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration = false;
         parent.MotionSearchStepParameter = stepParameter;
         _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
             writer, source, reference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
 
         Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);
+        bool useRestoration = picture.Sequence.SequenceHeader.EnableRestoration && !frameHeader.AllLossless && !frameHeader.AllowIntraBlockCopy;
+        if (useRestoration)
+        {
+            Av1LoopRestorationEncoder.SaveBoundaryRows(picture, reconstruction, blockWorkspace.RestorationBoundary);
+        }
+
         Av1CdefEncoder.ApplyFrame<TSample, TCdefOperator>(blockWorkspace.MemoryAllocator, picture, source, reconstruction);
+        if (useRestoration)
+        {
+            Av1LoopRestorationEncoder.ApplyFrame(
+                blockWorkspace,
+                picture,
+                source,
+                reconstruction,
+                blockWorkspace.RestorationBoundary,
+                writer,
+                tileWorkspace.Tile);
+        }
 
         // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts
         // from the same entropy edges and probabilities while the completed frame decisions remain available.

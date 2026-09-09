@@ -122,6 +122,16 @@ internal class Av1PictureControlSet
     public required Memory<int> TileDataLengths { get; set; }
 
     /// <summary>
+    /// Gets or sets the selected restoration units for each component plane.
+    /// </summary>
+    public InlineArray3<Memory<Av1LoopRestorationUnit>> RestorationUnits { get; set; }
+
+    /// <summary>
+    /// Gets or sets the per-tile, per-plane restoration coefficient histories.
+    /// </summary>
+    public Memory<Av1LoopRestorationUnit> RestorationReferences { get; set; }
+
+    /// <summary>
     /// Restores initial tile entropy edges while preserving selected block decisions and reconstruction.
     /// </summary>
     public void ResetEntropyContexts()
@@ -151,6 +161,7 @@ internal class Av1PictureControlSet
 
         this.CdefPreset.Span.Fill(-1);
         this.Parent.PreviousQIndex.Span.Fill(this.Parent.FrameHeader.QuantizationParameters.BaseQIndex);
+        this.RestorationReferences.Span.Fill(Av1LoopRestorationUnit.CreateDefault());
     }
 
     /// <summary>

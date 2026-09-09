@@ -24,22 +24,48 @@ the repository. `encoder-cdef-public-final` passes 73 of 76 cases and retains th
 screen-content encoder comparisons. No test expectations or reference images were relaxed.
 This verifies filtering, reconstruction, and signaling, not independent strength-selection parity,
 complete encoder parity, or performance. Large-block unit grouping still needs runtime coverage.
-Restoration remains unimplemented in the encoder. The source-led implementation must include all of:
-- Preserve deblocked stripe boundaries before CDEF and frame edges after CDEF, following
-  `av1/encoder/encoder.c:2776-2825`. Existing managed boundary storage is decoder-frame-specific
-  (`Av1LoopRestorationBoundary.cs:129-348`); it cannot be fed post-CDEF rows for both stages.
-- Search Wiener, self-guided, and switchable modes in tile/superblock coding order, keeping separate
-  coefficient-reference histories for fixed and switchable modes (`pickrst.c:122-169,1858-1948`).
-- Retain the Wiener solve, coefficient refinement, self-guided projection solve/refinement, pruning,
-  and signaling costs together (`pickrst.c:408-973,1004-1837`), rather than substitute fixed filters.
-- Search permitted unit sizes and apply frame-level rate/distortion selection (`pickrst.c:2040-2258`),
-  using the size policy in `speed_features.c:3099-3127` and the existing default PSNR speed controls.
-- Wire unit entropy writing as well as header writing: `ObuWriter.WriteLoopRestorationParameters`
-  exists, but the current tile writer has no restoration-unit writer. Existing decoder `FilterUnit`
-  supplies the stripe filtering behavior, while its frame-level owner is specific to decoder storage.
-No restoration production edits or benchmarks have been made yet. CDEF strength-selection parity
-and large-block grouping coverage remain explicit verification gaps; the passing reconstruction tests
-do not close them or the three public encoder comparison failures.
+Restoration integration is implemented in the uncommitted tree; verification is in progress:
+- `Av1LoopRestorationEncoder.Frame.cs` preserves internal deblocked rows before CDEF and frame
+  edges afterward, then searches and applies restoration before retained tile packing.
+  Shared `Av1LoopRestorationFilter.FilterUnit` preserves the decoder's stripe arithmetic.
+- Wiener statistics, constrained alternating solve, tap refinement, and self-guided projection
+  fitting/refinement are connected to unit and frame selection. The source comparison includes
+  `pickrst.c:122-169,408-973,1004-1837,1858-1948,2040-2258` and
+  `speed_features.c:3099-3127`; these are implementation mappings, not verified selection parity.
+- Units are visited in tile/superblock order. Fixed and switchable modes keep independent
+  coefficient histories. The tile writer now emits restoration choices and coefficient deltas.
+- The sequence enables restoration for the supported coding mode/speed policy. Frame syntax records
+  the selected plane types, unit-size shift, and uncoupled chroma size. Reused frame state clears
+  old restoration choices before block analysis.
+- Byte/ushort samples remain in their native storage. One bordered planar trial frame serves every
+  candidate. Search/statistics/projection storage is frame-scoped; stripe boundaries reuse worker
+  storage. The trial frame now belongs to the existing worker and reuses the sequence's fixed plane
+  geometry and sample type; native `trial_frame_rst` likewise retains frame capacity. Only the active
+  byte or ushort frame is allocated. Unit-search and statistics owners remain frame-scoped.
+- Twelve full-frame reconstruction cases now cover a known photographic crop, 8/10/12-bit planes,
+  monochrome/4:2:0/4:2:2/4:4:4, merged unit tails, and internal stripes. All 12 pass exact retained
+  reconstruction comparisons (`encoder-restoration-boundary-fix`). The first run exposed a boundary
+  origin mismatch: decoder pointers included a preceding row, while encoder spans started at visible
+  row zero. Decoder wrappers now remove that row before calling the shared zero-based boundary copier.
+  Four byte cases also exposed unused synthetic fixture preparation overflowing before photograph loading;
+  that preparation now runs only for the deblocking fixture that needs it.
+  Optimized libaom decoded all 12 exported streams byte-exactly: maximum sample error 0, differing count 0,
+  count above one 0. Exports remain outside the repository and temporary export code has been removed.
+  Existing Wiener and self-guided kernel tests pass. Public encoder verification remains 73/76, with the
+  same three screen-content comparisons failing. Roslyn reports zero errors and no additional warnings;
+  Release/net11 builds with zero errors and 1,012 existing test warnings. Final post-cleanup verification
+  passes all 139 block cases (`restoration-block-final-r2`) and all 12 restoration cases with hardware
+  intrinsics disabled (`restoration-scalar-final`). All 125 public decoder tests
+  pass (`restoration-decoder-regression`). The first full block run passes 131/139; eight interpolation
+  allocation fixtures had disabled CDEF but still enabled the newly integrated restoration. Their setup
+  now disables both frame filters, retaining the zero-allocation and exact-reconstruction assertions;
+  the final full block rerun passes those eight cases. Trial storage reuse follows the fixed worker
+  geometry; a multi-frame allocation test has not yet independently verified its reuse/disposal.
+  No restoration selection-parity or benchmark result is claimed.
+- Current sequence control still has no golden/alternate-reference update classification; restoration
+  uses the existing intra-versus-ordinary-inter distinction. That broader reference-management gap
+  remains open. Independent restoration-selection parity, CDEF selection parity, large-block grouping,
+  and the three existing public encoder comparison failures remain unresolved.
 
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.

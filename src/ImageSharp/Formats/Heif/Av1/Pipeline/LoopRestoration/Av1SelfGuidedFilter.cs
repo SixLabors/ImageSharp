@@ -65,7 +65,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Gets the radii selected by each of the sixteen self-guided parameter sets.
     /// </summary>
-    private static ReadOnlySpan<int> ParameterRadii =>
+    public static ReadOnlySpan<int> ParameterRadii =>
     [
         2, 1, 2, 1, 2, 1, 2, 1,
         2, 1, 2, 1, 2, 1, 2, 1,
@@ -158,11 +158,16 @@ internal static partial class Av1SelfGuidedFilter
         Span<int> scratch)
         where TSample : unmanaged
     {
-        // The closed vector overloads share the same scratch layout and fixed-point equations. Dispatch is based on
-        // portable vector width; ISA-specific acceleration is confined to the individual operation that requires it.
+        int filteredLength = width * height;
+        Span<int> filtered0 = scratch[..filteredLength];
+        Span<int> filtered1 = scratch.Slice(filteredLength, filteredLength);
+        GenerateFilters(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, scratch[(filteredLength * 2)..]);
+
+        ReadOnlySpan<int> radii = ParameterRadii.Slice(parameterSetIndex * 2, 2);
         if (Vector256.IsHardwareAccelerated)
         {
-            FilterBlock(
+            DecodeProjectionCoefficients(radii, projectionCoefficients, out int first, out int second);
+            Project(
                 source,
                 sourceStride,
                 destination,
@@ -170,9 +175,11 @@ internal static partial class Av1SelfGuidedFilter
                 width,
                 height,
                 bitDepth,
-                parameterSetIndex,
-                projectionCoefficients,
-                scratch,
+                radii,
+                first,
+                second,
+                filtered0,
+                filtered1,
                 Vector256<int>.Zero);
 
             return;
@@ -180,7 +187,8 @@ internal static partial class Av1SelfGuidedFilter
 
         if (Vector128.IsHardwareAccelerated)
         {
-            FilterBlock(
+            DecodeProjectionCoefficients(radii, projectionCoefficients, out int first, out int second);
+            Project(
                 source,
                 sourceStride,
                 destination,
@@ -188,56 +196,14 @@ internal static partial class Av1SelfGuidedFilter
                 width,
                 height,
                 bitDepth,
-                parameterSetIndex,
-                projectionCoefficients,
-                scratch,
+                radii,
+                first,
+                second,
+                filtered0,
+                filtered1,
                 Vector128<int>.Zero);
 
             return;
-        }
-
-        int filteredLength = width * height;
-        Span<int> filtered0 = scratch[..filteredLength];
-        Span<int> filtered1 = scratch.Slice(filteredLength, filteredLength);
-        int coefficientLength = GetCoefficientBufferLength(width, height);
-        Span<int> blendFactors = scratch.Slice(filteredLength * 2, coefficientLength);
-        Span<int> localMeans = scratch.Slice((filteredLength * 2) + coefficientLength, coefficientLength);
-
-        int parameterOffset = parameterSetIndex * 2;
-        ReadOnlySpan<int> radii = ParameterRadii.Slice(parameterOffset, 2);
-        ReadOnlySpan<int> scales = ParameterScales.Slice(parameterOffset, 2);
-        if (radii[0] > 0)
-        {
-            CalculateIntermediateCoefficients(
-                source,
-                sourceStride,
-                width,
-                height,
-                bitDepth,
-                radii[0],
-                scales[0],
-                skipAlternateRows: true,
-                blendFactors,
-                localMeans);
-
-            CalculateRadiusTwoFilter(source, sourceStride, width, height, blendFactors, localMeans, filtered0);
-        }
-
-        if (radii[1] > 0)
-        {
-            CalculateIntermediateCoefficients(
-                source,
-                sourceStride,
-                width,
-                height,
-                bitDepth,
-                radii[1],
-                scales[1],
-                skipAlternateRows: false,
-                blendFactors,
-                localMeans);
-
-            CalculateRadiusOneFilter(source, sourceStride, width, height, blendFactors, localMeans, filtered1);
         }
 
         int projection0;
@@ -285,6 +251,87 @@ internal static partial class Av1SelfGuidedFilter
                         maximumSample,
                         RoundPowerOfTwo(projected, ProjectionBits + RestorationBits)));
             }
+        }
+    }
+
+    /// <summary>
+    /// Produces the two unprojected fixed-point filter results for a processing unit.
+    /// </summary>
+    /// <typeparam name="TSample">The physical component sample type.</typeparam>
+    /// <param name="source">The source unit including its three-sample border.</param>
+    /// <param name="sourceStride">The source row stride in samples.</param>
+    /// <param name="width">The visible unit width.</param>
+    /// <param name="height">The visible unit height.</param>
+    /// <param name="bitDepth">The component precision.</param>
+    /// <param name="parameterSetIndex">The radius and smoothing parameter pair.</param>
+    /// <param name="filtered0">The packed radius-two results, written only when that radius is enabled.</param>
+    /// <param name="filtered1">The packed radius-one results, written only when that radius is enabled.</param>
+    /// <param name="scratch">The coefficient workspace, excluding the two filtered result planes.</param>
+    public static void GenerateFilters<TSample>(
+        ReadOnlySpan<TSample> source,
+        int sourceStride,
+        int width,
+        int height,
+        int bitDepth,
+        int parameterSetIndex,
+        Span<int> filtered0,
+        Span<int> filtered1,
+        Span<int> scratch)
+        where TSample : unmanaged
+    {
+        // Search retains these fixed-point values while it changes the projection coefficients.
+        // Decoder output uses the same calculation and applies projection once afterward.
+        if (Vector256.IsHardwareAccelerated)
+        {
+            GenerateFilters256(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, scratch, Vector256<int>.Zero);
+            return;
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            GenerateFilters128(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, scratch, Vector128<int>.Zero);
+            return;
+        }
+
+        int coefficientLength = GetCoefficientBufferLength(width, height);
+        Span<int> blendFactors = scratch[..coefficientLength];
+        Span<int> localMeans = scratch.Slice(coefficientLength, coefficientLength);
+
+        int parameterOffset = parameterSetIndex * 2;
+        ReadOnlySpan<int> radii = ParameterRadii.Slice(parameterOffset, 2);
+        ReadOnlySpan<int> scales = ParameterScales.Slice(parameterOffset, 2);
+        if (radii[0] > 0)
+        {
+            CalculateIntermediateCoefficients(
+                source,
+                sourceStride,
+                width,
+                height,
+                bitDepth,
+                radii[0],
+                scales[0],
+                skipAlternateRows: true,
+                blendFactors,
+                localMeans);
+
+            CalculateRadiusTwoFilter(source, sourceStride, width, height, blendFactors, localMeans, filtered0);
+        }
+
+        if (radii[1] > 0)
+        {
+            CalculateIntermediateCoefficients(
+                source,
+                sourceStride,
+                width,
+                height,
+                bitDepth,
+                radii[1],
+                scales[1],
+                skipAlternateRows: false,
+                blendFactors,
+                localMeans);
+
+            CalculateRadiusOneFilter(source, sourceStride, width, height, blendFactors, localMeans, filtered1);
         }
     }
 

@@ -135,6 +135,48 @@ internal partial class Av1TileWriter
         int partitionIndex = 0;
         int finalBlockIndex = 0;
 
+        ObuSequenceHeader sequence = pcs.Sequence.SequenceHeader;
+        ObuFrameHeader header = pcs.Parent.FrameHeader;
+        ObuColorConfig color = sequence.ColorConfig;
+        for (int plane = 0; plane < color.PlaneCount; plane++)
+        {
+            ObuLoopRestorationItem item = header.LoopRestorationParameters.Items[plane];
+            if (item.Type == ObuRestorationType.None)
+            {
+                continue;
+            }
+
+            int subX = plane != 0 && color.SubSamplingX ? 1 : 0;
+            int subY = plane != 0 && color.SubSamplingY ? 1 : 0;
+            int width = Av1Math.DivideLog2Ceiling(header.FrameSize.SuperResolutionUpscaledWidth, subX);
+            int height = Av1Math.DivideLog2Ceiling(header.FrameSize.FrameHeight, subY);
+            int columns = Math.Max(1, (width + (item.Size >> 1)) / item.Size);
+            int rows = Math.Max(1, (height + (item.Size >> 1)) / item.Size);
+            int superblockSize = 1 << sequence.SuperblockSizeLog2;
+            bool usesSuperResolution = header.FrameSize.FrameWidth != header.FrameSize.SuperResolutionUpscaledWidth;
+            int horizontalScale = usesSuperResolution ? header.FrameSize.SuperResolutionDenominator : 1;
+            int horizontalDivisor = item.Size * (usesSuperResolution ? Av1Constants.ScaleNumerator : 1);
+            int firstColumn = (((ec_ctx.SuperblockOrigin.X >> subX) * horizontalScale) + horizontalDivisor - 1) / horizontalDivisor;
+            int lastColumn = Math.Min(
+                columns,
+                ((((ec_ctx.SuperblockOrigin.X + superblockSize) >> subX) * horizontalScale) + horizontalDivisor - 1) / horizontalDivisor);
+
+            int firstRow = ((ec_ctx.SuperblockOrigin.Y >> subY) + item.Size - 1) / item.Size;
+            int lastRow = Math.Min(rows, (((ec_ctx.SuperblockOrigin.Y + superblockSize) >> subY) + item.Size - 1) / item.Size);
+            ref Av1LoopRestorationUnit reference = ref pcs.RestorationReferences.Span[(tileIndex * color.PlaneCount) + plane];
+            ReadOnlySpan<Av1LoopRestorationUnit> units = pcs.RestorationUnits[plane].Span;
+
+            // Each unit is signaled before the partition syntax of the superblock containing its
+            // upper-left corner. Coefficient histories advance only for transmitted filters.
+            for (int row = firstRow; row < lastRow; row++)
+            {
+                for (int column = firstColumn; column < lastColumn; column++)
+                {
+                    writer.WriteRestorationUnit<TOperation>(item.Type, units[(row * columns) + column], plane != 0, ref reference);
+                }
+            }
+        }
+
         // Partition decisions are stored in preorder, so recursive traversal keeps the current geometry
         // on the stack and visits each selected child after its parent.
         WritePartitionTree<TOperation, TBlockEncoder>(

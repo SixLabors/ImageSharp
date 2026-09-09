@@ -865,6 +865,18 @@ internal static partial class Av1IntraSuperblockEncoder
             block.QuantizationIndex = qIndex;
             block.SegmentId = 0;
 
+            if (this.picture.Sequence.SequenceHeader.IsStillPicture && this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8)
+            {
+                int sourceVariance = this.GetSourceVariance(blockOrigin, blockSize);
+                if (this.picture.Parent.EncodingSpeed == HeifEncodingSpeed.Level9 || blockSize >= Av1BlockSize.Block16x16 || sourceVariance < 101)
+                {
+                    this.EncodeEstimatedIntraBlock(
+                        writer, macroBlock, blockOrigin, blockSize, tileIndex, sourceVariance, ref modeInfo, ref block, ref paletteInfo);
+
+                    return;
+                }
+            }
+
             bool isInterFrame = !this.picture.Parent.FrameHeader.IsIntra;
             Av1RateDistortionStatistics interStatistics = Av1RateDistortionStatistics.Invalid;
             Av1MacroBlockModeInfo interModeInfo = default;
@@ -1340,6 +1352,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             sourcePlane,
                                             transformOrigin,
                                             prediction,
+                                            transformSize.GetWidth(),
                                             above,
                                             left,
                                             hasLeft,
@@ -1821,6 +1834,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     tileIndex,
                     retainedCoefficients,
                     retainedStates,
+                    64,
                     ref selectedStatistics,
                     ref paletteInfo,
                     ref selectedTransformSize))
@@ -2024,6 +2038,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     sourcePlane,
                     blockOrigin,
                     prediction,
+                    transformSize.GetWidth(),
                     above,
                     left,
                     hasLeft,
@@ -2162,6 +2177,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     sourcePlane,
                     blockOrigin,
                     prediction,
+                    transformSize.GetWidth(),
                     above,
                     left,
                     hasLeft,
@@ -2754,6 +2770,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 sourcePlane,
                                 transformOrigin,
                                 prediction,
+                                transformSize.GetWidth(),
                                 aboveStorage.Slice(1, transformWidth + transformHeight),
                                 leftStorage.Slice(1, transformWidth + transformHeight),
                                 hasLeft,

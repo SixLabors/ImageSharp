@@ -212,7 +212,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="workspace">The reusable block workspace.</param>
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
-        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="prediction">The prediction destination.</param>
+        /// <param name="predictionStride">The distance between prediction rows in samples.</param>
         /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
         /// <param name="left">The left reference samples.</param>
         /// <param name="hasLeft">Whether the left reference is available.</param>
@@ -229,6 +230,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> prediction,
+            int predictionStride,
             ReadOnlySpan<TSample> above,
             ReadOnlySpan<TSample> left,
             bool hasLeft,
@@ -815,6 +817,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<byte> source,
             Point blockOrigin,
             Span<byte> prediction,
+            int predictionStride,
             ReadOnlySpan<byte> above,
             ReadOnlySpan<byte> left,
             bool hasLeft,
@@ -831,7 +834,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
                 source.Stride,
                 prediction,
-                transformSize.GetWidth(),
+                predictionStride,
                 above,
                 left,
                 hasLeft,
@@ -1421,6 +1424,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> prediction,
+            int predictionStride,
             ReadOnlySpan<ushort> above,
             ReadOnlySpan<ushort> left,
             bool hasLeft,
@@ -1437,7 +1441,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
                 source.Stride,
                 prediction,
-                transformSize.GetWidth(),
+                predictionStride,
                 above,
                 left,
                 hasLeft,

@@ -925,6 +925,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     source,
                                     transformOrigin,
                                     prediction,
+                                    transformSize.GetWidth(),
                                     aboveStorage.Slice(1, transformWidth + transformHeight),
                                     leftStorage.Slice(1, transformWidth + transformHeight),
                                     hasLeft,

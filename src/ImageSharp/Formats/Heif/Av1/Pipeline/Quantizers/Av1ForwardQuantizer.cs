@@ -42,7 +42,7 @@ internal static partial class Av1ForwardQuantizer
                 quantizedCoefficients,
                 dequantizedCoefficients,
                 transformSize,
-                transformType,
+                Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan,
                 qIndex,
                 dcDeltaQ,
                 acDeltaQ,
@@ -52,7 +52,7 @@ internal static partial class Av1ForwardQuantizer
                 quantizedCoefficients,
                 dequantizedCoefficients,
                 transformSize,
-                transformType,
+                Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan,
                 qIndex,
                 dcDeltaQ,
                 acDeltaQ,
@@ -76,10 +76,44 @@ internal static partial class Av1ForwardQuantizer
             quantizedCoefficients,
             dequantizedCoefficients,
             Av1TransformSize.Size4x4,
-            Av1TransformType.DctDct,
+            Av1ScanOrderConstants.GetScanOrder(Av1TransformSize.Size4x4, Av1TransformType.DctDct).Scan,
             0,
             0,
             0,
+            bitDepth);
+
+    /// <summary>
+    /// Quantizes estimation coefficients in their specified scan order.
+    /// </summary>
+    /// <param name="coefficients">The estimation transform coefficients.</param>
+    /// <param name="quantizedCoefficients">The quantized coefficient destination.</param>
+    /// <param name="dequantizedCoefficients">The reconstructed coefficient destination.</param>
+    /// <param name="transformSize">The square estimation transform size.</param>
+    /// <param name="scan">The scan indices for the estimation coefficient layout.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The AC quantizer adjustment.</param>
+    /// <param name="bitDepth">The source sample precision.</param>
+    /// <returns>The one-based end position in the supplied scan.</returns>
+    public static ushort QuantizeForModeEstimation(
+        ReadOnlySpan<int> coefficients,
+        Span<int> quantizedCoefficients,
+        Span<int> dequantizedCoefficients,
+        Av1TransformSize transformSize,
+        ReadOnlySpan<short> scan,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1BitDepth bitDepth)
+        => Quantize<FastQuantizationOperator>(
+            coefficients,
+            quantizedCoefficients,
+            dequantizedCoefficients,
+            transformSize,
+            scan,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
             bitDepth);
 
     /// <summary>
@@ -90,7 +124,7 @@ internal static partial class Av1ForwardQuantizer
         Span<int> quantizedCoefficients,
         Span<int> dequantizedCoefficients,
         Av1TransformSize transformSize,
-        Av1TransformType transformType,
+        ReadOnlySpan<short> scan,
         int qIndex,
         int dcDeltaQ,
         int acDeltaQ,
@@ -219,8 +253,6 @@ internal static partial class Av1ForwardQuantizer
                 logScale,
                 out Unsafe.Add(ref dequantizedBase, i));
         }
-
-        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
 
         // Quantized coefficients remain in raster order for reconstruction and entropy coding. A reverse scan finds
         // the final nonzero position without another buffer, and normally exits on its first iteration at high quality.

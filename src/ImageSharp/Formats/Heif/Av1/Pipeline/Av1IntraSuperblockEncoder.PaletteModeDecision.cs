@@ -27,6 +27,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
+            int colorThreshold,
             ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize)
@@ -44,7 +45,7 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.CopyPaletteSamples(sourcePlane, blockOrigin, rows, columns, samples);
             Span<int> counts = workspace.LumaColorCounts[..(1 << this.bitDepth.GetBitCount())];
             int colorCount = this.CountPaletteColors(samples, counts, out int occupiedBins, out short minimum, out short maximum);
-            if (occupiedBins <= 1 || occupiedBins > 64)
+            if (occupiedBins <= 1 || occupiedBins > colorThreshold)
             {
                 return false;
             }
@@ -94,27 +95,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int searchLevel = speed == 0 ? 0 : speed < 3 ? 1 : 2;
             int headerPruneLevel = this.picture.Sequence.SequenceHeader.IsStillPicture ? speed == 0 ? 1 : 2 : 0;
 
-            // Variance uses the complete coded block, including padded edges. Normalize moments before
-            // subtracting the squared mean so high-bit-depth rounding occurs at the same arithmetic boundary.
-            Span<TSample> midpoint = workspace.GetPrediction(0)[..blockWidth];
-            midpoint.Fill(TOperator.CreateSample(128 << (this.bitDepth.GetBitCount() - 8)));
-            TOperator.GetMoments(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
-                sourcePlane.Stride,
-                midpoint,
-                0,
-                blockWidth,
-                blockHeight,
-                out int sum,
-                out long squares);
-
-            int sampleShift = this.bitDepth.GetBitCount() - 8;
-            int squareShift = sampleShift * 2;
-            sum = (sum + ((1 << sampleShift) >> 1)) >> sampleShift;
-            squares = (squares + ((1L << squareShift) >> 1)) >> squareShift;
-            int blockSampleCount = blockWidth * blockHeight;
-            long variance = Math.Max(0, squares - (((long)sum * sum) / blockSampleCount));
-            int sourceVariance = (int)((variance + (blockSampleCount / 2)) / blockSampleCount);
+            int sourceVariance = this.GetSourceVariance(blockOrigin, blockSize);
             bool selected = false;
 
             // Frequency seeds precede range-seeded clustering. Each family finishes its coarse/fine

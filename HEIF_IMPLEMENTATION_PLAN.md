@@ -221,6 +221,45 @@ Restoration search, filtering, signaling, and retained trial storage are committ
   `nonrd_opt.c:43-326,610-680`. Lower-speed partition pruning and existing Effort gates
   remain unresolved. No performance claim or benchmark follows from this checkpoint.
 
+### High-speed intra mode controller checkpoint: 2026-09-10
+
+- Still-image speeds eight and nine now dispatch through prediction-based mode estimation.
+  Speed eight retains full RD below 16x16 when normalized source variance is at least 101.
+  The fast controller evaluates DC, vertical, horizontal and smooth modes in order, with
+  neighbor pruning, SAD pruning, the flat-boundary transform cap, and the palette entry policy.
+  Chroma uses DC. Selected ordinary transforms are encoded directly into retained frame storage.
+  Native evidence: `partition_search.c:758-775,2275-2363`,
+  `nonrd_pickmode.c:1569-1583,1773-1990`, `nonrd_opt.c:43-326,610-680`,
+  `encodeframe.c:190-211`, and `encoder_utils.h:159-176`.
+- Mode estimates use prediction-only interior edges, square 4/8/16 estimation transforms,
+  their native scan layouts, quantized-magnitude rate estimates, end-position costs and
+  high-bit-depth coefficient-error normalization. The existing SIMD quantizer accepts the
+  estimation scan. Transform and estimation storage borrow existing worker scratch.
+  Native arithmetic: `aom_dsp/avg.c:149-332`, `aom_dsp/fwd_txfm.c:16-83`,
+  `nonrd_opt.h:212-289`, `av1_quantize.c:38-122,203-247`.
+- Palette comparison preserves the distinction between estimated skip-inclusive mode rates and
+  the palette search's returned token/header rate. Palette source variance now shares the exact
+  normalized-moment calculation used by the mode controller, without a duplicate implementation.
+  Native rate ownership: `palette.c:269-309`, `tx_search.c:2908-2966`.
+- Roslyn reports zero errors with the existing 2113 warnings and 387 hidden diagnostics.
+  Release/net11 builds successfully. Final frame tests pass 181/181
+  (`estimated-intra-frame-final`); final public tests remain 73/76
+  (`estimated-intra-public-final`). The preceding block, transform and scalar high-bit-depth
+  runs pass 143/143, 14/14 and 8/8 respectively. No expected images or tolerances changed.
+- Native inspection of the current speed-nine flag payload matches all 1500 block sizes,
+  transform sizes/types, chroma modes, skip flags, quantizer values and CDEF entries.
+  One 8x8 luma block at pixel (0,80) selects four-color palette instead of horizontal prediction.
+  Separate encoders, decoded by the same native decoder, have maximum Y/U/V differences 1/0/3,
+  differing counts 72/0/287 and counts above one 0/0/16. The final regenerated managed payload
+  is byte-identical to the inspected payload. Native payload size is 1444 bytes; managed is 1451.
+  These results do not meet encoder acceptance and do not establish decoder equivalence.
+- The missing final coefficient optimizer remains a demonstrated dependency:
+  `encodemb.c:208-224,845-884` calls it after fast quantization, and
+  `txb_rdopt.c:400-571` defines its complete coefficient and end-position decisions.
+  The current managed final transform still omits that stage. Speed-eight partition merging,
+  remaining full-RD controller policies, broader exact native comparisons and end-to-end
+  performance remain open. No benchmark or performance claim was made for this checkpoint.
+
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.
 The previous `d565eec6` source directory is an export without Git metadata. Its local build cache

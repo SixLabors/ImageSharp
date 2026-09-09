@@ -1,0 +1,32 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1;
+
+/// <summary>
+/// Contains the field widths and decoding-clock units used by the AV1 decoder model.
+/// </summary>
+internal sealed class ObuDecoderModelInfo
+{
+    /// <summary>
+    /// Gets or sets BufferDelayLength. Specifies the length of the decoder_buffer_delay and the encoder_buffer_delay
+    /// syntax elements, in bits.
+    /// </summary>
+    public uint BufferDelayLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets NumUnitsInDecodingTick. This is the number of time units of a decoding clock operating at the frequency time_scale Hz
+    /// that corresponds to one increment of a clock tick counter.
+    /// </summary>
+    public uint NumUnitsInDecodingTick { get; set; }
+
+    /// <summary>
+    /// Gets or sets BufferRemovalTimeLength. Specifies the length of the buffer_removal_time syntax element, in bits.
+    /// </summary>
+    public uint BufferRemovalTimeLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets the FramePresentationTimeLength. Specifies the length of the frame_presentation_time syntax element, in bits.
+    /// </summary>
+    public uint FramePresentationTimeLength { get; set; }
+}

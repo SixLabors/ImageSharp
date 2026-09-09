@@ -348,7 +348,7 @@ public partial class PixelOperations<TPixel>
 
     /// <summary>
     /// Bulk operation that packs 3 separate RGB channels to <paramref name="destination"/>.
-    /// The destination must have a padding of 3.
+    /// The destination must contain at least as many pixels as each source channel.
     /// </summary>
     /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
     /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
@@ -424,6 +424,6 @@ public partial class PixelOperations<TPixel>
     {
         Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
         Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
-        Guard.IsTrue(destination.Length > count + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
+        Guard.IsTrue(destination.Length >= count, nameof(destination), "'destination' span should not be shorter than the source channels!");
     }
 }

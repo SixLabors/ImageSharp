@@ -16,17 +16,17 @@ internal class LutEntryCalculator : IVector4Calculator
     private Matrix4x4 matrix;
     private bool doTransform;
 
-    public LutEntryCalculator(IccLut8TagDataEntry lut)
+    public LutEntryCalculator(IccLut8TagDataEntry lut, bool useTrilinearInterpolation)
     {
         Guard.NotNull(lut, nameof(lut));
-        this.Init(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix);
+        this.Init(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix, useTrilinearInterpolation);
         this.Is16Bit = false;
     }
 
-    public LutEntryCalculator(IccLut16TagDataEntry lut)
+    public LutEntryCalculator(IccLut16TagDataEntry lut, bool useTrilinearInterpolation)
     {
         Guard.NotNull(lut, nameof(lut));
-        this.Init(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix);
+        this.Init(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix, useTrilinearInterpolation);
         this.Is16Bit = true;
     }
 
@@ -57,11 +57,11 @@ internal class LutEntryCalculator : IVector4Calculator
         return value;
     }
 
-    private void Init(IccLut[] inputCurve, IccLut[] outputCurve, IccClut clut, Matrix4x4 matrix)
+    private void Init(IccLut[] inputCurve, IccLut[] outputCurve, IccClut clut, Matrix4x4 matrix, bool useTrilinearInterpolation)
     {
         this.inputCurve = InitLut(inputCurve);
         this.outputCurve = InitLut(outputCurve);
-        this.clutCalculator = new ClutCalculator(clut);
+        this.clutCalculator = new ClutCalculator(clut, useTrilinearInterpolation);
         this.matrix = matrix;
 
         this.doTransform = !matrix.IsIdentity && inputCurve.Length == 3;

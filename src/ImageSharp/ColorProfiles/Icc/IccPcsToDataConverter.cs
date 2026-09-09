@@ -15,8 +15,9 @@ internal class IccPcsToDataConverter : IccConverterBase
     /// Initializes a new instance of the <see cref="IccPcsToDataConverter"/> class.
     /// </summary>
     /// <param name="profile">The ICC profile to use for the conversions</param>
-    public IccPcsToDataConverter(IccProfile profile)
-        : base(profile, false)
+    /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+    public IccPcsToDataConverter(IccProfile profile, IccInterpolationMethod interpolationMethod)
+        : base(profile, false, interpolationMethod)
     {
     }
 }

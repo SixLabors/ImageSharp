@@ -1,0 +1,1167 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+
+/// <summary>
+/// Reconstructs AV1 intra-predicted transform blocks from neighboring samples and decoded mode information.
+/// </summary>
+/// <remarks>
+/// This type implements the intra prediction portion of the AV1 reconstruction process for 8-, 10-, and 12-bit
+/// samples. Intra-edge filtering and upsampling operate on caller-owned padded scratch: adjacent reference samples map
+/// to adjacent SIMD lanes, exact-width stores interleave filtered half samples with the original edge, and scalar
+/// continuations handle only incomplete vectors. The completed edges then feed the closed prediction operators.
+/// </remarks>
+internal sealed class Av1PredictionDecoder
+{
+    /// <summary>
+    /// The number of samples reserved for one prepared AV1 intra-prediction edge.
+    /// </summary>
+    private const int ReferenceBufferLength = Av1IntraEdgePreparation.ReferenceBufferLength;
+
+    /// <summary>
+    /// The padded sample count required by the widest intra-edge SIMD loads.
+    /// </summary>
+    private const int EdgeScratchLength = Av1IntraEdgeFilter.ScratchLength;
+
+    /// <summary>
+    /// The number of high-bit-depth samples required by the reusable prediction workspace.
+    /// </summary>
+    public const int ScratchLength = Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength) + EdgeScratchLength;
+
+    /// <summary>
+    /// The sequence-level syntax that controls chroma sampling, bit depth, superblock size, and intra-edge filtering.
+    /// </summary>
+    private readonly ObuSequenceHeader sequenceHeader;
+
+    /// <summary>
+    /// The frame-level syntax that controls segment lossless state and prediction behavior.
+    /// </summary>
+    private readonly ObuFrameHeader frameHeader;
+
+    /// <summary>
+    /// The frame-owned workspace shared by directional and filter-intra predictors.
+    /// </summary>
+    private readonly Memory<short> predictorScratch;
+
+    /// <summary>
+    /// The complete decoder-session palette color-index map state, when supplied by a decoder session.
+    /// </summary>
+    private readonly Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1PredictionDecoder"/> class.
+    /// </summary>
+    /// <param name="sequenceHeader">The decoded sequence header for the current image.</param>
+    /// <param name="frameHeader">The decoded frame header for the current image.</param>
+    /// <param name="predictorScratch">The reusable predictor workspace owned by the containing block decoder.</param>
+    /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
+    public Av1PredictionDecoder(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Memory<short> predictorScratch,
+        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
+    {
+        this.sequenceHeader = sequenceHeader;
+        this.frameHeader = frameHeader;
+        this.predictorScratch = predictorScratch;
+        this.paletteColorIndexMaps = paletteColorIndexMaps;
+    }
+
+    /// <summary>
+    /// Reconstructs an 8-bit intra-predicted transform block.
+    /// </summary>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The sample buffer beginning at the row above the destination block.</param>
+    /// <param name="pixelStride">The distance, in samples, between pixel rows.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
+    public void Decode(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TransformSize transformSize,
+        Av1TileInfo tileInfo,
+        Span<byte> pixelBuffer,
+        int pixelStride,
+        Av1BitDepth bitDepth,
+        int blockModeInfoColumnOffset,
+        int blockModeInfoRowOffset)
+        => this.DecodeCore(
+            ref partitionInfo,
+            plane,
+            transformSize,
+            tileInfo,
+            pixelBuffer,
+            pixelStride,
+            bitDepth,
+            blockModeInfoColumnOffset,
+            blockModeInfoRowOffset);
+
+    /// <summary>
+    /// Builds the intra predictor for an 8-bit inter-intra plane block in separate caller-owned storage.
+    /// </summary>
+    public void DecodeInterIntra(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TileInfo tileInfo,
+        Span<byte> referenceBuffer,
+        int referenceStride,
+        Span<byte> destination,
+        int destinationStride,
+        Av1BitDepth bitDepth)
+        => this.DecodeInterIntraCore(
+            ref partitionInfo,
+            plane,
+            tileInfo,
+            referenceBuffer,
+            referenceStride,
+            destination,
+            destinationStride,
+            bitDepth);
+
+    /// <summary>
+    /// Builds the intra predictor for a high-bit-depth inter-intra plane block in separate caller-owned storage.
+    /// </summary>
+    public void DecodeInterIntra(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TileInfo tileInfo,
+        Span<short> referenceBuffer,
+        int referenceStride,
+        Span<short> destination,
+        int destinationStride,
+        Av1BitDepth bitDepth)
+        => this.DecodeInterIntraCore(
+            ref partitionInfo,
+            plane,
+            tileInfo,
+            referenceBuffer,
+            referenceStride,
+            destination,
+            destinationStride,
+            bitDepth);
+
+    /// <summary>
+    /// Builds an inter-intra predictor from reconstructed frame neighbors without replacing those references.
+    /// </summary>
+    private void DecodeInterIntraCore<T>(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TileInfo tileInfo,
+        Span<T> referenceBuffer,
+        int referenceStride,
+        Span<T> destination,
+        int destinationStride,
+        Av1BitDepth bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
+        int subX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
+        int subY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
+        Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
+        Av1TransformSize transformSize = planeBlockSize.GetMaximumTransformSize();
+        Av1PredictionMode mode = partitionInfo.ModeInfo.InterIntraMode switch
+        {
+            Av1InterIntraMode.Vertical => Av1PredictionMode.Vertical,
+            Av1InterIntraMode.Horizontal => Av1PredictionMode.Horizontal,
+            Av1InterIntraMode.Smooth => Av1PredictionMode.Smooth,
+            _ => Av1PredictionMode.DC,
+        };
+
+        Span<T> topNeighbor = referenceBuffer;
+        ReadOnlySpan<T> leftNeighbor = referenceBuffer[(referenceStride - 1)..];
+
+        // The reference decoder predicts one maximum-transform-sized plane block for inter-intra. Destination storage is separate
+        // because the inter predictor must remain intact until the final mask blend consumes both complete blocks.
+        this.PredictIntraBlock(
+            ref partitionInfo,
+            plane,
+            transformSize,
+            tileInfo,
+            destination,
+            destinationStride,
+            topNeighbor,
+            leftNeighbor,
+            referenceStride,
+            mode,
+            blockModeInfoColumnOffset: 0,
+            blockModeInfoRowOffset: 0,
+            bitDepth);
+    }
+
+    /// <summary>
+    /// Reconstructs a 10-bit or 12-bit intra-predicted transform block.
+    /// </summary>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The sample buffer beginning at the row above the destination block.</param>
+    /// <param name="pixelStride">The distance, in samples, between pixel rows.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
+    /// <remarks>Implements the intra prediction portion of section 7.11.2 of the AV1 specification.</remarks>
+    public void Decode(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TransformSize transformSize,
+        Av1TileInfo tileInfo,
+        Span<short> pixelBuffer,
+        int pixelStride,
+        Av1BitDepth bitDepth,
+        int blockModeInfoColumnOffset,
+        int blockModeInfoRowOffset)
+        => this.DecodeCore(
+            ref partitionInfo,
+            plane,
+            transformSize,
+            tileInfo,
+            pixelBuffer,
+            pixelStride,
+            bitDepth,
+            blockModeInfoColumnOffset,
+            blockModeInfoRowOffset);
+
+    /// <summary>
+    /// Reconstructs an intra-predicted transform block in its native sample representation.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The sample buffer beginning at the row above the destination block.</param>
+    /// <param name="pixelStride">The distance, in samples, between pixel rows.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
+    private void DecodeCore<T>(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TransformSize transformSize,
+        Av1TileInfo tileInfo,
+        Span<T> pixelBuffer,
+        int pixelStride,
+        Av1BitDepth bitDepth,
+        int blockModeInfoColumnOffset,
+        int blockModeInfoRowOffset)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        int stride = pixelStride;
+
+        // Unlike the encoder's separate destination and reference pointers, this span begins at the
+        // previous row. That layout exposes the top, top-left, and strided left samples without copying.
+        Span<T> topNeighbor = pixelBuffer;
+        Span<T> leftNeighbor = pixelBuffer[(stride - 1)..];
+        Span<T> startOfPixels = pixelBuffer[stride..];
+
+        Av1PredictionMode mode = partitionInfo.ModeInfo.YMode;
+        if (plane != Av1Plane.Y && partitionInfo.ModeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma)
+        {
+            this.PredictIntraBlock(
+                ref partitionInfo,
+                plane,
+                transformSize,
+                tileInfo,
+                startOfPixels,
+                stride,
+                topNeighbor,
+                leftNeighbor,
+                stride,
+                Av1PredictionMode.DC,
+                blockModeInfoColumnOffset,
+                blockModeInfoRowOffset,
+                bitDepth);
+
+            this.PredictChromaFromLumaBlock(
+                ref partitionInfo,
+                partitionInfo.ChromaFromLumaContext,
+                startOfPixels,
+                stride,
+                transformSize,
+                plane);
+
+            return;
+        }
+
+        if (plane != Av1Plane.Y)
+        {
+            // Chroma and luma modes are separate bitstream domains. Shared spatial predictors consume the explicit
+            // the reference decoder get_uv_mode() equivalent rather than relying on their matching ordinal values.
+            mode = partitionInfo.ModeInfo.UvMode.ToLumaMode();
+        }
+
+        this.PredictIntraBlock(
+            ref partitionInfo,
+            plane,
+            transformSize,
+            tileInfo,
+            startOfPixels,
+            stride,
+            topNeighbor,
+            leftNeighbor,
+            stride,
+            mode,
+            blockModeInfoColumnOffset,
+            blockModeInfoRowOffset,
+            bitDepth);
+    }
+
+    /// <summary>
+    /// Applies chroma-from-luma scaling to the DC prediction for one chroma transform block.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="chromaFromLumaContext">The block-level luma prediction context shared by the chroma planes.</param>
+    /// <param name="pixelBuffer">The DC-predicted chroma samples that receive the luma-derived adjustment.</param>
+    /// <param name="stride">The distance, in samples, between pixel rows.</param>
+    /// <param name="transformSize">The dimensions of the chroma transform block.</param>
+    /// <param name="plane">The U or V plane being reconstructed.</param>
+    private void PredictChromaFromLumaBlock<T>(
+        ref Av1PartitionInfo partitionInfo,
+        Av1ChromaFromLumaContext? chromaFromLumaContext,
+        Span<T> pixelBuffer,
+        int stride,
+        Av1TransformSize transformSize,
+        Av1Plane plane)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        Av1BlockSize blockSize = modeInfo.BlockSize;
+        DebugGuard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
+        bool isChromaFromLumaAllowedFlag = blockSize.AllowsChromaFromLuma(
+            this.frameHeader.LosslessArray[modeInfo.SegmentId],
+            this.sequenceHeader.ColorConfig.SubSamplingX,
+            this.sequenceHeader.ColorConfig.SubSamplingY);
+
+        DebugGuard.IsTrue(isChromaFromLumaAllowedFlag, "Chroma from Luma should be allowed then computing it.");
+
+        if (chromaFromLumaContext == null)
+        {
+            throw new InvalidOperationException("CFL context should have been defined already.");
+        }
+
+        // U computes the shared subsampled-luma parameters first; V reuses them for the
+        // same block because both chroma planes have identical sampling geometry.
+        if (!chromaFromLumaContext.AreParametersComputed)
+        {
+            chromaFromLumaContext.ComputeParameters(transformSize);
+        }
+
+        int alphaQ3 = ChromaFromLumaIndexToAlpha(modeInfo.ChromaFromLumaAlphaIndex, modeInfo.ChromaFromLumaAlphaSign, plane);
+
+        Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+
+        if (typeof(T) == typeof(byte))
+        {
+            Av1ChromaFromLumaPredictor.Predict(chromaFromLumaContext.Q3Buffer, MemoryMarshal.Cast<T, byte>(pixelBuffer), stride, alphaQ3, width, height);
+        }
+        else
+        {
+            Av1ChromaFromLumaPredictor.Predict(chromaFromLumaContext.Q3Buffer, MemoryMarshal.Cast<T, short>(pixelBuffer), stride, alphaQ3, bitDepth.GetBitCount(), width, height);
+        }
+    }
+
+    /// <summary>
+    /// Converts the packed chroma-from-luma magnitude and joint sign into a signed Q3 scaling factor.
+    /// </summary>
+    /// <param name="alphaIndex">The packed U and V alpha magnitudes.</param>
+    /// <param name="jointSign">The joint U and V alpha-sign symbol.</param>
+    /// <param name="plane">The U or V plane whose alpha value is selected.</param>
+    /// <returns>The signed Q3 alpha value for the selected chroma plane.</returns>
+    public static int ChromaFromLumaIndexToAlpha(int alphaIndex, int jointSign, Av1Plane plane)
+    {
+        int alphaSign = (plane == Av1Plane.U) ? Av1ChromaFromLumaMath.SignU(jointSign) : Av1ChromaFromLumaMath.SignV(jointSign);
+        if (alphaSign == Av1ChromaFromLumaMath.SignZero)
+        {
+            return 0;
+        }
+
+        int absAlphaQ3 = (plane == Av1Plane.U) ? Av1ChromaFromLumaMath.IndexU(alphaIndex) : Av1ChromaFromLumaMath.IndexV(alphaIndex);
+        return (alphaSign == Av1ChromaFromLumaMath.SignPositive) ? absAlphaQ3 + 1 : -absAlphaQ3 - 1;
+    }
+
+    /// <summary>
+    /// Determines available reference samples and dispatches prediction for one transform block.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The destination samples for the transform block.</param>
+    /// <param name="pixelBufferStride">The distance, in samples, between destination rows.</param>
+    /// <param name="topNeighbor">The reconstructed samples along the top edge.</param>
+    /// <param name="leftNeighbor">The reconstructed samples along the left edge.</param>
+    /// <param name="referenceStride">The distance, in samples, between consecutive left-edge references.</param>
+    /// <param name="mode">The intra prediction mode to apply.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
+    private void PredictIntraBlock<T>(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TransformSize transformSize,
+        Av1TileInfo tileInfo,
+        Span<T> pixelBuffer,
+        int pixelBufferStride,
+        Span<T> topNeighbor,
+        ReadOnlySpan<T> leftNeighbor,
+        int referenceStride,
+        Av1PredictionMode mode,
+        int blockModeInfoColumnOffset,
+        int blockModeInfoRowOffset,
+        Av1BitDepth bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ObuColorConfig cc = this.sequenceHeader.ColorConfig;
+        int subX = plane != Av1Plane.Y ? cc.SubSamplingX ? 1 : 0 : 0;
+        int subY = plane != Av1Plane.Y ? cc.SubSamplingY ? 1 : 0 : 0;
+
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+
+        int transformWidth = transformSize.GetWidth();
+        int transformHeight = transformSize.GetHeight();
+        int transformWidthInModeInfoUnits = transformSize.Get4x4WideCount();
+        int transformHeightInModeInfoUnits = transformSize.Get4x4HighCount();
+
+        bool usePalette = modeInfo.GetPaletteSize(plane) > 0;
+
+        if (usePalette)
+        {
+            ReadOnlySpan<ushort> paletteColors = modeInfo.GetPaletteColors(plane);
+            Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMapState = this.paletteColorIndexMaps;
+            if (paletteColorIndexMapState is null)
+            {
+                throw new InvalidOperationException("Palette prediction requires decoder-session color-index maps.");
+            }
+
+            Av1TileReader.PaletteColorIndexMaps paletteColorIndexMaps = paletteColorIndexMapState.Value;
+            Buffer2D<byte> colorIndexBuffer = plane == Av1Plane.Y
+                ? paletteColorIndexMaps.Luma
+                : paletteColorIndexMaps.Chroma;
+
+            Buffer2DRegion<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane, colorIndexBuffer);
+            Buffer2DRegion<byte> transformColorIndexMap = colorIndexMap.GetSubRegion(
+                blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2,
+                blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2,
+                transformWidth,
+                transformHeight);
+
+            // Every transform reconstructs its own window of the block-level palette map. The row-oriented region
+            // keeps this traversal valid when the frame-owned map spans multiple allocator memory groups.
+            if (typeof(T) == typeof(byte))
+            {
+                Span<byte> byteDestination = MemoryMarshal.Cast<T, byte>(pixelBuffer);
+                Av1PalettePredictor.Predict(paletteColors, transformColorIndexMap, byteDestination, pixelBufferStride, transformWidth, transformHeight);
+            }
+            else
+            {
+                Span<short> highBitDepthDestination = MemoryMarshal.Cast<T, short>(pixelBuffer);
+                Av1PalettePredictor.Predict(paletteColors, transformColorIndexMap, highBitDepthDestination, pixelBufferStride, transformWidth, transformHeight);
+            }
+
+            return;
+        }
+
+        Av1FilterIntraMode filterIntraMode = (plane == Av1Plane.Y && modeInfo.UseFilterIntra)
+            ? modeInfo.FilterIntraMode : Av1FilterIntraMode.AllFilterIntraModes;
+
+        int angleDelta = modeInfo.GetAngleDelta(plane);
+
+        Av1BlockSize blockSize = modeInfo.BlockSize;
+        bool haveTop = blockModeInfoRowOffset > 0 || (subY > 0 ? partitionInfo.AvailableAboveForChroma : partitionInfo.AvailableAbove);
+        bool haveLeft = blockModeInfoColumnOffset > 0 || (subX > 0 ? partitionInfo.AvailableLeftForChroma : partitionInfo.AvailableLeft);
+
+        int modeInfoRow = -partitionInfo.ModeBlockToTopEdge >> (3 + Av1Constants.ModeInfoSizeLog2);
+        int modeInfoColumn = -partitionInfo.ModeBlockToLeftEdge >> (3 + Av1Constants.ModeInfoSizeLog2);
+        int xrOffset = 0;
+        int ydOffset = 0;
+
+        // These distances bound edge extension at the coded frame rather than allowing
+        // a transform to read padding that happens to exist beyond the visible image.
+        int xr = (partitionInfo.ModeBlockToRightEdge >> (3 + subX)) +
+            (partitionInfo.GetWidthInPixels(plane) - (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2) - transformWidth) -
+            xrOffset;
+
+        int yd = (partitionInfo.ModeBlockToBottomEdge >> (3 + subY)) +
+            (partitionInfo.GetHeightInPixels(plane) - (blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) - transformHeight) - ydOffset;
+
+        bool rightAvailable = modeInfoColumn + ((blockModeInfoColumnOffset + transformWidthInModeInfoUnits) << subX) < tileInfo.ModeInfoColumnEnd;
+        bool bottomAvailable = (yd > 0) && (modeInfoRow + ((blockModeInfoRowOffset + transformHeightInModeInfoUnits) << subY) < tileInfo.ModeInfoRowEnd);
+
+        Av1PartitionType partition = modeInfo.PartitionType;
+
+        // Chroma prediction geometry cannot be smaller than 4 by 4 after subsampling.
+        blockSize = ScaleChromaBlockSize(blockSize, subX == 1, subY == 1);
+
+        bool haveTopRight = Av1IntraReferenceAvailability.HasTopRight(
+            this.sequenceHeader.SuperblockSize,
+            blockSize,
+            modeInfoRow,
+            modeInfoColumn,
+            haveTop,
+            rightAvailable,
+            partition,
+            transformSize,
+            blockModeInfoRowOffset,
+            blockModeInfoColumnOffset,
+            subX,
+            subY);
+        bool haveBottomLeft = Av1IntraReferenceAvailability.HasBottomLeft(
+            this.sequenceHeader.SuperblockSize,
+            blockSize,
+            modeInfoRow,
+            modeInfoColumn,
+            bottomAvailable,
+            haveLeft,
+            partition,
+            transformSize,
+            blockModeInfoRowOffset,
+            blockModeInfoColumnOffset,
+            subX,
+            subY);
+
+        bool disableEdgeFilter = !this.sequenceHeader.EnableIntraEdgeFilter;
+
+        // Calling all other intra predictors except CFL and palette.
+        this.DecodeBuildIntraPredictors(
+            ref partitionInfo,
+            topNeighbor,
+            leftNeighbor,
+            (nuint)referenceStride,
+            pixelBuffer,
+            (nuint)pixelBufferStride,
+            mode,
+            angleDelta,
+            filterIntraMode,
+            transformSize,
+            disableEdgeFilter,
+            haveTop ? Math.Min(transformWidth, xr + transformWidth) : 0,
+            haveTopRight ? Math.Min(transformWidth, xr) : 0,
+            haveLeft ? Math.Min(transformHeight, yd + transformHeight) : 0,
+            haveBottomLeft ? Math.Min(transformHeight, yd) : 0,
+            plane,
+            bitDepth.GetBitCount());
+    }
+
+    /// <summary>
+    /// Adjusts sub-8-by-8 luma block geometry to the minimum chroma prediction block size.
+    /// </summary>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="subX">A value indicating whether chroma is horizontally subsampled.</param>
+    /// <param name="subY">A value indicating whether chroma is vertically subsampled.</param>
+    /// <returns>The block size used to evaluate chroma reference availability.</returns>
+    private static Av1BlockSize ScaleChromaBlockSize(Av1BlockSize blockSize, bool subX, bool subY)
+    {
+        Av1BlockSize bs = blockSize;
+        switch (blockSize)
+        {
+            case Av1BlockSize.Block4x4:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x4;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block4x8;
+                }
+
+                break;
+            case Av1BlockSize.Block4x8:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block4x8;
+                }
+
+                break;
+            case Av1BlockSize.Block8x4:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x4;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+
+                break;
+            case Av1BlockSize.Block4x16:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x16;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x16;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block4x16;
+                }
+
+                break;
+            case Av1BlockSize.Block16x4:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block16x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block16x4;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block16x8;
+                }
+
+                break;
+            default:
+                break;
+        }
+
+        return bs;
+    }
+
+    /// <summary>
+    /// Prepares normative reference-edge samples and runs the selected intra predictor.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and neighboring mode state.</param>
+    /// <param name="aboveNeighbor">The reconstructed top and top-right reference samples.</param>
+    /// <param name="leftNeighbor">The reconstructed left and bottom-left reference samples.</param>
+    /// <param name="referenceStride">The distance, in samples, between consecutive left-edge references.</param>
+    /// <param name="destination">The buffer that receives the prediction block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="mode">The intra prediction mode to apply.</param>
+    /// <param name="angleDelta">The coded directional angle adjustment.</param>
+    /// <param name="filterIntraMode">The selected filter intra mode, or the sentinel indicating that filter intra is disabled.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="disableEdgeFilter">A value indicating whether intra-edge filtering and upsampling are disabled.</param>
+    /// <param name="topPixelCount">The number of available top samples.</param>
+    /// <param name="topRightPixelCount">The number of available top-right extension samples.</param>
+    /// <param name="leftPixelCount">The number of available left samples.</param>
+    /// <param name="bottomLeftPixelCount">The number of available bottom-left extension samples.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
+    private void DecodeBuildIntraPredictors<T>(
+        ref Av1PartitionInfo partitionInfo,
+        Span<T> aboveNeighbor,
+        ReadOnlySpan<T> leftNeighbor,
+        nuint referenceStride,
+        Span<T> destination,
+        nuint destinationStride,
+        Av1PredictionMode mode,
+        int angleDelta,
+        Av1FilterIntraMode filterIntraMode,
+        Av1TransformSize transformSize,
+        bool disableEdgeFilter,
+        int topPixelCount,
+        int topRightPixelCount,
+        int leftPixelCount,
+        int bottomLeftPixelCount,
+        Av1Plane plane,
+        int bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        int baseValue = 128 << (bitDepth - 8);
+
+        // The frame-owned allocation is sized in high-bit-depth samples. Reinterpreting it as T gives the byte
+        // path additional capacity while preserving the same sample offsets for the larger short representation.
+        Span<T> scratch = MemoryMarshal.Cast<short, T>(this.predictorScratch.Span);
+        Span<T> aboveData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength, ReferenceBufferLength);
+        Span<T> leftData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + ReferenceBufferLength, ReferenceBufferLength);
+        Span<T> edgeScratch = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength), EdgeScratchLength);
+
+        // Prefix storage is required because AV1 addresses the shared top-left sample at -1
+        // and writes upsampled edge samples as far back as -2.
+        aboveData.Fill(T.CreateChecked(baseValue - 1));
+        leftData.Fill(T.CreateChecked(baseValue + 1));
+        Span<T> aboveRow = aboveData[Av1IntraEdgePreparation.ReferencePrefixLength..];
+        Span<T> leftColumn = leftData[Av1IntraEdgePreparation.ReferencePrefixLength..];
+        int transformWidth = transformSize.GetWidth();
+        int transformHeight = transformSize.GetHeight();
+        bool isDirectionalMode = mode.IsDirectional();
+        Av1NeighborNeed need = mode.GetNeighborNeed();
+        bool needLeft = (need & Av1NeighborNeed.Left) == Av1NeighborNeed.Left;
+        bool needAbove = (need & Av1NeighborNeed.Above) == Av1NeighborNeed.Above;
+        bool needAboveLeft = (need & Av1NeighborNeed.AboveLeft) == Av1NeighborNeed.AboveLeft;
+        int angle = 0;
+        bool useFilterIntra = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
+
+        if (isDirectionalMode)
+        {
+            angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
+            if (angle <= 90)
+            {
+                needAbove = true;
+                needLeft = false;
+                needAboveLeft = true;
+            }
+            else if (angle < 180)
+            {
+                needAbove = true;
+                needLeft = true;
+                needAboveLeft = true;
+            }
+            else
+            {
+                needAbove = false;
+                needLeft = true;
+                needAboveLeft = true;
+            }
+        }
+
+        if (useFilterIntra)
+        {
+            needAbove = true;
+            needLeft = true;
+            needAboveLeft = true;
+        }
+
+        DebugGuard.MustBeGreaterThanOrEqualTo(topPixelCount, 0, nameof(topPixelCount));
+        DebugGuard.MustBeGreaterThanOrEqualTo(topRightPixelCount, 0, nameof(topRightPixelCount));
+        DebugGuard.MustBeGreaterThanOrEqualTo(leftPixelCount, 0, nameof(leftPixelCount));
+        DebugGuard.MustBeGreaterThanOrEqualTo(bottomLeftPixelCount, 0, nameof(bottomLeftPixelCount));
+
+        if ((!needAbove && leftPixelCount == 0) || (!needLeft && topPixelCount == 0))
+        {
+            // Pure horizontal or vertical prediction with its sole required edge missing
+            // degenerates to the first perpendicular sample or the normative midpoint offset.
+            T value;
+            if (needLeft)
+            {
+                value = topPixelCount > 0 ? aboveNeighbor[0] : T.CreateChecked(baseValue + 1);
+            }
+            else
+            {
+                value = leftPixelCount > 0 ? leftNeighbor[0] : T.CreateChecked(baseValue - 1);
+            }
+
+            for (int i = 0; i < transformHeight; ++i)
+            {
+                destination.Slice(i * (int)destinationStride, transformWidth).Fill(value);
+            }
+
+            return;
+        }
+
+        // Copy the available left and bottom-left samples, then extend the final sample
+        // through any unavailable portion required by the selected predictor.
+        if (needLeft)
+        {
+            bool needBottom = (need & Av1NeighborNeed.BottomLeft) == Av1NeighborNeed.BottomLeft;
+            if (useFilterIntra)
+            {
+                needBottom = false;
+            }
+
+            if (isDirectionalMode)
+            {
+                needBottom = angle > 180;
+            }
+
+            int numLeftPixelsNeeded = transformHeight + (needBottom ? transformWidth : 0);
+            int i = 0;
+            if (leftPixelCount > 0)
+            {
+                for (; i < leftPixelCount; i++)
+                {
+                    leftColumn[i] = leftNeighbor[i * (int)referenceStride];
+                }
+
+                if (needBottom && bottomLeftPixelCount > 0)
+                {
+                    Guard.IsTrue(i == transformHeight, nameof(i), string.Empty);
+                    for (; i < transformHeight + bottomLeftPixelCount; i++)
+                    {
+                        leftColumn[i] = leftNeighbor[i * (int)referenceStride];
+                    }
+                }
+
+                if (i < numLeftPixelsNeeded)
+                {
+                    leftColumn.Slice(i, numLeftPixelsNeeded - i).Fill(leftColumn[i - 1]);
+                }
+            }
+            else
+            {
+                if (topPixelCount > 0)
+                {
+                    leftColumn[..numLeftPixelsNeeded].Fill(aboveNeighbor[0]);
+                }
+                else
+                {
+                    leftColumn[..numLeftPixelsNeeded].Fill(T.CreateChecked(baseValue + 1));
+                }
+            }
+        }
+
+        // Prepare the top edge by the same copy-and-extend rule. Unlike the left edge,
+        // these samples are contiguous in the reconstructed pixel buffer.
+        if (needAbove)
+        {
+            bool needRight = (need & Av1NeighborNeed.AboveRight) == Av1NeighborNeed.AboveRight;
+            if (useFilterIntra)
+            {
+                needRight = false;
+            }
+
+            if (isDirectionalMode)
+            {
+                needRight = angle < 90;
+            }
+
+            int numTopPixelsNeeded = transformWidth + (needRight ? transformHeight : 0);
+            if (topPixelCount > 0)
+            {
+                aboveNeighbor[..topPixelCount].CopyTo(aboveRow);
+                int i = topPixelCount;
+                if (topRightPixelCount > 0)
+                {
+                    Guard.IsTrue(topPixelCount == transformWidth, nameof(topPixelCount), string.Empty);
+                    aboveNeighbor.Slice(transformWidth, topRightPixelCount).CopyTo(aboveRow[transformWidth..]);
+                    i += topRightPixelCount;
+                }
+
+                if (i < numTopPixelsNeeded)
+                {
+                    aboveRow.Slice(i, numTopPixelsNeeded - i).Fill(aboveRow[i - 1]);
+                }
+            }
+            else
+            {
+                if (leftPixelCount > 0)
+                {
+                    aboveRow[..numTopPixelsNeeded].Fill(leftNeighbor[0]);
+                }
+                else
+                {
+                    aboveRow[..numTopPixelsNeeded].Fill(T.CreateChecked(baseValue - 1));
+                }
+            }
+        }
+
+        if (needAboveLeft)
+        {
+            // AV1 synthesizes the shared corner from the closest available edge when only
+            // one edge exists, and uses the bit-depth midpoint when neither edge exists.
+            ref T aboveLeft = ref Unsafe.Subtract(ref aboveRow[0], 1);
+            if (topPixelCount > 0 && leftPixelCount > 0)
+            {
+                aboveLeft = Unsafe.Subtract(ref aboveNeighbor[0], 1);
+            }
+            else if (topPixelCount > 0)
+            {
+                aboveLeft = aboveNeighbor[0];
+            }
+            else if (leftPixelCount > 0)
+            {
+                aboveLeft = leftNeighbor[0];
+            }
+            else
+            {
+                aboveLeft = T.CreateChecked(baseValue);
+            }
+
+            Unsafe.Subtract(ref leftColumn[0], 1) = aboveLeft;
+        }
+
+        if (useFilterIntra)
+        {
+            this.FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
+            return;
+        }
+
+        if (isDirectionalMode)
+        {
+            bool upsampleAbove = false;
+            bool upsampleLeft = false;
+            if (!disableEdgeFilter)
+            {
+                Av1IntraEdgePreparation.Prepare(
+                    aboveRow,
+                    leftColumn,
+                    transformWidth,
+                    transformHeight,
+                    angle,
+                    topPixelCount,
+                    leftPixelCount,
+                    GetFilterType(ref partitionInfo, plane),
+                    bitDepth,
+                    edgeScratch,
+                    out upsampleAbove,
+                    out upsampleLeft);
+            }
+
+            this.DirectionalPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle);
+            return;
+        }
+
+        if (mode == Av1PredictionMode.DC)
+        {
+            DcPredictor(leftPixelCount > 0, topPixelCount > 0, transformSize, destination, destinationStride, aboveRow, leftColumn, bitDepth);
+        }
+        else
+        {
+            GeneralPredictor(mode, transformSize, destination, destinationStride, aboveRow, leftColumn);
+        }
+    }
+
+    /// <summary>
+    /// Dispatches DC prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="hasLeft">A value indicating whether reconstructed left samples are available.</param>
+    /// <param name="hasAbove">A value indicating whether reconstructed top samples are available.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
+    private static void DcPredictor<T>(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left, int bitDepth)
+        where T : unmanaged
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+
+        // DecodeCore is reachable only through byte and short overloads, so this type
+        // dispatch permits shared reference preparation without boxing or allocating.
+        if (typeof(T) == typeof(byte))
+        {
+            Av1DcIntraPredictor.Predict(
+                hasLeft,
+                hasAbove,
+                MemoryMarshal.Cast<T, byte>(destination),
+                (int)destinationStride,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left),
+                width,
+                height);
+        }
+        else
+        {
+            Av1DcIntraPredictor.Predict(
+                hasLeft,
+                hasAbove,
+                MemoryMarshal.Cast<T, short>(destination),
+                (int)destinationStride,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left),
+                width,
+                height,
+                bitDepth);
+        }
+    }
+
+    /// <summary>
+    /// Dispatches nondirectional prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="mode">The nondirectional prediction mode to apply.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
+    private static void GeneralPredictor<T>(Av1PredictionMode mode, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left)
+        where T : unmanaged
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        Av1NonDirectionalIntraPredictorBase predictor = Av1NonDirectionalIntraPredictorBase.GetPredictor(mode);
+
+        if (typeof(T) == typeof(byte))
+        {
+            predictor.Predict(
+                MemoryMarshal.Cast<T, byte>(destination),
+                (int)destinationStride,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left),
+                width,
+                height);
+        }
+        else
+        {
+            predictor.Predict(
+                MemoryMarshal.Cast<T, short>(destination),
+                (int)destinationStride,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left),
+                width,
+                height);
+        }
+    }
+
+    /// <summary>
+    /// Dispatches directional prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
+    /// <param name="upsampleAbove">A value indicating whether the top edge was upsampled.</param>
+    /// <param name="upsampleLeft">A value indicating whether the left edge was upsampled.</param>
+    /// <param name="angle">The adjusted prediction angle in degrees.</param>
+    private void DirectionalPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, bool upsampleAbove, bool upsampleLeft, int angle)
+        where T : unmanaged
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            Span<byte> scratch = MemoryMarshal.AsBytes(this.predictorScratch.Span)[..Av1DirectionalIntraPredictor.ScratchLength];
+            Av1DirectionalIntraPredictor.Predict(
+                MemoryMarshal.Cast<T, byte>(destination),
+                (int)destinationStride,
+                transformSize,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left),
+                upsampleAbove,
+                upsampleLeft,
+                angle,
+                scratch);
+        }
+        else
+        {
+            Av1DirectionalIntraPredictor.Predict(
+                MemoryMarshal.Cast<T, short>(destination),
+                (int)destinationStride,
+                transformSize,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left),
+                upsampleAbove,
+                upsampleLeft,
+                angle,
+                this.predictorScratch.Span);
+        }
+    }
+
+    /// <summary>
+    /// Dispatches filter intra prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
+    /// <param name="mode">The filter intra mode whose coefficient set is applied.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
+    private void FilterIntraPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, Av1FilterIntraMode mode, int bitDepth)
+        where T : unmanaged
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        Av1FilterIntraPredictorBase predictor = Av1FilterIntraPredictorBase.GetPredictor(mode);
+
+        if (typeof(T) == typeof(byte))
+        {
+            Span<byte> scratch = MemoryMarshal.AsBytes(this.predictorScratch.Span)[..Av1FilterIntraPredictorBase.ScratchLength];
+            predictor.Predict(
+                MemoryMarshal.Cast<T, byte>(destination),
+                (int)destinationStride,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left),
+                width,
+                height,
+                scratch);
+        }
+        else
+        {
+            predictor.Predict(
+                MemoryMarshal.Cast<T, short>(destination),
+                (int)destinationStride,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left),
+                width,
+                height,
+                bitDepth,
+                this.predictorScratch.Span[..Av1FilterIntraPredictorBase.ScratchLength]);
+        }
+    }
+
+    /// <summary>
+    /// Determines the directional edge-filter threshold class from neighboring prediction modes.
+    /// </summary>
+    /// <param name="partitionInfo">The decoded partition and neighboring mode state.</param>
+    /// <param name="plane">The color plane whose neighbors are inspected.</param>
+    /// <returns><see langword="true"/> when either relevant neighbor uses a smooth mode; otherwise, <see langword="false"/>.</returns>
+    private static bool GetFilterType(ref Av1PartitionInfo partitionInfo, Av1Plane plane)
+    {
+        Av1BlockModeInfo? above;
+        Av1BlockModeInfo? left;
+        if (plane == Av1Plane.Y)
+        {
+            above = partitionInfo.AboveModeInfo;
+            left = partitionInfo.LeftModeInfo;
+        }
+        else
+        {
+            above = partitionInfo.AboveModeInfoForChroma;
+            left = partitionInfo.LeftModeInfoForChroma;
+        }
+
+        bool aboveIsSmooth = above is not null && IsSmooth(above.Value, plane);
+        bool leftIsSmooth = left is not null && IsSmooth(left.Value, plane);
+        return aboveIsSmooth || leftIsSmooth;
+    }
+
+    /// <summary>
+    /// Determines whether a block uses any AV1 smooth intra prediction mode on the requested plane.
+    /// </summary>
+    /// <param name="modeInfo">The neighboring block's decoded mode state.</param>
+    /// <param name="plane">The luma or chroma plane class whose mode is inspected.</param>
+    /// <returns><see langword="true"/> for smooth, smooth-horizontal, or smooth-vertical prediction; otherwise, <see langword="false"/>.</returns>
+    private static bool IsSmooth(Av1BlockModeInfo modeInfo, Av1Plane plane)
+    {
+        if (plane == Av1Plane.Y)
+        {
+            Av1PredictionMode mode = modeInfo.YMode;
+            return mode is Av1PredictionMode.Smooth or
+                Av1PredictionMode.SmoothVertical or
+                Av1PredictionMode.SmoothHorizontal;
+        }
+        else
+        {
+            // Chroma modes use their own enum and carry only the intra predictors relevant to this neighbor check.
+            Av1ChromaPredictionMode uvMode = modeInfo.UvMode;
+            return uvMode is Av1ChromaPredictionMode.Smooth or
+                Av1ChromaPredictionMode.SmoothVertical or
+                Av1ChromaPredictionMode.SmoothHorizontal;
+        }
+    }
+}

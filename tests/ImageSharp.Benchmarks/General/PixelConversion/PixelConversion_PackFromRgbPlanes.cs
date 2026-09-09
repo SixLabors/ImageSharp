@@ -244,7 +244,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ReadOnlySpan<byte> g = this.rBuf;
         ReadOnlySpan<byte> b = this.rBuf;
         Span<Rgb24> rgb = this.rgbBuf;
-        SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref r, ref g, ref b, ref rgb);
+        SimdUtils.HwIntrinsics.PackFromRgbPlanesReduce(ref r, ref g, ref b, ref rgb);
     }
 
     [Benchmark]
@@ -254,7 +254,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ReadOnlySpan<byte> g = this.rBuf;
         ReadOnlySpan<byte> b = this.rBuf;
         Span<Rgba32> rgb = this.rgbaBuf;
-        SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref r, ref g, ref b, ref rgb);
+        SimdUtils.HwIntrinsics.PackFromRgbPlanesReduce(ref r, ref g, ref b, ref rgb);
     }
 
 #pragma warning disable SA1132

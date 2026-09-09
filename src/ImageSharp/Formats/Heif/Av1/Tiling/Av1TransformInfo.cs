@@ -1,0 +1,74 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+
+/// <summary>
+/// Describes the size, position, type, and residual state of one AV1 transform block.
+/// </summary>
+internal struct Av1TransformInfo
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> struct with a 4x4 transform at the origin.
+    /// </summary>
+    public Av1TransformInfo()
+        : this(Av1TransformSize.Size4x4, 0, 0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> struct.
+    /// </summary>
+    /// <param name="size">The transform size.</param>
+    /// <param name="offsetX">The horizontal offset in mode-information units.</param>
+    /// <param name="offsetY">The vertical offset in mode-information units.</param>
+    public Av1TransformInfo(Av1TransformSize size, int offsetX, int offsetY)
+    {
+        this.Size = size;
+        this.OffsetX = offsetX;
+        this.OffsetY = offsetY;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> struct.
+    /// </summary>
+    /// <param name="originalInfo">The <see cref="Av1TransformInfo"/> to copy the information from.</param>
+    public Av1TransformInfo(Av1TransformInfo originalInfo)
+    {
+        this.Size = originalInfo.Size;
+        this.OffsetX = originalInfo.OffsetX;
+        this.OffsetY = originalInfo.OffsetY;
+    }
+
+    /// <summary>
+    /// Gets or sets the transform size used for this transform block.
+    /// </summary>
+    public Av1TransformSize Size { get; set; }
+
+    /// <summary>
+    /// Gets or sets the transform type used for this transform block.
+    /// </summary>
+    public Av1TransformType Type { get; set; }
+
+    /// <summary>
+    /// Gets or sets the horizontal offset of this block in mode-information units.
+    /// </summary>
+    public int OffsetX { get; set; }
+
+    /// <summary>
+    /// Gets or sets the vertical offset of this block in mode-information units.
+    /// </summary>
+    public int OffsetY { get; set; }
+
+    /// <summary>
+    /// Gets or sets the end position of the coded coefficients in entropy scan order; zero means no residual.
+    /// </summary>
+    public ushort EndOfBlock { get; set; }
+
+    /// <summary>
+    /// Gets or sets the largest raster coefficient index written for this transform block.
+    /// </summary>
+    public ushort MaximumCoefficientIndex { get; set; }
+}

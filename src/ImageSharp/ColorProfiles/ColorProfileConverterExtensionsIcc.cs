@@ -75,8 +75,8 @@ internal static class ColorProfileConverterExtensionsIcc
             throw new InvalidOperationException("Target ICC profile is missing.");
         }
 
-        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true);
-        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false);
+        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, converter.Options.IccInterpolationMethod);
+        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, converter.Options.IccInterpolationMethod);
 
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
@@ -142,8 +142,8 @@ internal static class ColorProfileConverterExtensionsIcc
 
         Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(destination));
 
-        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true);
-        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false);
+        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, converter.Options.IccInterpolationMethod);
+        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, converter.Options.IccInterpolationMethod);
 
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
@@ -692,10 +692,10 @@ internal static class ColorProfileConverterExtensionsIcc
     {
         private readonly IccProfile profile;
 
-        internal ConversionParams(IccProfile profile, bool toPcs)
+        internal ConversionParams(IccProfile profile, bool toPcs, IccInterpolationMethod interpolationMethod)
         {
             this.profile = profile;
-            this.Converter = toPcs ? new IccDataToPcsConverter(profile) : new IccPcsToDataConverter(profile);
+            this.Converter = toPcs ? new IccDataToPcsConverter(profile, interpolationMethod) : new IccPcsToDataConverter(profile, interpolationMethod);
         }
 
         internal IccConverterBase Converter { get; }

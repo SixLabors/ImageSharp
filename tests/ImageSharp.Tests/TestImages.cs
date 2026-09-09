@@ -1277,6 +1277,202 @@ public static class TestImages
         public const string Wikipedia008 = "Qoi/wikipedia_008.qoi";
     }
 
+    public static class Heif
+    {
+        // Downloaded from: https://github.com/AOMediaCodec/av1-avif/blob/master/testFiles/Microsoft/Irvine_CA.avif
+        public const string IrvineAvif = "Heif/Irvine_CA.avif";
+
+        public const string XnConvert = "Heif/jpeg444_xnconvert.avif";
+
+        // Extremely small image, 4x4 pixels with a single solid color.
+        public const string Orange4x4 = "Heif/Orange4x4.avif";
+
+        // Sourced from libavif/tests/data under libavif's BSD-2-Clause license. The AVIF was independently
+        // encoded from the paired PNG with avifenc and carries the same ICC, Exif, and XMP metadata.
+        public const string ParisIccExifXmpAvif = "Heif/paris_icc_exif_xmp.avif";
+        public const string ParisIccExifXmpPng = "Heif/paris_icc_exif_xmp.png";
+
+        // Independently encoded from Png.Icc.Perceptual. Unlike the
+        // canonical-sRGB Paris profile, this perceptual profile requires an observable color conversion.
+        public const string PerceptualIccAvif = "Heif/perceptual_icc.avif";
+        public const string PerceptualIccGridAvif = "Heif/perceptual_icc_grid.avif";
+        public const string PerceptualIccSequenceAvif = "Heif/perceptual_icc_sequence.avif";
+
+        // Independently encoded from Png.Ducky. The ROMM RGB profile is
+        // deliberately non-sRGB so that color conversion is observable while the auxiliary alpha item is composed.
+        public const string DuckyRommIccAlphaAvif = "Heif/ducky_romm_icc_alpha.avif";
+
+        // Sourced from libavif/tests/data under libavif's BSD-2-Clause license.
+        public const string Animated8Bit = "Heif/colors-animated-8bpc.avif";
+        public const string Animated8BitWithAudio = "Heif/colors-animated-8bpc-audio.avif";
+        public const string Animated8BitWithAlphaExifXmp = "Heif/colors-animated-8bpc-alpha-exif-xmp.avif";
+        public const string Animated12BitWithKeyframes = "Heif/colors-animated-12bpc-keyframes-0-2-3.avif";
+
+        // Genuine AVIF inputs, independently encoded AV1 samples, and retained exact native-plane output. The
+        // fixture README records provenance and the current-main verification status for each checkpoint.
+        public const string Av1Deblocking8BitAvif = "Heif/Av1/Conformance/libavif-kodim23-8b.avif";
+        public const string Av1Deblocking8BitPayload = "Heif/Av1/Conformance/libavif-kodim23-8b.bit";
+        public const string Av1Deblocking8BitReference = "Heif/Av1/Conformance/libavif-kodim23-8b-libaom.yuv";
+        public const string Av1Deblocking10BitAvif = "Heif/Av1/Conformance/libavif-cosmos1650-10b.avif";
+        public const string Av1Deblocking10BitPayload = "Heif/Av1/Conformance/libavif-cosmos1650-10b.bit";
+        public const string Av1Deblocking10BitReference = "Heif/Av1/Conformance/libavif-cosmos1650-10b-libaom.yuv";
+        public const string Av1Deblocking12BitAvif = "Heif/Av1/Conformance/libavif-colors-12b.avif";
+        public const string Av1Deblocking12BitPayload = "Heif/Av1/Conformance/libaom-cosmos1650-12b.bit";
+        public const string Av1Deblocking12BitReference = "Heif/Av1/Conformance/libaom-cosmos1650-12b-libaom.yuv";
+        public const string Av1Progressive8BitAvif = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b.avif";
+        public const string Av1Progressive8BitPayload = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b.bit";
+        public const string Av1Progressive8BitReference = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b-libaom-y4m.yuv";
+        public const string Av1ScaledReferenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference.avif";
+        public const string Av1ScaledReferenceSelectedLayerAvif = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference-lsel0.avif";
+        public const string Av1ScaledReferencePayload = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference.bit";
+        public const string Av1ScaledReferenceBaseNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference-base-libaom.yuv";
+        public const string Av1ScaledReferenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference-libaom.y4m";
+        public const string Av1AverageCompoundSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-average-compound.avif";
+        public const string Av1AverageCompoundSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-average-compound-libaom.y4m";
+        public const string Av1DistanceWeightedCompoundSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-distance-weighted-compound.avif";
+        public const string Av1DistanceWeightedCompoundSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-distance-weighted-compound-libaom.y4m";
+        public const string Av1WedgeCompoundSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-wedge-compound.avif";
+        public const string Av1WedgeCompoundSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-wedge-compound-libaom.y4m";
+        public const string Av1DifferenceWeightedCompoundSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-difference-weighted-compound.avif";
+        public const string Av1DifferenceWeightedCompoundSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-difference-weighted-compound-libaom.y4m";
+        public const string Av1InterIntraSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-inter-intra.avif";
+        public const string Av1InterIntraSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-inter-intra-libaom.y4m";
+        public const string Av1ObmcSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-obmc.avif";
+        public const string Av1ObmcSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-obmc-libaom.y4m";
+        public const string Av1LocalWarpSequenceAvif = "Heif/Av1/Conformance/libavif-rotating-grid-local-warp.avif";
+        public const string Av1LocalWarpSequenceNativeReference = "Heif/Av1/Conformance/libavif-rotating-grid-local-warp-libaom.y4m";
+        public const string Av1GlobalWarpSequenceAvif = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp.avif";
+        public const string Av1GlobalWarpSequenceNativeReference = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp-libaom.y4m";
+        public const string Av1OfficialAllIntraSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-02-allintra.ivf";
+        public const string Av1OfficialAllIntraSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-02-allintra-libaom.y4m";
+        public const string Av1OfficialEightBitMinimumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-00.ivf";
+        public const string Av1OfficialEightBitMinimumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-00-libaom.y4m";
+        public const string Av1OfficialEightBitMaximumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-63.ivf";
+        public const string Av1OfficialEightBitMaximumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-63-libaom.y4m";
+        public const string Av1OfficialTenBitMinimumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-00.ivf";
+        public const string Av1OfficialTenBitMinimumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-00-libaom.y4m";
+        public const string Av1OfficialTenBitMaximumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-63.ivf";
+        public const string Av1OfficialTenBitMaximumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-63-libaom.y4m";
+        public const string Av1OfficialMinimumFrameSizeSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x196.ivf";
+        public const string Av1OfficialMinimumFrameSizeSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x196-libaom.y4m";
+        public const string Av1OfficialMinimumWidthMaximumHeightSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x226.ivf";
+        public const string Av1OfficialMinimumWidthMaximumHeightSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x226-libaom.y4m";
+        public const string Av1OfficialMaximumWidthMinimumHeightSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x196.ivf";
+        public const string Av1OfficialMaximumWidthMinimumHeightSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x196-libaom.y4m";
+        public const string Av1OfficialMaximumFrameSizeSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x226.ivf";
+        public const string Av1OfficialMaximumFrameSizeSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x226-libaom.y4m";
+        public const string Av1FrameIdentifierSequence = "Heif/Av1/Conformance/libaom-frame-id-196x196-8b.ivf";
+        public const string Av1FrameIdentifierSequenceNativeReference = "Heif/Av1/Conformance/libaom-frame-id-196x196-8b-libaom.y4m";
+        public const string Av1OfficialCdfUpdateSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate.ivf";
+        public const string Av1OfficialCdfUpdateSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate-libaom.y4m";
+        public const string Av1OfficialMotionVectorSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-05-mv.ivf";
+        public const string Av1OfficialMotionVectorSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-05-mv-libaom.y4m";
+        public const string Av1OfficialMotionFieldSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-06-mfmv.ivf";
+        public const string Av1OfficialMotionFieldSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-06-mfmv-libaom.y4m";
+        public const string Av1OfficialIntraBlockCopySequence = "Heif/Av1/Conformance/libaom-av1-1-b8-16-intra_only-intrabc-extreme-dv.ivf";
+        public const string Av1OfficialIntraBlockCopySequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-16-intra_only-intrabc-extreme-dv-libaom.y4m";
+        public const string Av1OfficialTwoSpatialLayerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L2T1.ivf";
+        public const string Av1OfficialTwoSpatialLayerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L2T1-libaom.y4m";
+        public const string Av1OfficialTwoTemporalLayerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L1T2.ivf";
+        public const string Av1OfficialTwoTemporalLayerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L1T2-libaom.y4m";
+        public const string Av1OfficialSpatialTemporalLayerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L2T2.ivf";
+        public const string Av1OfficialSpatialTemporalLayerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L2T2-libaom.y4m";
+        public const string Av1OfficialFilmGrainSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-23-film-grain-50.ivf";
+        public const string Av1OfficialFilmGrainSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-23-film-grain-50-libaom.y4m";
+        public const string Av1OfficialTenBitFilmGrainSequence = "Heif/Av1/Conformance/libaom-av1-1-b10-23-film-grain-50.ivf";
+        public const string Av1OfficialTenBitFilmGrainSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-23-film-grain-50-libaom.y4m";
+        public const string Av1OfficialMonochromeSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-24-monochrome.ivf";
+        public const string Av1OfficialMonochromeSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-24-monochrome-libaom.yuv";
+        public const string Av1OfficialTenBitMonochromeSequence = "Heif/Av1/Conformance/libaom-av1-1-b10-24-monochrome.ivf";
+        public const string Av1OfficialTenBitMonochromeSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-24-monochrome-libaom.y4m";
+        public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
+        public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
+        public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";
+        public const string Av1Cdef10BitPayload = "Heif/Av1/Conformance/libaom-cdef-cosmos-10b.bit";
+        public const string Av1Cdef10BitReference = "Heif/Av1/Conformance/libaom-cdef-cosmos-10b-libaom.yuv";
+        public const string Av1Cdef10BitAvif = "Heif/Av1/Conformance/libavif-cdef-cosmos-10b.avif";
+        public const string Av1Cdef12BitPayload = "Heif/Av1/Conformance/libaom-cdef-cosmos-12b.bit";
+        public const string Av1Cdef12BitReference = "Heif/Av1/Conformance/libaom-cdef-cosmos-12b-libaom.yuv";
+        public const string Av1Cdef12BitAvif = "Heif/Av1/Conformance/libavif-cdef-cosmos-12b.avif";
+        public const string Av1Profile8BitMonochromeAvif = "Heif/Av1/Conformance/libavif-profile-8b-400.avif";
+        public const string Av1Profile8BitMonochromeReference = "Heif/Av1/Conformance/libavif-profile-8b-400-libaom-y4m.yuv";
+        public const string Av1Profile8Bit420Avif = "Heif/Av1/Conformance/libavif-profile-8b-420.avif";
+        public const string Av1Profile8Bit420Reference = "Heif/Av1/Conformance/libavif-profile-8b-420-libaom-y4m.yuv";
+        public const string Av1Profile8Bit422Avif = "Heif/Av1/Conformance/libavif-profile-8b-422.avif";
+        public const string Av1Profile8Bit422Reference = "Heif/Av1/Conformance/libavif-profile-8b-422-libaom-y4m.yuv";
+        public const string Av1Profile8Bit444Avif = "Heif/Av1/Conformance/libavif-profile-8b-444.avif";
+        public const string Av1Profile8Bit444Reference = "Heif/Av1/Conformance/libavif-profile-8b-444-libaom-y4m.yuv";
+        public const string Av1Profile10BitMonochromeAvif = "Heif/Av1/Conformance/libavif-profile-10b-400.avif";
+        public const string Av1Profile10BitMonochromeReference = "Heif/Av1/Conformance/libavif-profile-10b-400-libaom-y4m.yuv";
+        public const string Av1Profile10Bit420Avif = "Heif/Av1/Conformance/libavif-profile-10b-420.avif";
+        public const string Av1Profile10Bit420Reference = "Heif/Av1/Conformance/libavif-profile-10b-420-libaom-y4m.yuv";
+        public const string Av1Profile10Bit422Avif = "Heif/Av1/Conformance/libavif-profile-10b-422.avif";
+        public const string Av1Profile10Bit422Reference = "Heif/Av1/Conformance/libavif-profile-10b-422-libaom-y4m.yuv";
+        public const string Av1Profile10Bit444Avif = "Heif/Av1/Conformance/libavif-profile-10b-444.avif";
+        public const string Av1Profile10Bit444Reference = "Heif/Av1/Conformance/libavif-profile-10b-444-libaom-y4m.yuv";
+        public const string Av1Profile12BitMonochromeAvif = "Heif/Av1/Conformance/libavif-profile-12b-400.avif";
+        public const string Av1Profile12BitMonochromeReference = "Heif/Av1/Conformance/libavif-profile-12b-400-libaom-y4m.yuv";
+        public const string Av1Profile12Bit420Avif = "Heif/Av1/Conformance/libavif-profile-12b-420.avif";
+        public const string Av1Profile12Bit420Reference = "Heif/Av1/Conformance/libavif-profile-12b-420-libaom-y4m.yuv";
+        public const string Av1Profile12Bit422Avif = "Heif/Av1/Conformance/libavif-profile-12b-422.avif";
+        public const string Av1Profile12Bit422Reference = "Heif/Av1/Conformance/libavif-profile-12b-422-libaom-y4m.yuv";
+        public const string Av1Profile12Bit444Avif = "Heif/Av1/Conformance/libavif-profile-12b-444.avif";
+        public const string Av1Profile12Bit444Reference = "Heif/Av1/Conformance/libavif-profile-12b-444-libaom-y4m.yuv";
+        public const string Av1Palette8BitPayload = "Heif/Av1/Conformance/libaom-palette-draw-points-8b-444.bit";
+        public const string Av1Palette8BitReference = "Heif/Av1/Conformance/libaom-palette-draw-points-8b-444-libaom.yuv";
+        public const string Av1Palette8BitAvif = "Heif/Av1/Conformance/libavif-palette-draw-points-8b.avif";
+        public const string Av1IntraBlockCopy8BitAvif = "Heif/Av1/Conformance/libavif-intrabc-abc-8b-444.avif";
+        public const string Av1IntraBlockCopy8BitReference = "Heif/Av1/Conformance/libavif-intrabc-abc-8b-444-libaom-y4m.yuv";
+        public const string Av1IntraBlockCopy10BitAvif = "Heif/Av1/Conformance/libavif-intrabc-abc-10b-444.avif";
+        public const string Av1IntraBlockCopy10BitReference = "Heif/Av1/Conformance/libavif-intrabc-abc-10b-444-libaom-y4m.yuv";
+        public const string Av1IntraBlockCopy12BitAvif = "Heif/Av1/Conformance/libavif-intrabc-abc-12b-444.avif";
+        public const string Av1IntraBlockCopy12BitReference = "Heif/Av1/Conformance/libavif-intrabc-abc-12b-444-libaom-y4m.yuv";
+        public const string Av1Lossless8BitAvif = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444.avif";
+        public const string Av1Lossless8BitReference = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444-libaom.yuv";
+        public const string Av1Lossless10BitAvif = "Heif/Av1/Conformance/libavif-lossless-circle-10b-444.avif";
+        public const string Av1Lossless10BitReference = "Heif/Av1/Conformance/libavif-lossless-circle-10b-444-libaom.yuv";
+        public const string Av1Lossless12BitAvif = "Heif/Av1/Conformance/libavif-lossless-circle-12b-444.avif";
+        public const string Av1Lossless12BitReference = "Heif/Av1/Conformance/libavif-lossless-circle-12b-444-libaom.yuv";
+        public const string Av1SuperResolution8BitPayload = "Heif/Av1/Conformance/libaom-superres-kodim23-8b.bit";
+        public const string Av1SuperResolution8BitReference = "Heif/Av1/Conformance/libaom-superres-kodim23-8b-libaom.yuv";
+        public const string Av1SuperResolution8BitAvif = "Heif/Av1/Conformance/libavif-superres-kodim23-8b.avif";
+        public const string Av1SuperResolution10BitPayload = "Heif/Av1/Conformance/libaom-superres-cosmos-10b.bit";
+        public const string Av1SuperResolution10BitReference = "Heif/Av1/Conformance/libaom-superres-cosmos-10b-libaom.yuv";
+        public const string Av1SuperResolution10BitAvif = "Heif/Av1/Conformance/libavif-superres-cosmos-10b.avif";
+        public const string Av1SuperResolution12BitPayload = "Heif/Av1/Conformance/libaom-superres-cosmos-12b.bit";
+        public const string Av1SuperResolution12BitReference = "Heif/Av1/Conformance/libaom-superres-cosmos-12b-libaom.yuv";
+        public const string Av1SuperResolution12BitAvif = "Heif/Av1/Conformance/libavif-superres-cosmos-12b.avif";
+        public const string Av1Restoration8BitPayload = "Heif/Av1/Conformance/libaom-restoration-kodim23-8b.bit";
+        public const string Av1Restoration8BitReference = "Heif/Av1/Conformance/libaom-restoration-kodim23-8b-libaom.yuv";
+        public const string Av1Restoration8BitAvif = "Heif/Av1/Conformance/libavif-restoration-kodim23-8b.avif";
+        public const string Av1Restoration10BitPayload = "Heif/Av1/Conformance/libaom-restoration-cosmos-10b.bit";
+        public const string Av1Restoration10BitReference = "Heif/Av1/Conformance/libaom-restoration-cosmos-10b-libaom.yuv";
+        public const string Av1Restoration10BitAvif = "Heif/Av1/Conformance/libavif-restoration-cosmos-10b.avif";
+        public const string Av1Restoration12BitPayload = "Heif/Av1/Conformance/libaom-restoration-cosmos-12b.bit";
+        public const string Av1Restoration12BitReference = "Heif/Av1/Conformance/libaom-restoration-cosmos-12b-libaom.yuv";
+        public const string Av1Restoration12BitAvif = "Heif/Av1/Conformance/libavif-restoration-cosmos-12b.avif";
+        public const string Av1RestorationSuperResolution8BitPayload = "Heif/Av1/Conformance/libaom-restoration-superres-kodim23-8b.bit";
+        public const string Av1RestorationSuperResolution8BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-kodim23-8b-libaom.yuv";
+        public const string Av1RestorationSuperResolution10BitPayload = "Heif/Av1/Conformance/libaom-restoration-superres-abc-10b-422.bit";
+        public const string Av1RestorationSuperResolution10BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-abc-10b-422-libaom.yuv";
+        public const string Av1RestorationSuperResolution12BitPayload = "Heif/Av1/Conformance/libaom-restoration-superres-cosmos-12b.bit";
+        public const string Av1RestorationSuperResolution12BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-cosmos-12b-libaom.yuv";
+        public const string Av1FilmGrain8BitPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420.bit";
+        public const string Av1FilmGrain8BitReference = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420-libaom.yuv";
+        public const string Av1FilmGrain10BitPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-10b-422.bit";
+        public const string Av1FilmGrain10BitReference = "Heif/Av1/Conformance/libaom-film-grain-circle-10b-422-libaom.yuv";
+        public const string Av1FilmGrain12BitPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444.bit";
+        public const string Av1FilmGrain12BitReference = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444-libaom.yuv";
+        public const string Av1FilmGrain8BitRestrictedPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420-limited.bit";
+        public const string Av1FilmGrain8BitRestrictedReference = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420-limited-libaom.yuv";
+        public const string Av1FilmGrain8BitMonochromePayload = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-400-limited.bit";
+        public const string Av1FilmGrain8BitMonochromeReference = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-400-limited-libaom.yuv";
+        public const string Av1FilmGrain12BitIdentityPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444-identity-limited.bit";
+        public const string Av1FilmGrain12BitIdentityReference = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444-identity-limited-libaom.yuv";
+        public const string Av1FilmGrainOddDimensionsPayload = "Heif/Av1/Conformance/libaom-film-grain-draw-points-8b-420-odd.bit";
+        public const string Av1FilmGrainOddDimensionsReference = "Heif/Av1/Conformance/libaom-film-grain-draw-points-8b-420-odd-libaom.yuv";
+    }
+
     public static class Ico
     {
         public const string Flutter = "Icon/flutter.ico";

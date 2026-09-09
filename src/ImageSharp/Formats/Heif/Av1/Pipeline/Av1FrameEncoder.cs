@@ -327,8 +327,7 @@ internal static class Av1FrameEncoder
             true);
 
         ObuFrameHeader frameHeader = CreateFrameHeader(
-            width,
-            height,
+            sequenceHeader,
             qIndex,
             effort,
             ObuFrameType.KeyFrame);
@@ -404,6 +403,12 @@ internal static class Av1FrameEncoder
                     ? ObuSequenceProfile.High
                     : ObuSequenceProfile.Main;
 
+        // Superblock geometry follows coding speed and resolution, independently of block-search effort.
+        // Small frames use 64x64 above speed zero; the fastest still-image mode also uses it below 4K.
+        int minimumDimension = Math.Min(width, height);
+        bool use128x128Superblock = !(speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
+            !(isStillPicture && speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160);
+
         return new ObuSequenceHeader
         {
             IsStillPicture = isStillPicture,
@@ -414,7 +419,7 @@ internal static class Av1FrameEncoder
             FrameHeightBits = height > 1 ? Av1Math.MostSignificantBit((uint)(height - 1)) + 1 : 1,
             MaxFrameWidth = width,
             MaxFrameHeight = height,
-            Use128x128Superblock = Uses128x128Superblock(width, height, effort),
+            Use128x128Superblock = use128x128Superblock,
             ForceScreenContentTools = Av1Constants.SelectScreenContentTools,
             ForceIntegerMotionVector = Av1Constants.SelectIntegerMotionVector,
             EnableFilterIntra = effort >= 4,
@@ -427,22 +432,11 @@ internal static class Av1FrameEncoder
         };
     }
 
-    private static bool Uses128x128Superblock(int width, int height, int effort)
-        => effort == MaximumEffort &&
-            width >= Av1BlockSize.Block128x128.GetWidth() &&
-            height >= Av1BlockSize.Block128x128.GetHeight();
-
     private static ObuTileGroupHeader CreateTileGroupHeader(
-        int width,
-        int height,
         int modeInfoColumnCount,
         int modeInfoRowCount,
-        int effort)
+        int superblockSizeLog2)
     {
-        int superblockSizeLog2 = Uses128x128Superblock(width, height, effort)
-            ? Av1Constants.MaxSuperBlockSizeLog2
-            : Av1Constants.MaxSuperBlockSizeLog2 - 1;
-
         int superblockShift = superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
         int superblockColumns = Av1Math.DivideLog2Ceiling(modeInfoColumnCount, superblockShift);
         int superblockRows = Av1Math.DivideLog2Ceiling(modeInfoRowCount, superblockShift);
@@ -487,20 +481,19 @@ internal static class Av1FrameEncoder
     }
 
     private static ObuFrameHeader CreateFrameHeader(
-        int width,
-        int height,
+        ObuSequenceHeader sequenceHeader,
         int qIndex,
         int effort,
         ObuFrameType frameType)
     {
+        int width = sequenceHeader.MaxFrameWidth;
+        int height = sequenceHeader.MaxFrameHeight;
         int modeInfoColumnCount = 2 * ((width + 7) >> 3);
         int modeInfoRowCount = 2 * ((height + 7) >> 3);
         ObuTileGroupHeader tiles = CreateTileGroupHeader(
-            width,
-            height,
             modeInfoColumnCount,
             modeInfoRowCount,
-            effort);
+            sequenceHeader.SuperblockSizeLog2);
 
         ObuFrameHeader frameHeader = new()
         {
@@ -1572,8 +1565,7 @@ internal static class Av1FrameEncoder
             this.TileBufferLength = GetTileBufferLength(width, height, colorConfig);
             this.EncodeAlpha = encodeAlpha;
             this.FrameHeader = CreateFrameHeader(
-                width,
-                height,
+                this.SequenceHeader,
                 qIndex,
                 effort,
                 ObuFrameType.KeyFrame);

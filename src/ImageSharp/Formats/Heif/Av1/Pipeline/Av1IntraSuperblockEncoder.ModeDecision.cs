@@ -175,6 +175,57 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1RateDistortion.GetKeyFrameRateMultiplier(this.quantization.QIndex[0], this.bitDepth)
                 : Av1RateDistortion.GetInterFrameRateMultiplier(this.quantization.QIndex[0], this.bitDepth);
 
+            if (picture.Sequence.SequenceHeader.IsStillPicture)
+            {
+                // Measure 4x4 source variation once for the entire superblock. Mixed flat and detailed
+                // regions need a lower rate weight, shared by every partition and mode decision below it.
+                int superblockSize = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
+                int originX = (superblock.Index % coefficientBuffer.SuperblockColumnCount) * superblockSize;
+                int originY = (superblock.Index / coefficientBuffer.SuperblockColumnCount) * superblockSize;
+                int right = Math.Min(originX + superblockSize, picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2);
+                int bottom = Math.Min(originY + superblockSize, picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+                Buffer2DRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
+                InlineArray4<TSample> zero = default;
+                int sampleShift = (int)this.bitDepth * 2;
+                int squareShift = sampleShift * 2;
+                int minimumVariance = int.MaxValue;
+                int maximumVariance = 0;
+                for (int y = originY; y < bottom; y += 4)
+                {
+                    for (int x = originX; x < right; x += 4)
+                    {
+                        TOperator.GetMoments(
+                            Av1TransformBlockEncoder.GetPlaneSpan(luma, new Point(x, y)),
+                            luma.Stride,
+                            zero,
+                            0,
+                            4,
+                            4,
+                            out int sum,
+                            out long squares);
+
+                        // Normalize the two moments independently to the 8-bit domain before subtracting
+                        // the squared mean. Edge blocks include samples padded to the mode-info boundary.
+                        sum = (sum + ((1 << sampleShift) >> 1)) >> sampleShift;
+                        squares = (squares + ((1L << squareShift) >> 1)) >> squareShift;
+                        int variance = (int)Math.Max(0, squares - (((long)sum * sum) >> 4));
+                        minimumVariance = Math.Min(minimumVariance, variance);
+                        maximumVariance = Math.Max(maximumVariance, variance);
+                    }
+                }
+
+                double minimumLogVariance = double.LogP1(minimumVariance / 16D);
+                double maximumLogVariance = double.LogP1(maximumVariance / 16D);
+                int modifier = 128;
+                if (minimumLogVariance < 2 && maximumLogVariance > 4)
+                {
+                    double range = maximumLogVariance - minimumLogVariance;
+                    modifier -= range > 8 ? 48 : (int)(range * 6);
+                }
+
+                this.rateMultiplier = Math.Max(1, (this.rateMultiplier * modifier) >> 7);
+            }
+
             this.effort = effort;
             this.codedAreaLuma = 0;
             this.codedAreaChroma = 0;

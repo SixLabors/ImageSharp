@@ -2,7 +2,8 @@
 
 ## Encoder source comparison in progress: 2026-09-09
 
-Active production milestone: restoration search, reconstruction filtering, and bitstream integration.
+Active production milestone: resolve the screen-content encoder comparison failures through the complete
+palette and transform decision path, then continue the remaining encoder controller dependencies.
 CDEF integration is committed as `8821e34ee` and runs after deblocking and before the retained-decision packing pass,
 and enables the sequence flag. It uses the current default PSNR tuning and CDEF_ALL control;
 adaptive CDEF under IQ/SSIMULACRA2 and low-complexity-decoding options is not an exposed configuration.
@@ -24,7 +25,7 @@ the repository. `encoder-cdef-public-final` passes 73 of 76 cases and retains th
 screen-content encoder comparisons. No test expectations or reference images were relaxed.
 This verifies filtering, reconstruction, and signaling, not independent strength-selection parity,
 complete encoder parity, or performance. Large-block unit grouping still needs runtime coverage.
-Restoration integration is implemented in the uncommitted tree; verification is in progress:
+Restoration search, filtering, signaling, and retained trial storage are committed in `ae8c6190a`:
 - `Av1LoopRestorationEncoder.Frame.cs` preserves internal deblocked rows before CDEF and frame
   edges afterward, then searches and applies restoration before retained tile packing.
   Shared `Av1LoopRestorationFilter.FilterUnit` preserves the decoder's stripe arithmetic.
@@ -66,6 +67,31 @@ Restoration integration is implemented in the uncommitted tree; verification is 
   uses the existing intra-versus-ordinary-inter distinction. That broader reference-management gap
   remains open. Independent restoration-selection parity, CDEF selection parity, large-block grouping,
   and the three existing public encoder comparison failures remain unresolved.
+
+### Superblock decision configuration: 2026-09-09
+
+- Architectural deviations: still-image rate weighting omitted the source-variance adjustment, and
+  sequence geometry selected 128x128 from Effort instead of coding speed/resolution.
+  Managed corrections: `Av1IntraSuperblockEncoder.ModeDecision.cs:178-227` and
+  `Av1FrameEncoder.cs:406-430`. Tile setup now consumes the selected sequence geometry.
+- Source evidence: `av1/encoder/partition_search.c:5583-5617,5721-5734,651-653` measures 4x4
+  luma variance, derives the Q7 adjustment, and applies it to rate weighting.
+  `aom_dsp/variance.c:308-355` normalizes the sum and squared sum independently at high precision.
+  `av1/encoder/encoder_utils.c:960-1040` selects geometry. The implemented branch covers the current
+  single-thread, single-layer, no-resize, no-super-resolution, default-quantization configuration.
+- Paired trace at flag block (0,40): palette colours, rates, and distortion matched, but native used
+  multiplier 237 and managed used 331. Native speed 0 also used 128x128, including the lower green
+  transition, while managed used 64x64 with constant green. Both now use 237 and identical candidate
+  costs at this location. This is a verified decision boundary, not complete encoder parity.
+- Temporary managed/native logging was removed and optimized native tooling rebuilt.
+  Final Release/net11 build succeeds; Roslyn reports no errors or added warnings.
+  `superblock-policy-block-final` passes 139/139 reconstruction cases.
+  `superblock-policy-public-final` passes 73/76; the same three screen-content tests still fail.
+  No reference images, assertions, or tolerances changed. No benchmark was run.
+- Native full speed-0 output uses 16x8 at (0,40), 4x4 at (192,40), and 4x8 at (192,104).
+  Managed uses 8x8 at all three: `Av1IntraSuperblockEncoder.ModeDecision.cs:265-289` gates
+  partition search on Effort. The next implementation must include source-defined search bounds,
+  pruning, and candidate reuse; merely enabling the existing exhaustive/repeated trials is insufficient.
 
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.
@@ -167,14 +193,13 @@ comparisons give the following 8-bit RGB errors (24,000 samples per channel):
 | 6 | 3 / 1 / 0 | 5 / 0 / 0 |
 | 9 | 7 / 5 / 0 | 22 / 8 / 0 |
 
-Checkpoint `99485a8f3` contains the verified Speed propagation and block-copy candidate controller.
-The next production milestone is complete worker-owned rate-cost storage and refresh scheduling,
-covering mode, coefficient, motion, and displacement costs and all production search callers.
-No portion of that storage correction has been implemented yet.
+Checkpoint `99485a8f3` contains the Speed propagation and block-copy candidate controller.
+Worker-owned mode/coefficient rates and refresh scheduling are committed in `d02a29849`, with
+displacement-rate storage in `b3d9ccc5c`. The current remaining findings below supersede the older audit.
 
 Unresolved source-backed gaps:
-- Architectural: sequence CDEF and restoration remain disabled in CreateSequenceHeader. Intra-edge
-  filtering is enabled; the historical statement that it is disabled no longer describes this tree.
+- CDEF and restoration are integrated in `8821e34ee` and `ae8c6190a`; intra-edge filtering is enabled.
+  Their independent selection parity and complete speed-controller integration remain unverified.
 - Architectural: Effort thresholds still select partition, transform, palette, and other search tools
   independently of the complete speed controller. They have not been established as equivalent.
 - Missing functionality: block-copy mode evaluation remains fixed at 8x8 and excludes lossless coding.
@@ -182,9 +207,7 @@ Unresolved source-backed gaps:
   speed-selected motion search; several declared block-copy policies remain unused.
 - Missing functionality: inter mode evaluation remains restricted to fixed 8x8 and LAST prediction.
 - Missing functionality: fast quantization still lacks the subsequent coefficient optimization.
-- Architectural: mode and coefficient costs are read from changing tile distributions during block
-  decisions. Native encodeframe_utils.c:1621-1699 refreshes worker-owned cost tables at scheduled
-  boundaries instead. At the fixed-8x8 diagnostic's differing sample, native selects three-color UV
+- Mode and coefficient costs now use scheduled worker-owned tables. At the fixed-8x8 diagnostic's differing sample, native selects three-color UV
   palette coding while managed selects Paeth. The palette-selection cause is not yet established.
 - Unproven performance: no current-tree timing or allocation improvement is established. The existing
   uncommitted Hadamard experiment is excluded from this correction and remains unused in production.

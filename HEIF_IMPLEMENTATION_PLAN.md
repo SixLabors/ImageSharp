@@ -120,7 +120,7 @@ Restoration search, filtering, signaling, and retained trial storage are committ
   outstanding. Current Effort-gated partition selection still forces the failing locations to 8x8.
   Full encoder acceptance and performance remain unestablished.
 
-### Partition mode retention and bounds in progress: 2026-09-10
+### Partition mode retention and bounds checkpoint: 2026-09-10 (`79051dad9`)
 
 - Partition trials now retain scalar syntax, transform states and palette maps in superblock-scoped
   worker storage. Selected leaves reconstruct their chosen prediction and transform without another
@@ -140,6 +140,16 @@ Restoration search, filtering, signaling, and retained trial storage are committ
   against pruned candidate allocation. No allocation or speed parity is claimed.
 - Source-defined partition pruning and boundary handling are not complete; existing Effort gates
   have not been removed. No benchmarks, tolerance changes or reference-image updates were made.
+- The wider frame suite (`partition-reuse-frame`) passed 166/172. Two failures hard-coded
+  superblock index 5 for the final eight pixels of a 328-pixel image; that index assumes 64x64
+  superblocks. The test now derives the index from the decoded sequence's superblock size.
+- Four failures asserted no allocator calls anywhere during key/inter encoding, despite the test
+  naming conversion-row reuse. Native restoration allocates per-frame search structures
+  (`pickrst.c:1974-2006,2044-2077`); managed restoration likewise uses frame-scoped search owners
+  (`Av1LoopRestorationEncoder.Frame.cs:135-162`). The test now requires exactly one conversion
+  row owner, unchanged identity, no premature return, and balanced allocation/return counts after disposal.
+  All six corrected cases pass after the final test edits (`sequence-row-reuse-final` 4/4,
+  `screen-copy-location-final` 2/2). Pixel assertions and reference outputs were not changed.
 
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.

@@ -821,7 +821,6 @@ public class Av1EncoderFrameTests
         configuration.MemoryAllocator = allocator;
         ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
         TestMemoryAllocator.AllocationRequest rowStorage;
-        int allocationCount;
         using (Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
             ? Av1FrameEncoder.CreateAlphaSequenceEncoder(
                 configuration,
@@ -844,17 +843,24 @@ public class Av1EncoderFrameTests
                 allocator.AllocationLog,
                 allocation => allocation.ElementType == typeof(float));
 
-            allocationCount = allocator.AllocationLog.Count;
             using MemoryStream output = new(256 * 1024);
             encoder.EncodeKeyFrame(source.Frames.RootFrame, output);
             encoder.EncodeInterFrame(source.Frames.RootFrame, output);
 
-            // Fixed sequence geometry lets libaom retain its frame-sized compressor data. The ImageSharp
-            // sequence encoder must likewise perform every sample conversion and coding pass without another rent.
-            Assert.Equal(allocationCount, allocator.AllocationLog.Count);
+            // Conversion rows belong to the sequence. Frame-scoped filter searches may rent their own
+            // storage, but neither frame may replace or return the shared conversion buffer.
+            TestMemoryAllocator.AllocationRequest retainedRowStorage = Assert.Single(
+                allocator.AllocationLog,
+                allocation => allocation.ElementType == typeof(float));
+
+            Assert.Equal(rowStorage.HashCodeOfBuffer, retainedRowStorage.HashCodeOfBuffer);
+            Assert.DoesNotContain(
+                allocator.ReturnLog,
+                returned => returned.HashCodeOfBuffer == rowStorage.HashCodeOfBuffer);
         }
 
         Assert.Equal(expectedRowStorageLength, rowStorage.Length);
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         Assert.Contains(
             allocator.ReturnLog,
             returned => returned.HashCodeOfBuffer == rowStorage.HashCodeOfBuffer);
@@ -1940,7 +1946,8 @@ public class Av1EncoderFrameTests
             selectTransformSize ? Av1TransformMode.Select : Av1TransformMode.Largest,
             decoder.FrameHeader.TransformMode);
         Assert.NotNull(decoder.FrameInfo);
-        Av1SuperblockInfo targetSuperblock = decoder.FrameInfo.GetSuperblock(new Point(5, 0));
+        int superblockSizeLog2 = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).SuperblockSizeLog2;
+        Av1SuperblockInfo targetSuperblock = decoder.FrameInfo.GetSuperblock(new Point((Width - 1) >> superblockSizeLog2, 0));
         bool usesIntraBlockCopy = false;
         foreach (Av1BlockModeInfo modeInfo in targetSuperblock.GetModeInfos())
         {

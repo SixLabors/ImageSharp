@@ -1,5 +1,31 @@
 # AVIF and AV1 implementation plan
 
+## ICC codec regression correction: 2026-09-09
+
+The previous 10,487-case selection omitted JPEG, PNG, TIFF, and WebP ICC decoder tests. It was not
+adequate verification of the shared ICC interpolation change. Ubuntu ARM64/net10 CI run 34293831444,
+job 102286178786, exposed ten failures. The same ten failures reproduce on Windows/net11:
+`icc-ci-local-baseline-r1` passed 15 of 25 selected cases and failed ten.
+
+With explicit user authorization, ten stale PNG references were replaced with fresh DebugSave outputs
+from the current interpolation implementation. No comparer tolerance or production arithmetic was changed.
+The PNG/WebP perceptual outputs had 2,342 RGB components differing by one from each old reference.
+The old JPEG references differed by up to 29 and TIFF by up to seven. These are not Ubuntu-only differences.
+Comparing the downloaded CI output with the fresh Windows output instead gives exact RGB for PNG/WebP;
+JPEG has 4, 4, 6, and 6 one-unit component differences, and TIFF has 72 and 66. No component exceeds one.
+Those small platform differences fit the existing comparer tolerances. The updated images are managed
+regression baselines for the selected interpolation behavior, not independent native-decoder evidence.
+
+AVIF ICC inputs now have dedicated Decode_WhenColorProfileHandling methods instead of being included
+in the general Decode corpus method. Existing profile, pixel, alpha, and sequence assertions are retained.
+The corresponding 23 reference PNG paths were renamed without changing their pixel content.
+
+Roslynk reported zero errors. Both test projects built in Release/net11. After restoring 59 accidentally
+overwritten references and removing 205 unintended reference copies, full-suite VSTest execution of
+ImageSharp.Tests and ImageSharp.PublicApi.Tests with no filter passed 58,053 tests, skipped 11, and failed
+zero (58,064 total; 3.1977 minutes). Only the ten authorized ICC reference updates and 23 HEIF reference
+renames remain in the reference-folder diff. This result verifies the regression suite, not complete AV1 parity.
+
 ## Managed checkpoint verification: 2026-09-09
 
 ICC interpolation selection is committed as `9aeed10da`. The region conversion, container metadata,

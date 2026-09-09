@@ -27,11 +27,6 @@ public class HeifDecoderTests
     [WithFile(TestImages.Heif.IrvineAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.XnConvert, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Orange4x4, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Animated8Bit, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Animated8BitWithAudio, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Animated8BitWithAlphaExifXmp, PixelTypes.Rgba32)]
@@ -180,11 +175,39 @@ public class HeifDecoderTests
     }
 
     /// <summary>
+    /// Verifies that preserving an embedded ICC profile leaves every decoded frame unconverted.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance, options);
+
+        Assert.NotNull(image.Metadata.IccProfile);
+        if (image.Frames.Count == 1)
+        {
+            image.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        }
+        else
+        {
+            image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
+    }
+
+    /// <summary>
     /// Verifies that AVIF decoding preserves the exact embedded ICC profile bytes.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    public void IccPreserve<TPixel>(TestImageProvider<TPixel> provider)
+    public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfileBytes<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -204,7 +227,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
-    public void IccConvert<TPixel>(TestImageProvider<TPixel> provider)
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -226,7 +249,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
-    public void IccConvertGrid<TPixel>(TestImageProvider<TPixel> provider)
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile_Grid<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -250,7 +273,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
-    public void IccConvertSequence<TPixel>(TestImageProvider<TPixel> provider)
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile_Sequence<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -276,7 +299,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void IccConvertAlpha(TestImageProvider<Rgba32> provider)
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile_Alpha(TestImageProvider<Rgba32> provider)
     {
         DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<Rgba32> decoded = provider.GetImage(HeifDecoder.Instance, convertOptions);
@@ -294,7 +317,7 @@ public class HeifDecoderTests
     [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void IccCompactNonSrgb<TPixel>(TestImageProvider<TPixel> provider)
+    public void Decode_WhenColorProfileHandlingIsCompact_PreservesNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -324,7 +347,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    public void IccCompactSrgb<TPixel>(TestImageProvider<TPixel> provider)
+    public void Decode_WhenColorProfileHandlingIsCompact_RemovesSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -348,7 +371,7 @@ public class HeifDecoderTests
     [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void IccSkipMetadata<TPixel>(TestImageProvider<TPixel> provider)
+    public void Decode_WhenSkipMetadataIsTrue_OmitsIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new()

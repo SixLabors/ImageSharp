@@ -867,13 +867,15 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(TenBit, 8, 8, 0)]
-    [InlineData(TwelveBit, 8, 8, 0)]
-    [InlineData(TenBit, 24, 16, 9)]
-    [InlineData(TwelveBit, 24, 16, 9)]
-    [InlineData(TenBit, 16, 24, 10)]
-    [InlineData(TwelveBit, 16, 24, 10)]
-    public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue, int width, int height, int effort)
+    [InlineData(TenBit, 8, 8, 0, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, 8, 8, 0, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, 24, 16, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, 24, 16, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, 16, 24, 10, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, 16, 24, 10, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, 77, 21, 5, HeifEncodingSpeed.Level7)]
+    [InlineData(TwelveBit, 21, 77, 5, HeifEncodingSpeed.Level9)]
+    public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue, int width, int height, int effort, HeifEncodingSpeed speed)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         using Image<Rgb48> source = new(width, height);
@@ -923,7 +925,7 @@ public class Av1EncoderFrameTests
             colorConfig,
             qIndex: 0,
             effort,
-            speed: HeifEncodingSpeed.Level0);
+            speed);
 
         byte[] payload = stream.ToArray();
 
@@ -952,17 +954,20 @@ public class Av1EncoderFrameTests
     /// Verifies that live partition search preserves lossless syntax across clipped parent nodes and superblocks.
     /// </summary>
     [Theory]
-    [InlineData(48, 24, 9)]
-    [InlineData(24, 48, 9)]
-    [InlineData(80, 24, 9)]
-    [InlineData(24, 80, 9)]
-    [InlineData(96, 24, 10)]
-    [InlineData(24, 96, 10)]
-    [InlineData(13, 21, 9)]
-    [InlineData(21, 13, 9)]
-    [InlineData(77, 21, 10)]
-    [InlineData(21, 77, 10)]
-    public void EncodeLosslessPartitionSearchAcrossClippedSuperblocks(int width, int height, int effort)
+    [InlineData(48, 24, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(24, 48, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(80, 24, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(24, 80, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(96, 24, 10, HeifEncodingSpeed.Level0)]
+    [InlineData(24, 96, 10, HeifEncodingSpeed.Level0)]
+    [InlineData(13, 21, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(21, 13, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(77, 21, 10, HeifEncodingSpeed.Level0)]
+    [InlineData(21, 77, 10, HeifEncodingSpeed.Level0)]
+    [InlineData(13, 21, 5, HeifEncodingSpeed.Level7)]
+    [InlineData(77, 21, 5, HeifEncodingSpeed.Level8)]
+    [InlineData(21, 77, 5, HeifEncodingSpeed.Level9)]
+    public void EncodeLosslessPartitionSearchAcrossClippedSuperblocks(int width, int height, int effort, HeifEncodingSpeed speed)
     {
         ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
         using Image<L8> source = new(width, height);
@@ -980,7 +985,7 @@ public class Av1EncoderFrameTests
         ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
         colorConfig.ColorRange = true;
         using MemoryStream stream = new();
-        Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, effort, speed: HeifEncodingSpeed.Level0);
+        Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, effort, speed);
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _);

@@ -284,6 +284,32 @@ internal static partial class Av1IntraSuperblockEncoder
             // Otherwise an earlier unsplit 16x16 can make a later 32x32 consume an old 8x8 NONE entry.
             preparedPartition = blockSize == Av1BlockSize.Block8x8 ? Av1PartitionType.None : Av1PartitionType.Split;
 
+            int nodeIndex = 0;
+            int nodeWidth = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
+            int localX = blockOrigin.X & (nodeWidth - 1);
+            int localY = blockOrigin.Y & (nodeWidth - 1);
+            while (nodeWidth > blockSize.GetWidth())
+            {
+                nodeWidth >>= 1;
+                int childIndex = (localX >= nodeWidth ? 1 : 0) | (localY >= nodeWidth ? 2 : 0);
+                nodeIndex = (nodeIndex * 4) + childIndex + 1;
+                localX &= nodeWidth - 1;
+                localY &= nodeWidth - 1;
+            }
+
+            if (this.picture.Sequence.SequenceHeader.IsStillPicture &&
+                this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level7)
+            {
+                if (this.superblock.Workspace.PartitionSearchTypes[0] == (byte)Av1PartitionType.Invalid)
+                {
+                    this.PrepareVariancePartitions(macroBlock, blockOrigin);
+                }
+
+                Av1PartitionType variancePartition = (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[nodeIndex];
+                this.PreparePartitionGeometry(blockOrigin, blockSize, variancePartition);
+                return variancePartition;
+            }
+
             bool searchPartition = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block16x16 ||
                 (this.effort == 10 &&
                     blockSize is Av1BlockSize.Block32x32 or Av1BlockSize.Block64x64 or Av1BlockSize.Block128x128);
@@ -296,19 +322,6 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.effort < 9)
             {
                 return preparedPartition;
-            }
-
-            int nodeIndex = 0;
-            int nodeWidth = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
-            int localX = blockOrigin.X & (nodeWidth - 1);
-            int localY = blockOrigin.Y & (nodeWidth - 1);
-            while (nodeWidth > blockSize.GetWidth())
-            {
-                nodeWidth >>= 1;
-                int childIndex = (localX >= nodeWidth ? 1 : 0) | (localY >= nodeWidth ? 2 : 0);
-                nodeIndex = (nodeIndex * 4) + childIndex + 1;
-                localX &= nodeWidth - 1;
-                localY &= nodeWidth - 1;
             }
 
             Av1PartitionType selectedPartition = (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[nodeIndex];

@@ -191,6 +191,36 @@ Restoration search, filtering, signaling, and retained trial storage are committ
 - The source-led partition controller replacement remains next: current Effort gates still
   override speed-dependent partition decisions. No benchmark or golden-output update was made.
 
+### Intra variance partition checkpoint: 2026-09-10
+
+- Still-image speeds 7-9 now select their variance partition tree before mode coding, instead
+  of falling through the Effort-controlled fixed 8x8 skeleton. Other configurations retain
+  their unresolved partition controller. Native dispatch: `speed_features.c:568-603`.
+- The complete intra variance pass includes rounded 4x4 averages, quantizer-scaled thresholds,
+  propagated forced splits, vertical-before-horizontal decisions, outer-frame versus interior-tile
+  fitting, and the speed-nine child-variance rule. Native evidence:
+  `var_based_part.c:112-258,390-423,535-560,660-683,1105-1200,1530-1550,1790-1965`;
+  resolution-dependent settings are in `speed_features.c:302-337`.
+- Byte and ushort average operators preserve source precision. The moment tree borrows existing
+  coefficient scratch for the partition pass; no extra buffer owner or per-candidate allocation
+  was introduced. Only partition choices survive into mode coding.
+- On the existing reconciled speed-nine flag case, native inspection of both bitstreams reports
+  identical block sizes at all 1500 mode-information positions. The managed extraction
+  `flag-managed-variance-speed9.ivf` and native `flag-native-full-speed9.ivf` remain outside
+  the repository. This establishes that case's partition geometry, not pixel or encoder parity.
+- Release/net11 and Roslyn succeed with the existing warning counts. The frame suite passes
+  179/179 (`variance-partition-frame`), including 13 clipped cases. Two additional high-bit-depth
+  cases were then added; their complete eight-case method passes with SIMD and with hardware
+  intrinsics disabled (`variance-partition-highbit`, `variance-partition-highbit-scalar`).
+  Public encoder tests remain 73/76 (`variance-partition-public`), with all three screen-content
+  failures unresolved. No expected pixels or tolerances changed.
+- High-speed mode selection remains incomplete: speeds 8-9 require the non-RD/hybrid controller,
+  its Hadamard cost model, palette policy and winner reconstruction; speed eight also adjusts
+  variance partitions through its merge controller. Sources traced next:
+  `partition_search.c:758-775`, `nonrd_pickmode.c:1773-1990`,
+  `nonrd_opt.c:43-326,610-680`. Lower-speed partition pruning and existing Effort gates
+  remain unresolved. No performance claim or benchmark follows from this checkpoint.
+
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.
 The previous `d565eec6` source directory is an export without Git metadata. Its local build cache

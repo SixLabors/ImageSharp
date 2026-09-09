@@ -44,6 +44,14 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract TSample CreateSample(int value);
 
         /// <summary>
+        /// Gets the rounded average of a four-by-four source block.
+        /// </summary>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="origin">The source block origin.</param>
+        /// <returns>The average in the source sample precision.</returns>
+        public static abstract int GetAverage4x4(Buffer2DRegion<TSample> source, Point origin);
+
+        /// <summary>
         /// Copies active palette-search samples into contiguous signed storage.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
@@ -539,6 +547,20 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static byte CreateSample(int value) => (byte)value;
+
+        /// <inheritdoc/>
+        public static int GetAverage4x4(Buffer2DRegion<byte> source, Point origin)
+        {
+            // Four packed rows occupy sixteen byte lanes. Widen before summing to retain all eight sample bits.
+            Vector128<byte> samples = Vector128.Create(
+                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y).Slice(origin.X, 4)),
+                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y + 1).Slice(origin.X, 4)),
+                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y + 2).Slice(origin.X, 4)),
+                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y + 3).Slice(origin.X, 4))).AsByte();
+
+            int sum = Vector128.Sum(Vector128.WidenLower(samples)) + Vector128.Sum(Vector128.WidenUpper(samples));
+            return (sum + 8) >> 4;
+        }
 
         /// <inheritdoc/>
         public static uint GetHashSample(byte sample) => sample;
@@ -1134,6 +1156,18 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static ushort CreateSample(int value) => (ushort)value;
+
+        /// <inheritdoc/>
+        public static int GetAverage4x4(Buffer2DRegion<ushort> source, Point origin)
+        {
+            // Four ushort lanes accumulate matching columns. Twelve-bit samples keep both column and final sums within ushort.
+            Vector64<ushort> columns = Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y)[origin.X]) +
+                Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y + 1)[origin.X]) +
+                Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y + 2)[origin.X]) +
+                Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y + 3)[origin.X]);
+
+            return (Vector64.Sum(columns) + 8) >> 4;
+        }
 
         /// <inheritdoc/>
         public static uint GetHashSample(ushort sample) => sample;

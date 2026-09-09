@@ -1773,6 +1773,104 @@ public class Av1IntraSuperblockEncoderTests
                     effort: 6));
     }
 
+    [Theory]
+    [InlineData((int)Av1BlockSize.Block16x8, false)]
+    [InlineData((int)Av1BlockSize.Block8x16, false)]
+    [InlineData((int)Av1BlockSize.Block64x32, false)]
+    [InlineData((int)Av1BlockSize.Block64x32, true)]
+    public void RectangularPalettesPreservePixels(int blockSizeValue, bool lossless)
+    {
+        Av1BlockSize blockSize = (Av1BlockSize)blockSizeValue;
+        int width = blockSize.GetWidth();
+        int height = blockSize.GetHeight();
+        int qIndex = lossless ? 0 : 4;
+        ObuColorConfig colorConfig = new()
+        {
+            BitDepth = Av1BitDepth.EightBit,
+            SubSamplingX = false,
+            SubSamplingY = false
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, width, height, 8, Av1ColorFormat.Yuv444, 0, 0, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, width, height, 8, Av1ColorFormat.Yuv444, 0, 0, lumaBorder: 64);
+        for (int planeIndex = 0; planeIndex < 3; planeIndex++)
+        {
+            Buffer2DRegion<byte> plane = source.Frame.CodedView.GetPlane((Av1Plane)planeIndex);
+            for (int y = 0; y < height; y++)
+            {
+                Span<byte> row = plane.DangerousGetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    // Luma and the UV pair use independent spatial patterns. The eight UV points lie
+                    // along one line, allowing every centroid to converge without a local clustering minimum.
+                    uint seed = (uint)((y * width) + x + (planeIndex == 0 ? 0 : width * height));
+                    seed = unchecked((seed ^ (seed >> 16)) * 0x7FEB352DU);
+                    seed = unchecked((seed ^ (seed >> 15)) * 0x846CA68BU);
+                    int color = (int)((seed ^ (seed >> 16)) & 7);
+                    row[x] = (byte)(16 + (color * 29) + planeIndex);
+                }
+            }
+        }
+
+        using Av1EncoderModeInfoBuffer modeInfoBuffer = new(Configuration.Default, width, height, disallow4x4AllFrames: false);
+        Av1PictureControlSet template = CreatePicture(modeInfoBuffer, colorConfig, use128x128Superblock: false, qIndex);
+        template.Parent.FrameHeader.AllowScreenContentTools = true;
+        template.Parent.FrameHeader.CodedLossless = lossless;
+        template.Parent.FrameHeader.TransformMode = Av1TransformMode.Select;
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default, template.Sequence.SequenceHeader, template.Parent.FrameHeader, width, height, disallow4x4AllFrames: false);
+
+        Av1PictureControlSet picture = pictureBuffer.Picture;
+        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, width, height);
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        Av1Superblock superblock = new()
+        {
+            Workspace = superblockWorkspace,
+            TileInfo = new Av1TileInfo(0, 0, picture.Parent.FrameHeader),
+            Index = 0
+        };
+
+        Av1IntraSuperblockEncoder.Prepare(picture, superblock, Point.Empty);
+        ref Av1MacroBlockModeInfo modeInfo = ref picture.GetMacroBlockModeInfo(Point.Empty);
+        modeInfo.Block.BlockSize = blockSize;
+        picture.MapModeInfoBlock(Point.Empty, blockSize);
+        Av1MacroBlockD macroBlock = new() { Tile = superblock.TileInfo };
+        Av1TileWriter.SetModeInfoRowAndColumn(
+            picture,
+            macroBlock,
+            superblock.TileInfo,
+            Point.Empty,
+            blockSize,
+            picture.Parent.Common.ModeInfoStride,
+            picture.Parent.Common.ModeInfoRowCount,
+            picture.Parent.Common.ModeInfoColumnCount);
+
+        Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator> decision = new(
+            source.Frame, reconstruction.Frame, reconstruction.Frame, picture, superblock, coefficients, blockWorkspace, effort: 5);
+
+        Av1EncoderBlockStruct block = default;
+        Av1EncoderPaletteInfo palette = default;
+        using Av1SymbolEncoder writer = new(Configuration.Default, 8192, qIndex, updateCdf: true);
+        decision.EncodeBlock(writer, macroBlock, Point.Empty, 0, ref modeInfo, ref block, ref palette);
+        Assert.Equal(8, palette.PaletteSizes[0]);
+        Assert.Equal(8, palette.PaletteSizes[1]);
+        if (lossless)
+        {
+            Assert.Equal(Av1TransformSize.Size4x4, modeInfo.Block.TransformSize);
+        }
+
+        for (int planeIndex = 0; planeIndex < 3; planeIndex++)
+        {
+            Buffer2DRegion<byte> expected = source.Frame.CodedView.GetPlane((Av1Plane)planeIndex);
+            Buffer2DRegion<byte> actual = reconstruction.Frame.CodedView.GetPlane((Av1Plane)planeIndex);
+            for (int y = 0; y < height; y++)
+            {
+                Assert.Equal(expected.DangerousGetRowSpan(y)[..width], actual.DangerousGetRowSpan(y)[..width]);
+            }
+        }
+    }
+
     [Fact]
     public void ProductionTileSelectsExactPairedChromaPalette()
     {

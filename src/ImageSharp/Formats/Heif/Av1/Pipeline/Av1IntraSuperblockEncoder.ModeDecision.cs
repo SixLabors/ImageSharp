@@ -1269,6 +1269,55 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1TransformSize selectedTransformSize,
             out Av1RateDistortionStatistics selectedStatistics)
         {
+            Av1PredictionMode mode = this.SelectLumaPrediction(
+                writer,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                tileIndex,
+                retainedCoefficients,
+                retainedStates,
+                ref paletteInfo,
+                out selectedAngleDelta,
+                out selectedFilterIntraMode,
+                out selectedTransformSize,
+                out selectedStatistics);
+
+            if (Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize) &&
+                this.SelectLumaPalette(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    blockSize,
+                    tileIndex,
+                    retainedCoefficients,
+                    retainedStates,
+                    ref selectedStatistics,
+                    ref paletteInfo,
+                    ref selectedTransformSize))
+            {
+                mode = Av1PredictionMode.DC;
+                selectedAngleDelta = 0;
+                selectedFilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
+            }
+
+            return mode;
+        }
+
+        private Av1PredictionMode SelectLumaPrediction(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            ushort tileIndex,
+            Span<int> retainedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedStates,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            out int selectedAngleDelta,
+            out Av1FilterIntraMode selectedFilterIntraMode,
+            out Av1TransformSize selectedTransformSize,
+            out Av1RateDistortionStatistics selectedStatistics)
+        {
             bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
             Av1TransformSize transformSize = codedLossless
                 ? Av1TransformSize.Size4x4
@@ -1528,12 +1577,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (searchEveryTransformSize &&
                     this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select)
                 {
-                    Av1RateDistortionStatistics splitStatistics = this.GetSplitLumaCandidateCost(
+                    Av1RateDistortionStatistics splitStatistics = this.GetUniformLumaCandidateCost(
                         writer,
                         macroBlock,
                         sourcePlane,
                         reconstructionPlane,
                         blockOrigin,
+                        Av1BlockSize.Block8x8,
+                        Av1TransformSize.Size4x4,
                         tileIndex,
                         mode,
                         angleDelta,
@@ -1717,12 +1768,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (searchEveryTransformSize &&
                         this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select)
                     {
-                        Av1RateDistortionStatistics splitStatistics = this.GetSplitLumaCandidateCost(
+                        Av1RateDistortionStatistics splitStatistics = this.GetUniformLumaCandidateCost(
                             writer,
                             macroBlock,
                             sourcePlane,
                             reconstructionPlane,
                             blockOrigin,
+                            Av1BlockSize.Block8x8,
+                            Av1TransformSize.Size4x4,
                             tileIndex,
                             Av1PredictionMode.DC,
                             0,
@@ -1758,33 +1811,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            if (this.effort >= 5 &&
-                blockSize == Av1BlockSize.Block8x8 &&
-                this.picture.Parent.FrameHeader.AllowScreenContentTools &&
-                this.SelectLumaPalette(
-                    writer,
-                    macroBlock,
-                    sourcePlane,
-                    reconstructionPlane,
-                    blockOrigin,
-                    tileIndex,
-                    transformSetType,
-                    blockContext,
-                    largestTransformRate,
-                    transformSizeContext,
-                    candidateReconstruction,
-                    candidateCoefficients,
-                    retainedCoefficients,
-                    retainedStates,
-                    ref bestTransformStatistics,
-                    ref paletteInfo,
-                    ref selectedTransformSize))
-            {
-                bestMode = Av1PredictionMode.DC;
-                selectedAngleDelta = 0;
-                selectedFilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
-            }
-
             // Efforts six and seven save work by testing transform size only for the global non-palette
             // winner. Effort eight and above already tested both sizes inside every candidate.
             if (this.effort >= 6 &&
@@ -1793,12 +1819,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
                 paletteInfo.PaletteSizes[0] == 0)
             {
-                Av1RateDistortionStatistics splitStatistics = this.GetSplitLumaCandidateCost(
+                Av1RateDistortionStatistics splitStatistics = this.GetUniformLumaCandidateCost(
                     writer,
                     macroBlock,
                     sourcePlane,
                     reconstructionPlane,
                     blockOrigin,
+                    Av1BlockSize.Block8x8,
+                    Av1TransformSize.Size4x4,
                     tileIndex,
                     bestMode,
                     selectedAngleDelta,
@@ -1957,6 +1985,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane.Y,
                     sourcePlane,
                     reconstructionPlane,
+                    [],
+                    default,
                     candidateReconstruction,
                     candidateCoefficients,
                     candidateStates,
@@ -2011,12 +2041,14 @@ internal static partial class Av1IntraSuperblockEncoder
             return bestMode;
         }
 
-        private Av1RateDistortionStatistics GetSplitLumaCandidateCost(
+        private Av1RateDistortionStatistics GetUniformLumaCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Buffer2DRegion<TSample> sourcePlane,
             Buffer2DRegion<TSample> reconstructionPlane,
             Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1TransformSize transformSize,
             ushort tileIndex,
             Av1PredictionMode mode,
             int angleDelta,
@@ -2031,51 +2063,58 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateCoefficients,
             Span<Av1EncoderTransformBlockState> candidateTransformBlocks)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-            const Av1TransformSize TransformSize = Av1TransformSize.Size4x4;
-            const int BlockWidth = 8;
-            const int TransformWidth = 4;
-            const int TransformSampleCount = TransformWidth * TransformWidth;
+            int blockWidth = blockSize.GetWidth();
+            int blockHeight = blockSize.GetHeight();
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int transformSampleCount = transformSize.GetSize2d();
+            int transformWidth4x4 = transformSize.Get4x4WideCount();
+            int transformHeight4x4 = transformSize.Get4x4HighCount();
+            int contextWidth = blockSize.Get4x4WideCount();
+            int contextHeight = blockSize.Get4x4HighCount();
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
 
-            // One transient 64-sample plane holds the 4x4 prediction followed by two reconstruction buffers.
-            // The disjoint views stay live together and need no additional owner or allocator rent.
+            // Reuse the second candidate plane for one prediction and two transform reconstructions.
+            // Their disjoint spans remain live while the first candidate plane accumulates the block mosaic.
             Span<TSample> transformSamples = workspace.GetCandidateReconstruction(1);
-            Span<TSample> prediction = transformSamples[..TransformSampleCount];
+            Span<TSample> prediction = transformSamples[..transformSampleCount];
             Span<TSample> candidateTransformReconstruction = transformSamples.Slice(
-                TransformSampleCount,
-                TransformSampleCount);
+                transformSampleCount,
+                transformSampleCount);
 
             Span<TSample> bestTransformReconstruction = transformSamples.Slice(
-                TransformSampleCount * 2,
-                TransformSampleCount);
+                transformSampleCount * 2,
+                transformSampleCount);
 
             Span<int> transformCoefficientStorage = workspace.GetCandidateCoefficients(1);
-            Span<int> candidateTransformCoefficients = transformCoefficientStorage[..TransformSampleCount];
+            Span<int> candidateTransformCoefficients = transformCoefficientStorage[..transformSampleCount];
             Span<int> bestTransformCoefficients = transformCoefficientStorage.Slice(
-                TransformSampleCount,
-                TransformSampleCount);
+                transformSampleCount,
+                transformSampleCount);
 
-            Span<short> residual = workspace.Residual[..TransformSampleCount];
+            Span<short> residual = (paletteSize > 0 ? workspace.Palette.GetResidual(0) : workspace.Residual)[..transformSampleCount];
             Span<byte> contexts = workspace.TransformContexts;
-            Span<byte> topContexts = contexts[..2];
-            Span<byte> leftContexts = contexts[2..4];
+            Span<byte> topContexts = contexts[..contextWidth];
+            Span<byte> leftContexts = contexts.Slice(contextWidth, contextHeight);
             Av1NeighborArrayUnit<byte> coefficientNeighbors =
                 this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
 
             int topIndex = coefficientNeighbors.GetTopIndex(blockOrigin);
             int leftIndex = coefficientNeighbors.GetLeftIndex(blockOrigin);
-            coefficientNeighbors.Top.Slice(topIndex, 2).CopyTo(topContexts);
-            coefficientNeighbors.Left.Slice(leftIndex, 2).CopyTo(leftContexts);
+            coefficientNeighbors.Top.Slice(topIndex, contextWidth).CopyTo(topContexts);
+            coefficientNeighbors.Left.Slice(leftIndex, contextHeight).CopyTo(leftContexts);
             bool useReducedTransformSet = this.picture.Parent.FrameHeader.UseReducedTransformSet;
             Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
-                TransformSize,
+                transformSize,
                 useReducedTransformSet);
 
-            // Prediction-mode and transform-size symbols belong to the 8x8 coding block, while each
-            // 4x4 transform contributes its own coefficient rate below.
-            int rate = writer.GetTransformSizeCost(BlockSize, TransformSize, transformSizeContext);
+            // Prediction and transform-size syntax belongs to the coding block. Each residual transform
+            // contributes its own coefficient cost; lossless and fixed-size modes do not signal a size choice.
+            bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
+            int rate = !codedLossless && this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
+                ? writer.GetTransformSizeCost(blockSize, transformSize, transformSizeContext)
+                : 0;
             if (paletteSize > 0)
             {
                 rate += paletteHeaderRate;
@@ -2085,7 +2124,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 rate += Av1TileWriter.GetLumaModeCost(
                     writer,
                     macroBlock,
-                    BlockSize,
+                    blockSize,
                     mode,
                     angleDelta,
                     this.picture.Parent.FrameHeader.IsIntra);
@@ -2097,7 +2136,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         rate += writer.GetFilterIntraModeCost(
                             filterIntraMode,
-                            BlockSize);
+                            blockSize);
                     }
                 }
             }
@@ -2107,24 +2146,26 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 colorIndexMap = this.superblock.Workspace
                     .GetPaletteMaps()
-                    .GetMap(Av1PlaneType.Y, BlockWidth, BlockWidth);
+                    .GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
             }
 
             long distortion = 0;
 
-            // Raster order is observable here: each retained 4x4 reconstruction supplies reference
-            // samples and coefficient context to transforms that follow it in the same coding block.
-            for (int transformRow = 0; transformRow < 2; transformRow++)
+            // Earlier transforms provide reconstructed edges and coefficient contexts to later transforms.
+            // Palette blocks fit within one bounded 64x64 luma region, so their transform order is raster order.
+            int transformColumnCount = blockWidth / transformWidth;
+            int transformRowCount = blockHeight / transformHeight;
+            for (int transformRow = 0; transformRow < transformRowCount; transformRow++)
             {
-                for (int transformColumn = 0; transformColumn < 2; transformColumn++)
+                for (int transformColumn = 0; transformColumn < transformColumnCount; transformColumn++)
                 {
-                    int transformIndex = (transformRow * 2) + transformColumn;
+                    int transformIndex = (transformRow * transformColumnCount) + transformColumn;
                     int reconstructionOffset =
-                        (transformRow * TransformWidth * BlockWidth) + (transformColumn * TransformWidth);
+                        (transformRow * transformHeight * blockWidth) + (transformColumn * transformWidth);
 
                     Point transformOrigin = blockOrigin + new Size(
-                        transformColumn * TransformWidth,
-                        transformRow * TransformWidth);
+                        transformColumn * transformWidth,
+                        transformRow * transformHeight);
 
                     if (paletteSize > 0)
                     {
@@ -2135,31 +2176,30 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformOrigin,
                             paletteColors,
                             colorIndexMap.GetSubRegion(
-                                new Rectangle(
-                                    transformColumn * TransformWidth,
-                                    transformRow * TransformWidth,
-                                    TransformWidth,
-                                    TransformWidth)),
+                                transformColumn * transformWidth,
+                                transformRow * transformHeight,
+                                transformWidth,
+                                transformHeight),
                             prediction,
                             residual,
-                            TransformSize);
+                            transformSize);
                     }
                     else
                     {
-                        // The parent 8x8 search retains edges 0 and 1 across mode candidates. The split
-                        // transforms need separate edges because their neighbours include earlier 4x4 reconstructions.
+                        // The parent mode search retains reference slots 0 and 1. Use the other pair here
+                        // because these transform edges also include earlier reconstructions in this candidate.
                         Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
                         Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
                         this.PrepareTransformReferenceSamples(
                             reconstructionPlane,
                             blockOrigin,
                             blockOrigin,
-                            BlockSize,
+                            blockSize,
                             macroBlock,
                             transformRow,
                             transformColumn,
-                            BlockWidth,
-                            TransformSize,
+                            blockWidth,
+                            transformSize,
                             0,
                             0,
                             candidateReconstruction,
@@ -2175,42 +2215,42 @@ internal static partial class Av1IntraSuperblockEncoder
                                 sourcePlane,
                                 transformOrigin,
                                 prediction,
-                                aboveStorage.Slice(1, TransformWidth * 2),
-                                leftStorage.Slice(1, TransformWidth * 2),
+                                aboveStorage.Slice(1, transformWidth + transformHeight),
+                                leftStorage.Slice(1, transformWidth + transformHeight),
                                 hasLeft,
                                 hasAbove,
                                 mode,
                                 angleDelta,
                                 this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                                this.UseSmoothIntraEdges(macroBlock, blockOrigin, BlockSize, Av1Plane.Y),
+                                this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
                                 residual,
-                                TransformSize,
+                                transformSize,
                                 this.bitDepth);
                         }
                         else
                         {
                             // Filter-intra prediction is recursive within each transform unit, so rebuild it from
-                            // the reconstructed edges established by the preceding 4x4 candidate.
+                            // the reconstructed edges established by preceding transforms.
                             TOperator.PrepareFilterIntra(
                                 this.blockWorkspace,
                                 sourcePlane,
                                 transformOrigin,
                                 prediction,
-                                aboveStorage.Slice(1, TransformWidth * 2),
-                                leftStorage.Slice(1, TransformWidth * 2),
+                                aboveStorage.Slice(1, transformWidth + transformHeight),
+                                leftStorage.Slice(1, transformWidth + transformHeight),
                                 residual,
                                 filterIntraMode,
-                                TransformSize,
+                                transformSize,
                                 this.bitDepth);
                         }
                     }
 
                     Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
                         Av1ComponentType.Luminance,
-                        topContexts.Slice(transformColumn, 1),
-                        leftContexts.Slice(transformRow, 1),
-                        BlockSize,
-                        TransformSize);
+                        topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4),
+                        leftContexts.Slice(transformRow * transformHeight4x4, transformHeight4x4),
+                        blockSize,
+                        transformSize);
 
                     long bestTransformCost = long.MaxValue;
                     Av1TransformType bestTransformType = Av1TransformType.DctDct;
@@ -2218,13 +2258,17 @@ internal static partial class Av1IntraSuperblockEncoder
                     long bestTransformDistortion = 0;
                     Av1EncoderTransformBlockState bestTransformState = default;
                     Span<int> retainedTransformCoefficients = candidateCoefficients.Slice(
-                        transformIndex * TransformSampleCount,
-                        TransformSampleCount);
+                        transformIndex * transformSampleCount,
+                        transformSampleCount);
 
                     // Each transform writes into the compact buffer that does not hold the current best.
                     // Swapping spans on improvement keeps the winner without copying it inside the search loop.
+                    Av1TransformType transformTypeLimit = codedLossless
+                        ? Av1TransformType.AdstDct
+                        : Av1TransformType.AllTransformTypes;
+
                     for (Av1TransformType transformType = Av1TransformType.DctDct;
-                        transformType < Av1TransformType.AllTransformTypes;
+                        transformType < transformTypeLimit;
                         transformType++)
                     {
                         if (!transformType.IsExtendedSetUsed(transformSetType))
@@ -2240,9 +2284,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             prediction,
                             residual,
                             candidateTransformReconstruction,
-                            TransformWidth,
+                            transformWidth,
                             candidateTransformCoefficients,
-                            TransformSize,
+                            transformSize,
                             transformType,
                             Av1Plane.Y,
                             this.quantization.QIndex[0],
@@ -2252,7 +2296,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             ref candidateState);
 
                         int candidateRate = writer.GetCoefficientCost(
-                            TransformSize,
+                            transformSize,
                             transformType,
                             mode,
                             candidateTransformCoefficients,
@@ -2286,16 +2330,16 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
                     }
 
-                    // The next 4x4 prediction consumes this reconstruction from the block mosaic. Publish the
-                    // final winner once, after transform search, along with its entropy-context coefficients.
+                    // Publish the winner once after transform search. Later transforms consume its pixels
+                    // from the block mosaic and its coefficient context from the local edge arrays.
                     bestTransformCoefficients.CopyTo(retainedTransformCoefficients);
-                    for (int row = 0; row < TransformWidth; row++)
+                    for (int row = 0; row < transformHeight; row++)
                     {
-                        bestTransformReconstruction.Slice(row * TransformWidth, TransformWidth)
+                        bestTransformReconstruction.Slice(row * transformWidth, transformWidth)
                             .CopyTo(
                                 candidateReconstruction.Slice(
-                                    reconstructionOffset + (row * BlockWidth),
-                                    TransformWidth));
+                                    reconstructionOffset + (row * blockWidth),
+                                    transformWidth));
                     }
 
                     rate += bestTransformRate;
@@ -2303,12 +2347,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateTransformBlocks[transformIndex] = bestTransformState;
                     byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                         retainedTransformCoefficients,
-                        TransformSize,
+                        transformSize,
                         bestTransformType,
                         bestTransformState.EndOfBlock);
 
-                    topContexts[transformColumn] = coefficientContext;
-                    leftContexts[transformRow] = coefficientContext;
+                    topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4).Fill(coefficientContext);
+                    leftContexts.Slice(transformRow * transformHeight4x4, transformHeight4x4).Fill(coefficientContext);
 
                     // Every remaining transform can only add nonnegative rate and distortion.
                     if (Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion) >= costLimit)

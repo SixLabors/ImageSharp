@@ -28,34 +28,56 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
-            Av1TransformBlockContext blueContext,
-            Av1TransformBlockContext redContext,
-            Span<TSample> candidateBlueReconstruction,
-            Span<TSample> candidateRedReconstruction,
-            Span<int> candidateBlueCoefficients,
-            Span<int> candidateRedCoefficients,
             Span<int> retainedBlueCoefficients,
             Span<int> retainedRedCoefficients,
-            ref Av1EncoderTransformBlockState retainedBlueState,
-            ref Av1EncoderTransformBlockState retainedRedState,
+            Span<Av1EncoderTransformBlockState> retainedBlueStates,
+            Span<Av1EncoderTransformBlockState> retainedRedStates,
             ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-            const int LumaBlockLength = 8;
-            Av1EncoderPaletteWorkspace<TSample> workspace =
-                this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
+            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
+            Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+            Av1EncoderPaletteWorkspace<TSample> workspace = modeWorkspace.Palette;
 
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
+            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+            int width = chromaBlockSize.GetWidth();
+            int height = chromaBlockSize.GetHeight();
+            int sampleCount = width * height;
+            int transformBlockCount = sampleCount / transformSize.GetSize2d();
+            Span<TSample> candidateBlueReconstruction = modeWorkspace.GetCandidateReconstruction(0)[..sampleCount];
+            Span<TSample> candidateRedReconstruction = modeWorkspace.GetCandidateReconstruction(1)[..sampleCount];
+            Span<int> candidateBlueCoefficients = modeWorkspace.GetCandidateCoefficients(0)[..sampleCount];
+            Span<int> candidateRedCoefficients = modeWorkspace.GetCandidateCoefficients(1)[..sampleCount];
+            Span<Av1EncoderTransformBlockState> candidateBlueStates = modeWorkspace.CandidateTransformBlocks[..transformBlockCount];
+            Span<Av1EncoderTransformBlockState> candidateRedStates =
+                modeWorkspace.CandidateTransformBlocks.Slice(transformBlockCount, transformBlockCount);
+
+            Av1BlockSize maximumUnitBlockSize =
+                Av1BlockSize.Block64x64.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+
+            int contextWidth = chromaBlockSize.Get4x4WideCount();
+            int contextHeight = chromaBlockSize.Get4x4HighCount();
+            Span<byte> contexts = modeWorkspace.TransformContexts;
+            Span<byte> blueTopContexts = contexts[..contextWidth];
+            Span<byte> blueLeftContexts = contexts.Slice(contextWidth, contextHeight);
+            Span<byte> redTopContexts = contexts.Slice(contextWidth + contextHeight, contextWidth);
+            Span<byte> redLeftContexts = contexts.Slice((2 * contextWidth) + contextHeight, contextHeight);
+            Av1NeighborArrayUnit<byte> blueNeighbors = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex];
+            Av1NeighborArrayUnit<byte> redNeighbors = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
+            int blueTopIndex = blueNeighbors.GetTopIndex(chromaOrigin);
+            int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
+            int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);
+            int redLeftIndex = redNeighbors.GetLeftIndex(chromaOrigin);
+            Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
+            Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
 
             // Clip against the coded mode-info boundary before subsampling, as the decoder does. Visible odd
             // dimensions still have complete coded chroma samples; truncating them here can leave an empty palette input.
-            int rows = (LumaBlockLength + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY;
-            int columns = (LumaBlockLength + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX;
+            int rows = (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY;
+            int columns = (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX;
             int activeSampleCount = rows * columns;
             Span<short> blueSamples = workspace.GetSamples(0)[..activeSampleCount];
             Span<short> redSamples = workspace.GetSamples(1)[..activeSampleCount];
@@ -64,40 +86,22 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.CopyPaletteSamples(blueSource, chromaOrigin, rows, columns, blueSamples);
             TOperator.CopyPaletteSamples(redSource, chromaOrigin, rows, columns, redSamples);
 
-            Span<short> uniqueBlueColors = workspace.GetUniqueColors(0);
-            Span<short> uniqueRedColors = workspace.GetUniqueColors(1);
-            int uniqueBlueColorCount = 0;
-            int uniqueRedColorCount = 0;
-            short blueMinimum = blueSamples[0];
-            short blueMaximum = blueSamples[0];
-            short redMinimum = redSamples[0];
-            short redMaximum = redSamples[0];
-            for (int sampleIndex = 0; sampleIndex < activeSampleCount; sampleIndex++)
-            {
-                short blueSample = blueSamples[sampleIndex];
-                short redSample = redSamples[sampleIndex];
-                if (!uniqueBlueColors[..uniqueBlueColorCount].Contains(blueSample))
-                {
-                    uniqueBlueColors[uniqueBlueColorCount++] = blueSample;
-                }
+            // Count native values for clustering, but count occupied 8-bit bins for deciding whether
+            // palette is suitable. Binning controls the search only; centroids keep the full sample precision.
+            Span<int> colorCounts = workspace.LumaColorCounts[..(1 << this.bitDepth.GetBitCount())];
+            int uniqueBlueColorCount = this.CountPaletteColors(
+                blueSamples, colorCounts, out int blueColorBins, out short blueMinimum, out short blueMaximum);
 
-                if (!uniqueRedColors[..uniqueRedColorCount].Contains(redSample))
-                {
-                    uniqueRedColors[uniqueRedColorCount++] = redSample;
-                }
+            int uniqueRedColorCount = this.CountPaletteColors(
+                redSamples, colorCounts, out int redColorBins, out short redMinimum, out short redMaximum);
 
-                blueMinimum = Math.Min(blueMinimum, blueSample);
-                blueMaximum = Math.Max(blueMaximum, blueSample);
-                redMinimum = Math.Min(redMinimum, redSample);
-                redMaximum = Math.Max(redMaximum, redSample);
-            }
-
-            int maximumColorCount = Math.Max(uniqueBlueColorCount, uniqueRedColorCount);
-            if (maximumColorCount < 2)
+            int colorBins = Math.Max(blueColorBins, redColorBins);
+            if (colorBins <= 1 || colorBins > 64)
             {
                 return false;
             }
 
+            int maximumColorCount = Math.Max(uniqueBlueColorCount, uniqueRedColorCount);
             int maximumPaletteSize = Math.Min(maximumColorCount, Av1Constants.PaletteMaxSize);
             Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex];
             Span<ushort> colorCache = workspace.ColorCache;
@@ -109,7 +113,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorCache);
 
             colorCache = colorCache[..colorCacheSize];
-            int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(BlockSize);
+            int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(blockSize);
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             Buffer2DRegion<byte> colorIndexMap = this.superblock.Workspace
                 .GetPaletteMaps()
@@ -119,17 +123,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> blueCentroids = workspace.GetCentroids(0);
             Span<short> redCentroids = workspace.GetCentroids(1);
             Span<byte> colorIndices = workspace.Indices;
-            Span<TSample> bluePrediction = workspace.GetPrediction(0);
-            Span<TSample> redPrediction = workspace.GetPrediction(1);
-            Span<short> blueResidual = workspace.GetResidual(0);
-            Span<short> redResidual = workspace.GetResidual(1);
             Span<ushort> bluePaletteColorStorage = workspace.GetPaletteColors(0);
             Span<ushort> redPaletteColorStorage = workspace.GetPaletteColors(1);
-            int sampleCount = transformSize.GetSize2d();
             int cacheThreshold = 4 << (this.bitDepth.GetBitCount() - 8);
             bool paletteSelected = false;
 
-            // Chroma uses one paired K-means family; exhaustive size search avoids early header-cost pruning.
+            // A paired centroid assigns one index to both components. Larger palettes are considered only
+            // while their shared syntax can still beat the current complete chroma decision.
             for (int paletteSize = 2; paletteSize <= maximumPaletteSize; paletteSize++)
             {
                 Span<short> candidateBlueCentroids = blueCentroids[..paletteSize];
@@ -225,72 +225,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     redPaletteColors[colorIndex] = (ushort)candidateRedCentroids[colorIndex];
                 }
 
-                // U and V share one color-index map but reconstruct through their own palette values and
-                // residuals. Both preparations remain valid until the next palette-size candidate.
-                TOperator.PreparePalette(
-                    blueSource,
-                    chromaOrigin,
-                    bluePaletteColors,
-                    colorIndexMap,
-                    bluePrediction[..sampleCount],
-                    blueResidual[..sampleCount],
-                    transformSize);
-
-                TOperator.PreparePalette(
-                    redSource,
-                    chromaOrigin,
-                    redPaletteColors,
-                    colorIndexMap,
-                    redPrediction[..sampleCount],
-                    redResidual[..sampleCount],
-                    transformSize);
-
-                // Intra chroma derives one transform type from the shared UV mode. Palette uses UV DC, so
-                // both planes use DCT while retaining independent coefficient contexts and end positions.
-                Av1EncoderTransformBlockState candidateBlueState = default;
-                long distortion = TOperator.EncodePredictionCandidate(
-                    this.blockWorkspace,
-                    blueSource,
-                    chromaOrigin,
-                    bluePrediction,
-                    blueResidual,
-                    candidateBlueReconstruction,
-                    transformSize.GetWidth(),
-                    candidateBlueCoefficients,
-                    transformSize,
-                    Av1TransformType.DctDct,
-                    Av1Plane.U,
-                    this.quantization.QIndex[0],
-                    this.quantization.DeltaQDc[(int)Av1Plane.U],
-                    this.quantization.DeltaQAc[(int)Av1Plane.U],
-                    this.bitDepth,
-                    ref candidateBlueState);
-
-                Av1EncoderTransformBlockState candidateRedState = default;
-                distortion += TOperator.EncodePredictionCandidate(
-                    this.blockWorkspace,
-                    redSource,
-                    chromaOrigin,
-                    redPrediction,
-                    redResidual,
-                    candidateRedReconstruction,
-                    transformSize.GetWidth(),
-                    candidateRedCoefficients,
-                    transformSize,
-                    Av1TransformType.DctDct,
-                    Av1Plane.V,
-                    this.quantization.QIndex[0],
-                    this.quantization.DeltaQDc[(int)Av1Plane.V],
-                    this.quantization.DeltaQAc[(int)Av1Plane.V],
-                    this.bitDepth,
-                    ref candidateRedState);
-
                 int rate = Av1TileWriter.GetChromaModeCost(
                     writer,
                     this.picture.Parent.FrameHeader,
                     colorConfig,
                     modeInfo,
-                    BlockSize,
+                    blockSize,
                     lumaMode,
                     Av1ChromaPredictionMode.DC,
                     0);
@@ -310,58 +250,101 @@ internal static partial class Av1IntraSuperblockEncoder
                     columns,
                     colorIndexMap);
 
-                rate += writer.GetCoefficientCost(
+                bool pruneByHeader = this.picture.Sequence.SequenceHeader.IsStillPicture ||
+                    this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level6;
+
+                if (pruneByHeader && Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0) >= bestStatistics.Cost)
+                {
+                    break;
+                }
+
+                // Every palette candidate starts from the same external coefficient contexts. Transform
+                // traversal updates only these scratch edges, including all transforms of a lossless block.
+                blueNeighbors.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
+                blueNeighbors.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
+                redNeighbors.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
+                redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
+                long distortion = this.GetTiledPlaneCost(
+                    writer,
+                    macroBlock,
+                    lumaOrigin,
+                    chromaOrigin,
+                    blockSize,
+                    chromaBlockSize,
                     transformSize,
-                    Av1TransformType.DctDct,
+                    maximumUnitBlockSize,
+                    subsamplingX,
+                    subsamplingY,
                     lumaMode,
+                    Av1PredictionMode.DC,
+                    0,
+                    Av1Plane.U,
+                    blueSource,
+                    blueReconstruction,
+                    bluePaletteColors,
+                    colorIndexMap,
+                    candidateBlueReconstruction,
                     candidateBlueCoefficients,
-                    Av1ComponentType.Chroma,
-                    blueContext,
-                    candidateBlueState.EndOfBlock,
-                    this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                    Av1FilterIntraMode.AllFilterIntraModes,
-                    usesInterTransformSet: false);
+                    candidateBlueStates,
+                    blueTopContexts,
+                    blueLeftContexts,
+                    out int blueRate);
 
-                // Mode, palette, and color-map syntax is shared by the pair; coefficient syntax and
-                // distortion remain per plane before the joint chroma rate-distortion comparison.
-                rate += writer.GetCoefficientCost(
+                distortion += this.GetTiledPlaneCost(
+                    writer,
+                    macroBlock,
+                    lumaOrigin,
+                    chromaOrigin,
+                    blockSize,
+                    chromaBlockSize,
                     transformSize,
-                    Av1TransformType.DctDct,
+                    maximumUnitBlockSize,
+                    subsamplingX,
+                    subsamplingY,
                     lumaMode,
+                    Av1PredictionMode.DC,
+                    0,
+                    Av1Plane.V,
+                    redSource,
+                    redReconstruction,
+                    redPaletteColors,
+                    colorIndexMap,
+                    candidateRedReconstruction,
                     candidateRedCoefficients,
-                    Av1ComponentType.Chroma,
-                    redContext,
-                    candidateRedState.EndOfBlock,
-                    this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                    Av1FilterIntraMode.AllFilterIntraModes,
-                    usesInterTransformSet: false);
+                    candidateRedStates,
+                    redTopContexts,
+                    redLeftContexts,
+                    out int redRate);
 
+                rate += blueRate + redRate;
                 Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
                 if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     // Every following palette size overwrites the shared maps and candidate spans, so a
                     // global improvement must retain reconstruction, coefficients, colors, and indices together.
-                    Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
-                    Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
-                    CopyCandidate(
+                    CopyTiledCandidate(
                         candidateBlueReconstruction,
                         candidateBlueCoefficients,
+                        candidateBlueStates,
                         blueReconstruction,
                         chromaOrigin,
-                        retainedBlueCoefficients,
+                        width,
+                        height,
                         transformSize,
-                        candidateBlueState,
-                        ref retainedBlueState);
+                        retainedBlueCoefficients,
+                        retainedBlueStates);
 
-                    CopyCandidate(
+                    CopyTiledCandidate(
                         candidateRedReconstruction,
                         candidateRedCoefficients,
+                        candidateRedStates,
                         redReconstruction,
                         chromaOrigin,
-                        retainedRedCoefficients,
+                        width,
+                        height,
                         transformSize,
-                        candidateRedState,
-                        ref retainedRedState);
+                        retainedRedCoefficients,
+                        retainedRedStates);
 
                     for (int row = 0; row < height; row++)
                     {
@@ -387,6 +370,46 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return paletteSelected;
+        }
+
+        private int CountPaletteColors(
+            ReadOnlySpan<short> samples,
+            Span<int> counts,
+            out int occupiedBins,
+            out short minimum,
+            out short maximum)
+        {
+            counts.Clear();
+            foreach (short sample in samples)
+            {
+                counts[sample]++;
+            }
+
+            // Scanning in sample-value order counts occupied bins without a second histogram. Frequencies
+            // remain available for luma's dominant-color seeds; no input sample is rounded or overwritten.
+            int colorCount = 0;
+            int previousBin = -1;
+            int binShift = this.bitDepth.GetBitCount() - 8;
+            occupiedBins = 0;
+            minimum = short.MaxValue;
+            maximum = 0;
+            for (int color = 0; color < counts.Length; color++)
+            {
+                if (counts[color] != 0)
+                {
+                    colorCount++;
+                    minimum = Math.Min(minimum, (short)color);
+                    maximum = (short)color;
+                    int bin = color >> binShift;
+                    if (bin != previousBin)
+                    {
+                        occupiedBins++;
+                        previousBin = bin;
+                    }
+                }
+            }
+
+            return colorCount;
         }
     }
 }

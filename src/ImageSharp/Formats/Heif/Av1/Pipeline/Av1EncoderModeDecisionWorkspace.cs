@@ -198,9 +198,7 @@ internal readonly ref struct Av1EncoderPaletteWorkspace<TSample>
     private const int PaletteColorStorageLength = Av1Constants.PaletteMaxSize * sizeof(ushort) / sizeof(int);
     private const int FirstSampleOffset = 0;
     private const int SecondSampleOffset = FirstSampleOffset + PlaneShortStorageLength;
-    private const int FirstUniqueColorOffset = SecondSampleOffset + PlaneShortStorageLength;
-    private const int SecondUniqueColorOffset = FirstUniqueColorOffset + PlaneShortStorageLength;
-    private const int FirstPredictionOffset = SecondUniqueColorOffset + PlaneShortStorageLength;
+    private const int FirstPredictionOffset = SecondSampleOffset + PlaneShortStorageLength;
     private const int SecondPredictionOffset = FirstPredictionOffset + PlaneSampleStorageLength;
     private const int FirstResidualOffset = SecondPredictionOffset + PlaneSampleStorageLength;
     private const int SecondResidualOffset = FirstResidualOffset + PlaneShortStorageLength;
@@ -214,8 +212,7 @@ internal readonly ref struct Av1EncoderPaletteWorkspace<TSample>
     private const int SecondAlternateCentroidOffset = FirstAlternateCentroidOffset + PaletteColorStorageLength;
     private const int AlternateIndexOffset = SecondAlternateCentroidOffset + PaletteColorStorageLength;
     private const int ColorCountOffset = AlternateIndexOffset + PlaneByteStorageLength;
-    private const int DominantOrderOffset = ColorCountOffset + MaximumSampleCount;
-    private const int ColorCacheOffset = DominantOrderOffset + PlaneByteStorageLength;
+    private const int ColorCacheOffset = ColorCountOffset + MaximumSampleCount;
     private const int ColorCacheStorageLength = 2 * Av1Constants.PaletteMaxSize * sizeof(ushort) / sizeof(int);
 
     private readonly Span<int> storage;
@@ -251,12 +248,6 @@ internal readonly ref struct Av1EncoderPaletteWorkspace<TSample>
         => this.storage.Slice(ColorCountOffset, MaximumSampleCount);
 
     /// <summary>
-    /// Gets the luma unique-color ordering by descending occurrence count.
-    /// </summary>
-    public Span<byte> LumaDominantOrder
-        => MemoryMarshal.AsBytes(this.storage.Slice(DominantOrderOffset, PlaneByteStorageLength));
-
-    /// <summary>
     /// Gets the sorted neighboring palette colors available to the current block.
     /// </summary>
     public Span<ushort> ColorCache
@@ -270,17 +261,6 @@ internal readonly ref struct Av1EncoderPaletteWorkspace<TSample>
     public Span<short> GetSamples(int planeIndex)
         => MemoryMarshal.Cast<int, short>(
             this.storage.Slice(FirstSampleOffset + (planeIndex * PlaneShortStorageLength), PlaneShortStorageLength));
-
-    /// <summary>
-    /// Gets one plane's unique palette colors.
-    /// </summary>
-    /// <param name="planeIndex">The zero-based plane index.</param>
-    /// <returns>The maximum-size unique-color span.</returns>
-    public Span<short> GetUniqueColors(int planeIndex)
-        => MemoryMarshal.Cast<int, short>(
-            this.storage.Slice(
-                FirstUniqueColorOffset + (planeIndex * PlaneShortStorageLength),
-                PlaneShortStorageLength));
 
     /// <summary>
     /// Gets one plane's palette prediction.

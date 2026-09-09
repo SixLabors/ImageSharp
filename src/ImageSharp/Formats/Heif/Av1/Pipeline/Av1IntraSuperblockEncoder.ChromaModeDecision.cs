@@ -60,6 +60,74 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out Av1RateDistortionStatistics selectedStatistics)
         {
+            Av1ChromaPredictionMode mode = this.SelectChromaPrediction(
+                writer,
+                macroBlock,
+                modeInfo,
+                lumaOrigin,
+                chromaOrigin,
+                blockSize,
+                tileIndex,
+                lumaMode,
+                transformSize,
+                retainedBlueCoefficients,
+                retainedRedCoefficients,
+                retainedBlueStates,
+                retainedRedStates,
+                ref paletteInfo,
+                out selectedAngleDelta,
+                out selectedChromaFromLumaIndex,
+                out selectedChromaFromLumaSigns,
+                out selectedStatistics);
+
+            // Palette covers the prediction block, independently of how its residual is split into
+            // transforms. Evaluate it after ordinary prediction for both single and multiple transforms.
+            if (Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize) &&
+                this.SelectChromaPalette(
+                    writer,
+                    macroBlock,
+                    modeInfo,
+                    lumaOrigin,
+                    chromaOrigin,
+                    tileIndex,
+                    lumaMode,
+                    transformSize,
+                    retainedBlueCoefficients,
+                    retainedRedCoefficients,
+                    retainedBlueStates,
+                    retainedRedStates,
+                    ref selectedStatistics,
+                    ref paletteInfo))
+            {
+                mode = Av1ChromaPredictionMode.DC;
+                selectedAngleDelta = 0;
+                selectedChromaFromLumaIndex = 0;
+                selectedChromaFromLumaSigns = 0;
+            }
+
+            return mode;
+        }
+
+        private Av1ChromaPredictionMode SelectChromaPrediction(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Av1MacroBlockModeInfo modeInfo,
+            Point lumaOrigin,
+            Point chromaOrigin,
+            Av1BlockSize blockSize,
+            ushort tileIndex,
+            Av1PredictionMode lumaMode,
+            Av1TransformSize transformSize,
+            Span<int> retainedBlueCoefficients,
+            Span<int> retainedRedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedBlueStates,
+            Span<Av1EncoderTransformBlockState> retainedRedStates,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            out int selectedAngleDelta,
+            out byte selectedChromaFromLumaIndex,
+            out sbyte selectedChromaFromLumaSigns,
+            out Av1RateDistortionStatistics selectedStatistics)
+        {
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
 
@@ -510,37 +578,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            if (this.effort >= 5 &&
-                blockSize == Av1BlockSize.Block8x8 &&
-                this.picture.Parent.FrameHeader.AllowScreenContentTools &&
-                this.SelectChromaPalette(
-                    writer,
-                    macroBlock,
-                    modeInfo,
-                    lumaOrigin,
-                    chromaOrigin,
-                    tileIndex,
-                    lumaMode,
-                    transformSize,
-                    blueContext,
-                    redContext,
-                    candidateBlueReconstruction[..sampleCount],
-                    candidateRedReconstruction[..sampleCount],
-                    candidateBlueCoefficients[..sampleCount],
-                    candidateRedCoefficients[..sampleCount],
-                    retainedBlueCoefficients,
-                    retainedRedCoefficients,
-                    ref retainedBlueStates[0],
-                    ref retainedRedStates[0],
-                    ref bestStatistics,
-                    ref paletteInfo))
-            {
-                bestMode = Av1ChromaPredictionMode.DC;
-                selectedAngleDelta = 0;
-                selectedChromaFromLumaIndex = 0;
-                selectedChromaFromLumaSigns = 0;
-            }
-
             selectedStatistics = bestStatistics;
             return bestMode;
         }
@@ -698,6 +735,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane.U,
                     blueSource,
                     blueReconstruction,
+                    [],
+                    default,
                     candidateBlueReconstruction,
                     candidateBlueCoefficients,
                     candidateBlueStates,
@@ -722,6 +761,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane.V,
                     redSource,
                     redReconstruction,
+                    [],
+                    default,
                     candidateRedReconstruction,
                     candidateRedCoefficients,
                     candidateRedStates,
@@ -799,6 +840,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Buffer2DRegion<TSample> source,
             Buffer2DRegion<TSample> reconstruction,
+            ReadOnlySpan<ushort> paletteColors,
+            Buffer2DRegion<byte> colorIndexMap,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             Span<Av1EncoderTransformBlockState> candidateStates,
@@ -829,8 +872,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1ComponentType.Luminance
                 : Av1ComponentType.Chroma;
 
-            Span<TSample> prediction = workspace.Prediction[..transformSampleCount];
-            Span<short> residual = workspace.Residual[..transformSampleCount];
+            // Palette samples and centroids remain live across size candidates. Its prediction scratch
+            // is disjoint from those inputs, whereas ordinary prediction can use the transient workspace.
+            Span<TSample> prediction = (paletteColors.IsEmpty ? workspace.Prediction : workspace.Palette.GetPrediction(0))[..transformSampleCount];
+            Span<short> residual = (paletteColors.IsEmpty ? workspace.Residual : workspace.Palette.GetResidual(0))[..transformSampleCount];
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
             Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
             int coefficientOffset = 0;
@@ -854,40 +899,56 @@ internal static partial class Av1IntraSuperblockEncoder
                             int transformColumn = columnOffset / transformWidth;
                             int reconstructionOffset = (rowOffset * blockWidth) + columnOffset;
                             Point transformOrigin = chromaOrigin + new Size(columnOffset, rowOffset);
-                            this.PrepareTransformReferenceSamples(
-                                reconstruction,
-                                lumaOrigin,
-                                chromaOrigin,
-                                blockSize,
-                                macroBlock,
-                                transformRow,
-                                transformColumn,
-                                blockWidth,
-                                transformSize,
-                                subsamplingX,
-                                subsamplingY,
-                                candidateReconstruction,
-                                aboveStorage,
-                                leftStorage,
-                                out bool hasLeft,
-                                out bool hasAbove);
+                            if (paletteColors.IsEmpty)
+                            {
+                                this.PrepareTransformReferenceSamples(
+                                    reconstruction,
+                                    lumaOrigin,
+                                    chromaOrigin,
+                                    blockSize,
+                                    macroBlock,
+                                    transformRow,
+                                    transformColumn,
+                                    blockWidth,
+                                    transformSize,
+                                    subsamplingX,
+                                    subsamplingY,
+                                    candidateReconstruction,
+                                    aboveStorage,
+                                    leftStorage,
+                                    out bool hasLeft,
+                                    out bool hasAbove);
 
-                            TOperator.PrepareIntra(
-                                this.blockWorkspace,
-                                source,
-                                transformOrigin,
-                                prediction,
-                                aboveStorage.Slice(1, transformWidth + transformHeight),
-                                leftStorage.Slice(1, transformWidth + transformHeight),
-                                hasLeft,
-                                hasAbove,
-                                predictionMode,
-                                angleDelta,
-                                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                                this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane),
-                                residual,
-                                transformSize,
-                                this.bitDepth);
+                                TOperator.PrepareIntra(
+                                    this.blockWorkspace,
+                                    source,
+                                    transformOrigin,
+                                    prediction,
+                                    aboveStorage.Slice(1, transformWidth + transformHeight),
+                                    leftStorage.Slice(1, transformWidth + transformHeight),
+                                    hasLeft,
+                                    hasAbove,
+                                    predictionMode,
+                                    angleDelta,
+                                    this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                                    this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane),
+                                    residual,
+                                    transformSize,
+                                    this.bitDepth);
+                            }
+                            else
+                            {
+                                // Each residual transform borrows exactly its part of the block's index map.
+                                // Palette prediction needs no neighboring reconstructed reference samples.
+                                TOperator.PreparePalette(
+                                    source,
+                                    transformOrigin,
+                                    paletteColors,
+                                    colorIndexMap.GetSubRegion(columnOffset, rowOffset, transformWidth, transformHeight),
+                                    prediction,
+                                    residual,
+                                    transformSize);
+                            }
 
                             Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
                                 componentType,

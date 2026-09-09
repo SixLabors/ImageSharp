@@ -93,6 +93,33 @@ Restoration search, filtering, signaling, and retained trial storage are committ
   partition search on Effort. The next implementation must include source-defined search bounds,
   pruning, and candidate reuse; merely enabling the existing exhaustive/repeated trials is insufficient.
 
+### Palette controller work in progress: 2026-09-09
+
+- Luma and paired-chroma selection now accept every palette-eligible block geometry, including
+  rectangular blocks and multiple residual transforms. The common dispatch follows ordinary mode
+  selection for both single-transform and tiled blocks. No additional scratch allocation is introduced.
+- Numerical defect: split luma palette trials used ordinary residual scratch that overlaps the active
+  clustering samples. Trials now use the existing separate palette residual spans. Candidate sample,
+  coefficient, reconstruction, index-map, and context lifetimes were checked together.
+- Luma size search now follows frequency then K-means families, coarse/neighbour or ascending/descending
+  intervals, header-cost pruning, and coding-speed policy. Native evidence: `palette.c:250-761`,
+  `speed_features.c:352-449,1151-1260,2447-2470`, and `tx_search.c:2970-3078`.
+  Native-sized histogram values remain unrounded; occupied eight-bit bins only control search eligibility.
+- Release/net11 build succeeds with the existing 1,012 test warnings. Roslyn reports zero errors and
+  no added warnings. `palette-block-regression` passes 139/139; `palette-public-regression` passes 73/76.
+  All three screen-content comparisons still fail. No assertions, tolerances, or reference images changed.
+- Four direct production-mode cases now cover 16x8, 8x16, and 64x32 luma/UV palettes, including a
+  lossless 64x32 block with 4x4 residual transforms. All retain eight colors and reconstruct input pixels
+  exactly (`palette-rectangular-r3`). The initial periodic fixture could legitimately select smaller
+  palettes with residuals; independent deterministic spatial patterns now exercise the intended path.
+  These cases verify mode selection/reconstruction, not rectangular bitstream output or native parity.
+- Removed unused unique-color arrays and the full dominant-order buffer after Roslyn confirmed no
+  callers, reducing palette workspace by 20 KiB. Final `palette-block-final` passes 143/143 and
+  `palette-public-final` passes 73/76. The same three screen-content comparisons remain failing.
+- Partition mode-context retention/replay, partition bounds/pruning, transform-type pruning, and
+  coefficient optimization remain outstanding. Current Effort-gated partition selection still forces
+  the failing locations to 8x8. Full encoder acceptance and performance remain unestablished.
+
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.
 The previous `d565eec6` source directory is an export without Git metadata. Its local build cache

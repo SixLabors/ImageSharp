@@ -2,8 +2,8 @@
 
 ## Encoder source comparison in progress: 2026-09-09
 
-Active production milestone: CDEF selection, reconstruction filtering, and bitstream integration.
-The uncommitted implementation now runs after deblocking and before the retained-decision packing pass,
+Active production milestone: restoration search, reconstruction filtering, and bitstream integration.
+CDEF integration is committed as `8821e34ee` and runs after deblocking and before the retained-decision packing pass,
 and enables the sequence flag. It uses the current default PSNR tuning and CDEF_ALL control;
 adaptive CDEF under IQ/SSIMULACRA2 and low-complexity-decoding options is not an exposed configuration.
 Source comparison: `av1/encoder/pickcdef.c:86-225` defines palette selection and refinement,
@@ -24,7 +24,22 @@ the repository. `encoder-cdef-public-final` passes 73 of 76 cases and retains th
 screen-content encoder comparisons. No test expectations or reference images were relaxed.
 This verifies filtering, reconstruction, and signaling, not independent strength-selection parity,
 complete encoder parity, or performance. Large-block unit grouping still needs runtime coverage.
-The next production dependency is restoration selection and its frame-lifetime integration.
+Restoration remains unimplemented in the encoder. The source-led implementation must include all of:
+- Preserve deblocked stripe boundaries before CDEF and frame edges after CDEF, following
+  `av1/encoder/encoder.c:2776-2825`. Existing managed boundary storage is decoder-frame-specific
+  (`Av1LoopRestorationBoundary.cs:129-348`); it cannot be fed post-CDEF rows for both stages.
+- Search Wiener, self-guided, and switchable modes in tile/superblock coding order, keeping separate
+  coefficient-reference histories for fixed and switchable modes (`pickrst.c:122-169,1858-1948`).
+- Retain the Wiener solve, coefficient refinement, self-guided projection solve/refinement, pruning,
+  and signaling costs together (`pickrst.c:408-973,1004-1837`), rather than substitute fixed filters.
+- Search permitted unit sizes and apply frame-level rate/distortion selection (`pickrst.c:2040-2258`),
+  using the size policy in `speed_features.c:3099-3127` and the existing default PSNR speed controls.
+- Wire unit entropy writing as well as header writing: `ObuWriter.WriteLoopRestorationParameters`
+  exists, but the current tile writer has no restoration-unit writer. Existing decoder `FilterUnit`
+  supplies the stripe filtering behavior, while its frame-level owner is specific to decoder storage.
+No restoration production edits or benchmarks have been made yet. CDEF strength-selection parity
+and large-block grouping coverage remain explicit verification gaps; the passing reconstruction tests
+do not close them or the three public encoder comparison failures.
 
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.

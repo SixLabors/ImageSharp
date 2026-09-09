@@ -27,4 +27,9 @@ internal sealed class JxlAnsSymbolReader
     private JxlHuffmanDecodingData huffmanData;
     private bool usePrefixCode;
     private uint state = AnsSignature << 16u;
+    private List<JxlAnsHybridUIntConfiguration> configs = [];
+    private int logAlphaSize;
+    private int logEntrySize;
+    private int entrySizeMinus1;
+
 }

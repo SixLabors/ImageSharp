@@ -265,10 +265,10 @@ public class Av1ReferenceFrameStoreTests
         // Full current-frame state owns the projected temporal field. The retained frame owns only the source field
         // needed by later projections, irrespective of how many map and output aliases identify the same frame.
         frameInfo.Dispose();
-        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == temporalMotionField.AllocationId);
+        Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == temporalMotionField.HashCodeOfBuffer);
 
         Av1ReferenceFrame output = store.TakeOutput();
-        Assert.DoesNotContain(allocator.ReturnLog, returned => returned.AllocationId == retainedMotionField.AllocationId);
+        Assert.DoesNotContain(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == retainedMotionField.HashCodeOfBuffer);
 
         output.Dispose();
         output.Dispose();
@@ -278,7 +278,7 @@ public class Av1ReferenceFrameStoreTests
             allocator.AllocationLog,
             allocation => Assert.Single(
                 allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
+                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
 
         Assert.Equal(2, allocator.ReturnLog.Count);
     }
@@ -343,7 +343,7 @@ public class Av1ReferenceFrameStoreTests
             allocator.AllocationLog,
             allocation => Assert.Single(
                 allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
+                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
 
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
     }

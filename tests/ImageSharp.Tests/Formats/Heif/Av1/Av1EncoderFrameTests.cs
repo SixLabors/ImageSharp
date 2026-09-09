@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -159,7 +160,22 @@ public class Av1EncoderFrameTests
             effort: 0);
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<L8> decoded = decoder.Decode<L8>(stream.ToArray());
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _);
+        using Image<L8> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
 
         Assert.Equal(2, decoder.FrameHeader.TilesInfo.TileColumnCount);
         Assert.Equal(1, decoder.FrameHeader.TilesInfo.TileRowCount);
@@ -236,21 +252,24 @@ public class Av1EncoderFrameTests
             effort: 5);
 
         byte[] payload = stream.ToArray();
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Formats",
-            "Heif",
-            "Av1");
-
-        Directory.CreateDirectory(outputDirectory);
-        string contentName = hasGradient ? "gradient" : "constant";
-        int bitCount = bitDepth.GetBitCount();
-        string colorName = colorFormat.ToString()[3..];
-        string fileName = $"encoder-frame-{width}x{height}-{bitCount}b-{colorName}-{contentName}.obu";
-        File.WriteAllBytes(Path.Combine(outputDirectory, fileName), payload);
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
 
         Assert.Equal(width, decoded.Width);
         Assert.Equal(height, decoded.Height);
@@ -332,7 +351,23 @@ public class Av1EncoderFrameTests
         ObuSequenceHeader encodedHeader = encoder.SequenceHeader;
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         ObuSequenceHeader decodedHeader = decoder.SequenceHeader;
 
         Assert.False(encodedHeader.IsStillPicture);
@@ -427,14 +462,6 @@ public class Av1EncoderFrameTests
             effort,
             speed);
 
-        string outputFolder = width == 23 ? nameof(SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion)
-            : nameof(SequenceEncoderPreservesNativeColorPlanesAcrossMotionCostRefreshRows);
-
-        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", outputFolder);
-
-        string outputName = $"{bitDepth.GetBitCount()}-{colorFormat}-effort{effort}-speed{(int)speed}";
-        using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
-        using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv")));
         using Av1Decoder decoder = new(Configuration.Default);
         using MemoryStream sample = new();
         for (int frameIndex = 0; frameIndex < 3; frameIndex++)
@@ -466,8 +493,6 @@ public class Av1EncoderFrameTests
                 encoder.EncodeInterFrame(source.Frames.RootFrame, sample);
             }
 
-            sample.Position = 0;
-            sample.CopyTo(output);
             decoder.DecodeSequenceReference(sample.ToArray(), null, null);
             Assert.True(Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).EnableIntraEdgeFilter);
             Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
@@ -482,33 +507,6 @@ public class Av1EncoderFrameTests
                 if (mode.ReferenceFrames[0] == Av1ReferenceFrameType.Intra && !mode.UseIntraBlockCopy)
                 {
                     Assert.False(mode.Skip);
-                }
-            }
-
-            for (int planeIndex = 0; planeIndex < 3; planeIndex++)
-            {
-                Av1Plane plane = (Av1Plane)planeIndex;
-                int subsamplingX = plane == Av1Plane.Y || !colorConfig.SubSamplingX ? 0 : 1;
-                int subsamplingY = plane == Av1Plane.Y || !colorConfig.SubSamplingY ? 0 : 1;
-                int planeHeight = (height + subsamplingY) >> subsamplingY;
-                if (bitDepth == Av1BitDepth.EightBit)
-                {
-                    Buffer2DRegion<byte> planeSamples = decoded.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
-                    for (int y = 0; y < planeHeight; y++)
-                    {
-                        rawOutput.Write(planeSamples.DangerousGetRowSpan(y));
-                    }
-                }
-                else
-                {
-                    for (int y = 0; y < planeHeight; y++)
-                    {
-                        foreach (ushort value in decoded.GetHighBitDepthRowSpan(plane, y, subsamplingX, subsamplingY))
-                        {
-                            // Raw high-bit-depth output uses explicit little-endian samples on every host.
-                            rawOutput.Write(value);
-                        }
-                    }
                 }
             }
         }
@@ -570,21 +568,19 @@ public class Av1EncoderFrameTests
         encoder.EncodeKeyFrame(source.Frames.RootFrame, firstSample);
         encoder.EncodeInterFrame(source.Frames.RootFrame, secondSample);
 
-        // Retain the exact two-sample elementary stream for independent reference-decoder acceptance.
-        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.SequenceEncoderUsesRetainedReconstructionForInterFrame));
-        using (FileStream output = File.Create(Path.Combine(outputDirectory, $"effort-{effort}.obu")))
-        {
-            firstSample.Position = 0;
-            firstSample.CopyTo(output);
-            secondSample.Position = 0;
-            secondSample.CopyTo(output);
-        }
-
         using Av1Decoder decoder = new(Configuration.Default);
-        using ImageFrame<Rgba32> decodedFirst = decoder.DecodeSequenceFrame<Rgba32>(
+        using ImageFrame<Rgba32> decodedFirst = new(Configuration.Default, Width, Height);
+        decoder.DecodeSequenceFrame(
             firstSample.ToArray(),
             null,
-            null);
+            null,
+            decodedFirst.Size,
+            decodedFirst.Bounds,
+            decodedFirst.PixelBuffer.GetRegion(decodedFirst.Bounds),
+            default,
+            null,
+            null,
+            false);
 
         Av1FrameInfo firstFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         foreach (Av1BlockModeInfo mode in firstFrameInfo.GetModeInfos(Point.Empty, firstFrameInfo.GetModeInfoCount(Point.Empty)))
@@ -594,10 +590,18 @@ public class Av1EncoderFrameTests
             Assert.False(mode.Skip);
         }
 
-        using ImageFrame<Rgba32> decodedSecond = decoder.DecodeSequenceFrame<Rgba32>(
+        using ImageFrame<Rgba32> decodedSecond = new(Configuration.Default, Width, Height);
+        decoder.DecodeSequenceFrame(
             secondSample.ToArray(),
             null,
-            null);
+            null,
+            decodedSecond.Size,
+            decodedSecond.Bounds,
+            decodedSecond.PixelBuffer.GetRegion(decodedSecond.Bounds),
+            default,
+            null,
+            null,
+            false);
 
         ObuFrameHeader frameHeader = decoder.FrameHeader;
         Assert.Equal(ObuFrameType.InterFrame, frameHeader.FrameType);
@@ -669,15 +673,31 @@ public class Av1EncoderFrameTests
         encoder.EncodeInterFrame(second.Frames.RootFrame, secondSample);
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using ImageFrame<Rgba32> decodedFirst = decoder.DecodeSequenceFrame<Rgba32>(
+        using ImageFrame<Rgba32> decodedFirst = new(Configuration.Default, Width, Height);
+        decoder.DecodeSequenceFrame(
             firstSample.ToArray(),
             null,
-            null);
+            null,
+            decodedFirst.Size,
+            decodedFirst.Bounds,
+            decodedFirst.PixelBuffer.GetRegion(decodedFirst.Bounds),
+            default,
+            null,
+            null,
+            false);
 
-        using ImageFrame<Rgba32> decodedSecond = decoder.DecodeSequenceFrame<Rgba32>(
+        using ImageFrame<Rgba32> decodedSecond = new(Configuration.Default, Width, Height);
+        decoder.DecodeSequenceFrame(
             secondSample.ToArray(),
             null,
-            null);
+            null,
+            decodedSecond.Size,
+            decodedSecond.Bounds,
+            decodedSecond.PixelBuffer.GetRegion(decodedSecond.Bounds),
+            default,
+            null,
+            null,
+            false);
 
         ObuFrameHeader frameHeader = decoder.FrameHeader;
         Av1GlobalMotionParameters globalMotion = frameHeader.GetGlobalMotionParameters()[0];
@@ -767,7 +787,7 @@ public class Av1EncoderFrameTests
             Assert.Equal(failureIndex, allocator.AllocationLog.Count);
             Assert.All(
                 allocator.AllocationLog,
-                allocation => Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId));
+                allocation => Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
 
             Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         }
@@ -835,7 +855,7 @@ public class Av1EncoderFrameTests
         Assert.Equal(expectedRowStorageLength, rowStorage.Length);
         Assert.Contains(
             allocator.ReturnLog,
-            returned => returned.AllocationId == rowStorage.AllocationId);
+            returned => returned.HashCodeOfBuffer == rowStorage.HashCodeOfBuffer);
     }
 
     [Theory]
@@ -897,17 +917,6 @@ public class Av1EncoderFrameTests
             effort);
 
         byte[] payload = stream.ToArray();
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Formats",
-            "Heif",
-            "Av1");
-
-        Directory.CreateDirectory(outputDirectory);
-        string outputName = $"encoder-frame-{width}x{height}-{bitDepth.GetBitCount()}b-444-lossless-effort{effort}";
-        File.WriteAllBytes(
-            Path.Combine(outputDirectory, outputName + ".obu"),
-            payload);
 
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> actual = decoder.DecodeFrameBuffer(payload, null, null, out _);
@@ -919,9 +928,6 @@ public class Av1EncoderFrameTests
         Assert.True(frameHeader.AllLossless);
         Assert.Equal(Av1TransformMode.Only4x4, frameHeader.TransformMode);
 
-        // Lossless native planes are the oracle for external decoding, not the packed RGB conversion on return.
-        // UInt16 raw samples are explicitly little-endian even when these tests run on a different host byte order.
-        using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".source.yuv")));
         foreach (Av1Plane plane in new[] { Av1Plane.Y, Av1Plane.U, Av1Plane.V })
         {
             Buffer2DRegion<ushort> expectedPlane = expected.Frame.View.GetPlane(plane);
@@ -929,10 +935,6 @@ public class Av1EncoderFrameTests
             {
                 ReadOnlySpan<ushort> expectedRow = expectedPlane.DangerousGetRowSpan(row);
                 Assert.Equal(expectedRow, actual.GetHighBitDepthRowSpan(plane, row, 0, 0));
-                foreach (ushort sample in expectedRow)
-                {
-                    rawOutput.Write(sample);
-                }
             }
         }
     }
@@ -967,20 +969,15 @@ public class Av1EncoderFrameTests
         using MemoryStream stream = new();
         Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, effort);
         byte[] payload = stream.ToArray();
-        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.EncodeLosslessPartitionSearchAcrossClippedSuperblocks));
-        string outputName = $"{width}x{height}-effort{effort}";
-        File.WriteAllBytes(Path.Combine(outputDirectory, outputName + ".obu"), payload);
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _);
         Assert.Equal(width, decoded.Width);
         Assert.Equal(height, decoded.Height);
         Buffer2DRegion<byte> actual = decoded.DeriveBlockPointer(Av1Plane.Y, 0, 0);
-        using FileStream rawOutput = File.Create(Path.Combine(outputDirectory, outputName + ".source.yuv"));
         for (int y = 0; y < height; y++)
         {
             ReadOnlySpan<byte> expectedRow = MemoryMarshal.AsBytes(source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y));
             Assert.Equal(expectedRow, actual.DangerousGetRowSpan(y));
-            rawOutput.Write(expectedRow);
         }
     }
 
@@ -1027,7 +1024,23 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         Point[] leafPositions =
         [
@@ -1090,7 +1103,23 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         for (int modeInfoY = 4; modeInfoY < 8; modeInfoY++)
         {
@@ -1130,7 +1159,23 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         for (int modeInfoY = 0; modeInfoY < 8; modeInfoY++)
         {
@@ -1173,7 +1218,23 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         for (int modeInfoY = 0; modeInfoY < 16; modeInfoY++)
         {
@@ -1217,7 +1278,23 @@ public class Av1EncoderFrameTests
         Assert.True(sequenceHeader.Use128x128Superblock);
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         for (int modeInfoY = 0; modeInfoY < 32; modeInfoY++)
         {
@@ -1258,7 +1335,23 @@ public class Av1EncoderFrameTests
         Assert.True(sequenceHeader.Use128x128Superblock);
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Assert.Equal(new Size(Size, Size), decoded.Size);
     }
 
@@ -1293,7 +1386,22 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba64> decoded = decoder.Decode<Rgba64>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba64> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
 
         Assert.True(encodedHeader.ColorConfig.IsMonochrome);
         Assert.Equal(
@@ -1305,17 +1413,6 @@ public class Av1EncoderFrameTests
         Assert.Equal(decoded[0, 0].R, decoded[0, 0].G);
         Assert.Equal(decoded[0, 0].R, decoded[0, 0].B);
         Assert.Equal(ushort.MaxValue, decoded[0, 0].A);
-
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Formats",
-            "Heif",
-            "Av1");
-
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(
-            Path.Combine(outputDirectory, $"encoder-alpha-{Width}x{Height}-{bitDepth.GetBitCount()}b.obu"),
-            payload);
     }
 
     [Fact]
@@ -1363,7 +1460,7 @@ public class Av1EncoderFrameTests
         Assert.Equal(typeof(float), allocation.ElementType);
         Assert.Equal(Width * 3, allocation.Length);
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     [Theory]
@@ -1588,17 +1685,24 @@ public class Av1EncoderFrameTests
         Assert.True(frameHeader.AllowScreenContentTools);
         Assert.True(frameHeader.AllowIntraBlockCopy);
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Assert.Equal(new Size(width, height), decoded.Size);
-
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Formats",
-            "Heif",
-            "Av1");
-
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-frame-16x16-8b-444-palette.obu"), payload);
     }
 
     [Theory]
@@ -1644,7 +1748,23 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
@@ -1686,15 +1806,6 @@ public class Av1EncoderFrameTests
         }
 
         Assert.NotEqual(0, modeCount);
-
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Formats",
-            "Heif",
-            "Av1");
-
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(Path.Combine(outputDirectory, $"encoder-frame-16x16-8b-444-effort-{effort}.obu"), payload);
     }
 
     [Fact]
@@ -1725,7 +1836,23 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<L8> decoded = decoder.Decode<L8>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<L8> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Assert.NotNull(decoder.FrameHeader);
         Assert.Equal(Av1TransformMode.Select, decoder.FrameHeader.TransformMode);
         Assert.NotNull(decoder.FrameInfo);
@@ -1737,17 +1864,6 @@ public class Av1EncoderFrameTests
 
         Assert.True(foundSplitTransform);
         Assert.Equal(new Size(Width, Height), decoded.Size);
-
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Formats",
-            "Heif",
-            "Av1");
-
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(
-            Path.Combine(outputDirectory, "encoder-frame-16x16-8b-400-transform-size-select.obu"),
-            payload);
     }
 
     [Theory]
@@ -1785,7 +1901,23 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Assert.NotNull(decoder.FrameHeader);
         Assert.True(decoder.FrameHeader.AllowScreenContentTools);
         Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
@@ -1802,19 +1934,6 @@ public class Av1EncoderFrameTests
 
         Assert.True(usesIntraBlockCopy);
         Assert.Equal(new Size(Width, Height), decoded.Size);
-
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Formats",
-            "Heif",
-            "Av1");
-
-        Directory.CreateDirectory(outputDirectory);
-        string fileName = effort == 5
-            ? "encoder-frame-328x16-8b-444-intrabc.obu"
-            : "encoder-frame-328x16-8b-444-intrabc-effort-6.obu";
-
-        File.WriteAllBytes(Path.Combine(outputDirectory, fileName), payload);
     }
 
     [Fact]
@@ -1972,7 +2091,7 @@ public class Av1EncoderFrameTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     [Fact]
@@ -2019,8 +2138,8 @@ public class Av1EncoderFrameTests
         Assert.Equal(ExpectedTileOutputLength, tileOutput.Length);
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         Assert.Equal(
-            allocator.AllocationLog.Select(allocation => allocation.AllocationId).Order(),
-            allocator.ReturnLog.Select(returned => returned.AllocationId).Order());
+            allocator.AllocationLog.Select(allocation => allocation.HashCodeOfBuffer).Order(),
+            allocator.ReturnLog.Select(returned => returned.HashCodeOfBuffer).Order());
     }
 
     private static ObuColorConfig CreateColorConfig(

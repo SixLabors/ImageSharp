@@ -29,12 +29,6 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private HeifEncodingSpeed speed;
 
     /// <summary>
-    /// Gets the compression method used for the primary image item.
-    /// The default is <see cref="HeifCompressionMethod.Av1"/>.
-    /// </summary>
-    public HeifCompressionMethod CompressionMethod { get; init; } = HeifCompressionMethod.Av1;
-
-    /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the compression method's default quality.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
     /// enable <see cref="Lossless"/> encoding.
@@ -76,8 +70,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets the encoding effort in the range 0 to 10. A value of 0 selects the fastest encoding and 10 selects the
-    /// slowest encoding with the greatest compression effort. The default is 5. Legacy JPEG image items use a fixed
-    /// encoding effort, so this option does not affect them.
+    /// slowest encoding with the greatest compression effort. The default is 5.
     /// </summary>
     /// <exception cref="ArgumentException">The effort is outside the range 0 to 10.</exception>
     public int Effort
@@ -97,7 +90,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// <summary>
     /// Gets a value indicating whether the primary and auxiliary alpha images are encoded without loss. When
     /// <see langword="true"/>, <see cref="Quality"/> and <see cref="AlphaQuality"/> do not affect the encoded image.
-    /// This option has no effect on legacy JPEG image items. The default is <see langword="false"/>.
+    /// The default is <see langword="false"/>.
     /// </summary>
     public bool Lossless { get; init; }
 
@@ -122,8 +115,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit
-    /// depth. Metadata that does not specify a bit depth defaults to <see cref="HeifBitDepth.Bit8"/>. Legacy JPEG
-    /// image items are always encoded with <see cref="HeifBitDepth.Bit8"/>.
+    /// depth. Metadata that does not specify a bit depth defaults to <see cref="HeifBitDepth.Bit8"/>.
     /// </summary>
     public HeifBitDepth? BitDepth { get; init; }
 

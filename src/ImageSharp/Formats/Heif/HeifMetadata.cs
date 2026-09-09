@@ -24,7 +24,6 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// <param name="other">The metadata to create an instance from.</param>
     private HeifMetadata(HeifMetadata other)
     {
-        this.CompressionMethod = other.CompressionMethod;
         this.BitDepth = other.BitDepth;
         this.IsMonochrome = other.IsMonochrome;
         this.HasAlpha = other.HasAlpha;
@@ -37,11 +36,6 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
         this.ReferenceViewingEnvironment = other.ReferenceViewingEnvironment;
         this.NominalDiffuseWhite = other.NominalDiffuseWhite;
     }
-
-    /// <summary>
-    /// Gets or sets the compression method used for the primary frame.
-    /// </summary>
-    public HeifCompressionMethod CompressionMethod { get; set; } = HeifCompressionMethod.LegacyJpeg;
 
     /// <summary>
     /// Gets or sets the encoded precision of each color component. The default is <see cref="HeifBitDepth.Bit8"/>.

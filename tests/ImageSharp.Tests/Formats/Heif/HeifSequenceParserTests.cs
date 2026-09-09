@@ -96,7 +96,6 @@ public class HeifSequenceParserTests
 
         Assert.Equal(new Size(LibavifAnimationSize, LibavifAnimationSize), info.Size);
         Assert.Equal(LibavifAnimationFrameCount, info.FrameCount);
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
         Assert.Equal(FinitePlayCount, metadata.RepeatCount);
         Assert.False(metadata.HasAlpha);
@@ -116,7 +115,6 @@ public class HeifSequenceParserTests
 
         Assert.Equal(new Size(LibavifAnimationSize, LibavifAnimationSize), info.Size);
         Assert.Equal(LibavifAnimationFrameCount, info.FrameCount);
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
         Assert.Equal(InfinitePlayCount, metadata.RepeatCount);
         Assert.True(metadata.HasAlpha);
@@ -138,7 +136,6 @@ public class HeifSequenceParserTests
 
         Assert.Equal(new Size(LibavifKeyframeAnimationSize, LibavifKeyframeAnimationSize), info.Size);
         Assert.Equal(LibavifAnimationFrameCount, info.FrameCount);
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(HeifBitDepth.Bit12, metadata.BitDepth);
     }
 
@@ -156,7 +153,6 @@ public class HeifSequenceParserTests
 
         Assert.Equal(new Size(SyntheticHeight, SyntheticWidth), info.Size);
         Assert.Equal(2, info.FrameCount);
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
         Assert.Equal(3, metadata.RepeatCount);
         Assert.False(metadata.HasAlpha);
@@ -186,7 +182,6 @@ public class HeifSequenceParserTests
         ImageInfo info = Image.Identify(options, stream);
         HeifMetadata metadata = info.Metadata.GetHeifMetadata();
 
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
         Assert.Equal(3, metadata.RepeatCount);
         Assert.Null(info.Metadata.CicpProfile);

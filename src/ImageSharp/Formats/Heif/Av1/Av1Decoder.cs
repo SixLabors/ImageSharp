@@ -15,6 +15,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
@@ -167,125 +168,14 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     public Av1InterPredictionFeatures DecodedInterPredictionFeatures { get; private set; }
 
     /// <summary>
+    /// Gets or sets the chroma reconstruction mode for presented sequence frames.
+    /// </summary>
+    public HeifChromaUpsampling ChromaUpsampling { get; set; }
+
+    /// <summary>
     /// Gets the native planes of the current retained shown frame, or <see langword="null"/> before one completes.
     /// </summary>
     public Av1FrameBuffer<byte>? FrameBuffer => this.referenceFrames.OutputFrame?.FrameBuffer;
-
-    /// <summary>
-    /// Decodes a bounded AV1 image payload and presents its final shown frame.
-    /// </summary>
-    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
-    /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
-    /// <param name="containerColorProfile">
-    /// The container color description that supplies unspecified sequence-header color information.
-    /// </param>
-    /// <param name="codecConfiguration">
-    /// The item-associated AV1 codec configuration validated against the coded sequence header.
-    /// </param>
-    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
-    /// <param name="presentationSize">The requested item presentation size, or an empty size for the coded dimensions.</param>
-    /// <returns>The decoded image.</returns>
-    public Image<TPixel> Decode<TPixel>(
-        Span<byte> buffer,
-        CicpProfile? containerColorProfile = null,
-        Av1CodecConfiguration? codecConfiguration = null,
-        Av1LayeredImageIndex? layeredImageIndex = null,
-        Size presentationSize = default)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            out CicpProfile effectiveColorProfile,
-            layeredImageIndex,
-            presentationSize);
-
-        ImageMetadata metadata = new()
-        {
-            CicpProfile = effectiveColorProfile
-        };
-
-        HeifContentLightLevel? contentLightLevel = this.obuReader.ContentLightLevel;
-        HeifMasteringDisplayColorVolume? masteringDisplayColorVolume = this.obuReader.MasteringDisplayColorVolume;
-        if (contentLightLevel is not null || masteringDisplayColorVolume is not null)
-        {
-            HeifMetadata heifMetadata = metadata.GetHeifMetadata();
-            heifMetadata.ContentLightLevel = contentLightLevel;
-            heifMetadata.MasteringDisplayColorVolume = masteringDisplayColorVolume;
-        }
-
-        try
-        {
-            return new Image<TPixel>(this.configuration, metadata, [frame]);
-        }
-        catch
-        {
-            // Ownership transfers only after the image constructor accepts the decoded frame.
-            frame.Dispose();
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Decodes an AV1 elementary-stream payload into one independently owned ImageSharp frame.
-    /// </summary>
-    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
-    /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
-    /// <param name="containerColorProfile">
-    /// The container color description that supplies unspecified sequence-header color information.
-    /// </param>
-    /// <param name="codecConfiguration">
-    /// The AV1 codec configuration validated against the coded sequence header.
-    /// </param>
-    /// <param name="effectiveColorProfile">Receives the effective CICP description used for conversion.</param>
-    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
-    /// <param name="presentationSize">The requested item presentation size, or an empty size for the coded dimensions.</param>
-    /// <returns>The decoded frame. Ownership transfers to the caller.</returns>
-    public ImageFrame<TPixel> DecodeFrame<TPixel>(
-        Span<byte> buffer,
-        CicpProfile? containerColorProfile,
-        Av1CodecConfiguration? codecConfiguration,
-        out CicpProfile effectiveColorProfile,
-        Av1LayeredImageIndex? layeredImageIndex = null,
-        Size presentationSize = default)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Av1FrameBuffer<byte> frameBuffer = this.DecodeFrameBuffer(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            out effectiveColorProfile,
-            out ObuFrameHeader frameHeader,
-            layeredImageIndex);
-
-        return this.ConvertToFrame<TPixel>(frameBuffer, frameHeader, effectiveColorProfile, presentationSize);
-    }
-
-    /// <summary>
-    /// Decodes the next visible sample in a bounded AV1 image sequence while retaining its reference state.
-    /// </summary>
-    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
-    /// <param name="buffer">The complete AV1 sample payload.</param>
-    /// <param name="containerColorProfile">The container color description.</param>
-    /// <param name="codecConfiguration">The AV1 sample-entry configuration.</param>
-    /// <returns>The independently owned decoded frame.</returns>
-    public ImageFrame<TPixel> DecodeSequenceFrame<TPixel>(
-        Span<byte> buffer,
-        CicpProfile? containerColorProfile,
-        Av1CodecConfiguration? codecConfiguration)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        CicpProfile effectiveColorProfile = this.DecodePayload(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            null,
-            requireShownFrame: true);
-
-        Av1ReferenceFrame outputFrame = this.referenceFrames.ResolveOutput();
-        return this.ConvertToFrame<TPixel>(outputFrame.FrameBuffer, outputFrame.FrameHeader, effectiveColorProfile);
-    }
 
     /// <summary>
     /// Decodes the next visible sample in a bounded AV1 image sequence directly into a caller-owned frame.
@@ -297,13 +187,21 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="expectedCodedSize">The coded dimensions declared by the visual sample entry.</param>
     /// <param name="sourceRectangle">The clean-aperture region mapped to the complete destination frame.</param>
     /// <param name="destination">The caller-owned packed-pixel frame receiving the presented sample.</param>
-    public void DecodeSequenceFrame<TPixel>(
+    /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
+    /// <param name="profile">The source profile selected for conversion, or null to preserve source colors.</param>
+    /// <param name="alphaFrame">The decoder-owned auxiliary frame, or null for opaque pixels.</param>
+    /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
+    public CicpProfile DecodeSequenceFrame<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
         Size expectedCodedSize,
         Rectangle sourceRectangle,
-        ImageFrame<TPixel> destination)
+        Buffer2DRegion<TPixel> destination,
+        HeifPixelTransform transform,
+        IccProfile? profile,
+        Av1FrameBuffer<byte>? alphaFrame,
+        bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         CicpProfile effectiveColorProfile = this.DecodePayload(
@@ -324,13 +222,23 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 "The decoded image-sequence sample dimensions do not match its visual sample entry.");
         }
 
-        Av1YuvConverter.ConvertRegionToRgb(
+        // Keep reconstructed reference state unchanged while honoring the container's presentation range.
+        Av1YuvConverter.ConvertToRgb(
             this.configuration,
             outputFrame.FrameBuffer,
             sourceRectangle,
-            destination);
+            destination,
+            codedSize,
+            transform,
+            profile,
+            alphaFrame,
+            codedSize,
+            sourceRectangle,
+            premultiplied,
+            this.ChromaUpsampling,
+            containerColorProfile?.FullRange ?? outputFrame.FrameBuffer.ColorConfig.ColorRange);
 
-        destination.Metadata.CicpProfile = effectiveColorProfile.DeepClone();
+        return effectiveColorProfile;
     }
 
     /// <summary>
@@ -351,29 +259,18 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             requireShownFrame: false);
 
     /// <summary>
-    /// Decodes the next visible monochrome AV1 sequence sample and composes it into a color frame.
+    /// Decodes the next visible monochrome AV1 sequence sample into native samples.
     /// </summary>
-    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
     /// <param name="buffer">The complete AV1 sample payload.</param>
     /// <param name="containerColorProfile">The container color description.</param>
     /// <param name="codecConfiguration">The AV1 sample-entry configuration.</param>
     /// <param name="expectedCodedSize">The required coded dimensions.</param>
-    /// <param name="sourceRectangle">The clean-aperture luma region mapped to the destination.</param>
-    /// <param name="destination">The packed color frame receiving alpha values.</param>
-    /// <param name="outputSize">The complete presented size of the auxiliary image.</param>
-    /// <param name="destinationRectangle">The destination region receiving the alpha image.</param>
-    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
-    public void DecodeSequenceAlpha<TPixel>(
+    /// <returns>The auxiliary frame retained by this decoder until the next sample is decoded or the decoder is disposed.</returns>
+    public Av1FrameBuffer<byte> DecodeSequenceAlpha(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
-        Size expectedCodedSize,
-        Rectangle sourceRectangle,
-        ImageFrame<TPixel> destination,
-        Size outputSize,
-        Rectangle destinationRectangle,
-        bool premultiplied)
-        where TPixel : unmanaged, IPixel<TPixel>
+        Size expectedCodedSize)
     {
         _ = this.DecodePayload(
             buffer,
@@ -383,59 +280,18 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             requireShownFrame: true);
 
         Av1ReferenceFrame outputFrame = this.referenceFrames.ResolveOutput();
-        this.ComposeAlpha(
-            outputFrame.FrameBuffer,
-            expectedCodedSize,
-            sourceRectangle,
-            destination,
-            outputSize,
-            destinationRectangle,
-            premultiplied);
-    }
-
-    /// <summary>
-    /// Converts native AV1 planes into one independently owned packed-pixel frame.
-    /// </summary>
-    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
-    /// <param name="frameBuffer">The decoded native planes.</param>
-    /// <param name="frameHeader">The completed header describing the decoded native planes.</param>
-    /// <param name="effectiveColorProfile">The effective CICP description.</param>
-    /// <param name="presentationSize">The requested item presentation size, or an empty size for the coded dimensions.</param>
-    /// <returns>The independently owned packed-pixel frame.</returns>
-    private ImageFrame<TPixel> ConvertToFrame<TPixel>(
-        Av1FrameBuffer<byte> frameBuffer,
-        ObuFrameHeader frameHeader,
-        CicpProfile effectiveColorProfile,
-        Size presentationSize = default)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        ImageFrame<TPixel>? resultFrame = null;
-        try
+        Av1FrameBuffer<byte> frame = outputFrame.FrameBuffer;
+        if (frame.Width != expectedCodedSize.Width || frame.Height != expectedCodedSize.Height)
         {
-            Size codedSize = new(
-                frameHeader.FrameSize.SuperResolutionUpscaledWidth,
-                frameHeader.FrameSize.FrameHeight);
-
-            // A selected lower spatial layer can only be scaled upward to the image item's ispe extent here.
-            // Other item-size corrections keep using the shared packed-pixel presentation path after decoding.
-            Size outputSize = presentationSize.Width >= codedSize.Width && presentationSize.Height >= codedSize.Height
-                ? presentationSize
-                : codedSize;
-
-            resultFrame = new ImageFrame<TPixel>(
-                this.configuration,
-                outputSize.Width,
-                outputSize.Height);
-
-            Av1YuvConverter.ConvertToRgb(this.configuration, frameBuffer, resultFrame);
-            resultFrame.Metadata.CicpProfile = effectiveColorProfile.DeepClone();
-            return resultFrame;
+            throw new InvalidImageContentException("The decoded alpha sample dimensions do not match its visual sample entry.");
         }
-        catch
+
+        if (frame.ColorFormat != Av1ColorFormat.Yuv400)
         {
-            resultFrame?.Dispose();
-            throw;
+            throw new InvalidImageContentException("An AV1 alpha sample must be monochrome.");
         }
+
+        return frame;
     }
 
     /// <summary>
@@ -452,16 +308,18 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="outputSize">The complete presented size of the auxiliary image or grid tile.</param>
     /// <param name="destinationRectangle">The destination region receiving the top-left portion of the presented alpha image.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
     /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
     public void DecodeAlpha<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
         Size expectedCodedSize,
-        ImageFrame<TPixel> destination,
+        Buffer2DRegion<TPixel> destination,
         Size outputSize,
         Rectangle destinationRectangle,
         bool premultiplied,
+        HeifPixelTransform transform,
         Av1LayeredImageIndex? layeredImageIndex = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -478,7 +336,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             destination,
             outputSize,
             destinationRectangle,
-            premultiplied);
+            premultiplied,
+            transform);
     }
 
     /// <summary>
@@ -491,13 +350,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="outputSize">The complete presented size of the auxiliary image.</param>
     /// <param name="destinationRectangle">The destination region receiving the alpha image.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
     private void ComposeAlpha<TPixel>(
         Av1FrameBuffer<byte> frameBuffer,
         Size expectedCodedSize,
-        ImageFrame<TPixel> destination,
+        Buffer2DRegion<TPixel> destination,
         Size outputSize,
         Rectangle destinationRectangle,
-        bool premultiplied)
+        bool premultiplied,
+        HeifPixelTransform transform)
         where TPixel : unmanaged, IPixel<TPixel>
         => this.ComposeAlpha(
             frameBuffer,
@@ -506,7 +367,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             destination,
             outputSize,
             destinationRectangle,
-            premultiplied);
+            premultiplied,
+            transform);
 
     /// <summary>
     /// Composes one decoded monochrome region into a packed color frame.
@@ -519,14 +381,16 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="outputSize">The complete presented size of the auxiliary image.</param>
     /// <param name="destinationRectangle">The destination region receiving the alpha image.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
     private void ComposeAlpha<TPixel>(
         Av1FrameBuffer<byte> frameBuffer,
         Size expectedCodedSize,
         Rectangle sourceRectangle,
-        ImageFrame<TPixel> destination,
+        Buffer2DRegion<TPixel> destination,
         Size outputSize,
         Rectangle destinationRectangle,
-        bool premultiplied)
+        bool premultiplied,
+        HeifPixelTransform transform)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (expectedCodedSize != default && (frameBuffer.Width != expectedCodedSize.Width || frameBuffer.Height != expectedCodedSize.Height))
@@ -548,7 +412,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             destination,
             outputSize,
             destinationRectangle,
-            premultiplied);
+            premultiplied,
+            transform);
     }
 
     /// <summary>
@@ -757,11 +622,6 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             else if (colorConfig.MatrixCoefficients != containerMatrixCoefficients)
             {
                 throw new InvalidImageContentException("The HEIF CICP matrix coefficients do not match the AV1 sequence header.");
-            }
-
-            if (colorConfig.ColorRange != colorProfile.FullRange)
-            {
-                throw new InvalidImageContentException("The HEIF CICP color range does not match the AV1 sequence header.");
             }
         }
 
@@ -1046,7 +906,6 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             // A non-shown frame or failed reconstruction never escapes this callback. The tile reader releases the
             // reconstruction lease; a retained frame keeps only its compact reference state after neighbor contexts
             // and the remaining frame-sized syntax are returned.
-            frameDecoder?.Dispose();
             presentationBuffer?.Dispose();
             frameBuffer?.Dispose();
             tileReader?.Dispose();
@@ -1103,7 +962,6 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         /// </summary>
         public void Dispose()
         {
-            this.FrameDecoder.Dispose();
             this.FrameBuffer.Dispose();
             this.TileReader.Dispose();
         }

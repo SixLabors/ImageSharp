@@ -74,8 +74,6 @@
         "avio", "AVIF intra-only image sequence brand",
         "msf1", "HEIF image sequence structural brand",
         "iso8", "ISO base media version 8 structural brand",
-        "jpeg", "Legacy JPEG coded tile",
-        "jpgs", "JPEG image sequence brand",
         "av01", "AOMedia Video Coding tile",
         "dinf", "Data Information",
         "grpl", "Group list",

@@ -185,7 +185,7 @@ internal abstract partial class HeifColorConverterBase
         {
             HeifColorConversionParameters parameters = this.Parameters;
 
-            // Row reconstruction owns equally sized planar buffers. As in JPEG, first-element byrefs let each
+            // Row reconstruction owns equally sized planar buffers. First-element byrefs let each
             // SIMD width share one offset while the closed operator type keeps color-model dispatch out of the loop.
             ref float component0Base = ref MemoryMarshal.GetReference(component0);
             ref float component1Base = ref MemoryMarshal.GetReference(component1);
@@ -195,16 +195,14 @@ internal abstract partial class HeifColorConverterBase
 
             if (this.IsMonochrome)
             {
-                // Monochrome has no operator arithmetic: expanding the luma range once and copying each SIMD
+                // Monochrome is already normalized by the sample loader. Copying each SIMD
                 // vector to all three planes is cheaper than routing it through a three-component operator.
                 if (Vector512.IsHardwareAccelerated && i <= length - Vector512<float>.Count)
                 {
-                    Vector512<float> bias = Vector512.Create(parameters.LumaBias);
-                    Vector512<float> scale = Vector512.Create(parameters.LumaScale);
                     int oneVectorFromEnd = length - Vector512<float>.Count;
                     for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
                     {
-                        Vector512<float> value = (Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) / scale;
+                        Vector512<float> value = Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i));
                         Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i)) = value;
                         Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component1Base, i)) = value;
                         Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component2Base, i)) = value;
@@ -213,12 +211,10 @@ internal abstract partial class HeifColorConverterBase
 
                 if (Vector256.IsHardwareAccelerated && i <= length - Vector256<float>.Count)
                 {
-                    Vector256<float> bias = Vector256.Create(parameters.LumaBias);
-                    Vector256<float> scale = Vector256.Create(parameters.LumaScale);
                     int oneVectorFromEnd = length - Vector256<float>.Count;
                     for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
                     {
-                        Vector256<float> value = (Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) / scale;
+                        Vector256<float> value = Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i));
                         Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i)) = value;
                         Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component1Base, i)) = value;
                         Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component2Base, i)) = value;
@@ -227,12 +223,10 @@ internal abstract partial class HeifColorConverterBase
 
                 if (Vector128.IsHardwareAccelerated && i <= length - Vector128<float>.Count)
                 {
-                    Vector128<float> bias = Vector128.Create(parameters.LumaBias);
-                    Vector128<float> scale = Vector128.Create(parameters.LumaScale);
                     int oneVectorFromEnd = length - Vector128<float>.Count;
                     for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
                     {
-                        Vector128<float> value = (Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) / scale;
+                        Vector128<float> value = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i));
                         Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i)) = value;
                         Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component1Base, i)) = value;
                         Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component2Base, i)) = value;
@@ -241,7 +235,7 @@ internal abstract partial class HeifColorConverterBase
 
                 for (; i < length; i++)
                 {
-                    float value = (Unsafe.Add(ref component0Base, i) - parameters.LumaBias) / parameters.LumaScale;
+                    float value = Unsafe.Add(ref component0Base, i);
                     Unsafe.Add(ref component0Base, i) = value;
                     Unsafe.Add(ref component1Base, i) = value;
                     Unsafe.Add(ref component2Base, i) = value;
@@ -250,26 +244,16 @@ internal abstract partial class HeifColorConverterBase
                 return;
             }
 
-            float chromaBias = this.ChromaBias;
-            float chromaScale = this.ChromaScale;
-
-            // Descending widths preserve vector execution for the remainder left by a wider register. Divide by the
-            // signaled ranges directly because multiplying by rounded reciprocals changes exact output-code boundaries.
+            // Samples are normalized before chroma interpolation. This traversal applies only the color
+            // model, preserving those fractional values through the descending SIMD widths.
             if (Vector512.IsHardwareAccelerated && i <= length - Vector512<float>.Count)
             {
-                Vector512<float> lumaBias = Vector512.Create(parameters.LumaBias);
-                Vector512<float> lumaScale = Vector512.Create(parameters.LumaScale);
-                Vector512<float> chromaBiasVector = Vector512.Create(chromaBias);
-                Vector512<float> chromaScaleVector = Vector512.Create(chromaScale);
                 int oneVectorFromEnd = length - Vector512<float>.Count;
                 for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
                 {
                     ref Vector512<float> c0 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i));
                     ref Vector512<float> c1 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component1Base, i));
                     ref Vector512<float> c2 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component2Base, i));
-                    c0 = (c0 - lumaBias) / lumaScale;
-                    c1 = (c1 - chromaBiasVector) / chromaScaleVector;
-                    c2 = (c2 - chromaBiasVector) / chromaScaleVector;
 
                     TOperator.ConvertToRgb(ref c0, ref c1, ref c2, in parameters);
                 }
@@ -277,19 +261,12 @@ internal abstract partial class HeifColorConverterBase
 
             if (Vector256.IsHardwareAccelerated && i <= length - Vector256<float>.Count)
             {
-                Vector256<float> lumaBias = Vector256.Create(parameters.LumaBias);
-                Vector256<float> lumaScale = Vector256.Create(parameters.LumaScale);
-                Vector256<float> chromaBiasVector = Vector256.Create(chromaBias);
-                Vector256<float> chromaScaleVector = Vector256.Create(chromaScale);
                 int oneVectorFromEnd = length - Vector256<float>.Count;
                 for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
                 {
                     ref Vector256<float> c0 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i));
                     ref Vector256<float> c1 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component1Base, i));
                     ref Vector256<float> c2 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component2Base, i));
-                    c0 = (c0 - lumaBias) / lumaScale;
-                    c1 = (c1 - chromaBiasVector) / chromaScaleVector;
-                    c2 = (c2 - chromaBiasVector) / chromaScaleVector;
 
                     TOperator.ConvertToRgb(ref c0, ref c1, ref c2, in parameters);
                 }
@@ -297,19 +274,12 @@ internal abstract partial class HeifColorConverterBase
 
             if (Vector128.IsHardwareAccelerated && i <= length - Vector128<float>.Count)
             {
-                Vector128<float> lumaBias = Vector128.Create(parameters.LumaBias);
-                Vector128<float> lumaScale = Vector128.Create(parameters.LumaScale);
-                Vector128<float> chromaBiasVector = Vector128.Create(chromaBias);
-                Vector128<float> chromaScaleVector = Vector128.Create(chromaScale);
                 int oneVectorFromEnd = length - Vector128<float>.Count;
                 for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
                 {
                     ref Vector128<float> c0 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i));
                     ref Vector128<float> c1 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component1Base, i));
                     ref Vector128<float> c2 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component2Base, i));
-                    c0 = (c0 - lumaBias) / lumaScale;
-                    c1 = (c1 - chromaBiasVector) / chromaScaleVector;
-                    c2 = (c2 - chromaBiasVector) / chromaScaleVector;
 
                     TOperator.ConvertToRgb(ref c0, ref c1, ref c2, in parameters);
                 }
@@ -318,9 +288,9 @@ internal abstract partial class HeifColorConverterBase
             // Scalar conversion is reserved for the zero-to-three samples left after the SIMD cascade.
             for (; i < length; i++)
             {
-                float c0 = (Unsafe.Add(ref component0Base, i) - parameters.LumaBias) / parameters.LumaScale;
-                float c1 = (Unsafe.Add(ref component1Base, i) - chromaBias) / chromaScale;
-                float c2 = (Unsafe.Add(ref component2Base, i) - chromaBias) / chromaScale;
+                float c0 = Unsafe.Add(ref component0Base, i);
+                float c1 = Unsafe.Add(ref component1Base, i);
+                float c2 = Unsafe.Add(ref component2Base, i);
                 TOperator.ConvertToRgb(ref c0, ref c1, ref c2, in parameters);
                 Unsafe.Add(ref component0Base, i) = c0;
                 Unsafe.Add(ref component1Base, i) = c1;
@@ -338,7 +308,7 @@ internal abstract partial class HeifColorConverterBase
             HeifColorConversionParameters parameters = this.Parameters;
 
             // The unpacker supplies three planar RGB rows. These same buffers become the destination component
-            // rows after each operator call, so encoding retains JPEG's planar contract without another allocation.
+            // rows after each operator call, so encoding retains the planar contract without another allocation.
             ref float component0Base = ref MemoryMarshal.GetReference(component0);
             ref float component1Base = ref MemoryMarshal.GetReference(component1);
             ref float component2Base = ref MemoryMarshal.GetReference(component2);
@@ -346,7 +316,7 @@ internal abstract partial class HeifColorConverterBase
             int i = 0;
 
             // RGB normalization is part of the vector load, and each operator returns planar components through
-            // out parameters. This is the same input/output shape used by JPEG's encoder-side color operators.
+            // out parameters. The input and output planes share the same row coordinates.
             if (Vector512.IsHardwareAccelerated)
             {
                 int oneVectorFromEnd = length - Vector512<float>.Count;

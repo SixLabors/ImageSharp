@@ -1,5 +1,161 @@
 # AVIF and AV1 implementation plan
 
+## Managed checkpoint verification: 2026-09-09
+
+ICC interpolation selection is committed as `9aeed10da`. The region conversion, container metadata,
+chroma selection, and sample-rounding changes passed final combined verification.
+Earlier unresolved-checkpoint notes below describe their state at the recorded investigation date.
+
+The first combined Release/net11 VSTest run (`managed-checkpoint-r1`) passed 10,448 of 10,487 cases.
+Its 39 failures exposed test expectations and reference files that had not followed the completed refactor:
+
+- Encoded YUV range/matrix assertions now inspect encoded metadata; decoded RGB metadata is asserted as full-range identity.
+- The chroma-position test explicitly selects Bilinear and retains its expected pixels.
+- Allocation-return checks again use the allocator's existing unique allocation IDs. Array hash codes collided;
+  they did not establish duplicate disposal. TestMemoryAllocator.cs is unchanged from HEAD.
+- Three old CDEF, restoration, and super-resolution PNGs now use the corresponding existing public decoder
+  references. Each was independently checked against the stored avifdec 16-bit output after 8-bit PNG conversion:
+  all three comparisons reported zero differing pixels. These are not promoted managed outputs.
+- Presentation comparisons again call DebugSave before CompareToReferenceOutput.
+
+The final source edit passed Roslynk diagnostics with zero errors and a Release/net11 build with zero errors.
+The combined rerun (`managed-checkpoint-r2`) passed all 10,487 cases in 2.1611 minutes through Visual Studio
+VSTest on Release/net11. This covers HEIF/AV1, ICC, Flip/Rotate, and allocator tests. Test tolerances were not widened.
+FlipProcessor and RotateProcessor now match upstream/main and are included with their migrated HEIF callers.
+JPEG, PNG, ImageDecoderCore, DecoderOptions, and IccProfile also match upstream/main.
+The five explicitly accepted ICC PNGs remain
+managed regression baselines as documented below; they do not independently prove native parity.
+
+The unused Hadamard primitive and its two tests remain outside this checkpoint. Temporary native benchmark
+changes and integration files are also excluded. Previously committed native tooling is reserved for the
+user-requested final deletion commit. Complete encoder control-flow parity and end-to-end performance remain open.
+
+## ICC interpolation selection: 2026-09-09
+
+ColorConversionOptions.IccInterpolationMethod now exposes Auto (default), Trilinear, and Tetrahedral.
+The choice is passed through converter construction and applies to both source and target profiles.
+Trilinear selects the previous three-channel calculation and four-channel multilinear interpolation;
+the four-channel implementation uses local values without per-pixel allocations or stackalloc.
+The Unicolour comparisons explicitly select Trilinear because both local versions 6.0.0 and
+8.0.0-1-g3c888f0 use multilinear interpolation. Expected values and tolerances remain unchanged.
+Release/net11 Visual Studio VSTest icc-interpolation-options-r1 passed all 63 selected cases,
+including all 27 full-profile comparisons and the existing CLUT/LUT calculator tests.
+This resolves the 21 Unicolour failures described below. Following explicit user approval,
+the four HEIF ICC comparisons now use managed-output regression references: the singular,
+grid, alpha PNGs and both sequence frame PNGs were promoted from a fresh DebugSave run.
+These preserve the accepted floating-point ICC results instead of the LittleCMS-quantized results.
+Release/net11 Visual Studio VSTest icc-promoted-r1 passed all four exact image comparisons.
+These five PNGs are managed regression baselines, not independent native-decoder evidence.
+Roslynk reported zero errors before the successful Release build. No decoder option was added;
+the new setting is available through the shared ColorConversionOptions API.
+
+Earlier investigation and verification:
+
+ClutCalculator now uses tetrahedral interpolation for three-channel device-input tables, and linear
+blending of two tetrahedral slices for four-channel tables. Lab-indexed output/linking tables retain
+trilinear interpolation, selected when constructing the LUT pipeline. The Vector4 contract remains;
+the unused N-channel implementation and its scratch allocations were removed. Constructor channel
+checks now enforce the existing one-to-four-channel calculator capacity. No span API was added.
+The selection follows local LittleCMS revision ab329ad5ce09dbb1f3547b6c126031aca606eb42:
+src/cmsintrp.c:623-714,1039-1078 and src/cmsio1.c:581-624,776. Comments explain arithmetic without source citations.
+
+The large perceptual ICC interpolation difference was reproduced independently from the embedded table bytes:
+sequence frame 01, pixel (488,212), changed from RGB (150,192,163) to (0,222,51), matching the unchanged reference.
+After the interpolation change, raw RGB comparisons reported maximum errors of one for the singular,
+grid, and both sequence outputs; no RGB component exceeded one. Differing component counts were
+3511, 3508, 2072, and 2072 respectively. The alpha fixture had 11 differing green components,
+each one unit. These measurements do not establish byte-exact acceptance or alpha-plane parity.
+
+Release/net11 VSTest icc-tetrahedral-r3: 115 cases, 90 passed, 25 failed. All 22 new mathematical
+interpolation cases and eight existing CLUT cases passed. Four HEIF exact image comparisons and
+21 full-profile comparisons remain failing. Full-profile tests currently use Unicolour; their expected
+values and tolerances have not been changed. Further source comparison and independently justified
+test updates remain required. LittleCMS's integer CLUT evaluation can quantize inside an otherwise
+floating-point transform (src/cmslut.c:444-455); production precision must not be reduced to mimic this.
+No reference PNGs were changed for this fix. The native source, build, and transicc utility remain outside
+ImageSharp. This work is not a verified commit checkpoint or complete ICC/codec acceptance.
+
+The ICC source at 79ecb74135ad47bac7d42692905a079839b7e105 supplies both trilinear and tetrahedral
+interpolation. Matching a different interpolation choice does not establish that its original algorithm
+was defective. The four-channel algorithm change also remains a separate policy choice.
+
+Rounding investigation: sequence frame 01 pixel (420,39) is RGB (1,0,2) in ActualOutput and (2,0,2)
+in ReferenceOutput. The native 16-bit pre-ICC PNG contains RGB (360,0,455). Evaluating the embedded
+A2B0 table and target profile in double precision from that same input gives red 1.3962556266 in
+eight-bit code units. Rounding the interpolated PCS values to 16 bits instead gives red 1.5442997191;
+the unoptimized LittleCMS transicc transform independently reports 1.5443. Those values round to
+the observed managed and reference values respectively. This demonstrates intermediate-quantization
+error for this sample, not an incorrect final rounding rule. It does not attribute every remaining
+mismatch or establish precision relative to the original unquantized YUV-to-RGB result.
+The profile's mft2 reader allocates a 16-bit CLUT (LittleCMS src/cmstypes.c:2395), whose float evaluator
+rounds inputs and returns integer-interpolated output normalized back to float (src/cmslut.c:83-99,445-455,565-566).
+Production precision, test tolerances, and reference images were not changed for this investigation.
+
+## Non-ICC 12-bit rounding investigation: 2026-09-09
+
+The two 12-bit fixture files have identical SHA256
+3bf9f91da471749e7df639ba7945d4d94c1c3e3968c26f3619fbbcfc92790576. They contain the same five-frame
+64x64 limited-range YUV422 sequence with alpha and no ICC profile. Existing outputs for
+colors-animated-12bpc-keyframes-0-2-3 were compared as raw RGB and alpha independently:
+frames 0-2 are exact; frame 3 has five differing RGB components; frame 4 has four differing RGB
+components and 33 differing alpha samples. Maximum error is one in each component; none exceeds one.
+
+The RGB differences are reproduced at all nine locations by evaluating the two source arithmetic orders
+on the same native-decoded YUV samples. HeifSampleConversion.ReconstructChromaRowBilinear blends sample
+values before HeifColorConverter normalizes them. Libavif src/reformat.c:836-841 normalizes each sample
+before weighted blending. Weights and sample positions agree. Single-precision intermediate rounding
+moves values across the final half-unit boundary. Relative to a double-precision calculation with the
+BT.601 coefficients, managed rounding agrees at five of these nine components and native rounding at four.
+Neither path is uniformly more accurate. The inspected libavif checkout is v1.4.2-76-g66663952;
+comparison with v1.4.2, used by avifdec, shows no changes to this interpolation arithmetic.
+
+Alpha has a separate demonstrated arithmetic defect: HeifPlanarAlphaCompositor.cs:120-122 multiplies
+by a single-precision reciprocal. A 12-bit alpha of 2047 should scale to 32759.49816849817. Reciprocal
+multiplication produces 32759.5 and packs as 32760, while direct division produces 32759.498046875
+and packs as 32759. Existing frame 4 pixel (60,3) contains those respective actual/reference alpha values.
+Libavif src/alpha.c:93-97 uses direct division. The initial investigation made no production edits.
+
+Implemented normalization during the existing SIMD sample loads, before chroma interpolation. Bilinear
+reconstruction retains the four separate products in closest/horizontal/vertical/diagonal addition order,
+including duplicated boundary samples. The color-model traversal consumes normalized components without
+normalizing them again. Alpha uses direct division in the same loader. Existing scratch rows are reused;
+no buffers, overloads, expected images, or comparison tolerances were added or changed.
+
+Release/net11 VSTest heif-12bit-order-r2 passed both exact five-frame decoder comparisons (plus four
+integration cases selected by the filename filter). The broader corpus exposed a scalar-tail luma
+double-normalization introduced during this change; that was corrected before final verification.
+After the final source edit, Roslynk reported zero errors, the Release/net11 build succeeded, and
+heif-normalization-corpus-r2 passed all 54 public Decode corpus cases. Both 12-bit sequences now have
+zero RGBA component error against their unchanged references, including alpha. DebugSave refreshed the
+ActualOutput images. Temporary theory enumeration was restored to its previous setting after testing.
+This verifies the decode corpus, not the separate ICC-conversion tests or complete codec acceptance.
+
+## Container range correction: 2026-09-08
+
+AVIF item and sequence RGB conversion now uses the container CICP range when present, falling back to the
+decoded AV1 range otherwise. The conversion receives the range explicitly; reconstruction and reference-frame
+color state are unchanged. Alpha conversion and encoder conversion continue to use their coded ranges.
+This matches libavif src/read.c:6909-6926, which retains the container range despite a conflicting sequence header.
+Irvine_CA.avif now passes the unchanged exact reference-image comparison in Release/net11 VSTest
+heif-irvine-range-r1 (one test, one pass). Its ActualOutput PNG was refreshed. The other six previously failing
+cases were not rerun for this change. Broader sequence/alpha regression verification remains outstanding.
+
+## Reference regeneration: 2026-09-08
+
+Regenerated the 138 PNG frames for the 19 previously failing decoder tests using one AVIF decoding pipeline:
+libavif avifdec 1.4.2, dav1d 1.5.3, one worker, explicit 16-bit RGB PNG output, and all frame indices.
+Chroma upsampling is explicitly nearest for 8-bit sources and bilinear for the two 12-bit animations.
+Requesting 16-bit RGB bypasses libavif's libyuv conversion path. ImageMagick 7.1.2-31 writes the final PNGs;
+Rgba32 references use 8-bit output and Rgba64 references retain 16-bit output. ImageMagick does not decode AVIF here.
+For the four ICC cases only, ImageMagick/LittleCMS converts the embedded source ICC profile to the exact
+CompactSrgbV4Profile bytes using perceptual intent, before final 8-bit output. These cases still have a 16-bit
+integer RGB intermediate before ICC conversion; no claim of a floating-point-only reference pipeline is made.
+Native tooling, intermediates, and the previous-reference backup remain outside this repository in
+D:/GitHub/ynse01/av1-takeover-20260905/unified-references-20260908.
+The reference images were regenerated independently; no managed decoded pixels or weakened assertions were used.
+Release/net11 VSTest heif-unified-references-r1 ran only the 19 previous failures: 12 passed, 7 failed, 14.5724 seconds.
+Remaining pixel mismatches still require investigation. This is not decoder byte-exact acceptance or libaom parity.
+
 ## Goal
 
 Complete a production-quality, fully managed AV1 codec and its bounded AVIF/HEIF image container integration for ImageSharp. The finished work must decode and encode still images and bounded image sequences, preserve source precision, use ImageSharp memory ownership, and provide SIMD-first hot paths with one behaviorally identical scalar fallback.
@@ -8,6 +164,127 @@ This plan is the authoritative delivery checklist. A source file, unit test, bui
 
 Checkpoint handling: work stays in the existing checkout. Do not create or use worktrees; the user reported a crash.
 Commit completed, verified features regularly, with native reference material and temporary integration excluded.
+Cleanup commit `e38989d63` restored three JPEG production files and the PNG encoder exactly to upstream/main.
+Cleanup commit `93f48a480` restored DecoderOptions, ImageDecoderCore, IccProfile, Point, and PointTests,
+included the PixelOperations formatting correction, and migrated dependent HEIF integrity, ICC serialization,
+and coordinate-shift callers. Its 16-file scope excludes component-domain ICC and region conversion changes.
+The restored Point implementation passed 55 focused Release/net11 tests (`point-upstream-cleanup-r1.trx`).
+FlipProcessor and RotateProcessor restorations remain coupled to the decoder-region caller changes: committing
+only their helper removals would break the committed HEIF decoder. The region/ICC checkpoint remains unresolved.
+
+## Required final cleanup and deletion commit
+
+2026-09-08 chroma-mode correction: HeifDecoder now follows the specialized-options API used by JPEG.
+HeifDecoderOptions.ChromaUpsampling has three values: Auto (default), NearestNeighbor, and Bilinear.
+Auto chooses nearest-neighbour for 8-bit source chroma and bilinear for higher source bit depths.
+The selection reaches still items, grid children, and sequence presentation. Nearest-neighbour writes
+directly into component rows without interpolation scratch; bilinear retains its existing SIMD sampling path.
+Existing helper callers now pass the mode explicitly. The existing bilinear test explicitly selects Bilinear;
+its expected pixels and every golden remain unchanged. Roslynk reported zero compiler errors.
+Release/net11 build passed; heif-chroma-modes-r1 ran 126 tests: 107 passed, 19 exact image comparisons failed.
+The explicit bilinear test passed and all 125 public decoder tests ran and regenerated their PNGs.
+Remaining comparisons are unresolved; passing the bilinear component check is not end-to-end parity evidence.
+Explicit-mode end-to-end references, all SIMD-tier checks, and performance verification remain outstanding.
+
+2026-09-08 nearest-neighbour presentation change: the user selected chroma sample replication,
+matching JPEG's ScaledCopyTo behavior. HeifPlanarColorConverter now selects the chroma row by
+the absolute source coordinate and subsampling shift. HeifSampleConversion widens and duplicates
+samples directly into the exact output row with 512/256/128-bit SIMD and a scalar tail.
+Odd crop origins retain the second half of the first pair; odd right edges write only the requested pixel.
+Removed vertical/horizontal weighted interpolation, its scratch rows, and full-width crop reconstruction.
+No intermediate rounding, golden changes, or comparison-tolerance changes were introduced.
+Release/net11 build succeeded with zero errors and 1,011 existing test-project warnings.
+HeifDecoderTests run heif-nearest-decoder-r1 completed all 125 cases: 106 passed, 19 exact comparisons
+failed. ActualOutput PNGs were regenerated through DebugSave. The existing ImageMagick/libavif PNG
+references have unreconciled presentation conversions and do not establish libaom parity.
+The old component test explicitly requiring bilinear chroma is obsolete under the user's new contract;
+it has not been rewritten or used as acceptance evidence. No speed improvement has been measured.
+
+2026-09-08 container mismatch correction: local libaom decodeframe.c:4167-4242 reads range from the
+sequence header and reads chroma sample position only for non-monochrome 4:2:0. Removed the container
+range-equality rejection in Av1Decoder; the coded range is retained. Av1CodecConfiguration.Validate now
+compares chroma sample position only when that field exists in the coded color configuration. Other
+configuration comparisons and structural validation remain. XnConvert's av1C bytes 81 20 02 00 declare
+4:4:4 with a sample-position value of 2; that unused value caused its former rejection. Both original
+fixtures' extracted AV1 payloads decoded successfully with local aomdec. Final Release/net11 build passed
+with zero warnings/errors; heif-decoder-container-position-r4 ran all 125 HeifDecoderTests: 108 passed,
+17 exact pixel comparisons failed, no decoder rejection failures. XnConvert passes its exact comparison;
+Irvine now decodes and saves PNG output but still differs from its reference. Reference pixels and test
+assertions were not changed. These two corrections do not establish that all container checks match the
+reference, nor do they resolve the remaining color-conversion comparisons.
+
+2026-09-08 reference-output checkpoint: all 54 corpus cases in HeifDecoderTests.Decode now have named PNG
+references, including every frame of both 12-bit animations. The missing 19 high-depth still references
+were produced with official libavif 1.4.2 avifdec/dav1d 1.5.3 as 16-bit PNGs. Four ICC conversion cases
+use native 16-bit RGB PNG intermediates with embedded source ICC profiles, then ImageMagick 7.1.2-31
+LittleCMS conversion to the same CompactSrgbV4 target profile. Preservation/compaction/metadata-skip
+references reuse the independent unconverted reference pixels. Native binaries/intermediates stay outside
+the repository. Existing mismatching references were not replaced and exact assertions remain unchanged.
+Release/net11 full HeifDecoderTests run heif-decoder-all-references-r2 completed: 125 tests, 107 passed,
+18 failed, no missing-reference failures. Remaining failures require source-led investigation; these PNGs
+do not establish codec completeness. ActualOutput contains DebugSave/DebugSaveMultiFrame decoder images.
+The temporary runner no longer overrides test parallelism and does not stop on failure. Only net11 runs;
+the user's serialization constraint concerns simultaneous target-framework runs, not individual tests.
+
+Test-convention correction is active: decoder verification must use independently produced reference images,
+and encoder verification must use TestImageProvider/VerifyEncoder with the registered independent decoder.
+Calculated expected-pixel code is not a replacement for reviewable decoder reference images.
+Remove ad hoc raw-output generation and its generated files, preserving meaningful assertions.
+
+Commit 7b5e7d4dc registers ImageMagick for AVIF reference decoding through the existing test infrastructure.
+Exact VerifyEncoder checks passed for 8-bit RGBA and 10/12-bit RGBA64. The reference adapter retains native
+precision and normalizes ImageMagick's left-aligned 10/12-bit samples to the Rgba64 range. No tolerance changed.
+The migrated test methods remain uncommitted with their decoder-refactor dependencies. The 8-bit end-to-end
+encoder test now uses the original Ducky, Bike, and Splash PNG fixtures, with exact ImageMagick verification
+and DebugSave PNG output. Raw-output writers have been removed from the HEIF/AV1 test sources. The legacy
+ActualOutput/Heif directory was deleted; HeifEncoderTests and HeifDecoderTests were emptied before the requested
+Release/net11 serialized codec rerun. The calculated ICC pixel oracle has been removed. ICC conversion tests
+now compare against independently decoded pixels, but those exact comparisons remain failing and unresolved.
+The first full codec run passed 8,837 cases and stopped on a progressive-layer reference-image mismatch.
+The failing helper called provider.GetImage(), which selects the registered reference decoder; four conformance
+paths now explicitly select HeifDecoder.Instance so that decoder assertions exercise the managed codec.
+The encoder cases now include Png.Transparency and use existing 10/12-bit RGBA TIFF fixtures for the high-depth
+test, preserving exact Rgba64 comparison. All six known-image encoder cases passed in codec-clean-output-r2;
+that broad run stopped on an allocation-log hash-uniqueness assertion after 8,857 passes. Further runs are
+restricted to the decoder and encoder classes. No golden image or comparison tolerance has changed.
+The Windows AVIF colour/alpha disagreement remains unresolved despite the ImageMagick encoder checks passing.
+ICC reference conversion now selects the same CompactSrgbV4 target profile as production. Exact decoded-pixel
+comparison still fails; ImageMagick's integer RGB intermediate is not a reason to quantize our floating-point
+RGB before ICC. The attempted pre-ICC rounding was reverted and its absence verified in both scalar and SIMD paths.
+PNG debug output now explicitly uses PngEncoder to retain ICC metadata, and single-frame cases use DebugSave
+rather than DebugSaveMultiFrame. Old output directories must be cleared before final class reruns.
+Returned still and sequence CICP metadata now describes full-range RGB, retaining source primaries and transfer
+when ICC is not converted. The preserve-profile PNG export passed in heif-icc-preserve-metadata-r1.
+After correcting DebugSave overload selection and clearing stale output directories, heif-decoder-convention-r5
+passed ten cases and stopped on the exact Ducky ICC pixel comparison. Single images now produce .png files;
+the sequence alone produces a frame directory. The decoder class has not completed.
+The ICC output path is being corrected to retain floating-point RGBA through final TPixel conversion, using
+the shared pixel operations and existing row scratch ownership. The earlier byte/Rgba64 intermediate could
+discard precision for floating-point destination formats. This change is not yet runtime-verified and does
+not establish the cause or resolution of the independent ICC comparison mismatch.
+
+Perform this cleanup at the end of implementation and verification, before final delivery. It is part of the
+task, not optional follow-up work. Update this checklist and the active milestone as changes and verification land.
+
+- [ ] Review all task-added files against the final production implementation and acceptance requirements.
+- [ ] Delete temporary native reference source, integration code, libraries, executables, build output, and
+  generated comparison artifacts from the repository. Preserve needed local reference tooling outside the repository.
+  `tests/ImageSharp.Benchmarks/Codecs/Heif/Native/aom_benchmark.c` is already tracked from `a7f0fca6b`;
+  include its deletion and other tracked temporary reference material in the final cleanup commit.
+- [ ] Delete stray task READMEs, redundant reports, temporary notes, and documentation for discarded approaches.
+  Retain only documentation needed for the delivered codec and its supported verification workflow.
+- [ ] Delete obsolete or unnecessary tests, including tests for rejected implementations, unrequested features,
+  and implementation details that do not establish a required contract. Preserve independent acceptance coverage.
+  Do not delete or weaken a failing test merely to conceal an unresolved production or verification defect.
+- [ ] Delete obsolete component benchmarks, including `Av1SequenceEncoderBenchmarks`, and their stale references.
+  Retained performance verification must measure full encode/decode with equivalent end-to-end boundaries.
+- [ ] Inspect the final diff against upstream/main for unrelated codec changes, accidental files, and temporary
+  tooling. Inspect the staged changes before committing the reviewed deletions.
+- [ ] Commit the deletions normally at the end. The user explicitly chose this approach: no history rewriting
+  and no force-push to remove earlier native-tooling commits.
+
+## Earlier checkpoint evidence
+
 The probability-storage checkpoint is `a658a2cb7`; adaptive syntax and retained palette tokens are `d8f6a1de3`.
 The final supporting entropy, mode-grid, frame-buffer, and intra-copy run passed 2,085 tests with zero failures.
 The encoder deblocking comparison covered 102,390 samples in 12 streams at 8/10/12 bits and 400/420/422/444:
@@ -45,9 +322,78 @@ Acceptance criteria are separate for encoding and decoding:
 - Historical decoder reports of zero samples exceeding one are insufficient by themselves. A recorded maximum
   error of zero establishes sample equality only for the stated comparison scope, not complete decoder correctness.
 
-## Active production milestone: encoder motion search
+## JPEG scope correction: 2026-09-07
 
-The persistent goal remains active. Complete the integrated encoder motion-search path, including configuration,
+- Removed legacy JPEG item decoding and encoding, compression selection, container brands, and dedicated HEIF JPEG tests.
+- Removed the single-value compression-method enum and its encoder, metadata, and item-decoder properties. Encoding selects AV1 directly; still output always writes AVIF brands.
+- Restored all JPEG production files to upstream/main, including earlier branch changes to metadata writing and spectral pixel packing.
+- Restored the PNG cICP writer to upstream/main. No codec-specific production changes remain outside HEIF/AV1 against upstream/main.
+- Removed the added spectral pixel converter and HEIF JPEG adapter. The HEIF implementation has no JPEG codec dependency.
+- General container tests retain their assertions and now generate an opaque AV1 item instead of a JPEG item.
+- The decoder-region callers now compile: Roslynk reports zero compiler errors across the loaded solution.
+- Release .NET 11 test assembly preparation passed. Runtime verification is in progress and the refactor is not yet a verified checkpoint.
+- The Compact ICC regression is corrected: HEIF invokes ICC conversion only for Convert mode. The subsequent decoder run passed 71 cases.
+- The earlier ICC implementation processed packed destination pixels using two scratch rows. It was rejected
+  and deleted. Component-domain ICC conversion is now implemented before pixel packing, as recorded below;
+  its exact-output verification remains unresolved. Earlier ICC test results do not verify the replacement.
+- Deblocking transform sizes now reside in block metadata: one selected size and sixteen inline variable-transform entries.
+  The separate frame-sized luma/chroma maps and their ownership class are removed. Runtime verification after this change is pending.
+- Historical JPEG-backed verification below does not establish acceptance for the remaining AV1-only implementation.
+
+## Active production milestone: complete decoder-region refactor
+
+Complete the still-image, grid, sequence, alpha, crop, rotation, and mirroring paths using exact destination regions.
+Keep JPEG and other codec implementations unchanged against upstream/main. Retain the existing shared L16 SIMD implementation.
+The generic RGB packer must accept exact-length regions, consistent with its existing scalar and SIMD implementations.
+Complete existing caller migration and focused runtime verification before committing this checkpoint.
+No new test infrastructure, extra decoder overloads, or component-test results substitute for native decoder parity.
+
+### Transform and ICC integration: 2026-09-08, verification in progress
+
+- The float/ICC output path now packs directly into the final region, removing its temporary TPixel row
+  and subsequent WriteRow copy. Destination origins and integer row/column increments are resolved once.
+  Contiguous output retains bulk pixel packing; reversed rows and columns currently use scalar final packing.
+  This is not completion of the optimized traversal: tiled/SIMD placement and end-to-end performance remain
+  unverified, and the outstanding ICC oracle mismatch below still prevents a verified region/ICC checkpoint.
+  Roslynk reported zero errors after this edit. Release/net11 preparation succeeded with 1,008 warnings and
+  zero errors; serialized VSTest passed 38 sequence cases (direct-region-sequences-r1.trx) and 70 public
+  encoder/grid cases (direct-region-grid-r1.trx). These runs do not verify the outstanding ICC mismatch.
+- Rotation/mirroring matrices are prepared outside pixel loops. Row traversal uses integer destination increments;
+  crop and grid callers supply exact source and destination rectangles.
+- ICC conversion now operates on reconstructed float components before final pixel packing, using the existing
+  ColorProfileConverter span APIs and configured allocator. Still images, grid tiles, and sequence frames carry
+  the selected profile through the same conversion boundary. Compact and Preserve retain source colors.
+- Native auxiliary alpha rows are normalized/resampled before RGB unassociation and ICC conversion. Alpha is
+  packed only with the final pixels; the ICC path does not read back or process a packed image. Unassociation uses
+  planar Vector512/256/128 arithmetic without scalar alpha extraction or broadcasts.
+- Scalar unassociation clips zero-alpha RGB just as the vector paths do, avoiding a row-width-dependent result
+  when reconstructed RGB is outside the nominal device range.
+- After that final alpha edit, Release/net11 built with zero warnings/errors and `alpha-final-public-r1.trx`
+  passed all 70 public encoder/grid cases. Subsequent matrix-parameter and formatting corrections have Roslynk
+  verification only: all three Matrix3x2 parameters and six calls now pass by value, with zero compiler errors
+  and no production warnings. No runtime run is claimed for those later edits.
+- The cropped alpha resizer's odd-column tail now selects its kernel using the destination X offset.
+- Release/net11 preparation succeeded. The first runtime launch selected no tests because its filter contained
+  literal quotes. The corrected serialized VSTest run stopped after six passes and one ICC lookup failure.
+  Reconstructed RGB exceeded the device lookup interval; clipping was added during ICC interleaving without
+  quantizing through packed pixels. The corrected Release/net11 build succeeded with zero warnings/errors.
+- `icc-transform-regions-r6.trx` passed ten cases and stopped on the existing alpha/ICC exact comparison.
+  Its expected image applies ICC to an already packed eight-bit preserved decode; the new component path
+  applies ICC before that quantization. Alpha-equality assertions passed, but RGB comparison failed. The test
+  and expected values remain unchanged; the numerical contract must be resolved before this checkpoint closes.
+- JPEG's source path retains float normalization and profile conversion (`JpegColorConverterBase.Icc.cs:72-80,134`,
+  `JpegColorConverter.Packing.cs:48-50,80-82`, `ColorProfiles/YCbCr.cs:153-160`). It does not justify adding an
+  eight-bit rounding stage solely to reproduce the old packed-image test oracle.
+- Independent focused runs passed 70 public encoder/grid cases (`transform-grid-regions-r1.trx`), 38 sequence
+  cases (`transform-sequence-regions-r1.trx`), and 12 retained native-reference presentation cases at 8/10/12 bits
+  and monochrome/420/422/444 (`native-presented-regions-r1.trx`). The last group uses exact image comparison
+  across configured intrinsic paths. These passing groups do not clear the outstanding ICC failure.
+- No benchmark or codec-wide parity claim follows from these edits. Earlier ICC results used the rejected
+  post-packing implementation and do not verify this implementation.
+
+## Remaining encoder milestone: motion search
+
+The overall codec goal remains unresolved. After the decoder refactor, complete the integrated encoder motion-search path, including configuration,
 allocation geometry, rate costs, candidate and winner state, full-pixel search, fractional refinement, and production
 verification before advancing. The following dependency result does not close that milestone.
 
@@ -2759,7 +3105,7 @@ Writer primitives are not an encoder. The public encoder remains incomplete unti
 - [x] Use the existing PNG, TIFF, and JPEG encoders as the ImageSharp architecture reference: generic `Image<TPixel>` input, encoder options taking precedence over converted format metadata and codec defaults, allocator-owned temporary storage, and deterministic disposal.
 - [x] Treat source pixel type, source alpha representation, and decoded source bit depth as conversion inputs, never as output-eligibility checks. Do not pre-scan pixels before encoding.
 - [x] Resolve output configuration once from explicit encoder options, converted `HeifMetadata`, and AV1 defaults in that order. Sanitize only combinations that cannot describe a legal requested output, and never write resolved values back to source metadata.
-- [~] Finalize observable options for quality, effort, lossless mode, bit depth, chroma subsampling, alpha quality, metadata, and bounded sequences. Sequence repeat-count options override converted HEIF metadata like the existing animated encoders. Legacy JPEG treats the AV1-specific lossless and bit-depth options as inapplicable and continues with its native eight-bit encoding contract. AV1 sequences now follow the existing animated-image contract: the primary item reuses the first sync sample when the root is animated, while an excluded root is encoded once as the independent primary image and the sequence begins at frame index one. Final verification remains open.
+- [~] Finalize observable options for quality, effort, lossless mode, bit depth, chroma subsampling, alpha quality, metadata, and bounded sequences. Sequence repeat-count options override converted HEIF metadata like the existing animated encoders. AV1 sequences now follow the existing animated-image contract: the primary item reuses the first sync sample when the root is animated, while an excluded root is encoded once as the independent primary image and the sequence begins at frame index one. Final verification remains open.
 - [x] Preserve high-bit-depth source precision through 16-bit RGB and native 10/12-bit component planes.
 - [~] HEIF is registered through the default configuration module. Keep public AV1 capability claims limited to the paths covered by the encoder verification matrix until the remaining encoder work is complete.
 
@@ -2850,7 +3196,7 @@ Encoder verification contract:
 - [~] AV1 image properties now write `ispe`, `pixi`, `av1C`, `colr`, and `auxC` in current AVIF item order. Only `av1C` is essential; color and alpha items retain independent property sets and the registered alpha auxiliary type. The property container reacquires its span after nested expansion before patching `ipco`, removing the prior stale-buffer write, and selects compact or 15-bit `ipma` indices from the property count rather than the unrelated item count. A forced-growth color-plus-alpha case validates every property payload and association byte; a separate 43-item, 129-property case proves indices 127 through 129 and the extended essential bit. Both pass direct foreground net11 Release VSTest. Complete AVIF assembly remains open.
 - [~] Explicit public AV1 encoding now writes a still-image AVIF with `avif` major brand, compatible `avif`, `mif1`, and `miaf` brands, one primary color item, an optional alpha auxiliary item, `auxl` from alpha to color, independent item properties, absolute version-one `iloc` extents, and a shared `mdat`. Quality uses current libaom's quantizer-to-qindex mapping with public quality 100 deliberately clamped from lossless qindex 0 to qindex 4. Effort controls the implemented search stages, and the resolved value is required explicitly by every internal frame, tile, and mode-decision operation rather than repeated as optional defaults. Encoder options take precedence over source metadata for 8-, 10-, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 output. Alpha derives from the source pixel type without scanning pixels, and incompatible identity-matrix metadata is normalized without mutating the source image.
 - [~] The production path writes color and alpha payloads sequentially through allocator-backed chunked storage, supports non-seekable and prefixed destinations, and does not materialize a complete file or payload copy. Uniform encoder-side `pixi` depth is written directly without allocating per-item channel-depth arrays; decoder-side non-uniform channel depths remain supported. The Release test project builds with zero errors, all 39 encoder cases pass, the complete non-HEVC HEIF namespace passes 9,277 of 9,277, and current official libaom accepts all 47 generated payloads.
-- [x] Still-image AVIF metadata preservation now writes an unrestricted ICC `colr/prof` property before the independent `colr/nclx` property, Exif and XMP as separate `mdat` items, and one `cdsc` relationship from each metadata item to the primary color item. Exif stores the exact big-endian TIFF-header offset required by the HEIF item syntax; XMP uses the `mime` item type and `application/rdf+xml` content type. Existing ICC and XMP storage is read synchronously and copied once into final encoder storage rather than cloned into an intermediate array. `SkipMetadata` suppresses all three profile types while retaining the CICP values required to describe the encoded planes. The same option now reaches legacy JPEG payloads, whose encoder no longer writes application profiles or comments when metadata is disabled.
+- [x] Still-image AVIF metadata preservation now writes an unrestricted ICC `colr/prof` property before the independent `colr/nclx` property, Exif and XMP as separate `mdat` items, and one `cdsc` relationship from each metadata item to the primary color item. Exif stores the exact big-endian TIFF-header offset required by the HEIF item syntax; XMP uses the `mime` item type and `application/rdf+xml` content type. Existing ICC and XMP storage is read synchronously and copied once into final encoder storage rather than cloned into an intermediate array. `SkipMetadata` suppresses all three profile types while retaining the CICP values required to describe the encoded planes.
 - [x] Exact container tests verify every emitted item declaration, name, MIME content type, `cdsc` relationship, Exif offset and payload, XMP payload, ICC/CICP property order, compact association byte, propertyless metadata exclusion, decoded profile value, and both `SkipMetadata` branches. The final HEIF encoder set passes 44 of 44 and the complete JPEG encoder set passes 257 of 257 through direct foreground net11 Release VSTest. The complete non-HEVC HEIF namespace passes 9,282 of 9,282 with no failure, crash, or detached test host, and current official libaom accepts all 47 current generated AV1 payloads.
 - [x] A code-wide production HEIF/AV1 stack-storage audit, excluding HEVC, removed every block-sized, variable-length, or repeatedly nested scratch buffer. Spatial luma and chroma, filter-intra, chroma-from-luma, luma and chroma palette selection, and K-means iteration now use typed views over 642 signed-integer elements, about 2.51 KiB, at the start of the shared inter-prediction region. Those searches are sequential for one block, so the block-workspace owner does not grow and no rent, copy, or additional lifetime is introduced. CDEF directions, variances, and its 64-entry block list now append 1 KiB to the existing bounded operation owner instead of occupying hidden inline or explicit stack arrays. No remaining `stackalloc` depends on block dimensions, sample count, or runtime length; the largest remaining individual span is 128 bytes, and the remaining sites are fixed syntax, SIMD-lane, filter-tap, plane-metadata, or small candidate storage. The exact-owner test now proves the mode, palette, and reference-prediction views share one allocation. Roslynk reports zero compiler errors and no diagnostics in the changed files, the Release test-project build completes with the established 1,992 warnings and zero errors, 81 of 81 focused cases pass, and the complete non-HEVC HEIF/AV1 namespace passes 9,282 of 9,282 through one foreground net11 VSTest run.
 - [~] Bounded public image-sequence output now emits an `avis` movie with version-one movie, track, and media headers; AV1 visual sample entries; exact run-length-compressed timing; per-sample sizes; 64-bit chunk offsets; and an explicit sync-sample table. The file type includes the required `miaf` compatibility brand, and every sequence now has the MIAF primary image item emitted by current libavif: normal sequences share the first sync-sample extent without another encode or copy, while separate-root sequences retain the still root as the primary image and begin timed samples at frame index one. The decoder allocates one final `Image<TPixel>`: the root is either the first timed sample or the separately decoded primary item, and each visible timed sample is decoded directly into a frame owned by that image. Exact quarter-turn presentation uses one frame-sized reusable pre-rotation buffer rather than a second image or a separately built frame collection. Color and optional auxiliary alpha use independently configured AV1 tracks linked by `auxl`. Lossless samples remain independently decodable key pictures and repeat the sequence header required for random access. Lossy continuation samples use LAST_FRAME inter prediction through the existing SIMD translational predictor; one track-scoped encoder session reuses its source allocation, packed-to-planar row storage and color converter, frame-sized coefficient storage, fixed-geometry picture and frame-header syntax state, tile/superblock/entropy cursors, block arithmetic workspace, complete probability graph, bounded tile-output owner, and OBU-header owner, and swaps two complete reconstruction buffers so the preceding decoded frame becomes the next reference without a plane copy. Sequence samples signal `still_picture=0` and use the complete non-reduced sequence and frame-header prefixes required for a multi-frame coded sequence. Frame payloads are written once into contiguous allocator-backed chunks per track. One compact managed table retains only offset, length, and duration for both tracks, and the bounded `moov` owner is patched once after its final size is known, so prefixed and non-seekable destinations require neither seeking nor a file-sized copy. The media timescale uses the exact representable least common multiple of animated frame-delay denominators and a documented microsecond fallback; zero delays become the smallest legal positive duration. Public lossless color-and-alpha round trips preserve all frames, distinct 24, 25, and 30 fps delays, finite or infinite repetition, ICC, Exif, and XMP metadata, while a separate case proves prefixed non-seekable output. Per-tile CDEF preset, preceding-quantizer state, and payload bounds now occupy one aligned region in the reusable allocator-owned picture buffer rather than separate managed arrays for every frame. The last verified net11 Release checkpoint completed with the established 1,005 warnings and zero errors, all 48 HEIF encoder cases passed, and the complete non-HEVC HEIF/AV1 namespace passed 9,317 of 9,317 through foreground VSTest. Current official libaom `main` at `d565eec60f084421fa34fc0534b760c6452b6a6c` accepted all 66 raw AV1 payloads regenerated by that suite. Verification of the current primary-item, separate-root, non-reduced sequence-header, retained-reference continuation, grid implementation, block-local motion search, conversion-row, probability, picture, frame-header, tile-cursor, tile-output, and OBU-header reuse, and multi-tile output is pending. Additional reference roles and compound prediction remain open.

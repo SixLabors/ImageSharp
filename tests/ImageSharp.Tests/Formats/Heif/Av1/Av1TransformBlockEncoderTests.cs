@@ -653,7 +653,7 @@ public class Av1TransformBlockEncoderTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     private static void ValidateBlock(

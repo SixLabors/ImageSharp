@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Heif;
@@ -113,7 +115,20 @@ public class Av1ColorConversionBenchmarks
     {
         Av1FrameBuffer<byte> frameBuffer = this.frameBuffer;
         Image<Rgb48> destination = this.destination;
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, destination.Frames.RootFrame.Size),
+            destination.Frames.RootFrame.PixelBuffer.GetRegion(),
+            destination.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
         return destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(Height - 1)[Width - 1];
     }
 

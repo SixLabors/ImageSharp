@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -137,7 +139,7 @@ public class Av1TilingTests
             Assert.Equal(failureIndex, allocator.AllocationLog.Count);
             Assert.All(
                 allocator.AllocationLog,
-                allocation => Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId));
+                allocation => Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
 
             Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         }
@@ -173,7 +175,23 @@ public class Av1TilingTests
         const int codedItemOffset = 0x17A8;
         const int codedItemLength = 0x3AE4;
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(content.AsSpan(codedItemOffset, codedItemLength));
+        using Av1FrameBuffer<byte> imagePlanes = decoder.DecodeFrameBuffer(content.AsSpan(codedItemOffset, codedItemLength), null, null, out _);
+        using Image<Rgba32> image = new(Configuration.Default, imagePlanes.Width, imagePlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            imagePlanes,
+            image.Bounds,
+            image.Frames.RootFrame.PixelBuffer.GetRegion(image.Bounds),
+            image.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            imagePlanes.ColorConfig.ColorRange);
+
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
         Span<int> blockSizeCounts = stackalloc int[(int)Av1BlockSize.AllSizes];
@@ -213,7 +231,22 @@ public class Av1TilingTests
         byte[] content = File.ReadAllBytes(filePath);
         Av1Decoder decoder = new(Configuration.Default);
 
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(content.AsSpan(0x010E, 0x001D));
+        using Av1FrameBuffer<byte> imagePlanes = decoder.DecodeFrameBuffer(content.AsSpan(0x010E, 0x001D), null, null, out _);
+        using Image<Rgba32> image = new(Configuration.Default, imagePlanes.Width, imagePlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            imagePlanes,
+            image.Bounds,
+            image.Frames.RootFrame.PixelBuffer.GetRegion(image.Bounds),
+            image.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            imagePlanes.ColorConfig.ColorRange);
 
         Assert.Equal(4, image.Width);
         Assert.Equal(4, image.Height);
@@ -306,7 +339,7 @@ public class Av1TilingTests
         using IMemoryOwner<short> workspace =
             frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(obuReader.SequenceHeader));
 
-        using Av1FrameDecoder frameDecoder = new(
+        Av1FrameDecoder frameDecoder = new(
             obuReader.SequenceHeader,
             obuReader.FrameHeader,
             frameInfo,
@@ -361,7 +394,7 @@ public class Av1TilingTests
         using IMemoryOwner<short> workspace =
             frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(obuReader.SequenceHeader));
 
-        using Av1FrameDecoder frameDecoder = new(
+        Av1FrameDecoder frameDecoder = new(
             obuReader.SequenceHeader,
             obuReader.FrameHeader,
             frameInfo,

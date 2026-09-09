@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -105,8 +106,30 @@ public class ObuFrameLifecycleTests
         // three-bit slot index, and the required trailing-one bit; no tile-group OBU follows it.
         byte[] showExistingFrame = [0x1A, 0x01, 0x88];
         using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex);
-        using ImageFrame<Rgba32> reconstructed = decoder.DecodeSequenceFrame<Rgba32>(bitStream, null, null);
-        using ImageFrame<Rgba32> existing = decoder.DecodeSequenceFrame<Rgba32>(showExistingFrame, null, null);
+        using ImageFrame<Rgba32> reconstructed = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
+        decoder.DecodeSequenceFrame(
+            bitStream,
+            null,
+            null,
+            reconstructed.Size,
+            reconstructed.Bounds,
+            reconstructed.PixelBuffer.GetRegion(reconstructed.Bounds),
+            default,
+            null,
+            null,
+            false);
+        using ImageFrame<Rgba32> existing = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
+        decoder.DecodeSequenceFrame(
+            showExistingFrame,
+            null,
+            null,
+            existing.Size,
+            existing.Bounds,
+            existing.PixelBuffer.GetRegion(existing.Bounds),
+            default,
+            null,
+            null,
+            false);
 
         Assert.Equal(reconstructed.Size, existing.Size);
         for (int row = 0; row < reconstructed.Height; row++)

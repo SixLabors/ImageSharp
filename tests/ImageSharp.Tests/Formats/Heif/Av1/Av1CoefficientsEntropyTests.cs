@@ -69,7 +69,7 @@ public class Av1CoefficientsEntropyTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     [Theory]
@@ -398,7 +398,7 @@ public class Av1CoefficientsEntropyTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public class Av1CoefficientsEntropyTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     [Fact]

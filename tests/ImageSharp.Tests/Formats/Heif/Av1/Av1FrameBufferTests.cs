@@ -6,9 +6,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
@@ -103,18 +101,18 @@ public class Av1FrameBufferTests
                     {
                         int oldOwner = Assert.Single(
                             allocator.AllocationLog,
-                            x => x.ElementType == typeof(short) && x.Length == workspaceLengths[0]).AllocationId;
+                            x => x.ElementType == typeof(short) && x.Length == workspaceLengths[0]).HashCodeOfBuffer;
 
-                        Assert.Single(allocator.ReturnLog, x => x.AllocationId == oldOwner);
+                        Assert.Single(allocator.ReturnLog, x => x.HashCodeOfBuffer == oldOwner);
                     }
                 }
 
                 using Av1FrameBuffer<byte> frame = decoder.DecodeFrameBuffer(payload, null, null, out _);
                 retainedLength = Math.Max(retainedLength, workspaceLengths[index]);
                 int owner = Assert.Single(
-                    allocator.AllocationLog, x => x.ElementType == typeof(short) && x.Length == retainedLength).AllocationId;
+                    allocator.AllocationLog, x => x.ElementType == typeof(short) && x.Length == retainedLength).HashCodeOfBuffer;
 
-                Assert.DoesNotContain(allocator.ReturnLog, x => x.AllocationId == owner);
+                Assert.DoesNotContain(allocator.ReturnLog, x => x.HashCodeOfBuffer == owner);
                 Buffer2DRegion<byte> luma = frame.DeriveBlockPointer(Av1Plane.Y, 0, 0);
                 for (int row = 0; row < frame.Height; row++)
                 {
@@ -124,7 +122,7 @@ public class Av1FrameBufferTests
         }
 
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(allocator.AllocationLog, allocation => Assert.Single(allocator.ReturnLog, x => x.AllocationId == allocation.AllocationId));
+        Assert.All(allocator.AllocationLog, allocation => Assert.Single(allocator.ReturnLog, x => x.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
     }
 
     /// <summary>
@@ -195,7 +193,7 @@ public class Av1FrameBufferTests
         Assert.Equal(7, allocator.AllocationAttemptCount);
         Assert.Equal(6, allocator.AllocationLog.Count);
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(allocator.AllocationLog, allocation => Assert.Single(allocator.ReturnLog, x => x.AllocationId == allocation.AllocationId));
+        Assert.All(allocator.AllocationLog, allocation => Assert.Single(allocator.ReturnLog, x => x.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
     }
 
     /// <summary>
@@ -313,7 +311,7 @@ public class Av1FrameBufferTests
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         foreach (TestMemoryAllocator.AllocationRequest allocation in allocator.AllocationLog)
         {
-            Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId);
+            Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer);
         }
     }
 
@@ -336,7 +334,7 @@ public class Av1FrameBufferTests
         using (Av1FrameBuffer<byte> restored = Av1FrameBuffer<byte>.CreateRestoration(allocator, sequence, small))
         {
             Assert.Throws<InvalidMemoryOperationException>(() => restored.ResizeRestoration(sequence, large));
-            Assert.Equal(Assert.Single(allocator.AllocationLog).AllocationId, Assert.Single(allocator.ReturnLog).AllocationId);
+            Assert.Equal(Assert.Single(allocator.AllocationLog).HashCodeOfBuffer, Assert.Single(allocator.ReturnLog).HashCodeOfBuffer);
 
             restored.ResizeRestoration(sequence, large);
             Assert.Equal(3, allocator.AllocationAttemptCount);
@@ -350,7 +348,7 @@ public class Av1FrameBufferTests
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         foreach (TestMemoryAllocator.AllocationRequest allocation in allocator.AllocationLog)
         {
-            Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId);
+            Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer);
         }
     }
 
@@ -497,7 +495,7 @@ public class Av1FrameBufferTests
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         foreach (TestMemoryAllocator.AllocationRequest allocation in allocator.AllocationLog)
         {
-            Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId);
+            Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer);
         }
     }
 
@@ -547,7 +545,7 @@ public class Av1FrameBufferTests
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         foreach (TestMemoryAllocator.AllocationRequest allocation in allocator.AllocationLog)
         {
-            Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId);
+            Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer);
         }
     }
 
@@ -646,7 +644,7 @@ public class Av1FrameBufferTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     /// <summary>
@@ -747,7 +745,7 @@ public class Av1FrameBufferTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     /// <summary>
@@ -793,9 +791,6 @@ public class Av1FrameBufferTests
             ModeInfoRowCount = 16
         };
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(Configuration.Default.MemoryAllocator, sequenceHeader, frameHeader);
-
         using Av1ReferenceFrameStore referenceFrames = new();
 
         // Reset frame-plane logs so these assertions describe the supplied workspace and the borrowing decoder.
@@ -826,7 +821,6 @@ public class Av1FrameBufferTests
                 sequenceHeader,
                 frameHeader,
                 frameBuffer,
-                loopFilterContext,
                 referenceFrames,
                 workspace.Memory);
 
@@ -837,44 +831,7 @@ public class Av1FrameBufferTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(workspaceAllocation.AllocationId, returned.AllocationId);
-    }
-
-    /// <summary>
-    /// Verifies that failure to allocate the active chroma transform map releases the preceding luma map.
-    /// </summary>
-    [Fact]
-    public void LoopFilterContextAllocationFailureReleasesLumaMap()
-    {
-        FailingTestMemoryAllocator allocator = new(failureAllocationNumber: 2);
-        ObuSequenceHeader sequenceHeader = new()
-        {
-            MaxFrameWidth = 64,
-            MaxFrameHeight = 64,
-            Use128x128Superblock = false,
-            ColorConfig = new ObuColorConfig
-            {
-                IsMonochrome = false,
-                SubSamplingX = true,
-                SubSamplingY = true,
-                BitDepth = Av1BitDepth.EightBit
-            }
-        };
-
-        ObuFrameHeader frameHeader = new()
-        {
-            ModeInfoColumnCount = 16,
-            ModeInfoRowCount = 16
-        };
-
-        Assert.Throws<InvalidMemoryOperationException>(
-            () => new Av1LoopFilterContext(allocator, sequenceHeader, frameHeader));
-
-        TestMemoryAllocator.AllocationRequest allocation = Assert.Single(allocator.AllocationLog);
-        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-
-        Assert.Equal(2, allocator.AllocationAttemptCount);
-        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
+        Assert.Equal(workspaceAllocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     /// <summary>

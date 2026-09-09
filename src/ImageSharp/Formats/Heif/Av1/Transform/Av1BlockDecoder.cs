@@ -4,7 +4,6 @@
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
@@ -35,11 +34,6 @@ internal sealed class Av1BlockDecoder
     private readonly Av1FrameBuffer<byte> frameBuffer;
 
     /// <summary>
-    /// The per-plane transform-size map consumed after reconstruction by the deblocking stage.
-    /// </summary>
-    private readonly Av1LoopFilterContext loopFilterContext;
-
-    /// <summary>
     /// The retained reconstructed frames addressable by inter prediction.
     /// </summary>
     private readonly Av1ReferenceFrameStore referenceFrames;
@@ -65,11 +59,6 @@ internal sealed class Av1BlockDecoder
     private readonly Av1PredictionDecoder predictionDecoder;
 
     /// <summary>
-    /// Indicates whether transform traversal must also populate loop-filter parameters.
-    /// </summary>
-    private readonly bool isLoopFilterEnabled;
-
-    /// <summary>
     /// The next raster coefficient region for each plane in the current superblock.
     /// </summary>
     private InlineArray4<int> currentCoefficientIndex;
@@ -85,7 +74,6 @@ internal sealed class Av1BlockDecoder
     /// <param name="sequenceHeader">The decoded sequence header.</param>
     /// <param name="frameHeader">The decoded frame header.</param>
     /// <param name="frameBuffer">The frame buffer receiving reconstructed samples.</param>
-    /// <param name="loopFilterContext">The transform-size map populated while reconstructing blocks.</param>
     /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks.</param>
     /// <param name="workspace">The reconstruction storage available for the lifetime of this frame.</param>
     /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
@@ -93,7 +81,6 @@ internal sealed class Av1BlockDecoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1FrameBuffer<byte> frameBuffer,
-        Av1LoopFilterContext loopFilterContext,
         Av1ReferenceFrameStore referenceFrames,
         Memory<short> workspace,
         Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
@@ -101,7 +88,6 @@ internal sealed class Av1BlockDecoder
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameBuffer = frameBuffer;
-        this.loopFilterContext = loopFilterContext;
         this.referenceFrames = referenceFrames;
         this.workspace = workspace;
         int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
@@ -122,8 +108,6 @@ internal sealed class Av1BlockDecoder
             frameHeader,
             predictionScratch.Slice(predictorWorkingOffset, predictorWorkingLength),
             paletteColorIndexMaps);
-        this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
-            frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
 
         this.chromaFromLumaContext = new(
             sequenceHeader.ColorConfig,
@@ -1355,20 +1339,6 @@ internal sealed class Av1BlockDecoder
         else
         {
             transformBlockReconstructionBuffer = blockReconstructionBuffer[transformBlockOffset..];
-        }
-
-        if (this.isLoopFilterEnabled)
-        {
-            // U and V share transform geometry. Store the chroma map once so the later plane passes consume
-            // identical sizes without retaining duplicate state.
-            if (plane != 2)
-            {
-                Point transformPosition = new(
-                    (modeInfoPosition.X >> subX) + transformInfo.OffsetX,
-                    (modeInfoPosition.Y >> subY) + transformInfo.OffsetY);
-
-                this.loopFilterContext.SetTransformSize((Av1Plane)plane, transformPosition, transformSize);
-            }
         }
 
         if (!isInterBlock && !modeInfo.UseIntraBlockCopy)

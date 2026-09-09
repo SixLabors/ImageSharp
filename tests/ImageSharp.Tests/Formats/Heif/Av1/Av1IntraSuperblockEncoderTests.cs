@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -165,24 +166,36 @@ public class Av1IntraSuperblockEncoderTests
 
         // Sequence decoding retains the first frame's reference slots. The still-image transfer API deliberately
         // releases those slots, so it cannot be used between dependent samples. Full-range monochrome L8 is exact.
-        using ImageFrame<L8> decodedFirst = decoder.DecodeSequenceFrame<L8>(firstSample.ToArray(), null, null);
-        using ImageFrame<L8> decodedSecond = decoder.DecodeSequenceFrame<L8>(secondSample.ToArray(), null, null);
+        using ImageFrame<L8> decodedFirst = new(configuration, Width, Height);
+        decoder.DecodeSequenceFrame(
+            firstSample.ToArray(),
+            null,
+            null,
+            decodedFirst.Size,
+            decodedFirst.Bounds,
+            decodedFirst.PixelBuffer.GetRegion(decodedFirst.Bounds),
+            default,
+            null,
+            null,
+            false);
+        using ImageFrame<L8> decodedSecond = new(configuration, Width, Height);
+        decoder.DecodeSequenceFrame(
+            secondSample.ToArray(),
+            null,
+            null,
+            decodedSecond.Size,
+            decodedSecond.Bounds,
+            decodedSecond.PixelBuffer.GetRegion(decodedSecond.Bounds),
+            default,
+            null,
+            null,
+            false);
 
-        // Preserve both the production stream and every managed reconstructed luma sample for exact libaom comparison.
-        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.ProductionTileSelectsNonRegularInterpolation));
-        string outputName = $"{filter}-{dualFilter}";
-        using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
-        firstSample.Position = 0;
-        firstSample.CopyTo(output);
-        secondSample.Position = 0;
-        secondSample.CopyTo(output);
-        using FileStream rawOutput = File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv"));
         for (int y = 0; y < Height; y++)
         {
             ReadOnlySpan<byte> expected = reference.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
             ReadOnlySpan<byte> actual = MemoryMarshal.AsBytes(decodedFirst.PixelBuffer.DangerousGetRowSpan(y));
             Assert.Equal(expected, actual);
-            rawOutput.Write(actual);
         }
 
         for (int y = 0; y < Height; y++)
@@ -190,7 +203,6 @@ public class Av1IntraSuperblockEncoderTests
             ReadOnlySpan<byte> expected = reconstruction.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
             ReadOnlySpan<byte> actual = MemoryMarshal.AsBytes(decodedSecond.PixelBuffer.DangerousGetRowSpan(y));
             Assert.Equal(expected, actual);
-            rawOutput.Write(actual);
         }
     }
 
@@ -330,19 +342,9 @@ public class Av1IntraSuperblockEncoderTests
         using MemoryStream secondSample = new();
         using ObuWriter obuWriter = new(configuration);
         obuWriter.WriteFrame(secondSample, sequenceHeader, frameHeader, tileWriter);
-        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.ProductionTileSelectsDualAxisInterpolationHighBitDepth));
-        string outputName = $"{bitDepth}-{horizontalFilter}-{verticalFilter}";
-        using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
-        firstSample.Position = 0;
-        firstSample.CopyTo(output);
-        secondSample.Position = 0;
-        secondSample.CopyTo(output);
-        using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv")));
         using Av1Decoder decoder = new(configuration);
         for (int frameIndex = 0; frameIndex < 2; frameIndex++)
         {
-            // Consume native retained planes before the next sample can replace them. BinaryWriter emits explicit
-            // little-endian UInt16 samples, matching the raw reference-decoder output independently of host byte order.
             decoder.DecodeSequenceReference((frameIndex == 0 ? firstSample : secondSample).ToArray(), null, null);
             Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
             Buffer2DRegion<ushort> expected = (frameIndex == 0 ? reference : reconstruction).Frame.View.GetPlane(Av1Plane.Y);
@@ -350,10 +352,6 @@ public class Av1IntraSuperblockEncoderTests
             {
                 ReadOnlySpan<ushort> actualRow = decoded.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0);
                 Assert.Equal(expected.DangerousGetRowSpan(y), actualRow);
-                foreach (ushort sample in actualRow)
-                {
-                    rawOutput.Write(sample);
-                }
             }
         }
     }
@@ -1945,20 +1943,6 @@ public class Av1IntraSuperblockEncoderTests
             }
         }
 
-        string outputDirectory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Formats", "Heif", "Av1");
-        string outputName = $"encoder-palette-chroma-{width}x{height}-{subX}-{subY}-{useLumaPalette}";
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(Path.Combine(outputDirectory, outputName + ".obu"), payload);
-        using FileStream raw = File.Create(Path.Combine(outputDirectory, outputName + ".retained.yuv"));
-        for (int plane = 0; plane < 3; plane++)
-        {
-            Buffer2DRegion<byte> retained = reconstruction.Frame.View.GetPlane((Av1Plane)plane);
-            for (int row = 0; row < retained.Height; row++)
-            {
-                raw.Write(retained.DangerousGetRowSpan(row));
-            }
-        }
-
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
@@ -3009,24 +2993,29 @@ public class Av1IntraSuperblockEncoderTests
 
             byte[] payload = WriteCompleteTileObu(pictureTemplate, tileWriter, Width, Height);
             using Av1Decoder decoder = new(Configuration.Default);
-            using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+            using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+            using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+            Av1YuvConverter.ConvertToRgb(
+                Configuration.Default,
+                decodedPlanes,
+                decoded.Bounds,
+                decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+                decoded.Size,
+                default,
+                null,
+                null,
+                default,
+                default,
+                false,
+                HeifChromaUpsampling.Auto,
+                decodedPlanes.ColorConfig.ColorRange);
+
             Assert.NotNull(decoder.FrameInfo);
             Av1BlockModeInfo decodedBlock = decoder.FrameInfo.GetModeInfoAt(new Point(2, 2));
             Assert.True(decodedBlock.UseFilterIntra);
             Assert.Equal(filterIntraMode, decodedBlock.FilterIntraMode);
             Assert.Equal(4, decodedBlock.GetTransformUnitCount(Av1Plane.Y));
             Assert.Equal(new Size(Width, Height), decoded.Size);
-
-            string outputDirectory = Path.Combine(
-                TestEnvironment.ActualOutputDirectoryFullPath,
-                "Formats",
-                "Heif",
-                "Av1");
-
-            Directory.CreateDirectory(outputDirectory);
-            File.WriteAllBytes(
-                Path.Combine(outputDirectory, $"encoder-filter-intra-transform-size-select-{bitDepth}b.obu"),
-                payload);
         }
 
         Assert.NotEqual(0, pilotWriter.GetTileData(0).Length);
@@ -3665,16 +3654,6 @@ public class Av1IntraSuperblockEncoderTests
         }
 
         Assert.True(hasMixedPartition);
-        string directory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", nameof(this.ProductionMixedPartitionsPreserveReconstructionOrder));
-
-        Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory, $"{size}-{transpose}-{enableIntraEdgeFilter}.obu"), payload);
-        using FileStream raw = File.Create(Path.Combine(directory, $"{size}-{transpose}-{enableIntraEdgeFilter}.retained.yuv"));
-        for (int y = 0; y < size; y++)
-        {
-            raw.Write(retainedPlane.DangerousGetRowSpan(y));
-        }
     }
 
     [Theory]
@@ -3785,11 +3764,6 @@ public class Av1IntraSuperblockEncoderTests
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decodedFrame = decoder.DecodeFrameBuffer(payload, null, null, out _);
         int changedSamples = 0;
-        string directory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", "ProductionDeblocking");
-        Directory.CreateDirectory(directory);
-        string name = $"{bitDepth}-{colorFormat}";
-        File.WriteAllBytes(Path.Combine(directory, name + ".obu"), payload);
-        using FileStream raw = File.Create(Path.Combine(directory, name + ".retained.yuv"));
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
             Av1Plane plane = (Av1Plane)planeIndex;
@@ -3806,8 +3780,6 @@ public class Av1IntraSuperblockEncoderTests
                 {
                     changedSamples += row[x] != unfiltered[planeIndex][(y * retained.Width) + x] ? 1 : 0;
                 }
-
-                raw.Write(MemoryMarshal.AsBytes(row));
             }
         }
 
@@ -4128,7 +4100,23 @@ public class Av1IntraSuperblockEncoderTests
         // Decode every payload, including clipped maps: retained reconstruction alone cannot reveal missing map symbols.
         byte[] payload = WriteCompleteTileObu(pictureTemplate, tileWriter, width, height);
         using Av1Decoder decoder = new(Configuration.Default);
-        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            decodedPlanes,
+            decoded.Bounds,
+            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
+            decoded.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            decodedPlanes.ColorConfig.ColorRange);
+
         Assert.NotNull(decoder.FrameInfo);
         Av1BlockModeInfo decodedBlock = decoder.FrameInfo.GetModeInfoAt(default);
         Assert.True(decodedBlock.GetPaletteSize(Av1Plane.Y) > 0);
@@ -4146,19 +4134,6 @@ public class Av1IntraSuperblockEncoderTests
             Assert.True(predictionOnlyError > 0);
             Assert.True(reconstructionError < predictionOnlyError);
             Assert.Equal(4, decodedBlock.GetTransformUnitCount(Av1Plane.Y));
-        }
-
-        string outputDirectory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Formats", "Heif", "Av1");
-        string outputName = useSplitTransform
-            ? $"encoder-palette-transform-size-select-{bitDepthValue}b"
-            : $"encoder-palette-luma-{bitDepthValue}b-{width}x{height}";
-
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(Path.Combine(outputDirectory, outputName + ".obu"), payload);
-        using FileStream raw = File.Create(Path.Combine(outputDirectory, outputName + ".retained.yuv"));
-        for (int row = 0; row < height; row++)
-        {
-            raw.Write(MemoryMarshal.AsBytes(reconstructionPlane.DangerousGetRowSpan(row)[..width]));
         }
 
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);

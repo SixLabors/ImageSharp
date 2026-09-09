@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// <summary>
 /// Reconstructs the coded blocks of one AV1 image frame into planar sample buffers.
 /// </summary>
-internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
+internal sealed class Av1FrameDecoder : IAv1FrameDecoder
 {
     /// <summary>
     /// The sequence-level superblock and color configuration.
@@ -41,11 +41,6 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// The retained reconstructed frames addressable by inter prediction.
     /// </summary>
     private readonly Av1ReferenceFrameStore referenceFrames;
-
-    /// <summary>
-    /// The transform-size map populated during reconstruction and consumed by deblocking.
-    /// </summary>
-    private readonly Av1LoopFilterContext loopFilterContext;
 
     /// <summary>
     /// The block reconstruction stage that applies prediction and inverse transforms.
@@ -76,31 +71,13 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
         this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
         this.referenceFrames = referenceFrames;
-        this.loopFilterContext = new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        try
-        {
-            this.blockDecoder = new(
-                this.sequenceHeader,
-                this.frameHeader,
-                this.frameBuffer,
-                this.loopFilterContext,
-                this.referenceFrames,
-                reconstructionWorkspace,
-                paletteColorIndexMaps);
-        }
-        catch
-        {
-            this.loopFilterContext.Dispose();
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Releases the pooled block-reconstruction workspaces owned by this decoder.
-    /// </summary>
-    public void Dispose()
-    {
-        this.loopFilterContext.Dispose();
+        this.blockDecoder = new(
+            this.sequenceHeader,
+            this.frameHeader,
+            this.frameBuffer,
+            this.referenceFrames,
+            reconstructionWorkspace,
+            paletteColorIndexMaps);
     }
 
     /// <summary>
@@ -120,8 +97,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
             this.sequenceHeader,
             this.frameHeader,
             this.frameInfo,
-            this.frameBuffer,
-            this.loopFilterContext);
+            this.frameBuffer);
 
         loopFilterDecoder.DecodeFrame();
 

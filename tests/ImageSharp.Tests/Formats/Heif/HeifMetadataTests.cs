@@ -15,7 +15,6 @@ public class HeifMetadataTests
     {
         HeifMetadata metadata = new();
 
-        Assert.Equal(HeifCompressionMethod.LegacyJpeg, metadata.CompressionMethod);
         Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
         Assert.False(metadata.IsMonochrome);
         Assert.False(metadata.HasAlpha);
@@ -28,7 +27,6 @@ public class HeifMetadataTests
     {
         HeifMetadata metadata = new()
         {
-            CompressionMethod = HeifCompressionMethod.Av1,
             BitDepth = HeifBitDepth.Bit12,
             IsMonochrome = true,
             HasAlpha = true,
@@ -38,7 +36,6 @@ public class HeifMetadataTests
 
         HeifMetadata clone = metadata.DeepClone();
 
-        Assert.Equal(metadata.CompressionMethod, clone.CompressionMethod);
         Assert.Equal(metadata.BitDepth, clone.BitDepth);
         Assert.Equal(metadata.IsMonochrome, clone.IsMonochrome);
         Assert.Equal(metadata.HasAlpha, clone.HasAlpha);
@@ -111,5 +108,4 @@ public class HeifMetadataTests
         Assert.Equal(expectedComponentCount, componentInfo.ComponentCount);
         Assert.Equal((int)bitDepth, componentInfo.GetMaximumComponentPrecision());
     }
-
 }

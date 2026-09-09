@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -116,7 +117,20 @@ public class Av1YuvConverterTests
         frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0)[0] = (byte)v;
 
         // Act
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, frame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, frame.Size),
+            frame.PixelBuffer.GetRegion(),
+            frame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         frame.DangerousTryGetSinglePixelMemory(out Memory<Rgb24> memory);
@@ -124,6 +138,60 @@ public class Av1YuvConverterTests
         Assert.Equal(r, actual.R, 1d);
         Assert.Equal(g, actual.G, 1d);
         Assert.Equal(b, actual.B, 1d);
+    }
+
+    [Fact]
+    public void YuvToRgbWritesOnlyRequestedDestinationRegion()
+    {
+        Rgb24 sentinel = new(201, 202, 203);
+        using Image<Rgb24> image = new(7, 5, sentinel);
+        ObuSequenceHeader header = CreateSequenceHeader(4, 3, true, ObuMatrixCoefficients.Identity);
+        using Av1FrameBuffer<byte> buffer = new(Configuration.Default, header, Av1ColorFormat.Yuv444, false);
+        for (int y = 0; y < 3; y++)
+        {
+            Span<byte> green = buffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(y);
+            Span<byte> blue = buffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(y);
+            Span<byte> red = buffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(y);
+            for (int x = 0; x < 4; x++)
+            {
+                red[x] = (byte)(10 + x);
+                green[x] = (byte)(20 + y);
+                blue[x] = (byte)(30 + x + (y * 4));
+            }
+        }
+
+        Rectangle source = new(1, 1, 2, 2);
+        Rectangle target = new(3, 2, 2, 2);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            buffer,
+            source,
+            image.Frames.RootFrame.PixelBuffer.GetRegion(target),
+            new Size(4, 3),
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            buffer.ColorConfig.ColorRange);
+
+        // The identity matrix gives independently known RGB values. Every pixel outside the target must retain
+        // the sentinel, including the row prefix and suffix surrounding the converted source crop.
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                int sourceX = x - target.X + source.X;
+                int sourceY = y - target.Y + source.Y;
+                Rgb24 expected = target.Contains(x, y)
+                    ? new Rgb24((byte)(10 + sourceX), (byte)(20 + sourceY), (byte)(30 + sourceX + (sourceY * 4)))
+                    : sentinel;
+
+                Assert.Equal(expected, image[x, y]);
+            }
+        }
     }
 
     /// <summary>
@@ -147,7 +215,20 @@ public class Av1YuvConverterTests
         yRow[1] = 235;
 
         // Act
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, image.Frames.RootFrame.Size),
+            image.Frames.RootFrame.PixelBuffer.GetRegion(),
+            image.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         Span<Rgb24> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
@@ -220,7 +301,20 @@ public class Av1YuvConverterTests
         frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, 0, 0, 0).Fill(neutralChroma);
 
         // Act
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, image.Frames.RootFrame.Size),
+            image.Frames.RootFrame.PixelBuffer.GetRegion(),
+            image.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         Span<Rgb24> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
@@ -372,7 +466,20 @@ public class Av1YuvConverterTests
         frameBuffer.DeriveBlockPointer(Av1Plane.V, 1, 0).DangerousGetRowSpan(0).Fill(128);
 
         // Act
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, image.Frames.RootFrame.Size),
+            image.Frames.RootFrame.PixelBuffer.GetRegion(),
+            image.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Bilinear,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         Span<Rgb24> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
@@ -419,7 +526,20 @@ public class Av1YuvConverterTests
         vPlane.DangerousGetRowSpan(1).Fill(128);
 
         // Act
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, image.Frames.RootFrame.Size),
+            image.Frames.RootFrame.PixelBuffer.GetRegion(),
+            image.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Bilinear,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         Assert.Equal(expectedTopBlue, image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[1].B);
@@ -538,7 +658,20 @@ public class Av1YuvConverterTests
         CreateTestData(rnd, frameBuffer, Av1Plane.V);
 
         // Act
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, frame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, frame.Size),
+            frame.PixelBuffer.GetRegion(),
+            frame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
         Span<Rgb24> referenceOutput = Av1ReferenceYuvConverter.YuvToRgb(frameBuffer, true);
 
         // Assert
@@ -643,7 +776,20 @@ public class Av1YuvConverterTests
 
         // Act
         Av1YuvConverter.ConvertFromRgb(Configuration.Default, frame, frameBuffer);
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, actual.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, actual.Frames.RootFrame.Size),
+            actual.Frames.RootFrame.PixelBuffer.GetRegion(),
+            actual.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         actual.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgb24> actualMemory);
@@ -690,7 +836,20 @@ public class Av1YuvConverterTests
 
         // Act
         Av1YuvConverter.ConvertFromRgb(Configuration.Default, image.Frames.RootFrame, frameBuffer);
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, actual.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, actual.Frames.RootFrame.Size),
+            actual.Frames.RootFrame.PixelBuffer.GetRegion(),
+            actual.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         Span<Rgb24> actualPixels = actual.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
@@ -729,7 +888,20 @@ public class Av1YuvConverterTests
         Assert.Equal(198, frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0)[0]);
 
         using Image<Rgb24> destination = new(1, 1);
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, destination.Frames.RootFrame.Size),
+            destination.Frames.RootFrame.PixelBuffer.GetRegion(),
+            destination.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         Assert.Equal(new Rgb24(150, 100, 51), destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[0]);
     }
@@ -794,7 +966,20 @@ public class Av1YuvConverterTests
         Assert.Equal(expectedV, actualV);
 
         using Image<Rgb48> destination = new(1, 1);
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, destination.Frames.RootFrame.Size),
+            destination.Frames.RootFrame.PixelBuffer.GetRegion(),
+            destination.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         Assert.Equal(new Rgb48(ushort.MaxValue, 0, 0), destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[0]);
     }
@@ -865,7 +1050,20 @@ public class Av1YuvConverterTests
         }
 
         using Image<Rgb48> destination = new(2, 1);
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, destination.Frames.RootFrame.Size),
+            destination.Frames.RootFrame.PixelBuffer.GetRegion(),
+            destination.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         Span<Rgb48> destinationPixels = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
         Assert.Equal(new Rgb48(0, 0, 0), destinationPixels[0]);
@@ -896,7 +1094,20 @@ public class Av1YuvConverterTests
             () => Av1YuvConverter.ConvertFromRgb(Configuration.Default, image.Frames.RootFrame, frameBuffer));
 
         Assert.Throws<InvalidImageContentException>(
-            () => Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame));
+            () => Av1YuvConverter.ConvertToRgb(
+                Configuration.Default,
+                frameBuffer,
+                new Rectangle(Point.Empty, image.Frames.RootFrame.Size),
+                image.Frames.RootFrame.PixelBuffer.GetRegion(),
+                image.Frames.RootFrame.Size,
+                default,
+                null,
+                null,
+                default,
+                default,
+                false,
+                HeifChromaUpsampling.Auto,
+                frameBuffer.ColorConfig.ColorRange));
     }
 
     /// <summary>
@@ -937,7 +1148,20 @@ public class Av1YuvConverterTests
         using Image<Rgb48> destination = new(width, 1);
 
         Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, destination.Frames.RootFrame.Size),
+            destination.Frames.RootFrame.PixelBuffer.GetRegion(),
+            destination.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         AssertPlaneContainsRepeatedSample(frameBuffer, Av1Plane.Y, 0, 0);
         AssertPlaneContainsRepeatedSample(frameBuffer, Av1Plane.U, 0, 0);
@@ -1017,7 +1241,20 @@ public class Av1YuvConverterTests
 
         // Act
         Av1YuvConverter.ConvertFromRgb(Configuration.Default, frame, frameBuffer);
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, actual.Frames.RootFrame);
+        Av1YuvConverter.ConvertToRgb(
+            Configuration.Default,
+            frameBuffer,
+            new Rectangle(Point.Empty, actual.Frames.RootFrame.Size),
+            actual.Frames.RootFrame.PixelBuffer.GetRegion(),
+            actual.Frames.RootFrame.Size,
+            default,
+            null,
+            null,
+            default,
+            default,
+            false,
+            HeifChromaUpsampling.Auto,
+            frameBuffer.ColorConfig.ColorRange);
 
         // Assert
         ImageComparer.Tolerant(0.002F).VerifySimilarity(image, actual);
@@ -1088,10 +1325,11 @@ public class Av1YuvConverterTests
         Av1YuvConverter.ComposeAlpha(
             Configuration.Default,
             frameBuffer,
-            destination.Frames.RootFrame,
+            destination.Frames.RootFrame.PixelBuffer.GetRegion(destination.Frames.RootFrame.Bounds),
             destination.Size,
             destination.Bounds,
-            false);
+            false,
+            default);
 
         for (int y = 0; y < height; y++)
         {
@@ -1144,10 +1382,11 @@ public class Av1YuvConverterTests
             Av1YuvConverter.ComposeAlpha(
                 Configuration.Default,
                 frameBuffer,
-                destination.Frames.RootFrame,
+                destination.Frames.RootFrame.PixelBuffer.GetRegion(destination.Frames.RootFrame.Bounds),
                 destination.Size,
                 destination.Bounds,
-                false);
+                false,
+                default);
 
             for (int y = 0; y < destinationHeight; y++)
             {
@@ -1200,10 +1439,11 @@ public class Av1YuvConverterTests
         Av1YuvConverter.ComposeAlpha(
             configuration,
             frameBuffer,
-            destination.Frames.RootFrame,
+            destination.Frames.RootFrame.PixelBuffer.GetRegion(destination.Frames.RootFrame.Bounds),
             destination.Size,
             destination.Bounds,
-            false);
+            false,
+            default);
 
         for (int y = 0; y < destinationHeight; y++)
         {
@@ -1259,10 +1499,11 @@ public class Av1YuvConverterTests
             Av1YuvConverter.ComposeAlpha(
                 Configuration.Default,
                 frameBuffer,
-                destination.Frames.RootFrame,
+                destination.Frames.RootFrame.PixelBuffer.GetRegion(destination.Frames.RootFrame.Bounds),
                 destination.Size,
                 destination.Bounds,
-                false);
+                false,
+                default);
 
             Span<Rgba64> actual = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
             Assert.Equal((ushort)0, actual[0].A);

@@ -52,8 +52,6 @@ public class Av1MotionSearchTests
         const int QIndex = 90;
         const int ReferenceStride = 192;
         const int ReferenceOrigin = (64 * ReferenceStride) + 64;
-        string directory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", "SingleReferenceSearch");
-        Directory.CreateDirectory(directory);
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true);
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Av1MotionVectorCosts costs = workspace.GetMotionVectorCosts(Av1MotionVectorPrecision.EighthSample);
@@ -142,24 +140,6 @@ public class Av1MotionSearchTests
                             costs);
 
                         Av1MotionSearchBase.SingleReferenceState state = default;
-                        using FileStream stream = File.Create(Path.Combine(directory, $"{bits}-{width}-{pattern}-{speed}-{forceInteger}.bin"));
-                        using BinaryWriter output = new(stream);
-                        int[] header =
-                        [
-                            3, bits, width, height, sourceStride, ReferenceStride, ReferenceOrigin,
-                            bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, QIndex, speed,
-                            (int)settings.GetFullPixelMethod(blockSize), frameStep, spatialMagnitude, 1, searchRange,
-                            forceInteger ? 1 : 0, 1, 0, multiplier, Av1RateDistortion.GetMotionSearchSadPerBit(QIndex, bitDepth),
-                            settings.AutomaticStepSizeLevel, settings.StartCandidatePruningLevel, settings.ReferenceCandidatePruningLevel,
-                            (int)settings.FractionalMethod, settings.FractionalIterationsPerStep, settings.FractionalInterpolationTaps,
-                            (int)settings.SecondCandidateSelection, settings.MeshErrorThreshold, settings.MeshPruningLevel,
-                            settings.DownsampledSadLevel, frameSize.Width, frameSize.Height, 0, 0, 512, 1024, 256, 0, 0, 3,
-                            source.Length, reference.Length, pattern
-                        ];
-
-                        output.Write(MemoryMarshal.AsBytes(header.AsSpan()));
-                        output.Write(MemoryMarshal.AsBytes(source.AsSpan()));
-                        output.Write(MemoryMarshal.AsBytes(reference.AsSpan()));
                         for (int referenceIndex = 0; referenceIndex < 3; referenceIndex++)
                         {
                             Av1MotionVector referenceVector = referenceIndex == 1
@@ -218,17 +198,6 @@ public class Av1MotionSearchTests
                                 Assert.Equal(0, result.Vector.Row & 7);
                                 Assert.Equal(0, result.Vector.Column & 7);
                             }
-
-                            int[] decision =
-                            [
-                                referenceVector.Row, referenceVector.Column, drlRate, valid ? 1 : 0,
-                                valid ? result.Vector.Row : 0, valid ? result.Vector.Column : 0,
-                                valid ? retained.Rate : 0, retained.Skip ? 1 : 0, state.StartCount,
-                                retained.HasFullResult ? 1 : 0, retained.FullVector.Row, retained.FullVector.Column,
-                                retained.FullRate, retained.FullCost
-                            ];
-
-                            output.Write(MemoryMarshal.AsBytes(decision.AsSpan()));
                         }
 
                         Assert.Equal(originalSource, source);
@@ -241,7 +210,7 @@ public class Av1MotionSearchTests
     }
 
     /// <summary>
-    /// Checks all search methods at each sample precision and exports their inputs for independent reference verification.
+    /// Checks all search methods at each sample precision.
     /// </summary>
     /// <param name="bits">The coded component precision.</param>
     [Theory]
@@ -307,8 +276,6 @@ public class Av1MotionSearchTests
         const int ReferenceStride = 192;
         const int ReferenceOrigin = (64 * ReferenceStride) + 64;
         int maximum = (1 << bits) - 1;
-        string directory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", "FullPixelSearch");
-        Directory.CreateDirectory(directory);
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true);
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Av1MotionVectorCosts costs = workspace.GetMotionVectorCosts(Av1MotionVectorPrecision.EighthSample);
@@ -423,34 +390,10 @@ public class Av1MotionSearchTests
                         Assert.Equal(0, result.SquaredError);
                     }
 
-                    // This export records both source inputs and the published state. A native comparison can
-                    // establish controller agreement without calling native code from the managed test process.
-                    using BinaryWriter output = new(File.Create(Path.Combine(directory, $"{bits}-{width}-{pattern}-{methodIndex}.bin")));
-                    foreach (int value in new[]
-                    {
-                        1, bits, width, height, sourceStride, ReferenceStride, ReferenceOrigin,
-                        frameBounds.Left, frameBounds.Top, frameBounds.Right, frameBounds.Bottom,
-                        referenceVector.Row, referenceVector.Column, start.X, start.Y, 5, methodIndex, (int)speed,
-                        frameSize.Width, frameSize.Height, QIndex, 0, screenContent ? 1 : 0, 0, 0, source.Length, reference.Length,
-                        result.Vector.X, result.Vector.Y, result.Variance, result.SquaredError, result.MotionCost,
-                        secondBest.HasValue ? 1 : 0, secondBest.GetValueOrDefault().X, secondBest.GetValueOrDefault().Y, multiplier, sadPerBit
-                    })
-                    {
-                        output.Write(value);
-                    }
-
-                    foreach (int cost in costList)
-                    {
-                        output.Write(cost);
-                    }
-
-                    output.Write(MemoryMarshal.AsBytes(source.AsSpan()));
-                    output.Write(MemoryMarshal.AsBytes(reference.AsSpan()));
                     if (method == FullPixelSearchMethod.NStep)
                     {
                         VerifyFractionalSearches<TSample, TOperator>(
                             bitDepth,
-                            bits,
                             pattern,
                             width,
                             source,
@@ -464,9 +407,7 @@ public class Av1MotionSearchTests
                             multiplier,
                             result,
                             costList,
-                            writer,
-                            directory,
-                            methodIndex);
+                            writer);
                     }
                 }
             }
@@ -478,7 +419,6 @@ public class Av1MotionSearchTests
     /// </summary>
     private static void VerifyFractionalSearches<TSample, TOperator>(
         Av1BitDepth bitDepth,
-        int bits,
         int pattern,
         int width,
         TSample[] source,
@@ -492,9 +432,7 @@ public class Av1MotionSearchTests
         int multiplier,
         Av1MotionSearchBase.FullPixelResult integerResult,
         int[] costList,
-        Av1SymbolEncoder writer,
-        string directory,
-        int fullPixelMethod)
+        Av1SymbolEncoder writer)
         where TSample : unmanaged
         where TOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
     {
@@ -516,7 +454,6 @@ public class Av1MotionSearchTests
             bitDepth,
             multiplier);
 
-        using BinaryWriter output = new(File.Create(Path.Combine(directory, $"{bits}-{width}-{pattern}-{fullPixelMethod}.fractional")));
         foreach (FractionalSearchMethod method in Enum.GetValues<FractionalSearchMethod>())
         {
             foreach (int taps in new[] { 2, 4, 8 })
@@ -562,16 +499,6 @@ public class Av1MotionSearchTests
                         out Av1MotionSearchBase.FractionalResult repeated);
 
                     Assert.Equal(precision == SearchPrecision.Integer ? cost : int.MaxValue, repeatedCost);
-                    foreach (int value in new[]
-                    {
-                        (int)method, taps, variant, allowHighPrecision ? 1 : 0, iterations, retainStatistics ? 1 : 0, retainCosts ? 1 : 0,
-                        cost, result.Vector.Column, result.Vector.Row, result.Variance, result.SquaredError, result.MotionCost,
-                        centers[0].Row, centers[0].Column, centers[1].Row, centers[1].Column, centers[2].Row, centers[2].Column,
-                        repeatedCost, repeated.Vector.Column, repeated.Vector.Row, repeated.Variance, repeated.SquaredError, repeated.MotionCost
-                    })
-                    {
-                        output.Write(value);
-                    }
                 }
             }
         }

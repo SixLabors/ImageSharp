@@ -35,30 +35,22 @@ internal sealed class Av1LoopFilterDecoder
     private readonly Av1FrameBuffer<byte> frameBuffer;
 
     /// <summary>
-    /// The per-plane transform-size map populated during reconstruction.
-    /// </summary>
-    private readonly Av1LoopFilterContext loopFilterContext;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="Av1LoopFilterDecoder"/> class.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header defining superblock size and color layout.</param>
     /// <param name="frameHeader">The frame header defining dimensions and filter parameters.</param>
     /// <param name="frameInfo">The decoded block-mode and superblock delta information.</param>
     /// <param name="frameBuffer">The reconstructed frame samples to filter.</param>
-    /// <param name="loopFilterContext">The transform-size map populated during reconstruction.</param>
     public Av1LoopFilterDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1FrameInfo frameInfo,
-        Av1FrameBuffer<byte> frameBuffer,
-        Av1LoopFilterContext loopFilterContext)
+        Av1FrameBuffer<byte> frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
-        this.loopFilterContext = loopFilterContext;
     }
 
     /// <summary>
@@ -155,7 +147,7 @@ internal sealed class Av1LoopFilterDecoder
     }
 
     /// <summary>
-    /// Reads deblocking parameters from decoded modes and the reconstructed transform map.
+    /// Reads deblocking parameters from the decoded block metadata.
     /// </summary>
     private readonly struct FrameOperator : Av1LoopFilterBase.IFrameOperator<Av1LoopFilterDecoder, Av1BlockModeInfo>
     {
@@ -175,7 +167,19 @@ internal sealed class Av1LoopFilterDecoder
             mode = state.frameInfo.GetModeInfoAt(position);
             blockIndex = mode.ModeInfoIndex;
             skippedTransform = mode.Skip && mode.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
-            transformSize = state.loopFilterContext.GetTransformSize(plane, new Point(position.X >> subX, position.Y >> subY));
+            transformSize = state.frameHeader.LosslessArray[mode.SegmentId]
+                ? Av1TransformSize.Size4x4
+                : plane == Av1Plane.Y
+                    ? mode.TransformSize
+                    : mode.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+
+            if (plane == Av1Plane.Y && mode.ReferenceFrames[0] > Av1ReferenceFrameType.Intra && !mode.Skip &&
+                !state.frameHeader.LosslessArray[mode.SegmentId])
+            {
+                int row = position.Y & (mode.BlockSize.Get4x4HighCount() - 1);
+                int column = position.X & (mode.BlockSize.Get4x4WideCount() - 1);
+                transformSize = mode.InterTransformSizes[mode.GetInterTransformSizeIndex(row, column)];
+            }
         }
 
         /// <inheritdoc/>

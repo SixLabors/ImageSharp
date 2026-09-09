@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -18,6 +19,11 @@ internal struct Av1BlockModeInfo
     /// Stores the primary and optional secondary reference-frame labels.
     /// </summary>
     private InlineArray2<Av1ReferenceFrameType> referenceFrames;
+
+    /// <summary>
+    /// Stores variable luma transform sizes on the coding block's compact transform grid.
+    /// </summary>
+    private InlineArray16<Av1TransformSize> interTransformSizes;
 
     /// <summary>
     /// Stores the motion vector associated with each reference-frame label.
@@ -119,6 +125,17 @@ internal struct Av1BlockModeInfo
     /// Gets or sets the frame storage index shared by every mode-information position covered by this block.
     /// </summary>
     public int ModeInfoIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the selected luma transform size.
+    /// </summary>
+    public Av1TransformSize TransformSize { get; set; }
+
+    /// <summary>
+    /// Gets the variable luma transform sizes retained with this coding block.
+    /// </summary>
+    [UnscopedRef]
+    public Span<Av1TransformSize> InterTransformSizes => this.interTransformSizes;
 
     /// <summary>
     /// Gets or sets the <see cref="Av1PredictionMode"/> for the luminance channel.
@@ -280,6 +297,23 @@ internal struct Av1BlockModeInfo
     /// Gets or sets the filter-intra mode selected for the block.
     /// </summary>
     public Av1FilterIntraMode FilterIntraMode { get; set; }
+
+    /// <summary>
+    /// Finds the compact transform-grid entry covering a position relative to the coding block.
+    /// </summary>
+    /// <param name="row">The row in luma 4x4 units.</param>
+    /// <param name="column">The column in luma 4x4 units.</param>
+    /// <returns>The entry index in the block's sixteen-element transform grid.</returns>
+    public int GetInterTransformSizeIndex(int row, int column)
+    {
+        // One subdivision of the maximum transform defines the storage cell. A final split into
+        // 4x4 transforms shares one entry because all children of that split have the same size.
+        Av1TransformSize cellSize = this.BlockSize.GetMaximumTransformSize().GetSubSize();
+        int cellWidth = cellSize.Get4x4WideCount();
+        int cellHeight = cellSize.Get4x4HighCount();
+        int stride = this.BlockSize.Get4x4WideCount() / cellWidth;
+        return ((row / cellHeight) * stride) + (column / cellWidth);
+    }
 
     /// <summary>
     /// Gets the directional prediction angle adjustment for a color plane.

@@ -1639,7 +1639,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         if (usesInterTransformSyntax &&
             !modeInfo.Skip &&
             this.FrameHeader.TransformMode == Av1TransformMode.Select &&
-            blockSize > Av1BlockSize.Block4x4)
+            blockSize > Av1BlockSize.Block4x4 &&
+            !this.FrameHeader.LosslessArray[modeInfo.SegmentId])
         {
             this.ReadVariableTransformInfo(
                 ref reader,
@@ -1660,6 +1661,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             superblockInfo,
             tileInfo,
             allowSelect);
+
+        modeInfo.TransformSize = transformSize;
+        if (usesInterTransformSyntax)
+        {
+            modeInfo.InterTransformSizes.Fill(transformSize);
+        }
 
         bool skippedInterBlock = usesInterTransformSyntax && modeInfo.Skip;
         this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, skippedInterBlock);
@@ -1802,6 +1809,18 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
 
             return;
+        }
+
+        ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
+        modeInfo.TransformSize = transformSize;
+        Av1TransformSize cellSize = blockSize.GetMaximumTransformSize().GetSubSize();
+        for (int row = 0; row < transformSize.Get4x4HighCount(); row += cellSize.Get4x4HighCount())
+        {
+            for (int column = 0; column < transformSize.Get4x4WideCount(); column += cellSize.Get4x4WideCount())
+            {
+                int index = modeInfo.GetInterTransformSizeIndex(blockRow + row, blockColumn + column);
+                modeInfo.InterTransformSizes[index] = transformSize;
+            }
         }
 
         Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfoY();

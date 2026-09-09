@@ -415,6 +415,10 @@ internal sealed class Av1CodecConfiguration
         bool highBitDepth = colorConfig.BitDepth is Av1BitDepth.TenBit or Av1BitDepth.TwelveBit;
         bool twelveBit = colorConfig.BitDepth == Av1BitDepth.TwelveBit;
 
+        // Chroma sample position is signaled only for 4:2:0. Other layouts have no corresponding
+        // sequence-header field, so their container value cannot be compared with the parser default.
+        bool hasChromaSamplePosition = !colorConfig.IsMonochrome && colorConfig.SubSamplingX && colorConfig.SubSamplingY;
+
         if (this.SequenceProfile != (byte)sequenceHeader.SequenceProfile
             || this.SequenceLevelIndex != operatingPoint.SequenceLevelIndex
             || this.SequenceTier != (operatingPoint.SequenceTier != 0)
@@ -423,7 +427,7 @@ internal sealed class Av1CodecConfiguration
             || this.IsMonochrome != colorConfig.IsMonochrome
             || this.ChromaSubsamplingX != colorConfig.SubSamplingX
             || this.ChromaSubsamplingY != colorConfig.SubSamplingY
-            || this.ChromaSamplePosition != (byte)colorConfig.ChromaSamplePosition)
+            || (hasChromaSamplePosition && this.ChromaSamplePosition != (byte)colorConfig.ChromaSamplePosition))
         {
             throw new InvalidImageContentException("The AV1 item configuration does not match its sequence header.");
         }

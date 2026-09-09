@@ -19,7 +19,6 @@ internal static class HeifCompressionFactory
     public static IHeifItemDecoder<TPixel>? GetDecoder<TPixel>(Heif4CharCode type)
         where TPixel : unmanaged, IPixel<TPixel> => type switch
         {
-            Heif4CharCode.Jpeg => new JpegHeifItemDecoder<TPixel>(),
             Heif4CharCode.Av01 => new Av1HeifItemDecoder<TPixel>(),
             _ => null
         };

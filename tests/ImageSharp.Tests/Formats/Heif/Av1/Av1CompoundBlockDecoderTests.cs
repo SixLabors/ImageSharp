@@ -5,7 +5,6 @@ using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
@@ -82,13 +81,11 @@ public class Av1CompoundBlockDecoderTests
         partitionInfo.ComputeBoundaryOffsets(sequenceHeader, frameHeader, tileInfo);
         partitionInfo.PopulateModeInfoNeighbors(sequenceHeader.ColorConfig);
 
-        using Av1LoopFilterContext loopFilterContext = new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
         decoder.UpdateSuperblock(superblockInfo);
@@ -202,15 +199,11 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -322,15 +315,11 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Fill(Av1InterpolationFilter.Bilinear);
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -449,15 +438,11 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -541,15 +526,11 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -625,15 +606,11 @@ public class Av1CompoundBlockDecoderTests
         current.SetTransformUnitCount(Av1PlaneType.Y, 1);
         frameInfo.UpdateModeInfo(current, superblockInfo);
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -722,15 +699,11 @@ public class Av1CompoundBlockDecoderTests
         current.SetTransformUnitCount(Av1PlaneType.Uv, 1);
         frameInfo.UpdateModeInfo(current, superblockInfo);
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -979,15 +952,11 @@ public class Av1CompoundBlockDecoderTests
         using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
         superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -1375,15 +1344,11 @@ public class Av1CompoundBlockDecoderTests
         using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
         superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 
@@ -1585,15 +1550,11 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
         using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
         Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
-            loopFilterContext,
             referenceFrames,
             workspace.Memory);
 

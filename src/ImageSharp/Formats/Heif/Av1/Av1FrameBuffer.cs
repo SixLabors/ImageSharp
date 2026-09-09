@@ -272,6 +272,26 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             FrameBufferKind.Presentation);
 
     /// <summary>
+    /// Creates a compact monochrome plane for a composed auxiliary image.
+    /// </summary>
+    /// <param name="configuration">The configuration providing sample storage.</param>
+    /// <param name="colorConfig">The sample precision and range of the auxiliary items.</param>
+    /// <param name="size">The complete auxiliary image extent.</param>
+    /// <returns>The compact writable auxiliary plane.</returns>
+    public static Av1FrameBuffer<T> CreateAuxiliary(
+        Configuration configuration,
+        ObuColorConfig colorConfig,
+        Size size)
+        => new(
+            configuration.MemoryAllocator,
+            new ObuSequenceHeader { ColorConfig = colorConfig },
+            Av1ColorFormat.Yuv400,
+            colorConfig.BitDepth > Av1BitDepth.EightBit,
+            size.Width,
+            size.Height,
+            FrameBufferKind.Presentation);
+
+    /// <summary>
     /// Creates an empty restoration frame with the source's visible dimensions and sample format.
     /// </summary>
     /// <param name="allocator">The allocator for the frame planes.</param>

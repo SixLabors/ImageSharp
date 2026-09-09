@@ -31,13 +31,6 @@ public class Av1TransformEstimateTests
     /// </summary>
     private static void ValidateEstimates()
     {
-        string vectorWidth = Vector512.IsHardwareAccelerated ? "512"
-            : Vector256.IsHardwareAccelerated ? "256"
-            : Vector128.IsHardwareAccelerated ? "128" : "0";
-
-        string directory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", "TransformEstimates", vectorWidth);
-
-        Directory.CreateDirectory(directory);
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
         foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.EightBit, Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
         {
@@ -220,27 +213,6 @@ public class Av1TransformEstimateTests
                                 Assert.Equal(long.MaxValue, terminated);
                                 Assert.Equal(Av1RateDistortionStatistics.Invalid, incomplete);
                             }
-
-                            using BinaryWriter output = new(File.Create(Path.Combine(
-                                directory, $"{bits}-{width}-{height}-{(int)transformSize}-{qIndex}-{pattern}.bin")));
-
-                            foreach (int value in new[]
-                            {
-                                bits, width, height, (int)transformSize, qIndex, sharpness, lossless ? 1 : 0,
-                                multiplier, partitionRate, noSkipRate, skipRate, stride
-                            })
-                            {
-                                output.Write(value);
-                            }
-
-                            output.Write(cost);
-                            output.Write((long)statistics.Rate);
-                            output.Write(statistics.Distortion);
-                            output.Write(energy);
-                            output.Write(skip ? 1L : 0L);
-                            output.Write(above);
-                            output.Write(left);
-                            output.Write(MemoryMarshal.AsBytes(residual.AsSpan()));
                         }
                     }
                 }

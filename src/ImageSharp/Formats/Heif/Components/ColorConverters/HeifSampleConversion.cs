@@ -21,13 +21,19 @@ internal static class HeifSampleConversion
     private const float UShortMaximum = ushort.MaxValue;
 
     /// <summary>
-    /// Widens reconstructed integer samples into a pooled float component row.
+    /// Widens and normalizes reconstructed integer samples into a pooled float component row.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample type.</typeparam>
     /// <typeparam name="TLoader">The widening operations for the sample type.</typeparam>
     /// <param name="source">The reconstructed samples.</param>
     /// <param name="destination">The destination component row.</param>
-    public static void ConvertSamplesToFloat<TSample, TLoader>(ReadOnlySpan<TSample> source, Span<float> destination)
+    /// <param name="bias">The encoded value corresponding to normalized zero.</param>
+    /// <param name="scale">The encoded range corresponding to a normalized interval of one.</param>
+    public static void ConvertSamplesToFloat<TSample, TLoader>(
+        ReadOnlySpan<TSample> source,
+        Span<float> destination,
+        float bias,
+        float scale)
         where TSample : unmanaged
         where TLoader : struct, IHeifSampleConverter<TSample>
     {
@@ -36,46 +42,129 @@ internal static class HeifSampleConversion
         int length = destination.Length;
         int i = 0;
 
-        // Descending vector widths match the JPEG color-converter traversal. A wide-capable CPU processes
+        // Descending vector widths use the widest supported lanes first. A wide-capable CPU processes
         // complete wide batches first while short and irregular rows continue through narrower SIMD tails.
         if (Vector512.IsHardwareAccelerated)
         {
+            Vector512<float> biasVector = Vector512.Create(bias);
+            Vector512<float> scaleVector = Vector512.Create(scale);
             int oneVectorFromEnd = length - Vector512<float>.Count;
             for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
             {
                 Vector512<float> samples = TLoader.LoadVector512(ref Unsafe.Add(ref sourceBase, i));
-                Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref destinationBase, i)) = samples;
+                Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref destinationBase, i)) = (samples - biasVector) / scaleVector;
             }
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
+            Vector256<float> biasVector = Vector256.Create(bias);
+            Vector256<float> scaleVector = Vector256.Create(scale);
             int oneVectorFromEnd = length - Vector256<float>.Count;
             for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
             {
                 Vector256<float> samples = TLoader.LoadVector256(ref Unsafe.Add(ref sourceBase, i));
-                Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref destinationBase, i)) = samples;
+                Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref destinationBase, i)) = (samples - biasVector) / scaleVector;
             }
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
+            Vector128<float> biasVector = Vector128.Create(bias);
+            Vector128<float> scaleVector = Vector128.Create(scale);
             int oneVectorFromEnd = length - Vector128<float>.Count;
             for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
             {
                 Vector128<float> samples = TLoader.LoadVector128(ref Unsafe.Add(ref sourceBase, i));
-                Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref destinationBase, i)) = samples;
+                Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref destinationBase, i)) = (samples - biasVector) / scaleVector;
             }
         }
 
         for (; i < length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = GetSample(source, i);
+            Unsafe.Add(ref destinationBase, i) = (GetSample(source, i) - bias) / scale;
         }
     }
 
     /// <summary>
-    /// Reconstructs one full-width chroma row using the signaled vertical and horizontal sample positions.
+    /// Expands horizontally subsampled chroma by repeating each sample at two luma positions.
+    /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample type.</typeparam>
+    /// <typeparam name="TLoader">The widening operations for the sample type.</typeparam>
+    /// <param name="source">The complete subsampled chroma row.</param>
+    /// <param name="sourceX">The first luma coordinate of the output window.</param>
+    /// <param name="destination">The exact output component row.</param>
+    /// <param name="bias">The encoded chroma value corresponding to normalized zero.</param>
+    /// <param name="scale">The encoded chroma range.</param>
+    public static void ReconstructChromaRow<TSample, TLoader>(
+        ReadOnlySpan<TSample> source,
+        int sourceX,
+        Span<float> destination,
+        float bias,
+        float scale)
+        where TSample : unmanaged
+        where TLoader : struct, IHeifSampleConverter<TSample>
+    {
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
+        ref float destinationBase = ref MemoryMarshal.GetReference(destination);
+        int sourceIndex = sourceX >> 1;
+        int i = 0;
+
+        // An odd crop origin starts at the second pixel of a replicated pair. Consume that pixel
+        // before vectorizing complete pairs; the final scalar tail handles an odd right edge.
+        if ((sourceX & 1) != 0)
+        {
+            destination[i++] = (GetSample(source, sourceIndex++) - bias) / scale;
+        }
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            int lastBatch = destination.Length - 32;
+            for (; i <= lastBatch; i += 32, sourceIndex += 16)
+            {
+                Vector512<float> samples = TLoader.LoadVector512(ref Unsafe.Add(ref sourceBase, sourceIndex));
+                samples = (samples - Vector512.Create(bias)) / Vector512.Create(scale);
+
+                // Each four-lane group [a,b,c,d] becomes [a,a,b,b,c,c,d,d]. Keeping groups
+                // in source order avoids lane-local shuffles interleaving separate pixel groups.
+                StoreInterleavedChroma(samples.GetLower().GetLower(), samples.GetLower().GetLower(), ref Unsafe.Add(ref destinationBase, i));
+                StoreInterleavedChroma(samples.GetLower().GetUpper(), samples.GetLower().GetUpper(), ref Unsafe.Add(ref destinationBase, i + 8));
+                StoreInterleavedChroma(samples.GetUpper().GetLower(), samples.GetUpper().GetLower(), ref Unsafe.Add(ref destinationBase, i + 16));
+                StoreInterleavedChroma(samples.GetUpper().GetUpper(), samples.GetUpper().GetUpper(), ref Unsafe.Add(ref destinationBase, i + 24));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            int lastBatch = destination.Length - 16;
+            for (; i <= lastBatch; i += 16, sourceIndex += 8)
+            {
+                Vector256<float> samples = TLoader.LoadVector256(ref Unsafe.Add(ref sourceBase, sourceIndex));
+                samples = (samples - Vector256.Create(bias)) / Vector256.Create(scale);
+                StoreInterleavedChroma(samples.GetLower(), samples.GetLower(), ref Unsafe.Add(ref destinationBase, i));
+                StoreInterleavedChroma(samples.GetUpper(), samples.GetUpper(), ref Unsafe.Add(ref destinationBase, i + 8));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            int lastBatch = destination.Length - 8;
+            for (; i <= lastBatch; i += 8, sourceIndex += 4)
+            {
+                Vector128<float> samples = TLoader.LoadVector128(ref Unsafe.Add(ref sourceBase, sourceIndex));
+                samples = (samples - Vector128.Create(bias)) / Vector128.Create(scale);
+                StoreInterleavedChroma(samples, samples, ref Unsafe.Add(ref destinationBase, i));
+            }
+        }
+
+        for (; i < destination.Length; i++)
+        {
+            destination[i] = (GetSample(source, (sourceX + i) >> 1) - bias) / scale;
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs one normalized chroma row using the signaled sample positions.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample type.</typeparam>
     /// <typeparam name="TLoader">The widening operations for the sample type.</typeparam>
@@ -87,7 +176,9 @@ internal static class HeifSampleConversion
     /// <param name="destination">The reconstructed full-width chroma row.</param>
     /// <param name="scratch0">The first pooled chroma scratch row.</param>
     /// <param name="scratch1">The second pooled chroma scratch row.</param>
-    public static void ReconstructChromaRow<TSample, TLoader>(
+    /// <param name="bias">The encoded chroma value corresponding to normalized zero.</param>
+    /// <param name="scale">The encoded chroma range.</param>
+    public static void ReconstructChromaRowBilinear<TSample, TLoader>(
         ReadOnlySpan<TSample> row0,
         ReadOnlySpan<TSample> row1,
         int y1Weight,
@@ -95,20 +186,15 @@ internal static class HeifSampleConversion
         bool isCenteredX,
         Span<float> destination,
         Span<float> scratch0,
-        Span<float> scratch1)
+        Span<float> scratch1,
+        float bias,
+        float scale)
         where TSample : unmanaged
         where TLoader : struct, IHeifSampleConverter<TSample>
     {
         int sourceLength = subX == 0 ? destination.Length : (destination.Length + 1) >> 1;
         Span<float> top = scratch0[..sourceLength];
-        ConvertSamplesToFloat<TSample, TLoader>(row0, top);
-
-        if (y1Weight != 0)
-        {
-            Span<float> bottom = scratch1[..sourceLength];
-            ConvertSamplesToFloat<TSample, TLoader>(row1, bottom);
-            InterpolateChromaRows(top, bottom, y1Weight);
-        }
+        ConvertSamplesToFloat<TSample, TLoader>(row0, top, bias, scale);
 
         if (subX == 0)
         {
@@ -116,119 +202,93 @@ internal static class HeifSampleConversion
             return;
         }
 
-        UpsampleChromaHorizontal(top, destination, isCenteredX);
+        ReadOnlySpan<float> bottom = top;
+        if (y1Weight != 0)
+        {
+            Span<float> lower = scratch1[..sourceLength];
+            ConvertSamplesToFloat<TSample, TLoader>(row1, lower, bias, scale);
+            bottom = lower;
+        }
+
+        // Normalize each sample before interpolation. Preserve the four products and their
+        // addition order instead of combining duplicate rows or performing two separable blends.
+        // Collapsed vertical boundaries reuse the top row with the same centered weights.
+        float closestWeight = y1Weight == 0 ? 0.75F : Math.Max(y1Weight, 4 - y1Weight) * 0.25F;
+        ReadOnlySpan<float> closest = y1Weight > 2 ? bottom : top;
+        ReadOnlySpan<float> adjacent = y1Weight > 2 ? top : bottom;
+        UpsampleChromaHorizontal(closest, adjacent, destination, closestWeight, isCenteredX);
     }
 
     /// <summary>
-    /// Interpolates two chroma rows in place using quarter-sample weights.
+    /// Blends four normalized chroma samples in closest, horizontal, vertical, diagonal order.
     /// </summary>
-    /// <param name="top">The upper row, replaced by the interpolated values.</param>
-    /// <param name="bottom">The lower row.</param>
-    /// <param name="bottomWeight">The lower-row weight with a denominator of four.</param>
-    private static void InterpolateChromaRows(Span<float> top, ReadOnlySpan<float> bottom, int bottomWeight)
-    {
-        ref float topBase = ref MemoryMarshal.GetReference(top);
-        ref float bottomBase = ref MemoryMarshal.GetReference(bottom);
-        int length = top.Length;
-        int i = 0;
-        float topWeight = 4 - bottomWeight;
-
-        if (Vector512.IsHardwareAccelerated)
-        {
-            Vector512<float> topWeightVector = Vector512.Create(topWeight);
-            Vector512<float> bottomWeightVector = Vector512.Create((float)bottomWeight);
-            Vector512<float> scale = Vector512.Create(0.25F);
-            int oneVectorFromEnd = length - Vector512<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
-            {
-                ref Vector512<float> topVector = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref topBase, i));
-                Vector512<float> bottomVector = Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref bottomBase, i));
-                topVector = Vector512.MultiplyAddEstimate(bottomWeightVector, bottomVector, topWeightVector * topVector) * scale;
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<float> topWeightVector = Vector256.Create(topWeight);
-            Vector256<float> bottomWeightVector = Vector256.Create((float)bottomWeight);
-            Vector256<float> scale = Vector256.Create(0.25F);
-            int oneVectorFromEnd = length - Vector256<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
-            {
-                ref Vector256<float> topVector = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref topBase, i));
-                Vector256<float> bottomVector = Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref bottomBase, i));
-                topVector = Vector256.MultiplyAddEstimate(bottomWeightVector, bottomVector, topWeightVector * topVector) * scale;
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            Vector128<float> topWeightVector = Vector128.Create(topWeight);
-            Vector128<float> bottomWeightVector = Vector128.Create((float)bottomWeight);
-            Vector128<float> scale = Vector128.Create(0.25F);
-            int oneVectorFromEnd = length - Vector128<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
-            {
-                ref Vector128<float> topVector = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref topBase, i));
-                Vector128<float> bottomVector = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref bottomBase, i));
-                topVector = Vector128.MultiplyAddEstimate(bottomWeightVector, bottomVector, topWeightVector * topVector) * scale;
-            }
-        }
-
-        for (; i < length; i++)
-        {
-            Unsafe.Add(ref topBase, i) = ((Unsafe.Add(ref topBase, i) * topWeight) + (Unsafe.Add(ref bottomBase, i) * bottomWeight)) * 0.25F;
-        }
-    }
-
-    /// <summary>
-    /// Expands horizontally subsampled chroma to luma width using the selected sample-position rules.
-    /// </summary>
-    /// <param name="source">The subsampled chroma values.</param>
+    /// <param name="closest">The vertically closest normalized row.</param>
+    /// <param name="adjacent">The vertically adjacent normalized row, or the same row at a boundary.</param>
     /// <param name="destination">The full-width chroma values.</param>
+    /// <param name="closestWeight">The weight of the closest row.</param>
     /// <param name="isCentered">Whether chroma lies between neighboring luma samples.</param>
-    private static void UpsampleChromaHorizontal(ReadOnlySpan<float> source, Span<float> destination, bool isCentered)
+    private static void UpsampleChromaHorizontal(
+        ReadOnlySpan<float> closest,
+        ReadOnlySpan<float> adjacent,
+        Span<float> destination,
+        float closestWeight,
+        bool isCentered)
     {
-        ref float sourceBase = ref MemoryMarshal.GetReference(source);
+        ref float closestBase = ref MemoryMarshal.GetReference(closest);
+        ref float adjacentBase = ref MemoryMarshal.GetReference(adjacent);
         ref float destinationBase = ref MemoryMarshal.GetReference(destination);
-        int sourceLength = source.Length;
+        int sourceLength = closest.Length;
+        float adjacentWeight = 1F - closestWeight;
+        float evenWeight = isCentered ? 0.75F : 1F;
+        float oddWeight = isCentered ? 0.75F : 0.5F;
+        float e0 = evenWeight * closestWeight;
+        float e1 = (1F - evenWeight) * closestWeight;
+        float e2 = evenWeight * adjacentWeight;
+        float e3 = (1F - evenWeight) * adjacentWeight;
+        float o0 = oddWeight * closestWeight;
+        float o1 = (1F - oddWeight) * closestWeight;
+        float o2 = oddWeight * adjacentWeight;
+        float o3 = (1F - oddWeight) * adjacentWeight;
         int i = 0;
 
         if (isCentered)
         {
-            // The first centered pair extends the left edge. Interior vectors can then read one real neighbor
-            // on each side and use the exact [1,3]/4 and [3,1]/4 interpolation weights.
-            StoreChromaPair(ref destinationBase, 0, source[0], ((3F * source[0]) + source[Math.Min(1, sourceLength - 1)]) * 0.25F, destination.Length);
+            // Extend the left edge before SIMD loads can address a previous sample.
+            // Retain duplicate terms: collapsing their weights changes floating-point rounding.
+            int next = Math.Min(1, sourceLength - 1);
+            float even = (((closest[0] * e0) + (closest[0] * e1)) + (adjacent[0] * e2)) + (adjacent[0] * e3);
+            float odd = (((closest[0] * o0) + (closest[next] * o1)) + (adjacent[0] * o2)) + (adjacent[next] * o3);
+            StoreChromaPair(ref destinationBase, 0, even, odd, destination.Length);
             i = 1;
         }
 
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorBeforeEnd = sourceLength - Vector512<float>.Count - 1;
-            Vector512<float> quarter = Vector512.Create(0.25F);
-            Vector512<float> half = Vector512.Create(0.5F);
-            Vector512<float> three = Vector512.Create(3F);
+            Vector512<float> e0Vector = Vector512.Create(e0);
+            Vector512<float> e1Vector = Vector512.Create(e1);
+            Vector512<float> e2Vector = Vector512.Create(e2);
+            Vector512<float> e3Vector = Vector512.Create(e3);
+            Vector512<float> o0Vector = Vector512.Create(o0);
+            Vector512<float> o1Vector = Vector512.Create(o1);
+            Vector512<float> o2Vector = Vector512.Create(o2);
+            Vector512<float> o3Vector = Vector512.Create(o3);
             for (; i <= oneVectorBeforeEnd; i += Vector512<float>.Count)
             {
-                Vector512<float> center = Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref sourceBase, i));
-                Vector512<float> next = Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref sourceBase, i + 1));
-                Vector512<float> even;
-                Vector512<float> odd;
-                if (isCentered)
-                {
-                    Vector512<float> previous = Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref sourceBase, i - 1));
-                    even = Vector512.MultiplyAddEstimate(three, center, previous) * quarter;
-                    odd = Vector512.MultiplyAddEstimate(three, center, next) * quarter;
-                }
-                else
-                {
-                    even = center;
-                    odd = (center + next) * half;
-                }
+                // Each lane represents one chroma column. Even lanes use the previous column
+                // for centered samples; odd lanes use the next. The two rows remain separate
+                // until the four weighted terms are added, without fused multiply-add rounding.
+                int previous = isCentered ? i - 1 : i;
+                Vector512<float> center0 = Vector512.LoadUnsafe(ref closestBase, (nuint)i);
+                Vector512<float> center1 = Vector512.LoadUnsafe(ref adjacentBase, (nuint)i);
+                Vector512<float> previous0 = Vector512.LoadUnsafe(ref closestBase, (nuint)previous);
+                Vector512<float> previous1 = Vector512.LoadUnsafe(ref adjacentBase, (nuint)previous);
+                Vector512<float> next0 = Vector512.LoadUnsafe(ref closestBase, (nuint)(i + 1));
+                Vector512<float> next1 = Vector512.LoadUnsafe(ref adjacentBase, (nuint)(i + 1));
+                Vector512<float> even = (((center0 * e0Vector) + (previous0 * e1Vector)) + (center1 * e2Vector)) + (previous1 * e3Vector);
+                Vector512<float> odd = (((center0 * o0Vector) + (next0 * o1Vector)) + (center1 * o2Vector)) + (next1 * o3Vector);
 
-                // Vector512 has no cross-platform unpack helper. The interpolation remains 512-bit; four
-                // established Vector128 unpack operations only transpose the final even/odd lanes for storage.
-                StoreInterleavedChroma(even.GetLower().GetLower(), odd.GetLower().GetLower(), ref Unsafe.Add(ref destinationBase, i * 2));
+                StoreInterleavedChroma(even.GetLower().GetLower(), odd.GetLower().GetLower(), ref Unsafe.Add(ref destinationBase, (i * 2) + 0));
                 StoreInterleavedChroma(even.GetLower().GetUpper(), odd.GetLower().GetUpper(), ref Unsafe.Add(ref destinationBase, (i * 2) + 8));
                 StoreInterleavedChroma(even.GetUpper().GetLower(), odd.GetUpper().GetLower(), ref Unsafe.Add(ref destinationBase, (i * 2) + 16));
                 StoreInterleavedChroma(even.GetUpper().GetUpper(), odd.GetUpper().GetUpper(), ref Unsafe.Add(ref destinationBase, (i * 2) + 24));
@@ -238,28 +298,30 @@ internal static class HeifSampleConversion
         if (Vector256.IsHardwareAccelerated)
         {
             int oneVectorBeforeEnd = sourceLength - Vector256<float>.Count - 1;
-            Vector256<float> quarter = Vector256.Create(0.25F);
-            Vector256<float> half = Vector256.Create(0.5F);
-            Vector256<float> three = Vector256.Create(3F);
+            Vector256<float> e0Vector = Vector256.Create(e0);
+            Vector256<float> e1Vector = Vector256.Create(e1);
+            Vector256<float> e2Vector = Vector256.Create(e2);
+            Vector256<float> e3Vector = Vector256.Create(e3);
+            Vector256<float> o0Vector = Vector256.Create(o0);
+            Vector256<float> o1Vector = Vector256.Create(o1);
+            Vector256<float> o2Vector = Vector256.Create(o2);
+            Vector256<float> o3Vector = Vector256.Create(o3);
             for (; i <= oneVectorBeforeEnd; i += Vector256<float>.Count)
             {
-                Vector256<float> center = Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref sourceBase, i));
-                Vector256<float> next = Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref sourceBase, i + 1));
-                Vector256<float> even;
-                Vector256<float> odd;
-                if (isCentered)
-                {
-                    Vector256<float> previous = Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref sourceBase, i - 1));
-                    even = Vector256.MultiplyAddEstimate(three, center, previous) * quarter;
-                    odd = Vector256.MultiplyAddEstimate(three, center, next) * quarter;
-                }
-                else
-                {
-                    even = center;
-                    odd = (center + next) * half;
-                }
+                // Each lane represents one chroma column. Even lanes use the previous column
+                // for centered samples; odd lanes use the next. The two rows remain separate
+                // until the four weighted terms are added, without fused multiply-add rounding.
+                int previous = isCentered ? i - 1 : i;
+                Vector256<float> center0 = Vector256.LoadUnsafe(ref closestBase, (nuint)i);
+                Vector256<float> center1 = Vector256.LoadUnsafe(ref adjacentBase, (nuint)i);
+                Vector256<float> previous0 = Vector256.LoadUnsafe(ref closestBase, (nuint)previous);
+                Vector256<float> previous1 = Vector256.LoadUnsafe(ref adjacentBase, (nuint)previous);
+                Vector256<float> next0 = Vector256.LoadUnsafe(ref closestBase, (nuint)(i + 1));
+                Vector256<float> next1 = Vector256.LoadUnsafe(ref adjacentBase, (nuint)(i + 1));
+                Vector256<float> even = (((center0 * e0Vector) + (previous0 * e1Vector)) + (center1 * e2Vector)) + (previous1 * e3Vector);
+                Vector256<float> odd = (((center0 * o0Vector) + (next0 * o1Vector)) + (center1 * o2Vector)) + (next1 * o3Vector);
 
-                StoreInterleavedChroma(even.GetLower(), odd.GetLower(), ref Unsafe.Add(ref destinationBase, i * 2));
+                StoreInterleavedChroma(even.GetLower(), odd.GetLower(), ref Unsafe.Add(ref destinationBase, (i * 2) + 0));
                 StoreInterleavedChroma(even.GetUpper(), odd.GetUpper(), ref Unsafe.Add(ref destinationBase, (i * 2) + 8));
             }
         }
@@ -267,53 +329,41 @@ internal static class HeifSampleConversion
         if (Vector128.IsHardwareAccelerated)
         {
             int oneVectorBeforeEnd = sourceLength - Vector128<float>.Count - 1;
-            Vector128<float> quarter = Vector128.Create(0.25F);
-            Vector128<float> half = Vector128.Create(0.5F);
-            Vector128<float> three = Vector128.Create(3F);
+            Vector128<float> e0Vector = Vector128.Create(e0);
+            Vector128<float> e1Vector = Vector128.Create(e1);
+            Vector128<float> e2Vector = Vector128.Create(e2);
+            Vector128<float> e3Vector = Vector128.Create(e3);
+            Vector128<float> o0Vector = Vector128.Create(o0);
+            Vector128<float> o1Vector = Vector128.Create(o1);
+            Vector128<float> o2Vector = Vector128.Create(o2);
+            Vector128<float> o3Vector = Vector128.Create(o3);
             for (; i <= oneVectorBeforeEnd; i += Vector128<float>.Count)
             {
-                Vector128<float> center = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref sourceBase, i));
-                Vector128<float> next = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref sourceBase, i + 1));
-                Vector128<float> even;
-                Vector128<float> odd;
-                if (isCentered)
-                {
-                    Vector128<float> previous = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref sourceBase, i - 1));
-                    even = Vector128.MultiplyAddEstimate(three, center, previous) * quarter;
-                    odd = Vector128.MultiplyAddEstimate(three, center, next) * quarter;
-                }
-                else
-                {
-                    even = center;
-                    odd = (center + next) * half;
-                }
+                // Each lane represents one chroma column. Even lanes use the previous column
+                // for centered samples; odd lanes use the next. The two rows remain separate
+                // until the four weighted terms are added, without fused multiply-add rounding.
+                int previous = isCentered ? i - 1 : i;
+                Vector128<float> center0 = Vector128.LoadUnsafe(ref closestBase, (nuint)i);
+                Vector128<float> center1 = Vector128.LoadUnsafe(ref adjacentBase, (nuint)i);
+                Vector128<float> previous0 = Vector128.LoadUnsafe(ref closestBase, (nuint)previous);
+                Vector128<float> previous1 = Vector128.LoadUnsafe(ref adjacentBase, (nuint)previous);
+                Vector128<float> next0 = Vector128.LoadUnsafe(ref closestBase, (nuint)(i + 1));
+                Vector128<float> next1 = Vector128.LoadUnsafe(ref adjacentBase, (nuint)(i + 1));
+                Vector128<float> even = (((center0 * e0Vector) + (previous0 * e1Vector)) + (center1 * e2Vector)) + (previous1 * e3Vector);
+                Vector128<float> odd = (((center0 * o0Vector) + (next0 * o1Vector)) + (center1 * o2Vector)) + (next1 * o3Vector);
 
-                StoreInterleavedChroma(even, odd, ref Unsafe.Add(ref destinationBase, i * 2));
+                StoreInterleavedChroma(even, odd, ref Unsafe.Add(ref destinationBase, (i * 2) + 0));
             }
         }
 
         for (; i < sourceLength; i++)
         {
-            float center = source[i];
-            float next = source[Math.Min(i + 1, sourceLength - 1)];
-            float even = isCentered ? (source[Math.Max(i - 1, 0)] + (3F * center)) * 0.25F : center;
-            float odd = isCentered ? ((3F * center) + next) * 0.25F : (center + next) * 0.5F;
+            int previous = isCentered ? Math.Max(i - 1, 0) : i;
+            int next = Math.Min(i + 1, sourceLength - 1);
+            float even = (((closest[i] * e0) + (closest[previous] * e1)) + (adjacent[i] * e2)) + (adjacent[previous] * e3);
+            float odd = (((closest[i] * o0) + (closest[next] * o1)) + (adjacent[i] * o2)) + (adjacent[next] * o3);
             StoreChromaPair(ref destinationBase, i * 2, even, odd, destination.Length);
         }
-    }
-
-    /// <summary>
-    /// Stores four even chroma lanes interleaved with their four odd lanes.
-    /// </summary>
-    /// <param name="even">The even luma-coordinate values.</param>
-    /// <param name="odd">The odd luma-coordinate values.</param>
-    /// <param name="destination">The first destination value.</param>
-    private static void StoreInterleavedChroma(Vector128<float> even, Vector128<float> odd, ref float destination)
-    {
-        Vector128<float> lower = Vector128_.UnpackLow(even.AsInt32(), odd.AsInt32()).AsSingle();
-        Vector128<float> upper = Vector128_.UnpackHigh(even.AsInt32(), odd.AsInt32()).AsSingle();
-        Unsafe.As<float, Vector128<float>>(ref destination) = lower;
-        Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref destination, Vector128<float>.Count)) = upper;
     }
 
     /// <summary>
@@ -331,6 +381,20 @@ internal static class HeifSampleConversion
         {
             Unsafe.Add(ref destination, index + 1) = odd;
         }
+    }
+
+    /// <summary>
+    /// Stores four even chroma lanes interleaved with their four odd lanes.
+    /// </summary>
+    /// <param name="even">The even luma-coordinate values.</param>
+    /// <param name="odd">The odd luma-coordinate values.</param>
+    /// <param name="destination">The first destination value.</param>
+    private static void StoreInterleavedChroma(Vector128<float> even, Vector128<float> odd, ref float destination)
+    {
+        Vector128<float> lower = Vector128_.UnpackLow(even.AsInt32(), odd.AsInt32()).AsSingle();
+        Vector128<float> upper = Vector128_.UnpackHigh(even.AsInt32(), odd.AsInt32()).AsSingle();
+        Unsafe.As<float, Vector128<float>>(ref destination) = lower;
+        Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref destination, Vector128<float>.Count)) = upper;
     }
 
     /// <summary>

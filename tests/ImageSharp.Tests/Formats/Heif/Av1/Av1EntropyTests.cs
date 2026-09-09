@@ -1048,8 +1048,8 @@ public class Av1EntropyTests
         }
 
         Assert.Equal(
-            allocator.AllocationLog.Select(x => x.AllocationId).Order(),
-            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+            allocator.AllocationLog.Select(x => x.HashCodeOfBuffer).Order(),
+            allocator.ReturnLog.Select(x => x.HashCodeOfBuffer).Order());
     }
 
     [Theory]
@@ -1089,8 +1089,8 @@ public class Av1EntropyTests
         }
 
         Assert.Equal(
-            Assert.Single(allocator.AllocationLog).AllocationId,
-            Assert.Single(allocator.ReturnLog).AllocationId);
+            Assert.Single(allocator.AllocationLog).HashCodeOfBuffer,
+            Assert.Single(allocator.ReturnLog).HashCodeOfBuffer);
     }
 
     [Fact]
@@ -1149,7 +1149,7 @@ public class Av1EntropyTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     /// <summary>
@@ -1237,8 +1237,8 @@ public class Av1EntropyTests
 
         Assert.Equal(3, allocator.ReturnLog.Count);
         Assert.Equal(
-            allocator.AllocationLog.Select(x => x.AllocationId).Order(),
-            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+            allocator.AllocationLog.Select(x => x.HashCodeOfBuffer).Order(),
+            allocator.ReturnLog.Select(x => x.HashCodeOfBuffer).Order());
     }
 
     [Fact]

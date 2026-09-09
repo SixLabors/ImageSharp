@@ -354,16 +354,6 @@ public enum Heif4CharCode : uint
     Iso8 = 0x69736F38U,
 
     /// <summary>
-    /// Legacy JPEG coded tile.
-    /// </summary>
-    Jpeg = 0x6A706567U,
-
-    /// <summary>
-    /// JPEG image sequence brand.
-    /// </summary>
-    Jpgs = 0x6A706773U,
-
-    /// <summary>
     /// AOMedia Video Coding tile.
     /// </summary>
     Av01 = 0x61763031U,

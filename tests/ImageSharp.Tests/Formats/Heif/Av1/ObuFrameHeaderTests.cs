@@ -134,16 +134,6 @@ public class ObuFrameHeaderTests
         writer.WriteSequenceFrame(stream, sequence, frame, tiles);
         byte[] payload = stream.ToArray();
 
-        string outputDirectory = Path.Combine(
-            TestEnvironment.ActualOutputDirectoryFullPath,
-            "Heif",
-            "Av1",
-            nameof(this.DecodeSmallFrameWithLargeSequenceMaximum));
-
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(Path.Combine(outputDirectory, "original.bit"), originalPayload.ToArray());
-        File.WriteAllBytes(Path.Combine(outputDirectory, "large-maximum.bit"), payload);
-
         using Av1Decoder originalDecoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> expected = originalDecoder.DecodeFrameBuffer(originalPayload, null, null, out _);
         using Av1Decoder decoder = new(Configuration.Default);
@@ -154,7 +144,6 @@ public class ObuFrameHeaderTests
         Assert.Equal(4, actual.MaxHeight);
         Assert.Equal(expected.ColorFormat, actual.ColorFormat);
         Assert.Equal(expected.BitDepth, actual.BitDepth);
-        using FileStream decodedPlanes = File.Create(Path.Combine(outputDirectory, "managed.yuv"));
         for (int planeIndex = 0; planeIndex < sequence.ColorConfig.PlaneCount; planeIndex++)
         {
             Av1Plane plane = (Av1Plane)planeIndex;
@@ -173,7 +162,6 @@ public class ObuFrameHeaderTests
                     .Slice(actual.OriginX >> subX, width);
 
                 Assert.True(expectedRow.SequenceEqual(actualRow), $"Plane {planeIndex}, row {row}");
-                decodedPlanes.Write(actualRow);
             }
         }
     }
@@ -866,7 +854,7 @@ public class ObuFrameHeaderTests
         Assert.Equal(typeof(byte), headerScratch.ElementType);
         Assert.InRange(headerScratch.Length, 1, TilePayloadLength - 1);
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(headerScratch.AllocationId, returned.AllocationId);
+        Assert.Equal(headerScratch.HashCodeOfBuffer, returned.HashCodeOfBuffer);
         Assert.True(stream.GetBuffer().AsSpan((int)stream.Length - TilePayloadLength, TilePayloadLength).SequenceEqual(tileData));
     }
 

@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.IO;
@@ -15,8 +14,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
 
@@ -39,6 +36,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// The general configuration.
     /// </summary>
     private readonly Configuration configuration;
+
+    /// <summary>
+    /// The chroma reconstruction mode selected for this decode.
+    /// </summary>
+    private readonly HeifChromaUpsampling chromaUpsampling;
 
     /// <summary>
     /// The general options passed to nested coded-image decoders without presentation-level target scaling.
@@ -98,10 +100,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <summary>
     /// Initializes a new instance of the <see cref="HeifDecoderCore" /> class.
     /// </summary>
-    /// <param name="options">The decoder options.</param>
-    public HeifDecoderCore(DecoderOptions options)
-        : base(options)
+    /// <param name="decoderOptions">The decoder options.</param>
+    public HeifDecoderCore(HeifDecoderOptions decoderOptions)
+        : base(decoderOptions.GeneralOptions)
     {
+        DecoderOptions options = decoderOptions.GeneralOptions;
+        this.chromaUpsampling = decoderOptions.ChromaUpsampling;
         this.configuration = options.Configuration;
 
         // HEIF owns final presentation resizing and ICC conversion after item/grid composition and container-profile
@@ -225,11 +229,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
         }
 
-        HeifItem? item = this.FindItemById(this.primaryItem);
-        if (item is null)
-        {
-            throw new ImageFormatException("No primary item found");
-        }
+        HeifItem? item = this.FindItemById(this.primaryItem) ?? throw new ImageFormatException("No primary item found");
 
         this.UpdateMetadata(this.metadata, item);
 
@@ -316,10 +316,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             if (!animateRootFrame)
             {
                 this.Dimensions = GetPresentationExtent(primaryItem);
-                if (this.Dimensions != sequenceExtent)
-                {
-                    throw new InvalidImageContentException("The primary image and image sequence have different presentation dimensions.");
-                }
             }
 
             this.UpdateMetadata(this.metadata, primaryItem);
@@ -356,18 +352,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             ? colorTrack.CleanAperture.Value.ToRectangle(codedSize)
             : new Rectangle(Point.Empty, codedSize);
 
-        // HEIF stores counter-clockwise quarter turns; ImageSharp's exact modes are clockwise.
-        RotateMode rotation = colorTrack.RotationAngle switch
-        {
-            1 => RotateMode.Rotate270,
-            2 => RotateMode.Rotate180,
-            3 => RotateMode.Rotate90,
-            _ => RotateMode.None
-        };
-
-        Size presentationSize = rotation is RotateMode.Rotate90 or RotateMode.Rotate270
-            ? new Size(sourceRectangle.Height, sourceRectangle.Width)
-            : sourceRectangle.Size;
+        HeifPixelTransform transform = new(colorTrack.RotationAngle ?? 0, colorTrack.MirrorAxis);
+        Size presentationSize = transform.GetDestinationSize(sourceRectangle.Size);
 
         // The returned image owns every presented frame from the outset. A separate primary becomes its root;
         // otherwise the first successfully decoded timed sample fills the root allocated here.
@@ -381,11 +367,15 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         try
         {
-            if (image.Size != presentationSize)
-            {
-                throw new InvalidImageContentException(
-                    "The primary image and image sequence have different presentation dimensions.");
-            }
+            Rectangle outputBounds = new(
+                0, 0, Math.Min(presentationSize.Width, image.Width), Math.Min(presentationSize.Height, image.Height));
+
+            Rectangle visibleSource = transform.GetSourceRectangle(outputBounds, sourceRectangle.Size);
+            sourceRectangle = new Rectangle(
+                sourceRectangle.X + visibleSource.X,
+                sourceRectangle.Y + visibleSource.Y,
+                visibleSource.Width,
+                visibleSource.Height);
 
             using Av1Decoder colorDecoder = new(this.configuration);
 
@@ -395,15 +385,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 : (alphaTrack, new Av1Decoder(this.configuration));
 
             using Av1Decoder? alphaDecoder = alphaState?.Decoder;
-
-            // Quarter turns need source and destination frames with opposite dimensions. Reuse one source frame
-            // across the sequence, then rotate each completed color-and-alpha sample into its final owned frame.
-            using ImageFrame<TPixel>? rotationSource = rotation == RotateMode.None
-                ? null
-                : new ImageFrame<TPixel>(
-                    this.configuration,
-                    sourceRectangle.Width,
-                    sourceRectangle.Height);
 
             int decodedFrameCount = 0;
             for (int sampleIndex = 0; sampleIndex < colorTrack.Samples.Length; sampleIndex++)
@@ -432,11 +413,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 bool appendedDestination = false;
                 ImageFrame<TPixel> decodedFrame;
-                if (rotationSource is not null)
-                {
-                    decodedFrame = rotationSource;
-                }
-                else if (animateRootFrame && decodedFrameCount == 0)
+                if (animateRootFrame && decodedFrameCount == 0)
                 {
                     decodedFrame = image.Frames.RootFrame;
                 }
@@ -446,43 +423,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     appendedDestination = true;
                 }
 
-                bool colorDecoded = false;
-                this.ExecuteImageDataSegmentAction(
-                    () =>
-                    {
-                        this.DecodeSequenceFrame(
-                            stream,
-                            colorTrack,
-                            colorSample,
-                            colorDecoder,
-                            sourceRectangle,
-                            decodedFrame);
-
-                        colorDecoded = true;
-                    });
-
-                if (!colorDecoded)
-                {
-                    if (alphaState is not null)
-                    {
-                        (HeifSequenceTrack Track, Av1Decoder Decoder) currentAlphaState = alphaState.Value;
-                        HeifSequenceSample alphaSample = currentAlphaState.Track.Samples[sampleIndex];
-                        this.ExecuteImageDataSegmentAction(
-                            () => this.DecodeSequenceReference(
-                                stream,
-                                currentAlphaState.Track,
-                                alphaSample,
-                                currentAlphaState.Decoder));
-                    }
-
-                    if (appendedDestination)
-                    {
-                        image.Frames.RemoveFrame(image.Frames.Count - 1);
-                    }
-
-                    continue;
-                }
-
+                Av1FrameBuffer<byte>? alphaFrame = null;
                 bool alphaDecoded = true;
                 if (alphaState is not null)
                 {
@@ -492,20 +433,50 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     this.ExecuteImageDataSegmentAction(
                         () =>
                         {
-                            this.DecodeSequenceAlphaFrame(
-                                stream,
-                                currentAlphaState.Track,
-                                alphaSample,
-                                currentAlphaState.Decoder,
-                                sourceRectangle,
-                                decodedFrame,
-                                colorTrack.IsPremultiplied);
+                            alphaFrame = this.DecodeSequenceAlphaFrame(
+                                stream, currentAlphaState.Track, alphaSample, currentAlphaState.Decoder);
 
                             alphaDecoded = true;
                         });
                 }
 
                 if (!alphaDecoded)
+                {
+                    this.ExecuteImageDataSegmentAction(
+                        () => this.DecodeSequenceReference(stream, colorTrack, colorSample, colorDecoder));
+
+                    if (appendedDestination)
+                    {
+                        image.Frames.RemoveFrame(image.Frames.Count - 1);
+                    }
+
+                    continue;
+                }
+
+                bool colorDecoded = false;
+                this.ExecuteImageDataSegmentAction(
+                    () =>
+                    {
+                        CicpProfile? outputProfile = this.DecodeSequenceFrame(
+                            stream,
+                            colorTrack,
+                            colorSample,
+                            colorDecoder,
+                            sourceRectangle,
+                            decodedFrame.PixelBuffer.GetRegion(outputBounds),
+                            transform,
+                            alphaFrame,
+                            alphaFrame is not null && colorTrack.IsPremultiplied);
+
+                        if (!this.Options.SkipMetadata)
+                        {
+                            decodedFrame.Metadata.CicpProfile = outputProfile;
+                        }
+
+                        colorDecoded = true;
+                    });
+
+                if (!colorDecoded)
                 {
                     if (appendedDestination)
                     {
@@ -516,28 +487,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 }
 
                 ImageFrame<TPixel> presentedFrame = decodedFrame;
-                if (rotationSource is not null)
-                {
-                    presentedFrame = animateRootFrame && decodedFrameCount == 0
-                        ? image.Frames.RootFrame
-                        : image.Frames.CreateFrame();
-
-                    RotateProcessor<TPixel>.ApplyQuarterTurn(
-                        rotation,
-                        rotationSource,
-                        presentedFrame,
-                        this.configuration);
-
-                    presentedFrame.Metadata.CicpProfile = rotationSource.Metadata.CicpProfile;
-                }
-
-                if (colorTrack.MirrorAxis is not null)
-                {
-                    // Axis zero reflects top-to-bottom around the horizontal axis; axis one reflects left-to-right.
-                    FlipMode flip = colorTrack.MirrorAxis.Value == 0 ? FlipMode.Vertical : FlipMode.Horizontal;
-                    FlipProcessor<TPixel>.Apply(flip, presentedFrame, this.configuration);
-                }
-
                 presentedFrame.Metadata.GetHeifMetadata().FrameDelay = new Rational(
                     colorSample.Duration,
                     colorTrack.MediaTimescale);
@@ -545,7 +494,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 if (!animateRootFrame && !this.Options.SkipMetadata)
                 {
                     presentedFrame.Metadata.IccProfile = colorTrack.IccProfile;
-                    _ = this.TryConvertIccProfile(presentedFrame);
                 }
 
                 decodedFrameCount++;
@@ -559,18 +507,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             if (!this.Options.SkipMetadata)
             {
-                if (animateRootFrame)
-                {
-                    image.Metadata.CicpProfile ??= image.Frames.RootFrame.Metadata.CicpProfile?.DeepClone();
-                    _ = this.TryConvertIccProfile(image);
-                }
-            }
-            else
-            {
-                foreach (ImageFrame<TPixel> frame in image.Frames)
-                {
-                    frame.Metadata.CicpProfile = null;
-                }
+                image.Metadata.CicpProfile = image.Frames.RootFrame.Metadata.CicpProfile;
             }
 
             HeifMetadata resultMetadata = image.Metadata.GetHeifMetadata();
@@ -597,13 +534,20 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="decoder">The decoder retaining earlier sequence references.</param>
     /// <param name="sourceRectangle">The clean-aperture region mapped to the destination frame.</param>
     /// <param name="destination">The caller-owned frame receiving the presented sample.</param>
-    private void DecodeSequenceFrame<TPixel>(
+    /// <param name="transform">The rotation and mirroring within the destination region.</param>
+    /// <param name="alphaFrame">The decoder-owned auxiliary frame, or null for opaque pixels.</param>
+    /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
+    /// <returns>The output color description, or null when metadata is skipped.</returns>
+    private CicpProfile? DecodeSequenceFrame<TPixel>(
         BufferedReadStream stream,
         HeifSequenceTrack track,
         HeifSequenceSample sample,
         Av1Decoder decoder,
         Rectangle sourceRectangle,
-        ImageFrame<TPixel> destination)
+        Buffer2DRegion<TPixel> destination,
+        HeifPixelTransform transform,
+        Av1FrameBuffer<byte>? alphaFrame,
+        bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (track.CodecType != Heif4CharCode.Av01)
@@ -617,35 +561,54 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
         Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
 
-        decoder.DecodeSequenceFrame(
+        IccProfile? profile = null;
+        if (!this.Options.SkipMetadata && this.Options.ColorProfileHandling == ColorProfileHandling.Convert)
+        {
+            this.Options.TryGetIccProfileForColorConversion(track.IccProfile, out profile);
+        }
+
+        decoder.ChromaUpsampling = this.chromaUpsampling;
+        CicpProfile sourceProfile = decoder.DecodeSequenceFrame(
             sampleData,
             track.CicpProfile,
             codecConfiguration,
             new Size(track.CodedWidth, track.CodedHeight),
             sourceRectangle,
-            destination);
+            destination,
+            transform,
+            profile,
+            alphaFrame,
+            premultiplied);
+
+        if (this.Options.SkipMetadata)
+        {
+            return null;
+        }
+
+        // Sequence output has the same packed RGB description as a still image. ICC conversion
+        // changes primaries and transfer to sRGB; otherwise those source characteristics remain.
+        return profile is null
+            ? new CicpProfile(
+                (byte)sourceProfile.ColorPrimaries,
+                (byte)sourceProfile.TransferCharacteristics,
+                (byte)CicpMatrixCoefficients.Identity,
+                true)
+            : new CicpProfile(1, 13, 0, true);
     }
 
     /// <summary>
-    /// Decodes one AV1 auxiliary sample and composes its native luma plane directly into a color frame.
+    /// Decodes one AV1 auxiliary sample and returns its native plane.
     /// </summary>
-    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
     /// <param name="stream">The complete seekable HEIF stream.</param>
     /// <param name="track">The alpha track supplying the codec configuration and color description.</param>
     /// <param name="sample">The validated alpha sample range.</param>
     /// <param name="decoder">The decoder retaining earlier alpha-sequence references.</param>
-    /// <param name="sourceRectangle">The clean-aperture region mapped to the destination frame.</param>
-    /// <param name="destination">The decoded color frame receiving alpha values.</param>
-    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
-    private void DecodeSequenceAlphaFrame<TPixel>(
+    /// <returns>The auxiliary plane retained by the sequence decoder until the next sample is decoded.</returns>
+    private Av1FrameBuffer<byte> DecodeSequenceAlphaFrame(
         BufferedReadStream stream,
         HeifSequenceTrack track,
         HeifSequenceSample sample,
-        Av1Decoder decoder,
-        Rectangle sourceRectangle,
-        ImageFrame<TPixel> destination,
-        bool premultiplied)
-        where TPixel : unmanaged, IPixel<TPixel>
+        Av1Decoder decoder)
     {
         if (track.CodecType != Heif4CharCode.Av01)
         {
@@ -662,16 +625,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
         Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
-        decoder.DecodeSequenceAlpha(
+        return decoder.DecodeSequenceAlpha(
             sampleData,
             track.CicpProfile,
             codecConfiguration,
-            new Size(track.CodedWidth, track.CodedHeight),
-            sourceRectangle,
-            destination,
-            destination.Size,
-            destination.Bounds,
-            premultiplied);
+            new Size(track.CodedWidth, track.CodedHeight));
     }
 
     /// <summary>
@@ -760,7 +718,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 if (animateRootFrame)
                 {
-                    heifMetadata.CompressionMethod = HeifCompressionMethod.Av1;
                     heifMetadata.BitDepth = av1Configuration.BitDepth;
                     heifMetadata.IsMonochrome = av1Configuration.IsMonochrome;
                 }
@@ -865,22 +822,19 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Updates identification metadata from the primary item or its decodable thumbnail fallback.
+    /// Updates identification metadata from the primary item.
     /// </summary>
     /// <param name="metadata">The destination image metadata.</param>
     /// <param name="item">The primary item whose visible representation is being identified.</param>
     private void UpdateMetadata(ImageMetadata metadata, HeifItem item)
     {
-        HeifItem presentationItem = item;
         HeifItem metadataItem = item;
         if (item.Type == Heif4CharCode.Grid)
         {
             // A grid is a derived image rather than a compression method. Its dimg references identify the coded
             // tile items whose decoder determines the compression reported for the primary presentation.
             HeifItem? gridTile = this.FindDecodableGridTile<Rgba32>(item);
-            HeifItem? thumbnail = gridTile is null ? this.FindDecodableThumbnail<Rgba32>(item) : null;
-            metadataItem = gridTile ?? thumbnail ?? item;
-            presentationItem = thumbnail ?? item;
+            metadataItem = gridTile ?? item;
             if (gridTile is not null)
             {
                 Av1CodecConfiguration? gridConfiguration = gridTile.Type == Heif4CharCode.Av01
@@ -919,42 +873,29 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 }
             }
         }
-        else if (HeifCompressionFactory.GetDecoder<Rgba32>(item.Type) is null)
-        {
-            HeifItem? thumbnail = this.FindDecodableThumbnail<Rgba32>(item);
-            metadataItem = thumbnail ?? item;
-            presentationItem = thumbnail ?? item;
-        }
 
         HeifMetadata meta = metadata.GetHeifMetadata();
-        HeifCompressionMethod compressionMethod;
         if (metadataItem.Type == Heif4CharCode.Av01)
         {
             Av1CodecConfiguration codecConfiguration = metadataItem.Av1CodecConfiguration
                 ?? throw new InvalidImageContentException($"AV1 image item {metadataItem.Id} has no codec configuration property.");
 
-            compressionMethod = HeifCompressionMethod.Av1;
             meta.BitDepth = codecConfiguration.BitDepth;
             meta.IsMonochrome = codecConfiguration.IsMonochrome;
-        }
-        else if (metadataItem.Type == Heif4CharCode.Jpeg)
-        {
-            compressionMethod = HeifCompressionMethod.LegacyJpeg;
         }
         else
         {
             throw new InvalidImageContentException($"Image item {metadataItem.Id} uses unsupported item type '{metadataItem.Type}'.");
         }
 
-        meta.CompressionMethod = compressionMethod;
-        meta.HasAlpha = this.FindAlphaItem(presentationItem) is not null
-            || (presentationItem.Type == Heif4CharCode.Grid && this.FindGridAlphaTiles(presentationItem) is not null);
+        meta.HasAlpha = this.FindAlphaItem(item) is not null
+            || (item.Type == Heif4CharCode.Grid && this.FindGridAlphaTiles(item) is not null);
 
         if (!this.Options.SkipMetadata)
         {
-            this.ApplyItemColorMetadata(metadata, presentationItem);
-            this.ApplyItemHdrMetadata(metadata, presentationItem);
-            this.ApplyItemPixelAspectRatioMetadata(metadata, presentationItem);
+            this.ApplyItemColorMetadata(metadata, item);
+            this.ApplyItemHdrMetadata(metadata, item);
+            this.ApplyItemPixelAspectRatioMetadata(metadata, item);
         }
     }
 
@@ -1172,8 +1113,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             Heif4CharCode itemType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(entryBuffer[bytesRead..]);
             bytesRead += 4;
-            item = new HeifItem(itemType, itemId);
-            item.Name = ReadNullTerminatedString(entryBuffer[bytesRead..], out int nameLength);
+            item = new HeifItem(itemType, itemId)
+            {
+                Name = ReadNullTerminatedString(entryBuffer[bytesRead..], out int nameLength)
+            };
+
             bytesRead += nameLength;
             if (item.Type == Heif4CharCode.Mime)
             {
@@ -1289,15 +1233,15 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 this.itemLinks.Add(link);
             }
-            catch (Exception ex) when (linkType == Heif4CharCode.Cdsc && HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+            catch (Exception ex) when (linkType == Heif4CharCode.Cdsc && ShouldIgnoreAncillarySegmentError(this.Options, ex))
             {
                 // A malformed descriptive link cannot change reconstructed pixels, so non-strict modes omit it.
                 bytesRead = referenceEnd;
             }
-            catch (Exception ex) when (linkType != Heif4CharCode.Cdsc && HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            catch (Exception ex) when (linkType != Heif4CharCode.Cdsc && ShouldIgnoreImageDataSegmentError(this.Options, ex))
             {
                 // IgnoreImageData permits a malformed optional image relationship to be omitted while retaining
-                // independently reconstructable items and thumbnail fallbacks.
+                // independently reconstructable items.
                 bytesRead = referenceEnd;
             }
         }
@@ -1337,7 +1281,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     {
         // Property types may repeat, and ipma can physically precede ipco. Index the bounded
         // children first so associations are always resolved after the ordered property table.
-        List<KeyValuePair<Heif4CharCode, object>> properties = new();
+        List<KeyValuePair<Heif4CharCode, object>> properties = [];
         long endBoxPosition = stream.Position + boxLength;
         (long Offset, long Length)? propertyContainer = null;
         List<(long Offset, long Length)> associations = [];
@@ -1369,10 +1313,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         stream.Position = propertyContainer.Value.Offset;
         this.ParsePropertyContainer(stream, propertyContainer.Value.Length, properties);
-        foreach ((long Offset, long Length) association in associations)
+        foreach ((long offset, long length) in associations)
         {
-            stream.Position = association.Offset;
-            this.ParsePropertyAssociation(stream, association.Length, properties);
+            stream.Position = offset;
+            this.ParsePropertyAssociation(stream, length, properties);
         }
 
         stream.Position = endBoxPosition;
@@ -1440,7 +1384,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     {
                         iccProfile = HeifPropertyParser.ParseIccProfile(profileData);
                     }
-                    catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                    catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                     {
                         // Keep the understood property index without retaining invalid ancillary metadata.
                     }
@@ -1482,7 +1426,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             pixelAspectRatio = HeifPropertyParser.ParsePixelAspectRatio(boxBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1555,7 +1499,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             contentLightLevel = HeifPropertyParser.ParseContentLightLevel(boxBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1568,7 +1512,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             masteringDisplayColorVolume = HeifPropertyParser.ParseMasteringDisplayColorVolume(boxBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1581,7 +1525,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             contentColorVolume = HeifPropertyParser.ParseContentColorVolume(boxBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1594,7 +1538,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             ambientViewingEnvironment = HeifPropertyParser.ParseAmbientViewingEnvironment(boxBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1607,7 +1551,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             referenceViewingEnvironment = HeifPropertyParser.ParseReferenceViewingEnvironment(boxBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1620,7 +1564,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             nominalDiffuseWhite = HeifPropertyParser.ParseNominalDiffuseWhite(boxBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1683,7 +1627,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         break;
                 }
             }
-            catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            catch (Exception ex) when (ShouldIgnoreImageDataSegmentError(this.Options, ex))
             {
                 // Invalid image properties retain their physical association index. Typed association handling ignores
                 // the placeholder so another decodable item or the coded-image defaults can remain usable.
@@ -1700,6 +1644,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="properties">The properties in the order used by association indices.</param>
     private void ParsePropertyAssociation(BufferedReadStream stream, long boxLength, List<KeyValuePair<Heif4CharCode, object>> properties)
     {
+        // Each association stores the essential flag in its highest bit and the one-based property
+        // index in the remaining bits: seven index bits in the byte form, fifteen in the ushort form.
+        const uint smallPropertyIndexMask = 0x7FU;
+        const uint smallEssentialMask = 0x80U;
+        const uint largePropertyIndexMask = 0x7FFFU;
+        const uint largeEssentialMask = 0x8000U;
+
         using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         EnsureBufferRemaining(boxBuffer, 0, 8, "item property association");
@@ -1710,39 +1661,32 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         bool largePropertyIndex = (boxBuffer[3] & 1) != 0;
+        uint propertyIndexMask = largePropertyIndex ? largePropertyIndexMask : smallPropertyIndexMask;
+        uint essentialMask = largePropertyIndex ? largeEssentialMask : smallEssentialMask;
         int bytesRead = 4;
         uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[bytesRead..]);
         bytesRead += 4;
         for (uint entryIndex = 0; entryIndex < entryCount; entryIndex++)
         {
             uint itemId = ReadUInt16Or32(boxBuffer, version == 1, ref bytesRead);
-            HeifItem? item = this.FindItemById(itemId);
-            if (item is null)
-            {
-                throw new InvalidImageContentException($"Item property association references unknown item ID {itemId}.");
-            }
+            HeifItem? item = this.FindItemById(itemId) ?? throw new InvalidImageContentException($"Item property association references unknown item ID {itemId}.");
 
             EnsureBufferRemaining(boxBuffer, bytesRead, 1, "item property association");
             int associationCount = boxBuffer[bytesRead++];
             for (int i = 0; i < associationCount; i++)
             {
                 uint association;
-                uint propertyIndexMask;
-                uint essentialMask;
+
                 if (largePropertyIndex)
                 {
                     EnsureBufferRemaining(boxBuffer, bytesRead, 2, "item property association");
                     association = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[bytesRead..]);
                     bytesRead += 2;
-                    propertyIndexMask = 0x7FFFU;
-                    essentialMask = 0x8000U;
                 }
                 else
                 {
                     EnsureBufferRemaining(boxBuffer, bytesRead, 1, "item property association");
                     association = boxBuffer[bytesRead++];
-                    propertyIndexMask = 0x7FU;
-                    essentialMask = 0x80U;
                 }
 
                 uint propertyIndex = association & propertyIndexMask;
@@ -2173,11 +2117,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         {
             EnsureBufferRemaining(boxBuffer, bytesRead, version == 2 ? 4 : 2, "item location");
             uint itemId = ReadUInt16Or32(boxBuffer, version == 2, ref bytesRead);
-            HeifItem? item = this.FindItemById(itemId);
-            if (item is null)
-            {
-                throw new InvalidImageContentException($"The item location box references unknown item ID {itemId}.");
-            }
+            HeifItem? item = this.FindItemById(itemId) ?? throw new InvalidImageContentException($"The item location box references unknown item ID {itemId}.");
 
             if (!locatedItemIds.Add(itemId))
             {
@@ -2387,7 +2327,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Resolves item extents, selects the primary or supported thumbnail decoder, and reconstructs the image.
+    /// Resolves item extents and reconstructs the primary image.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
     /// <param name="stream">The complete seekable HEIF container stream.</param>
@@ -2396,84 +2336,52 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private Image<TPixel> DecodePrimaryItem<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Func<HeifItem, IMemoryOwner<byte>> itemDataReader = item => this.ReadItemData(stream, item);
+        IMemoryOwner<byte> ItemDataReader(HeifItem item) => this.ReadItemData(stream, item);
 
-        HeifItem? rootItem = this.FindItemById(this.primaryItem);
-        if (rootItem is null)
-        {
-            throw new ImageFormatException("No primary HEIF item defined.");
-        }
+        HeifItem? rootItem = this.FindItemById(this.primaryItem) ?? throw new ImageFormatException("No primary HEIF item defined.");
 
-        Image<TPixel>? image = null;
-        HeifItem itemToDecode = rootItem;
-        IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(rootItem, itemDataReader);
-        bool supportedItemFound = itemDecoder is not null;
-        if (itemDecoder is not null)
-        {
-            this.ExecuteImageDataSegmentAction(
-                () => image = this.DecodeImageItem(rootItem, itemDecoder, itemDataReader, cancellationToken));
-        }
+        IHeifItemDecoder<TPixel> itemDecoder = this.GetItemDecoder<TPixel>(rootItem, ItemDataReader)
+            ?? throw new ImageFormatException($"The primary HEIF item uses unsupported item type '{rootItem.Type}'.");
 
-        if (image is null)
-        {
-            // An unsupported primary item always permits its registered thumbnail fallback. IgnoreImageData also
-            // reaches this branch after a recoverable primary payload failure, matching other multi-image decoders.
-            HeifItem? thumbnailItem = this.FindDecodableThumbnail<TPixel>(rootItem);
-            if (thumbnailItem is not null)
-            {
-                itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(thumbnailItem.Type);
-                supportedItemFound |= itemDecoder is not null;
-                if (itemDecoder is not null)
-                {
-                    itemToDecode = thumbnailItem;
-                    this.ExecuteImageDataSegmentAction(
-                        () => image = this.DecodeImageItem(thumbnailItem, itemDecoder, itemDataReader, cancellationToken));
-                }
-            }
-        }
-
-        if (image is null || itemDecoder is null)
-        {
-            if (!supportedItemFound)
-            {
-                throw new ImageFormatException("No supported image item was found inside this HEIF container.");
-            }
-
-            throw new InvalidImageContentException("The HEIF container does not contain a decodable image item.");
-        }
+        Image<TPixel> image = this.DecodeImageItem(rootItem, itemDecoder, ItemDataReader, cancellationToken);
 
         try
         {
-            bool hasAlpha = false;
-            this.ExecuteImageDataSegmentAction(
-                () => hasAlpha = this.DecodeAlphaPlane(itemToDecode, itemDataReader, image.Frames.RootFrame, cancellationToken));
+            if (!this.Options.SkipMetadata)
+            {
+                this.ApplyItemColorMetadata(image.Metadata, rootItem);
+                this.ApplyItemHdrMetadata(image.Metadata, rootItem);
+                this.ApplyAssociatedMetadata(image.Metadata, rootItem, ItemDataReader);
+            }
+
+            if (this.Options.ColorProfileHandling == ColorProfileHandling.Convert
+                && this.Options.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out _))
+            {
+                // ICC conversion has already produced full-range sRGB pixels. The source YUV matrix and
+                // transfer description must not be reapplied when those pixels are written to another format.
+                image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+                image.Frames.RootFrame.Metadata.CicpProfile = image.Metadata.CicpProfile;
+            }
+            else if (image.Metadata.CicpProfile is not null)
+            {
+                // The packed pixels are full-range RGB even when the source ICC profile is preserved.
+                // Keep the primaries and transfer description, but do not label RGB as encoded YUV.
+                CicpProfile sourceProfile = image.Metadata.CicpProfile;
+                image.Metadata.CicpProfile = new CicpProfile(
+                    (byte)sourceProfile.ColorPrimaries,
+                    (byte)sourceProfile.TransferCharacteristics,
+                    (byte)CicpMatrixCoefficients.Identity,
+                    true);
+
+                image.Frames.RootFrame.Metadata.CicpProfile = image.Metadata.CicpProfile;
+            }
 
             if (!this.Options.SkipMetadata)
             {
-                this.ApplyItemColorMetadata(image.Metadata, itemToDecode);
-                this.ApplyItemHdrMetadata(image.Metadata, itemToDecode);
-                this.ApplyAssociatedMetadata(image.Metadata, rootItem, itemDataReader);
+                this.ApplyItemPixelAspectRatioMetadata(image.Metadata, rootItem);
             }
 
-            // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
-            // container transforms after item composition keeps every composed plane in the same coordinate space.
-            ApplyPresentationTransforms(image, itemToDecode);
-
-            if (!this.Options.SkipMetadata)
-            {
-                this.ApplyItemPixelAspectRatioMetadata(image.Metadata, itemToDecode);
-
-                // ICC conversion belongs to the presented RGB image. Running it after alpha, grid composition, crop,
-                // rotation, and mirroring keeps still images aligned with the sequence path and avoids converting
-                // pixels removed by a clean-aperture crop.
-                _ = this.TryConvertIccProfile(image);
-            }
-
-            // The decoder determines the compression of the pixels that were actually returned, including grid tiles
-            // and a thumbnail fallback when the primary image compression is not available.
             HeifMetadata meta = image.Metadata.GetHeifMetadata();
-            meta.CompressionMethod = itemDecoder.CompressionMethod;
-            meta.HasAlpha = hasAlpha;
             if (this.Options.SkipMetadata)
             {
                 // AV1 item decoders still parse encoded metadata to enforce codec/container equivalence and select
@@ -2762,16 +2670,49 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> itemMemory = itemDataReader(item);
-        Image<TPixel> image = decoder.DecodeItemData(
-            this.payloadOptions,
-            item,
-            itemMemory.GetSpan(),
-            item.CicpProfile,
-            cancellationToken);
+        Rectangle sourceRectangle = item.CleanAperture?.ToRectangle(item.Extent) ?? new Rectangle(Point.Empty, item.Extent);
+        HeifPixelTransform transform = new(item.RotationAngle ?? 0, item.MirrorAxis);
+        Size outputSize = transform.GetDestinationSize(sourceRectangle.Size);
+        Image<TPixel> image = new(this.configuration, outputSize.Width, outputSize.Height);
 
         try
         {
-            HeifItemDecoderUtilities.ScaleToItemExtent(image, item);
+            if (!this.Options.SkipMetadata)
+            {
+                this.ApplyItemColorMetadata(image.Metadata, item);
+            }
+
+            IccProfile? profile = null;
+            if (this.Options.ColorProfileHandling == ColorProfileHandling.Convert)
+            {
+                this.Options.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out profile);
+            }
+
+            Av1FrameBuffer<byte>? alpha = null;
+            bool premultiplied = false;
+            this.ExecuteImageDataSegmentAction(
+                () => alpha = this.DecodeAlphaPlane<TPixel>(item, itemDataReader, cancellationToken, out premultiplied));
+
+            using Av1FrameBuffer<byte>? alphaFrame = alpha;
+            decoder.DecodeItemData(
+                this.payloadOptions,
+                this.chromaUpsampling,
+                item,
+                itemMemory.GetSpan(),
+                item.CicpProfile,
+                profile,
+                alphaFrame,
+                item.Extent,
+                sourceRectangle,
+                alphaFrame is not null && premultiplied,
+                sourceRectangle,
+                transform,
+                image.Frames.RootFrame.PixelBuffer.GetRegion(new Rectangle(Point.Empty, outputSize)),
+                image.Metadata,
+                cancellationToken);
+
+            image.Metadata.GetHeifMetadata().HasAlpha = alphaFrame is not null;
+            image.Frames.RootFrame.Metadata.CicpProfile = image.Metadata.CicpProfile;
             return image;
         }
         catch
@@ -2809,80 +2750,22 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Applies the clean-aperture, rotation, and mirror properties associated with an image item.
-    /// </summary>
-    /// <typeparam name="TPixel">The image pixel format.</typeparam>
-    /// <param name="image">The decoded image item.</param>
-    /// <param name="item">The item carrying the presentation properties.</param>
-    private static void ApplyPresentationTransforms<TPixel>(Image<TPixel> image, HeifItem item)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => ApplyPresentationTransforms(image, item.CleanAperture, item.RotationAngle, item.MirrorAxis);
-
-    /// <summary>
-    /// Applies shared clean-aperture, rotation, and mirror properties to every frame of an image presentation.
-    /// </summary>
-    /// <typeparam name="TPixel">The image pixel format.</typeparam>
-    /// <param name="image">The decoded image presentation.</param>
-    /// <param name="cleanAperture">The optional clean-aperture crop.</param>
-    /// <param name="rotationAngle">The optional counter-clockwise quarter-turn count.</param>
-    /// <param name="mirrorAxis">The optional horizontal or vertical mirror axis.</param>
-    private static void ApplyPresentationTransforms<TPixel>(
-        Image<TPixel> image,
-        HeifCleanAperture? cleanAperture,
-        byte? rotationAngle,
-        byte? mirrorAxis)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (cleanAperture is not null)
-        {
-            Rectangle cropRectangle = cleanAperture.Value.ToRectangle(image.Size);
-            if (cropRectangle != image.Bounds)
-            {
-                image.Mutate(context => context.Crop(cropRectangle));
-            }
-        }
-
-        if (rotationAngle is not null)
-        {
-            // HEIF angles count quarter turns counter-clockwise, while ImageSharp's optimized rotate modes are clockwise.
-            RotateMode rotation = rotationAngle.Value switch
-            {
-                1 => RotateMode.Rotate270,
-                2 => RotateMode.Rotate180,
-                3 => RotateMode.Rotate90,
-                _ => RotateMode.None
-            };
-
-            if (rotation != RotateMode.None)
-            {
-                image.Mutate(context => context.Rotate(rotation));
-            }
-        }
-
-        if (mirrorAxis is not null)
-        {
-            // Axis zero reflects top-to-bottom around the horizontal axis; axis one reflects left-to-right.
-            FlipMode flip = mirrorAxis.Value == 0 ? FlipMode.Vertical : FlipMode.Horizontal;
-            image.Mutate(context => context.Flip(flip));
-        }
-    }
-
-    /// <summary>
     /// Decodes and composes the direct or per-grid-tile alpha auxiliary associated with a color image item.
     /// </summary>
     /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
     /// <param name="colorItem">The color image item whose alpha plane is requested.</param>
     /// <param name="itemDataReader">Reads one selected item payload on demand.</param>
-    /// <param name="destination">The decoded color frame receiving alpha values.</param>
     /// <param name="cancellationToken">The token used to cancel the auxiliary payload decode.</param>
-    /// <returns><see langword="true"/> when an auxiliary alpha plane was decoded and composed.</returns>
-    private bool DecodeAlphaPlane<TPixel>(
+    /// <param name="premultiplied">Whether the auxiliary relationship declares associated RGB.</param>
+    /// <returns>The caller-owned auxiliary plane, or null when the item has no complete alpha plane.</returns>
+    private Av1FrameBuffer<byte>? DecodeAlphaPlane<TPixel>(
         HeifItem colorItem,
         Func<HeifItem, IMemoryOwner<byte>> itemDataReader,
-        ImageFrame<TPixel> destination,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        out bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        premultiplied = false;
         HeifItem? alphaItem = this.FindAlphaItem(colorItem);
         if (alphaItem is not null)
         {
@@ -2903,39 +2786,33 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
 
             IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(alphaItem, itemDataReader);
-            if (itemDecoder is not IHeifAlphaItemDecoder<TPixel> decoder)
+            if (itemDecoder is not IHeifAlphaItemDecoder decoder)
             {
                 throw new ImageFormatException($"The alpha auxiliary item uses unsupported item type '{alphaItem.Type}'.");
             }
 
-            bool premultiplied = this.itemLinks.Any(
+            premultiplied = this.itemLinks.Any(
                 link => link.Type == Heif4CharCode.Prem
                     && link.SourceId == colorItem.Id
                     && link.DestinationIds.Contains(alphaItem.Id));
 
             using IMemoryOwner<byte> itemMemory = itemDataReader(alphaItem);
-            decoder.DecodeAlphaItemData(
+            return decoder.DecodeAlphaItemData(
                 this.payloadOptions,
                 alphaItem,
                 itemMemory.GetSpan(),
-                destination,
-                destination.Size,
-                destination.Bounds,
-                premultiplied,
                 cancellationToken);
-
-            return true;
         }
 
         if (colorItem.Type != Heif4CharCode.Grid)
         {
-            return false;
+            return null;
         }
 
         List<uint>? alphaTileIds = this.FindGridAlphaTiles(colorItem);
         if (alphaTileIds is null)
         {
-            return false;
+            return null;
         }
 
         // The color grid descriptor defines the same row/column layout and output canvas for per-tile alpha
@@ -2947,17 +2824,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             alphaTileIds);
 
         using IMemoryOwner<byte> gridMemory = itemDataReader(colorItem);
-        gridDecoder.DecodeAlphaItemData(
+        return gridDecoder.DecodeAlphaItemData(
             this.payloadOptions,
             colorItem,
             gridMemory.GetSpan(),
-            destination,
-            destination.Size,
-            destination.Bounds,
-            false,
             cancellationToken);
-
-        return true;
     }
 
     /// <summary>
@@ -3096,8 +2967,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 HeifItem tile = this.FindRequiredItemById(itemId);
                 if (HeifCompressionFactory.GetDecoder<TPixel>(tile.Type) is null)
                 {
-                    // A partially decodable grid cannot yield the requested canvas. Returning no tile lets the
-                    // caller select a thumbnail of the complete primary presentation when one is available.
+                    // Every tile must be decodable to reconstruct the primary grid.
                     return null;
                 }
 
@@ -3106,34 +2976,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         return firstTile;
-    }
-
-    /// <summary>
-    /// Finds a decodable thumbnail that represents the specified master image item.
-    /// </summary>
-    /// <typeparam name="TPixel">The destination pixel format used to select item decoders.</typeparam>
-    /// <param name="masterItem">The master image item referenced by the thumbnail.</param>
-    /// <returns>A decodable thumbnail item, or <see langword="null"/> when no matching thumbnail is available.</returns>
-    private HeifItem? FindDecodableThumbnail<TPixel>(HeifItem masterItem)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        // A thumbnail reference points from the thumbnail item to the master image. Restrict fallback to this
-        // presentation rather than allowing an unrelated thumbnail elsewhere in the file to be selected.
-        HeifItemLink? thumbnailReference = this.itemLinks.FirstOrDefault(
-            link => link.Type == Heif4CharCode.Thmb && link.DestinationIds.Contains(masterItem.Id));
-
-        if (thumbnailReference is null)
-        {
-            return null;
-        }
-
-        HeifItem thumbnailItem = this.FindRequiredItemById(thumbnailReference.SourceId);
-        if (HeifCompressionFactory.GetDecoder<TPixel>(thumbnailItem.Type) is null)
-        {
-            return null;
-        }
-
-        return thumbnailItem;
     }
 
     /// <summary>
@@ -3176,7 +3018,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private static bool IsRecoverableBoxError(Exception exception)
         => exception is ImageFormatException
             or InvalidIccProfileException
-            or InvalidImageContentException
             or InvalidOperationException
             or NotSupportedException;
 

@@ -14,12 +14,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 /// <summary>
 /// Resizes a native HEIF luma plane and composes the result as alpha using a bounded sliding window.
 /// </summary>
-/// <typeparam name="TPixel">The destination pixel type.</typeparam>
 /// <typeparam name="TBuffer">The codec adapter exposing the reconstructed component planes.</typeparam>
 /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
 /// <typeparam name="TLoader">The SIMD widening operations for the sample type.</typeparam>
-internal sealed class HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoader> : IDisposable
-    where TPixel : unmanaged, IPixel<TPixel>
+internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : HeifAlphaRowSource
     where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
     where TSample : unmanaged
     where TLoader : struct, IHeifSampleConverter<TSample>
@@ -33,11 +31,6 @@ internal sealed class HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoa
     /// The codec-native component planes.
     /// </summary>
     private readonly TBuffer buffer;
-
-    /// <summary>
-    /// The packed color frame receiving alpha values.
-    /// </summary>
-    private readonly ImageFrame<TPixel> destination;
 
     /// <summary>
     /// The resolved H.273 component-range parameters.
@@ -85,16 +78,6 @@ internal sealed class HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoa
     private readonly IMemoryOwner<L16> alphaOwner;
 
     /// <summary>
-    /// The reusable high-bit-depth destination color row.
-    /// </summary>
-    private readonly IMemoryOwner<Rgba64> colorOwner;
-
-    /// <summary>
-    /// Whether stored color samples must be converted to unassociated alpha.
-    /// </summary>
-    private readonly bool premultiplied;
-
-    /// <summary>
     /// The number of source rows retained when the window advances.
     /// </summary>
     private readonly int windowBandHeight;
@@ -110,38 +93,31 @@ internal sealed class HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoa
     private RowInterval currentWindow;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HeifPlanarAlphaResizeWorker{TPixel, TBuffer, TSample, TLoader}"/> class.
+    /// Initializes a new instance of the <see cref="HeifPlanarAlphaResizeWorker{TBuffer, TSample, TLoader}"/> class.
     /// </summary>
     /// <param name="configuration">The configuration used for pooled allocation and pixel conversion.</param>
     /// <param name="buffer">The codec-native component planes.</param>
-    /// <param name="destination">The packed color frame receiving alpha values.</param>
     /// <param name="parameters">The resolved H.273 component-range parameters.</param>
     /// <param name="sourceRectangle">The visible luma rectangle within the reconstructed plane.</param>
     /// <param name="destinationRectangle">The destination region receiving the top-left portion of the presented alpha plane.</param>
-    /// <param name="horizontalKernels">The horizontal box-filter kernels for the full presented width.</param>
-    /// <param name="verticalKernels">The vertical box-filter kernels for the full presented height.</param>
-    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    /// <param name="outputSize">The complete presentation extent before cropping.</param>
     public HeifPlanarAlphaResizeWorker(
         Configuration configuration,
         TBuffer buffer,
-        ImageFrame<TPixel> destination,
         in HeifColorConversionParameters parameters,
         Rectangle sourceRectangle,
         Rectangle destinationRectangle,
-        ResizeKernelMap horizontalKernels,
-        ResizeKernelMap verticalKernels,
-        bool premultiplied)
+        Size outputSize)
     {
         this.configuration = configuration;
         this.buffer = buffer;
-        this.destination = destination;
         this.parameters = parameters;
         this.sourceRectangle = sourceRectangle;
         this.destinationRectangle = destinationRectangle;
-        this.premultiplied = premultiplied;
 
-        this.horizontalKernels = horizontalKernels;
-        this.verticalKernels = verticalKernels;
+        BoxResampler resampler = default;
+        this.horizontalKernels = ResizeKernelMap.Calculate(in resampler, outputSize.Width, sourceRectangle.Width, configuration.MemoryAllocator);
+        this.verticalKernels = ResizeKernelMap.Calculate(in resampler, outputSize.Height, sourceRectangle.Height, configuration.MemoryAllocator);
 
         // Retaining one complete maximum-diameter band is sufficient for every vertical kernel that crosses a
         // window boundary. Those first-pass rows can be copied forward instead of normalized and filtered again.
@@ -170,35 +146,32 @@ internal sealed class HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoa
         this.componentOwner = configuration.MemoryAllocator.Allocate<float>(Math.Max(sourceRectangle.Width, destinationRectangle.Width));
         this.sourceVectorOwner = configuration.MemoryAllocator.Allocate<Vector4>(sourceRectangle.Width);
         this.alphaOwner = configuration.MemoryAllocator.Allocate<L16>(Math.Max(sourceRectangle.Width, destinationRectangle.Width));
-        this.colorOwner = configuration.MemoryAllocator.Allocate<Rgba64>(destinationRectangle.Width);
         this.currentWindow = new RowInterval(0, this.workerHeight);
+        this.CalculateFirstPassValues(this.currentWindow);
     }
 
     /// <summary>
     /// Releases all allocator-owned working buffers.
     /// </summary>
-    public void Dispose()
+    public override void Dispose()
     {
         this.transposedFirstPassBuffer.Dispose();
         this.componentOwner.Dispose();
         this.sourceVectorOwner.Dispose();
         this.alphaOwner.Dispose();
-        this.colorOwner.Dispose();
+        this.horizontalKernels.Dispose();
+        this.verticalKernels.Dispose();
     }
 
     /// <summary>
-    /// Resizes and composes the complete requested destination rectangle.
+    /// Resizes the next row of the requested destination rectangle.
     /// </summary>
-    public void Compose()
+    /// <param name="y">The next destination row, in increasing order starting at zero.</param>
+    /// <returns>The normalized row, valid until the next row is read.</returns>
+    public override Span<float> ReadRow(int y)
     {
-        // Populate the horizontal first pass for the initial bounded source-row interval. Later windows retain their
-        // overlap and calculate only newly entering rows.
-        this.CalculateFirstPassValues(this.currentWindow);
-
         Span<Vector4> transposed = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
         Span<float> resizedAlpha = this.componentOwner.GetSpan()[..this.destinationRectangle.Width];
-        Span<L16> packedAlpha = this.alphaOwner.GetSpan()[..this.destinationRectangle.Width];
-        Span<Rgba64> packedColor = this.colorOwner.GetSpan()[..this.destinationRectangle.Width];
         ReadOnlySpan<ResizeKernel> verticalKernelSpan = this.verticalKernels.GetKernelSpan();
         ref ResizeKernel verticalKernelBase = ref MemoryMarshal.GetReference(verticalKernelSpan);
         ref float resizedAlphaBase = ref MemoryMarshal.GetReference(resizedAlpha);
@@ -208,47 +181,36 @@ internal sealed class HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoa
         nuint workerHeight = (uint)this.workerHeight;
         nuint twoWorkerHeights = workerHeight * 2;
 
-        for (int y = 0; y < this.destinationRectangle.Height; y++)
+        ref ResizeKernel kernel = ref Unsafe.Add(ref verticalKernelBase, this.destinationRectangle.Y + y);
+        int kernelEnd = kernel.StartIndex + kernel.Length;
+
+        // Destination kernels advance monotonically through source Y. Slide until the complete kernel lies in
+        // the cached first-pass interval; the retained overlap prevents any shared source row being recalculated.
+        while (kernelEnd > currentWindowMax)
         {
-            ref ResizeKernel kernel = ref Unsafe.Add(ref verticalKernelBase, y);
-            int kernelEnd = kernel.StartIndex + kernel.Length;
-
-            // Destination kernels advance monotonically through source Y. Slide until the complete kernel lies in
-            // the cached first-pass interval; the retained overlap prevents any shared source row being recalculated.
-            while (kernelEnd > currentWindowMax)
-            {
-                this.Slide();
-                currentWindowMin = this.currentWindow.Min;
-                currentWindowMax = this.currentWindow.Max;
-            }
-
-            // Values for one destination X are contiguous along source Y in the transposed buffer. ConvolveCore
-            // therefore reads the vertical kernel without gathers, while workerHeight advances to the next X column.
-            ref Vector4 column = ref transposed[kernel.StartIndex - currentWindowMin];
-            nuint x = 0;
-            for (; x + 1 < width; x += 2)
-            {
-                Unsafe.Add(ref resizedAlphaBase, x) = kernel.ConvolveCore(ref column).X;
-                ref Vector4 nextColumn = ref Unsafe.Add(ref column, workerHeight);
-                Unsafe.Add(ref resizedAlphaBase, x + 1) = kernel.ConvolveCore(ref nextColumn).X;
-                column = ref Unsafe.Add(ref column, twoWorkerHeights);
-            }
-
-            if (x < width)
-            {
-                Unsafe.Add(ref resizedAlphaBase, x) = kernel.ConvolveCore(ref column).X;
-            }
-
-            HeifPlanarAlphaCompositor.ApplyAlphaRow(
-                this.configuration,
-                this.destination,
-                this.destinationRectangle.X,
-                this.destinationRectangle.Y + y,
-                resizedAlpha,
-                packedAlpha,
-                packedColor,
-                this.premultiplied);
+            this.Slide();
+            currentWindowMin = this.currentWindow.Min;
+            currentWindowMax = this.currentWindow.Max;
         }
+
+        // Values for one destination X are contiguous along source Y in the transposed buffer. ConvolveCore
+        // therefore reads the vertical kernel without gathers, while workerHeight advances to the next X column.
+        ref Vector4 column = ref transposed[kernel.StartIndex - currentWindowMin];
+        nuint x = 0;
+        for (; x + 1 < width; x += 2)
+        {
+            Unsafe.Add(ref resizedAlphaBase, x) = kernel.ConvolveCore(ref column).X;
+            ref Vector4 nextColumn = ref Unsafe.Add(ref column, workerHeight);
+            Unsafe.Add(ref resizedAlphaBase, x + 1) = kernel.ConvolveCore(ref nextColumn).X;
+            column = ref Unsafe.Add(ref column, twoWorkerHeights);
+        }
+
+        if (x < width)
+        {
+            Unsafe.Add(ref resizedAlphaBase, x) = kernel.ConvolveCore(ref column).X;
+        }
+
+        return resizedAlpha;
     }
 
     /// <summary>
@@ -307,15 +269,15 @@ internal sealed class HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoa
             int x = 0;
             for (; x + 1 < destinationWidth; x += 2)
             {
-                ref ResizeKernel kernel0 = ref Unsafe.Add(ref horizontalKernelBase, x);
-                ref ResizeKernel kernel1 = ref Unsafe.Add(ref horizontalKernelBase, x + 1);
+                ref ResizeKernel kernel0 = ref Unsafe.Add(ref horizontalKernelBase, this.destinationRectangle.X + x);
+                ref ResizeKernel kernel1 = ref Unsafe.Add(ref horizontalKernelBase, this.destinationRectangle.X + x + 1);
                 Unsafe.Add(ref firstPass, (nuint)x * workerHeight) = kernel0.Convolve(sourceVectors);
                 Unsafe.Add(ref firstPass, (nuint)(x + 1) * workerHeight) = kernel1.Convolve(sourceVectors);
             }
 
             if (x < destinationWidth)
             {
-                ref ResizeKernel kernel = ref Unsafe.Add(ref horizontalKernelBase, x);
+                ref ResizeKernel kernel = ref Unsafe.Add(ref horizontalKernelBase, this.destinationRectangle.X + x);
                 Unsafe.Add(ref firstPass, (nuint)x * workerHeight) = kernel.Convolve(sourceVectors);
             }
         }

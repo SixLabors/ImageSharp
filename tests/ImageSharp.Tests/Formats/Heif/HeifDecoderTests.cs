@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
-using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
@@ -11,8 +9,8 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
@@ -22,19 +20,86 @@ public class HeifDecoderTests
 {
     private const uint UnknownBoxType = 0x74657374U;
 
-    private static ReadOnlySpan<byte> MalformedJpegApp13 =>
-    [
-        0xFF, 0xED,
-        0x00, 0x1D,
-        (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.',
-        (byte)'0', 0x00,
-        (byte)'B', (byte)'a', (byte)'d', (byte)'R', (byte)'e', (byte)'s', (byte)'o', (byte)'u', (byte)'r', (byte)'c', (byte)'e', (byte)'!',
-        (byte)'!'
-    ];
+    /// <summary>
+    /// Decodes the AVIF corpus through the public decoder and compares every frame with the independent decoder.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.IrvineAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.XnConvert, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Orange4x4, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Animated8Bit, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Animated8BitWithAudio, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Animated8BitWithAlphaExifXmp, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Deblocking8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Progressive8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1ScaledReferenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1AverageCompoundSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1WedgeCompoundSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1InterIntraSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1ObmcSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1LocalWarpSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1GlobalWarpSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Cdef8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Profile8BitMonochromeAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Profile8Bit420Avif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Profile8Bit422Avif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Profile8Bit444Avif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Palette8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1IntraBlockCopy8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Lossless8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1SuperResolution8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1Restoration8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Animated12BitWithKeyframes, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Deblocking10BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Deblocking12BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Cdef10BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Cdef12BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile10BitMonochromeAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile10Bit420Avif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile10Bit422Avif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile10Bit444Avif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile12BitMonochromeAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile12Bit420Avif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile12Bit422Avif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Profile12Bit444Avif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1IntraBlockCopy10BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1IntraBlockCopy12BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Lossless10BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Lossless12BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1SuperResolution10BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1SuperResolution12BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Restoration10BitAvif, PixelTypes.Rgba64)]
+    [WithFile(TestImages.Heif.Av1Restoration12BitAvif, PixelTypes.Rgba64)]
+    public void Decode<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance, options);
+
+        if (image.Frames.Count == 1)
+        {
+            image.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        }
+        else
+        {
+            image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
+    }
+
 
     [Theory]
-    [InlineData(TestImages.Heif.IrvineAvif, HeifCompressionMethod.Av1, HeifBitDepth.Bit8, 480, 640)]
-    public void Identify(string imagePath, HeifCompressionMethod compressionMethod, HeifBitDepth bitDepth, int width, int height)
+    [InlineData(TestImages.Heif.IrvineAvif, HeifBitDepth.Bit8, 480, 640)]
+    public void Identify(string imagePath, HeifBitDepth bitDepth, int width, int height)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -44,7 +109,6 @@ public class HeifDecoderTests
 
         Assert.NotNull(imageInfo);
         Assert.Equal(HeifFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
-        Assert.Equal(compressionMethod, heifMetadata.CompressionMethod);
         Assert.Equal(bitDepth, heifMetadata.BitDepth);
         Assert.Equal(width, imageInfo.Width);
         Assert.Equal(height, imageInfo.Height);
@@ -120,7 +184,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    public void DecodeAvifPreservesEmbeddedIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+    public void IccPreserve<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -131,6 +195,8 @@ public class HeifDecoderTests
         Assert.NotNull(preserved.Metadata.IccProfile);
         Assert.NotNull(expectedPreserved.Metadata.IccProfile);
         Assert.Equal(expectedPreserved.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        preserved.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+        preserved.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
     /// <summary>
@@ -138,7 +204,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
-    public void DecodeAvifConvertsEmbeddedNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+    public void IccConvert<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -146,22 +212,13 @@ public class HeifDecoderTests
 
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
-        using Image<TPixel> expected = Image.Load<TPixel>(convertOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
 
         Assert.NotNull(preserved.Metadata.IccProfile);
         Assert.Null(converted.Metadata.IccProfile);
         Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
 
-        // The decoded metadata retains the AVIF source matrix, which PNG cannot represent. The debug output exists
-        // only to inspect converted pixels, so omit metadata without altering the image under test.
-        converted.DebugSave(
-            provider,
-            new PngEncoder { SkipMetadata = true },
-            testOutputDetails: "IccConverted");
-
-        // The PNG is the independent RGB source used by libavif's avifenc. A tolerant comparison accounts for the
-        // AV1 loss while proving the AVIF ICC stage produces the same target-profile interpretation.
-        ImageComparer.TolerantPercentage(1F, 20).VerifySimilarity(expected, converted);
+        converted.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+        converted.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
     /// <summary>
@@ -169,7 +226,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
-    public void DecodeAvifGridConvertsEmbeddedNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+    public void IccConvertGrid<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -178,14 +235,14 @@ public class HeifDecoderTests
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
         using Image<TPixel> expectedPreserved = Image.Load<TPixel>(preserveOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
-        using Image<TPixel> expected = Image.Load<TPixel>(convertOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
 
         IccProfile preservedIccProfile = Assert.IsType<IccProfile>(preserved.Metadata.IccProfile);
         IccProfile expectedIccProfile = Assert.IsType<IccProfile>(expectedPreserved.Metadata.IccProfile);
         Assert.Null(converted.Metadata.IccProfile);
         Assert.Equal(expectedIccProfile.ToByteArray(), preservedIccProfile.ToByteArray());
         Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
-        ImageComparer.TolerantPercentage(1F, 20).VerifySimilarity(expected, converted);
+        converted.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+        converted.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
     /// <summary>
@@ -193,7 +250,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeAvifSequenceConvertsEveryFrameWithEmbeddedNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+    public void IccConvertSequence<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -202,7 +259,6 @@ public class HeifDecoderTests
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
         using Image<TPixel> expectedPreserved = Image.Load<TPixel>(preserveOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
-        using Image<TPixel> expected = Image.Load<TPixel>(convertOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
 
         Assert.Equal(2, preserved.Frames.Count);
         Assert.Equal(preserved.Frames.Count, converted.Frames.Count);
@@ -211,55 +267,23 @@ public class HeifDecoderTests
         Assert.Null(converted.Metadata.IccProfile);
         Assert.Equal(expectedIccProfile.ToByteArray(), preservedIccProfile.ToByteArray());
 
-        for (int i = 0; i < converted.Frames.Count; i++)
-        {
-            Assert.False(ImageComparer.Exact.CompareImagesOrFrames(i, preserved.Frames[i], converted.Frames[i]).IsEmpty);
-            Assert.True(ImageComparer.TolerantPercentage(1F, 20).CompareImagesOrFrames(i, expected.Frames.RootFrame, converted.Frames[i]).IsEmpty);
-        }
+        converted.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+        converted.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
     }
 
     /// <summary>
     /// Verifies that non-sRGB ICC conversion follows auxiliary-alpha composition and preserves the composed alpha values.
     /// </summary>
-    [Fact]
-    public void DecodeAvifAlphaImageConvertsEmbeddedIccProfileWithoutChangingAlpha()
+    [Theory]
+    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
+    public void IccConvertAlpha(TestImageProvider<Rgba32> provider)
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
         DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
-        byte[] encoded = TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes;
+        using Image<Rgba32> decoded = provider.GetImage(HeifDecoder.Instance, convertOptions);
 
-        using Image<Rgba32> preserved = Image.Load<Rgba32>(preserveOptions, encoded);
-        using Image<Rgba32> converted = Image.Load<Rgba32>(convertOptions, encoded);
-        using Image<Rgba32> expected = preserved.Clone();
-
-        ColorProfileConverter converter = new(new ColorConversionOptions
-        {
-            SourceIccProfile = expected.Metadata.IccProfile,
-            TargetIccProfile = CompactSrgbV4Profile.Profile,
-            MemoryAllocator = expected.Configuration.MemoryAllocator,
-        });
-
-        // Build the oracle from the fully composed preserved decode so that only ICC ordering and alpha retention
-        // are under test; the independently encoded AV1 color and alpha payloads remain identical in both paths.
-        converter.Convert(expected);
-
-        Assert.NotNull(preserved.Metadata.IccProfile);
-        Assert.Null(converted.Metadata.IccProfile);
-        Assert.Equal(TestIccProfiles.GetProfile(TestIccProfiles.RommRgb).ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
-        Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
-
-        for (int y = 0; y < converted.Height; y++)
-        {
-            Span<Rgba32> preservedRow = preserved.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            Span<Rgba32> convertedRow = converted.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-
-            for (int x = 0; x < convertedRow.Length; x++)
-            {
-                Assert.Equal(preservedRow[x].A, convertedRow[x].A);
-            }
-        }
-
-        ImageComparer.Exact.VerifySimilarity(expected, converted);
+        decoded.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+        decoded.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        Assert.Null(decoded.Metadata.IccProfile);
     }
 
     /// <summary>
@@ -270,7 +294,7 @@ public class HeifDecoderTests
     [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void DecodeAvifRetainsNonSrgbIccProfileWhenCompacting<TPixel>(TestImageProvider<TPixel> provider)
+    public void IccCompactNonSrgb<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -283,6 +307,16 @@ public class HeifDecoderTests
         Assert.NotNull(compact.Metadata.IccProfile);
         Assert.Equal(preserved.Metadata.IccProfile.ToByteArray(), compact.Metadata.IccProfile.ToByteArray());
         Assert.Empty(ImageComparer.Exact.CompareImages(preserved, compact));
+        if (compact.Frames.Count == 1)
+        {
+            compact.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+            compact.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        }
+        else
+        {
+            compact.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+            compact.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
     }
 
     /// <summary>
@@ -290,7 +324,7 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    public void DecodeAvifCompactsCanonicalSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+    public void IccCompactSrgb<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
@@ -302,6 +336,8 @@ public class HeifDecoderTests
         Assert.NotNull(preserved.Metadata.IccProfile);
         Assert.Null(compact.Metadata.IccProfile);
         Assert.Empty(ImageComparer.Exact.CompareImages(preserved, compact));
+        compact.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+        compact.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
     /// <summary>
@@ -312,7 +348,7 @@ public class HeifDecoderTests
     [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void DecodeAvifSkipsEmbeddedIccProfileWithMetadata<TPixel>(TestImageProvider<TPixel> provider)
+    public void IccSkipMetadata<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new()
@@ -324,12 +360,22 @@ public class HeifDecoderTests
         using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance, options);
 
         Assert.Null(image.Metadata.IccProfile);
+        if (image.Frames.Count == 1)
+        {
+            image.DebugSave(provider, extension: "png", encoder: new PngEncoder());
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        }
+        else
+        {
+            image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
     }
 
     [Fact]
     public void DecodeIgnoresUnknownTopLevelBox()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         data = InsertBytes(data, data.Length, CreateUnknownBox());
 
         using Image<Rgba32> image = Image.Load<Rgba32>(data);
@@ -367,58 +413,6 @@ public class HeifDecoderTests
             Assert.True(image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y).SequenceEqual(
                 expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y)));
         }
-    }
-
-    [Fact]
-    public void DecodePropagatesStrictValidationToLegacyJpegItems()
-    {
-        byte[] data = CreateContainerWithMalformedJpegMetadata();
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-
-        Assert.Throws<InvalidImageContentException>(() =>
-        {
-            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-        });
-    }
-
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
-    public void DecodePropagatesRecoverableMetadataValidationToLegacyJpegItems(SegmentIntegrityHandling handling)
-    {
-        byte[] data = CreateContainerWithMalformedJpegMetadata();
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
-
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-
-        Assert.Equal(new Size(2, 3), image.Size);
-    }
-
-    [Fact]
-    public void DecodePropagatesSkipMetadataToLegacyJpegItems()
-    {
-        byte[] data = CreateContainerWithMalformedJpegMetadata();
-        DecoderOptions options = new()
-        {
-            SkipMetadata = true,
-            SegmentIntegrityHandling = SegmentIntegrityHandling.Strict
-        };
-
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-
-        Assert.Equal(new Size(2, 3), image.Size);
-    }
-
-    [Fact]
-    public void DecodePropagatesConfigurationToLegacyJpegItems()
-    {
-        byte[] data = CreateLegacyJpegContainer();
-        Configuration configuration = Configuration.CreateDefaultInstance();
-        DecoderOptions options = new() { Configuration = configuration };
-
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-
-        Assert.Same(configuration, image.Configuration);
     }
 
     /// <summary>
@@ -555,7 +549,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyIgnoresUnknownMetadataBox()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         data = InsertBytes(data, metaOffset + metaSize, CreateUnknownBox());
@@ -698,10 +692,9 @@ public class HeifDecoderTests
     [Theory]
     [InlineData(Heif4CharCode.Mif1)]
     [InlineData(Heif4CharCode.Avif)]
-    [InlineData(Heif4CharCode.Jpeg)]
     public void DetectorRecognizesSupportedStillImageMajorBrand(Heif4CharCode brand)
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
         HeifImageFormatDetector detector = new();
 
@@ -715,7 +708,7 @@ public class HeifDecoderTests
     [InlineData(Heif4CharCode.Avis)]
     public void DetectorRecognizesSupportedSequenceMajorBrand(Heif4CharCode brand)
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
         HeifImageFormatDetector detector = new();
 
@@ -741,21 +734,10 @@ public class HeifDecoderTests
         Assert.Same(HeifFormat.Instance, format);
     }
 
-    [Theory]
-    [InlineData(Heif4CharCode.Jpgs)]
-    public void DetectorRejectsUnsupportedSequenceMajorBrand(Heif4CharCode brand)
-    {
-        byte[] data = CreateLegacyJpegContainer();
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
-        HeifImageFormatDetector detector = new();
-
-        Assert.False(detector.TryDetectFormat(data.AsSpan(0, detector.HeaderSize), out _));
-    }
-
     [Fact]
     public void IdentifyRejectsUnsupportedBrands()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), UnknownBoxType);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), UnknownBoxType);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(20), UnknownBoxType);
@@ -767,7 +749,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsExtendedSizeTopLevelBox()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         byte[] box = new byte[16];
         BinaryPrimitives.WriteUInt32BigEndian(box, 1);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
@@ -782,7 +764,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsUuidTopLevelBox()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         byte[] box = new byte[24];
         BinaryPrimitives.WriteUInt32BigEndian(box, (uint)box.Length);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
@@ -796,7 +778,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsSizeZeroTopLevelBox()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         byte[] box = CreateUnknownBox();
         BinaryPrimitives.WriteUInt32BigEndian(box, 0);
         data = InsertBytes(data, data.Length, box);
@@ -809,7 +791,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsExtendedSizeItemInfoEntry()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -829,7 +811,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsSizeZeroMetadataChild()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         byte[] box = CreateUnknownBox();
@@ -843,7 +825,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsMetadataChildBeyondParent()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         byte[] box = CreateUnknownBox();
@@ -857,7 +839,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsItemInfoEntryBeyondParent()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -871,7 +853,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsBoxSmallerThanHeader()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         byte[] box = CreateUnknownBox();
         BinaryPrimitives.WriteUInt32BigEndian(box, 4);
         data = InsertBytes(data, data.Length, box);
@@ -882,7 +864,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsTruncatedExtendedSizeHeader()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         byte[] box = new byte[12];
         BinaryPrimitives.WriteUInt32BigEndian(box, 1);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
@@ -894,7 +876,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsTruncatedUuidHeader()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         byte[] box = new byte[16];
         BinaryPrimitives.WriteUInt32BigEndian(box, 24);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
@@ -906,7 +888,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsItemPropertiesBeforeItemInfo()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -922,7 +904,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsItemLocationBeforeItemInfo()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -938,7 +920,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsDuplicateUniqueMetadataBox()
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int pitmOffset = FindBoxOffset(data, Heif4CharCode.Pitm, metaOffset + 12, metaSize - 12);
@@ -949,11 +931,11 @@ public class HeifDecoderTests
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
     }
 
-    private static byte[] CreateLegacyJpegContainer()
+    private static byte[] CreateAv1Container()
     {
-        using Image<Rgba32> image = new(2, 3);
+        using Image<Rgb24> image = new(2, 3);
         using MemoryStream stream = new();
-        image.Save(stream, new HeifEncoder { CompressionMethod = HeifCompressionMethod.LegacyJpeg });
+        image.Save(stream, new HeifEncoder());
         return stream.ToArray();
     }
 
@@ -962,7 +944,7 @@ public class HeifDecoderTests
 
     private static byte[] CreateContainerWithProperty(ReadOnlySpan<byte> property, bool essential)
     {
-        byte[] data = CreateLegacyJpegContainer();
+        byte[] data = CreateAv1Container();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iprpOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
@@ -971,39 +953,30 @@ public class HeifDecoderTests
         int ipcoSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipcoOffset));
         int ipmaOffset = FindBoxOffset(data, Heif4CharCode.Ipma, iprpOffset + 8, iprpSize - 8);
 
-        // Insert the property before ipma so its one-based index is 2 and all parent box sizes remain explicit.
+        // Count existing AV1 properties before appending the test property; its association is one-based.
+        int propertyIndex = 1;
+        for (int offset = ipcoOffset + 8; offset < ipcoOffset + ipcoSize;)
+        {
+            offset += (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(offset));
+            propertyIndex++;
+        }
+
+        // Insert before ipma and update each enclosing box size.
         data = InsertBytes(data, ipcoOffset + ipcoSize, property);
         IncrementBoxSize(data, metaOffset, property.Length);
         IncrementBoxSize(data, iprpOffset, property.Length);
         IncrementBoxSize(data, ipcoOffset, property.Length);
         ipmaOffset += property.Length;
 
-        // The generated container has one item with one property association; append the inserted property to that entry.
+        // Append the new property association to the sole opaque AV1 item's existing entry.
         int associationCountOffset = ipmaOffset + 18;
         data[associationCountOffset]++;
         int associationOffset = ipmaOffset + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipmaOffset));
-        byte association = (byte)(2 | (essential ? 0x80 : 0));
+        byte association = (byte)(propertyIndex | (essential ? 0x80 : 0));
         data = InsertBytes(data, associationOffset, new byte[] { association });
         IncrementBoxSize(data, metaOffset, 1);
         IncrementBoxSize(data, iprpOffset, 1);
         IncrementBoxSize(data, ipmaOffset, 1);
-        return data;
-    }
-
-    private static byte[] CreateContainerWithMalformedJpegMetadata()
-    {
-        byte[] data = CreateLegacyJpegContainer();
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        int itemLocationOffset = FindBoxOffset(data, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);
-        int mediaDataOffset = FindBoxOffset(data, Heif4CharCode.Mdat, 0, data.Length);
-
-        // The generated item uses one file-relative extent. Insert the malformed JPEG application segment after its
-        // start-of-image marker, then update the enclosing media-data size and the exact declared extent length.
-        data = InsertBytes(data, mediaDataOffset + 10, MalformedJpegApp13);
-        IncrementBoxSize(data, mediaDataOffset, MalformedJpegApp13.Length);
-        uint extentLength = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(itemLocationOffset + 32));
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(itemLocationOffset + 32), extentLength + (uint)MalformedJpegApp13.Length);
         return data;
     }
 
@@ -1020,7 +993,7 @@ public class HeifDecoderTests
         // Repeat the inserted property's one-based index in the existing item entry without changing box structure.
         data[associationCountOffset]++;
         int associationOffset = ipmaOffset + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipmaOffset));
-        byte association = (byte)(2 | (essential ? 0x80 : 0));
+        byte association = data[associationOffset - 1];
         data = InsertBytes(data, associationOffset, new byte[] { association });
         IncrementBoxSize(data, metaOffset, 1);
         IncrementBoxSize(data, iprpOffset, 1);
@@ -1138,6 +1111,20 @@ public class HeifDecoderTests
     /// <param name="itemId">The item whose coded payload is cleared.</param>
     private static void ClearItemPayload(Span<byte> data, uint itemId)
     {
+        foreach (Range extent in GetItemPayloadRanges(data, itemId))
+        {
+            data[extent].Clear();
+        }
+    }
+
+    /// <summary>
+    /// Locates every file-relative extent for an item without decoding its contents.
+    /// </summary>
+    /// <param name="data">The complete HEIF container.</param>
+    /// <param name="itemId">The item whose extents are selected.</param>
+    /// <returns>The item's extents in file order.</returns>
+    private static List<Range> GetItemPayloadRanges(ReadOnlySpan<byte> data, uint itemId)
+    {
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         Assert.True(metaOffset >= 0);
 
@@ -1161,7 +1148,8 @@ public class HeifDecoderTests
             : BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
 
         offset += version == 2 ? 4 : 2;
-        bool found = false;
+        List<Range> extents = new();
+
         for (uint itemIndex = 0; itemIndex < itemCount; itemIndex++)
         {
             uint currentItemId = version == 2
@@ -1189,13 +1177,14 @@ public class HeifDecoderTests
                 ulong extentLength = ReadVariableUnsigned(data, extentLengthSize, ref offset);
                 if (currentItemId == itemId)
                 {
-                    data.Slice(checked((int)(baseOffset + extentOffset)), checked((int)extentLength)).Clear();
-                    found = true;
+                    int start = checked((int)(baseOffset + extentOffset));
+                    extents.Add(new Range(start, checked(start + (int)extentLength)));
                 }
             }
         }
 
-        Assert.True(found);
+        Assert.NotEmpty(extents);
+        return extents;
     }
 
     /// <summary>

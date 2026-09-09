@@ -60,23 +60,15 @@ internal class FlipProcessor<TPixel> : ImageProcessor<TPixel>
 
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
-        => Apply(this.definition.FlipMode, source, this.Configuration);
-
-    /// <summary>
-    /// Applies an exact axis-aligned reflection to an existing frame.
-    /// </summary>
-    /// <param name="flipMode">The reflection direction.</param>
-    /// <param name="source">The frame modified in place.</param>
-    /// <param name="configuration">The configuration controlling row parallelism and scratch allocation.</param>
-    internal static void Apply(FlipMode flipMode, ImageFrame<TPixel> source, Configuration configuration)
     {
-        switch (flipMode)
+        switch (this.definition.FlipMode)
         {
+            // No default needed as we have already set the pixels.
             case FlipMode.Vertical:
-                FlipX(source.PixelBuffer, configuration);
+                FlipX(source.PixelBuffer, this.Configuration);
                 break;
             case FlipMode.Horizontal:
-                FlipY(source, configuration);
+                FlipY(source, this.Configuration);
                 break;
         }
     }

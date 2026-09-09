@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
@@ -106,26 +105,13 @@ internal sealed partial class HeifEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        switch (this.encoder.CompressionMethod)
+        if (image.Frames.Count > 1 && (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue))
         {
-            case HeifCompressionMethod.LegacyJpeg:
-                break;
-            case HeifCompressionMethod.Av1:
-                if (image.Frames.Count > 1)
-                {
-                    if (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue)
-                    {
-                        throw new NotSupportedException("AV1 image-sequence dimensions cannot exceed 65535 pixels.");
-                    }
-                }
-
-                break;
-            default:
-                throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.");
+            throw new NotSupportedException("AV1 image-sequence dimensions cannot exceed 65535 pixels.");
         }
 
         using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
-        if (this.encoder.CompressionMethod == HeifCompressionMethod.Av1 && image.Frames.Count > 1)
+        if (image.Frames.Count > 1)
         {
             Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
             bool animateRootFrame = this.encoder.AnimateRootFrame
@@ -200,43 +186,13 @@ internal sealed partial class HeifEncoderCore
 
         List<HeifItem> items = new();
         List<HeifItemLink> links = new();
-        switch (this.encoder.CompressionMethod)
-        {
-            case HeifCompressionMethod.LegacyJpeg:
-                this.CompressPixels(image, compressedPixels, cancellationToken);
-                GenerateLegacyJpegItem(image, compressedPixels.Length, items);
-                break;
-            case HeifCompressionMethod.Av1:
-                this.CompressAv1Pixels(image, compressedPixels, items, links, cancellationToken);
-                break;
-        }
+        this.CompressAv1Pixels(image, compressedPixels, items, links, cancellationToken);
 
         // Write out the generated header and pixels.
         long metadataBoxOffset = this.WriteFileTypeBox(stream);
         this.WriteMetadataBox(items, links, metadataBoxOffset, 0, stream);
         this.WriteMediaDataBox(compressedPixels, stream);
         stream.Flush();
-    }
-
-    /// <summary>
-    /// Builds the item declarations and relationships for the encoded image payload.
-    /// </summary>
-    /// <typeparam name="TPixel">The source pixel format.</typeparam>
-    /// <param name="image">The source image.</param>
-    /// <param name="pixelDataLength">The encoded primary-item payload length.</param>
-    /// <param name="items">The destination item collection.</param>
-    private static void GenerateLegacyJpegItem<TPixel>(Image<TPixel> image, long pixelDataLength, List<HeifItem> items)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        HeifItem primaryItem = new(Heif4CharCode.Jpeg, 1u);
-        primaryItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, 0L, pixelDataLength));
-        primaryItem.BitsPerPixel = 24;
-        primaryItem.ChannelCount = 3;
-        primaryItem.SetExtent(image.Size);
-        items.Add(primaryItem);
-
-        // No item relationship is emitted until the writer has a distinct derived image,
-        // thumbnail, auxiliary image, or metadata item to reference.
     }
 
     /// <summary>
@@ -290,24 +246,18 @@ internal sealed partial class HeifEncoderCore
     {
         Span<byte> buffer = stackalloc byte[28];
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Ftyp);
-        Heif4CharCode majorBrand = this.encoder.CompressionMethod == HeifCompressionMethod.Av1
-            ? Heif4CharCode.Avif
-            : Heif4CharCode.Mif1;
-
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)majorBrand);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avif);
         bytesWritten += 4;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
-        if (majorBrand == Heif4CharCode.Avif)
-        {
-            // A still AVIF is also a MIAF image collection, so advertise both structural brands with the codec brand.
-            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avif);
-            bytesWritten += 4;
-            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Mif1);
-            bytesWritten += 4;
-            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Miaf);
-            bytesWritten += 4;
-        }
+
+        // A still AVIF is also a MIAF image collection, so advertise both structural brands with the codec brand.
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avif);
+        bytesWritten += 4;
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Mif1);
+        bytesWritten += 4;
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Miaf);
+        bytesWritten += 4;
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         stream.Write(buffer[..bytesWritten]);
@@ -1544,42 +1494,6 @@ internal sealed partial class HeifEncoderCore
         }
 
         throw new ImageFormatException("The Exif profile does not contain a TIFF header.");
-    }
-
-    /// <summary>
-    /// Encodes the source pixels as the current legacy JPEG item payload.
-    /// </summary>
-    /// <typeparam name="TPixel">The source pixel format.</typeparam>
-    /// <param name="image">The source image.</param>
-    /// <param name="stream">The destination for the encoded JPEG item bytes.</param>
-    /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
-    private void CompressPixels<TPixel>(
-        Image<TPixel> image,
-        ChunkedMemoryStream stream,
-        CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        JpegColorType colorType = this.encoder.ChromaSubsampling switch
-        {
-            null or HeifChromaSubsampling.Yuv420 => JpegColorType.YCbCrRatio420,
-            HeifChromaSubsampling.Yuv422 => JpegColorType.YCbCrRatio422,
-            HeifChromaSubsampling.Yuv444 => JpegColorType.YCbCrRatio444,
-            HeifChromaSubsampling.Monochrome => JpegColorType.Luminance,
-            _ => throw new NotSupportedException($"HEIF chroma sampling '{this.encoder.ChromaSubsampling}' is not supported.")
-        };
-
-        JpegEncoder encoder = new()
-        {
-            // The HEIF quality scale includes zero while the JPEG payload encoder starts at one.
-            // Map the lowest HEIF setting to the lowest representable JPEG setting.
-            Quality = this.encoder.Quality == 0 ? 1 : this.encoder.Quality,
-            ColorType = colorType,
-            SkipMetadata = this.encoder.SkipMetadata
-        };
-
-        // ImageEncoder is a synchronous contract. Wait for the cancellable JPEG operation so HEIF encoding
-        // cannot return while its pooled item payload is still being produced.
-        image.SaveAsJpegAsync(stream, encoder, cancellationToken).GetAwaiter().GetResult();
     }
 
     /// <summary>

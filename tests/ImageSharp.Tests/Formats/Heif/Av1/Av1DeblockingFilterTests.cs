@@ -196,26 +196,20 @@ public class Av1DeblockingFilterTests
         {
             Skip = true,
             YMode = mode,
+            TransformSize = Av1TransformSize.Size8x8,
         };
 
         Av1BlockModeInfo rightModeInfo = new(Av1BlockSize.Block16x8, new Point(4, 0))
         {
             Skip = true,
             YMode = mode,
+            TransformSize = Av1TransformSize.Size8x8,
         };
 
         leftModeInfo.ReferenceFrames[0] = referenceFrame;
         rightModeInfo.ReferenceFrames[0] = referenceFrame;
         frameInfo.UpdateModeInfo(leftModeInfo, superblock);
         frameInfo.UpdateModeInfo(rightModeInfo, superblock);
-
-        using Av1LoopFilterContext loopFilterContext =
-            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-
-        loopFilterContext.SetTransformSize(Av1Plane.Y, Point.Empty, Av1TransformSize.Size8x8);
-        loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(2, 0), Av1TransformSize.Size8x8);
-        loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(4, 0), Av1TransformSize.Size8x8);
-        loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(6, 0), Av1TransformSize.Size8x8);
 
         byte[] expected = new byte[width * height];
         for (int row = 0; row < height; row++)
@@ -234,7 +228,7 @@ public class Av1DeblockingFilterTests
         ApplyReference(expected, true, edge, 8, limit, boundaryLimit, highEdgeVarianceThreshold, 8);
         ApplyReference(expected, true, (4 * width) + edge, 8, limit, boundaryLimit, highEdgeVarianceThreshold, 8);
 
-        Av1LoopFilterDecoder decoder = new(sequenceHeader, frameHeader, frameInfo, frameBuffer, loopFilterContext);
+        Av1LoopFilterDecoder decoder = new(sequenceHeader, frameHeader, frameInfo, frameBuffer);
         decoder.DecodeFrame();
 
         for (int row = 0; row < height; row++)

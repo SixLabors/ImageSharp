@@ -2,11 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Numerics.Tensors;
 using SixLabors.ImageSharp.Formats.Heif.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 
@@ -30,15 +30,17 @@ internal static class HeifPlanarAlphaCompositor
     /// <param name="outputSize">The complete presented size of the auxiliary image or grid tile.</param>
     /// <param name="destinationRectangle">The destination region receiving the top-left portion of the presented alpha image.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
     public static void Compose<TPixel, TBuffer, TSample, TLoader>(
         Configuration configuration,
         TBuffer buffer,
-        ImageFrame<TPixel> destination,
+        Buffer2DRegion<TPixel> destination,
         in HeifColorConversionParameters parameters,
         Rectangle sourceRectangle,
         Size outputSize,
         Rectangle destinationRectangle,
-        bool premultiplied)
+        bool premultiplied,
+        HeifPixelTransform transform)
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
@@ -50,6 +52,7 @@ internal static class HeifPlanarAlphaCompositor
         int outputHeight = outputSize.Height;
         int composedWidth = destinationRectangle.Width;
         int composedHeight = destinationRectangle.Height;
+        Matrix3x2 matrix = transform.GetMatrix(destinationRectangle.Size);
 
         if (sourceWidth == outputWidth && sourceHeight == outputHeight)
         {
@@ -64,32 +67,34 @@ internal static class HeifPlanarAlphaCompositor
             // destination row. No resize maps or full-plane staging are required.
             for (int y = 0; y < composedHeight; y++)
             {
-                ReadOnlySpan<TSample> source = buffer.GetLumaRowSpan(sourceRectangle.Y + y).Slice(sourceRectangle.X, composedWidth);
+                ReadOnlySpan<TSample> source = buffer.GetLumaRowSpan(sourceRectangle.Y + destinationRectangle.Y + y)
+                    .Slice(sourceRectangle.X + destinationRectangle.X, composedWidth);
+
                 NormalizeAlphaRow<TSample, TLoader>(source, alpha, in parameters);
-                ApplyAlphaRow(configuration, destination, destinationRectangle.X, destinationRectangle.Y + y, alpha, packedAlpha, packedColor, premultiplied);
+                ApplyAlphaRow(configuration, destination, y, alpha, packedAlpha, packedColor, premultiplied, matrix);
             }
 
             return;
         }
 
-        // Alpha scaling must match KnownResamplers.Box. That public instance is exposed as IResampler, while
-        // ResizeKernelMap requires the concrete struct so Radius and GetValue remain statically dispatched.
-        // BoxResampler is stateless, making its default value behaviorally identical to the known instance.
-        BoxResampler boxResampler = default;
-        using ResizeKernelMap horizontalKernels = ResizeKernelMap.Calculate(in boxResampler, outputWidth, sourceWidth, configuration.MemoryAllocator);
-        using ResizeKernelMap verticalKernels = ResizeKernelMap.Calculate(in boxResampler, outputHeight, sourceHeight, configuration.MemoryAllocator);
-        using HeifPlanarAlphaResizeWorker<TPixel, TBuffer, TSample, TLoader> worker = new(
+        using HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> worker = new(
             configuration,
             buffer,
-            destination,
             in parameters,
             sourceRectangle,
             destinationRectangle,
-            horizontalKernels,
-            verticalKernels,
-            premultiplied);
+            outputSize);
 
-        worker.Compose();
+        using IMemoryOwner<L16> resizedAlphaOwner = configuration.MemoryAllocator.Allocate<L16>(composedWidth);
+        using IMemoryOwner<Rgba64> resizedColorOwner = configuration.MemoryAllocator.Allocate<Rgba64>(composedWidth);
+        Span<L16> resizedPackedAlpha = resizedAlphaOwner.GetSpan()[..composedWidth];
+        Span<Rgba64> resizedPackedColor = resizedColorOwner.GetSpan()[..composedWidth];
+
+        for (int y = 0; y < composedHeight; y++)
+        {
+            ApplyAlphaRow(
+                configuration, destination, y, worker.ReadRow(y), resizedPackedAlpha, resizedPackedColor, premultiplied, matrix);
+        }
     }
 
     /// <summary>
@@ -107,13 +112,10 @@ internal static class HeifPlanarAlphaCompositor
         where TSample : unmanaged
         where TLoader : struct, IHeifSampleConverter<TSample>
     {
-        HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(source, destination);
+        HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(source, destination, parameters.LumaBias, parameters.LumaScale);
 
-        // Alpha auxiliaries use the luma code-value range but no color matrix. TensorPrimitives keeps this bulk
-        // normalization SIMD-first on every supported architecture and clamps before resampling, matching the
-        // established conversion to a bounded L16 plane.
-        TensorPrimitives.Subtract(destination, parameters.LumaBias, destination);
-        TensorPrimitives.Multiply(destination, 1F / parameters.LumaScale, destination);
+        // Normalization divides by the encoded range during widening. Multiplication by a rounded
+        // reciprocal can move alpha across a final half-unit boundary. Clamp before resampling.
         TensorPrimitives.Clamp(destination, 0F, 1F, destination);
     }
 
@@ -123,29 +125,44 @@ internal static class HeifPlanarAlphaCompositor
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <param name="configuration">The configuration used for pixel conversion.</param>
     /// <param name="destination">The packed destination frame receiving alpha values.</param>
-    /// <param name="destinationX">The horizontal start of the destination region.</param>
-    /// <param name="destinationY">The destination row receiving alpha values.</param>
+    /// <param name="destinationY">The source row mapped into the destination region.</param>
     /// <param name="alpha">The normalized alpha samples.</param>
     /// <param name="packedAlpha">The reusable 16-bit alpha packing row.</param>
     /// <param name="packedColor">The reusable high-bit-depth destination color row.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    /// <param name="matrix">The matrix resolved once for the destination region.</param>
     public static void ApplyAlphaRow<TPixel>(
         Configuration configuration,
-        ImageFrame<TPixel> destination,
-        int destinationX,
+        Buffer2DRegion<TPixel> destination,
         int destinationY,
         ReadOnlySpan<float> alpha,
         Span<L16> packedAlpha,
         Span<Rgba64> packedColor,
-        bool premultiplied)
+        bool premultiplied,
+        Matrix3x2 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = alpha.Length;
-        Span<TPixel> destinationRow = destination.PixelBuffer.DangerousGetRowSpan(destinationY).Slice(destinationX, width);
+        Point rowStart = HeifPixelTransform.Transform(0, destinationY, matrix);
+        Size rowStep = new((int)matrix.M11, (int)matrix.M12);
         PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
         HeifSampleConversion.PackL16(alpha, packedAlpha);
-        pixelOperations.ToRgba64(configuration, destinationRow, packedColor);
+        if (matrix.IsIdentity)
+        {
+            pixelOperations.ToRgba64(configuration, destination.DangerousGetRowSpan(destinationY), packedColor);
+        }
+        else
+        {
+            // Gather only this alpha row's color pixels from their final coordinates. No second image is needed.
+            Point point = rowStart;
+            for (int x = 0; x < width; x++)
+            {
+                packedColor[x] = Rgba64.FromScaledVector4(destination.DangerousGetRowSpan(point.Y)[point.X].ToScaledVector4());
+                point += rowStep;
+            }
+        }
+
         if (premultiplied)
         {
             for (int x = 0; x < width; x++)
@@ -168,6 +185,18 @@ internal static class HeifPlanarAlphaCompositor
             }
         }
 
-        pixelOperations.FromRgba64(configuration, packedColor, destinationRow);
+        if (matrix.IsIdentity)
+        {
+            pixelOperations.FromRgba64(configuration, packedColor, destination.DangerousGetRowSpan(destinationY));
+        }
+        else
+        {
+            Point point = rowStart;
+            for (int x = 0; x < width; x++)
+            {
+                destination.DangerousGetRowSpan(point.Y)[point.X] = TPixel.FromRgba64(packedColor[x]);
+                point += rowStep;
+            }
+        }
     }
 }

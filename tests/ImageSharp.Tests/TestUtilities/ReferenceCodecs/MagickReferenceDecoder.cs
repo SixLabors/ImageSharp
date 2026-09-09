@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using ImageMagick;
 using ImageMagick.Formats;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Exr;
@@ -76,6 +77,14 @@ public class MagickReferenceDecoder : ImageDecoder
         List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
+            if (this.imageFormat is HeifFormat
+                && options.ColorProfileHandling == ColorProfileHandling.Convert
+                && magicFrame.GetColorProfile() is not null)
+            {
+                // Use the decoder contract's target profile so the comparison isolates conversion behavior.
+                magicFrame.TransformColorSpace(new ColorProfile(CompactSrgbV4Profile.Profile.ToByteArray()));
+            }
+
             ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 

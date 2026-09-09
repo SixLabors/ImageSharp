@@ -30,13 +30,6 @@ public class Av1RegularQuantizerTests
     /// </summary>
     private static void ValidateQuantization()
     {
-        string vectorWidth = Vector512.IsHardwareAccelerated ? "512"
-            : Vector256.IsHardwareAccelerated ? "256"
-            : Vector128.IsHardwareAccelerated ? "128" : "0";
-
-        string directory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", "RegularQuantization", vectorWidth);
-
-        Directory.CreateDirectory(directory);
         foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.EightBit, Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
         {
             foreach (Av1TransformSize size in new[]
@@ -128,17 +121,6 @@ public class Av1RegularQuantizerTests
                             }
 
                             Assert.Equal(expectedEnd, end);
-                            using BinaryWriter output = new(File.Create(Path.Combine(
-                                directory, $"{bits}-{(int)size}-{qIndex}-{sharpness}-{pattern}.bin")));
-
-                            foreach (int value in new[] { bits, (int)size, qIndex, dcDelta, acDelta, sharpness, count, end })
-                            {
-                                output.Write(value);
-                            }
-
-                            output.Write(MemoryMarshal.AsBytes(input.AsSpan(1, count)));
-                            output.Write(MemoryMarshal.AsBytes(quantized.AsSpan(1, count)));
-                            output.Write(MemoryMarshal.AsBytes(dequantized.AsSpan(1, count)));
                         }
                     }
                 }

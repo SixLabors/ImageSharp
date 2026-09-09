@@ -7,7 +7,6 @@ using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -591,15 +590,14 @@ public class Av1ReconstructionConformanceTests
         TestImageProvider<Rgba32> provider,
         HeifBitDepth bitDepth)
     {
-        using Image<Rgba32> image = provider.GetImage();
+        using Image<Rgba32> image = provider.GetImage(HeifDecoder.Instance);
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(bitDepth, metadata.BitDepth);
 
         CicpProfile colorProfile = Assert.IsType<CicpProfile>(image.Metadata.CicpProfile);
         Assert.Equal(CicpColorPrimaries.ItuRBt709_6, colorProfile.ColorPrimaries);
         Assert.Equal(CicpTransferCharacteristics.Iec61966_2_1, colorProfile.TransferCharacteristics);
-        Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, colorProfile.MatrixCoefficients);
+        Assert.Equal(CicpMatrixCoefficients.Identity, colorProfile.MatrixCoefficients);
         Assert.True(colorProfile.FullRange);
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -1035,20 +1033,25 @@ public class Av1ReconstructionConformanceTests
                 continue;
             }
 
-            ImageFrame<Rgba32> decodedFrame;
+            using ImageFrame<Rgba32> frame = new(configuration, track.CodedWidth, track.CodedHeight);
             try
             {
-                decodedFrame = decoder.DecodeSequenceFrame<Rgba32>(
+                decoder.DecodeSequenceFrame(
                     sampleData,
                     track.CicpProfile,
-                    track.Av1CodecConfiguration);
+                    track.Av1CodecConfiguration,
+                    frame.Size,
+                    frame.Bounds,
+                    frame.PixelBuffer.GetRegion(frame.Bounds),
+                    default,
+                    null,
+                    null,
+                    false);
             }
             catch (InvalidImageContentException exception)
             {
                 throw new InvalidImageContentException($"The verified compound fixture failed at sample {sampleIndex}.", exception);
             }
-
-            using ImageFrame<Rgba32> frame = decodedFrame;
 
             _ = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
             Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
@@ -1290,10 +1293,18 @@ public class Av1ReconstructionConformanceTests
         {
             int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
             ivfOffset += 12;
-            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, OfficialMotionVectorFixtureWidth, OfficialMotionVectorFixtureHeight);
+            decoder.DecodeSequenceFrame(
                 ivf.AsSpan(ivfOffset, payloadLength),
                 null,
-                null);
+                null,
+                frame.Size,
+                frame.Bounds,
+                frame.PixelBuffer.GetRegion(frame.Bounds),
+                default,
+                null,
+                null,
+                false);
 
             ivfOffset += payloadLength;
             Assert.Equal(OfficialMotionVectorFixtureWidth, frame.Width);
@@ -1408,10 +1419,18 @@ public class Av1ReconstructionConformanceTests
         {
             int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
             ivfOffset += 12;
-            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, OfficialIntraBlockCopyFixtureWidth, OfficialIntraBlockCopyFixtureHeight);
+            decoder.DecodeSequenceFrame(
                 ivf.AsSpan(ivfOffset, payloadLength),
                 null,
-                null);
+                null,
+                frame.Size,
+                frame.Bounds,
+                frame.PixelBuffer.GetRegion(frame.Bounds),
+                default,
+                null,
+                null,
+                false);
 
             ivfOffset += payloadLength;
             Assert.Equal(OfficialIntraBlockCopyFixtureWidth, frame.Width);
@@ -2128,10 +2147,18 @@ public class Av1ReconstructionConformanceTests
         {
             int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
             ivfOffset += 12;
-            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+            using ImageFrame<Rgba32> frame = new(configuration, expectedWidth, expectedHeight);
+            decoder.DecodeSequenceFrame(
                 ivf.AsSpan(ivfOffset, payloadLength),
                 null,
-                null);
+                null,
+                frame.Size,
+                frame.Bounds,
+                frame.PixelBuffer.GetRegion(frame.Bounds),
+                default,
+                null,
+                null,
+                false);
 
             ivfOffset += payloadLength;
             Assert.Equal(expectedWidth, frame.Width);
@@ -2255,10 +2282,18 @@ public class Av1ReconstructionConformanceTests
         {
             int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
             ivfOffset += 12;
-            ImageFrame<Rgba32> decodedFrame = decoder.DecodeSequenceFrame<Rgba32>(
+            ImageFrame<Rgba32> decodedFrame = new(configuration, OfficialMotionVectorFixtureWidth, OfficialMotionVectorFixtureHeight);
+            decoder.DecodeSequenceFrame(
                 ivf.AsSpan(ivfOffset, payloadLength),
                 null,
-                null);
+                null,
+                decodedFrame.Size,
+                decodedFrame.Bounds,
+                decodedFrame.PixelBuffer.GetRegion(decodedFrame.Bounds),
+                default,
+                null,
+                null,
+                false);
 
             using ImageFrame<Rgba32> frame = decodedFrame;
 
@@ -2489,10 +2524,18 @@ public class Av1ReconstructionConformanceTests
                 continue;
             }
 
-            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+            using ImageFrame<Rgba32> frame = new(configuration, track.CodedWidth, track.CodedHeight);
+            decoder.DecodeSequenceFrame(
                 sampleData,
                 track.CicpProfile,
-                track.Av1CodecConfiguration);
+                track.Av1CodecConfiguration,
+                frame.Size,
+                frame.Bounds,
+                frame.PixelBuffer.GetRegion(frame.Bounds),
+                default,
+                null,
+                null,
+                false);
 
             Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
             coverage |= GetInterPredictionCoverage(decoder);
@@ -3836,7 +3879,6 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(height, image.Height);
         Assert.Single(image.Frames);
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(metadataBitDepth, metadata.BitDepth);
 
         if (metadataBitDepth != HeifBitDepth.Bit8)
@@ -3877,13 +3919,12 @@ public class Av1ReconstructionConformanceTests
         int height,
         HeifBitDepth bitDepth)
     {
-        using Image<Rgba32> image = provider.GetImage();
+        using Image<Rgba32> image = provider.GetImage(HeifDecoder.Instance);
         Assert.Equal(width, image.Width);
         Assert.Equal(height, image.Height);
         Assert.Single(image.Frames);
 
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(bitDepth, metadata.BitDepth);
     }
 
@@ -3896,12 +3937,9 @@ public class Av1ReconstructionConformanceTests
         TestImageProvider<Rgba32> provider =
             FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
 
-        using Image<Rgba32> image = provider.GetImage();
+        using Image<Rgba32> image = provider.GetImage(HeifDecoder.Instance);
 
-        // CICP records the AVIF source component layout, but PNG permits only the identity matrix. The debug image
-        // is a pixel artifact; the test verifies source metadata independently where that is part of the contract.
-        image.DebugSave(provider, new PngEncoder { SkipMetadata = true });
-
+        image.DebugSave(provider, extension: "png", encoder: new PngEncoder());
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
@@ -3914,13 +3952,10 @@ public class Av1ReconstructionConformanceTests
         TestImageProvider<Rgba32> provider =
             FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
 
-        using Image<Rgba32> sequence = provider.GetImage();
+        using Image<Rgba32> sequence = provider.GetImage(HeifDecoder.Instance);
         using Image<Rgba32> finalFrame = sequence.Frames.CloneFrame(sequence.Frames.Count - 1);
 
-        // The retained source CICP matrix cannot be represented in a PNG cICP chunk. Omit metadata only from the
-        // diagnostic output; the exact reference comparison below still consumes the original decoded image.
-        finalFrame.DebugSave(provider, new PngEncoder { SkipMetadata = true });
-
+        finalFrame.DebugSave(provider, extension: "png", encoder: new PngEncoder());
         finalFrame.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 

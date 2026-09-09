@@ -45,7 +45,7 @@ public class Av1EncoderModeInfoBufferTests
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     [Theory]
@@ -251,8 +251,8 @@ public class Av1EncoderModeInfoBufferTests
 
         Assert.Equal(2, allocator.ReturnLog.Count);
         Assert.Equal(
-            allocations.Select(x => x.AllocationId).Order(),
-            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+            allocations.Select(x => x.HashCodeOfBuffer).Order(),
+            allocator.ReturnLog.Select(x => x.HashCodeOfBuffer).Order());
     }
 
     [Fact]

@@ -1,5 +1,74 @@
 # AVIF and AV1 implementation plan
 
+## Encoder source comparison in progress: 2026-09-09
+
+The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
+into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.
+The previous `d565eec6` source directory is an export without Git metadata. Its local build cache
+selects Release, x86_64, runtime CPU detection, encoder enabled, and libyuv disabled; that build does
+not verify the newly fetched revision. No encoder benchmark has been run for this edited tree.
+
+The active correction is propagation and use of the public Speed option in still-color, alpha,
+grid, and sequence frame preparation, including intra-block-copy eligibility and sequence allocation.
+Previously only sequence encoding assigned Parent.EncodingSpeed. Still paths silently used its default.
+Av1FrameEncoder.ConfigureFrameTools now applies the existing motion policy before picture allocation.
+
+The block-copy candidate controller is also being corrected. Previously
+Av1IntraSuperblockEncoder.ReferenceModeDecision.SelectIntraBlockCopy collected two hash winners plus
+two pixel winners and ran residual evaluation on their deduplicated union. Current libaom
+`av1/encoder/rdopt.c:3390-3477` selects one motion winner per direction, uses only the above direction
+in fast block-copy search, and skips pixel search after a successful fast hash search.
+Av1IntraBlockCopySearchIndex.FindCandidates now owns this order and compares motion costs before
+residual evaluation. The hash and pixel paths share the displacement limits, and the final selected
+vector must satisfy reconstruction availability. Native `mcomp.c:1908-1973` supplies the hash-search
+cost and candidate policy; broader search differences below remain unresolved.
+
+Verification in progress: Release/net11 builds with analyzers enabled completed with zero errors.
+Av1EncoderFrameTests and Av1FrameBufferTests passed 229 cases; Av1IntraBlockCopyTests passed all 12.
+HeifEncoderTests passed 73 existing cases and failed the three new flag cases. The first combined
+VSTest filter omitted the public and block-copy classes because of literal quotes; those classes were
+then run separately. The final public-class run, encoder-public-speed-r3, passes 73 and fails the
+three new native-output comparisons after writing their PNGs. Roslynk still reports zero errors.
+The failing comparison tests and their three native PNGs remain uncommitted investigation work;
+the Speed/block-copy checkpoint includes only the correction and its passing existing coverage.
+
+The flag cases follow the lossy WebP pattern: SaveTestOutputFile, independent decoding, DebugSave,
+and CompareToReferenceOutput for the separately encoded native PNG. The original new assertion
+incorrectly imposed a one-unit source-image bound on lossy encoding; native encoding itself exceeds
+that bound. The native comparison instead allows at most one total 8-bit component unit per pixel,
+accounting for the comparer expanding Rgba32 to 16-bit components. Encoder parity remains failing.
+The second public-class run also passed 73 and failed three because the default tolerant source
+comparison still stopped before DebugSave; the third run verifies the corrected test path.
+
+Current libaom was built separately in Release/x64 with runtime CPU detection and libyuv disabled.
+Native flag baselines use identity GBR, 8-bit 4:4:4, fixed qIndex 4, AllIntra, one thread, and cpu-used
+0/6/9. CDEF and restoration retain native defaults in the baselines. Managed Effort 5 still selects a
+fixed partition tree, so these are explicit controller differences, not fully reconciled settings.
+At speed 0, full native versus managed output has maximum R/G/B errors 2/2/0, with 3/1/0 components
+over one. Restricting native to 8x8 for diagnosis leaves one red sample different by three; disabling
+native trellis or block copy does not change that result. These restrictions are not acceptance settings.
+Current libaom decoding the managed payload exactly matches ImageMagick's decoded RGB for all 72,000
+components in this case. No timing comparison or general decoder parity is established by this check.
+
+Unresolved source-backed gaps:
+- Architectural: sequence CDEF and restoration remain disabled in CreateSequenceHeader. Intra-edge
+  filtering is enabled; the historical statement that it is disabled no longer describes this tree.
+- Architectural: Effort thresholds still select partition, transform, palette, and other search tools
+  independently of the complete speed controller. They have not been established as equivalent.
+- Missing functionality: block-copy mode evaluation remains fixed at 8x8 and excludes lossless coding.
+  Its separate pixel search still uses fixed NSTEP and a fixed mesh rather than the complete shared
+  speed-selected motion search; several declared block-copy policies remain unused.
+- Missing functionality: inter mode evaluation remains restricted to fixed 8x8 and LAST prediction.
+- Missing functionality: fast quantization still lacks the subsequent coefficient optimization.
+- Architectural: mode and coefficient costs are read from changing tile distributions during block
+  decisions. Native encodeframe_utils.c:1621-1699 refreshes worker-owned cost tables at scheduled
+  boundaries instead. At the fixed-8x8 diagnostic's differing sample, native selects three-color UV
+  palette coding while managed selects Paeth. The palette-selection cause is not yet established.
+- Unproven performance: no current-tree timing or allocation improvement is established. The existing
+  uncommitted Hadamard experiment is excluded from this correction and remains unused in production.
+- Verification gap: full separate-encoder comparisons under reconciled settings, maximum component
+  errors and counts over one, and exact decoder agreement remain outstanding.
+
 ## ICC codec regression correction: 2026-09-09
 
 The previous 10,487-case selection omitted JPEG, PNG, TIFF, and WebP ICC decoder tests. It was not

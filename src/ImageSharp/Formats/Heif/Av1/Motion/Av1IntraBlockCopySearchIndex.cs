@@ -286,89 +286,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     }
 
     /// <summary>
-    /// Finds the best exact-source hash candidate in the reference above and left search regions.
-    /// </summary>
-    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperation">The closed sample operation.</typeparam>
-    /// <param name="source">The coded source luma plane.</param>
-    /// <param name="reconstruction">The coded reconstructed luma plane.</param>
-    /// <param name="blockOrigin">The current 8x8 block origin.</param>
-    /// <param name="tile">The active tile boundaries.</param>
-    /// <param name="sequenceHeader">The sequence geometry and sample precision.</param>
-    /// <param name="writer">The live tile entropy model used for displacement rate.</param>
-    /// <param name="reference">The spatial displacement-vector reference.</param>
-    /// <param name="rateMultiplier">The active rate-distortion multiplier.</param>
-    /// <param name="candidates">Storage receiving the above candidate followed by the left candidate.</param>
-    /// <returns>The number of candidates written.</returns>
-    public int FindCandidates<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
-        Point blockOrigin,
-        Av1TileInfo tile,
-        ObuSequenceHeader sequenceHeader,
-        Av1SymbolEncoder writer,
-        Av1MotionVector reference,
-        int rateMultiplier,
-        Span<Av1MotionVector> candidates)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
-    {
-        if (this.hashLinkLength == 0)
-        {
-            return 0;
-        }
-
-        const int ModeInfoSampleSize = 1 << Av1Constants.ModeInfoSizeLog2;
-        int tileLeft = tile.ModeInfoColumnStart * ModeInfoSampleSize;
-        int tileTop = tile.ModeInfoRowStart * ModeInfoSampleSize;
-        int tileRight = tile.ModeInfoColumnEnd * ModeInfoSampleSize;
-        int tileBottom = tile.ModeInfoRowEnd * ModeInfoSampleSize;
-        int superblockSize = sequenceHeader.SuperblockSize.GetWidth();
-        int superblockLeft = (blockOrigin.X / superblockSize) * superblockSize;
-        int superblockTop = (blockOrigin.Y / superblockSize) * superblockSize;
-        int candidateCount = 0;
-
-        if (this.TryFindCandidate<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            tile,
-            sequenceHeader,
-            writer,
-            reference,
-            rateMultiplier,
-            tileLeft,
-            tileTop,
-            tileRight - BlockSize,
-            superblockTop - BlockSize,
-            out Av1MotionVector above))
-        {
-            candidates[candidateCount++] = above;
-        }
-
-        if (this.TryFindCandidate<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            tile,
-            sequenceHeader,
-            writer,
-            reference,
-            rateMultiplier,
-            tileLeft,
-            tileTop,
-            superblockLeft - BlockSize,
-            Math.Min(superblockTop + superblockSize, tileBottom) - BlockSize,
-            out Av1MotionVector left))
-        {
-            candidates[candidateCount++] = left;
-        }
-
-        return candidateCount;
-    }
-
-    /// <summary>
-    /// Finds the best full-pixel NSTEP candidate in the reference above and left search regions.
+    /// Selects one block-copy displacement per permitted search direction.
     /// </summary>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperation">The closed sample operation.</typeparam>
@@ -381,9 +299,10 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <param name="reference">The spatial displacement-vector reference.</param>
     /// <param name="qIndex">The effective segment quantizer index.</param>
     /// <param name="rateMultiplier">The active rate-distortion multiplier.</param>
-    /// <param name="candidates">Storage receiving the above candidate followed by the left candidate.</param>
+    /// <param name="settings">The frame's resolved motion-search policy.</param>
+    /// <param name="candidates">Storage receiving the above winner followed by the left winner.</param>
     /// <returns>The number of candidates written.</returns>
-    public int FindPixelCandidates<TSample, TOperation>(
+    public int FindCandidates<TSample, TOperation>(
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
@@ -393,15 +312,11 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Av1MotionVector reference,
         int qIndex,
         int rateMultiplier,
+        Av1MotionSearchSettings settings,
         Span<Av1MotionVector> candidates)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
-        if (this.OriginWidth == 0 || this.OriginHeight == 0)
-        {
-            return 0;
-        }
-
         const int ModeInfoSampleSize = 1 << Av1Constants.ModeInfoSizeLog2;
         int tileLeft = tile.ModeInfoColumnStart * ModeInfoSampleSize;
         int tileTop = tile.ModeInfoRowStart * ModeInfoSampleSize;
@@ -413,45 +328,87 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int searchStepParameter = GetSearchStepParameter(Math.Max(this.OriginWidth + BlockSize - 1, this.OriginHeight + BlockSize - 1));
         int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(qIndex, sequenceHeader.ColorConfig.BitDepth);
         int candidateCount = 0;
-
-        if (TryFindPixelCandidate<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            tile,
-            sequenceHeader,
-            writer,
-            reference,
-            rateMultiplier,
-            sadPerBit,
-            searchStepParameter,
-            tileLeft,
-            tileTop,
-            tileRight,
-            Math.Min(superblockTop - BlockSize, tileBottom),
-            out Av1MotionVector above))
+        int directionCount = settings.UseFastIntraBlockCopySearch ? 1 : 2;
+        for (int direction = 0; direction < directionCount; direction++)
         {
-            candidates[candidateCount++] = above;
-        }
+            // Both searches use the same legal displacement window. Above ends before this superblock row;
+            // left ends before this superblock column and may extend to the bottom of its row.
+            int maximumColumn = direction == 0 ? tileRight : Math.Min(superblockLeft - BlockSize, tileRight);
+            int maximumRow = direction == 0
+                ? Math.Min(superblockTop - BlockSize, tileBottom)
+                : Math.Min(superblockTop + superblockSize - BlockSize, tileBottom);
 
-        if (TryFindPixelCandidate<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            tile,
-            sequenceHeader,
-            writer,
-            reference,
-            rateMultiplier,
-            sadPerBit,
-            searchStepParameter,
-            tileLeft,
-            tileTop,
-            Math.Min(superblockLeft - BlockSize, tileRight),
-            Math.Min(superblockTop + superblockSize - BlockSize, tileBottom),
-            out Av1MotionVector left))
-        {
-            candidates[candidateCount++] = left;
+            int minimumColumn = Math.Max(
+                tileLeft,
+                blockOrigin.X + Math.Max((reference.Column >> 3) - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
+
+            int minimumRow = Math.Max(
+                tileTop,
+                blockOrigin.Y + Math.Max((reference.Row >> 3) - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
+
+            maximumColumn = Math.Min(
+                maximumColumn,
+                blockOrigin.X + Math.Min((reference.Column >> 3) + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
+
+            maximumRow = Math.Min(
+                maximumRow,
+                blockOrigin.Y + Math.Min((reference.Row >> 3) + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
+
+            bool found = this.TryFindCandidate<TSample, TOperation>(
+                source,
+                reconstruction,
+                blockOrigin,
+                tile,
+                sequenceHeader,
+                writer,
+                reference,
+                rateMultiplier,
+                minimumColumn,
+                minimumRow,
+                maximumColumn,
+                maximumRow,
+                out Av1MotionVector bestVector,
+                out int bestCost);
+
+            // Compare completed motion searches before paying for residual transforms. The fast policy accepts
+            // an exact-source hash match immediately; otherwise the lower variance-plus-rate cost wins.
+            if ((!found || !settings.UseFastIntraBlockCopySearch) &&
+                TryFindPixelCandidate<TSample, TOperation>(
+                    source,
+                    reconstruction,
+                    blockOrigin,
+                    sequenceHeader,
+                    writer,
+                    reference,
+                    rateMultiplier,
+                    sadPerBit,
+                    searchStepParameter,
+                    minimumColumn,
+                    minimumRow,
+                    maximumColumn,
+                    maximumRow,
+                    out Av1MotionVector pixelVector,
+                    out int pixelCost) &&
+                pixelCost < bestCost)
+            {
+                bestVector = pixelVector;
+                found = true;
+            }
+
+            Point modeInfoPosition = new(
+                blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
+                blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+
+            if (found && Av1IntraBlockCopy.IsValid(
+                bestVector,
+                modeInfoPosition,
+                Av1BlockSize.Block8x8,
+                isChroma: false,
+                tile,
+                sequenceHeader))
+            {
+                candidates[candidateCount++] = bestVector;
+            }
         }
 
         return candidateCount;
@@ -518,11 +475,13 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int minimumRow,
         int maximumColumn,
         int maximumRow,
-        out Av1MotionVector bestVector)
+        out Av1MotionVector bestVector,
+        out int bestCost)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
         bestVector = default;
+        bestCost = int.MaxValue;
         if (maximumColumn < minimumColumn || maximumRow < minimumRow)
         {
             return false;
@@ -532,7 +491,6 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int bucket = (int)(blockHash & (this.bucketCount - 1));
         Span<int> hashesAndLinks = this.GetHashesAndLinks();
         int encodedPosition = this.GetHeads()[bucket];
-        int bestCost = int.MaxValue;
         bool found = false;
         Point modeInfoPosition = new(
             blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
@@ -590,7 +548,6 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
-        Av1TileInfo tile,
         ObuSequenceHeader sequenceHeader,
         Av1SymbolEncoder writer,
         Av1MotionVector reference,
@@ -601,11 +558,13 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int minimumRow,
         int maximumColumn,
         int maximumRow,
-        out Av1MotionVector bestVector)
+        out Av1MotionVector bestVector,
+        out int bestCost)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
         bestVector = default;
+        bestCost = int.MaxValue;
         if (maximumColumn < minimumColumn || maximumRow < minimumRow)
         {
             return false;
@@ -652,20 +611,11 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             minimumRowOffset,
             maximumColumnOffset,
             maximumRowOffset,
-            start);
+            start,
+            out bestCost);
 
         bestVector = new(best.Y * 8, best.X * 8);
-        Point modeInfoPosition = new(
-            blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
-            blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
-
-        return Av1IntraBlockCopy.IsValid(
-            bestVector,
-            modeInfoPosition,
-            Av1BlockSize.Block8x8,
-            isChroma: false,
-            tile,
-            sequenceHeader);
+        return true;
     }
 
     private static Point FindBestPixelCandidate<TSample, TOperation>(
@@ -682,7 +632,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int minimumRowOffset,
         int maximumColumnOffset,
         int maximumRowOffset,
-        Point start)
+        Point start,
+        out int bestCost)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
@@ -706,7 +657,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             out Point best,
             out int centerSteps);
 
-        int bestCost = GetVarianceCost<TSample, TOperation>(
+        bestCost = GetVarianceCost<TSample, TOperation>(
             source,
             reconstruction,
             blockOrigin,
@@ -787,6 +738,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
 
             if (candidateCost < bestCost)
             {
+                bestCost = candidateCost;
                 best = candidate;
             }
         }

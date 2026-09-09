@@ -181,7 +181,8 @@ public class HeifEncoderTests
                 payload,
                 colorConfig,
                 qIndex: 0,
-                effort: 0);
+                effort: 0,
+                speed: HeifEncodingSpeed.Level0);
 
             uint itemId = (uint)tileIndex + 2;
             HeifItem tileItem = new(Heif4CharCode.Av01, itemId)
@@ -1544,7 +1545,8 @@ public class HeifEncoderTests
             payloadStream,
             colorConfig,
             qIndex: 0,
-            effort: 0);
+            effort: 0,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = payloadStream.ToArray();
         HeifItem gridItem = new(Heif4CharCode.Grid, 1);

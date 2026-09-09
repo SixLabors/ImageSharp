@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -237,8 +238,10 @@ public class Av1IntraBlockCopyTests
     /// <summary>
     /// Verifies exact hash matches at unaligned origins in both normative search regions.
     /// </summary>
-    [Fact]
-    public void SearchIndexFindsUnalignedAboveAndLeftMatches()
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level0, 2)]
+    [InlineData(HeifEncodingSpeed.Level6, 1)]
+    public void SearchIndexFindsUnalignedAboveAndLeftMatches(HeifEncodingSpeed speed, int expectedCount)
     {
         const int Width = 640;
         const int Height = 256;
@@ -315,12 +318,17 @@ public class Av1IntraBlockCopyTests
             sequenceHeader,
             writer,
             reference,
+            QIndex,
             Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
+            new Av1MotionSearchSettings(speed, true, new Size(Width, Height), QIndex, true, true),
             candidates);
 
-        Assert.Equal(2, candidateCount);
+        Assert.Equal(expectedCount, candidateCount);
         Assert.Equal(new Av1MotionVector(-568, 24), candidates[0]);
-        Assert.Equal(new Av1MotionVector(24, -2568), candidates[1]);
+        if (expectedCount == 2)
+        {
+            Assert.Equal(new Av1MotionVector(24, -2568), candidates[1]);
+        }
     }
 
     /// <summary>
@@ -382,6 +390,7 @@ public class Av1IntraBlockCopyTests
             reconstructionLuma.DangerousGetRowSpan(predictionOrigin.Y + row).Slice(predictionOrigin.X, 8).Fill(value);
         }
 
+        pictureBuffer.Picture.IntraBlockCopySearch.Initialize<byte, Av1IntraSuperblockEncoder.ByteOperator>(sourceLuma);
         Buffer2DRegion<byte> codedSourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> codedReconstructionLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
         Assert.False(Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(codedSourceLuma, blockOrigin, predictionOrigin));
@@ -404,7 +413,7 @@ public class Av1IntraBlockCopyTests
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
-            .FindPixelCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+            .FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
                 codedSourceLuma,
                 codedReconstructionLuma,
                 blockOrigin,
@@ -414,6 +423,7 @@ public class Av1IntraBlockCopyTests
                 new Av1MotionVector(-64, 120),
                 QIndex,
                 Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
+                new Av1MotionSearchSettings(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true),
                 candidates);
 
         Assert.Equal(1, candidateCount);
@@ -485,12 +495,13 @@ public class Av1IntraBlockCopyTests
             }
         }
 
+        pictureBuffer.Picture.IntraBlockCopySearch.Initialize<byte, Av1IntraSuperblockEncoder.ByteOperator>(sourceLuma);
         Buffer2DRegion<byte> codedSourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> codedReconstructionLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
-            .FindPixelCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+            .FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
                 codedSourceLuma,
                 codedReconstructionLuma,
                 blockOrigin,
@@ -500,6 +511,7 @@ public class Av1IntraBlockCopyTests
                 new Av1MotionVector(-64, 0),
                 QIndex,
                 Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
+                new Av1MotionSearchSettings(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true),
                 candidates);
 
         Assert.Equal(1, candidateCount);
@@ -575,7 +587,8 @@ public class Av1IntraBlockCopyTests
         Assert.True(8 + referenceMotionCost < adjacentMotionCost);
         Assert.True((8 * scale) + referenceMotionCost > adjacentMotionCost);
 
-        int count = pictureBuffer.Picture.IntraBlockCopySearch.FindPixelCandidates<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
+        pictureBuffer.Picture.IntraBlockCopySearch.Initialize<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(sourceLuma);
+        int count = pictureBuffer.Picture.IntraBlockCopySearch.FindCandidates<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
             sourceLuma,
             reconstructedLuma,
             blockOrigin,
@@ -585,6 +598,7 @@ public class Av1IntraBlockCopyTests
             reference,
             QIndex,
             Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, sequenceHeader.ColorConfig.BitDepth),
+            new Av1MotionSearchSettings(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true),
             candidates);
 
         Assert.Equal(1, count);

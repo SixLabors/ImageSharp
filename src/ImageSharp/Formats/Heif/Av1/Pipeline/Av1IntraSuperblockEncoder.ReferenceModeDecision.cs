@@ -66,7 +66,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceCandidates,
                 referenceWeights);
 
-            Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[4];
+            Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
             Av1IntraBlockCopySearchIndex search = this.picture.IntraBlockCopySearch;
             int candidateCount = search.FindCandidates<TSample, TOperator>(
                 lumaSource,
@@ -76,44 +76,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Sequence.SequenceHeader,
                 writer,
                 reference,
-                this.rateMultiplier,
-                candidates);
-
-            candidateCount += search.FindPixelCandidates<TSample, TOperator>(
-                lumaSource,
-                lumaReconstruction,
-                blockOrigin,
-                macroBlock.Tile,
-                this.picture.Sequence.SequenceHeader,
-                writer,
-                reference,
                 this.quantization.QIndex[0],
                 this.rateMultiplier,
-                candidates[candidateCount..]);
+                this.picture.Parent.MotionSearchSettings,
+                candidates);
 
-            // Hash and full-pixel searches can converge on the same vector. Preserve the first search-order
-            // occurrence so repeated vectors do not pay for duplicate transform searches or alter ties.
-            int uniqueCandidateCount = 0;
-            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
-            {
-                Av1MotionVector candidate = candidates[candidateIndex];
-                bool duplicate = false;
-                for (int uniqueIndex = 0; uniqueIndex < uniqueCandidateCount; uniqueIndex++)
-                {
-                    if (candidate == candidates[uniqueIndex])
-                    {
-                        duplicate = true;
-                        break;
-                    }
-                }
-
-                if (!duplicate)
-                {
-                    candidates[uniqueCandidateCount++] = candidate;
-                }
-            }
-
-            if (uniqueCandidateCount == 0)
+            if (candidateCount == 0)
             {
                 return regularStatistics;
             }
@@ -188,7 +156,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Per-vector plane results reuse candidate scratch. Separate selected spans retain only a new
             // global winner, allowing the complete search to finish before committed reconstruction changes.
-            for (int candidateIndex = 0; candidateIndex < uniqueCandidateCount; candidateIndex++)
+            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
                 Av1MotionVector candidate = candidates[candidateIndex];
                 this.EvaluateInterPlane(

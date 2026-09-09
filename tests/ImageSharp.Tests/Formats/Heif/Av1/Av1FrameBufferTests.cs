@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -56,7 +57,7 @@ public class Av1FrameBufferTests
 
             using MemoryStream output = new();
             ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
-                Configuration.Default, source.Frames.RootFrame, output, colorConfig, qIndex: 0, effort: 10);
+                Configuration.Default, source.Frames.RootFrame, output, colorConfig, qIndex: 0, effort: 10, speed: HeifEncodingSpeed.Level0);
 
             Assert.Equal(i == 1, sequenceHeader.Use128x128Superblock);
             workspaceLengths[i] = Av1BlockDecoder.GetWorkspaceLength(sequenceHeader);

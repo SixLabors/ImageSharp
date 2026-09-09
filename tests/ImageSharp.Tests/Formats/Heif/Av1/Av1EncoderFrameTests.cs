@@ -157,7 +157,8 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 0,
-            effort: 0);
+            effort: 0,
+            speed: HeifEncodingSpeed.Level0);
 
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _);
@@ -249,7 +250,8 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort: 5);
+            effort: 5,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
 
@@ -914,7 +916,8 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 0,
-            effort);
+            effort,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
 
@@ -967,7 +970,7 @@ public class Av1EncoderFrameTests
         ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
         colorConfig.ColorRange = true;
         using MemoryStream stream = new();
-        Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, effort);
+        Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, effort, speed: HeifEncodingSpeed.Level0);
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _);
@@ -1020,7 +1023,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
             qIndex: 4,
-            effort: 9);
+            effort: 9,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1099,7 +1103,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
             qIndex: 4,
-            effort: 9);
+            effort: 9,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1155,7 +1160,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
             qIndex: 4,
-            effort: 10);
+            effort: 10,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1214,7 +1220,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
             qIndex: 4,
-            effort: 10);
+            effort: 10,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1273,7 +1280,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
             qIndex: 4,
-            effort: 10);
+            effort: 10,
+            speed: HeifEncodingSpeed.Level0);
 
         Assert.True(sequenceHeader.Use128x128Superblock);
         byte[] payload = stream.ToArray();
@@ -1330,7 +1338,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
             qIndex: 4,
-            effort: 10);
+            effort: 10,
+            speed: HeifEncodingSpeed.Level0);
 
         Assert.True(sequenceHeader.Use128x128Superblock);
         byte[] payload = stream.ToArray();
@@ -1382,7 +1391,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(bitDepth),
             qIndex: 37,
-            effort: 5);
+            effort: 5,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1484,7 +1494,8 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(bitDepth, colorFormat),
             qIndex: 37,
-            effort: 5);
+            effort: 5,
+            speed: HeifEncodingSpeed.Level0);
 
         Av1CodecConfiguration configuration = new(sequenceHeader);
         byte[] fixedHeader = new byte[Av1CodecConfiguration.FixedHeaderSize];
@@ -1674,7 +1685,8 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort: 5);
+            effort: 5,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         Av1BitStreamReader reader = new(payload);
@@ -1744,7 +1756,8 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort);
+            effort,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1832,7 +1845,8 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort: 6);
+            effort: 6,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1897,7 +1911,8 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort);
+            effort,
+            speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -2127,7 +2142,8 @@ public class Av1EncoderFrameTests
             destination,
             CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
             qIndex: 37,
-            effort: 5);
+            effort: 5,
+            speed: HeifEncodingSpeed.Level0);
 
         Assert.False(destination.CanSeek);
         Assert.NotEqual(0, storage.Length);

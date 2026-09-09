@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -105,6 +106,40 @@ internal static partial class SimdUtils
         {
             // Exact reciprocal fallback (slower)
             return Vector<float>.One / v;
+        }
+    }
+
+    /// <summary>
+    /// Finds the leading zero count on each item of the vector.
+    /// </summary>
+    /// <param name="vector">The vector to compute leading zero count for.</param>
+    /// <returns>Input vector with leading zero count on each element.</returns>
+    internal static Vector<int> Lzcnt(Vector<int> vector)
+    {
+        if (Avx512CD.IsSupported)
+        {
+            Vector512<int> v512 = vector.AsVector512();
+            Vector512<int> lzcnt = Avx512CD.LeadingZeroCount(v512);
+            return lzcnt.AsVector();
+        }
+        else if (AdvSimd.IsSupported)
+        {
+            Vector128<int> v128 = vector.AsVector128();
+            Vector128<int> lzcnt = AdvSimd.LeadingZeroCount(v128);
+            return lzcnt.AsVector();
+        }
+        else
+        {
+            Span<int> data = stackalloc int[Vector<int>.Count];
+            ref int dataPtr = ref MemoryMarshal.GetReference(data);
+            vector.StoreUnsafe(ref dataPtr);
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                Unsafe.Add(ref dataPtr, i) = BitOperations.LeadingZeroCount((nuint)Unsafe.Add(ref dataPtr, i));
+            }
+
+            return Vector.LoadUnsafe(ref dataPtr);
         }
     }
 

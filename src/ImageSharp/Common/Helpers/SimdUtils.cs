@@ -116,13 +116,13 @@ internal static partial class SimdUtils
     /// <returns>Input vector with leading zero count on each element.</returns>
     internal static Vector<int> Lzcnt(Vector<int> vector)
     {
-        if (Avx512CD.IsSupported)
+        if (Avx512CD.IsSupported && Vector<int>.Count == 16)
         {
             Vector512<int> v512 = vector.AsVector512();
             Vector512<int> lzcnt = Avx512CD.LeadingZeroCount(v512);
             return lzcnt.AsVector();
         }
-        else if (AdvSimd.IsSupported)
+        else if (AdvSimd.IsSupported && Vector<int>.Count == 4)
         {
             Vector128<int> v128 = vector.AsVector128();
             Vector128<int> lzcnt = AdvSimd.LeadingZeroCount(v128);
@@ -137,6 +137,36 @@ internal static partial class SimdUtils
             for (int i = 0; i < data.Length; i++)
             {
                 Unsafe.Add(ref dataPtr, i) = BitOperations.LeadingZeroCount((nuint)Unsafe.Add(ref dataPtr, i));
+            }
+
+            return Vector.LoadUnsafe(ref dataPtr);
+        }
+    }
+
+    /// <summary>
+    /// Raises 2 to the power of each item in the vector.
+    /// </summary>
+    /// <param name="vector">Input vector.</param>
+    /// <returns>2^x for each item in the vector.</returns>
+    internal static Vector<int> Pow2(Vector<int> vector)
+    {
+        if (Avx512F.IsSupported && Vector<int>.Count == 16)
+        {
+            return Avx512F.ShiftLeftLogicalVariable(Vector512<int>.One, vector.AsVector512().AsUInt32()).AsVector();
+        }
+        else if (Avx2.IsSupported && Vector<int>.Count == 8)
+        {
+            return Avx2.ShiftLeftLogicalVariable(Vector256<int>.One, vector.AsVector256().AsUInt32()).AsVector();
+        }
+        else
+        {
+            Span<int> data = stackalloc int[Vector<int>.Count];
+            ref int dataPtr = ref MemoryMarshal.GetReference(data);
+            vector.StoreUnsafe(ref dataPtr);
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                Unsafe.Add(ref dataPtr, i) = 1 << Unsafe.Add(ref dataPtr, i);
             }
 
             return Vector.LoadUnsafe(ref dataPtr);

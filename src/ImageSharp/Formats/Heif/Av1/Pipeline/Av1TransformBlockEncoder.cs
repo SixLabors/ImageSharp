@@ -87,6 +87,10 @@ internal static class Av1TransformBlockEncoder
     /// Encodes one eight-bit intra candidate into contiguous decision scratch.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="writer">The coefficient entropy costs.</param>
+    /// <param name="context">The neighboring coefficient contexts.</param>
+    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
@@ -109,6 +113,10 @@ internal static class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        int rateMultiplier,
+        bool useChromaWeights,
         Buffer2DRegion<byte> source,
         Point blockOrigin,
         Span<byte> reconstruction,
@@ -133,7 +141,7 @@ internal static class Av1TransformBlockEncoder
         int height = transformSize.GetHeight();
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
-        EncodeIntraLossyContiguous(
+        PrepareIntraPrediction(
             workspace,
             sourceSamples,
             source.Stride,
@@ -147,14 +155,52 @@ internal static class Av1TransformBlockEncoder
             angleDelta,
             enableIntraEdgeFilter,
             smoothIntraEdges,
+            workspace.Residual,
+            transformSize);
+
+        EncodeLossy(
+            workspace,
             quantizedCoefficients,
             transformSize,
             transformType,
             qIndex,
             dcDeltaQ,
             acDeltaQ,
-            plane,
+            Av1BitDepth.EightBit,
             ref state);
+
+        if (state.EndOfBlock > 0 && qIndex != 0)
+        {
+            state.EndOfBlock = writer.OptimizeCoefficients(
+                workspace.TransformCoefficients,
+                quantizedCoefficients,
+                workspace.DequantizedCoefficients,
+                transformSize,
+                transformType,
+                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                context,
+                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
+                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
+                rateMultiplier,
+                Av1BitDepth.EightBit,
+                false,
+                useChromaWeights,
+                state.EndOfBlock);
+        }
+
+        if (state.EndOfBlock > 0)
+        {
+            Av1InverseTransformer.Reconstruct8Bit(
+                workspace.DequantizedCoefficients,
+                reconstruction,
+                width,
+                transformSize,
+                state.TransformType,
+                (int)plane,
+                state.EndOfBlock,
+                qIndex == 0,
+                workspace.TransformWorkspace);
+        }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
@@ -172,6 +218,11 @@ internal static class Av1TransformBlockEncoder
     /// Encodes one eight-bit candidate from a cached prediction and source residual.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="writer">The coefficient entropy costs.</param>
+    /// <param name="context">The neighboring coefficient contexts.</param>
+    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+    /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
+    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="prediction">The contiguous prediction samples.</param>
@@ -189,6 +240,11 @@ internal static class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodePredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        int rateMultiplier,
+        bool isInter,
+        bool useChromaWeights,
         Buffer2DRegion<byte> source,
         Point blockOrigin,
         ReadOnlySpan<byte> prediction,
@@ -228,6 +284,25 @@ internal static class Av1TransformBlockEncoder
             Av1BitDepth.EightBit,
             ref state);
 
+        if (state.EndOfBlock > 0 && qIndex != 0)
+        {
+            state.EndOfBlock = writer.OptimizeCoefficients(
+                workspace.TransformCoefficients,
+                quantizedCoefficients,
+                workspace.DequantizedCoefficients,
+                transformSize,
+                transformType,
+                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                context,
+                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
+                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
+                rateMultiplier,
+                Av1BitDepth.EightBit,
+                isInter,
+                useChromaWeights,
+                state.EndOfBlock);
+        }
+
         if (state.EndOfBlock > 0)
         {
             Av1InverseTransformer.Reconstruct8Bit(
@@ -258,6 +333,10 @@ internal static class Av1TransformBlockEncoder
     /// Encodes one eight-bit chroma-from-luma candidate into contiguous decision scratch.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="writer">The coefficient entropy costs.</param>
+    /// <param name="context">The neighboring coefficient contexts.</param>
+    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
@@ -274,6 +353,10 @@ internal static class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodeChromaFromLumaLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        int rateMultiplier,
+        bool useChromaWeights,
         Buffer2DRegion<byte> source,
         Point blockOrigin,
         Span<byte> reconstruction,
@@ -315,6 +398,25 @@ internal static class Av1TransformBlockEncoder
             acDeltaQ,
             Av1BitDepth.EightBit,
             ref state);
+
+        if (state.EndOfBlock > 0 && qIndex != 0)
+        {
+            state.EndOfBlock = writer.OptimizeCoefficients(
+                workspace.TransformCoefficients,
+                quantizedCoefficients,
+                workspace.DequantizedCoefficients,
+                transformSize,
+                Av1TransformType.DctDct,
+                Av1ComponentType.Chroma,
+                context,
+                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
+                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
+                rateMultiplier,
+                Av1BitDepth.EightBit,
+                false,
+                useChromaWeights,
+                state.EndOfBlock);
+        }
 
         if (state.EndOfBlock > 0)
         {
@@ -414,6 +516,10 @@ internal static class Av1TransformBlockEncoder
     /// Encodes one high-bit-depth intra candidate into contiguous decision scratch.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="writer">The coefficient entropy costs.</param>
+    /// <param name="context">The neighboring coefficient contexts.</param>
+    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
@@ -437,6 +543,10 @@ internal static class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        int rateMultiplier,
+        bool useChromaWeights,
         Buffer2DRegion<ushort> source,
         Point blockOrigin,
         Span<ushort> reconstruction,
@@ -462,7 +572,7 @@ internal static class Av1TransformBlockEncoder
         int height = transformSize.GetHeight();
         ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
-        EncodeIntraLossyContiguous(
+        PrepareIntraPrediction(
             workspace,
             sourceSamples,
             source.Stride,
@@ -476,15 +586,54 @@ internal static class Av1TransformBlockEncoder
             angleDelta,
             enableIntraEdgeFilter,
             smoothIntraEdges,
+            workspace.Residual,
+            transformSize,
+            bitDepth);
+
+        EncodeLossy(
+            workspace,
             quantizedCoefficients,
             transformSize,
             transformType,
             qIndex,
             dcDeltaQ,
             acDeltaQ,
-            plane,
             bitDepth,
             ref state);
+
+        if (state.EndOfBlock > 0 && qIndex != 0)
+        {
+            state.EndOfBlock = writer.OptimizeCoefficients(
+                workspace.TransformCoefficients,
+                quantizedCoefficients,
+                workspace.DequantizedCoefficients,
+                transformSize,
+                transformType,
+                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                context,
+                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
+                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
+                rateMultiplier,
+                bitDepth,
+                false,
+                useChromaWeights,
+                state.EndOfBlock);
+        }
+
+        if (state.EndOfBlock > 0)
+        {
+            Av1InverseTransformer.ReconstructHighBitDepth(
+                workspace.DequantizedCoefficients,
+                MemoryMarshal.Cast<ushort, short>(reconstruction),
+                width,
+                transformSize,
+                state.TransformType,
+                (int)plane,
+                state.EndOfBlock,
+                qIndex == 0,
+                bitDepth,
+                workspace.TransformWorkspace);
+        }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
@@ -507,6 +656,11 @@ internal static class Av1TransformBlockEncoder
     /// Encodes one high-bit-depth candidate from a cached prediction and source residual.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="writer">The coefficient entropy costs.</param>
+    /// <param name="context">The neighboring coefficient contexts.</param>
+    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+    /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
+    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="prediction">The contiguous prediction samples.</param>
@@ -525,6 +679,11 @@ internal static class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodePredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        int rateMultiplier,
+        bool isInter,
+        bool useChromaWeights,
         Buffer2DRegion<ushort> source,
         Point blockOrigin,
         ReadOnlySpan<ushort> prediction,
@@ -565,6 +724,25 @@ internal static class Av1TransformBlockEncoder
             bitDepth,
             ref state);
 
+        if (state.EndOfBlock > 0 && qIndex != 0)
+        {
+            state.EndOfBlock = writer.OptimizeCoefficients(
+                workspace.TransformCoefficients,
+                quantizedCoefficients,
+                workspace.DequantizedCoefficients,
+                transformSize,
+                transformType,
+                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                context,
+                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
+                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
+                rateMultiplier,
+                bitDepth,
+                isInter,
+                useChromaWeights,
+                state.EndOfBlock);
+        }
+
         if (state.EndOfBlock > 0)
         {
             Av1InverseTransformer.ReconstructHighBitDepth(
@@ -601,6 +779,10 @@ internal static class Av1TransformBlockEncoder
     /// Encodes one high-bit-depth chroma-from-luma candidate into contiguous decision scratch.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="writer">The coefficient entropy costs.</param>
+    /// <param name="context">The neighboring coefficient contexts.</param>
+    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
@@ -618,6 +800,10 @@ internal static class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodeChromaFromLumaLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        int rateMultiplier,
+        bool useChromaWeights,
         Buffer2DRegion<ushort> source,
         Point blockOrigin,
         Span<ushort> reconstruction,
@@ -668,6 +854,25 @@ internal static class Av1TransformBlockEncoder
             acDeltaQ,
             bitDepth,
             ref state);
+
+        if (state.EndOfBlock > 0 && qIndex != 0)
+        {
+            state.EndOfBlock = writer.OptimizeCoefficients(
+                workspace.TransformCoefficients,
+                quantizedCoefficients,
+                workspace.DequantizedCoefficients,
+                transformSize,
+                Av1TransformType.DctDct,
+                Av1ComponentType.Chroma,
+                context,
+                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
+                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
+                rateMultiplier,
+                bitDepth,
+                false,
+                useChromaWeights,
+                state.EndOfBlock);
+        }
 
         if (state.EndOfBlock > 0)
         {

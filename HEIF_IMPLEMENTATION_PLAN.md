@@ -1,5 +1,29 @@
 # AVIF and AV1 implementation plan
 
+## Coefficient refinement integration checkpoint: 2026-09-10
+
+- The optimizer reduces coefficient levels, shortens the coded end position,
+  and evaluates skipping a complete transform using the existing entropy-cost and level storage.
+- Integration now precedes reconstruction in prepared prediction, ordinary intra, and
+  chroma-from-luma candidates, high-speed selected intra, and selected-transform replay.
+  Local coefficient-context rows advance within each replayed block without changing live
+  frame contexts before publication.
+- The cost multiplier is widened to preserve the high-bit-depth coefficient-error scale.
+  Existing test call sites receive the required entropy context. Six block-skip cases now
+  qualify nonzero coefficients before refinement; their final reconstruction, skip, and
+  coefficient assertions remain intact.
+- Release/net11 build passed with analyzers enabled. Roslyn reports zero errors and the
+  existing warning count. Verification: 181/181 frame cases, 143/143 block cases,
+  14/14 transform cases, and 73/76 public encoder cases passed. The three screen-content
+  comparisons at levels 0, 6, and 9 remain unresolved; this is not codec completion.
+- The level-9 flag payload is 1,427 bytes. Decoding both independently encoded streams
+  with the optimized native decoder gives maximum Y/U/V differences of 1/0/2, with
+  0/0/2 samples exceeding one unit. Those two red samples are at (144,105) and (145,105).
+  This comparison does not establish same-stream managed/native decoder parity.
+- Native inspection still identifies a mode/palette difference in the block at (0,80).
+  Its relationship to the remaining sample differences is unproven. Continue the
+  controller comparison from this discrepancy. No benchmark or performance claim.
+
 ## Encoder source comparison in progress: 2026-09-09
 
 Active production milestone: resolve the screen-content encoder comparison failures through the complete

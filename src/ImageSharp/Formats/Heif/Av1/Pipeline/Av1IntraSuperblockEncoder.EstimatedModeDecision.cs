@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -280,6 +281,8 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!paletteSelected)
             {
                 this.EncodeSelectedIntraPlane(
+                    writer,
+                    tileIndex,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -300,6 +303,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
                 this.EncodeSelectedIntraPlane(
+                    writer,
+                    tileIndex,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -308,6 +313,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     chromaTransform,
                     this.codedAreaChroma);
                 this.EncodeSelectedIntraPlane(
+                    writer,
+                    tileIndex,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -325,6 +332,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private void EncodeSelectedIntraPlane(
+            Av1SymbolEncoder writer,
+            ushort tileIndex,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -351,6 +360,30 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> residual = workspace.Residual[..sampleCount];
             Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
             Span<Av1EncoderTransformBlockState> states = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
+
+            int contextWidth = planeBlockSize.Get4x4WideCount();
+            int contextHeight = planeBlockSize.Get4x4HighCount();
+            Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
+            Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
+            Av1NeighborArrayUnit<byte> neighbors = plane switch
+            {
+                Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
+            };
+
+            neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
+            neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
+            Av1ComponentType component = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
+            int dcDequantizer = Av1QuantizationLookup.GetDcQuant(
+                this.quantization.QIndex[0],
+                this.quantization.DeltaQDc[planeIndex],
+                this.bitDepth);
+
+            int acDequantizer = Av1QuantizationLookup.GetAcQuant(
+                this.quantization.QIndex[0],
+                this.quantization.DeltaQAc[planeIndex],
+                this.bitDepth);
 
             // The selected predictor writes directly to the retained frame. Its inverse transform adds
             // residuals in place, so subsequent units consume reconstructed neighbors without a pixel copy.
@@ -411,6 +444,43 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.quantization.DeltaQAc[planeIndex],
                         this.bitDepth,
                         ref state);
+
+                    Span<byte> transformTop = topContexts.Slice(x / 4, width / 4);
+                    Span<byte> transformLeft = leftContexts.Slice(y / 4, height / 4);
+                    if (state.EndOfBlock > 0 && this.quantization.QIndex[0] != 0)
+                    {
+                        Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                            component,
+                            transformTop,
+                            transformLeft,
+                            planeBlockSize,
+                            transformSize);
+
+                        state.EndOfBlock = writer.OptimizeCoefficients(
+                            this.blockWorkspace.TransformCoefficients,
+                            coefficients.Slice(coefficientOffset, sampleCount),
+                            this.blockWorkspace.DequantizedCoefficients,
+                            transformSize,
+                            Av1TransformType.DctDct,
+                            component,
+                            context,
+                            dcDequantizer,
+                            acDequantizer,
+                            this.rateMultiplier,
+                            this.bitDepth,
+                            false,
+                            true,
+                            state.EndOfBlock);
+                    }
+
+                    byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                        coefficients.Slice(coefficientOffset, sampleCount),
+                        transformSize,
+                        Av1TransformType.DctDct,
+                        state.EndOfBlock);
+
+                    transformTop.Fill(coefficientContext);
+                    transformLeft.Fill(coefficientContext);
 
                     if (state.EndOfBlock > 0)
                     {

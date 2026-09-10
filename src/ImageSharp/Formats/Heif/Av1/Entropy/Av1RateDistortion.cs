@@ -164,7 +164,7 @@ internal static class Av1RateDistortion
     /// <param name="rate">The syntax rate in 1/512-bit units.</param>
     /// <param name="distortion">The sample-domain distortion.</param>
     /// <returns>The rounded weighted rate plus distortion.</returns>
-    public static long GetCost(int rateMultiplier, int rate, long distortion)
+    public static long GetCost(long rateMultiplier, int rate, long distortion)
     {
         long weightedRate = (long)rate * rateMultiplier;
         long roundedRate = (weightedRate + (1 << (Av1ProbabilityCost.CostShift - 1))) >> Av1ProbabilityCost.CostShift;

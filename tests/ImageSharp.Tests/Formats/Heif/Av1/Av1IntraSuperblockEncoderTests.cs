@@ -871,8 +871,8 @@ public class Av1IntraSuperblockEncoderTests
                     isInter: true,
                     picture.Parent.FrameHeader.UseReducedTransformSet);
 
-                // Evaluate residual coding independently of the block decision. Qualifying cases must have
-                // nonzero coefficients in every legal transform, yet cost more than prediction-only reconstruction.
+                // Qualify the source at the quantizer boundary, before refinement can remove coefficients.
+                // The complete candidate still determines whether prediction-only block syntax costs less.
                 for (Av1TransformType transformType = Av1TransformType.DctDct;
                     transformType < Av1TransformType.AllTransformTypes;
                     transformType++)
@@ -883,8 +883,26 @@ public class Av1IntraSuperblockEncoderTests
                     }
 
                     Av1EncoderTransformBlockState state = default;
+                    Av1TransformBlockEncoder.EncodeLossy(
+                        blockWorkspace,
+                        residual,
+                        trialCoefficients,
+                        Av1TransformSize.Size8x8,
+                        transformType,
+                        qIndex,
+                        0,
+                        0,
+                        bitDepth,
+                        ref state);
+
+                    allTransformsAreNonzero &= state.EndOfBlock != 0;
                     long distortion = TOperator.EncodePredictionCandidate(
                         blockWorkspace,
+                        writer,
+                        default,
+                        multiplier,
+                        true,
+                        picture.Sequence.SequenceHeader.IsStillPicture,
                         source.Frame.CodedView.GetPlane(Av1Plane.Y),
                         blockOrigin,
                         prediction,
@@ -901,7 +919,6 @@ public class Av1IntraSuperblockEncoderTests
                         bitDepth,
                         ref state);
 
-                    allTransformsAreNonzero &= state.EndOfBlock != 0;
                     int rate = writer.GetSkipCost(false, skipContext) + writer.GetCoefficientCost(
                         Av1TransformSize.Size8x8,
                         transformType,
@@ -986,7 +1003,7 @@ public class Av1IntraSuperblockEncoderTests
             }
         }
 
-        Assert.True(verifiedCases > 0, "The input set must exercise skipping despite nonzero coefficients in every legal transform.");
+        Assert.True(verifiedCases > 0, "The input set must exercise skipping despite nonzero coefficients before refinement in every legal transform.");
     }
 
     [Theory]

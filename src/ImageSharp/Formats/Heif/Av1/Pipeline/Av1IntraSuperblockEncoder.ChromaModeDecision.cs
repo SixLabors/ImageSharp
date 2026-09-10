@@ -966,6 +966,11 @@ internal static partial class Av1IntraSuperblockEncoder
                             ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
                             distortion += TOperator.EncodePredictionCandidate(
                                 this.blockWorkspace,
+                                writer,
+                                blockContext,
+                                this.rateMultiplier,
+                                false,
+                                this.picture.Sequence.SequenceHeader.IsStillPicture,
                                 source,
                                 transformOrigin,
                                 prediction,
@@ -1067,6 +1072,10 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             long distortion = TOperator.EncodeChromaFromLumaCandidate(
                 this.blockWorkspace,
+                writer,
+                context,
+                this.rateMultiplier,
+                this.picture.Sequence.SequenceHeader.IsStillPicture,
                 source,
                 chromaOrigin,
                 reconstruction,
@@ -1189,6 +1198,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             long distortion = TOperator.EncodeCandidate(
                 this.blockWorkspace,
+                writer,
+                blueContext,
+                this.rateMultiplier,
+                this.picture.Sequence.SequenceHeader.IsStillPicture,
                 blueSource,
                 chromaOrigin,
                 candidateBlueReconstruction,
@@ -1212,6 +1225,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             distortion += TOperator.EncodeCandidate(
                 this.blockWorkspace,
+                writer,
+                redContext,
+                this.rateMultiplier,
+                this.picture.Sequence.SequenceHeader.IsStillPicture,
                 redSource,
                 chromaOrigin,
                 candidateRedReconstruction,

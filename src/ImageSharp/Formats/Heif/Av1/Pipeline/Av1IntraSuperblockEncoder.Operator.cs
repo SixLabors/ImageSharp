@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
@@ -162,6 +163,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Encodes one intra candidate into contiguous decision scratch.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="context">The neighboring coefficient contexts.</param>
+        /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+        /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
         /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
@@ -185,6 +190,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
         public static abstract long EncodeCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool useChromaWeights,
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> reconstruction,
@@ -377,6 +386,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Encodes one prepared prediction with the selected transform into decision scratch.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="context">The neighboring coefficient contexts.</param>
+        /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
+        /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
+        /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
         /// <param name="prediction">The contiguous prediction samples.</param>
@@ -395,6 +409,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
         public static abstract long EncodePredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool isInter,
+            bool useChromaWeights,
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
             ReadOnlySpan<TSample> prediction,
@@ -415,6 +434,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Encodes one chroma-from-luma candidate into contiguous decision scratch.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="context">The neighboring coefficient contexts.</param>
+        /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
+        /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
         /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
@@ -432,6 +455,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
         public static abstract long EncodeChromaFromLumaCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool useChromaWeights,
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> reconstruction,
@@ -769,6 +796,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static long EncodeCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool useChromaWeights,
             Buffer2DRegion<byte> source,
             Point blockOrigin,
             Span<byte> reconstruction,
@@ -791,6 +822,10 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
                 workspace,
+                writer,
+                context,
+                rateMultiplier,
+                useChromaWeights,
                 source,
                 blockOrigin,
                 reconstruction,
@@ -1008,6 +1043,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static long EncodePredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool isInter,
+            bool useChromaWeights,
             Buffer2DRegion<byte> source,
             Point blockOrigin,
             ReadOnlySpan<byte> prediction,
@@ -1025,6 +1065,11 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
                 workspace,
+                writer,
+                context,
+                rateMultiplier,
+                isInter,
+                useChromaWeights,
                 source,
                 blockOrigin,
                 prediction,
@@ -1043,6 +1088,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static long EncodeChromaFromLumaCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool useChromaWeights,
             Buffer2DRegion<byte> source,
             Point blockOrigin,
             Span<byte> reconstruction,
@@ -1059,6 +1108,10 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeChromaFromLumaLossyCandidate(
                 workspace,
+                writer,
+                context,
+                rateMultiplier,
+                useChromaWeights,
                 source,
                 blockOrigin,
                 reconstruction,
@@ -1375,6 +1428,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static long EncodeCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool useChromaWeights,
             Buffer2DRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> reconstruction,
@@ -1397,6 +1454,10 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
                 workspace,
+                writer,
+                context,
+                rateMultiplier,
+                useChromaWeights,
                 source,
                 blockOrigin,
                 reconstruction,
@@ -1632,6 +1693,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static long EncodePredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool isInter,
+            bool useChromaWeights,
             Buffer2DRegion<ushort> source,
             Point blockOrigin,
             ReadOnlySpan<ushort> prediction,
@@ -1649,6 +1715,11 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
                 workspace,
+                writer,
+                context,
+                rateMultiplier,
+                isInter,
+                useChromaWeights,
                 source,
                 blockOrigin,
                 prediction,
@@ -1668,6 +1739,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static long EncodeChromaFromLumaCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            int rateMultiplier,
+            bool useChromaWeights,
             Buffer2DRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> reconstruction,
@@ -1684,6 +1759,10 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeChromaFromLumaLossyCandidate(
                 workspace,
+                writer,
+                context,
+                rateMultiplier,
+                useChromaWeights,
                 source,
                 blockOrigin,
                 reconstruction,

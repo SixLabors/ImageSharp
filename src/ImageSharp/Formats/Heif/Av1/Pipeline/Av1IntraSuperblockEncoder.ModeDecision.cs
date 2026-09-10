@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -571,6 +572,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
                             publishContexts)
                         : this.ReconstructPartitionLeaf(
+                            writer,
                             macroBlock,
                             leafOrigin,
                             tileIndex,
@@ -835,7 +837,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo = context.Snapshot.ModeInfo;
                 block = context.Snapshot.Block;
                 paletteInfo = context.Snapshot.Palette;
-                this.ReconstructSelectedIntraBlock(macroBlock, blockOrigin, context);
+                this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, context);
                 this.SelectedBlockStatistics = context.Snapshot.Statistics;
                 return;
             }
@@ -1011,7 +1013,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo = interModeInfo;
                 block = interBlock;
                 paletteInfo = default;
-                this.ReconstructSelectedInterBlock(blockOrigin, modeInfo, block, interVector, interStates);
+                this.ReconstructSelectedInterBlock(writer, tileIndex, blockOrigin, modeInfo, block, interVector, interStates);
                 this.picture.SetDisplacementVector(modeInfoPosition, interVector);
                 this.SelectedBlockStatistics = interStatistics;
             }
@@ -1129,6 +1131,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private Av1RateDistortionStatistics ReconstructPartitionLeaf(
+            Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -1152,7 +1155,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int lumaArea = this.codedAreaLuma;
             int chromaArea = this.codedAreaChroma;
-            this.ReconstructSelectedIntraBlock(macroBlock, blockOrigin, context);
+            this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, context);
             if (publishContexts)
             {
                 this.PublishPartitionLeafContexts(
@@ -1171,8 +1174,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private void ReconstructSelectedIntraBlock(
+            Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
+            ushort tileIndex,
             Av1EncoderPartitionTree.ModeContext context)
         {
             Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
@@ -1216,6 +1221,20 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
                 Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
                 Av1PlaneType planeType = planeIndex == 0 ? Av1PlaneType.Y : Av1PlaneType.Uv;
+                int contextWidth = planeBlockSize.Get4x4WideCount();
+                int contextHeight = planeBlockSize.Get4x4HighCount();
+                Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
+                Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
+                Av1NeighborArrayUnit<byte> neighbors = plane switch
+                {
+                    Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                    Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                    _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
+                };
+
+                neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
+                neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
+                Av1ComponentType component = planeIndex == 0 ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
                 int paletteSize = snapshot.Palette.PaletteSizes[(int)planeType];
                 Buffer2DRegion<byte> paletteMap = default;
                 if (paletteSize > 0)
@@ -1368,7 +1387,19 @@ internal static partial class Av1IntraSuperblockEncoder
                                 }
 
                                 int stateIndex = transformIndex * sampleCount / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                                Span<byte> transformTop = topContexts.Slice(x / 4, transformWidth / 4);
+                                Span<byte> transformLeft = leftContexts.Slice(y / 4, transformHeight / 4);
+                                Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
+                                    component,
+                                    transformTop,
+                                    transformLeft,
+                                    planeBlockSize,
+                                    transformSize);
+
                                 this.ReconstructSelectedTransform(
+                                    writer,
+                                    blockContext,
+                                    blockCopy,
                                     transformOrigin,
                                     plane,
                                     transformSize,
@@ -1377,6 +1408,19 @@ internal static partial class Av1IntraSuperblockEncoder
                                     states[stateIndex],
                                     snapshot.ModeInfo.Block.Skip,
                                     coefficientOffset + (transformIndex * sampleCount));
+
+                                int outputOffset = coefficientOffset + (transformIndex * sampleCount);
+                                Av1EncoderTransformBlockState outputState = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
+                                    outputOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
+
+                                byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                                    this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane).Slice(outputOffset, sampleCount),
+                                    transformSize,
+                                    outputState.TransformType,
+                                    outputState.EndOfBlock);
+
+                                transformTop.Fill(coefficientContext);
+                                transformLeft.Fill(coefficientContext);
                             }
                         }
                     }
@@ -2835,6 +2879,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1EncoderTransformBlockState candidateState = default;
                         long candidateDistortion = TOperator.EncodePredictionCandidate(
                             this.blockWorkspace,
+                            writer,
+                            blockContext,
+                            this.rateMultiplier,
+                            false,
+                            this.picture.Sequence.SequenceHeader.IsStillPicture,
                             sourcePlane,
                             transformOrigin,
                             prediction,
@@ -3126,6 +3175,11 @@ internal static partial class Av1IntraSuperblockEncoder
             // transform, quantization, reconstruction, and distortion for the requested transform type.
             long distortion = TOperator.EncodePredictionCandidate(
                 this.blockWorkspace,
+                writer,
+                blockContext,
+                this.rateMultiplier,
+                false,
+                this.picture.Sequence.SequenceHeader.IsStillPicture,
                 sourcePlane,
                 blockOrigin,
                 prediction,
@@ -3201,6 +3255,11 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             long distortion = TOperator.EncodePredictionCandidate(
                 this.blockWorkspace,
+                writer,
+                blockContext,
+                this.rateMultiplier,
+                false,
+                this.picture.Sequence.SequenceHeader.IsStillPicture,
                 sourcePlane,
                 blockOrigin,
                 prediction,
@@ -3290,6 +3349,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private void ReconstructSelectedTransform(
+            Av1SymbolEncoder writer,
+            Av1TransformBlockContext context,
+            bool isInter,
             Point planeOrigin,
             Av1Plane plane,
             Av1TransformSize transformSize,
@@ -3337,6 +3399,25 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.quantization.DeltaQAc[planeIndex],
                 this.bitDepth,
                 ref state);
+
+            if (state.EndOfBlock > 0 && this.quantization.QIndex[0] != 0)
+            {
+                state.EndOfBlock = writer.OptimizeCoefficients(
+                    this.blockWorkspace.TransformCoefficients,
+                    coefficients,
+                    this.blockWorkspace.DequantizedCoefficients,
+                    transformSize,
+                    selectedState.TransformType,
+                    plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                    context,
+                    Av1QuantizationLookup.GetDcQuant(this.quantization.QIndex[0], this.quantization.DeltaQDc[planeIndex], this.bitDepth),
+                    Av1QuantizationLookup.GetAcQuant(this.quantization.QIndex[0], this.quantization.DeltaQAc[planeIndex], this.bitDepth),
+                    this.rateMultiplier,
+                    this.bitDepth,
+                    isInter,
+                    this.picture.Sequence.SequenceHeader.IsStillPicture,
+                    state.EndOfBlock);
+            }
 
             if (state.EndOfBlock > 0)
             {

@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -324,9 +325,14 @@ public class Av1TransformBlockEncoderTests
 
         using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(source, Width, Height, Width);
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
             workspace,
+            writer,
+            default,
+            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.TwelveBit),
+            true,
             new Buffer2DRegion<ushort>(sourceBuffer),
             Point.Empty,
             reconstruction,
@@ -383,9 +389,15 @@ public class Av1TransformBlockEncoderTests
             TransformWidth);
 
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
             workspace,
+            writer,
+            default,
+            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.EightBit),
+            false,
+            true,
             sourceBuffer.GetRegion(new Rectangle(0, 0, CodedWidth, CodedWidth)),
             Point.Empty,
             prediction,
@@ -431,9 +443,15 @@ public class Av1TransformBlockEncoderTests
             TransformWidth);
 
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
             workspace,
+            writer,
+            default,
+            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.TwelveBit),
+            false,
+            true,
             sourceBuffer.GetRegion(new Rectangle(0, 0, CodedWidth, CodedWidth)),
             Point.Empty,
             prediction,
@@ -501,9 +519,14 @@ public class Av1TransformBlockEncoderTests
 
         using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(source, Width, Height, Width);
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
             workspace,
+            writer,
+            default,
+            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.TwelveBit),
+            true,
             new Buffer2DRegion<ushort>(sourceBuffer),
             Point.Empty,
             reconstruction,

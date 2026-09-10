@@ -890,12 +890,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Reconstructs the selected inter mode after intra trials have reused its arithmetic storage.
         /// </summary>
+        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="tileIndex">The tile containing the coefficient neighbors.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>
         /// <param name="block">The selected block parameters.</param>
         /// <param name="vector">The selected motion vector in eighth-luma-sample units.</param>
         /// <param name="states">The selected transform choices, indexed by plane.</param>
         private void ReconstructSelectedInterBlock(
+            Av1SymbolEncoder writer,
+            ushort tileIndex,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
             Av1EncoderBlockStruct block,
@@ -939,7 +943,24 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth);
 
                 int codedArea = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
+                Av1NeighborArrayUnit<byte> neighbors = plane switch
+                {
+                    Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                    Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                    _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
+                };
+
+                Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
+                    planeIndex == 0 ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                    neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), transformSize.Get4x4WideCount()),
+                    neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), transformSize.Get4x4HighCount()),
+                    modeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0),
+                    transformSize);
+
                 this.ReconstructSelectedTransform(
+                    writer,
+                    blockContext,
+                    true,
                     planeOrigin,
                     plane,
                     transformSize,
@@ -1471,6 +1492,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1EncoderTransformBlockState candidateState = default;
                 long candidateDistortion = TOperator.EncodePredictionCandidate(
                     this.blockWorkspace,
+                    writer,
+                    blockContext,
+                    this.rateMultiplier,
+                    true,
+                    this.picture.Sequence.SequenceHeader.IsStillPicture,
                     sourcePlane,
                     planeOrigin,
                     prediction[..sampleCount],

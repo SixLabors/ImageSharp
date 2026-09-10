@@ -11,11 +11,21 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 /// </summary>
 internal static class JxlToc
 {
-    private static readonly JxlU32Enc TocDistribution = new(
+    private const int BitsPerByte = 8;
+
+    private const int MaxTocEntries = 65536;
+
+    public static readonly JxlU32Enc TocDistribution = new(
         JxlFieldExpressions.Bits(10),
         JxlFieldExpressions.BitsOffset(14, 2024),
         JxlFieldExpressions.BitsOffset(22, 17408),
         JxlFieldExpressions.BitsOffset(30, 4211712));
+
+    public static int MaxBits(int numSizes)
+    {
+        int entryBits = JxlU32Coder.MaxEncodedBits(TocDistribution) * numSizes;
+        return 1 + JxlMath.BitsPerByte + entryBits + JxlMath.BitsPerByte;
+    }
 
     public static int AcGroupIndex(int pass, int group, int numGroups, int numDcGroups)
         => 2 + numDcGroups + (pass * numGroups) + group;
@@ -29,10 +39,6 @@ internal static class JxlToc
 
         return AcGroupIndex(0, 0, numGroups, numDcGroups) + (numGroups * numPasses);
     }
-
-    private const int BitsPerByte = 8;
-
-    private const int MaxTocEntries = 65536;
 
     public static bool ReadToc(
         Configuration configuration,

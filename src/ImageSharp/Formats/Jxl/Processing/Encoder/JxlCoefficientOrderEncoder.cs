@@ -313,7 +313,7 @@ internal static class JxlCoefficientOrderEncoder
         return true;
     }
 
-    private static bool EncodePermutation(ReadOnlySpan<uint> order, int skip, int size, JxlBitWriter writer)
+    public static bool EncodePermutation(ReadOnlySpan<uint> order, int skip, int size, JxlBitWriter writer)
     {
         List<JxlToken>[] tokens = [[]];
 

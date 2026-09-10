@@ -1,5 +1,17 @@
 # AVIF and AV1 implementation plan
 
+## Fast intra mode-symbol cost correction: 2026-09-10
+
+- The fast controller used `Av1TileWriter.GetLumaModeCost`, which also charges angle-delta
+  syntax for horizontal and vertical prediction. `nonrd_pickmode.c:1883-1884` adds only
+  the mode-symbol cost to its estimate. The controller now uses the existing neighbor
+  context calculation and symbol cost directly; full transform searches retain angle costs.
+- Roslyn: zero errors and baseline warnings. Release/net11 build passed with analyzers.
+  All 181 frame cases passed. The three focused screen-content cases still fail with
+  unchanged reported differences. This correction does not resolve those comparisons.
+- Continue comparing the palette and transform-rate decisions; do not change references
+  or tolerances to conceal the unresolved differences.
+
 ## Coefficient refinement integration checkpoint: 2026-09-10
 
 - The optimizer reduces coefficient levels, shortens the coded end position,

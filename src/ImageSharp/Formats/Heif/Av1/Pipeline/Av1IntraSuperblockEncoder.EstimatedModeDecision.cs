@@ -113,6 +113,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             uint bestSad = uint.MaxValue;
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+            Av1TileWriter.GetYModeContext(macroBlock, out byte aboveContext, out byte leftContext);
 
             foreach (Av1PredictionMode mode in EstimatedIntraModes)
             {
@@ -234,7 +235,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 rate = (skip ? 0 : rate) + writer.GetSkipCost(skip, skipContext);
-                rate += Av1TileWriter.GetLumaModeCost(writer, macroBlock, blockSize, mode, 0, true);
+
+                // Prediction estimates charge the mode symbol only. Angle syntax belongs to the
+                // full transform search and would unfairly penalize horizontal and vertical estimates.
+                rate += writer.GetLumaModeCost(mode, aboveContext, leftContext);
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, distortion);
                 if (statistics.Cost < bestStatistics.Cost)
                 {

@@ -1575,7 +1575,7 @@ internal partial class Av1TileWriter
     /// <param name="xd">The current macroblock and its mapped neighbors.</param>
     /// <param name="above_ctx">The context derived from the above luma mode.</param>
     /// <param name="left_ctx">The context derived from the left luma mode.</param>
-    private static void GetYModeContext(Av1MacroBlockD xd, out byte above_ctx, out byte left_ctx)
+    public static void GetYModeContext(Av1MacroBlockD xd, out byte above_ctx, out byte left_ctx)
     {
         Av1PredictionMode intraLumaLeftMode = Av1PredictionMode.DC;
         Av1PredictionMode intraLumaTopMode = Av1PredictionMode.DC;

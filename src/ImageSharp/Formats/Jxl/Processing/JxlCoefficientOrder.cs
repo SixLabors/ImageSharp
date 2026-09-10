@@ -41,7 +41,7 @@ internal static class JxlCoefficientOrder
     ];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CoeffOrderOffset(int o, int c) => CoefficientOrderOffsets[(3 * o) + c] * JxlFrameDimensions.DctBlockSize;
+    public static int CoeffOrderOffset(int o, int c) => CoefficientOrderOffsets[(3 * o) + c] * JxlFrameDimensions.DctBlockSize;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint CoeffOrderContext(uint value)

@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.FrameDecoder;
 
 internal sealed class JxlFrameDecoder
 {

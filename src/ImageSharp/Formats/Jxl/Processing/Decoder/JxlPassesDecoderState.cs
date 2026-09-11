@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
@@ -38,7 +39,7 @@ internal sealed class JxlPassesDecoderState
 
     public JxlPassesSharedState Shared { get; set; }
 
-    public JxlRenderPipelineStage[] Upsampler8x { get; set; } = [];
+    public RenderPipelineStageBase[] Upsampler8x { get; set; } = [];
 
     public List<JxlAnsCode> Code { get; set; } = [];
 

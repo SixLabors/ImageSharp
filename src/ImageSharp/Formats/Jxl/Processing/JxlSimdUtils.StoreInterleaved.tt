@@ -23,7 +23,7 @@ internal static partial class JxlSimdUtils
         "Vector256<T>"
     ];
 
-    const int maxVectorSize = 6;
+    const int maxVectorSize = 8;
 
     foreach (string vect in vectorTypes) {
         for (int i = 2; i <= maxVectorSize; i++) {

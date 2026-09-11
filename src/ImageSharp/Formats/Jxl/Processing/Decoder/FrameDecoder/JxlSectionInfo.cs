@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.FrameDecoder;
 
 internal sealed class JxlSectionInfo(JxlBitReader reader, int id, int index)
 {

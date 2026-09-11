@@ -2,12 +2,96 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
+/// <summary>
+/// Decodes JPEG XL files to JPEG.
+/// </summary>
 internal class JxlToJpegDecoder
 {
+    /// <summary>
+    /// Content of the most recently parsed JPEG reconstruction box if any.
+    /// </summary>
+    private MemoryStream buffer = new();
+
+    /// <summary>
+    /// Decoded content of the most recently parsed JPEG reconstruction box
+    /// is stored here.
+    /// </summary>
+    private readonly JpegData jpegData = new();
+
+    /// <summary>
+    /// True if the JPEG reconstruction box has undefined size (keeps going
+    /// till End Of File).
+    /// </summary>
+    private bool boxUntilEof;
+
+    /// <summary>
+    /// Size of the most recently parsed JPEG reconstruction box contents.
+    /// </summary>
+    private long boxSize;
+
+    /// <summary>
+    /// Gets a value indicating whether the JPEG reconstruction output
+    /// has been provided.
+    /// </summary>
+    public bool IsOutputSet => this.Output is not null;
+
+    /// <summary>
+    /// Gets a value indicating whether JPEG box was parsed.
+    /// </summary>
+    public bool IsParsingBox { get; private set; }
+
+    /// <summary>
+    /// Gets or sets a stream where JPEG reconstruction output will be written to.
+    /// </summary>
+    public Stream? Output { get; set; }
+
+    public JpegData GetJpegData() => this.jpegData;
+
+    public void StartBox(bool boxUntilEof, long contentsSize)
+    {
+        this.buffer.Dispose();
+        this.buffer = new MemoryStream();
+        this.IsParsingBox = true;
+
+        if (boxUntilEof)
+        {
+            this.boxUntilEof = true;
+        }
+        else
+        {
+            this.boxSize = contentsSize;
+        }
+    }
+
+    public void SetImageBundleJpegData(JxlImageBundle bundle)
+    {
+        if (this.IsOutputSet && this.jpegData is not null)
+        {
+            JpegData.SetJpegDataFromIcc(bundle.Metadata!.ColorEncoding!.Icc, this.jpegData);
+            bundle.JpegData = this.jpegData;
+        }
+    }
+
+    public void WriteOutput(JpegData jpegData)
+    {
+        long Write(Span<byte> buf)
+        {
+            this.Output!.Write(buf);
+            return buf.Length;
+        }
+
+        if (!JpegWriter.WriteJpeg(jpegData, Write))
+        {
+            throw new InvalidOperationException("Couldn't emit JPEG data");
+        }
+    }
+
     /// <summary>
     /// Returns the number of EXIF markers in the JPEG file.
     /// </summary>

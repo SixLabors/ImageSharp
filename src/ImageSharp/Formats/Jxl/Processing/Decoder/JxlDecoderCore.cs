@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.Container;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.FrameDecoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.IO;
@@ -119,12 +120,12 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     /// <summary>
     /// Type of the box currently being decoded.
     /// </summary>
-    private JxlBoxType boxType;
+    private int boxType;
 
     /// <summary>
     /// Underlying type for brob boxes.
     /// </summary>
-    private JxlBoxType boxDecodedType;
+    private int boxDecodedType;
 
     private bool boxEvent;
 
@@ -357,6 +358,11 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     private int bufferingJxlpIndex;
 
     private bool bufferingJxlpIsLast;
+
+    /// <summary>
+    /// The JPEG decoder allows lossless decoding from JPEG XL to JPEG.
+    /// </summary>
+    private readonly JxlToJpegDecoder jpegDecoder = new();
 
     /// <summary>
     /// Decompresses box contents.
@@ -1189,48 +1195,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     public bool CanUseMoreCodestreamInput() => this.decoderStage != JxlDecoderStage.CodeStreamFinished;
 
     /// <summary>
-    /// Checks if width * height can be represented safely as a
-    /// positive integer after rounding the width up to the next
-    /// multiple of 32.
-    /// </summary>
-    /// <param name="width">Input width.</param>
-    /// <param name="height">Input height.</param>
-    /// <returns>
-    /// Boolean indicating whether the padded image dimensions fit
-    /// within a signed 32-bit integer when calculating the total
-    /// pixel count.
-    /// </returns>
-    /// <remarks>
-    /// Negative values aren't rejected, but will produce incorrect
-    /// results. This method is meant to be used with positive values only.
-    /// </remarks>
-    public static bool CheckSizeLimit(int width, int height)
-    {
-        if (width == 0 || height == 0)
-        {
-            return true;
-        }
-
-        int paddedWidth = JxlMath.DivCeil(width, 32) * 32;
-
-        if (paddedWidth < width)
-        {
-            // Overflow
-            return false;
-        }
-
-        int pixelCount = paddedWidth * height;
-
-        if (pixelCount / paddedWidth != height)
-        {
-            // Overflow
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
     /// Resets the decoder state to its default values, and,
     /// additionally, releases memory used by buffers and replaces
     /// them with new fresh copies.
@@ -1466,83 +1430,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     }
 
     /// <summary>
-    /// Reads a single bundle into <paramref name="bundle"/>.
-    /// </summary>
-    /// <typeparam name="T">Type of the bundle to read.</typeparam>
-    /// <param name="stream">Stream to read data from.</param>
-    /// <param name="br">Bit reader to continue from.</param>
-    /// <param name="bundle">The bundle to parse.</param>
-    /// <returns>Status of parsing the bundle.</returns>
-    private bool ReadBundle<T>(Stream stream, JxlBitReader br, T bundle)
-        where T : IJxlFields
-    {
-        JxlBitReader reader = new(stream);
-        reader.SkipBits64((ulong)br.TotalBitsConsumed);
-
-        bool canRead = JxlBundle.CanRead(reader, bundle);
-
-        if (!canRead)
-        {
-            return this.TryRequestMoreInput();
-        }
-
-        if (!JxlBundle.Read(reader, bundle))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Reads all basic metadata and headers.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown if the data is incorrect.</exception>
-    /// <exception cref="InvalidDataException">Thrown if the data is malformed.</exception>
-    public void ReadBasicInfo(Stream stream)
-    {
-        if (!this.gotCodestreamSignature)
-        {
-            Span<byte> fileSignature = [0, 0];
-            stream.ReadExactly(fileSignature);
-
-            if (fileSignature[0] != 0xFF || fileSignature[1] != JxlShared.CodestreamMarker)
-            {
-                throw new InvalidOperationException("The file signature is invalid");
-            }
-
-            this.gotCodestreamSignature = true;
-        }
-
-        JxlBitReader bitReader = new(stream);
-
-        if (!this.ReadBundle(stream, bitReader, this.metadata!.Size!))
-        {
-            throw new InvalidDataException("Could not parse the size header");
-        }
-
-        if (!this.ReadBundle(stream, bitReader, this.metadata!.ImageMetadata!))
-        {
-            throw new InvalidDataException("Could not parse the image metadata");
-        }
-
-        long totalBits = bitReader.TotalBitsConsumed;
-
-        (long div, long rem) = Math.DivRem(totalBits, JxlMath.BitsPerByte);
-        this.AdvanceCodeStream(div);
-
-        this.codestreamBitsAhead = rem;
-        this.gotBasicInfo = true;
-        this.basicInfoSizeHint = 0;
-        this.imageMetadata = this.metadata.ImageMetadata;
-
-        if (!CheckSizeLimit(this.metadata.Size!.XSize, this.metadata.Size.YSize))
-        {
-            throw new InvalidOperationException("The image is too large");
-        }
-    }
-
-    /// <summary>
     /// Parses all necessary headers.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown if data is incorrect.</exception>
@@ -1738,10 +1625,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
 
                 this.imageBundle ??= new(this.imageMetadata!);
 
-                if (!this.jpegDecoder.SetImageBundleJpegData(this.imageBundle!))
-                {
-                    throw new InvalidOperationException("Cannot set JXL->JPEG decoder image bundle");
-                }
+                this.jpegDecoder.SetImageBundleJpegData(this.imageBundle!);
 
                 this.frameDecoder = new(this.passesState!, this.metadata!, useSlowRenderingPipeline: false);
                 this.frameHeader = new()
@@ -2241,12 +2125,12 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
 
                 if (this.reconstructionExifSize > 0)
                 {
-                    JxlToJpegDecoder.TrySetExif(this.exifMetadata!.Memory.Span, jpegData);
+                    _ = JxlToJpegDecoder.TrySetExif(this.exifMetadata!.Memory.Span, jpegData);
                 }
 
                 if (this.reconstructionXmpSize > 0)
                 {
-                    JxlToJpegDecoder.TrySetXmp(this.xmpMetadata!.Memory.Span, jpegData);
+                    _ = JxlToJpegDecoder.TrySetXmp(this.xmpMetadata!.Memory.Span, jpegData);
                 }
 
                 this.reconstructionOutputJpeg = JpegReconstructionStage.Output;
@@ -2254,7 +2138,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
 
             if (this.reconstructionOutputJpeg == JpegReconstructionStage.Output && !this.JbrdNeedsMoreBoxes())
             {
-                this.jpegDecoder!.WriteOutput(this.imageBundle!.JpegData);
+                this.jpegDecoder!.WriteOutput(this.imageBundle!.JpegData!);
 
                 this.reconstructionOutputJpeg = JpegReconstructionStage.None;
                 this.imageBundle.Reset();
@@ -2715,7 +2599,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
         }
     }
 
-    private static void ThrowNotEnoughData() => throw new InvalidOperationException("Not enough data");
+    private static void ThrowNotEnoughData() => throw new EndOfStreamException("Not enough data");
 
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken) => throw new NotImplementedException();
 

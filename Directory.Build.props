@@ -21,6 +21,15 @@
   <!-- Import the shared global .props file -->
   <Import Project="$(MSBuildThisFileDirectory)shared-infrastructure\msbuild\props\SixLabors.Global.props" />
 
+  <!--
+    Suppress the advisory against Microsoft.Build.Tasks.Git 8.0.0, pulled in by the SourceLink
+    package pinned in shared infrastructure, while we wait for the ability to update it.
+    https://github.com/advisories/GHSA-23fw-v26w-5fgq
+  -->
+  <ItemGroup>
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-23fw-v26w-5fgq" />
+  </ItemGroup>
+
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' OR '$(TargetFramework)' == 'net9.0'">
     <LangVersion>12.0</LangVersion>
   </PropertyGroup>

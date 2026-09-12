@@ -41,7 +41,7 @@ public static class ColorProfileConverterExtensionsRgbRgb
 
         // Adapt to target white point
         (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        pcsFromB = VonKriesChromaticAdaptation.Transform(in pcsFromB, whitePoints, options.AdaptationMatrix);
+        pcsFromB = VonKriesChromaticAdaptation.Transform(in pcsFromB, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
 
         // Convert between PCS
         Rgb pcsTo = Rgb.FromProfileConnectingSpace(options, in pcsFromB);
@@ -87,7 +87,7 @@ public static class ColorProfileConverterExtensionsRgbRgb
 
         // Adapt to target white point
         (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        VonKriesChromaticAdaptation.Transform(pcsFrom, pcsFrom, whitePoints, options.AdaptationMatrix);
+        VonKriesChromaticAdaptation.Transform(pcsFrom, pcsFrom, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
 
         // Convert between PCS.
         Rgb.FromProfileConnectionSpace(options, pcsFrom, pcsFromTo);

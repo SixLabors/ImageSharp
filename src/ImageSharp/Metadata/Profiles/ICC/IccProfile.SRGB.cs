@@ -26,7 +26,7 @@ public sealed partial class IccProfile
     /// 3) Require rTRC, gTRC, bTRC to exist and be identical by parameters or sampled shape.
     /// 4) Accept if rXYZ/gXYZ/bXYZ already match the D50-adapted sRGB colorants within tolerance.
     /// 5) If white point ≈ D65, adapt only the colorant columns to D50 using Bradford
-    ///    via <see cref="VonKriesChromaticAdaptation.Transform(in CieXyz, ValueTuple{CieXyz, CieXyz}, Matrix4x4)"/> and then compare.
+    ///    via <see cref="VonKriesChromaticAdaptation.Transform(in CieXyz, ValueTuple{CieXyz, CieXyz}, Matrix4x4, Matrix4x4)"/> and then compare.
     /// This rejects channel-swapped and appearance profiles while allowing real sRGB.
     /// </summary>
     /// <remarks>
@@ -139,10 +139,11 @@ public sealed partial class IccProfile
             CieXyz fromWp = new(wtpt);          // Declared white
             CieXyz toWp = KnownIlluminants.D50; // PCS white
             Matrix4x4 matrix = KnownChromaticAdaptationMatrices.Bradford;
+            Matrix4x4.Invert(matrix, out Matrix4x4 inverseMatrix);
 
-            rXYZ = VonKriesChromaticAdaptation.Transform(new CieXyz(rXYZ), (fromWp, toWp), matrix).AsVector3Unsafe();
-            gXYZ = VonKriesChromaticAdaptation.Transform(new CieXyz(gXYZ), (fromWp, toWp), matrix).AsVector3Unsafe();
-            bXYZ = VonKriesChromaticAdaptation.Transform(new CieXyz(bXYZ), (fromWp, toWp), matrix).AsVector3Unsafe();
+            rXYZ = VonKriesChromaticAdaptation.Transform(new CieXyz(rXYZ), (fromWp, toWp), matrix, inverseMatrix).AsVector3Unsafe();
+            gXYZ = VonKriesChromaticAdaptation.Transform(new CieXyz(gXYZ), (fromWp, toWp), matrix, inverseMatrix).AsVector3Unsafe();
+            bXYZ = VonKriesChromaticAdaptation.Transform(new CieXyz(bXYZ), (fromWp, toWp), matrix, inverseMatrix).AsVector3Unsafe();
         }
 
         // Require identity mapping of primaries, no permutation

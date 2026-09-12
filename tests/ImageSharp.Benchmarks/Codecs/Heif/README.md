@@ -19,6 +19,25 @@ File reads and correctness checks are setup work. HEIF container parsing is outs
 Native output planes are borrowed only during synchronous conversion through the existing HEIF converter; no plane copy or per-row interop call is added.
 Setup compares every packed RGB sample with ImageSharp and fails before timing on any disagreement.
 
+`AvifEncoderBenchmarks` and `AvifDecoderBenchmarks` measure the public ImageSharp container boundary separately.
+The encoder starts with a retained packed image and finishes after writing the complete AVIF to a reused in-memory stream.
+The decoder starts with retained independently encoded AVIF bytes and finishes after allocating and filling the complete `Rgb48` image.
+These public workloads expose container overhead but are not native comparisons; use the raw AV1 benchmarks to attribute codec-core gaps.
+
+Run the current benchmark loops from the repository root after the Release benchmark build and native adapter setup:
+
+```powershell
+$benchmarkAssembly = 'artifacts/bin/tests/ImageSharp.Benchmarks/Release/net11.0/ImageSharp.Benchmarks.dll'
+
+dotnet $benchmarkAssembly --filter '*Av1SequenceEncoderBenchmarks*' --artifacts artifacts/BenchmarkDotNet/av1-encoder-current
+dotnet $benchmarkAssembly --filter '*Av1DecoderBenchmarks*' --artifacts artifacts/BenchmarkDotNet/av1-decoder-current
+dotnet $benchmarkAssembly --filter '*AvifEncoderBenchmarks*' --artifacts artifacts/BenchmarkDotNet/avif-encoder-current
+dotnet $benchmarkAssembly --filter '*AvifDecoderBenchmarks*' --artifacts artifacts/BenchmarkDotNet/avif-decoder-current
+```
+
+Use `--job Dry` for validation and profiler setup only. Performance conclusions require a normal BenchmarkDotNet job with no concurrent build,
+test, or benchmark process. Keep raw AV1 and public AVIF results separate because their measurement boundaries are intentionally different.
+
 ## Measurement boundary
 
 Both methods start with the same three `Rgb24` photographic frames and finish with the complete raw AV1 OBU sequence in a reused `MemoryStream`.

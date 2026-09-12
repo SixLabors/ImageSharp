@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "aom/aom_encoder.h"
 #include "aom/aomcx.h"
+#include "aom/aom_decoder.h"
+#include "aom/aomdx.h"
 
 #if defined(_WIN32)
 #define BENCHMARK_API __declspec(dllexport)
@@ -128,4 +130,71 @@ BENCHMARK_API int benchmark_destroy(benchmark_encoder *encoder) {
 // Libaom owns this static UTF-8 error string; the caller must not free it.
 BENCHMARK_API const char *benchmark_error_string(int status) {
   return aom_codec_err_to_string((aom_codec_err_t)status);
+}
+
+// This fixed-layout descriptor is the adapter's ABI, not a copy of aom_image_t's version-dependent layout.
+// Plane pointers are borrowed until the next decode or destruction of the owning codec context.
+typedef struct benchmark_decoded_frame {
+  const unsigned char *y;
+  const unsigned char *u;
+  const unsigned char *v;
+  int y_stride, u_stride, v_stride;
+  int width, height, bit_depth, high_bit_depth;
+  int subsampling_x, subsampling_y, monochrome;
+  int primaries, transfer, matrix, full_range, chroma_position;
+} benchmark_decoded_frame;
+
+BENCHMARK_API int benchmark_decoder_create(aom_codec_ctx_t **result) {
+  *result = NULL;
+  aom_codec_ctx_t *decoder = calloc(1, sizeof(*decoder));
+  if (decoder == NULL) return AOM_CODEC_MEM_ERROR;
+
+  aom_codec_dec_cfg_t config = { 0 };
+  config.threads = 1;
+  config.allow_lowbitdepth = 1;
+  const aom_codec_err_t status = aom_codec_dec_init(decoder, aom_codec_av1_dx(), &config, 0);
+  if (status != AOM_CODEC_OK) {
+    free(decoder);
+    return status;
+  }
+
+  *result = decoder;
+  return AOM_CODEC_OK;
+}
+
+// The benchmark inputs each contain one complete displayed picture. Return its native planes without copying them.
+BENCHMARK_API int benchmark_decoder_decode(aom_codec_ctx_t *decoder, const unsigned char *data,
+                                           size_t length, benchmark_decoded_frame *frame) {
+  const aom_codec_err_t status = aom_codec_decode(decoder, data, length, NULL);
+  if (status != AOM_CODEC_OK) return status;
+
+  aom_codec_iter_t iterator = NULL;
+  const aom_image_t *image = aom_codec_get_frame(decoder, &iterator);
+  if (image == NULL) return AOM_CODEC_ERROR;
+
+  frame->y = image->planes[AOM_PLANE_Y];
+  frame->u = image->planes[AOM_PLANE_U];
+  frame->v = image->planes[AOM_PLANE_V];
+  frame->y_stride = image->stride[AOM_PLANE_Y];
+  frame->u_stride = image->stride[AOM_PLANE_U];
+  frame->v_stride = image->stride[AOM_PLANE_V];
+  frame->width = image->d_w;
+  frame->height = image->d_h;
+  frame->bit_depth = image->bit_depth;
+  frame->high_bit_depth = (image->fmt & AOM_IMG_FMT_HIGHBITDEPTH) != 0;
+  frame->subsampling_x = image->x_chroma_shift;
+  frame->subsampling_y = image->y_chroma_shift;
+  frame->monochrome = image->monochrome;
+  frame->primaries = image->cp;
+  frame->transfer = image->tc;
+  frame->matrix = image->mc;
+  frame->full_range = image->range == AOM_CR_FULL_RANGE;
+  frame->chroma_position = image->csp;
+  return AOM_CODEC_OK;
+}
+
+BENCHMARK_API int benchmark_decoder_destroy(aom_codec_ctx_t *decoder) {
+  const aom_codec_err_t status = aom_codec_destroy(decoder);
+  free(decoder);
+  return status;
 }

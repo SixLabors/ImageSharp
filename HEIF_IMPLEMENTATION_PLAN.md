@@ -1,5 +1,36 @@
 # AVIF and AV1 implementation plan
 
+## Active milestone: remaining reference-controller parity
+
+- Bounded LAST+GOLDEN `NEAREST_NEAREST` compound encoding now follows pinned libaom reference-mode and
+  entropy-context rules. Inter frames use `REFERENCE_MODE_SELECT`, compound search is excluded from fixed
+  `SINGLE_REFERENCE` frames, and the encoder-side compound-reference-type context matches
+  `av1_get_comp_reference_type_context`. The focused compound suite passes 25/25 on Release/net10.0,
+  and FFmpeg 9.0.1 independently decoded the emitted three-frame OBU sequence. A broader 372-case AV1
+  encoder run passed 366 cases; the six failures are existing interpolation mode-selection expectations in
+  `ProductionTileSelectsNonRegularInterpolation` and `ProductionTileSelectsDualAxisInterpolationHighBitDepth`.
+- Candidate quantization now follows the libaom-derived residual-energy and transform-SATD
+  gates, while committed winners always receive coefficient refinement. Speed levels 4 and
+  above evaluate each luma mode with its default transform and refine transform type only for
+  the selected mode, avoiding the previous mode-by-transform Cartesian product.
+- Speed level 6 and above now use libaom's `-2, +2, -3, -1, +1, +3` directional-angle order.
+  Odd deltas are skipped only when both neighboring even-angle RD costs exceed the current
+  best cost by more than one eighth (`intra_mode_search.c:1442-1465`,
+  `speed_features.c:527-535`). The same policy applies to single-transform and tiled luma paths.
+- Selected reconstruction now applies the established sub-8x8 chroma availability rule.
+  A 4x8 luma block at x=4 in 4:2:0 maps to chroma x=0 and must not inherit the luma left-neighbor
+  flag. The 512-pixel effort-9 benchmark and a dedicated YUV420 regression now complete.
+- Screen-content Level0/6/9 outputs decode identically through ImageSharp and Magick. Their
+  earlier failures came from newly added lossy golden PNGs that pinned one valid set of mode
+  decisions; the test now verifies exact independent-decoder agreement for the emitted payload.
+- Release verification across net10.0 and net11.0 passed 836/836 focused AV1/HEIF encoder tests.
+  A net10.0 ShortRun at 256 pixels, effort 7, speed 6 measured 1.166 s managed versus 167.6 ms
+  libaom (6.97x; three iterations and a noisy native sample). Public AVIF encode measured
+  391.1 ms; public AVIF decode fixtures measured 29.70 ms and 17.33 ms.
+- The encoder is not complete and parity is not achieved. Continue direct reconciliation of
+  all-intra HOG/model pruning, filter-intra pruning, chroma pruning, palette early termination,
+  and partition breakout against the pinned libaom revision before lower-level optimization.
+
 ## Fast intra mode-symbol cost correction: 2026-09-10
 
 - The fast controller used `Av1TileWriter.GetLumaModeCost`, which also charges angle-delta

@@ -23,12 +23,12 @@ internal static class Av1Transform2dOperations
     /// <summary>
     /// Gets the row order produced by the final AVX-512 16-by-16 transpose concatenation.
     /// </summary>
-    private static ReadOnlySpan<byte> Vector512TransposeStoreOrder => [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 14, 13, 15];
+    private static readonly byte[] Vector512TransposeStoreOrder = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 14, 13, 15];
 
     /// <summary>
     /// Gets the row order produced by the final sixteen-bit 16-by-16 transpose concatenation.
     /// </summary>
-    private static ReadOnlySpan<byte> Int16TransposeStoreOrder => [0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15];
+    private static readonly byte[] Int16TransposeStoreOrder = [0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15];
 
     /// <summary>
     /// Loads four signed sixteen-bit values and widens them to four signed thirty-two-bit lanes.

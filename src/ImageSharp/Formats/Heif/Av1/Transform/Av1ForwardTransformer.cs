@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -20,6 +21,199 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// </remarks>
 internal static partial class Av1ForwardTransformer
 {
+    /// <summary>
+    /// Computes the unnormalized eight-by-eight Hadamard magnitude used to screen intra prediction candidates.
+    /// </summary>
+    /// <param name="residual">The sixty-four packed prediction residuals.</param>
+    /// <param name="workspace">The containing block's reusable transform scratch.</param>
+    /// <returns>The sum of absolute transformed residuals at their original sample precision.</returns>
+    public static int GetHadamard8x8Cost(ReadOnlySpan<short> residual, Span<int> workspace)
+    {
+        const int width = 8;
+        const int sampleCount = width * width;
+        Span<int> columns = workspace[..sampleCount];
+        Span<int> rows = workspace.Slice(sampleCount, sampleCount);
+        Span<int> temporary = workspace.Slice(2 * sampleCount, width);
+
+        // Keep both passes in Int32: twelve-bit residuals can produce coefficients of magnitude 262080. Widening
+        // once lets the existing vectorized tensor operations serve all three sample depths without saturation.
+        TensorPrimitives.ConvertChecked(residual[..sampleCount], columns);
+        Hadamard8Columns(columns, temporary);
+
+        ref int columnBase = ref MemoryMarshal.GetReference(columns);
+        ref int rowBase = ref MemoryMarshal.GetReference(rows);
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Av1Transform2dOperations.Transpose8x8Int32(ref columnBase, width, ref rowBase, width, 0, false);
+        }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            // Four four-by-four tiles exchange their row and column origins, preserving the same eight-by-eight
+            // layout on machines whose vectors cannot hold a complete row of eight Int32 values.
+            for (int y = 0; y < width; y += Vector128<int>.Count)
+            {
+                for (int x = 0; x < width; x += Vector128<int>.Count)
+                {
+                    Av1Transform2dOperations.Transpose4x4Int32(
+                        ref Unsafe.Add(ref columnBase, (y * width) + x), width, ref Unsafe.Add(ref rowBase, (x * width) + y), width, 0, false);
+                }
+            }
+        }
+        else
+        {
+            for (int y = 0; y < width; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    rows[(x * width) + y] = columns[(y * width) + x];
+                }
+            }
+        }
+
+        Hadamard8Columns(rows, temporary);
+
+        // SATD is invariant under coefficient permutation. Retain natural Hadamard order and omit the reference's
+        // output permutation and final transpose, since only the magnitude sum escapes this scratch workspace.
+        return TensorPrimitives.SumOfMagnitudes<int>(rows);
+    }
+
+    /// <summary>
+    /// Computes the quick-transform SATD used by libaom's intra mode model.
+    /// </summary>
+    public static long GetHadamardCost(
+        ReadOnlySpan<short> residual,
+        int stride,
+        int size,
+        bool highBitDepth,
+        Span<int> coefficients,
+        Span<int> workspace)
+    {
+        if (size == 4)
+        {
+            Span<int> first = workspace[..16];
+            for (int column = 0; column < 4; column++)
+            {
+                int a0 = residual[column];
+                int a1 = residual[stride + column];
+                int a2 = residual[(2 * stride) + column];
+                int a3 = residual[(3 * stride) + column];
+                int b0 = (a0 + a1) >> 1;
+                int b1 = (a0 - a1) >> 1;
+                int b2 = (a2 + a3) >> 1;
+                int b3 = (a2 - a3) >> 1;
+                first[(column * 4) + 0] = b0 + b2;
+                first[(column * 4) + 1] = b1 + b3;
+                first[(column * 4) + 2] = b0 - b2;
+                first[(column * 4) + 3] = b1 - b3;
+            }
+
+            for (int column = 0; column < 4; column++)
+            {
+                int a0 = first[column];
+                int a1 = first[4 + column];
+                int a2 = first[8 + column];
+                int a3 = first[12 + column];
+                int b0 = (a0 + a1) >> 1;
+                int b1 = (a0 - a1) >> 1;
+                int b2 = (a2 + a3) >> 1;
+                int b3 = (a2 - a3) >> 1;
+                coefficients[(column * 4) + 0] = b0 + b2;
+                coefficients[(column * 4) + 1] = b1 + b3;
+                coefficients[(column * 4) + 2] = b0 - b2;
+                coefficients[(column * 4) + 3] = b1 - b3;
+            }
+
+            return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..16]);
+        }
+
+        if (size == 8)
+        {
+            if (highBitDepth)
+            {
+                Span<short> packed = MemoryMarshal.Cast<int, short>(coefficients[..32]);
+                for (int row = 0; row < 8; row++)
+                {
+                    residual.Slice(row * stride, 8).CopyTo(packed.Slice(row * 8, 8));
+                }
+
+                _ = GetHadamard8x8Cost(packed, workspace);
+                workspace.Slice(64, 64).CopyTo(coefficients);
+                return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..64]);
+            }
+
+            TransformForModeEstimation(
+                residual,
+                stride,
+                size,
+                coefficients[..64],
+                workspace,
+                highBitDepth);
+
+            return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..64]);
+        }
+
+        int half = size >> 1;
+        int quadrantLength = half * half;
+        for (int quadrant = 0; quadrant < 4; quadrant++)
+        {
+            int rowOffset = (quadrant >> 1) * half;
+            int columnOffset = (quadrant & 1) * half;
+            GetHadamardCost(
+                residual[(rowOffset * stride + columnOffset)..],
+                stride,
+                half,
+                highBitDepth,
+                coefficients.Slice(quadrant * quadrantLength, quadrantLength),
+                workspace);
+        }
+
+        int shift = size == 32 ? 2 : 1;
+        for (int index = 0; index < quadrantLength; index++)
+        {
+            int a0 = coefficients[index];
+            int a1 = coefficients[quadrantLength + index];
+            int a2 = coefficients[(2 * quadrantLength) + index];
+            int a3 = coefficients[(3 * quadrantLength) + index];
+            int b0 = (a0 + a1) >> shift;
+            int b1 = (a0 - a1) >> shift;
+            int b2 = (a2 + a3) >> shift;
+            int b3 = (a2 - a3) >> shift;
+            coefficients[index] = b0 + b2;
+            coefficients[quadrantLength + index] = b1 + b3;
+            coefficients[(2 * quadrantLength) + index] = b0 - b2;
+            coefficients[(3 * quadrantLength) + index] = b1 - b3;
+        }
+
+        return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..(size * size)]);
+    }
+
+    /// <summary>
+    /// Applies three stages of unnormalized Hadamard butterflies to eight independent columns.
+    /// </summary>
+    /// <param name="block">The eight-by-eight Int32 block transformed in place.</param>
+    /// <param name="temporary">One reusable row that preserves a butterfly sum while its difference is written.</param>
+    private static void Hadamard8Columns(Span<int> block, Span<int> temporary)
+    {
+        const int width = 8;
+        for (int half = 1; half < width; half *= 2)
+        {
+            for (int start = 0; start < width; start += 2 * half)
+            {
+                for (int row = start; row < start + half; row++)
+                {
+                    Span<int> first = block.Slice(row * width, width);
+                    Span<int> second = block.Slice((row + half) * width, width);
+
+                    // Whole-row addition and subtraction use the existing SIMD APIs, including narrower hardware
+                    // and scalar fallback. Preserve the sum until subtraction has consumed the original first row.
+                    TensorPrimitives.Add<int>(first, second, temporary);
+                    TensorPrimitives.Subtract<int>(first, second, second);
+                    temporary.CopyTo(first);
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Resolves and applies the configured two-dimensional AV1 forward transform.
     /// </summary>

@@ -190,6 +190,19 @@ internal class Av1PictureControlSet
     }
 
     /// <summary>
+    /// Gets the secondary displacement vector mapped to a compound block.
+    /// </summary>
+    /// <param name="position">The frame position in 4x4 mode-information units.</param>
+    /// <returns>The secondary vector retained for the covering block.</returns>
+    public Av1MotionVector GetSecondaryDisplacementVector(Point position)
+    {
+        int gridOffset = (position.Y * this.ModeInfoStride) + position.X;
+        int allocationOffset = this.ModeInfoGrid.Span[gridOffset];
+        Av1EncoderDisplacementVector vector = this.ReferenceContexts.Span[allocationOffset].SecondaryVector;
+        return new Av1MotionVector(vector.Row, vector.Column);
+    }
+
+    /// <summary>
     /// Stores the displacement vector selected at a block origin.
     /// </summary>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
@@ -200,6 +213,24 @@ internal class Av1PictureControlSet
         int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
         int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
         this.DisplacementVectors.Span[allocationOffset] = new Av1EncoderDisplacementVector
+        {
+            Row = (short)vector.Row,
+            Column = (short)vector.Column
+        };
+    }
+
+    /// <summary>
+    /// Stores the secondary displacement vector selected at a compound block origin.
+    /// </summary>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <param name="vector">The selected secondary vector.</param>
+    public void SetSecondaryDisplacementVector(Point modeInfoPosition, Av1MotionVector vector)
+    {
+        int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
+        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (this.ModeInfoStride >> disallow4x4)) +
+            (modeInfoPosition.X >> disallow4x4);
+
+        this.ReferenceContexts.Span[allocationOffset].SecondaryVector = new Av1EncoderDisplacementVector
         {
             Row = (short)vector.Row,
             Column = (short)vector.Column

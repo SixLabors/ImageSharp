@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
@@ -626,6 +627,87 @@ internal readonly ref struct Av1ModeCosts
         => this.SingleReference[(((plane * SingleReferenceRowCount) + row) * SingleReferenceAlphabetSize) + symbol];
 
     /// <summary>
+    /// Gets a retained single-versus-compound reference rate in 1/512-bit units.
+    /// </summary>
+    public int GetCompInter(int row, int symbol)
+        => this.CompInter[(row * CompInterAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained compound reference-direction rate in 1/512-bit units.
+    /// </summary>
+    public int GetCompoundReferenceType(int row, int symbol)
+        => this.CompoundReferenceType[(row * CompoundReferenceTypeAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained unidirectional compound-reference branch rate in 1/512-bit units.
+    /// </summary>
+    public int GetUnidirectionalCompoundReference(int plane, int row, int symbol)
+        => this.UnidirectionalCompoundReference[
+            (((plane * UnidirectionalCompoundReferenceRowCount) + row) * UnidirectionalCompoundReferenceAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained bidirectional compound forward-reference branch rate in 1/512-bit units.
+    /// </summary>
+    public int GetCompoundReference(int plane, int row, int symbol)
+        => this.CompoundReference[
+            (((plane * CompoundReferenceRowCount) + row) * CompoundReferenceAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained bidirectional compound backward-reference branch rate in 1/512-bit units.
+    /// </summary>
+    public int GetCompoundBackwardReference(int plane, int row, int symbol)
+        => this.CompoundBackwardReference[
+            (((plane * CompoundBackwardReferenceRowCount) + row) * CompoundBackwardReferenceAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained compound inter-mode rate in 1/512-bit units.
+    /// </summary>
+    public int GetInterCompoundMode(int row, int symbol)
+        => this.InterCompoundMode[(row * InterCompoundModeAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained masked compound-type rate in 1/512-bit units.
+    /// </summary>
+    public int GetCompoundType(Av1BlockSize blockSize, int symbol)
+        => this.CompoundType[((int)blockSize * CompoundTypeAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained wedge-index rate in 1/512-bit units.
+    /// </summary>
+    public int GetWedgeIndex(Av1BlockSize blockSize, int symbol)
+        => this.WedgeIndex[((int)blockSize * WedgeIndexAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained inter-intra enable rate in 1/512-bit units.
+    /// </summary>
+    public int GetInterIntra(Av1BlockSize blockSize, int symbol)
+        => this.InterIntra[(blockSize.GetSizeGroup() * InterIntraAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained inter-intra mode rate in 1/512-bit units.
+    /// </summary>
+    public int GetInterIntraMode(Av1BlockSize blockSize, Av1InterIntraMode mode)
+        => this.InterIntraMode[(blockSize.GetSizeGroup() * InterIntraModeAlphabetSize) + (int)mode];
+
+    /// <summary>
+    /// Gets a retained inter-intra wedge-enable rate in 1/512-bit units.
+    /// </summary>
+    public int GetWedgeInterIntra(Av1BlockSize blockSize, int symbol)
+        => this.WedgeInterIntra[((int)blockSize * WedgeInterIntraAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained unmasked compound-index rate in 1/512-bit units.
+    /// </summary>
+    public int GetCompoundIndex(int context, int symbol)
+        => this.CompoundIndex[(context * CompoundIndexAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained compound-group rate in 1/512-bit units.
+    /// </summary>
+    public int GetCompoundGroupIndex(int context, int symbol)
+        => this.CompoundGroupIndex[(context * CompoundGroupIndexAlphabetSize) + symbol];
+
+    /// <summary>
     /// Gets a retained intra inter rate in 1/512-bit units.
     /// </summary>
     public int GetIntraInter(int row, int symbol)
@@ -642,6 +724,12 @@ internal readonly ref struct Av1ModeCosts
     /// </summary>
     public int GetSkip(int row, int symbol)
         => this.Skip[(row * SkipAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained compound skip-mode rate in 1/512-bit units.
+    /// </summary>
+    public int GetSkipMode(int row, int symbol)
+        => this.SkipMode[(row * SkipModeAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained transform size rate in 1/512-bit units.

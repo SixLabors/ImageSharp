@@ -250,8 +250,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     columns,
                     colorIndexMap);
 
-                bool pruneByHeader = this.picture.Sequence.SequenceHeader.IsStillPicture ||
-                    this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level6;
+                bool pruneByHeader = this.picture.Parent.SpeedSettings.EarlyTerminateChromaPaletteSearch;
 
                 if (pruneByHeader && Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0) >= bestStatistics.Cost)
                 {
@@ -371,6 +370,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             return paletteSelected;
         }
+
+        internal static bool ShouldPruneChromaPaletteByHeader(ObuFrameType frameType)
+            => frameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame;
 
         private int CountPaletteColors(
             ReadOnlySpan<short> samples,

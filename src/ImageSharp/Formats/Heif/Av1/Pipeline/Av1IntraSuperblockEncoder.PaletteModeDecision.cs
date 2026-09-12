@@ -91,9 +91,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 blockSize);
 
-            int speed = (int)this.picture.Parent.EncodingSpeed;
-            int searchLevel = speed == 0 ? 0 : speed < 3 ? 1 : 2;
-            int headerPruneLevel = this.picture.Sequence.SequenceHeader.IsStillPicture ? speed == 0 ? 1 : 2 : 0;
+            Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
+            int speed = (int)speedSettings.Speed;
+            int searchLevel = speedSettings.PaletteSearchLevel;
+            int headerPruneLevel = speedSettings.LumaPaletteHeaderPruneLevel;
 
             int sourceVariance = this.GetSourceVariance(blockOrigin, blockSize);
             bool selected = false;

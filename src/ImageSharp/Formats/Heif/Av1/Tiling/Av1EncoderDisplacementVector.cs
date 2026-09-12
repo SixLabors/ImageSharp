@@ -30,6 +30,16 @@ internal struct Av1EncoderReferenceContext
     public InlineArray4<Av1EncoderDisplacementVector> References;
 
     /// <summary>
+    /// Stores the secondary differential reference vectors for the four usable compound-stack entries.
+    /// </summary>
+    public InlineArray4<Av1EncoderDisplacementVector> SecondaryReferences;
+
+    /// <summary>
+    /// Stores the selected secondary vector for a compound block so later encoder neighbors observe the same pair as the decoder.
+    /// </summary>
+    public Av1EncoderDisplacementVector SecondaryVector;
+
+    /// <summary>
     /// Stores the candidate weights used by dynamic-reference-list syntax.
     /// </summary>
     public InlineArray4<ushort> Weights;

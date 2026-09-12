@@ -437,9 +437,21 @@ internal static partial class Av1IntraSuperblockEncoder
                         coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
 
                     state = default;
-                    Av1TransformBlockEncoder.EncodeLossy(
+                    Span<byte> transformTop = topContexts.Slice(x / 4, width / 4);
+                    Span<byte> transformLeft = leftContexts.Slice(y / 4, height / 4);
+                    Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                        component,
+                        transformTop,
+                        transformLeft,
+                        planeBlockSize,
+                        transformSize);
+
+                    Av1TransformBlockEncoder.EncodeLossyCandidate(
                         this.blockWorkspace,
+                        writer,
+                        context,
                         residual,
+                        width,
                         coefficients.Slice(coefficientOffset, sampleCount),
                         transformSize,
                         Av1TransformType.DctDct,
@@ -447,35 +459,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.quantization.DeltaQDc[planeIndex],
                         this.quantization.DeltaQAc[planeIndex],
                         this.bitDepth,
+                        component,
+                        this.rateMultiplier,
+                        false,
+                        true,
+                        true,
                         ref state);
-
-                    Span<byte> transformTop = topContexts.Slice(x / 4, width / 4);
-                    Span<byte> transformLeft = leftContexts.Slice(y / 4, height / 4);
-                    if (state.EndOfBlock > 0 && this.quantization.QIndex[0] != 0)
-                    {
-                        Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
-                            component,
-                            transformTop,
-                            transformLeft,
-                            planeBlockSize,
-                            transformSize);
-
-                        state.EndOfBlock = writer.OptimizeCoefficients(
-                            this.blockWorkspace.TransformCoefficients,
-                            coefficients.Slice(coefficientOffset, sampleCount),
-                            this.blockWorkspace.DequantizedCoefficients,
-                            transformSize,
-                            Av1TransformType.DctDct,
-                            component,
-                            context,
-                            dcDequantizer,
-                            acDequantizer,
-                            this.rateMultiplier,
-                            this.bitDepth,
-                            false,
-                            true,
-                            state.EndOfBlock);
-                    }
 
                     byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                         coefficients.Slice(coefficientOffset, sampleCount),

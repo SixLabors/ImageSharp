@@ -13,12 +13,12 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     where TSample : unmanaged
 {
     /// <summary>
-    /// The width and height of the fixed prediction block handled by the current inter search.
+    /// The largest single-transform prediction dimension handled directly by inter search.
     /// </summary>
-    private const int MaximumBlockDimension = 8;
+    private const int MaximumBlockDimension = Av1Constants.MaxTransformSize;
 
     /// <summary>
-    /// The number of samples in the fixed prediction block.
+    /// The maximum number of samples in one directly evaluated inter block.
     /// </summary>
     public const int MaximumSampleCount = MaximumBlockDimension * MaximumBlockDimension;
 

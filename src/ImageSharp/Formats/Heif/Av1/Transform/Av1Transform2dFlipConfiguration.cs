@@ -90,7 +90,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets the function applied down the transform columns for each compound transform type.
     /// </summary>
-    private static ReadOnlySpan<Av1TransformType1d> VerticalType =>
+    private static readonly Av1TransformType1d[] VerticalType =
         [
             Av1TransformType1d.Dct,
             Av1TransformType1d.Adst,
@@ -111,9 +111,69 @@ internal ref struct Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
+    /// Maps a last coded coefficient index to the supported sparse inverse-transform extent.
+    /// </summary>
+    private static readonly byte[] InverseExtentByLastIndex =
+        [
+            1, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16,
+            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
+        ];
+
+    private static readonly ushort[] InverseBounds8x8 =
+        [0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707];
+
+    private static readonly ushort[] InverseBounds16x16 =
+        [
+            0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
+            0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
+        ];
+
+    private static readonly ushort[] InverseBounds8x16 =
+        [
+            0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
+            0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07,
+        ];
+
+    private static readonly ushort[] InverseBounds16x8 =
+        [0x0707, 0x0707, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F];
+
+    private static readonly ushort[] InverseBounds16x32 =
+        [
+            0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
+            0x0F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
+            0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
+            0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
+        ];
+
+    private static readonly ushort[] InverseBounds32x16 =
+        [
+            0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
+            0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
+        ];
+
+    private static readonly ushort[] InverseBounds8x32 =
+        [
+            0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
+            0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x1F07, 0x1F07, 0x1F07,
+            0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07,
+            0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07,
+        ];
+
+    private static readonly ushort[] InverseBounds32x8 =
+        [0x0707, 0x070F, 0x070F, 0x071F, 0x071F, 0x071F, 0x071F, 0x071F];
+
+    private static readonly ushort[] InverseBounds32x32 =
+        [
+            0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+            0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+            0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+            0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+        ];
+
+    /// <summary>
     /// Gets the function applied across the transform rows for each compound transform type.
     /// </summary>
-    private static ReadOnlySpan<Av1TransformType1d> HorizontalType =>
+    private static readonly Av1TransformType1d[] HorizontalType =
         [
             Av1TransformType1d.Dct,
             Av1TransformType1d.Dct,
@@ -136,7 +196,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets the three normative forward fixed-point shifts for every transform size.
     /// </summary>
-    private static ReadOnlySpan<int> ForwardShiftMap =>
+    private static readonly int[] ForwardShiftMap =
         [
             2, 0, 0, // 4x4
             2, -1, 0, // 8x8
@@ -162,7 +222,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets the two normative inverse fixed-point shifts for every transform size.
     /// </summary>
-    private static ReadOnlySpan<int> InverseShiftMap =>
+    private static readonly int[] InverseShiftMap =
         [
             0, -4, // 4x4
             -1, -4, // 8x8
@@ -188,7 +248,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets column-transform cosine precision by width and height logarithm.
     /// </summary>
-    private static ReadOnlySpan<int> ForwardCosBitColumnMap =>
+    private static readonly int[] ForwardCosBitColumnMap =
     [
         13, 13, 13, 0, 0,
         13, 13, 13, 12, 0,
@@ -200,7 +260,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets row-transform cosine precision by width and height logarithm.
     /// </summary>
-    private static ReadOnlySpan<int> ForwardCosBitRowMap =>
+    private static readonly int[] ForwardCosBitRowMap =
     [
         13, 13, 12, 0, 0,
         13, 13, 13, 12, 0,
@@ -212,7 +272,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets the concrete staged function for each transform dimension and one-dimensional type.
     /// </summary>
-    private static ReadOnlySpan<Av1TransformFunctionType> TransformFunctionTypeMap =>
+    private static readonly Av1TransformFunctionType[] TransformFunctionTypeMap =
         [
             Av1TransformFunctionType.Dct4, Av1TransformFunctionType.Adst4, Av1TransformFunctionType.Adst4, Av1TransformFunctionType.Identity4,
             Av1TransformFunctionType.Dct8, Av1TransformFunctionType.Adst8, Av1TransformFunctionType.Adst8, Av1TransformFunctionType.Identity8,
@@ -224,7 +284,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets the number of fixed-point stages executed by each concrete transform function.
     /// </summary>
-    private static ReadOnlySpan<int> StageNumberList =>
+    private static readonly int[] StageNumberList =
         [
             4, // TXFM_TYPE_DCT4
             6, // TXFM_TYPE_DCT8
@@ -243,7 +303,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets twice the non-scaled bit range required after every transform stage.
     /// </summary>
-    private static ReadOnlySpan<int> RangeMulti2Map =>
+    private static readonly int[] RangeMulti2Map =
         [
             0, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, // fdct4_range_mult2
             0, 2, 4, 5, 5, 5, 0, 0, 0, 0, 0, 0, // fdct8_range_mult2
@@ -393,12 +453,6 @@ internal ref struct Av1Transform2dFlipConfiguration
 
         // The sparse kernels accept one, eight, sixteen, or thirty-two inputs. Each entry rounds a last coefficient
         // index up to the corresponding exclusive bound, preserving every coded coefficient in the scan prefix.
-        ReadOnlySpan<byte> extentByLastIndex =
-        [
-            1, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16,
-            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
-        ];
-
         int last = endOfBuffer - 1;
         if (this.TransformTypeRow == Av1TransformType1d.Identity)
         {
@@ -406,12 +460,12 @@ internal ref struct Av1Transform2dFlipConfiguration
             // and uses a conservative column bound, which must not also limit the identity axis.
             if (bitDepth == 8)
             {
-                this.NonzeroWidth = last >= width - 1 ? width : extentByLastIndex[last];
-                this.NonzeroHeight = extentByLastIndex[last / width];
+                this.NonzeroWidth = last >= width - 1 ? width : InverseExtentByLastIndex[last];
+                this.NonzeroHeight = InverseExtentByLastIndex[last / width];
             }
             else
             {
-                this.NonzeroHeight = last >= height - 1 ? height : extentByLastIndex[last];
+                this.NonzeroHeight = last >= height - 1 ? height : InverseExtentByLastIndex[last];
             }
 
             return;
@@ -423,12 +477,12 @@ internal ref struct Av1Transform2dFlipConfiguration
             // while only the horizontal transform selects a reduced input network.
             if (bitDepth == 8)
             {
-                this.NonzeroWidth = extentByLastIndex[last / height];
-                this.NonzeroHeight = last >= height - 1 ? height : extentByLastIndex[last];
+                this.NonzeroWidth = InverseExtentByLastIndex[last / height];
+                this.NonzeroHeight = last >= height - 1 ? height : InverseExtentByLastIndex[last];
             }
             else
             {
-                this.NonzeroWidth = last >= width - 1 ? width : extentByLastIndex[last];
+                this.NonzeroWidth = last >= width - 1 ? width : InverseExtentByLastIndex[last];
             }
 
             return;
@@ -446,54 +500,15 @@ internal ref struct Av1Transform2dFlipConfiguration
         // transforms within their coded thirty-two-frequency rectangle.
         ReadOnlySpan<ushort> bounds = this.TransformSize.GetAdjusted() switch
         {
-            Av1TransformSize.Size8x8 =>
-            [
-                0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707,
-            ],
-            Av1TransformSize.Size16x16 =>
-            [
-                0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
-                0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
-            ],
-            Av1TransformSize.Size8x16 =>
-            [
-                0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
-                0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07,
-            ],
-            Av1TransformSize.Size16x8 =>
-            [
-                0x0707, 0x0707, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F,
-            ],
-            Av1TransformSize.Size16x32 =>
-            [
-                0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
-                0x0F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
-                0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
-                0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
-            ],
-            Av1TransformSize.Size32x16 =>
-            [
-                0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
-                0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
-            ],
-            Av1TransformSize.Size8x32 =>
-            [
-                0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
-                0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x1F07, 0x1F07, 0x1F07,
-                0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07,
-                0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07,
-            ],
-            Av1TransformSize.Size32x8 =>
-            [
-                0x0707, 0x070F, 0x070F, 0x071F, 0x071F, 0x071F, 0x071F, 0x071F,
-            ],
-            _ =>
-            [
-                0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
-                0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
-                0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
-                0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
-            ],
+            Av1TransformSize.Size8x8 => InverseBounds8x8,
+            Av1TransformSize.Size16x16 => InverseBounds16x16,
+            Av1TransformSize.Size8x16 => InverseBounds8x16,
+            Av1TransformSize.Size16x8 => InverseBounds16x8,
+            Av1TransformSize.Size16x32 => InverseBounds16x32,
+            Av1TransformSize.Size32x16 => InverseBounds32x16,
+            Av1TransformSize.Size8x32 => InverseBounds8x32,
+            Av1TransformSize.Size32x8 => InverseBounds32x8,
+            _ => InverseBounds32x32,
         };
 
         int bound = bounds[last / width];

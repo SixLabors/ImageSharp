@@ -266,11 +266,16 @@ internal static class Av1Math
     /// Right-shifts a long intermediate with nearest-integer rounding.
     /// </summary>
     /// <param name="value">The value.</param>
-    /// <param name="bit">The positive shift count.</param>
+    /// <param name="bit">The nonnegative shift count.</param>
     /// <returns>The rounded signed result.</returns>
     public static int RoundShift(long value, int bit)
     {
-        DebugGuard.MustBeGreaterThanOrEqualTo(bit, 1, nameof(bit));
+        DebugGuard.MustBeGreaterThanOrEqualTo(bit, 0, nameof(bit));
+        if (bit == 0)
+        {
+            return (int)value;
+        }
+
         return (int)((value + (1L << (bit - 1))) >> bit);
     }
 

@@ -47,42 +47,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             source,
             reconstruction,
             reconstruction,
-            picture,
-            coefficientBuffer,
-            new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
-            blockWorkspace,
-            effort);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for an eight-bit inter frame.
-    /// </summary>
-    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
-    /// <param name="source">The coded source frame.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
-    /// <param name="picture">The frame coding and mode-information state.</param>
-    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
-    /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
-    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
-    public Av1TileEncoder(
-        Av1SymbolEncoder writer,
-        Av1EncoderFrame<byte> source,
-        Av1EncoderFrame<byte> reference,
-        Av1EncoderFrame<byte> reconstruction,
-        Av1PictureControlSet picture,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        Av1EncoderSuperblockWorkspace superblockWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
-    {
-        this.picture = picture;
-        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
-            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
-            writer,
-            source,
-            reference,
+            false,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -97,6 +62,51 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
     /// <param name="reference">The reconstructed reference frame.</param>
+    /// <param name="goldenReference">The retained long-term reference frame.</param>
+    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
+    public Av1TileEncoder(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<byte> source,
+        Av1EncoderFrame<byte> reference,
+        Av1EncoderFrame<byte> goldenReference,
+        bool hasDistinctGoldenReference,
+        Av1EncoderFrame<byte> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderSuperblockWorkspace superblockWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace,
+        int effort)
+    {
+        this.picture = picture;
+        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
+            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
+            writer,
+            source,
+            reference,
+            goldenReference,
+            hasDistinctGoldenReference,
+            reconstruction,
+            picture,
+            coefficientBuffer,
+            new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
+            blockWorkspace,
+            effort);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for an eight-bit inter frame.
+    /// </summary>
+    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="reference">The reconstructed reference frame.</param>
+    /// <param name="goldenReference">The retained long-term reference frame.</param>
+    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -107,6 +117,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1SymbolEncoder writer,
         Av1EncoderFrame<byte> source,
         Av1EncoderFrame<byte> reference,
+        Av1EncoderFrame<byte> goldenReference,
+        bool hasDistinctGoldenReference,
         Av1EncoderFrame<byte> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -120,6 +132,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer,
             source,
             reference,
+            goldenReference,
+            hasDistinctGoldenReference,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -156,42 +170,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             source,
             reconstruction,
             reconstruction,
-            picture,
-            coefficientBuffer,
-            new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
-            blockWorkspace,
-            effort);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for a high-bit-depth inter frame.
-    /// </summary>
-    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
-    /// <param name="source">The coded source frame.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
-    /// <param name="picture">The frame coding and mode-information state.</param>
-    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
-    /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
-    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
-    public Av1TileEncoder(
-        Av1SymbolEncoder writer,
-        Av1EncoderFrame<ushort> source,
-        Av1EncoderFrame<ushort> reference,
-        Av1EncoderFrame<ushort> reconstruction,
-        Av1PictureControlSet picture,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        Av1EncoderSuperblockWorkspace superblockWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
-    {
-        this.picture = picture;
-        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
-            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
-            writer,
-            source,
-            reference,
+            false,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -206,6 +185,51 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
     /// <param name="reference">The reconstructed reference frame.</param>
+    /// <param name="goldenReference">The retained long-term reference frame.</param>
+    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
+    public Av1TileEncoder(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<ushort> source,
+        Av1EncoderFrame<ushort> reference,
+        Av1EncoderFrame<ushort> goldenReference,
+        bool hasDistinctGoldenReference,
+        Av1EncoderFrame<ushort> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderSuperblockWorkspace superblockWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace,
+        int effort)
+    {
+        this.picture = picture;
+        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
+            writer,
+            source,
+            reference,
+            goldenReference,
+            hasDistinctGoldenReference,
+            reconstruction,
+            picture,
+            coefficientBuffer,
+            new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
+            blockWorkspace,
+            effort);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for a high-bit-depth inter frame.
+    /// </summary>
+    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="reference">The reconstructed reference frame.</param>
+    /// <param name="goldenReference">The retained long-term reference frame.</param>
+    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -216,6 +240,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1SymbolEncoder writer,
         Av1EncoderFrame<ushort> source,
         Av1EncoderFrame<ushort> reference,
+        Av1EncoderFrame<ushort> goldenReference,
+        bool hasDistinctGoldenReference,
         Av1EncoderFrame<ushort> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -229,6 +255,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer,
             source,
             reference,
+            goldenReference,
+            hasDistinctGoldenReference,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -249,6 +277,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reference,
+        Av1EncoderFrame<TSample> goldenReference,
+        bool hasDistinctGoldenReference,
         Av1EncoderFrame<TSample> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -303,7 +333,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration = false;
         parent.MotionSearchStepParameter = stepParameter;
         _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
-            writer, source, reference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
+            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
 
         Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);
         bool useRestoration = picture.Sequence.SequenceHeader.EnableRestoration && !frameHeader.AllLossless && !frameHeader.AllowIntraBlockCopy;
@@ -329,13 +359,15 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // from the same entropy edges and probabilities while the completed frame decisions remain available.
         picture.ResetEntropyContexts();
         return ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
-            writer, source, reference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
+            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
     }
 
     private static ReadOnlyMemory<byte> ProcessTiles<TSample, TOperator, TSymbolOperation>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reference,
+        Av1EncoderFrame<TSample> goldenReference,
+        bool hasDistinctGoldenReference,
         Av1EncoderFrame<TSample> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -474,6 +506,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> blockEncoder = new(
                                 source,
                                 reference,
+                                goldenReference,
+                                hasDistinctGoldenReference,
                                 reconstruction,
                                 picture,
                                 superblock,

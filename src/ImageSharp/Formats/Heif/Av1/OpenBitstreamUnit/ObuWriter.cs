@@ -740,16 +740,15 @@ internal sealed class ObuWriter : IDisposable
             writer.WriteLiteral(frameHeader.RefreshFrameFlags, Av1Constants.ReferenceFrameCount);
         }
 
-        if (frameHeader.FrameType == ObuFrameType.KeyFrame)
+        if ((!frameHeader.IsIntra || frameHeader.RefreshFrameFlags != byte.MaxValue) &&
+            frameHeader.ErrorResilientMode &&
+            sequenceHeader.OrderHintInfo.EnableOrderHint)
         {
-            if (!frameHeader.ShowFrame)
+            ReadOnlySpan<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
+            for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
             {
-                throw new NotImplementedException("No support for hidden frames.");
+                writer.WriteLiteral(referenceOrderHints[slot], sequenceHeader.OrderHintInfo.OrderHintBits);
             }
-        }
-        else if (frameHeader.FrameType == ObuFrameType.IntraOnlyFrame)
-        {
-            throw new NotImplementedException("No IntraOnly frames supported.");
         }
 
         if (frameHeader.FrameType == ObuFrameType.KeyFrame)

@@ -949,7 +949,23 @@ internal partial class Av1TileWriter
                     beforeSkip: true);
             }
 
-            EncodeSkipCoefficients<TOperation>(writer, macroBlock, skipWritingCoefficients);
+            ObuSegmentationParameters segmentation = frm_hdr.SegmentationParameters;
+            int segmentId = macroBlockModeInfo.Block.SegmentId;
+            bool writesSkipMode = !frm_hdr.IsIntra &&
+                frm_hdr.SkipModeParameters.SkipModeFlag &&
+                Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8 &&
+                !segmentation.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.Skip) &&
+                !segmentation.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.ReferenceFrame) &&
+                !segmentation.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.GlobalMotionVector);
+            if (writesSkipMode)
+            {
+                writer.WriteSkipMode<TOperation>(macroBlockModeInfo.Block.SkipMode, GetSkipModeContext(macroBlock));
+            }
+
+            if (!macroBlockModeInfo.Block.SkipMode)
+            {
+                EncodeSkipCoefficients<TOperation>(writer, macroBlock, skipWritingCoefficients);
+            }
 
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && !pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
@@ -993,8 +1009,6 @@ internal partial class Av1TileWriter
             bool isReferenceForced = false;
             if (!frm_hdr.IsIntra)
             {
-                ObuSegmentationParameters segmentation = frm_hdr.SegmentationParameters;
-                int segmentId = macroBlockModeInfo.Block.SegmentId;
                 isReferenceForced = segmentation.IsFeatureActive(
                     segmentId,
                     ObuSegmentationLevelFeature.ReferenceFrame);
@@ -1003,7 +1017,7 @@ internal partial class Av1TileWriter
                     segmentId,
                     ObuSegmentationLevelFeature.GlobalMotionVector);
 
-                if (!isReferenceForced && !isGlobalMotionForced)
+                if (!macroBlockModeInfo.Block.SkipMode && !isReferenceForced && !isGlobalMotionForced)
                 {
                     int intraInterContext = GetIntraInterContext(macroBlock);
                     writer.WriteIsInter<TOperation>(isInterBlock, intraInterContext);
@@ -1014,16 +1028,34 @@ internal partial class Av1TileWriter
             Av1ChromaPredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
             if (isInterBlock)
             {
-                if (!isReferenceForced && !isGlobalMotionForced)
+                if (!macroBlockModeInfo.Block.SkipMode && !isReferenceForced && !isGlobalMotionForced)
                 {
                     Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
                     CollectNeighborReferenceCounts(macroBlock, referenceCounts);
-                    writer.WriteSingleReference<TOperation>(
-                        macroBlockModeInfo.Block.ReferenceFrame,
-                        referenceCounts);
+                    if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+                    {
+                        writer.WriteCompoundReference<TOperation>(
+                            macroBlockModeInfo.Block.ReferenceFrame,
+                            macroBlockModeInfo.Block.SecondaryReferenceFrame,
+                            Av1SymbolContextHelper.GetReferenceModeContext(macroBlock),
+                            Av1SymbolContextHelper.GetCompoundReferenceTypeContext(macroBlock),
+                            referenceCounts);
+                    }
+                    else
+                    {
+                        if (frm_hdr.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
+                            Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
+                        {
+                            writer.WriteIsCompoundReference<TOperation>(false, Av1SymbolContextHelper.GetReferenceModeContext(macroBlock));
+                        }
+
+                        writer.WriteSingleReference<TOperation>(
+                            macroBlockModeInfo.Block.ReferenceFrame,
+                            referenceCounts);
+                    }
                 }
 
-                if (!isGlobalMotionForced)
+                if (!macroBlockModeInfo.Block.SkipMode && !isGlobalMotionForced)
                 {
                     Av1EncoderReferenceContext referenceContext;
                     if (TBlockEncoder.UsesRetainedDecisions)
@@ -1041,11 +1073,22 @@ internal partial class Av1TileWriter
                             macroBlockModeInfo.Block.PartitionType,
                             scs.SequenceHeader,
                             frm_hdr,
-                            macroBlockModeInfo.Block.ReferenceFrame);
+                            macroBlockModeInfo.Block.ReferenceFrame,
+                            macroBlockModeInfo.Block.SecondaryReferenceFrame);
 
                         referenceContext = default;
                         referenceContext.Count = (byte)referenceMotionVectors.Count;
                         referenceContext.ModeContext = (ushort)referenceMotionVectors.ModeContext;
+                        if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+                        {
+                            Av1MotionVector secondaryVector = pcs.GetSecondaryDisplacementVector(modeInfoPosition);
+                            referenceContext.SecondaryVector = new Av1EncoderDisplacementVector
+                            {
+                                Row = (short)secondaryVector.Row,
+                                Column = (short)secondaryVector.Column
+                            };
+                        }
+
                         int candidateCount = Math.Min(4, referenceMotionVectors.Count);
                         referenceMotionVectors.Weights[..candidateCount].CopyTo(referenceContext.Weights);
 
@@ -1054,12 +1097,26 @@ internal partial class Av1TileWriter
                         int referenceCount = Math.Max(1, candidateCount);
                         for (int index = 0; index < referenceCount; index++)
                         {
-                            Av1MotionVector candidate = referenceMotionVectors.GetNewReference(index);
+                            bool isCompound = macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+                            Av1MotionVector candidate = isCompound
+                                ? referenceMotionVectors.GetCompoundNewReference(index, 0)
+                                : referenceMotionVectors.GetNewReference(index);
+
                             referenceContext.References[index] = new Av1EncoderDisplacementVector
                             {
                                 Row = (short)candidate.Row,
                                 Column = (short)candidate.Column
                             };
+
+                            if (isCompound)
+                            {
+                                Av1MotionVector secondaryCandidate = referenceMotionVectors.GetCompoundNewReference(index, 1);
+                                referenceContext.SecondaryReferences[index] = new Av1EncoderDisplacementVector
+                                {
+                                    Row = (short)secondaryCandidate.Row,
+                                    Column = (short)secondaryCandidate.Column
+                                };
+                            }
                         }
 
                         // Save the contexts before later blocks become visible through the completed frame grid.
@@ -1069,9 +1126,21 @@ internal partial class Av1TileWriter
                         }
                     }
 
-                    writer.WriteInterMode<TOperation>(lumaMode, referenceContext.ModeContext);
+                    if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+                    {
+                        writer.WriteInterCompoundMode<TOperation>(lumaMode, referenceContext.ModeContext);
+                    }
+                    else
+                    {
+                        writer.WriteInterMode<TOperation>(lumaMode, referenceContext.ModeContext);
+                    }
+
                     int referenceMotionVectorIndex = blk_ptr.ReferenceMotionVectorIndex;
-                    if (lumaMode == Av1PredictionMode.NearMotionVector)
+                    if (lumaMode is
+                        Av1PredictionMode.NearMotionVector or
+                        Av1PredictionMode.NearNearMotionVector or
+                        Av1PredictionMode.NearNewMotionVector or
+                        Av1PredictionMode.NewNearMotionVector)
                     {
                         // NEARMV reserves stack entry zero for NEARESTMV, so its DRL decisions advance from
                         // near entry zero to one and then from one to two.
@@ -1086,7 +1155,7 @@ internal partial class Av1TileWriter
                             }
                         }
                     }
-                    else if (lumaMode == Av1PredictionMode.NewMotionVector)
+                    else if (lumaMode is Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector)
                     {
                         // NEWMV begins at stack entry zero and can advance through entries one and two.
                         for (int index = 0; index < 2 && referenceContext.Count > index + 1; index++)
@@ -1100,12 +1169,23 @@ internal partial class Av1TileWriter
                             }
                         }
 
+                    }
+
+                    int newReferenceIndex = lumaMode is Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector
+                        ? referenceMotionVectorIndex + 1
+                        : referenceMotionVectorIndex;
+
+                    if (lumaMode is Av1PredictionMode.NewMotionVector or
+                        Av1PredictionMode.NewNearestMotionVector or
+                        Av1PredictionMode.NewNearMotionVector or
+                        Av1PredictionMode.NewNewMotionVector)
+                    {
                         Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoPosition);
                         writer.WriteMotionVector<TOperation>(
                             vector,
                             new Av1MotionVector(
-                                referenceContext.References[referenceMotionVectorIndex].Row,
-                                referenceContext.References[referenceMotionVectorIndex].Column),
+                                referenceContext.References[newReferenceIndex].Row,
+                                referenceContext.References[newReferenceIndex].Column),
                             frm_hdr.MotionVectorPrecision);
 
                         if (TOperation.WritesOutput && pcs.Parent.MotionSearchSettings.AutomaticStepSizeLevel != 0)
@@ -1116,6 +1196,64 @@ internal partial class Av1TileWriter
                             pcs.Parent.MaximumMotionVectorMagnitude = Math.Max(pcs.Parent.MaximumMotionVectorMagnitude, magnitude);
                         }
                     }
+
+                    if (lumaMode is Av1PredictionMode.NearestNewMotionVector or
+                        Av1PredictionMode.NearNewMotionVector or
+                        Av1PredictionMode.NewNewMotionVector)
+                    {
+                        Av1MotionVector vector = pcs.GetSecondaryDisplacementVector(modeInfoPosition);
+                        writer.WriteMotionVector<TOperation>(
+                            vector,
+                            new Av1MotionVector(
+                                referenceContext.SecondaryReferences[newReferenceIndex].Row,
+                                referenceContext.SecondaryReferences[newReferenceIndex].Column),
+                            frm_hdr.MotionVectorPrecision);
+
+                        if (TOperation.WritesOutput && pcs.Parent.MotionSearchSettings.AutomaticStepSizeLevel != 0)
+                        {
+                            int magnitude = Math.Max(Math.Abs(vector.Row), Math.Abs(vector.Column)) >> Av1MotionVector.SubpixelBits;
+                            pcs.Parent.MaximumMotionVectorMagnitude = Math.Max(pcs.Parent.MaximumMotionVectorMagnitude, magnitude);
+                        }
+                    }
+                }
+
+                if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
+                    !macroBlockModeInfo.Block.SkipMode)
+                {
+                    bool maskedCompoundEnabled = scs.SequenceHeader.EnableMaskedCompound &&
+                        Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8;
+                    bool jointCompoundEnabled = scs.SequenceHeader.OrderHintInfo.EnableJointCompound;
+                    int compoundIndexContext = jointCompoundEnabled
+                        ? Av1SymbolContextHelper.GetCompoundIndexContext(
+                            scs.SequenceHeader.OrderHintInfo,
+                            frm_hdr,
+                            macroBlockModeInfo.Block.ReferenceFrame,
+                            macroBlockModeInfo.Block.SecondaryReferenceFrame,
+                            macroBlock)
+                        : 0;
+
+                    writer.WriteCompoundBlend<TOperation>(
+                        blockSize,
+                        macroBlockModeInfo.Block.CompoundType,
+                        GetCompoundGroupIndexContext(macroBlock),
+                        compoundIndexContext,
+                        macroBlockModeInfo.Block.CompoundWedgeIndex,
+                        macroBlockModeInfo.Block.CompoundWedgeSign,
+                        macroBlockModeInfo.Block.DifferenceWeightedMaskType,
+                        maskedCompoundEnabled,
+                        jointCompoundEnabled);
+                }
+                else if (!macroBlockModeInfo.Block.SkipMode &&
+                    scs.SequenceHeader.EnableInterIntraCompound &&
+                    blockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32)
+                {
+                    bool interIntra = macroBlockModeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
+                    writer.WriteInterIntra<TOperation>(
+                        blockSize,
+                        interIntra,
+                        macroBlockModeInfo.Block.InterIntraMode,
+                        macroBlockModeInfo.Block.UseInterIntraWedge,
+                        macroBlockModeInfo.Block.InterIntraWedgeIndex);
                 }
 
                 if (UsesSwitchableInterpolation(frm_hdr, macroBlockModeInfo.Block))
@@ -1427,16 +1565,20 @@ internal partial class Av1TileWriter
         }
         else if (writesVariableTransformSize)
         {
-            int topIndex = transformContexts.GetTopIndex(blockOrigin);
-            int leftIndex = transformContexts.GetLeftIndex(blockOrigin);
-            int context = Av1SymbolContextHelper.GetTransformPartitionContext(
-                transformContexts.Top[topIndex],
-                transformContexts.Left[leftIndex],
+            int maximumBlocksWide = blockSize.Get4x4WideCount() + (Math.Min(0, macroBlock.ToRightEdge) >> 5);
+            int maximumBlocksHigh = blockSize.Get4x4HighCount() + (Math.Min(0, macroBlock.ToBottomEdge) >> 5);
+            WriteVariableTransformTree<TOperation>(
+                writer,
+                transformContexts,
+                blockOrigin,
                 blockSize,
-                blockSize.GetMaximumTransformSize());
-
-            // Current inter decisions retain the maximum transform, so their variable-transform tree has one unsplit root.
-            writer.WriteTransformPartition<TOperation>(false, context);
+                blockSize.GetMaximumTransformSize(),
+                transformSize,
+                depth: 0,
+                blockRow: 0,
+                blockColumn: 0,
+                maximumBlocksWide,
+                maximumBlocksHigh);
         }
 
         Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
@@ -1453,6 +1595,80 @@ internal partial class Av1TileWriter
             blockOrigin,
             blockDimensions,
             Av1NeighborArrayUnit<byte>.UnitMask.Left);
+    }
+
+    private static void WriteVariableTransformTree<TOperation>(
+        Av1SymbolEncoder writer,
+        Av1NeighborArrayUnit<byte> transformContexts,
+        Point blockOrigin,
+        Av1BlockSize blockSize,
+        Av1TransformSize transformSize,
+        Av1TransformSize selectedTransformSize,
+        int depth,
+        int blockRow,
+        int blockColumn,
+        int maximumBlocksWide,
+        int maximumBlocksHigh)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
+    {
+        if (blockRow >= maximumBlocksHigh || blockColumn >= maximumBlocksWide)
+        {
+            return;
+        }
+
+        bool split = transformSize != selectedTransformSize &&
+            transformSize > Av1TransformSize.Size4x4 &&
+            depth < Av1Constants.MaxVarTransform;
+        int topIndex = transformContexts.GetTopIndex(blockOrigin) + blockColumn;
+        int leftIndex = transformContexts.GetLeftIndex(blockOrigin) + blockRow;
+        if (transformSize > Av1TransformSize.Size4x4 && depth < Av1Constants.MaxVarTransform)
+        {
+            int maximumDimension = Math.Max(blockSize.GetWidth(), blockSize.GetHeight());
+            Av1TransformSize maximumSquareTransform = maximumDimension switch
+            {
+                >= 64 => Av1TransformSize.Size64x64,
+                >= 32 => Av1TransformSize.Size32x32,
+                >= 16 => Av1TransformSize.Size16x16,
+                _ => Av1TransformSize.Size8x8
+            };
+            int category = ((transformSize.GetSquareUpSize() != maximumSquareTransform && maximumSquareTransform > Av1TransformSize.Size8x8) ? 1 : 0) +
+                ((((int)Av1TransformSize.SquareSizes - 1) - (int)maximumSquareTransform) * 2);
+            int above = transformContexts.Top[topIndex] < transformSize.GetWidth() ? 1 : 0;
+            int left = transformContexts.Left[leftIndex] < transformSize.GetHeight() ? 1 : 0;
+            writer.WriteTransformPartition<TOperation>(split, (category * 3) + above + left);
+        }
+
+        if (split)
+        {
+            Av1TransformSize subTransformSize = transformSize.GetSubSize();
+            int subWidth = subTransformSize.Get4x4WideCount();
+            int subHeight = subTransformSize.Get4x4HighCount();
+            for (int row = 0; row < transformSize.Get4x4HighCount(); row += subHeight)
+            {
+                for (int column = 0; column < transformSize.Get4x4WideCount(); column += subWidth)
+                {
+                    WriteVariableTransformTree<TOperation>(
+                        writer,
+                        transformContexts,
+                        blockOrigin,
+                        blockSize,
+                        subTransformSize,
+                        selectedTransformSize,
+                        depth + 1,
+                        blockRow + row,
+                        blockColumn + column,
+                        maximumBlocksWide,
+                        maximumBlocksHigh);
+                }
+            }
+
+            return;
+        }
+
+        int width = Math.Min(transformSize.Get4x4WideCount(), maximumBlocksWide - blockColumn);
+        int height = Math.Min(transformSize.Get4x4HighCount(), maximumBlocksHigh - blockRow);
+        transformContexts.Top.Slice(topIndex, width).Fill((byte)transformSize.GetWidth());
+        transformContexts.Left.Slice(leftIndex, height).Fill((byte)transformSize.GetHeight());
     }
 
     /// <summary>
@@ -1716,6 +1932,27 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
+    /// Gets the masked compound context from the immediately above and left encoder blocks.
+    /// </summary>
+    public static int GetCompoundGroupIndexContext(Av1MacroBlockD macroBlock)
+    {
+        int context = 0;
+        if (macroBlock.IsUpAvailable)
+        {
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && above.CompoundGroupIndex ? 1 : 0;
+        }
+
+        if (macroBlock.IsLeftAvailable)
+        {
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && left.CompoundGroupIndex ? 1 : 0;
+        }
+
+        return context;
+    }
+
+    /// <summary>
     /// Counts the single-reference labels used by the immediately above and left encoded blocks.
     /// </summary>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
@@ -1737,6 +1974,14 @@ internal partial class Av1TileWriter
             {
                 referenceCounts[(int)referenceFrame]++;
             }
+
+            Av1ReferenceFrameType secondaryReference = macroBlock
+                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .Block.SecondaryReferenceFrame;
+            if (secondaryReference > Av1ReferenceFrameType.Intra)
+            {
+                referenceCounts[(int)secondaryReference]++;
+            }
         }
 
         if (macroBlock.IsLeftAvailable)
@@ -1748,6 +1993,14 @@ internal partial class Av1TileWriter
             if (referenceFrame > Av1ReferenceFrameType.Intra)
             {
                 referenceCounts[(int)referenceFrame]++;
+            }
+
+            Av1ReferenceFrameType secondaryReference = macroBlock
+                .GetRelativeModeInfo(-1)
+                .Block.SecondaryReferenceFrame;
+            if (secondaryReference > Av1ReferenceFrameType.Intra)
+            {
+                referenceCounts[(int)secondaryReference]++;
             }
         }
     }
@@ -2986,6 +3239,17 @@ internal partial class Av1TileWriter
 
         bool leftSkipped = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.Skip;
         return (aboveSkipped ? 1 : 0) + (leftSkipped ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Gets the block skip-mode context from available above and left modes.
+    /// </summary>
+    public static int GetSkipModeContext(Av1MacroBlockD macroBlock)
+    {
+        bool aboveSkipMode = macroBlock.IsUpAvailable &&
+            macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.SkipMode;
+        bool leftSkipMode = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.SkipMode;
+        return (aboveSkipMode ? 1 : 0) + (leftSkipMode ? 1 : 0);
     }
 
     /// <summary>

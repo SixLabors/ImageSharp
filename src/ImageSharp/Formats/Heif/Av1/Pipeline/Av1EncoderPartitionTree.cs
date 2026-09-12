@@ -222,6 +222,7 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
         public Av1EncoderPaletteInfo Palette;
         public Av1RateDistortionStatistics Statistics;
         public Av1MotionVector Displacement;
+        public Av1MotionVector SecondaryDisplacement;
         public bool Ready;
     }
 

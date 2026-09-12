@@ -298,6 +298,55 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     }
 
     /// <summary>
+    /// Borrows two unsigned intermediate blocks after single-reference motion search has completed.
+    /// </summary>
+    /// <param name="first">The first compound prediction intermediate.</param>
+    /// <param name="second">The second compound prediction intermediate.</param>
+    /// <remarks>The returned spans remain valid until another block operation reuses the motion-search prediction region.</remarks>
+    public void GetCompoundPredictionIntermediates(out Span<ushort> first, out Span<ushort> second)
+    {
+        // Compound selection runs after every NEWMV search for the block. Its two fixed 8x8 intermediates can
+        // therefore reuse the start of the large motion-search prediction region without extending the owner.
+        int offset = InterPredictionSampleStorageOffset + InterPredictionStorageLength;
+        Span<ushort> storage = MemoryMarshal.Cast<int, ushort>(this.owner.Memory.Span[offset..]);
+        first = storage[..Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount];
+        second = storage.Slice(
+            Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount,
+            Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount);
+    }
+
+    /// <summary>
+    /// Borrows the luma-resolution compound mask storage following both intermediate blocks.
+    /// </summary>
+    public Span<byte> GetCompoundPredictionMask()
+    {
+        int offset = InterPredictionSampleStorageOffset + InterPredictionStorageLength;
+        Span<byte> storage = MemoryMarshal.AsBytes(this.owner.Memory.Span[offset..]);
+        int maskOffset = 2 * Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount * sizeof(ushort);
+        return storage.Slice(maskOffset, Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount);
+    }
+
+    /// <summary>
+    /// Borrows one inter-intra predictor and two extended reference edges after motion search has completed.
+    /// </summary>
+    public void GetInterIntraStorage<TSample>(
+        out Span<TSample> prediction,
+        out Span<TSample> above,
+        out Span<TSample> left)
+        where TSample : unmanaged
+    {
+        // Inter-intra and two-reference compound trials run only after motion search, so their temporary storage can
+        // reuse the large search region without extending the per-worker allocation or aliasing retained predictions.
+        int offset = InterPredictionSampleStorageOffset + InterPredictionStorageLength;
+        Span<TSample> storage = MemoryMarshal.Cast<int, TSample>(this.owner.Memory.Span[offset..]);
+        int sampleCount = Av1EncoderInterPredictionWorkspace<TSample>.MaximumSampleCount;
+        int edgeCount = (2 * Av1Constants.MaxTransformSize) + 1;
+        prediction = storage[..sampleCount];
+        above = storage.Slice(sampleCount, edgeCount);
+        left = storage.Slice(sampleCount + edgeCount, edgeCount);
+    }
+
+    /// <summary>
     /// Gets the retained full-pixel search geometry for the reference plane's current stride.
     /// </summary>
     /// <param name="method">The block-selected search method.</param>

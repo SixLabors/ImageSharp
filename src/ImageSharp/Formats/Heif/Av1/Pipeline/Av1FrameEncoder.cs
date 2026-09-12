@@ -78,11 +78,6 @@ internal static class Av1FrameEncoder
     private const int MinimumSwitchableInterpolationEffort = 8;
 
     /// <summary>
-    /// The first effort tier that searches independent vertical and horizontal interpolation families.
-    /// </summary>
-    private const int MinimumDualInterpolationEffort = 9;
-
-    /// <summary>
     /// The smallest full-pixel radius searched when frame-level motion analysis is enabled.
     /// </summary>
     private const int MinimumGlobalMotionSearchRadius = 4;
@@ -330,6 +325,7 @@ internal static class Av1FrameEncoder
             sequenceHeader,
             qIndex,
             effort,
+            speed,
             ObuFrameType.KeyFrame);
 
         int tileBufferLength = GetTileBufferLength(width, height, colorConfig);
@@ -396,6 +392,7 @@ internal static class Av1FrameEncoder
         bool isStillPicture)
     {
         Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
+        Av1EncoderSpeedSettings speedSettings = new(speed, isStillPicture, intraFrame: true, qIndex: 0);
         ObuSequenceProfile sequenceProfile = colorConfig.BitDepth == Av1BitDepth.TwelveBit ||
             colorFormat == Av1ColorFormat.Yuv422
                 ? ObuSequenceProfile.Professional
@@ -422,12 +419,20 @@ internal static class Av1FrameEncoder
             Use128x128Superblock = use128x128Superblock,
             ForceScreenContentTools = Av1Constants.SelectScreenContentTools,
             ForceIntegerMotionVector = Av1Constants.SelectIntegerMotionVector,
-            EnableFilterIntra = effort >= 4,
-            EnableDualFilter = !isStillPicture && effort >= MinimumDualInterpolationEffort,
+            EnableFilterIntra = true,
+            EnableDualFilter = speedSettings.EnableDualFilter,
             EnableIntraEdgeFilter = true,
+            EnableMaskedCompound = !isStillPicture,
+            OrderHintInfo = new ObuOrderHintInfo
+            {
+                EnableOrderHint = !isStillPicture,
+                EnableJointCompound = !isStillPicture,
+                EnableReferenceFrameMotionVectors = false,
+                OrderHintBits = isStillPicture ? 0 : 8
+            },
             EnableSuperResolution = false,
             EnableCdef = true,
-            EnableRestoration = !isStillPicture || speed < HeifEncodingSpeed.Level5,
+            EnableRestoration = speedSettings.EnableRestoration,
             ColorConfig = colorConfig
         };
     }
@@ -484,6 +489,7 @@ internal static class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         int qIndex,
         int effort,
+        HeifEncodingSpeed speed,
         ObuFrameType frameType)
     {
         int width = sequenceHeader.MaxFrameWidth;
@@ -511,7 +517,7 @@ internal static class Av1FrameEncoder
             }
         };
 
-        ConfigureFrameHeader(frameHeader, qIndex, effort, frameType);
+        ConfigureFrameHeader(frameHeader, qIndex, effort, speed, frameType);
         return frameHeader;
     }
 
@@ -522,14 +528,17 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         int qIndex,
         int effort,
+        HeifEncodingSpeed speed,
         ObuFrameType frameType)
     {
         frameHeader.FrameType = frameType;
         frameHeader.ShowFrame = true;
         frameHeader.ErrorResilientMode = true;
-        frameHeader.RefreshFrameFlags = byte.MaxValue;
+        frameHeader.RefreshFrameFlags = frameType == ObuFrameType.KeyFrame ? byte.MaxValue : 1U;
         frameHeader.DisableFrameEndUpdateCdf = true;
-        frameHeader.ReferenceMode = ObuReferenceMode.SingleReference;
+        frameHeader.ReferenceMode = frameType == ObuFrameType.InterFrame
+            ? ObuReferenceMode.ReferenceModeSelect
+            : ObuReferenceMode.SingleReference;
         frameHeader.InterpolationFilter = Av1InterpolationFilter.Regular;
         frameHeader.IsMotionModeSwitchable = false;
         frameHeader.TransformMode = qIndex == 0
@@ -542,9 +551,14 @@ internal static class Av1FrameEncoder
         frameHeader.AllowHighPrecisionMotionVector = false;
         if (frameType == ObuFrameType.InterFrame)
         {
+            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            referenceFrameIndices.Fill(0);
+            referenceFrameIndices[(int)Av1ReferenceFrameType.Golden - 1] = 7;
+
             // Disabling screen-content tools makes force_integer_mv implicitly false. Lower-effort searches
             // still stop at full pixels, but their vectors use the normal fractional-motion syntax.
-            frameHeader.AllowHighPrecisionMotionVector = effort >= 8;
+            Av1EncoderSpeedSettings speedSettings = new(speed, allIntra: false, intraFrame: false, qIndex);
+            frameHeader.AllowHighPrecisionMotionVector = speedSettings.AllowHighPrecisionMotionVector;
             frameHeader.InterpolationFilter = effort >= MinimumSwitchableInterpolationEffort
                 ? Av1InterpolationFilter.Switchable
                 : Av1InterpolationFilter.Regular;
@@ -693,6 +707,7 @@ internal static class Av1FrameEncoder
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
         picture.Picture.Parent.EncodingSpeed = speed;
+        picture.Picture.Parent.SpeedSettings = new(speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, qIndex: frameHeader.QuantizationParameters.BaseQIndex);
         Encode(
             obuWriter,
             stream,
@@ -701,6 +716,8 @@ internal static class Av1FrameEncoder
             picture.Picture,
             source,
             reconstruction,
+            reconstruction,
+            false,
             reconstruction,
             coefficients,
             tileWorkspace,
@@ -790,6 +807,7 @@ internal static class Av1FrameEncoder
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
         picture.Picture.Parent.EncodingSpeed = speed;
+        picture.Picture.Parent.SpeedSettings = new(speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, qIndex: frameHeader.QuantizationParameters.BaseQIndex);
         Encode(
             obuWriter,
             stream,
@@ -798,6 +816,8 @@ internal static class Av1FrameEncoder
             picture.Picture,
             source,
             reconstruction,
+            reconstruction,
+            false,
             reconstruction,
             coefficients,
             tileWorkspace,
@@ -903,7 +923,7 @@ internal static class Av1FrameEncoder
             frameHeader.IsIntra,
             isScreenContent);
 
-        frameHeader.AllowScreenContentTools = effort >= 5 && allowScreenContentTools;
+        frameHeader.AllowScreenContentTools = allowScreenContentTools;
 
         // The current intra-block-copy search owns one 8x8 transform. Lossless coding requires reversible
         // 4x4 transforms, so palette remains available while this incompatible candidate is omitted.
@@ -1013,7 +1033,7 @@ internal static class Av1FrameEncoder
             frameHeader.IsIntra,
             isScreenContent);
 
-        frameHeader.AllowScreenContentTools = effort >= 5 && allowScreenContentTools;
+        frameHeader.AllowScreenContentTools = allowScreenContentTools;
 
         // The current intra-block-copy search owns one 8x8 transform. Lossless coding requires reversible
         // 4x4 transforms, so palette remains available while this incompatible candidate is omitted.
@@ -1035,6 +1055,8 @@ internal static class Av1FrameEncoder
         Av1PictureControlSet picture,
         Av1EncoderFrameBuffer<byte> source,
         Av1EncoderFrameBuffer<byte> reference,
+        Av1EncoderFrameBuffer<byte> goldenReference,
+        bool hasDistinctGoldenReference,
         Av1EncoderFrameBuffer<byte> reconstruction,
         Av1EncoderCoefficientBuffer coefficients,
         Av1EncoderTileWorkspace tileWorkspace,
@@ -1047,6 +1069,8 @@ internal static class Av1FrameEncoder
             symbolEncoder,
             source.Frame,
             reference.Frame,
+            goldenReference.Frame,
+            hasDistinctGoldenReference,
             reconstruction.Frame,
             picture,
             coefficients,
@@ -1072,6 +1096,8 @@ internal static class Av1FrameEncoder
         Av1PictureControlSet picture,
         Av1EncoderFrameBuffer<ushort> source,
         Av1EncoderFrameBuffer<ushort> reference,
+        Av1EncoderFrameBuffer<ushort> goldenReference,
+        bool hasDistinctGoldenReference,
         Av1EncoderFrameBuffer<ushort> reconstruction,
         Av1EncoderCoefficientBuffer coefficients,
         Av1EncoderTileWorkspace tileWorkspace,
@@ -1084,6 +1110,8 @@ internal static class Av1FrameEncoder
             symbolEncoder,
             source.Frame,
             reference.Frame,
+            goldenReference.Frame,
+            hasDistinctGoldenReference,
             reconstruction.Frame,
             picture,
             coefficients,
@@ -1546,6 +1574,8 @@ internal static class Av1FrameEncoder
     /// </summary>
     internal abstract class SequenceEncoder : IDisposable
     {
+        private uint nextOrderHint;
+
         protected SequenceEncoder(
             Configuration configuration,
             int width,
@@ -1568,6 +1598,7 @@ internal static class Av1FrameEncoder
                 this.SequenceHeader,
                 qIndex,
                 effort,
+                speed,
                 ObuFrameType.KeyFrame);
 
             this.ConversionWorkspace = new Av1EncoderConversionWorkspace(
@@ -1579,7 +1610,9 @@ internal static class Av1FrameEncoder
 
             try
             {
-                bool allocateScreenContentState = effort >= 5;
+                // Screen-content eligibility is source-driven in libaom, not gated by mode-search effort. Reserve the
+                // optional state once for the fixed-geometry sequence so any classified frame can use legal tools.
+                bool allocateScreenContentState = true;
                 Av1MotionSearchSettings motionSettings = new(
                     speed,
                     this.SequenceHeader.IsStillPicture,
@@ -1613,6 +1646,7 @@ internal static class Av1FrameEncoder
                     height);
 
                 this.PictureBuffer.Picture.Parent.EncodingSpeed = speed;
+                this.PictureBuffer.Picture.Parent.SpeedSettings = new(speed, this.SequenceHeader.IsStillPicture, this.FrameHeader.IsIntra, qIndex);
                 this.SuperblockWorkspace = new Av1EncoderSuperblockWorkspace(configuration);
 
                 this.TileWorkspace = new Av1EncoderTileWorkspace(this.FrameHeader, this.SuperblockWorkspace);
@@ -1628,6 +1662,8 @@ internal static class Av1FrameEncoder
                     this.TileBufferLength,
                     qIndex,
                     updateCdf: true);
+
+                this.SymbolEncoder.EncodingSpeed = speed;
 
                 this.ObuWriter = new ObuWriter(configuration);
             }
@@ -1705,6 +1741,36 @@ internal static class Av1FrameEncoder
         /// </summary>
         protected ObuWriter ObuWriter { get; }
 
+        protected void ConfigureFrameHeader(ObuFrameType frameType)
+        {
+            Av1FrameEncoder.ConfigureFrameHeader(this.FrameHeader, this.QIndex, this.Effort, this.Speed, frameType);
+            int orderHintBits = this.SequenceHeader.OrderHintInfo.OrderHintBits;
+            this.FrameHeader.OrderHint = orderHintBits == 0
+                ? 0
+                : this.nextOrderHint & ((1U << orderHintBits) - 1);
+            this.FrameHeader.SkipModeParameters.Derive(this.SequenceHeader.OrderHintInfo, this.FrameHeader);
+            this.FrameHeader.SkipModeParameters.SkipModeFlag = this.FrameHeader.SkipModeParameters.SkipModeAllowed;
+        }
+
+        protected void CompleteFrameHeader()
+        {
+            Span<bool> referenceValidity = this.FrameHeader.GetReferenceValidity();
+            Span<uint> referenceOrderHints = this.FrameHeader.GetReferenceOrderHints();
+            for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
+            {
+                if ((this.FrameHeader.RefreshFrameFlags & (1U << slot)) != 0)
+                {
+                    referenceValidity[slot] = true;
+                    referenceOrderHints[slot] = this.FrameHeader.OrderHint;
+                }
+            }
+
+            int orderHintBits = this.SequenceHeader.OrderHintInfo.OrderHintBits;
+            this.nextOrderHint = orderHintBits == 0
+                ? 0
+                : (this.FrameHeader.OrderHint + 1) & ((1U << orderHintBits) - 1);
+        }
+
         /// <summary>
         /// Encodes an independently decodable sample with the sequence header required for random access.
         /// </summary>
@@ -1756,7 +1822,9 @@ internal static class Av1FrameEncoder
     {
         private readonly Av1EncoderFrameBuffer<byte> source;
         private Av1EncoderFrameBuffer<byte> reference;
+        private Av1EncoderFrameBuffer<byte> goldenReference;
         private Av1EncoderFrameBuffer<byte> reconstruction;
+        private bool hasDistinctGoldenReference;
 
         public ByteSequenceEncoder(
             Configuration configuration,
@@ -1786,6 +1854,16 @@ internal static class Av1FrameEncoder
                 int lumaBorder = (this.SequenceHeader.Use128x128Superblock ? 128 : 64) + 32;
 
                 this.source = new(
+                    configuration,
+                    width,
+                    height,
+                    ByteSampleBitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
+
+                this.goldenReference = new(
                     configuration,
                     width,
                     height,
@@ -1826,6 +1904,7 @@ internal static class Av1FrameEncoder
         protected override void DisposeFrames()
         {
             // A derived constructor can fail before all three frame owners exist.
+            this.goldenReference?.Dispose();
             this.reconstruction?.Dispose();
             this.reference?.Dispose();
             this.source?.Dispose();
@@ -1838,11 +1917,7 @@ internal static class Av1FrameEncoder
             bool writeSequenceHeader)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
-            ConfigureFrameHeader(
-                frameHeader,
-                this.QIndex,
-                this.Effort,
-                frameType);
+            this.ConfigureFrameHeader(frameType);
 
             Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
             this.SymbolEncoder.Reset();
@@ -1860,6 +1935,7 @@ internal static class Av1FrameEncoder
 
             this.PictureBuffer.Reset(frameHeader);
             this.PictureBuffer.Picture.Parent.IsScreenContent = isScreenContent;
+            this.PictureBuffer.Picture.Parent.SpeedSettings = new(this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex);
             Encode(
                 this.ObuWriter,
                 stream,
@@ -1868,6 +1944,8 @@ internal static class Av1FrameEncoder
                 this.PictureBuffer.Picture,
                 this.source,
                 this.reference,
+                this.goldenReference,
+                this.hasDistinctGoldenReference,
                 this.reconstruction,
                 this.Coefficients,
                 this.TileWorkspace,
@@ -1876,10 +1954,25 @@ internal static class Av1FrameEncoder
                 this.Effort,
                 writeSequenceHeader);
 
+            this.CompleteFrameHeader();
+
             this.reconstruction.Frame.ExtendBorders();
 
-            // The just-reconstructed frame becomes LAST_FRAME for the next sample without copying any plane.
-            (this.reference, this.reconstruction) = (this.reconstruction, this.reference);
+            if (frameType == ObuFrameType.KeyFrame || this.hasDistinctGoldenReference)
+            {
+                (this.reference, this.reconstruction) = (this.reconstruction, this.reference);
+                if (frameType == ObuFrameType.KeyFrame)
+                {
+                    this.hasDistinctGoldenReference = false;
+                }
+            }
+            else
+            {
+                // Preserve the key reconstruction as GOLDEN while the first inter reconstruction becomes LAST.
+                (this.goldenReference, this.reference, this.reconstruction) =
+                    (this.reference, this.reconstruction, this.goldenReference);
+                this.hasDistinctGoldenReference = true;
+            }
         }
     }
 
@@ -1887,7 +1980,9 @@ internal static class Av1FrameEncoder
     {
         private readonly Av1EncoderFrameBuffer<ushort> source;
         private Av1EncoderFrameBuffer<ushort> reference;
+        private Av1EncoderFrameBuffer<ushort> goldenReference;
         private Av1EncoderFrameBuffer<ushort> reconstruction;
+        private bool hasDistinctGoldenReference;
 
         public HighBitDepthSequenceEncoder(
             Configuration configuration,
@@ -1927,6 +2022,16 @@ internal static class Av1FrameEncoder
                     CenteredChromaSamplePosition,
                     lumaBorder);
 
+                this.goldenReference = new(
+                    configuration,
+                    width,
+                    height,
+                    bitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
+
                 this.reference = new(
                     configuration,
                     width,
@@ -1958,6 +2063,7 @@ internal static class Av1FrameEncoder
         protected override void DisposeFrames()
         {
             // A derived constructor can fail before all three frame owners exist.
+            this.goldenReference?.Dispose();
             this.reconstruction?.Dispose();
             this.reference?.Dispose();
             this.source?.Dispose();
@@ -1970,11 +2076,7 @@ internal static class Av1FrameEncoder
             bool writeSequenceHeader)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
-            ConfigureFrameHeader(
-                frameHeader,
-                this.QIndex,
-                this.Effort,
-                frameType);
+            this.ConfigureFrameHeader(frameType);
 
             Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
             this.SymbolEncoder.Reset();
@@ -2000,6 +2102,8 @@ internal static class Av1FrameEncoder
                 this.PictureBuffer.Picture,
                 this.source,
                 this.reference,
+                this.goldenReference,
+                this.hasDistinctGoldenReference,
                 this.reconstruction,
                 this.Coefficients,
                 this.TileWorkspace,
@@ -2008,10 +2112,25 @@ internal static class Av1FrameEncoder
                 this.Effort,
                 writeSequenceHeader);
 
+            this.CompleteFrameHeader();
+
             this.reconstruction.Frame.ExtendBorders();
 
-            // Swapping the frame owners preserves the complete reconstructed reference, including extended borders.
-            (this.reference, this.reconstruction) = (this.reconstruction, this.reference);
+            if (frameType == ObuFrameType.KeyFrame || this.hasDistinctGoldenReference)
+            {
+                (this.reference, this.reconstruction) = (this.reconstruction, this.reference);
+                if (frameType == ObuFrameType.KeyFrame)
+                {
+                    this.hasDistinctGoldenReference = false;
+                }
+            }
+            else
+            {
+                // Preserve the key reconstruction as GOLDEN while the first inter reconstruction becomes LAST.
+                (this.goldenReference, this.reference, this.reconstruction) =
+                    (this.reference, this.reconstruction, this.goldenReference);
+                this.hasDistinctGoldenReference = true;
+            }
         }
     }
 }

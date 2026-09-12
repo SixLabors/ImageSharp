@@ -158,8 +158,12 @@ internal static class Av1TransformBlockEncoder
             workspace.Residual,
             transformSize);
 
-        EncodeLossy(
+        EncodeLossyCandidate(
             workspace,
+            writer,
+            context,
+            workspace.Residual,
+            width,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -167,26 +171,12 @@ internal static class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             Av1BitDepth.EightBit,
+            plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+            rateMultiplier,
+            false,
+            useChromaWeights,
+            false,
             ref state);
-
-        if (state.EndOfBlock > 0 && qIndex != 0)
-        {
-            state.EndOfBlock = writer.OptimizeCoefficients(
-                workspace.TransformCoefficients,
-                quantizedCoefficients,
-                workspace.DequantizedCoefficients,
-                transformSize,
-                transformType,
-                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-                context,
-                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
-                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
-                rateMultiplier,
-                Av1BitDepth.EightBit,
-                false,
-                useChromaWeights,
-                state.EndOfBlock);
-        }
 
         if (state.EndOfBlock > 0)
         {
@@ -272,9 +262,12 @@ internal static class Av1TransformBlockEncoder
             prediction.Slice(row * width, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
         }
 
-        EncodeLossy(
+        EncodeLossyCandidate(
             workspace,
+            writer,
+            context,
             residual[..sampleCount],
+            width,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -282,26 +275,12 @@ internal static class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             Av1BitDepth.EightBit,
+            plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+            rateMultiplier,
+            isInter,
+            useChromaWeights,
+            false,
             ref state);
-
-        if (state.EndOfBlock > 0 && qIndex != 0)
-        {
-            state.EndOfBlock = writer.OptimizeCoefficients(
-                workspace.TransformCoefficients,
-                quantizedCoefficients,
-                workspace.DequantizedCoefficients,
-                transformSize,
-                transformType,
-                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-                context,
-                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
-                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
-                rateMultiplier,
-                Av1BitDepth.EightBit,
-                isInter,
-                useChromaWeights,
-                state.EndOfBlock);
-        }
 
         if (state.EndOfBlock > 0)
         {
@@ -388,8 +367,12 @@ internal static class Av1TransformBlockEncoder
             width,
             height);
 
-        EncodeLossy(
+        EncodeLossyCandidate(
             workspace,
+            writer,
+            context,
+            workspace.Residual,
+            width,
             quantizedCoefficients,
             transformSize,
             Av1TransformType.DctDct,
@@ -397,26 +380,12 @@ internal static class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             Av1BitDepth.EightBit,
+            Av1ComponentType.Chroma,
+            rateMultiplier,
+            false,
+            useChromaWeights,
+            false,
             ref state);
-
-        if (state.EndOfBlock > 0 && qIndex != 0)
-        {
-            state.EndOfBlock = writer.OptimizeCoefficients(
-                workspace.TransformCoefficients,
-                quantizedCoefficients,
-                workspace.DequantizedCoefficients,
-                transformSize,
-                Av1TransformType.DctDct,
-                Av1ComponentType.Chroma,
-                context,
-                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
-                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
-                rateMultiplier,
-                Av1BitDepth.EightBit,
-                false,
-                useChromaWeights,
-                state.EndOfBlock);
-        }
 
         if (state.EndOfBlock > 0)
         {
@@ -590,8 +559,12 @@ internal static class Av1TransformBlockEncoder
             transformSize,
             bitDepth);
 
-        EncodeLossy(
+        EncodeLossyCandidate(
             workspace,
+            writer,
+            context,
+            workspace.Residual,
+            width,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -599,26 +572,12 @@ internal static class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
+            plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+            rateMultiplier,
+            false,
+            useChromaWeights,
+            false,
             ref state);
-
-        if (state.EndOfBlock > 0 && qIndex != 0)
-        {
-            state.EndOfBlock = writer.OptimizeCoefficients(
-                workspace.TransformCoefficients,
-                quantizedCoefficients,
-                workspace.DequantizedCoefficients,
-                transformSize,
-                transformType,
-                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-                context,
-                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
-                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
-                rateMultiplier,
-                bitDepth,
-                false,
-                useChromaWeights,
-                state.EndOfBlock);
-        }
 
         if (state.EndOfBlock > 0)
         {
@@ -712,9 +671,12 @@ internal static class Av1TransformBlockEncoder
             prediction.Slice(row * width, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
         }
 
-        EncodeLossy(
+        EncodeLossyCandidate(
             workspace,
+            writer,
+            context,
             residual[..sampleCount],
+            width,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -722,26 +684,12 @@ internal static class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
+            plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+            rateMultiplier,
+            isInter,
+            useChromaWeights,
+            false,
             ref state);
-
-        if (state.EndOfBlock > 0 && qIndex != 0)
-        {
-            state.EndOfBlock = writer.OptimizeCoefficients(
-                workspace.TransformCoefficients,
-                quantizedCoefficients,
-                workspace.DequantizedCoefficients,
-                transformSize,
-                transformType,
-                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-                context,
-                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
-                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
-                rateMultiplier,
-                bitDepth,
-                isInter,
-                useChromaWeights,
-                state.EndOfBlock);
-        }
 
         if (state.EndOfBlock > 0)
         {
@@ -844,8 +792,12 @@ internal static class Av1TransformBlockEncoder
             width,
             height);
 
-        EncodeLossy(
+        EncodeLossyCandidate(
             workspace,
+            writer,
+            context,
+            workspace.Residual,
+            width,
             quantizedCoefficients,
             transformSize,
             Av1TransformType.DctDct,
@@ -853,26 +805,12 @@ internal static class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
+            Av1ComponentType.Chroma,
+            rateMultiplier,
+            false,
+            useChromaWeights,
+            false,
             ref state);
-
-        if (state.EndOfBlock > 0 && qIndex != 0)
-        {
-            state.EndOfBlock = writer.OptimizeCoefficients(
-                workspace.TransformCoefficients,
-                quantizedCoefficients,
-                workspace.DequantizedCoefficients,
-                transformSize,
-                Av1TransformType.DctDct,
-                Av1ComponentType.Chroma,
-                context,
-                Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
-                Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
-                rateMultiplier,
-                bitDepth,
-                false,
-                useChromaWeights,
-                state.EndOfBlock);
-        }
 
         if (state.EndOfBlock > 0)
         {
@@ -1448,6 +1386,175 @@ internal static class Av1TransformBlockEncoder
             bitDepth);
 
         state.TransformType = transformType;
+    }
+
+    /// <summary>
+    /// Transforms and quantizes one candidate using the reference coefficient-optimization policy.
+    /// </summary>
+    public static void EncodeLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1BitDepth bitDepth,
+        Av1ComponentType componentType,
+        int rateMultiplier,
+        bool isInter,
+        bool useChromaWeights,
+        bool winnerEvaluation,
+        ref Av1EncoderTransformBlockState state)
+    {
+        int coefficientCount = transformSize.GetAdjusted().GetSize2d();
+        Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
+        Span<int> quantized = quantizedCoefficients[..coefficientCount];
+        Span<int> dequantized = workspace.DequantizedCoefficients[..coefficientCount];
+
+        if (qIndex == 0)
+        {
+            // Coded-lossless blocks use the reversible transform and lossless quantizer. Applying the lossy
+            // energy gate would replace bit-exact coefficients with regular zero-bin quantization.
+            Av1ForwardTransformer.TransformLossless4x4(residual, transformed, (uint)residualStride);
+            state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
+            state.TransformType = Av1TransformType.DctDct;
+            return;
+        }
+
+        Av1ForwardTransformer.Transform2d(
+            residual,
+            transformed,
+            (uint)residualStride,
+            transformType,
+            transformSize,
+            bitDepth.GetBitCount(),
+            workspace.TransformWorkspace);
+
+        int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
+        int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
+        bool optimize = ShouldOptimizeCoefficients(
+            residual,
+            residualStride,
+            transformed,
+            transformSize,
+            acDequantizer,
+            bitDepth,
+            writer.EncodingSpeed,
+            winnerEvaluation);
+
+        // libaom's fast quantizer is paired with trellis refinement. When normalized residual energy or
+        // transformed SATD disables refinement, regular quantization supplies the stronger zero-bin and
+        // reciprocal correction that the unrefined candidate requires.
+        state.EndOfBlock = optimize
+            ? Av1ForwardQuantizer.QuantizeLossy(
+                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth)
+            : Av1ForwardQuantizer.QuantizeRegular(
+                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, 0);
+
+        if (optimize && state.EndOfBlock > 0)
+        {
+            state.EndOfBlock = writer.OptimizeCoefficients(
+                transformed,
+                quantized,
+                dequantized,
+                transformSize,
+                transformType,
+                componentType,
+                context,
+                dcDequantizer,
+                acDequantizer,
+                rateMultiplier,
+                bitDepth,
+                isInter,
+                useChromaWeights,
+                state.EndOfBlock);
+        }
+
+        state.TransformType = transformType;
+    }
+
+    /// <summary>
+    /// Determines whether coefficient refinement is useful for the current residual and transform.
+    /// </summary>
+    private static bool ShouldOptimizeCoefficients(
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        ReadOnlySpan<int> transformed,
+        Av1TransformSize transformSize,
+        int acDequantizer,
+        Av1BitDepth bitDepth,
+        HeifEncodingSpeed speed,
+        bool winnerEvaluation)
+    {
+        int numericSpeed = (int)speed;
+        if (winnerEvaluation)
+        {
+            // Candidate thresholds only prune search work. The committed winner always receives coefficient
+            // refinement so reconstruction and emitted coefficients use the encoder's full-quality path.
+            return true;
+        }
+
+        // These are libaom's all-intra coeff_opt_thresholds rows after perform_coeff_opt and winner-mode
+        // policy selection. Distortion is normalized MSE in Q8; SATD is compared after transform scaling.
+        (uint Distortion, uint Satd) thresholds = numericSpeed switch
+        {
+            0 => ((uint Distortion, uint Satd))(3200U, uint.MaxValue),
+            1 => (1728U, uint.MaxValue),
+            2 or 3 => (864U, uint.MaxValue),
+            4 or 5 => (142U, 16U),
+            _ => (86U, 16U)
+        };
+
+        uint distortionThreshold = thresholds.Distortion;
+        uint satdThreshold = thresholds.Satd;
+
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        long squaredError = 0;
+        for (int y = 0; y < height; y++)
+        {
+            ReadOnlySpan<short> row = residual.Slice(y * residualStride, width);
+            for (int x = 0; x < row.Length; x++)
+            {
+                long value = row[x];
+                squaredError += value * value;
+            }
+        }
+
+        int bitDepthShift = bitDepth.GetBitCount() - 8;
+
+        // Pixel-domain MSE uses Q8 precision before high-bit-depth normalization, matching tx_search.c.
+        ulong blockMseQ8 = (ulong)(((squaredError * 256) + ((width * height) / 2)) / (width * height));
+        blockMseQ8 >>= bitDepthShift * 2;
+        int dequantShift = bitDepth == Av1BitDepth.EightBit ? 3 : bitDepth.GetBitCount() - 5;
+        ulong qStep = (uint)(acDequantizer >> dequantShift);
+        if (blockMseQ8 > distortionThreshold * qStep * qStep)
+        {
+            return false;
+        }
+
+        if (satdThreshold == uint.MaxValue)
+        {
+            return true;
+        }
+
+        long satd = 0;
+        foreach (int coefficient in transformed)
+        {
+            satd += Math.Abs((long)coefficient);
+        }
+
+        // MAX_TX_SCALE is two in libaom. The fixed table is ceil(sqrt(transform pixels)) in enum order,
+        // avoiding floating-point work and allocation in this per-candidate hot path.
+        satd >>= 2 - transformSize.GetScale();
+        satd >>= bitDepthShift;
+        ReadOnlySpan<byte> squareRootPixels = [4, 8, 16, 32, 32, 6, 6, 12, 12, 23, 23, 32, 32, 8, 8, 16, 16, 23, 23];
+        return (ulong)satd <= satdThreshold * qStep * squareRootPixels[(int)transformSize];
     }
 
     /// <summary>

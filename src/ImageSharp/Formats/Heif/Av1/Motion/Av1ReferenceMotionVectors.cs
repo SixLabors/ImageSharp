@@ -118,7 +118,7 @@ internal struct Av1ReferenceMotionVectors
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType referenceFrame,
-        Av1ReferenceFrameType secondaryReferenceFrame = Av1ReferenceFrameType.None)
+        Av1ReferenceFrameType secondaryReferenceFrame)
     {
         ReferenceContext context = new(ref partitionInfo, sequenceHeader.SuperblockModeInfoSize, frameInfo);
         this.Build(
@@ -141,6 +141,7 @@ internal struct Av1ReferenceMotionVectors
     /// <param name="sequenceHeader">The sequence-level superblock configuration.</param>
     /// <param name="frameHeader">The frame-level global-motion and motion-vector precision configuration.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     public void Build(
         Av1PictureControlSet picture,
         Av1MacroBlockD macroBlock,
@@ -149,7 +150,8 @@ internal struct Av1ReferenceMotionVectors
         Av1PartitionType partitionType,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        Av1ReferenceFrameType referenceFrame)
+        Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame)
     {
         ReferenceContext context = new(
             picture,
@@ -165,7 +167,7 @@ internal struct Av1ReferenceMotionVectors
             sequenceHeader,
             frameHeader,
             referenceFrame,
-            Av1ReferenceFrameType.None);
+            secondaryReferenceFrame);
     }
 
     private void Build(
@@ -445,11 +447,11 @@ internal struct Av1ReferenceMotionVectors
 
         if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
         {
-            this.compoundReferences[0] = this.compoundCandidates[0].LowerPrecision(
+            this.compoundReferences[0] = (this.Count > 0 ? this.compoundCandidates[0] : secondaryGlobalMotionVector).LowerPrecision(
                 frameHeader.AllowHighPrecisionMotionVector,
                 frameHeader.ForceIntegerMotionVector);
 
-            this.compoundReferences[1] = this.compoundCandidates[1].LowerPrecision(
+            this.compoundReferences[1] = (this.Count > 1 ? this.compoundCandidates[1] : secondaryGlobalMotionVector).LowerPrecision(
                 frameHeader.AllowHighPrecisionMotionVector,
                 frameHeader.ForceIntegerMotionVector);
         }
@@ -1507,13 +1509,17 @@ internal struct Av1ReferenceMotionVectors
             if (picture is not null)
             {
                 Av1MacroBlockModeInfo encodedModeInfo = picture.GetFromModeInfoGrid(position);
+                Av1MotionVector secondaryMotionVector = encodedModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                    ? picture.GetSecondaryDisplacementVector(position)
+                    : default;
+
                 return new ReferenceBlock(
                     encodedModeInfo.Block.BlockSize,
                     encodedModeInfo.Block.Mode,
                     encodedModeInfo.Block.ReferenceFrame,
-                    Av1ReferenceFrameType.None,
+                    encodedModeInfo.Block.SecondaryReferenceFrame,
                     picture.GetDisplacementVector(position),
-                    default);
+                    secondaryMotionVector);
             }
 
             Av1BlockModeInfo decodedModeInfo = this.decodedSuperblock.GetModeInfoAt(position);

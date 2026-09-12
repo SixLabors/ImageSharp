@@ -265,6 +265,39 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
+    /// Gets the equal-or-distance-weighted compound context from compact encoder state.
+    /// </summary>
+    public static int GetCompoundIndexContext(
+        ObuOrderHintInfo orderHintInfo,
+        ObuFrameHeader frameHeader,
+        Av1ReferenceFrameType primaryReference,
+        Av1ReferenceFrameType secondaryReference,
+        Av1MacroBlockD macroBlock)
+    {
+        ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        ReadOnlySpan<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
+        uint primaryOrderHint = referenceOrderHints[(int)referenceFrameIndices[(int)primaryReference - (int)Av1ReferenceFrameType.Last]];
+        uint secondaryOrderHint = referenceOrderHints[(int)referenceFrameIndices[(int)secondaryReference - (int)Av1ReferenceFrameType.Last]];
+        int forwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(secondaryOrderHint, frameHeader.OrderHint));
+        int backwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, primaryOrderHint));
+
+        int context = forwardDistance == backwardDistance ? 3 : 0;
+        if (macroBlock.IsUpAvailable)
+        {
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && above.CompoundIndex ? 1 : 0;
+        }
+
+        if (macroBlock.IsLeftAvailable)
+        {
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && left.CompoundIndex ? 1 : 0;
+        }
+
+        return context;
+    }
+
+    /// <summary>
     /// Reduces a rectangular transform size to the square context used by transform-size distributions.
     /// </summary>
     /// <param name="originalSize">The coded transform size.</param>
@@ -1003,7 +1036,114 @@ internal static class Av1SymbolContextHelper
             }
         }
 
-        return GetSwitchableInterpolationContext(aboveFilter, leftFilter, isCompound: false, direction);
+        return GetSwitchableInterpolationContext(
+            aboveFilter,
+            leftFilter,
+            modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra,
+            direction);
+    }
+
+    /// <summary>
+    /// Gets the block reference-mode context from compact encoder neighbors.
+    /// </summary>
+    public static int GetReferenceModeContext(Av1MacroBlockD macroBlock)
+    {
+        bool hasAbove = macroBlock.IsUpAvailable;
+        bool hasLeft = macroBlock.IsLeftAvailable;
+        if (hasAbove && hasLeft)
+        {
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            bool aboveCompound = above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+            bool leftCompound = left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+            if (!aboveCompound && !leftCompound)
+            {
+                bool aboveBackward = above.ReferenceFrame >= Av1ReferenceFrameType.Backward;
+                bool leftBackward = left.ReferenceFrame >= Av1ReferenceFrameType.Backward;
+                return aboveBackward == leftBackward ? 0 : 1;
+            }
+
+            if (!aboveCompound)
+            {
+                return 2 + (above.ReferenceFrame >= Av1ReferenceFrameType.Backward || above.ReferenceFrame <= Av1ReferenceFrameType.Intra ? 1 : 0);
+            }
+
+            if (!leftCompound)
+            {
+                return 2 + (left.ReferenceFrame >= Av1ReferenceFrameType.Backward || left.ReferenceFrame <= Av1ReferenceFrameType.Intra ? 1 : 0);
+            }
+
+            return 4;
+        }
+
+        if (hasAbove || hasLeft)
+        {
+            Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(hasAbove ? -macroBlock.ModeInfoStride : -1).Block;
+            if (neighbor.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                return 3;
+            }
+
+            return neighbor.ReferenceFrame >= Av1ReferenceFrameType.Backward ? 1 : 0;
+        }
+
+        return 1;
+    }
+
+    /// <summary>
+    /// Gets the compound reference-direction context from compact encoder neighbors.
+    /// </summary>
+    public static int GetCompoundReferenceTypeContext(Av1MacroBlockD macroBlock)
+    {
+        bool hasAbove = macroBlock.IsUpAvailable;
+        bool hasLeft = macroBlock.IsLeftAvailable;
+        if (hasAbove && hasLeft)
+        {
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            bool aboveIntra = above.ReferenceFrame <= Av1ReferenceFrameType.Intra;
+            bool leftIntra = left.ReferenceFrame <= Av1ReferenceFrameType.Intra;
+            if (aboveIntra && leftIntra)
+            {
+                return 2;
+            }
+
+            if (aboveIntra || leftIntra)
+            {
+                Av1EncoderBlockModeInfo inter = aboveIntra ? left : above;
+                return inter.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra ? 3 : 2;
+            }
+
+            bool aboveCompound = above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+            bool leftCompound = left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+            bool aboveBackward = above.ReferenceFrame >= Av1ReferenceFrameType.Backward;
+            bool leftBackward = left.ReferenceFrame >= Av1ReferenceFrameType.Backward;
+            if (!aboveCompound && !leftCompound)
+            {
+                return 1 + (aboveBackward == leftBackward ? 2 : 0);
+            }
+
+            if (!aboveCompound || !leftCompound)
+            {
+                return 3 + (aboveBackward == leftBackward ? 1 : 0);
+            }
+
+            return 3 + (aboveBackward == leftBackward ? 1 : 0);
+        }
+
+        if (hasAbove || hasLeft)
+        {
+            Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(hasAbove ? -macroBlock.ModeInfoStride : -1).Block;
+            if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra ||
+                neighbor.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra)
+            {
+                return 2;
+            }
+
+            return 4;
+        }
+
+        return 2;
     }
 
     /// <summary>

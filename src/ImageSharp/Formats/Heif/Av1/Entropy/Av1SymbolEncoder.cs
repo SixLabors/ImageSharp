@@ -90,6 +90,71 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[][] singleReference;
 
     /// <summary>
+    /// The tile-adaptive single-versus-compound reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundInter;
+
+    /// <summary>
+    /// The tile-adaptive compound reference-direction distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundReferenceType;
+
+    /// <summary>
+    /// The tile-adaptive unidirectional compound-reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] unidirectionalCompoundReference;
+
+    /// <summary>
+    /// The tile-adaptive bidirectional compound forward-reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] compoundReference;
+
+    /// <summary>
+    /// The tile-adaptive bidirectional compound backward-reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] compoundBackwardReference;
+
+    /// <summary>
+    /// The tile-adaptive compound motion-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] interCompoundMode;
+
+    /// <summary>
+    /// The tile-adaptive masked compound-type distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundType;
+
+    /// <summary>
+    /// The tile-adaptive wedge-index distributions.
+    /// </summary>
+    private readonly Av1Distribution[] wedgeIndex;
+
+    /// <summary>
+    /// The tile-adaptive inter-intra enable distributions.
+    /// </summary>
+    private readonly Av1Distribution[] interIntra;
+
+    /// <summary>
+    /// The tile-adaptive inter-intra mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] interIntraMode;
+
+    /// <summary>
+    /// The tile-adaptive inter-intra wedge-enable distributions.
+    /// </summary>
+    private readonly Av1Distribution[] wedgeInterIntra;
+
+    /// <summary>
+    /// The tile-adaptive unmasked compound-index distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundIndex;
+
+    /// <summary>
+    /// The tile-adaptive compound-group distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundGroupIndex;
+
+    /// <summary>
     /// The tile-adaptive chroma intra-mode distributions.
     /// </summary>
     private readonly Av1Distribution[][] uvMode;
@@ -240,6 +305,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         this.frameYMode = this.entropyContext.FrameYMode;
         this.intraInter = this.entropyContext.IntraInter;
         this.singleReference = this.entropyContext.SingleReference;
+        this.compoundInter = this.entropyContext.CompInter;
+        this.compoundReferenceType = this.entropyContext.CompoundReferenceType;
+        this.unidirectionalCompoundReference = this.entropyContext.UnidirectionalCompoundReference;
+        this.compoundReference = this.entropyContext.CompoundReference;
+        this.compoundBackwardReference = this.entropyContext.CompoundBackwardReference;
+        this.interCompoundMode = this.entropyContext.InterCompoundMode;
+        this.compoundType = this.entropyContext.CompoundType;
+        this.wedgeIndex = this.entropyContext.WedgeIndex;
+        this.interIntra = this.entropyContext.InterIntra;
+        this.interIntraMode = this.entropyContext.InterIntraMode;
+        this.wedgeInterIntra = this.entropyContext.WedgeInterIntra;
+        this.compoundIndex = this.entropyContext.CompoundIndex;
+        this.compoundGroupIndex = this.entropyContext.CompoundGroupIndex;
         this.newMotionVector = this.entropyContext.NewMv;
         this.zeroMotionVector = this.entropyContext.ZeroMv;
         this.referenceMotionVector = this.entropyContext.RefMv;
@@ -280,6 +358,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             this.writer = new(configuration, bufferLength, updateCdf);
             this.baseQIndex = qIndex;
         }
+
         catch
         {
             // The level buffer is already owned here; a later allocation failure cannot be unwound by the caller.
@@ -385,6 +464,11 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// Gets the retained mode rates.
     /// </summary>
     public Av1ModeCosts ModeCosts => new(this.entropyWorkspace.Memory.Span[..Av1ModeCosts.StorageLength]);
+
+    /// <summary>
+    /// Gets or sets the native-valued encoder speed controlling coefficient optimization policy.
+    /// </summary>
+    public HeifEncodingSpeed EncodingSpeed { get; set; }
 
     /// <summary>
     /// Gets the retained coefficient rates.
@@ -2103,6 +2187,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     public void WriteSkipMode(bool skip, int context)
         => this.WriteSkipMode<SymbolWriteOperation>(skip, context);
 
+    /// <summary>
+    /// Gets the compound skip-mode flag cost.
+    /// </summary>
+    public int GetSkipModeCost(bool skip, int context)
+        => this.ModeCosts.GetSkipMode(context, skip ? 1 : 0);
+
     /// <inheritdoc cref="WriteSkipMode(bool, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WriteSkipMode<TOperation>(bool skip, int context)
@@ -2365,6 +2455,368 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             ref w,
             referenceFrame == Av1ReferenceFrameType.Last2,
             this.singleReference[context][3]);
+    }
+
+    /// <summary>
+    /// Gets the cost of selecting the bounded LAST+GOLDEN compound-reference path.
+    /// </summary>
+    /// <param name="referenceModeContext">The neighboring single-versus-compound context.</param>
+    /// <param name="compoundTypeContext">The neighboring compound direction context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetLastGoldenCompoundReferenceCost(
+        int referenceModeContext,
+        int compoundTypeContext,
+        ReadOnlySpan<byte> referenceCounts)
+        => this.GetCompoundReferenceCost(
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.Golden,
+            referenceModeContext,
+            compoundTypeContext,
+            referenceCounts);
+
+    /// <summary>
+    /// Gets the complete syntax cost for one legal AV1 compound-reference pair.
+    /// </summary>
+    public int GetCompoundReferenceCost(
+        Av1ReferenceFrameType primaryReference,
+        Av1ReferenceFrameType secondaryReference,
+        int referenceModeContext,
+        int compoundTypeContext,
+        ReadOnlySpan<byte> referenceCounts)
+    {
+        bool isUnidirectional = (primaryReference < Av1ReferenceFrameType.Backward) ==
+            (secondaryReference < Av1ReferenceFrameType.Backward);
+
+        int rate = this.ModeCosts.GetCompInter(referenceModeContext, 1) +
+            this.ModeCosts.GetCompoundReferenceType(compoundTypeContext, isUnidirectional ? 0 : 1);
+        if (isUnidirectional)
+        {
+            bool isBackwardPair = primaryReference == Av1ReferenceFrameType.Backward;
+            int context = Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts);
+            rate += this.ModeCosts.GetUnidirectionalCompoundReference(context, 0, isBackwardPair ? 1 : 0);
+            if (isBackwardPair)
+            {
+                return rate;
+            }
+
+            bool isLast3OrGolden = secondaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts);
+            rate += this.ModeCosts.GetUnidirectionalCompoundReference(context, 1, isLast3OrGolden ? 1 : 0);
+            if (!isLast3OrGolden)
+            {
+                return rate;
+            }
+
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts);
+            return rate + this.ModeCosts.GetUnidirectionalCompoundReference(
+                context,
+                2,
+                secondaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
+        }
+
+        bool isLast3OrGoldenPrimary = primaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        int forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast3OrGoldenContext(referenceCounts);
+        rate += this.ModeCosts.GetCompoundReference(forwardContext, 0, isLast3OrGoldenPrimary ? 1 : 0);
+        if (isLast3OrGoldenPrimary)
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardGoldenContext(referenceCounts);
+            rate += this.ModeCosts.GetCompoundReference(
+                forwardContext,
+                2,
+                primaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
+        }
+        else
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast2Context(referenceCounts);
+            rate += this.ModeCosts.GetCompoundReference(
+                forwardContext,
+                1,
+                primaryReference == Av1ReferenceFrameType.Last2 ? 1 : 0);
+        }
+
+        bool isAlternate = secondaryReference == Av1ReferenceFrameType.Alternate;
+        int backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternateContext(referenceCounts);
+        rate += this.ModeCosts.GetCompoundBackwardReference(backwardContext, 0, isAlternate ? 1 : 0);
+        if (!isAlternate)
+        {
+            backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternate2Context(referenceCounts);
+            rate += this.ModeCosts.GetCompoundBackwardReference(
+                backwardContext,
+                1,
+                secondaryReference == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
+        }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Writes whether an eligible inter block uses compound-reference prediction.
+    /// </summary>
+    public void WriteIsCompoundReference<TOperation>(bool isCompound, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, isCompound, this.compoundInter[context]);
+    }
+
+    /// <summary>
+    /// Writes the bounded LAST+GOLDEN compound-reference path.
+    /// </summary>
+    public void WriteLastGoldenCompoundReference(
+        int referenceModeContext,
+        int compoundTypeContext,
+        ReadOnlySpan<byte> referenceCounts)
+        => this.WriteLastGoldenCompoundReference<SymbolWriteOperation>(referenceModeContext, compoundTypeContext, referenceCounts);
+
+    /// <inheritdoc cref="WriteLastGoldenCompoundReference(int, int, ReadOnlySpan{byte})"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteLastGoldenCompoundReference<TOperation>(
+        int referenceModeContext,
+        int compoundTypeContext,
+        ReadOnlySpan<byte> referenceCounts)
+        where TOperation : struct, ISymbolOperation
+        => this.WriteCompoundReference<TOperation>(
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.Golden,
+            referenceModeContext,
+            compoundTypeContext,
+            referenceCounts);
+
+    /// <summary>
+    /// Writes one legal AV1 compound-reference pair through its unidirectional or bidirectional tree.
+    /// </summary>
+    public void WriteCompoundReference<TOperation>(
+        Av1ReferenceFrameType primaryReference,
+        Av1ReferenceFrameType secondaryReference,
+        int referenceModeContext,
+        int compoundTypeContext,
+        ReadOnlySpan<byte> referenceCounts)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, true, this.compoundInter[referenceModeContext]);
+        bool isUnidirectional = (primaryReference < Av1ReferenceFrameType.Backward) ==
+            (secondaryReference < Av1ReferenceFrameType.Backward);
+        _ = TOperation.ProcessSymbol(ref w, !isUnidirectional, this.compoundReferenceType[compoundTypeContext]);
+        if (isUnidirectional)
+        {
+            bool isBackwardPair = primaryReference == Av1ReferenceFrameType.Backward;
+            int context = Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(ref w, isBackwardPair, this.unidirectionalCompoundReference[context][0]);
+            if (isBackwardPair)
+            {
+                return;
+            }
+
+            bool isLast3OrGolden = secondaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(ref w, isLast3OrGolden, this.unidirectionalCompoundReference[context][1]);
+            if (!isLast3OrGolden)
+            {
+                return;
+            }
+
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                secondaryReference == Av1ReferenceFrameType.Golden,
+                this.unidirectionalCompoundReference[context][2]);
+            return;
+        }
+
+        bool isLast3OrGoldenPrimary = primaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        int forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast3OrGoldenContext(referenceCounts);
+        _ = TOperation.ProcessSymbol(ref w, isLast3OrGoldenPrimary, this.compoundReference[forwardContext][0]);
+        if (isLast3OrGoldenPrimary)
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardGoldenContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                primaryReference == Av1ReferenceFrameType.Golden,
+                this.compoundReference[forwardContext][2]);
+        }
+        else
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast2Context(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                primaryReference == Av1ReferenceFrameType.Last2,
+                this.compoundReference[forwardContext][1]);
+        }
+
+        bool isAlternate = secondaryReference == Av1ReferenceFrameType.Alternate;
+        int backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternateContext(referenceCounts);
+        _ = TOperation.ProcessSymbol(ref w, isAlternate, this.compoundBackwardReference[backwardContext][0]);
+        if (!isAlternate)
+        {
+            backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternate2Context(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                secondaryReference == Av1ReferenceFrameType.Alternate2,
+                this.compoundBackwardReference[backwardContext][1]);
+        }
+    }
+
+    /// <summary>
+    /// Gets the cost of one compound motion-vector mode.
+    /// </summary>
+    public int GetInterCompoundModeCost(Av1PredictionMode mode, int modeContext)
+        => this.ModeCosts.GetInterCompoundMode(
+            Av1SymbolContextHelper.GetCompoundModeContext(modeContext),
+            (int)mode - (int)Av1PredictionMode.NearestNearestMotionVector);
+
+    /// <summary>
+    /// Writes one compound motion-vector mode.
+    /// </summary>
+    public void WriteInterCompoundMode(Av1PredictionMode mode, int modeContext)
+        => this.WriteInterCompoundMode<SymbolWriteOperation>(mode, modeContext);
+
+    /// <inheritdoc cref="WriteInterCompoundMode(Av1PredictionMode, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteInterCompoundMode<TOperation>(Av1PredictionMode mode, int modeContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        int context = Av1SymbolContextHelper.GetCompoundModeContext(modeContext);
+        int symbol = (int)mode - (int)Av1PredictionMode.NearestNearestMotionVector;
+        _ = TOperation.ProcessSymbol(ref w, symbol, this.interCompoundMode[context]);
+    }
+
+    /// <summary>
+    /// Gets the complete inter-intra syntax rate for one eligible single-reference block.
+    /// </summary>
+    public int GetInterIntraCost(
+        Av1BlockSize blockSize,
+        bool enabled,
+        Av1InterIntraMode mode,
+        bool useWedge,
+        int wedgeIndex)
+    {
+        int rate = this.ModeCosts.GetInterIntra(blockSize, enabled ? 1 : 0);
+        if (!enabled)
+        {
+            return rate;
+        }
+
+        rate += this.ModeCosts.GetInterIntraMode(blockSize, mode);
+        rate += this.ModeCosts.GetWedgeInterIntra(blockSize, useWedge ? 1 : 0);
+        return useWedge ? rate + this.ModeCosts.GetWedgeIndex(blockSize, wedgeIndex) : rate;
+    }
+
+    /// <summary>
+    /// Writes the inter-intra flag and its dependent mode and wedge syntax.
+    /// </summary>
+    public void WriteInterIntra<TOperation>(
+        Av1BlockSize blockSize,
+        bool enabled,
+        Av1InterIntraMode mode,
+        bool useWedge,
+        int wedgeIndex)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        int sizeGroup = blockSize.GetSizeGroup();
+        _ = TOperation.ProcessSymbol(ref w, enabled, this.interIntra[sizeGroup]);
+        if (!enabled)
+        {
+            return;
+        }
+
+        _ = TOperation.ProcessSymbol(ref w, (int)mode, this.interIntraMode[sizeGroup]);
+        _ = TOperation.ProcessSymbol(ref w, useWedge, this.wedgeInterIntra[(int)blockSize]);
+        if (useWedge)
+        {
+            _ = TOperation.ProcessSymbol(ref w, wedgeIndex, this.wedgeIndex[(int)blockSize]);
+        }
+    }
+
+    /// <summary>
+    /// Gets the complete blend syntax rate for one compound prediction type.
+    /// </summary>
+    public int GetCompoundBlendCost(
+        Av1BlockSize blockSize,
+        Av1CompoundType compoundType,
+        int compoundGroupContext,
+        int compoundIndexContext,
+        int wedgeIndex,
+        bool maskedCompoundEnabled,
+        bool jointCompoundEnabled)
+    {
+        bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
+        int rate = maskedCompoundEnabled
+            ? this.ModeCosts.GetCompoundGroupIndex(compoundGroupContext, masked ? 1 : 0)
+            : 0;
+        if (!masked)
+        {
+            return jointCompoundEnabled
+                ? rate + this.ModeCosts.GetCompoundIndex(compoundIndexContext, compoundType == Av1CompoundType.Average ? 1 : 0)
+                : rate;
+        }
+
+        rate += this.ModeCosts.GetCompoundType(
+            blockSize,
+            compoundType == Av1CompoundType.DifferenceWeighted ? 1 : 0);
+        if (compoundType == Av1CompoundType.Wedge)
+        {
+            rate += this.ModeCosts.GetWedgeIndex(blockSize, wedgeIndex) + 512;
+        }
+        else
+        {
+            rate += 512;
+        }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Writes the retained compound blend syntax.
+    /// </summary>
+    public void WriteCompoundBlend<TOperation>(
+        Av1BlockSize blockSize,
+        Av1CompoundType compoundType,
+        int compoundGroupContext,
+        int compoundIndexContext,
+        int wedgeIndex,
+        bool wedgeSign,
+        Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+        bool maskedCompoundEnabled,
+        bool jointCompoundEnabled)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
+        if (maskedCompoundEnabled)
+        {
+            _ = TOperation.ProcessSymbol(ref w, masked, this.compoundGroupIndex[compoundGroupContext]);
+        }
+
+        if (!masked)
+        {
+            if (jointCompoundEnabled)
+            {
+                _ = TOperation.ProcessSymbol(
+                    ref w,
+                    compoundType == Av1CompoundType.Average,
+                    this.compoundIndex[compoundIndexContext]);
+            }
+
+            return;
+        }
+
+        _ = TOperation.ProcessSymbol(
+            ref w,
+            compoundType == Av1CompoundType.DifferenceWeighted,
+            this.compoundType[(int)blockSize]);
+        if (compoundType == Av1CompoundType.Wedge)
+        {
+            _ = TOperation.ProcessSymbol(ref w, wedgeIndex, this.wedgeIndex[(int)blockSize]);
+            _ = TOperation.ProcessLiteral(ref w, wedgeSign ? 1u : 0u, 1);
+        }
+        else
+        {
+            _ = TOperation.ProcessLiteral(ref w, (uint)differenceWeightedMaskType, 1);
+        }
     }
 
     /// <summary>

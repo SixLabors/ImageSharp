@@ -37,6 +37,11 @@ internal class Av1PictureParentControlSet
     public HeifEncodingSpeed EncodingSpeed { get; set; }
 
     /// <summary>
+    /// Gets or sets the resolved libaom speed-feature policy for this picture.
+    /// </summary>
+    public Av1EncoderSpeedSettings SpeedSettings { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether source analysis classifies this frame as screen content.
     /// </summary>
     public bool IsScreenContent { get; set; }

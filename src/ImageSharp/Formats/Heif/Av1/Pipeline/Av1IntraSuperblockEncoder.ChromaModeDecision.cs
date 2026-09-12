@@ -36,6 +36,12 @@ internal static partial class Av1IntraSuperblockEncoder
         Av1ChromaPredictionMode.Directional45Degrees
     ];
 
+    private static readonly ushort[] LumaDerivedChromaModeMasks =
+    [
+        0x2201, 0x2203, 0x2205, 0x2209, 0x2211, 0x2221, 0x2241,
+        0x2281, 0x2301, 0x2201, 0x2601, 0x2A01, 0x3201
+    ];
+
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
@@ -277,15 +283,20 @@ internal static partial class Av1IntraSuperblockEncoder
             int baseModeCount = ChromaModeSearchOrder.Length;
             int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1ChromaPredictionMode.Directional67Degrees - (int)Av1ChromaPredictionMode.Vertical + 1;
+            HeifEncodingSpeed speed = this.picture.Parent.EncodingSpeed;
+            byte directionalModeSkipMask = speed == HeifEncodingSpeed.Level3
+                ? GetDirectionalModeSkipMask(blueSource, chromaOrigin, height, width, -1.2F)
+                : (byte)0;
 
-            // Effort zero evaluates DC only, effort one adds every zero-angle mode, and higher levels add all directional adjustments.
-            int candidateCount = this.effort switch
-            {
-                0 => 1,
-                1 => baseModeCount,
-                _ when blockSize >= Av1BlockSize.Block8x8 => baseModeCount + (directionalModeCount * deltaCount),
-                _ => baseModeCount
-            };
+            // Libaom suppresses UV_SMOOTH_PRED at speed six and above only when both chroma planes have
+            // per-pixel source variance below 20. Values are normalized to eight-bit precision first.
+            bool pruneSmooth = speed >= HeifEncodingSpeed.Level6 &&
+                GetSourceVariance(blueSource, chromaOrigin, width, height, this.bitDepth) < 20 &&
+                GetSourceVariance(redSource, chromaOrigin, width, height, this.bitDepth) < 20;
+
+            int candidateCount = blockSize >= Av1BlockSize.Block8x8
+                ? baseModeCount + (directionalModeCount * deltaCount)
+                : baseModeCount;
 
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
@@ -310,6 +321,22 @@ internal static partial class Av1IntraSuperblockEncoder
                     int adjustedIndex = candidateIndex - baseModeCount;
                     chromaMode = (Av1ChromaPredictionMode)((int)Av1ChromaPredictionMode.Vertical + (adjustedIndex / deltaCount));
                     angleDelta = AngleDeltaSearchOrder[adjustedIndex % deltaCount];
+                }
+
+                if (!ShouldSearchChromaMode(this.picture.Parent.EncodingSpeed, lumaMode, chromaMode))
+                {
+                    continue;
+                }
+
+                if (chromaMode == Av1ChromaPredictionMode.Smooth && pruneSmooth)
+                {
+                    continue;
+                }
+
+                if (chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
+                    (directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
+                {
+                    continue;
                 }
 
                 Av1EncoderTransformBlockState candidateBlueState = default;
@@ -378,7 +405,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingX,
                 colorConfig.SubSamplingY);
 
-            if (this.effort >= 4 && chromaFromLumaAllowed)
+            if (chromaFromLumaAllowed)
             {
                 Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
                 Point chromaLumaOrigin = new(
@@ -421,10 +448,43 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<int> redRates = workspace.GetChromaFromLumaRates(1);
                 Span<long> blueDistortions = workspace.GetChromaFromLumaDistortions(0);
                 Span<long> redDistortions = workspace.GetChromaFromLumaDistortions(1);
+                int firstBlueCandidate = 0;
+                int lastBlueCandidate = Av1ChromaFromLumaMath.AlphaCandidateCount;
+                int firstRedCandidate = 0;
+                int lastRedCandidate = Av1ChromaFromLumaMath.AlphaCandidateCount;
+                if (speed >= HeifEncodingSpeed.Level6)
+                {
+                    firstBlueCandidate = FindBestChromaFromLumaEstimate(
+                        blueSource,
+                        chromaOrigin,
+                        blueDc,
+                        lumaQ3,
+                        transformSize,
+                        this.bitDepth,
+                        candidateBlueReconstruction,
+                        workspace.Residual,
+                        this.blockWorkspace.TransformCoefficients,
+                        this.blockWorkspace.TransformWorkspace);
 
-                // Each plane has only 33 signed alpha values. Caching those complete transform results reduces
-                // the joint search from 1089 transform pairs to 66 transforms plus inexpensive rate combinations.
-                for (int alphaCandidateIndex = 0; alphaCandidateIndex < Av1ChromaFromLumaMath.AlphaCandidateCount; alphaCandidateIndex++)
+                    lastBlueCandidate = firstBlueCandidate + 1;
+                    firstRedCandidate = FindBestChromaFromLumaEstimate(
+                        redSource,
+                        chromaOrigin,
+                        redDc,
+                        lumaQ3,
+                        transformSize,
+                        this.bitDepth,
+                        candidateRedReconstruction,
+                        workspace.Residual,
+                        this.blockWorkspace.TransformCoefficients,
+                        this.blockWorkspace.TransformWorkspace);
+
+                    lastRedCandidate = firstRedCandidate + 1;
+                }
+
+                // At speed six and above libaom estimates all alpha magnitudes with DCT SATD and performs full RD
+                // only for the best signed alpha on each plane. Lower speeds retain the exhaustive 66 transforms.
+                for (int alphaCandidateIndex = firstBlueCandidate; alphaCandidateIndex < lastBlueCandidate; alphaCandidateIndex++)
                 {
                     int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
                     Av1EncoderTransformBlockState candidateBlueState = default;
@@ -444,6 +504,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref candidateBlueState,
                         out blueRates[alphaCandidateIndex]);
 
+                }
+
+                for (int alphaCandidateIndex = firstRedCandidate; alphaCandidateIndex < lastRedCandidate; alphaCandidateIndex++)
+                {
+                    int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
                     Av1EncoderTransformBlockState candidateRedState = default;
                     redDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
                         writer,
@@ -475,12 +540,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool chromaFromLumaSelected = false;
                 int selectedBlueCandidateIndex = 0;
                 int selectedRedCandidateIndex = 0;
-                for (int blueCandidateIndex = 0; blueCandidateIndex < Av1ChromaFromLumaMath.AlphaCandidateCount; blueCandidateIndex++)
+                for (int blueCandidateIndex = firstBlueCandidate; blueCandidateIndex < lastBlueCandidate; blueCandidateIndex++)
                 {
                     int alphaU = Av1ChromaFromLumaMath.CandidateIndexToAlpha(blueCandidateIndex);
                     int signU = Av1ChromaFromLumaMath.AlphaToSign(alphaU);
                     int indexU = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU);
-                    for (int redCandidateIndex = 0; redCandidateIndex < Av1ChromaFromLumaMath.AlphaCandidateCount; redCandidateIndex++)
+                    for (int redCandidateIndex = firstRedCandidate; redCandidateIndex < lastRedCandidate; redCandidateIndex++)
                     {
                         int alphaV = Av1ChromaFromLumaMath.CandidateIndexToAlpha(redCandidateIndex);
                         int signV = Av1ChromaFromLumaMath.AlphaToSign(alphaV);
@@ -663,6 +728,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
             Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
             Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
+            HeifEncodingSpeed speed = this.picture.Parent.EncodingSpeed;
+            byte directionalModeSkipMask = speed == HeifEncodingSpeed.Level3
+                ? GetDirectionalModeSkipMask(blueSource, chromaOrigin, blockHeight, blockWidth, -1.2F)
+                : (byte)0;
+
+            bool pruneSmooth = speed >= HeifEncodingSpeed.Level6 &&
+                GetSourceVariance(blueSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
+                GetSourceVariance(redSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
                 this.picture.Parent.FrameHeader.AllowScreenContentTools,
@@ -677,15 +750,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 (int)Av1ChromaPredictionMode.Vertical +
                 1;
 
-            // Multiple transforms do not expand the block's prediction syntax. Preserve the ordinary
-            // effort tiers and exclude angle adjustments for 4x8/8x4 blocks, where no delta is signaled.
-            int candidateCount = this.effort switch
-            {
-                0 => 1,
-                1 => baseModeCount,
-                _ when blockSize >= Av1BlockSize.Block8x8 => baseModeCount + (directionalModeCount * deltaCount),
-                _ => baseModeCount
-            };
+            int candidateCount = blockSize >= Av1BlockSize.Block8x8
+                ? baseModeCount + (directionalModeCount * deltaCount)
+                : baseModeCount;
 
             Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             Av1ChromaPredictionMode bestMode = Av1ChromaPredictionMode.DC;
@@ -711,6 +778,22 @@ internal static partial class Av1IntraSuperblockEncoder
                         (int)Av1ChromaPredictionMode.Vertical + (adjustedIndex / deltaCount));
 
                     angleDelta = AngleDeltaSearchOrder[adjustedIndex % deltaCount];
+                }
+
+                if (!ShouldSearchChromaMode(this.picture.Parent.EncodingSpeed, lumaMode, chromaMode))
+                {
+                    continue;
+                }
+
+                if (chromaMode == Av1ChromaPredictionMode.Smooth && pruneSmooth)
+                {
+                    continue;
+                }
+
+                if (chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
+                    (directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
+                {
+                    continue;
                 }
 
                 blueNeighbors.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
@@ -821,6 +904,43 @@ internal static partial class Av1IntraSuperblockEncoder
 
             selectedStatistics = bestStatistics;
             return bestMode;
+        }
+
+        internal static bool ShouldSearchChromaMode(
+            HeifEncodingSpeed speed,
+            Av1PredictionMode lumaMode,
+            Av1ChromaPredictionMode chromaMode)
+            => speed < HeifEncodingSpeed.Level4 ||
+                (LumaDerivedChromaModeMasks[(int)lumaMode] & (1 << (int)chromaMode)) != 0;
+
+        private static int GetSourceVariance(
+            Buffer2DRegion<TSample> source,
+            Point origin,
+            int width,
+            int height,
+            Av1BitDepth bitDepth)
+        {
+            int shift = bitDepth.GetBitCount() - 8;
+            long sum = 0;
+            long sumOfSquares = 0;
+            for (int row = 0; row < height; row++)
+            {
+                ReadOnlySpan<TSample> sourceRow = source.DangerousGetRowSpan(origin.Y + row).Slice(origin.X, width);
+                for (int column = 0; column < width; column++)
+                {
+                    int sample = TOperator.GetSampleValue(sourceRow[column]);
+                    if (shift != 0)
+                    {
+                        sample = (sample + (1 << (shift - 1))) >> shift;
+                    }
+
+                    sum += sample;
+                    sumOfSquares += sample * sample;
+                }
+            }
+
+            int sampleCount = width * height;
+            return (int)Math.Max(0, (sumOfSquares - ((sum * sum) / sampleCount) + (sampleCount >> 1)) / sampleCount);
         }
 
         private long GetTiledPlaneCost(
@@ -1106,6 +1226,57 @@ internal static partial class Av1IntraSuperblockEncoder
             return distortion;
         }
 
+        private static int FindBestChromaFromLumaEstimate(
+            Buffer2DRegion<TSample> source,
+            Point chromaOrigin,
+            TSample dc,
+            ReadOnlySpan<short> lumaQ3,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth,
+            Span<TSample> prediction,
+            Span<short> residual,
+            Span<int> coefficients,
+            Span<int> transformWorkspace)
+        {
+            int sampleCount = transformSize.GetSize2d();
+            long bestCost = long.MaxValue;
+            int bestCandidate = Av1ChromaFromLumaMath.AlphaZeroIndex;
+            for (int candidate = 0; candidate < Av1ChromaFromLumaMath.AlphaCandidateCount; candidate++)
+            {
+                prediction[..sampleCount].Fill(dc);
+                TOperator.ApplyChromaFromLuma(
+                    lumaQ3,
+                    prediction,
+                    Av1ChromaFromLumaMath.CandidateIndexToAlpha(candidate),
+                    transformSize,
+                    bitDepth);
+
+                TOperator.SubtractPrediction(source, chromaOrigin, prediction, residual, transformSize);
+                Av1ForwardTransformer.Transform2d(
+                    residual,
+                    coefficients,
+                    (uint)transformSize.GetWidth(),
+                    Av1TransformType.DctDct,
+                    transformSize,
+                    bitDepth.GetBitCount(),
+                    transformWorkspace);
+
+                long cost = 0;
+                for (int index = 0; index < sampleCount; index++)
+                {
+                    cost += Math.Abs((long)coefficients[index]);
+                }
+
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    bestCandidate = candidate;
+                }
+            }
+
+            return bestCandidate;
+        }
+
         /// <summary>
         /// Derives the directional edge-filter class from the relevant neighboring coding blocks.
         /// </summary>
@@ -1327,15 +1498,21 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> left = leftStorage.Slice(1, width + height);
             if (hasAbove)
             {
-                reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, width).CopyTo(above[..width]);
+                ReadOnlySpan<TSample> topRow = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1);
+                int visibleTopCount = Math.Min(width, topRow.Length - blockOrigin.X);
+                topRow.Slice(blockOrigin.X, visibleTopCount).CopyTo(above);
+                above[visibleTopCount..width].Fill(above[visibleTopCount - 1]);
             }
 
             if (hasLeft)
             {
-                for (int row = 0; row < height; row++)
+                int visibleLeftCount = Math.Min(height, reconstructionPlane.Height - blockOrigin.Y);
+                for (int row = 0; row < visibleLeftCount; row++)
                 {
                     left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
                 }
+
+                left[visibleLeftCount..height].Fill(left[visibleLeftCount - 1]);
             }
 
             int midpoint = 128 << (bitDepth.GetBitCount() - 8);

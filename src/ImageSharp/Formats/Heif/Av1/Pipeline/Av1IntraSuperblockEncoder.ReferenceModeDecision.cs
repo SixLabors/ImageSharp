@@ -29,9 +29,10 @@ internal static partial class Av1IntraSuperblockEncoder
     private const int MinimumHighPrecisionMotionSearchEffort = 8;
 
     /// <summary>
-    /// One nearest, three near, one global, and three new-motion candidates.
+    /// One nearest, three near, one global, and four searched new-motion references.
+    /// The fourth NEWMV result is retained only for mixed compound modes whose near-index syntax addresses stack entry three.
     /// </summary>
-    private const int MaximumInterModeCandidateCount = 8;
+    private const int MaximumInterModeCandidateCount = 9;
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
@@ -163,16 +164,23 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.EvaluateInterPlane(
                     writer,
                     candidate,
+                    default,
                     Av1Plane.Y,
                     Av1ComponentType.Luminance,
                     Av1PredictionMode.DC,
-                    usePreparedPrediction: false,
+                    false,
+                    Av1CompoundType.Average,
+                    0,
+                    false,
+                    Av1DifferenceWeightedMaskType.Type38,
                     Av1InterpolationFilter.Bilinear,
                     Av1InterpolationFilter.Bilinear,
+                    lumaReconstruction,
                     lumaReconstruction,
                     blockOrigin,
                     0,
                     0,
+                    BlockSize,
                     LumaTransformSize,
                     Av1TransformType.AllTransformTypes,
                     lumaContext,
@@ -213,16 +221,23 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.EvaluateInterPlane(
                         writer,
                         candidate,
+                        default,
                         Av1Plane.U,
                         Av1ComponentType.Chroma,
                         Av1PredictionMode.DC,
-                        usePreparedPrediction: false,
+                        false,
+                        Av1CompoundType.Average,
+                        0,
+                        false,
+                        Av1DifferenceWeightedMaskType.Type38,
                         Av1InterpolationFilter.Bilinear,
                         Av1InterpolationFilter.Bilinear,
+                        this.reconstruction.GetPlane(Av1Plane.U),
                         this.reconstruction.GetPlane(Av1Plane.U),
                         blockOrigin,
                         subsamplingX,
                         subsamplingY,
+                        BlockSize,
                         chromaTransformSize,
                         chromaTransformType,
                         blueContext,
@@ -240,16 +255,23 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.EvaluateInterPlane(
                         writer,
                         candidate,
+                        default,
                         Av1Plane.V,
                         Av1ComponentType.Chroma,
                         Av1PredictionMode.DC,
-                        usePreparedPrediction: false,
+                        false,
+                        Av1CompoundType.Average,
+                        0,
+                        false,
+                        Av1DifferenceWeightedMaskType.Type38,
                         Av1InterpolationFilter.Bilinear,
                         Av1InterpolationFilter.Bilinear,
+                        this.reconstruction.GetPlane(Av1Plane.V),
                         this.reconstruction.GetPlane(Av1Plane.V),
                         blockOrigin,
                         subsamplingX,
                         subsamplingY,
+                        BlockSize,
                         chromaTransformSize,
                         chromaTransformType,
                         redContext,
@@ -428,16 +450,688 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             out Av1MotionVector selectedVector,
-            out InlineArray3<Av1EncoderTransformBlockState> selectedStates)
+            out Av1MotionVector selectedSecondaryVector,
+            out InlineArray18<Av1EncoderTransformBlockState> selectedStates)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-            const Av1TransformSize LumaTransformSize = Av1TransformSize.Size8x8;
-            const int LastReferenceIndex = 0;
-            DebugGuard.IsTrue(modeInfo.Block.BlockSize == BlockSize, "Inter prediction currently uses the prepared 8x8 partition tree.");
+            Av1MacroBlockModeInfo initialModeInfo = modeInfo;
+            Av1EncoderBlockStruct initialBlock = block;
+            Av1RateDistortionStatistics selectedStatistics = this.SelectReferenceBlock(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                Av1ReferenceFrameType.Last,
+                evaluateCompound: true,
+                ref modeInfo,
+                ref block,
+                out selectedVector,
+                out selectedSecondaryVector,
+                out selectedStates,
+                out InlineArray4<Av1MotionVector> lastNewVectors,
+                out byte lastNewVectorMask);
 
+            if (!this.hasDistinctGoldenReference)
+            {
+                this.RefineInterTransformSize(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    ref modeInfo,
+                    block,
+                    selectedVector,
+                    selectedSecondaryVector,
+                    ref selectedStatistics,
+                    ref selectedStates);
+                return selectedStatistics;
+            }
+
+            Av1MacroBlockModeInfo goldenModeInfo = initialModeInfo;
+            Av1EncoderBlockStruct goldenBlock = initialBlock;
+            Av1RateDistortionStatistics goldenStatistics = this.SelectReferenceBlock(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                Av1ReferenceFrameType.Golden,
+                evaluateCompound: false,
+                ref goldenModeInfo,
+                ref goldenBlock,
+                out Av1MotionVector goldenVector,
+                out Av1MotionVector goldenSecondaryVector,
+                out InlineArray18<Av1EncoderTransformBlockState> goldenStates,
+                out InlineArray4<Av1MotionVector> goldenNewVectors,
+                out byte goldenNewVectorMask);
+
+            // LAST and its bounded compound candidate precede GOLDEN. A strict replacement preserves that
+            // deterministic search order on equal RD while still exposing the independently retained reference.
+            if (goldenStatistics.Cost < selectedStatistics.Cost)
+            {
+                modeInfo = goldenModeInfo;
+                block = goldenBlock;
+                selectedVector = goldenVector;
+                selectedSecondaryVector = goldenSecondaryVector;
+                selectedStates = goldenStates;
+                selectedStatistics = goldenStatistics;
+            }
+
+            this.SelectNewCompoundBlock(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                in lastNewVectors,
+                lastNewVectorMask,
+                in goldenNewVectors,
+                goldenNewVectorMask,
+                ref modeInfo,
+                ref block,
+                ref selectedStatistics,
+                ref selectedVector,
+                ref selectedSecondaryVector,
+                ref selectedStates);
+
+            ObuSkipModeParameters skipModeParameters = this.picture.Parent.FrameHeader.SkipModeParameters;
+            if (skipModeParameters.SkipModeFlag &&
+                Math.Min(modeInfo.Block.BlockSize.GetWidth(), modeInfo.Block.BlockSize.GetHeight()) >= 8 &&
+                skipModeParameters.FirstReferenceFrame == Av1ReferenceFrameType.Last &&
+                skipModeParameters.SecondReferenceFrame == Av1ReferenceFrameType.Golden)
+            {
+                int skipModeContext = Av1TileWriter.GetSkipModeContext(macroBlock);
+                selectedStatistics = new Av1RateDistortionStatistics(
+                    this.rateMultiplier,
+                    selectedStatistics.Rate + writer.GetSkipModeCost(false, skipModeContext),
+                    selectedStatistics.Distortion);
+
+                this.SelectSkipModeBlock(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    skipModeContext,
+                    ref modeInfo,
+                    ref block,
+                    ref selectedStatistics,
+                    ref selectedVector,
+                    ref selectedSecondaryVector,
+                    ref selectedStates);
+            }
+
+            this.RefineInterTransformSize(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                ref modeInfo,
+                block,
+                selectedVector,
+                selectedSecondaryVector,
+                ref selectedStatistics,
+                ref selectedStates);
+
+            return selectedStatistics;
+        }
+
+        private void RefineInterTransformSize(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            ref Av1MacroBlockModeInfo modeInfo,
+            Av1EncoderBlockStruct block,
+            Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
+            ref Av1RateDistortionStatistics selectedStatistics,
+            ref InlineArray18<Av1EncoderTransformBlockState> selectedStates)
+        {
+            Av1TransformSize maximumTransformSize = modeInfo.Block.BlockSize.GetMaximumTransformSize();
+            if (modeInfo.Block.Skip ||
+                this.picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select ||
+                maximumTransformSize == Av1TransformSize.Size4x4)
+            {
+                return;
+            }
+
+            this.PrepareSelectedInterLumaPrediction(
+                macroBlock,
+                blockOrigin,
+                modeInfo,
+                block,
+                vector,
+                secondaryVector);
+
+            Av1RateDistortionStatistics maximumStatistics = this.EvaluatePreparedInterLumaGrid(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                modeInfo.Block,
+                maximumTransformSize,
+                Span<Av1EncoderTransformBlockState>.Empty);
+
+            Av1RateDistortionStatistics bestStatistics = maximumStatistics;
+            Av1TransformSize bestTransformSize = maximumTransformSize;
+            InlineArray16<Av1EncoderTransformBlockState> bestStates = default;
+            int bestStateCount = 0;
+            Av1TransformSize candidateTransformSize = maximumTransformSize;
+            for (int depth = 1; depth <= Av1Constants.MaxVarTransform; depth++)
+            {
+                candidateTransformSize = candidateTransformSize.GetSubSize();
+                int transformCount =
+                    (modeInfo.Block.BlockSize.GetWidth() / candidateTransformSize.GetWidth()) *
+                    (modeInfo.Block.BlockSize.GetHeight() / candidateTransformSize.GetHeight());
+                Span<Av1EncoderTransformBlockState> candidateStates = stackalloc Av1EncoderTransformBlockState[16];
+                Av1RateDistortionStatistics candidateStatistics = this.EvaluatePreparedInterLumaGrid(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    modeInfo.Block,
+                    candidateTransformSize,
+                    candidateStates[..transformCount]);
+
+                if (candidateStatistics.Cost < bestStatistics.Cost)
+                {
+                    bestStatistics = candidateStatistics;
+                    bestTransformSize = candidateTransformSize;
+                    candidateStates[..transformCount].CopyTo(bestStates);
+                    bestStateCount = transformCount;
+                }
+
+                if (candidateTransformSize == Av1TransformSize.Size4x4)
+                {
+                    break;
+                }
+            }
+
+            if (bestTransformSize == maximumTransformSize)
+            {
+                return;
+            }
+
+            selectedStatistics = new(
+                this.rateMultiplier,
+                selectedStatistics.Rate + bestStatistics.Rate - maximumStatistics.Rate,
+                selectedStatistics.Distortion + bestStatistics.Distortion - maximumStatistics.Distortion);
+            modeInfo.Block.TransformSize = bestTransformSize;
+            bestStates[..bestStateCount].CopyTo(selectedStates);
+        }
+
+        private void PrepareSelectedInterLumaPrediction(
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1MacroBlockModeInfo modeInfo,
+            Av1EncoderBlockStruct block,
+            Av1MotionVector vector,
+            Av1MotionVector secondaryVector)
+        {
+            if (modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra)
+            {
+                this.PrepareInterIntraPrediction(
+                    macroBlock,
+                    blockOrigin,
+                    modeInfo.Block.BlockSize,
+                    hasChroma: false,
+                    modeInfo.Block.ReferenceFrame,
+                    vector,
+                    modeInfo.Block.HorizontalInterpolationFilter,
+                    modeInfo.Block.VerticalInterpolationFilter,
+                    modeInfo.Block.InterIntraMode,
+                    modeInfo.Block.UseInterIntraWedge,
+                    modeInfo.Block.InterIntraWedgeIndex);
+                return;
+            }
+
+            Av1TransformSize transformSize = modeInfo.Block.BlockSize.GetMaximumTransformSize();
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            Span<TSample> prediction = workspace.LumaPrediction[..transformSize.GetSize2d()];
+            Span<short> residual = workspace.Residual[..transformSize.GetSize2d()];
+            if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                int firstWeight = 8;
+                int secondWeight = 8;
+                if (modeInfo.Block.CompoundType == Av1CompoundType.DistanceWeighted)
+                {
+                    Av1CompoundDistanceWeights.Derive(
+                        this.picture.Sequence.SequenceHeader.OrderHintInfo,
+                        this.picture.Parent.FrameHeader,
+                        modeInfo.Block.ReferenceFrame,
+                        modeInfo.Block.SecondaryReferenceFrame,
+                        out firstWeight,
+                        out secondWeight);
+                }
+
+                this.blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> first, out Span<ushort> second);
+                int primaryColumnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
+                int primaryRowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
+                int secondaryColumnQ4 = (blockOrigin.X << 4) + (secondaryVector.Column << 1);
+                int secondaryRowQ4 = (blockOrigin.Y << 4) + (secondaryVector.Row << 1);
+                TOperator.PrepareCompoundInterPrediction(
+                    this.source.GetPlane(Av1Plane.Y),
+                    blockOrigin,
+                    this.reference.GetPlane(Av1Plane.Y),
+                    new Point(primaryColumnQ4 >> 4, primaryRowQ4 >> 4),
+                    primaryColumnQ4 & 15,
+                    primaryRowQ4 & 15,
+                    this.goldenReference.GetPlane(Av1Plane.Y),
+                    new Point(secondaryColumnQ4 >> 4, secondaryRowQ4 >> 4),
+                    secondaryColumnQ4 & 15,
+                    secondaryRowQ4 & 15,
+                    modeInfo.Block.HorizontalInterpolationFilter,
+                    modeInfo.Block.VerticalInterpolationFilter,
+                    prediction,
+                    residual,
+                    first,
+                    second,
+                    this.blockWorkspace.GetCompoundPredictionMask(),
+                    workspace.PredictionScratch,
+                    transformSize,
+                    this.bitDepth,
+                    modeInfo.Block.BlockSize,
+                    modeInfo.Block.CompoundType,
+                    firstWeight,
+                    secondWeight,
+                    0,
+                    0,
+                    modeInfo.Block.CompoundWedgeIndex,
+                    modeInfo.Block.CompoundWedgeSign,
+                    modeInfo.Block.DifferenceWeightedMaskType);
+                return;
+            }
+
+            Av1EncoderFrame<TSample>.PlanarView reference = modeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Golden
+                ? this.goldenReference
+                : this.reference;
+            int columnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
+            int rowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
+            TOperator.PrepareTranslationalInterPrediction(
+                this.source.GetPlane(Av1Plane.Y),
+                blockOrigin,
+                reference.GetPlane(Av1Plane.Y),
+                new Point(columnQ4 >> 4, rowQ4 >> 4),
+                modeInfo.Block.HorizontalInterpolationFilter,
+                modeInfo.Block.VerticalInterpolationFilter,
+                columnQ4 & 15,
+                rowQ4 & 15,
+                prediction,
+                residual,
+                workspace.PredictionScratch,
+                transformSize,
+                this.bitDepth);
+        }
+
+        private Av1RateDistortionStatistics EvaluatePreparedInterLumaGrid(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1EncoderBlockModeInfo modeInfo,
+            Av1TransformSize transformSize,
+            Span<Av1EncoderTransformBlockState> states)
+        {
+            Av1BlockSize blockSize = modeInfo.BlockSize;
+            int blockWidth = blockSize.GetWidth();
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int transformSampleCount = transformSize.GetSize2d();
+            Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
+            int columnCount = codedExtent.Width / transformWidth;
+            int rowCount = codedExtent.Height / transformHeight;
+            Av1EncoderInterPredictionWorkspace<TSample> interWorkspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            this.blockWorkspace.GetInterIntraStorage<TSample>(out Span<TSample> tilePrediction, out _, out _);
+            Span<short> residual = interWorkspace.Residual[..transformSampleCount];
+            Span<int> candidateCoefficients = interWorkspace.TransformCoefficients[..transformSampleCount];
+            Span<int> bestCoefficients = interWorkspace.LumaCandidateCoefficients[..transformSampleCount];
+            Span<TSample> reconstruction = interWorkspace.TransformReconstruction[..transformSampleCount];
+            Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+            int contextWidth = blockSize.Get4x4WideCount();
+            int contextHeight = blockSize.Get4x4HighCount();
+            Span<byte> topContexts = modeWorkspace.TransformContexts[..contextWidth];
+            Span<byte> leftContexts = modeWorkspace.TransformContexts.Slice(contextWidth, contextHeight);
+            Av1NeighborArrayUnit<byte> coefficientNeighbors = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
+            coefficientNeighbors.Top.Slice(coefficientNeighbors.GetTopIndex(blockOrigin), contextWidth).CopyTo(topContexts);
+            coefficientNeighbors.Left.Slice(coefficientNeighbors.GetLeftIndex(blockOrigin), contextHeight).CopyTo(leftContexts);
+            int rate = this.GetUniformTransformPartitionRate(writer, macroBlock, blockOrigin, tileIndex, blockSize, transformSize);
+            coefficientNeighbors.Top.Slice(coefficientNeighbors.GetTopIndex(blockOrigin), contextWidth).CopyTo(topContexts);
+            coefficientNeighbors.Left.Slice(coefficientNeighbors.GetLeftIndex(blockOrigin), contextHeight).CopyTo(leftContexts);
+            long distortion = 0;
+            Av1TransformSetType transformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
+                transformSize,
+                isInter: true,
+                this.picture.Parent.FrameHeader.UseReducedTransformSet);
+
+            for (int row = 0; row < rowCount; row++)
+            {
+                for (int column = 0; column < columnCount; column++)
+                {
+                    int sourceOffset = (row * transformHeight * blockWidth) + (column * transformWidth);
+                    for (int sampleRow = 0; sampleRow < transformHeight; sampleRow++)
+                    {
+                        interWorkspace.LumaPrediction.Slice(sourceOffset + (sampleRow * blockWidth), transformWidth)
+                            .CopyTo(tilePrediction.Slice(sampleRow * transformWidth, transformWidth));
+                    }
+
+                    Point transformOrigin = blockOrigin + new Size(column * transformWidth, row * transformHeight);
+                    TOperator.SubtractPrediction(
+                        this.source.GetPlane(Av1Plane.Y),
+                        transformOrigin,
+                        tilePrediction,
+                        residual,
+                        transformSize);
+                    int width4x4 = transformSize.Get4x4WideCount();
+                    int height4x4 = transformSize.Get4x4HighCount();
+                    Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
+                        Av1ComponentType.Luminance,
+                        topContexts.Slice(column * width4x4, width4x4),
+                        leftContexts.Slice(row * height4x4, height4x4),
+                        blockSize,
+                        transformSize);
+
+                    long bestCost = long.MaxValue;
+                    int bestRate = 0;
+                    long bestDistortion = 0;
+                    Av1EncoderTransformBlockState bestState = default;
+                    for (Av1TransformType type = Av1TransformType.DctDct; type < Av1TransformType.AllTransformTypes; type++)
+                    {
+                        if (!type.IsExtendedSetUsed(transformSet))
+                        {
+                            continue;
+                        }
+
+                        Av1EncoderTransformBlockState state = default;
+                        long candidateDistortion = TOperator.EncodePredictionCandidate(
+                            this.blockWorkspace,
+                            writer,
+                            blockContext,
+                            this.rateMultiplier,
+                            true,
+                            this.picture.Sequence.SequenceHeader.IsStillPicture,
+                            this.source.GetPlane(Av1Plane.Y),
+                            transformOrigin,
+                            tilePrediction,
+                            residual,
+                            reconstruction,
+                            transformWidth,
+                            candidateCoefficients,
+                            transformSize,
+                            type,
+                            Av1Plane.Y,
+                            this.quantization.QIndex[0],
+                            this.quantization.DeltaQDc[(int)Av1Plane.Y],
+                            this.quantization.DeltaQAc[(int)Av1Plane.Y],
+                            this.bitDepth,
+                            ref state);
+                        int candidateRate = writer.GetCoefficientCost(
+                            transformSize,
+                            type,
+                            modeInfo.Mode,
+                            candidateCoefficients,
+                            Av1ComponentType.Luminance,
+                            blockContext,
+                            state.EndOfBlock,
+                            this.picture.Parent.FrameHeader.UseReducedTransformSet,
+                            Av1FilterIntraMode.AllFilterIntraModes,
+                            usesInterTransformSet: true);
+                        long cost = Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, candidateDistortion);
+                        if (cost < bestCost)
+                        {
+                            candidateCoefficients.CopyTo(bestCoefficients);
+                            bestCost = cost;
+                            bestRate = candidateRate;
+                            bestDistortion = candidateDistortion;
+                            bestState = state;
+                            bestState.EntropyContext = (byte)(blockContext.SkipContext | (blockContext.DcSignContext << 4));
+                        }
+                    }
+
+                    int index = (row * columnCount) + column;
+                    if (!states.IsEmpty)
+                    {
+                        states[index] = bestState;
+                    }
+
+                    byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                        bestCoefficients,
+                        transformSize,
+                        bestState.TransformType,
+                        bestState.EndOfBlock);
+                    topContexts.Slice(column * transformSize.Get4x4WideCount(), transformSize.Get4x4WideCount()).Fill(coefficientContext);
+                    leftContexts.Slice(row * transformSize.Get4x4HighCount(), transformSize.Get4x4HighCount()).Fill(coefficientContext);
+                    rate += bestRate;
+                    distortion += bestDistortion;
+                }
+            }
+
+            return new(this.rateMultiplier, rate, distortion);
+        }
+
+        private int GetUniformTransformPartitionRate(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            Av1TransformSize selectedTransformSize)
+        {
+            Av1NeighborArrayUnit<byte> frameContexts = this.picture.TransformFunctionContexts[tileIndex];
+            Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+            int width = blockSize.Get4x4WideCount();
+            int height = blockSize.Get4x4HighCount();
+            Span<byte> above = workspace.TransformContexts[..width];
+            Span<byte> left = workspace.TransformContexts.Slice(width, height);
+            frameContexts.Top.Slice(frameContexts.GetTopIndex(blockOrigin), width).CopyTo(above);
+            frameContexts.Left.Slice(frameContexts.GetLeftIndex(blockOrigin), height).CopyTo(left);
+            int maximumBlocksWide = width + (Math.Min(0, macroBlock.ToRightEdge) >> 5);
+            int maximumBlocksHigh = height + (Math.Min(0, macroBlock.ToBottomEdge) >> 5);
+            return GetUniformTransformPartitionRate(
+                writer,
+                above,
+                left,
+                blockSize,
+                blockSize.GetMaximumTransformSize(),
+                selectedTransformSize,
+                depth: 0,
+                blockRow: 0,
+                blockColumn: 0,
+                maximumBlocksWide,
+                maximumBlocksHigh);
+        }
+
+        private static int GetUniformTransformPartitionRate(
+            Av1SymbolEncoder writer,
+            Span<byte> aboveContexts,
+            Span<byte> leftContexts,
+            Av1BlockSize blockSize,
+            Av1TransformSize transformSize,
+            Av1TransformSize selectedTransformSize,
+            int depth,
+            int blockRow,
+            int blockColumn,
+            int maximumBlocksWide,
+            int maximumBlocksHigh)
+        {
+            if (blockRow >= maximumBlocksHigh || blockColumn >= maximumBlocksWide)
+            {
+                return 0;
+            }
+
+            bool split = transformSize != selectedTransformSize &&
+                transformSize > Av1TransformSize.Size4x4 &&
+                depth < Av1Constants.MaxVarTransform;
+            int rate = 0;
+            if (transformSize > Av1TransformSize.Size4x4 && depth < Av1Constants.MaxVarTransform)
+            {
+                int maximumDimension = Math.Max(blockSize.GetWidth(), blockSize.GetHeight());
+                Av1TransformSize maximumSquareTransform = maximumDimension switch
+                {
+                    >= 64 => Av1TransformSize.Size64x64,
+                    >= 32 => Av1TransformSize.Size32x32,
+                    >= 16 => Av1TransformSize.Size16x16,
+                    _ => Av1TransformSize.Size8x8
+                };
+                int category = ((transformSize.GetSquareUpSize() != maximumSquareTransform && maximumSquareTransform > Av1TransformSize.Size8x8) ? 1 : 0) +
+                    ((((int)Av1TransformSize.SquareSizes - 1) - (int)maximumSquareTransform) * 2);
+                int above = aboveContexts[blockColumn] < transformSize.GetWidth() ? 1 : 0;
+                int left = leftContexts[blockRow] < transformSize.GetHeight() ? 1 : 0;
+                rate = writer.GetTransformPartitionCost(split, (category * 3) + above + left);
+            }
+
+            if (split)
+            {
+                Av1TransformSize subTransformSize = transformSize.GetSubSize();
+                int subWidth = subTransformSize.Get4x4WideCount();
+                int subHeight = subTransformSize.Get4x4HighCount();
+                for (int row = 0; row < transformSize.Get4x4HighCount(); row += subHeight)
+                {
+                    for (int column = 0; column < transformSize.Get4x4WideCount(); column += subWidth)
+                    {
+                        rate += GetUniformTransformPartitionRate(
+                            writer,
+                            aboveContexts,
+                            leftContexts,
+                            blockSize,
+                            subTransformSize,
+                            selectedTransformSize,
+                            depth + 1,
+                            blockRow + row,
+                            blockColumn + column,
+                            maximumBlocksWide,
+                            maximumBlocksHigh);
+                    }
+                }
+
+                return rate;
+            }
+
+            int width = Math.Min(transformSize.Get4x4WideCount(), maximumBlocksWide - blockColumn);
+            int height = Math.Min(transformSize.Get4x4HighCount(), maximumBlocksHigh - blockRow);
+            aboveContexts.Slice(blockColumn, width).Fill((byte)transformSize.GetWidth());
+            leftContexts.Slice(blockRow, height).Fill((byte)transformSize.GetHeight());
+            return rate;
+        }
+
+        private void SelectSkipModeBlock(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            int skipModeContext,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block,
+            ref Av1RateDistortionStatistics selectedStatistics,
+            ref Av1MotionVector selectedVector,
+            ref Av1MotionVector selectedSecondaryVector,
+            ref InlineArray18<Av1EncoderTransformBlockState> selectedStates)
+        {
+            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
+            ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+            ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.blockWorkspace.ReferenceMotionVectors;
+            referenceMotionVectors.Build(
+                this.picture,
+                macroBlock,
+                modeInfoPosition,
+                blockSize,
+                modeInfo.Block.PartitionType,
+                this.picture.Sequence.SequenceHeader,
+                frameHeader,
+                Av1ReferenceFrameType.Last,
+                Av1ReferenceFrameType.Golden);
+
+            Av1MotionVector primaryVector = referenceMotionVectors.GetCompoundNearestReference(0);
+            Av1MotionVector secondaryVector = referenceMotionVectors.GetCompoundNearestReference(1);
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
+                writer,
+                blockOrigin,
+                blockSize,
+                tileIndex,
+                block.HasChroma,
+                writer.GetSkipModeCost(true, skipModeContext),
+                Av1TileWriter.GetSkipContext(macroBlock),
+                0,
+                Av1ReferenceFrameType.Last,
+                primaryVector,
+                secondaryVector,
+                Av1PredictionMode.NearestNearestMotionVector,
+                isCompound: true,
+                usePreparedPrediction: false,
+                forceSkip: true,
+                Av1CompoundType.Average,
+                0,
+                false,
+                Av1DifferenceWeightedMaskType.Type38,
+                0,
+                frameHeader.InterpolationFilter,
+                frameHeader.InterpolationFilter,
+                0,
+                in referenceMotionVectors,
+                workspace.LumaCandidateReconstruction,
+                workspace.LumaCandidateCoefficients,
+                workspace.BlueCandidateReconstruction,
+                workspace.BlueCandidateCoefficients,
+                workspace.RedCandidateReconstruction,
+                workspace.RedCandidateCoefficients,
+                out _,
+                out Av1EncoderTransformBlockState lumaState,
+                out Av1EncoderTransformBlockState blueState,
+                out Av1EncoderTransformBlockState redState);
+
+            if (candidateStatistics.Cost > selectedStatistics.Cost)
+            {
+                return;
+            }
+
+            selectedStatistics = candidateStatistics;
+            selectedVector = primaryVector;
+            selectedSecondaryVector = secondaryVector;
+            selectedStates[0] = lumaState;
+            selectedStates[16] = blueState;
+            selectedStates[17] = redState;
             modeInfo.Block.ReferenceFrame = Av1ReferenceFrameType.Last;
+            modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.Golden;
+            modeInfo.Block.Mode = Av1PredictionMode.NearestNearestMotionVector;
+            modeInfo.Block.Skip = true;
+            modeInfo.Block.SkipMode = true;
+            modeInfo.Block.CompoundGroupIndex = false;
+            modeInfo.Block.CompoundIndex = true;
+            modeInfo.Block.CompoundType = Av1CompoundType.Average;
+            modeInfo.Block.HorizontalInterpolationFilter = frameHeader.InterpolationFilter;
+            modeInfo.Block.VerticalInterpolationFilter = frameHeader.InterpolationFilter;
+            block.ReferenceMotionVectorIndex = 0;
+        }
+
+        private Av1RateDistortionStatistics SelectReferenceBlock(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1ReferenceFrameType referenceFrame,
+            bool evaluateCompound,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block,
+            out Av1MotionVector selectedVector,
+            out Av1MotionVector selectedSecondaryVector,
+            out InlineArray18<Av1EncoderTransformBlockState> selectedStates,
+            out InlineArray4<Av1MotionVector> searchedNewVectors,
+            out byte searchedNewVectorMask)
+        {
+            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
+            Av1TransformSize lumaTransformSize = blockSize.GetMaximumTransformSize();
+            DebugGuard.IsTrue(
+                blockSize.GetWidth() <= Av1Constants.MaxTransformSize && blockSize.GetHeight() <= Av1Constants.MaxTransformSize,
+                "Single-transform inter prediction supports partition leaves no wider or taller than the maximum AV1 transform.");
+
+            modeInfo.Block.ReferenceFrame = referenceFrame;
+            modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
+            modeInfo.Block.CompoundGroupIndex = false;
+            modeInfo.Block.CompoundIndex = true;
+            modeInfo.Block.CompoundType = Av1CompoundType.Average;
+            modeInfo.Block.CompoundWedgeIndex = 0;
+            modeInfo.Block.CompoundWedgeSign = false;
+            modeInfo.Block.DifferenceWeightedMaskType = Av1DifferenceWeightedMaskType.Type38;
             modeInfo.Block.UvMode = Av1ChromaPredictionMode.DC;
-            modeInfo.Block.TransformSize = LumaTransformSize;
+            modeInfo.Block.TransformSize = lumaTransformSize;
             modeInfo.Block.UseIntraBlockCopy = false;
             block.FilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
             block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = 0;
@@ -455,17 +1149,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture,
                 macroBlock,
                 modeInfoPosition,
-                BlockSize,
+                blockSize,
                 modeInfo.Block.PartitionType,
                 this.picture.Sequence.SequenceHeader,
                 frameHeader,
-                Av1ReferenceFrameType.Last);
+                referenceFrame,
+                Av1ReferenceFrameType.None);
 
             Av1MotionVector globalMotion = frameHeader
-                .GetGlobalMotionParameters()[LastReferenceIndex]
+                .GetGlobalMotionParameters()[(int)referenceFrame - (int)Av1ReferenceFrameType.Last]
                 .GetMotionVector(
                     frameHeader.AllowHighPrecisionMotionVector,
-                    BlockSize,
+                    blockSize,
                     modeInfoPosition,
                     frameHeader.ForceIntegerMotionVector);
 
@@ -479,7 +1174,7 @@ internal static partial class Av1IntraSuperblockEncoder
             candidateModes[candidateCount] = Av1PredictionMode.NearestMotionVector;
             candidateReferenceIndices[candidateCount++] = 0;
 
-            int maximumNewIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 1));
+            int maximumNewIndex = Math.Min(3, Math.Max(0, referenceMotionVectors.Count - 1));
             for (int referenceIndex = 0; referenceIndex <= maximumNewIndex; referenceIndex++)
             {
                 candidateVectors[candidateCount] = referenceMotionVectors.GetNewReference(referenceIndex);
@@ -516,7 +1211,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int commonPredictionRate = writer.GetIsInterCost(
                 isInter: true,
                 Av1TileWriter.GetIntraInterContext(macroBlock)) +
-                writer.GetSingleReferenceCost(Av1ReferenceFrameType.Last, referenceCounts);
+                writer.GetSingleReferenceCost(referenceFrame, referenceCounts);
 
             int transformPartitionRate = 0;
             if (frameHeader.TransformMode == Av1TransformMode.Select)
@@ -527,23 +1222,32 @@ internal static partial class Av1IntraSuperblockEncoder
                 int transformPartitionContext = Av1SymbolContextHelper.GetTransformPartitionContext(
                     transformContexts.Top[topIndex],
                     transformContexts.Left[leftIndex],
-                    BlockSize,
-                    LumaTransformSize);
+                    blockSize,
+                    lumaTransformSize);
 
                 transformPartitionRate = writer.GetTransformPartitionCost(false, transformPartitionContext);
             }
 
             Av1RateDistortionStatistics selectedStatistics = Av1RateDistortionStatistics.Invalid;
             selectedVector = default;
+            selectedSecondaryVector = default;
             selectedStates = default;
+            searchedNewVectors = default;
+            searchedNewVectorMask = 0;
             Av1PredictionMode selectedMode = default;
             int selectedReferenceIndex = 0;
             bool selectedSkip = false;
+            bool selectedInterIntra = false;
+            Av1InterIntraMode selectedInterIntraMode = default;
+            bool selectedInterIntraWedge = false;
+            int selectedInterIntraWedgeIndex = 0;
             Av1EncoderTransformBlockState selectedLumaState = default;
             Av1EncoderTransformBlockState selectedBlueState = default;
             Av1EncoderTransformBlockState selectedRedState = default;
 
             ObuSequenceHeader sequenceHeader = this.picture.Sequence.SequenceHeader;
+            bool interIntraEligible = sequenceHeader.EnableInterIntraCompound &&
+                blockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32;
             bool isSwitchable = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable;
             bool isDualFilter = sequenceHeader.EnableDualFilter;
             Av1InterpolationFilter defaultFilter = isSwitchable ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter;
@@ -581,7 +1285,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalFractionMask = (Av1MotionVector.SubpixelScale << (block.HasChroma && sequenceHeader.ColorConfig.SubSamplingY ? 1 : 0)) - 1;
 
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
+            Buffer2DRegion<TSample> referencePlane = referenceFrame == Av1ReferenceFrameType.Golden
+                ? this.goldenReference.GetPlane(Av1Plane.Y)
+                : this.reference.GetPlane(Av1Plane.Y);
             int sourceOrigin = ((sourcePlane.Bounds.Y + blockOrigin.Y) * sourcePlane.Stride) + sourcePlane.Bounds.X + blockOrigin.X;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size frameSize = new(
@@ -589,13 +1295,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
             Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
-                new Rectangle(blockOrigin, new Size(8)),
+                new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
                 frameSize,
                 Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y));
 
             Av1NeighborArrayUnit<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
-            ReadOnlySpan<byte> aboveContexts = coefficientContexts.Top[coefficientContexts.GetTopIndex(blockOrigin)..];
-            ReadOnlySpan<byte> leftContexts = coefficientContexts.Left[coefficientContexts.GetLeftIndex(blockOrigin)..];
+            ReadOnlySpan<byte> aboveContexts = coefficientContexts.Top.Slice(
+                coefficientContexts.GetTopIndex(blockOrigin),
+                blockSize.Get4x4WideCount());
+
+            ReadOnlySpan<byte> leftContexts = coefficientContexts.Left.Slice(
+                coefficientContexts.GetLeftIndex(blockOrigin),
+                blockSize.Get4x4HighCount());
 
             // Frame owners provide contiguous padded planes. Borrow those spans without copying source blocks
             // or reconstructing border samples, and keep the search scratch disjoint from retained inter winners.
@@ -605,7 +1316,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 referencePlane.Buffer.DangerousGetSingleSpan(),
                 referencePlane.Stride,
                 referenceOrigin,
-                BlockSize,
+                blockSize,
                 frameBounds,
                 this.blockWorkspace,
                 this.blockWorkspace.GetMotionSearchPrediction<TSample>(),
@@ -634,8 +1345,8 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int index = 0; index < 2; index++)
             {
                 Av1MotionVector spatial = referenceMotionVectors.GetNewReference(index);
-                int column = Math.Clamp(spatial.Column, -(blockOrigin.X + 8 + 4) * 8, (frameSize.Width - blockOrigin.X + 4) * 8);
-                int row = Math.Clamp(spatial.Row, -(blockOrigin.Y + 8 + 4) * 8, (frameSize.Height - blockOrigin.Y + 4) * 8);
+                int column = Math.Clamp(spatial.Column, -(blockOrigin.X + blockSize.GetWidth() + 4) * 8, (frameSize.Width - blockOrigin.X + 4) * 8);
+                int row = Math.Clamp(spatial.Row, -(blockOrigin.Y + blockSize.GetHeight() + 4) * 8, (frameSize.Height - blockOrigin.Y + 4) * 8);
                 spatialMagnitude = Math.Max(spatialMagnitude, Math.Max(Math.Abs(row), Math.Abs(column)) >> 3);
             }
 
@@ -720,6 +1431,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     candidateVectors[candidateIndex] = searchResult.Vector;
+                    searchedNewVectors[referenceIndex] = searchResult.Vector;
+                    searchedNewVectorMask |= (byte)(1 << referenceIndex);
+                    if (referenceIndex == 3)
+                    {
+                        // Single-reference NEWMV can signal only stack entries zero through two. Entry three is
+                        // searched because mixed NEAR/NEW compound syntax addresses it as near DRL index two plus one.
+                        continue;
+                    }
                 }
 
                 modeInfo.Block.Mode = candidateModes[candidateIndex];
@@ -763,6 +1482,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         long modelCost = this.GetInterFilterModelCost(
                             candidateVectors[candidateIndex],
                             blockOrigin,
+                            blockSize,
+                            referenceFrame,
                             block.HasChroma,
                             trialHorizontalFilter,
                             trialVerticalFilter,
@@ -808,14 +1529,25 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                     writer,
                     blockOrigin,
+                    blockSize,
                     tileIndex,
                     block.HasChroma,
-                    commonPredictionRate + filterRate,
+                    commonPredictionRate + filterRate +
+                        (interIntraEligible ? writer.GetInterIntraCost(blockSize, false, default, false, 0) : 0),
                     skipContext,
                     transformPartitionRate,
+                    referenceFrame,
                     candidateVectors[candidateIndex],
+                    default,
                     candidateModes[candidateIndex],
-                    writesFilters,
+                    isCompound: false,
+                    usePreparedPrediction: writesFilters,
+                    forceSkip: false,
+                    Av1CompoundType.Average,
+                    0,
+                    false,
+                    Av1DifferenceWeightedMaskType.Type38,
+                    0,
                     horizontalFilter,
                     verticalFilter,
                     candidateReferenceIndices[candidateIndex],
@@ -832,59 +1564,777 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Av1EncoderTransformBlockState candidateRedState);
 
                 // Strict replacement preserves nearest, new, near, then global mode order on equal RD cost.
-                if (candidateStatistics.Cost >= selectedStatistics.Cost)
+                if (candidateStatistics.Cost < selectedStatistics.Cost)
+                {
+                    Span<TSample> previousLumaReconstruction = selectedLumaReconstruction;
+                    selectedLumaReconstruction = candidateLumaReconstruction;
+                    candidateLumaReconstruction = previousLumaReconstruction;
+
+                    Span<TSample> previousBlueReconstruction = selectedBlueReconstruction;
+                    selectedBlueReconstruction = candidateBlueReconstruction;
+                    candidateBlueReconstruction = previousBlueReconstruction;
+
+                    Span<TSample> previousRedReconstruction = selectedRedReconstruction;
+                    selectedRedReconstruction = candidateRedReconstruction;
+                    candidateRedReconstruction = previousRedReconstruction;
+
+                    Span<int> previousLumaCoefficients = selectedLumaCoefficients;
+                    selectedLumaCoefficients = candidateLumaCoefficients;
+                    candidateLumaCoefficients = previousLumaCoefficients;
+
+                    Span<int> previousBlueCoefficients = selectedBlueCoefficients;
+                    selectedBlueCoefficients = candidateBlueCoefficients;
+                    candidateBlueCoefficients = previousBlueCoefficients;
+
+                    Span<int> previousRedCoefficients = selectedRedCoefficients;
+                    selectedRedCoefficients = candidateRedCoefficients;
+                    candidateRedCoefficients = previousRedCoefficients;
+
+                    selectedStatistics = candidateStatistics;
+                    selectedVector = candidateVectors[candidateIndex];
+                    selectedMode = candidateModes[candidateIndex];
+                    selectedHorizontalFilter = horizontalFilter;
+                    selectedVerticalFilter = verticalFilter;
+                    selectedReferenceIndex = candidateReferenceIndices[candidateIndex];
+                    selectedSkip = candidateSkip;
+                    selectedInterIntra = false;
+                    selectedLumaState = candidateLumaState;
+                    selectedBlueState = candidateBlueState;
+                    selectedRedState = candidateRedState;
+                }
+
+                if (!interIntraEligible)
                 {
                     continue;
                 }
 
-                Span<TSample> previousLumaReconstruction = selectedLumaReconstruction;
-                selectedLumaReconstruction = candidateLumaReconstruction;
-                candidateLumaReconstruction = previousLumaReconstruction;
+                const int InterIntraModeCount = 4;
+                const int WedgeIndexCount = 16;
+                for (int interIntraCandidate = 0; interIntraCandidate < InterIntraModeCount + WedgeIndexCount; interIntraCandidate++)
+                {
+                    bool useWedge = interIntraCandidate >= InterIntraModeCount;
+                    Av1InterIntraMode interIntraMode = useWedge
+                        ? Av1InterIntraMode.DC
+                        : (Av1InterIntraMode)interIntraCandidate;
+                    int wedgeIndex = useWedge ? interIntraCandidate - InterIntraModeCount : 0;
+                    this.PrepareInterIntraPrediction(
+                        macroBlock,
+                        blockOrigin,
+                        blockSize,
+                        block.HasChroma,
+                        referenceFrame,
+                        candidateVectors[candidateIndex],
+                        horizontalFilter,
+                        verticalFilter,
+                        interIntraMode,
+                        useWedge,
+                        wedgeIndex);
 
-                Span<TSample> previousBlueReconstruction = selectedBlueReconstruction;
-                selectedBlueReconstruction = candidateBlueReconstruction;
-                candidateBlueReconstruction = previousBlueReconstruction;
+                    int interIntraRate = writer.GetInterIntraCost(
+                        blockSize,
+                        true,
+                        interIntraMode,
+                        useWedge,
+                        wedgeIndex);
 
-                Span<TSample> previousRedReconstruction = selectedRedReconstruction;
-                selectedRedReconstruction = candidateRedReconstruction;
-                candidateRedReconstruction = previousRedReconstruction;
+                    Av1RateDistortionStatistics interIntraStatistics = this.EvaluateInterCandidate(
+                        writer,
+                        blockOrigin,
+                        blockSize,
+                        tileIndex,
+                        block.HasChroma,
+                        commonPredictionRate + filterRate + interIntraRate,
+                        skipContext,
+                        transformPartitionRate,
+                        referenceFrame,
+                        candidateVectors[candidateIndex],
+                        default,
+                        candidateModes[candidateIndex],
+                        isCompound: false,
+                        usePreparedPrediction: true,
+                        forceSkip: false,
+                        Av1CompoundType.Average,
+                        0,
+                        false,
+                        Av1DifferenceWeightedMaskType.Type38,
+                        0,
+                        horizontalFilter,
+                        verticalFilter,
+                        candidateReferenceIndices[candidateIndex],
+                        in referenceMotionVectors,
+                        candidateLumaReconstruction,
+                        candidateLumaCoefficients,
+                        candidateBlueReconstruction,
+                        candidateBlueCoefficients,
+                        candidateRedReconstruction,
+                        candidateRedCoefficients,
+                        out bool interIntraSkip,
+                        out Av1EncoderTransformBlockState interIntraLumaState,
+                        out Av1EncoderTransformBlockState interIntraBlueState,
+                        out Av1EncoderTransformBlockState interIntraRedState);
 
-                Span<int> previousLumaCoefficients = selectedLumaCoefficients;
-                selectedLumaCoefficients = candidateLumaCoefficients;
-                candidateLumaCoefficients = previousLumaCoefficients;
+                    if (interIntraStatistics.Cost >= selectedStatistics.Cost)
+                    {
+                        continue;
+                    }
 
-                Span<int> previousBlueCoefficients = selectedBlueCoefficients;
-                selectedBlueCoefficients = candidateBlueCoefficients;
-                candidateBlueCoefficients = previousBlueCoefficients;
+                    Span<TSample> previousLumaReconstruction = selectedLumaReconstruction;
+                    selectedLumaReconstruction = candidateLumaReconstruction;
+                    candidateLumaReconstruction = previousLumaReconstruction;
+                    Span<TSample> previousBlueReconstruction = selectedBlueReconstruction;
+                    selectedBlueReconstruction = candidateBlueReconstruction;
+                    candidateBlueReconstruction = previousBlueReconstruction;
+                    Span<TSample> previousRedReconstruction = selectedRedReconstruction;
+                    selectedRedReconstruction = candidateRedReconstruction;
+                    candidateRedReconstruction = previousRedReconstruction;
+                    Span<int> previousLumaCoefficients = selectedLumaCoefficients;
+                    selectedLumaCoefficients = candidateLumaCoefficients;
+                    candidateLumaCoefficients = previousLumaCoefficients;
+                    Span<int> previousBlueCoefficients = selectedBlueCoefficients;
+                    selectedBlueCoefficients = candidateBlueCoefficients;
+                    candidateBlueCoefficients = previousBlueCoefficients;
+                    Span<int> previousRedCoefficients = selectedRedCoefficients;
+                    selectedRedCoefficients = candidateRedCoefficients;
+                    candidateRedCoefficients = previousRedCoefficients;
+                    selectedStatistics = interIntraStatistics;
+                    selectedVector = candidateVectors[candidateIndex];
+                    selectedMode = candidateModes[candidateIndex];
+                    selectedHorizontalFilter = horizontalFilter;
+                    selectedVerticalFilter = verticalFilter;
+                    selectedReferenceIndex = candidateReferenceIndices[candidateIndex];
+                    selectedSkip = interIntraSkip;
+                    selectedInterIntra = true;
+                    selectedInterIntraMode = interIntraMode;
+                    selectedInterIntraWedge = useWedge;
+                    selectedInterIntraWedgeIndex = wedgeIndex;
+                    selectedLumaState = interIntraLumaState;
+                    selectedBlueState = interIntraBlueState;
+                    selectedRedState = interIntraRedState;
+                }
+            }
 
-                Span<int> previousRedCoefficients = selectedRedCoefficients;
-                selectedRedCoefficients = candidateRedCoefficients;
-                candidateRedCoefficients = previousRedCoefficients;
+            if (evaluateCompound &&
+                this.hasDistinctGoldenReference &&
+                frameHeader.ReferenceMode != ObuReferenceMode.SingleReference &&
+                !isSwitchable)
+            {
+                referenceMotionVectors.Build(
+                    this.picture,
+                    macroBlock,
+                    modeInfoPosition,
+                    blockSize,
+                    modeInfo.Block.PartitionType,
+                    sequenceHeader,
+                    frameHeader,
+                    Av1ReferenceFrameType.Last,
+                    Av1ReferenceFrameType.Golden);
 
-                selectedStatistics = candidateStatistics;
-                selectedVector = candidateVectors[candidateIndex];
-                selectedMode = candidateModes[candidateIndex];
-                selectedHorizontalFilter = horizontalFilter;
-                selectedVerticalFilter = verticalFilter;
-                selectedReferenceIndex = candidateReferenceIndices[candidateIndex];
-                selectedSkip = candidateSkip;
-                selectedLumaState = candidateLumaState;
-                selectedBlueState = candidateBlueState;
-                selectedRedState = candidateRedState;
+                int compoundPredictionRate = writer.GetIsInterCost(
+                    isInter: true,
+                    Av1TileWriter.GetIntraInterContext(macroBlock)) +
+                    writer.GetCompoundReferenceCost(
+                        Av1ReferenceFrameType.Last,
+                        Av1ReferenceFrameType.Golden,
+                        Av1SymbolContextHelper.GetReferenceModeContext(macroBlock),
+                        Av1SymbolContextHelper.GetCompoundReferenceTypeContext(macroBlock),
+                        referenceCounts);
+
+                Span<Av1MotionVector> primaryCompoundVectors = stackalloc Av1MotionVector[5];
+                Span<Av1MotionVector> secondaryCompoundVectors = stackalloc Av1MotionVector[5];
+                Span<Av1PredictionMode> compoundModes = stackalloc Av1PredictionMode[5];
+                Span<byte> compoundReferenceIndices = stackalloc byte[5];
+                int compoundCandidateCount = 0;
+
+                primaryCompoundVectors[compoundCandidateCount] = referenceMotionVectors.GetCompoundNearestReference(0);
+                secondaryCompoundVectors[compoundCandidateCount] = referenceMotionVectors.GetCompoundNearestReference(1);
+                compoundModes[compoundCandidateCount++] = Av1PredictionMode.NearestNearestMotionVector;
+
+                int maximumCompoundNearIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 2));
+                for (int referenceIndex = 0; referenceIndex <= maximumCompoundNearIndex; referenceIndex++)
+                {
+                    primaryCompoundVectors[compoundCandidateCount] = referenceMotionVectors.GetCompoundNearReference(referenceIndex, 0);
+                    secondaryCompoundVectors[compoundCandidateCount] = referenceMotionVectors.GetCompoundNearReference(referenceIndex, 1);
+                    compoundModes[compoundCandidateCount] = Av1PredictionMode.NearNearMotionVector;
+                    compoundReferenceIndices[compoundCandidateCount++] = (byte)referenceIndex;
+                }
+
+                primaryCompoundVectors[compoundCandidateCount] = frameHeader
+                    .GetGlobalMotionParameters()[(int)Av1ReferenceFrameType.Last - 1]
+                    .GetMotionVector(
+                        frameHeader.AllowHighPrecisionMotionVector,
+                        blockSize,
+                        modeInfoPosition,
+                        frameHeader.ForceIntegerMotionVector);
+
+                secondaryCompoundVectors[compoundCandidateCount] = frameHeader
+                    .GetGlobalMotionParameters()[(int)Av1ReferenceFrameType.Golden - 1]
+                    .GetMotionVector(
+                        frameHeader.AllowHighPrecisionMotionVector,
+                        blockSize,
+                        modeInfoPosition,
+                        frameHeader.ForceIntegerMotionVector);
+
+                compoundModes[compoundCandidateCount++] = Av1PredictionMode.GlobalGlobalMotionVector;
+
+                bool maskedCompoundEnabled = sequenceHeader.EnableMaskedCompound &&
+                    Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8;
+                bool supportsWedge = blockSize is
+                    Av1BlockSize.Block8x8 or
+                    Av1BlockSize.Block8x16 or
+                    Av1BlockSize.Block16x8 or
+                    Av1BlockSize.Block16x16 or
+                    Av1BlockSize.Block16x32 or
+                    Av1BlockSize.Block32x16 or
+                    Av1BlockSize.Block32x32 or
+                    Av1BlockSize.Block8x32 or
+                    Av1BlockSize.Block32x8;
+
+                int compoundGroupContext = Av1TileWriter.GetCompoundGroupIndexContext(macroBlock);
+                bool jointCompoundEnabled = sequenceHeader.OrderHintInfo.EnableJointCompound;
+                int compoundIndexContext = jointCompoundEnabled
+                    ? Av1SymbolContextHelper.GetCompoundIndexContext(
+                        sequenceHeader.OrderHintInfo,
+                        frameHeader,
+                        Av1ReferenceFrameType.Last,
+                        Av1ReferenceFrameType.Golden,
+                        macroBlock)
+                    : 0;
+
+                for (int candidateIndex = 0; candidateIndex < compoundCandidateCount; candidateIndex++)
+                {
+                    int unmaskedCandidateCount = jointCompoundEnabled ? 2 : 1;
+                    int blendCandidateCount = unmaskedCandidateCount + (maskedCompoundEnabled ? 2 + (supportsWedge ? 32 : 0) : 0);
+                    for (int blendCandidateIndex = 0; blendCandidateIndex < blendCandidateCount; blendCandidateIndex++)
+                    {
+                        Av1CompoundType compoundType;
+                        int wedgeIndex = 0;
+                        bool wedgeSign = false;
+                        Av1DifferenceWeightedMaskType maskType = Av1DifferenceWeightedMaskType.Type38;
+                        if (blendCandidateIndex == 0)
+                        {
+                            compoundType = Av1CompoundType.Average;
+                        }
+                        else if (jointCompoundEnabled && blendCandidateIndex == 1)
+                        {
+                            compoundType = Av1CompoundType.DistanceWeighted;
+                        }
+                        else if (blendCandidateIndex < unmaskedCandidateCount + 2)
+                        {
+                            compoundType = Av1CompoundType.DifferenceWeighted;
+                            maskType = (Av1DifferenceWeightedMaskType)(blendCandidateIndex - unmaskedCandidateCount);
+                        }
+                        else
+                        {
+                            compoundType = Av1CompoundType.Wedge;
+                            int wedgeCandidate = blendCandidateIndex - unmaskedCandidateCount - 2;
+                            wedgeIndex = wedgeCandidate >> 1;
+                            wedgeSign = (wedgeCandidate & 1) != 0;
+                        }
+
+                        int blendRate = writer.GetCompoundBlendCost(
+                            blockSize,
+                            compoundType,
+                            compoundGroupContext,
+                            compoundIndexContext,
+                            wedgeIndex,
+                            maskedCompoundEnabled,
+                            jointCompoundEnabled);
+
+                        Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
+                            writer,
+                            blockOrigin,
+                            blockSize,
+                            tileIndex,
+                            block.HasChroma,
+                            compoundPredictionRate,
+                            skipContext,
+                            transformPartitionRate,
+                            Av1ReferenceFrameType.Last,
+                            primaryCompoundVectors[candidateIndex],
+                            secondaryCompoundVectors[candidateIndex],
+                            compoundModes[candidateIndex],
+                            isCompound: true,
+                            usePreparedPrediction: false,
+                            forceSkip: false,
+                            compoundType,
+                            wedgeIndex,
+                            wedgeSign,
+                            maskType,
+                            blendRate,
+                            defaultFilter,
+                            defaultFilter,
+                            compoundReferenceIndices[candidateIndex],
+                            in referenceMotionVectors,
+                            candidateLumaReconstruction,
+                            candidateLumaCoefficients,
+                            candidateBlueReconstruction,
+                            candidateBlueCoefficients,
+                            candidateRedReconstruction,
+                            candidateRedCoefficients,
+                            out bool candidateSkip,
+                        out Av1EncoderTransformBlockState candidateLumaState,
+                        out Av1EncoderTransformBlockState candidateBlueState,
+                        out Av1EncoderTransformBlockState candidateRedState);
+
+                        // libaom searches compound modes and blend syntax in stable order. Strict replacement
+                        // retains the earlier motion mode, blend, and lower DRL entry on equal cost.
+                        if (candidateStatistics.Cost >= selectedStatistics.Cost)
+                        {
+                            continue;
+                        }
+
+                        selectedStatistics = candidateStatistics;
+                        selectedVector = primaryCompoundVectors[candidateIndex];
+                        selectedSecondaryVector = secondaryCompoundVectors[candidateIndex];
+                        selectedMode = compoundModes[candidateIndex];
+                        selectedHorizontalFilter = defaultFilter;
+                        selectedVerticalFilter = defaultFilter;
+                        selectedReferenceIndex = compoundReferenceIndices[candidateIndex];
+                        selectedSkip = candidateSkip;
+                        selectedLumaState = candidateLumaState;
+                        selectedBlueState = candidateBlueState;
+                        selectedRedState = candidateRedState;
+                        selectedInterIntra = false;
+                        modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.Golden;
+                        modeInfo.Block.CompoundGroupIndex = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
+                        modeInfo.Block.CompoundIndex = compoundType == Av1CompoundType.Average;
+                        modeInfo.Block.CompoundType = compoundType;
+                        modeInfo.Block.CompoundWedgeIndex = (byte)wedgeIndex;
+                        modeInfo.Block.CompoundWedgeSign = wedgeSign;
+                        modeInfo.Block.DifferenceWeightedMaskType = maskType;
+                    }
+                }
             }
 
             // Candidate pixels and coefficients remain scratch. Preserve the transform decisions so final
             // reconstruction can regenerate only the winner after other mode families reuse this storage.
             selectedStates[0] = selectedLumaState;
-            selectedStates[1] = selectedBlueState;
-            selectedStates[2] = selectedRedState;
+            selectedStates[16] = selectedBlueState;
+            selectedStates[17] = selectedRedState;
 
             modeInfo.Block.Mode = selectedMode;
             modeInfo.Block.Skip = selectedSkip;
+            if (selectedInterIntra)
+            {
+                modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.Intra;
+                modeInfo.Block.InterIntraMode = selectedInterIntraMode;
+                modeInfo.Block.UseInterIntraWedge = selectedInterIntraWedge;
+                modeInfo.Block.InterIntraWedgeIndex = (byte)selectedInterIntraWedgeIndex;
+            }
             modeInfo.Block.VerticalInterpolationFilter = selectedVerticalFilter;
             modeInfo.Block.HorizontalInterpolationFilter = selectedHorizontalFilter;
             block.ReferenceMotionVectorIndex = selectedReferenceIndex;
             return selectedStatistics;
+        }
+
+        private void PrepareInterIntraPrediction(
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            bool hasChroma,
+            Av1ReferenceFrameType referenceFrame,
+            Av1MotionVector vector,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            Av1InterIntraMode interIntraMode,
+            bool useWedge,
+            int wedgeIndex)
+        {
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            this.blockWorkspace.GetInterIntraStorage<TSample>(
+                out Span<TSample> intraPrediction,
+                out Span<TSample> aboveStorage,
+                out Span<TSample> leftStorage);
+
+            int planeCount = hasChroma ? 3 : 1;
+            int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+            Av1PredictionMode intraMode = interIntraMode switch
+            {
+                Av1InterIntraMode.Vertical => Av1PredictionMode.Vertical,
+                Av1InterIntraMode.Horizontal => Av1PredictionMode.Horizontal,
+                Av1InterIntraMode.Smooth => Av1PredictionMode.Smooth,
+                _ => Av1PredictionMode.DC,
+            };
+
+            for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
+                int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
+                Point planeOrigin = planeIndex == 0
+                    ? blockOrigin
+                    : Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
+                Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX != 0, subY != 0);
+                Av1TransformSize transformSize = planeIndex == 0
+                    ? blockSize.GetMaximumTransformSize()
+                    : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+                int width = transformSize.GetWidth();
+                int height = transformSize.GetHeight();
+                int sampleCount = transformSize.GetSize2d();
+                bool hasLeft = macroBlock.IsLeftAvailable;
+                bool hasAbove = macroBlock.IsUpAvailable;
+                if (subX != 0 && blockSize.Get4x4WideCount() < Av1BlockSize.Block8x8.Get4x4WideCount())
+                {
+                    hasLeft = modeInfoColumn - 1 > macroBlock.Tile.ModeInfoColumnStart;
+                }
+
+                if (subY != 0 && blockSize.Get4x4HighCount() < Av1BlockSize.Block8x8.Get4x4HighCount())
+                {
+                    hasAbove = modeInfoRow - 1 > macroBlock.Tile.ModeInfoRowStart;
+                }
+
+                bool rightAvailable = modeInfoColumn + (transformSize.Get4x4WideCount() << subX) < macroBlock.Tile.ModeInfoColumnEnd;
+                bool bottomAvailable = modeInfoRow + (transformSize.Get4x4HighCount() << subY) < macroBlock.Tile.ModeInfoRowEnd;
+                bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
+                    this.picture.Sequence.SequenceHeader.SuperblockSize,
+                    blockSize,
+                    modeInfoRow,
+                    modeInfoColumn,
+                    hasAbove,
+                    rightAvailable,
+                    macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
+                    transformSize,
+                    0,
+                    0,
+                    subX,
+                    subY);
+                bool hasBottomLeft = Av1IntraReferenceAvailability.HasBottomLeft(
+                    this.picture.Sequence.SequenceHeader.SuperblockSize,
+                    blockSize,
+                    modeInfoRow,
+                    modeInfoColumn,
+                    bottomAvailable,
+                    hasLeft,
+                    macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
+                    transformSize,
+                    0,
+                    0,
+                    subX,
+                    subY);
+
+                PrepareReferenceSamples(
+                    this.reconstruction.GetPlane(plane),
+                    planeOrigin,
+                    planeBlockSize.GetWidth(),
+                    planeBlockSize.GetHeight(),
+                    hasLeft,
+                    hasAbove,
+                    hasTopRight,
+                    hasBottomLeft,
+                    this.bitDepth,
+                    aboveStorage,
+                    leftStorage);
+
+                Span<TSample> interPrediction = plane switch
+                {
+                    Av1Plane.Y => workspace.LumaPrediction[..sampleCount],
+                    Av1Plane.U => workspace.BluePrediction[..sampleCount],
+                    _ => workspace.RedPrediction[..sampleCount],
+                };
+                int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subX));
+                int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subY));
+                Av1EncoderFrame<TSample>.PlanarView reference = referenceFrame == Av1ReferenceFrameType.Golden
+                    ? this.goldenReference
+                    : this.reference;
+                TOperator.PrepareTranslationalInterPrediction(
+                    this.source.GetPlane(plane),
+                    planeOrigin,
+                    reference.GetPlane(plane),
+                    new Point(columnQ4 >> 4, rowQ4 >> 4),
+                    horizontalFilter,
+                    verticalFilter,
+                    columnQ4 & 15,
+                    rowQ4 & 15,
+                    interPrediction,
+                    workspace.Residual,
+                    workspace.PredictionScratch,
+                    transformSize,
+                    this.bitDepth);
+
+                TOperator.PrepareIntra(
+                    this.blockWorkspace,
+                    this.source.GetPlane(plane),
+                    planeOrigin,
+                    intraPrediction,
+                    width,
+                    aboveStorage.Slice(1, width + height),
+                    leftStorage.Slice(1, width + height),
+                    hasLeft,
+                    hasAbove,
+                    intraMode,
+                    0,
+                    this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                    this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
+                    workspace.Residual,
+                    transformSize,
+                    this.bitDepth);
+
+                Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask();
+                if (useWedge)
+                {
+                    Av1WedgeMask.Fill(mask, width, blockSize, wedgeIndex, wedgeSign: false, subX, subY, invert: true);
+                }
+                else
+                {
+                    Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, interIntraMode, invert: true);
+                }
+
+                TOperator.BlendInterIntraPrediction(interPrediction, intraPrediction[..sampleCount], mask, width, height);
+            }
+        }
+
+        private void SelectNewCompoundBlock(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            in InlineArray4<Av1MotionVector> lastNewVectors,
+            byte lastNewVectorMask,
+            in InlineArray4<Av1MotionVector> goldenNewVectors,
+            byte goldenNewVectorMask,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block,
+            ref Av1RateDistortionStatistics selectedStatistics,
+            ref Av1MotionVector selectedVector,
+            ref Av1MotionVector selectedSecondaryVector,
+            ref InlineArray18<Av1EncoderTransformBlockState> selectedStates)
+        {
+            ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
+            if (!this.hasDistinctGoldenReference ||
+                frameHeader.ReferenceMode == ObuReferenceMode.SingleReference ||
+                frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable ||
+                (lastNewVectorMask | goldenNewVectorMask) == 0)
+            {
+                return;
+            }
+
+            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
+            Point modeInfoPosition = new(
+                blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
+                blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+
+            ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.blockWorkspace.ReferenceMotionVectors;
+            referenceMotionVectors.Build(
+                this.picture,
+                macroBlock,
+                modeInfoPosition,
+                blockSize,
+                modeInfo.Block.PartitionType,
+                this.picture.Sequence.SequenceHeader,
+                frameHeader,
+                Av1ReferenceFrameType.Last,
+                Av1ReferenceFrameType.Golden);
+
+            Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
+            Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
+            int commonPredictionRate = writer.GetIsInterCost(
+                isInter: true,
+                Av1TileWriter.GetIntraInterContext(macroBlock)) +
+                writer.GetCompoundReferenceCost(
+                    Av1ReferenceFrameType.Last,
+                    Av1ReferenceFrameType.Golden,
+                    Av1SymbolContextHelper.GetReferenceModeContext(macroBlock),
+                    Av1SymbolContextHelper.GetCompoundReferenceTypeContext(macroBlock),
+                    referenceCounts);
+
+            int transformPartitionRate = 0;
+            Av1TransformSize lumaTransformSize = blockSize.GetMaximumTransformSize();
+            if (frameHeader.TransformMode == Av1TransformMode.Select)
+            {
+                Av1NeighborArrayUnit<byte> transformContexts = this.picture.TransformFunctionContexts[tileIndex];
+                int transformPartitionContext = Av1SymbolContextHelper.GetTransformPartitionContext(
+                    transformContexts.Top[transformContexts.GetTopIndex(blockOrigin)],
+                    transformContexts.Left[transformContexts.GetLeftIndex(blockOrigin)],
+                    blockSize,
+                    lumaTransformSize);
+
+                transformPartitionRate = writer.GetTransformPartitionCost(false, transformPartitionContext);
+            }
+
+            Span<Av1MotionVector> primaryVectors = stackalloc Av1MotionVector[11];
+            Span<Av1MotionVector> secondaryVectors = stackalloc Av1MotionVector[11];
+            Span<Av1PredictionMode> modes = stackalloc Av1PredictionMode[11];
+            Span<byte> referenceIndices = stackalloc byte[11];
+            int candidateCount = 0;
+            if ((goldenNewVectorMask & 1) != 0)
+            {
+                primaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearestReference(0);
+                secondaryVectors[candidateCount] = goldenNewVectors[0];
+                modes[candidateCount++] = Av1PredictionMode.NearestNewMotionVector;
+            }
+
+            if ((lastNewVectorMask & 1) != 0)
+            {
+                primaryVectors[candidateCount] = lastNewVectors[0];
+                secondaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearestReference(1);
+                modes[candidateCount++] = Av1PredictionMode.NewNearestMotionVector;
+            }
+
+            int maximumNearIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 2));
+            for (int referenceIndex = 0; referenceIndex <= maximumNearIndex; referenceIndex++)
+            {
+                int newReferenceIndex = referenceIndex + 1;
+                if ((goldenNewVectorMask & (1 << newReferenceIndex)) != 0)
+                {
+                    primaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearReference(referenceIndex, 0);
+                    secondaryVectors[candidateCount] = goldenNewVectors[newReferenceIndex];
+                    modes[candidateCount] = Av1PredictionMode.NearNewMotionVector;
+                    referenceIndices[candidateCount++] = (byte)referenceIndex;
+                }
+
+                if ((lastNewVectorMask & (1 << newReferenceIndex)) != 0)
+                {
+                    primaryVectors[candidateCount] = lastNewVectors[newReferenceIndex];
+                    secondaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearReference(referenceIndex, 1);
+                    modes[candidateCount] = Av1PredictionMode.NewNearMotionVector;
+                    referenceIndices[candidateCount++] = (byte)referenceIndex;
+                }
+            }
+
+            int sharedNewMask = lastNewVectorMask & goldenNewVectorMask;
+            int maximumNewIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 1));
+            for (int referenceIndex = 0; referenceIndex <= maximumNewIndex; referenceIndex++)
+            {
+                if ((sharedNewMask & (1 << referenceIndex)) == 0)
+                {
+                    continue;
+                }
+
+                primaryVectors[candidateCount] = lastNewVectors[referenceIndex];
+                secondaryVectors[candidateCount] = goldenNewVectors[referenceIndex];
+                modes[candidateCount] = Av1PredictionMode.NewNewMotionVector;
+                referenceIndices[candidateCount++] = (byte)referenceIndex;
+            }
+
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+            Av1InterpolationFilter filter = frameHeader.InterpolationFilter;
+            bool maskedCompoundEnabled = this.picture.Sequence.SequenceHeader.EnableMaskedCompound &&
+                Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8;
+            bool supportsWedge = blockSize is
+                Av1BlockSize.Block8x8 or
+                Av1BlockSize.Block8x16 or
+                Av1BlockSize.Block16x8 or
+                Av1BlockSize.Block16x16 or
+                Av1BlockSize.Block16x32 or
+                Av1BlockSize.Block32x16 or
+                Av1BlockSize.Block32x32 or
+                Av1BlockSize.Block8x32 or
+                Av1BlockSize.Block32x8;
+
+            int compoundGroupContext = Av1TileWriter.GetCompoundGroupIndexContext(macroBlock);
+            bool jointCompoundEnabled = this.picture.Sequence.SequenceHeader.OrderHintInfo.EnableJointCompound;
+            int compoundIndexContext = jointCompoundEnabled
+                ? Av1SymbolContextHelper.GetCompoundIndexContext(
+                    this.picture.Sequence.SequenceHeader.OrderHintInfo,
+                    frameHeader,
+                    Av1ReferenceFrameType.Last,
+                    Av1ReferenceFrameType.Golden,
+                    macroBlock)
+                : 0;
+            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
+            {
+                int unmaskedCandidateCount = jointCompoundEnabled ? 2 : 1;
+                int blendCandidateCount = unmaskedCandidateCount + (maskedCompoundEnabled ? 2 + (supportsWedge ? 32 : 0) : 0);
+                for (int blendCandidateIndex = 0; blendCandidateIndex < blendCandidateCount; blendCandidateIndex++)
+                {
+                    Av1CompoundType compoundType;
+                    int wedgeIndex = 0;
+                    bool wedgeSign = false;
+                    Av1DifferenceWeightedMaskType maskType = Av1DifferenceWeightedMaskType.Type38;
+                    if (blendCandidateIndex == 0)
+                    {
+                        compoundType = Av1CompoundType.Average;
+                    }
+                    else if (jointCompoundEnabled && blendCandidateIndex == 1)
+                    {
+                        compoundType = Av1CompoundType.DistanceWeighted;
+                    }
+                    else if (blendCandidateIndex < unmaskedCandidateCount + 2)
+                    {
+                        compoundType = Av1CompoundType.DifferenceWeighted;
+                        maskType = (Av1DifferenceWeightedMaskType)(blendCandidateIndex - unmaskedCandidateCount);
+                    }
+                    else
+                    {
+                        compoundType = Av1CompoundType.Wedge;
+                        int wedgeCandidate = blendCandidateIndex - unmaskedCandidateCount - 2;
+                        wedgeIndex = wedgeCandidate >> 1;
+                        wedgeSign = (wedgeCandidate & 1) != 0;
+                    }
+
+                    int blendRate = writer.GetCompoundBlendCost(
+                        blockSize,
+                        compoundType,
+                        compoundGroupContext,
+                        compoundIndexContext,
+                        wedgeIndex,
+                        maskedCompoundEnabled,
+                        jointCompoundEnabled);
+
+                    Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
+                        writer,
+                        blockOrigin,
+                        blockSize,
+                        tileIndex,
+                        block.HasChroma,
+                        commonPredictionRate,
+                        skipContext,
+                        transformPartitionRate,
+                        Av1ReferenceFrameType.Last,
+                        primaryVectors[candidateIndex],
+                        secondaryVectors[candidateIndex],
+                        modes[candidateIndex],
+                        isCompound: true,
+                        usePreparedPrediction: false,
+                        forceSkip: false,
+                        compoundType,
+                        wedgeIndex,
+                        wedgeSign,
+                        maskType,
+                        blendRate,
+                        filter,
+                        filter,
+                        referenceIndices[candidateIndex],
+                        in referenceMotionVectors,
+                        workspace.LumaCandidateReconstruction,
+                        workspace.LumaCandidateCoefficients,
+                        workspace.BlueCandidateReconstruction,
+                        workspace.BlueCandidateCoefficients,
+                        workspace.RedCandidateReconstruction,
+                        workspace.RedCandidateCoefficients,
+                        out bool candidateSkip,
+                        out Av1EncoderTransformBlockState candidateLumaState,
+                        out Av1EncoderTransformBlockState candidateBlueState,
+                        out Av1EncoderTransformBlockState candidateRedState);
+
+                    if (candidateStatistics.Cost >= selectedStatistics.Cost)
+                    {
+                        continue;
+                    }
+
+                    selectedStatistics = candidateStatistics;
+                    selectedVector = primaryVectors[candidateIndex];
+                    selectedSecondaryVector = secondaryVectors[candidateIndex];
+                    selectedStates[0] = candidateLumaState;
+                    selectedStates[16] = candidateBlueState;
+                    selectedStates[17] = candidateRedState;
+                    modeInfo.Block.ReferenceFrame = Av1ReferenceFrameType.Last;
+                    modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.Golden;
+                    modeInfo.Block.Mode = modes[candidateIndex];
+                    modeInfo.Block.Skip = candidateSkip;
+                    modeInfo.Block.CompoundGroupIndex = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
+                    modeInfo.Block.CompoundIndex = compoundType == Av1CompoundType.Average;
+                    modeInfo.Block.CompoundType = compoundType;
+                    modeInfo.Block.CompoundWedgeIndex = (byte)wedgeIndex;
+                    modeInfo.Block.CompoundWedgeSign = wedgeSign;
+                    modeInfo.Block.DifferenceWeightedMaskType = maskType;
+                    modeInfo.Block.HorizontalInterpolationFilter = filter;
+                    modeInfo.Block.VerticalInterpolationFilter = filter;
+                    block.ReferenceMotionVectorIndex = referenceIndices[candidateIndex];
+                }
+            }
         }
 
         /// <summary>
@@ -896,17 +2346,48 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>
         /// <param name="block">The selected block parameters.</param>
         /// <param name="vector">The selected motion vector in eighth-luma-sample units.</param>
+        /// <param name="secondaryVector">The selected compound secondary vector, or zero for a single-reference block.</param>
         /// <param name="states">The selected transform choices, indexed by plane.</param>
         private void ReconstructSelectedInterBlock(
             Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
             ushort tileIndex,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
             Av1EncoderBlockStruct block,
             Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
             ReadOnlySpan<Av1EncoderTransformBlockState> states)
         {
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            bool isInterIntra = modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
+            bool usesSplitLumaTransforms = modeInfo.Block.TransformSize != modeInfo.Block.BlockSize.GetMaximumTransformSize();
+            if (usesSplitLumaTransforms)
+            {
+                this.PrepareSelectedInterLumaPrediction(
+                    macroBlock,
+                    blockOrigin,
+                    modeInfo,
+                    block,
+                    vector,
+                    secondaryVector);
+            }
+            else if (isInterIntra)
+            {
+                this.PrepareInterIntraPrediction(
+                    macroBlock,
+                    blockOrigin,
+                    modeInfo.Block.BlockSize,
+                    block.HasChroma,
+                    modeInfo.Block.ReferenceFrame,
+                    vector,
+                    modeInfo.Block.HorizontalInterpolationFilter,
+                    modeInfo.Block.VerticalInterpolationFilter,
+                    modeInfo.Block.InterIntraMode,
+                    modeInfo.Block.UseInterIntraWedge,
+                    modeInfo.Block.InterIntraWedgeIndex);
+            }
+
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int planeCount = block.HasChroma ? 3 : 1;
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
@@ -919,6 +2400,18 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? modeInfo.Block.TransformSize
                     : modeInfo.Block.BlockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
 
+                if (planeIndex == 0 && usesSplitLumaTransforms)
+                {
+                    this.ReconstructSelectedInterLumaGrid(
+                        writer,
+                        macroBlock,
+                        tileIndex,
+                        blockOrigin,
+                        modeInfo,
+                        states);
+                    continue;
+                }
+
                 int sampleCount = transformSize.GetSize2d();
                 Span<TSample> prediction = workspace.LumaPrediction[..sampleCount];
                 Span<short> residual = workspace.Residual[..sampleCount];
@@ -927,20 +2420,95 @@ internal static partial class Av1IntraSuperblockEncoder
                 // coordinates. The low four bits carry the phase; the remaining bits locate the reference.
                 int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subX));
                 int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subY));
-                TOperator.PrepareTranslationalInterPrediction(
-                    this.source.GetPlane(plane),
-                    planeOrigin,
-                    this.reference.GetPlane(plane),
-                    new Point(columnQ4 >> 4, rowQ4 >> 4),
-                    modeInfo.Block.HorizontalInterpolationFilter,
-                    modeInfo.Block.VerticalInterpolationFilter,
-                    columnQ4 & 15,
-                    rowQ4 & 15,
-                    prediction,
-                    residual,
-                    workspace.PredictionScratch,
-                    transformSize,
-                    this.bitDepth);
+                if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+                {
+                    int firstWeight = 8;
+                    int secondWeight = 8;
+                    if (modeInfo.Block.CompoundType == Av1CompoundType.DistanceWeighted)
+                    {
+                        Av1CompoundDistanceWeights.Derive(
+                            this.picture.Sequence.SequenceHeader.OrderHintInfo,
+                            this.picture.Parent.FrameHeader,
+                            modeInfo.Block.ReferenceFrame,
+                            modeInfo.Block.SecondaryReferenceFrame,
+                            out firstWeight,
+                            out secondWeight);
+                    }
+
+                    int secondaryColumnQ4 = (planeOrigin.X << 4) + (secondaryVector.Column << (1 - subX));
+                    int secondaryRowQ4 = (planeOrigin.Y << 4) + (secondaryVector.Row << (1 - subY));
+                    this.blockWorkspace.GetCompoundPredictionIntermediates(
+                        out Span<ushort> firstIntermediate,
+                        out Span<ushort> secondIntermediate);
+
+                    TOperator.PrepareCompoundInterPrediction(
+                        this.source.GetPlane(plane),
+                        planeOrigin,
+                        this.reference.GetPlane(plane),
+                        new Point(columnQ4 >> 4, rowQ4 >> 4),
+                        columnQ4 & 15,
+                        rowQ4 & 15,
+                        this.goldenReference.GetPlane(plane),
+                        new Point(secondaryColumnQ4 >> 4, secondaryRowQ4 >> 4),
+                        secondaryColumnQ4 & 15,
+                        secondaryRowQ4 & 15,
+                        modeInfo.Block.HorizontalInterpolationFilter,
+                        modeInfo.Block.VerticalInterpolationFilter,
+                        prediction,
+                        residual,
+                        firstIntermediate,
+                        secondIntermediate,
+                        this.blockWorkspace.GetCompoundPredictionMask(),
+                        workspace.PredictionScratch,
+                        transformSize,
+                        this.bitDepth,
+                        modeInfo.Block.BlockSize,
+                        modeInfo.Block.CompoundType,
+                        firstWeight,
+                        secondWeight,
+                        subX,
+                        subY,
+                        modeInfo.Block.CompoundWedgeIndex,
+                        modeInfo.Block.CompoundWedgeSign,
+                        modeInfo.Block.DifferenceWeightedMaskType);
+                }
+                else if (!isInterIntra)
+                {
+                    Buffer2DRegion<TSample> primaryReferencePlane = modeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Golden
+                        ? this.goldenReference.GetPlane(plane)
+                        : this.reference.GetPlane(plane);
+
+                    TOperator.PrepareTranslationalInterPrediction(
+                        this.source.GetPlane(plane),
+                        planeOrigin,
+                        primaryReferencePlane,
+                        new Point(columnQ4 >> 4, rowQ4 >> 4),
+                        modeInfo.Block.HorizontalInterpolationFilter,
+                        modeInfo.Block.VerticalInterpolationFilter,
+                        columnQ4 & 15,
+                        rowQ4 & 15,
+                        prediction,
+                        residual,
+                        workspace.PredictionScratch,
+                        transformSize,
+                        this.bitDepth);
+                }
+
+                if (isInterIntra)
+                {
+                    prediction = plane switch
+                    {
+                        Av1Plane.Y => workspace.LumaPrediction[..sampleCount],
+                        Av1Plane.U => workspace.BluePrediction[..sampleCount],
+                        _ => workspace.RedPrediction[..sampleCount],
+                    };
+                    TOperator.SubtractPrediction(
+                        this.source.GetPlane(plane),
+                        planeOrigin,
+                        prediction,
+                        residual,
+                        transformSize);
+                }
 
                 int codedArea = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
                 Av1NeighborArrayUnit<byte> neighbors = plane switch
@@ -966,9 +2534,71 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     prediction,
                     residual,
-                    states[planeIndex],
+                    states[planeIndex == 0 ? 0 : 15 + planeIndex],
                     modeInfo.Block.Skip,
                     codedArea);
+            }
+        }
+
+        private void ReconstructSelectedInterLumaGrid(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            ushort tileIndex,
+            Point blockOrigin,
+            Av1MacroBlockModeInfo modeInfo,
+            ReadOnlySpan<Av1EncoderTransformBlockState> states)
+        {
+            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
+            Av1TransformSize transformSize = modeInfo.Block.TransformSize;
+            int blockWidth = blockSize.GetWidth();
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int transformSampleCount = transformSize.GetSize2d();
+            Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
+            int columnCount = codedExtent.Width / transformWidth;
+            int rowCount = codedExtent.Height / transformHeight;
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            this.blockWorkspace.GetInterIntraStorage<TSample>(out Span<TSample> tilePrediction, out _, out _);
+            Span<short> residual = workspace.Residual[..transformSampleCount];
+            Av1NeighborArrayUnit<byte> neighbors = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
+            for (int row = 0; row < rowCount; row++)
+            {
+                for (int column = 0; column < columnCount; column++)
+                {
+                    int sourceOffset = (row * transformHeight * blockWidth) + (column * transformWidth);
+                    for (int sampleRow = 0; sampleRow < transformHeight; sampleRow++)
+                    {
+                        workspace.LumaPrediction.Slice(sourceOffset + (sampleRow * blockWidth), transformWidth)
+                            .CopyTo(tilePrediction.Slice(sampleRow * transformWidth, transformWidth));
+                    }
+
+                    Point transformOrigin = blockOrigin + new Size(column * transformWidth, row * transformHeight);
+                    TOperator.SubtractPrediction(
+                        this.source.GetPlane(Av1Plane.Y),
+                        transformOrigin,
+                        tilePrediction,
+                        residual,
+                        transformSize);
+                    Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                        Av1ComponentType.Luminance,
+                        neighbors.Top.Slice(neighbors.GetTopIndex(transformOrigin), transformSize.Get4x4WideCount()),
+                        neighbors.Left.Slice(neighbors.GetLeftIndex(transformOrigin), transformSize.Get4x4HighCount()),
+                        blockSize,
+                        transformSize);
+                    int transformIndex = (row * columnCount) + column;
+                    this.ReconstructSelectedTransform(
+                        writer,
+                        context,
+                        true,
+                        transformOrigin,
+                        Av1Plane.Y,
+                        transformSize,
+                        tilePrediction,
+                        residual,
+                        states[transformIndex],
+                        modeInfo.Block.Skip,
+                        this.codedAreaLuma + (transformIndex * transformSampleCount));
+                }
             }
         }
 
@@ -978,6 +2608,8 @@ internal static partial class Av1IntraSuperblockEncoder
         private long GetInterFilterModelCost(
             Av1MotionVector vector,
             Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1ReferenceFrameType referenceFrame,
             bool hasChroma,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -986,7 +2618,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> bluePrediction,
             Span<TSample> redPrediction)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const int InterpolationPrecisionBits = 4;
             const int InterpolationPhaseMask = (1 << InterpolationPrecisionBits) - 1;
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
@@ -998,8 +2629,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1Plane plane = (Av1Plane)planeIndex;
                 int subsamplingX = plane == Av1Plane.Y ? 0 : this.source.ChromaSubsamplingX;
                 int subsamplingY = plane == Av1Plane.Y ? 0 : this.source.ChromaSubsamplingY;
-                Av1BlockSize planeBlockSize = BlockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
-                Av1TransformSize transformSize = BlockSize.GetMaxUvTransformSize(subsamplingX != 0, subsamplingY != 0);
+                Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
+                Av1TransformSize transformSize = plane == Av1Plane.Y
+                    ? blockSize.GetMaximumTransformSize()
+                    : blockSize.GetMaxUvTransformSize(subsamplingX != 0, subsamplingY != 0);
                 int width = transformSize.GetWidth();
                 int height = transformSize.GetHeight();
                 Point planeOrigin = new(blockOrigin.X >> subsamplingX, blockOrigin.Y >> subsamplingY);
@@ -1008,10 +2641,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 Point predictionOrigin = new(sourceColumn >> InterpolationPrecisionBits, sourceRow >> InterpolationPrecisionBits);
                 Span<TSample> prediction = plane == Av1Plane.Y ? lumaPrediction : plane == Av1Plane.U ? bluePrediction : redPrediction;
                 Span<short> residual = workspace.Residual[..(width * height)];
+                Buffer2DRegion<TSample> primaryReferencePlane = referenceFrame == Av1ReferenceFrameType.Golden
+                    ? this.goldenReference.GetPlane(plane)
+                    : this.reference.GetPlane(plane);
+
                 TOperator.PrepareTranslationalInterPrediction(
                     this.source.GetPlane(plane),
                     planeOrigin,
-                    this.reference.GetPlane(plane),
+                    primaryReferencePlane,
                     predictionOrigin,
                     horizontalFilter,
                     verticalFilter,
@@ -1021,7 +2658,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     residual,
                     workspace.PredictionScratch,
                     transformSize,
-                    this.bitDepth);
+                    this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
 
                 int visibleWidth = Math.Min(width, ((this.source.Width + subsamplingX) >> subsamplingX) - planeOrigin.X);
                 int visibleHeight = Math.Min(height, ((this.source.Height + subsamplingY) >> subsamplingY) - planeOrigin.Y);
@@ -1075,14 +2712,24 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics EvaluateInterCandidate(
             Av1SymbolEncoder writer,
             Point blockOrigin,
+            Av1BlockSize blockSize,
             ushort tileIndex,
             bool hasChroma,
             int commonPredictionRate,
             int skipContext,
             int transformPartitionRate,
+            Av1ReferenceFrameType referenceFrame,
             Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
             Av1PredictionMode mode,
+            bool isCompound,
             bool usePreparedPrediction,
+            bool forceSkip,
+            Av1CompoundType compoundType,
+            int compoundWedgeIndex,
+            bool compoundWedgeSign,
+            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+            int compoundBlendRate,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
             int referenceMotionVectorIndex,
@@ -1098,32 +2745,41 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1EncoderTransformBlockState blueState,
             out Av1EncoderTransformBlockState redState)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-            const Av1TransformSize LumaTransformSize = Av1TransformSize.Size8x8;
+            Av1TransformSize lumaTransformSize = blockSize.GetMaximumTransformSize();
             Av1EncoderInterPredictionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            Av1EncoderFrame<TSample>.PlanarView primaryReference = referenceFrame == Av1ReferenceFrameType.Golden
+                ? this.goldenReference
+                : this.reference;
 
             Av1TransformBlockContext lumaContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Luminance,
                 this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                 blockOrigin,
-                BlockSize,
-                LumaTransformSize);
+                blockSize,
+                lumaTransformSize);
 
             this.EvaluateInterPlane(
                 writer,
                 vector,
+                secondaryVector,
                 Av1Plane.Y,
                 Av1ComponentType.Luminance,
                 mode,
                 usePreparedPrediction,
+                compoundType,
+                compoundWedgeIndex,
+                compoundWedgeSign,
+                differenceWeightedMaskType,
                 horizontalFilter,
                 verticalFilter,
-                this.reference.GetPlane(Av1Plane.Y),
+                primaryReference.GetPlane(Av1Plane.Y),
+                this.goldenReference.GetPlane(Av1Plane.Y),
                 blockOrigin,
                 0,
                 0,
-                LumaTransformSize,
+                blockSize,
+                lumaTransformSize,
                 Av1TransformType.AllTransformTypes,
                 lumaContext,
                 workspace.LumaPrediction,
@@ -1152,7 +2808,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingX,
                 subsamplingY);
 
-            Av1TransformSize chromaTransformSize = BlockSize.GetMaxUvTransformSize(
+            Av1TransformSize chromaTransformSize = blockSize.GetMaxUvTransformSize(
                 colorConfig.SubSamplingX,
                 colorConfig.SubSamplingY);
 
@@ -1166,7 +2822,7 @@ internal static partial class Av1IntraSuperblockEncoder
             redState = default;
             if (hasChroma)
             {
-                Av1BlockSize chromaBlockSize = BlockSize.GetSubsampled(
+                Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
                     colorConfig.SubSamplingX,
                     colorConfig.SubSamplingY);
 
@@ -1198,16 +2854,23 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.EvaluateInterPlane(
                     writer,
                     vector,
+                    secondaryVector,
                     Av1Plane.U,
                     Av1ComponentType.Chroma,
                     mode,
                     usePreparedPrediction,
+                    compoundType,
+                    compoundWedgeIndex,
+                    compoundWedgeSign,
+                    differenceWeightedMaskType,
                     horizontalFilter,
                     verticalFilter,
-                    this.reference.GetPlane(Av1Plane.U),
+                    primaryReference.GetPlane(Av1Plane.U),
+                    this.goldenReference.GetPlane(Av1Plane.U),
                     blockOrigin,
                     subsamplingX,
                     subsamplingY,
+                    blockSize,
                     chromaTransformSize,
                     chromaTransformType,
                     blueContext,
@@ -1225,16 +2888,23 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.EvaluateInterPlane(
                     writer,
                     vector,
+                    secondaryVector,
                     Av1Plane.V,
                     Av1ComponentType.Chroma,
                     mode,
                     usePreparedPrediction,
+                    compoundType,
+                    compoundWedgeIndex,
+                    compoundWedgeSign,
+                    differenceWeightedMaskType,
                     horizontalFilter,
                     verticalFilter,
-                    this.reference.GetPlane(Av1Plane.V),
+                    primaryReference.GetPlane(Av1Plane.V),
+                    this.goldenReference.GetPlane(Av1Plane.V),
                     blockOrigin,
                     subsamplingX,
                     subsamplingY,
+                    blockSize,
                     chromaTransformSize,
                     chromaTransformType,
                     redContext,
@@ -1250,13 +2920,24 @@ internal static partial class Av1IntraSuperblockEncoder
                     out redPredictionDistortion);
             }
 
-            int predictionRate = commonPredictionRate +
-                this.GetInterModeRate(
-                    writer,
-                    mode,
-                    vector,
-                    referenceMotionVectorIndex,
-                    in referenceMotionVectors);
+            int predictionRate = commonPredictionRate;
+            if (!forceSkip)
+            {
+                predictionRate += compoundBlendRate + (isCompound
+                    ? this.GetCompoundInterModeRate(
+                        writer,
+                        mode,
+                        vector,
+                        secondaryVector,
+                        referenceMotionVectorIndex,
+                        in referenceMotionVectors)
+                    : this.GetInterModeRate(
+                        writer,
+                        mode,
+                        vector,
+                        referenceMotionVectorIndex,
+                        in referenceMotionVectors));
+            }
 
             int codedRate = predictionRate +
                 writer.GetSkipCost(false, skipContext) +
@@ -1272,15 +2953,18 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // All-empty residuals omit the transform tree. Nonempty residuals can also be discarded when
             // prediction alone costs no more; shared prediction syntax must not affect the rounded comparison.
-            skip = (lumaState.EndOfBlock == 0 && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0) ||
+            skip = forceSkip || (lumaState.EndOfBlock == 0 && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0) ||
                 Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion) <=
                 Av1RateDistortion.GetCost(this.rateMultiplier, codedRate - predictionRate, codedDistortion);
 
             if (skip)
             {
-                selectedStatistics = new(this.rateMultiplier, predictionRate + skipRate, skipDistortion);
-                workspace.LumaPrediction[..LumaTransformSize.GetSize2d()].CopyTo(lumaReconstruction);
-                lumaCoefficients[..LumaTransformSize.GetSize2d()].Clear();
+                selectedStatistics = new(
+                    this.rateMultiplier,
+                    predictionRate + (forceSkip ? 0 : skipRate),
+                    skipDistortion);
+                workspace.LumaPrediction[..lumaTransformSize.GetSize2d()].CopyTo(lumaReconstruction);
+                lumaCoefficients[..lumaTransformSize.GetSize2d()].Clear();
                 lumaState = default;
                 if (hasChroma)
                 {
@@ -1295,6 +2979,73 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return selectedStatistics;
+        }
+
+        /// <summary>
+        /// Measures compound mode and dynamic-reference-list syntax for one candidate.
+        /// </summary>
+        private int GetCompoundInterModeRate(
+            Av1SymbolEncoder writer,
+            Av1PredictionMode mode,
+            Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
+            int referenceMotionVectorIndex,
+            in Av1ReferenceMotionVectors referenceMotionVectors)
+        {
+            int rate = writer.GetInterCompoundModeCost(mode, referenceMotionVectors.ModeContext);
+            bool usesNear = mode is Av1PredictionMode.NearNearMotionVector or
+                Av1PredictionMode.NearNewMotionVector or
+                Av1PredictionMode.NewNearMotionVector;
+
+            bool usesNewNew = mode == Av1PredictionMode.NewNewMotionVector;
+            if (usesNear)
+            {
+                // Compound modes containing NEARMV use the same one-based DRL walk as single-reference NEARMV.
+                // The stored index remains zero-based from the first near pair, matching decoder reconstruction.
+                for (int index = 1; index < 3 && referenceMotionVectors.Count > index + 1; index++)
+                {
+                    bool advance = referenceMotionVectorIndex >= index;
+                    int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
+                    rate += writer.GetDynamicReferenceListCost(advance, context);
+                    if (!advance)
+                    {
+                        break;
+                    }
+                }
+            }
+            else if (usesNewNew)
+            {
+                for (int index = 0; index < 2 && referenceMotionVectors.Count > index + 1; index++)
+                {
+                    bool advance = referenceMotionVectorIndex > index;
+                    int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
+                    rate += writer.GetDynamicReferenceListCost(advance, context);
+                    if (!advance)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            int newReferenceIndex = usesNear ? referenceMotionVectorIndex + 1 : referenceMotionVectorIndex;
+            Av1MotionVectorCosts costs = this.blockWorkspace.GetMotionVectorCosts(this.picture.Parent.FrameHeader.MotionVectorPrecision);
+            if (mode is Av1PredictionMode.NewNearestMotionVector or
+                Av1PredictionMode.NewNearMotionVector or
+                Av1PredictionMode.NewNewMotionVector)
+            {
+                Av1MotionVector reference = referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 0);
+                rate += ((costs.GetCost(vector, reference) * 108) + 64) >> 7;
+            }
+
+            if (mode is Av1PredictionMode.NearestNewMotionVector or
+                Av1PredictionMode.NearNewMotionVector or
+                Av1PredictionMode.NewNewMotionVector)
+            {
+                Av1MotionVector reference = referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 1);
+                rate += ((costs.GetCost(secondaryVector, reference) * 108) + 64) >> 7;
+            }
+
+            return rate;
         }
 
         /// <summary>
@@ -1360,16 +3111,23 @@ internal static partial class Av1IntraSuperblockEncoder
         private void EvaluateInterPlane(
             Av1SymbolEncoder writer,
             Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
             Av1Plane plane,
             Av1ComponentType componentType,
             Av1PredictionMode predictionMode,
             bool usePreparedPrediction,
+            Av1CompoundType compoundType,
+            int compoundWedgeIndex,
+            bool compoundWedgeSign,
+            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
             Buffer2DRegion<TSample> referencePlane,
+            Buffer2DRegion<TSample> secondaryReferencePlane,
             Point lumaOrigin,
             int subsamplingX,
             int subsamplingY,
+            Av1BlockSize blockSize,
             Av1TransformSize transformSize,
             Av1TransformType transformTypeSelection,
             Av1TransformBlockContext blockContext,
@@ -1394,6 +3152,58 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 TOperator.SubtractPrediction(sourcePlane, planeOrigin, prediction[..sampleCount], residual[..sampleCount], transformSize);
             }
+            else if (predictionMode >= Av1PredictionMode.CompoundInterModeStart)
+            {
+                int firstWeight = 8;
+                int secondWeight = 8;
+                if (compoundType == Av1CompoundType.DistanceWeighted)
+                {
+                    Av1CompoundDistanceWeights.Derive(
+                        this.picture.Sequence.SequenceHeader.OrderHintInfo,
+                        this.picture.Parent.FrameHeader,
+                        Av1ReferenceFrameType.Last,
+                        Av1ReferenceFrameType.Golden,
+                        out firstWeight,
+                        out secondWeight);
+                }
+
+                int secondarySourceColumnQ4 = (planeOrigin.X << 4) + (secondaryVector.Column << (1 - subsamplingX));
+                int secondarySourceRowQ4 = (planeOrigin.Y << 4) + (secondaryVector.Row << (1 - subsamplingY));
+                this.blockWorkspace.GetCompoundPredictionIntermediates(
+                    out Span<ushort> firstIntermediate,
+                    out Span<ushort> secondIntermediate);
+
+                TOperator.PrepareCompoundInterPrediction(
+                    sourcePlane,
+                    planeOrigin,
+                    referencePlane,
+                    predictionOrigin,
+                    sourceColumnQ4 & 15,
+                    sourceRowQ4 & 15,
+                    secondaryReferencePlane,
+                    new Point(secondarySourceColumnQ4 >> 4, secondarySourceRowQ4 >> 4),
+                    secondarySourceColumnQ4 & 15,
+                    secondarySourceRowQ4 & 15,
+                    horizontalFilter,
+                    verticalFilter,
+                    prediction[..sampleCount],
+                    residual[..sampleCount],
+                    firstIntermediate,
+                    secondIntermediate,
+                    this.blockWorkspace.GetCompoundPredictionMask(),
+                    this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch,
+                    transformSize,
+                    this.bitDepth,
+                    blockSize,
+                    compoundType,
+                    firstWeight,
+                    secondWeight,
+                    subsamplingX,
+                    subsamplingY,
+                    compoundWedgeIndex,
+                    compoundWedgeSign,
+                    differenceWeightedMaskType);
+            }
             else if (predictionMode >= Av1PredictionMode.InterModeStart)
             {
                 Span<short> predictionScratch = this.blockWorkspace
@@ -1411,8 +3221,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     verticalFilter,
                     sourceColumnQ4 & 15,
                     sourceRowQ4 & 15,
-                    prediction[..sampleCount],
-                    residual[..sampleCount],
+                    prediction,
+                    residual,
                     predictionScratch,
                     transformSize,
                     this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);

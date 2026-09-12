@@ -1,9 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -69,6 +70,107 @@ internal static partial class SimdUtils
 
         val_2p23_f32 = (v + val_2p23_f32) - val_2p23_f32;
         return val_2p23_f32 | sign;
+    }
+
+    /// <summary>
+    /// Estimates the reciprocal of this vector.
+    /// </summary>
+    /// <param name="v">The vector to get reciprocal estimate of.</param>
+    /// <returns>An estimated reciprocal of each element in the vector.</returns>
+    internal static Vector<float> ReciprocalEstimate(this Vector<float> v)
+    {
+        // TODO: System.Runtime.Intrinsics.Arm has Sve and Sve2
+        // support but is for evaluation purposes only; add SVE/SVE2
+        // support when possible
+        if (Avx512F.IsSupported && Vector<float>.Count == 16)
+        {
+            // x86
+            return Avx512F.Reciprocal14(v.AsVector512()).AsVector();
+        }
+        else if (Avx.IsSupported && Vector<float>.Count == 8)
+        {
+            // x86
+            return Avx.Reciprocal(v.AsVector256()).AsVector();
+        }
+        else if (AdvSimd.IsSupported && Vector<float>.Count == 4)
+        {
+            // ARM
+            return AdvSimd.ReciprocalEstimate(v.AsVector128()).AsVector();
+        }
+        else if (Sse.IsSupported && Vector<float>.Count == 4)
+        {
+            // x86
+            return Sse.Reciprocal(v.AsVector128()).AsVector();
+        }
+        else
+        {
+            // Exact reciprocal fallback (slower)
+            return Vector<float>.One / v;
+        }
+    }
+
+    /// <summary>
+    /// Finds the leading zero count on each item of the vector.
+    /// </summary>
+    /// <param name="vector">The vector to compute leading zero count for.</param>
+    /// <returns>Input vector with leading zero count on each element.</returns>
+    internal static Vector<int> Lzcnt(Vector<int> vector)
+    {
+        if (Avx512CD.IsSupported && Vector<int>.Count == 16)
+        {
+            Vector512<int> v512 = vector.AsVector512();
+            Vector512<int> lzcnt = Avx512CD.LeadingZeroCount(v512);
+            return lzcnt.AsVector();
+        }
+        else if (AdvSimd.IsSupported && Vector<int>.Count == 4)
+        {
+            Vector128<int> v128 = vector.AsVector128();
+            Vector128<int> lzcnt = AdvSimd.LeadingZeroCount(v128);
+            return lzcnt.AsVector();
+        }
+        else
+        {
+            Span<int> data = stackalloc int[Vector<int>.Count];
+            ref int dataPtr = ref MemoryMarshal.GetReference(data);
+            vector.StoreUnsafe(ref dataPtr);
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                Unsafe.Add(ref dataPtr, i) = BitOperations.LeadingZeroCount((nuint)Unsafe.Add(ref dataPtr, i));
+            }
+
+            return Vector.LoadUnsafe(ref dataPtr);
+        }
+    }
+
+    /// <summary>
+    /// Raises 2 to the power of each item in the vector.
+    /// </summary>
+    /// <param name="vector">Input vector.</param>
+    /// <returns>2^x for each item in the vector.</returns>
+    internal static Vector<int> Pow2(Vector<int> vector)
+    {
+        if (Avx512F.IsSupported && Vector<int>.Count == 16)
+        {
+            return Avx512F.ShiftLeftLogicalVariable(Vector512<int>.One, vector.AsVector512().AsUInt32()).AsVector();
+        }
+        else if (Avx2.IsSupported && Vector<int>.Count == 8)
+        {
+            return Avx2.ShiftLeftLogicalVariable(Vector256<int>.One, vector.AsVector256().AsUInt32()).AsVector();
+        }
+        else
+        {
+            Span<int> data = stackalloc int[Vector<int>.Count];
+            ref int dataPtr = ref MemoryMarshal.GetReference(data);
+            vector.StoreUnsafe(ref dataPtr);
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                Unsafe.Add(ref dataPtr, i) = 1 << Unsafe.Add(ref dataPtr, i);
+            }
+
+            return Vector.LoadUnsafe(ref dataPtr);
+        }
     }
 
     [Conditional("DEBUG")]

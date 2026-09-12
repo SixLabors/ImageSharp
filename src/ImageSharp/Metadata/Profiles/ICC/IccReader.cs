@@ -53,7 +53,7 @@ internal sealed class IccReader
         return ReadTagData(reader);
     }
 
-    private static IccProfileHeader ReadHeader(IccDataReader reader)
+    internal static IccProfileHeader ReadHeader(IccDataReader reader)
     {
         reader.SetIndex(0);
 
@@ -79,7 +79,7 @@ internal sealed class IccReader
         };
     }
 
-    private static IccTagDataEntry[] ReadTagData(IccDataReader reader)
+    internal static IccTagDataEntry[] ReadTagData(IccDataReader reader)
     {
         IccTagTableEntry[] tagTable = ReadTagTable(reader);
         List<IccTagDataEntry> entries = new(tagTable.Length);

@@ -264,4 +264,14 @@ internal sealed class JxlDequantMatrices
     /// is simply an empty span.
     /// </returns>
     public Span<JxlQuantizerEncoding> GetEncodings() => this.encodings;
+
+    /// <summary>
+    /// Returns quantizer encodings for this dequant matrices instance.
+    /// </summary>
+    /// <returns>
+    /// Encodings set by the <see cref="SetEncodings(JxlQuantizerEncoding[])"/> method.
+    /// By default (when the aforementioned method wasn't invoked), the result
+    /// is simply an empty span.
+    /// </returns>
+    public Memory<JxlQuantizerEncoding> GetEncodingsMemory() => this.encodings;
 }

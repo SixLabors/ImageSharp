@@ -5,7 +5,10 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 
 internal sealed class JxlDctQuantWeightParameters
 {
-    private const int Log2MaxDistanceBands = 4;
+    /// <summary>
+    /// Log2 of the maximum number of distance bands.
+    /// </summary>
+    public const int Log2MaxDistanceBands = 4;
     private const int MaxDistanceBands = 1 + (1 << Log2MaxDistanceBands);
 
     public JxlDctQuantWeightParameters()

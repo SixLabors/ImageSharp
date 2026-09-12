@@ -558,6 +558,56 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
+    /// Verifies that the writer emits the refresh and visibility syntax required by a hidden key frame.
+    /// </summary>
+    [Fact]
+    public void WriteHiddenKeyFrameHeader()
+    {
+        ObuSequenceHeader sequenceInput = GetDefaultSequenceHeader();
+        sequenceInput.IsStillPicture = false;
+        sequenceInput.IsReducedStillPictureHeader = false;
+        ObuFrameHeader frameInput = GetKeyFrameHeader();
+        frameInput.ShowFrame = false;
+        frameInput.ShowableFrame = true;
+        frameInput.RefreshFrameFlags = 0b0000_0101;
+
+        ObuFrameHeader frameOutput = WriteAndReadFrameHeader(sequenceInput, frameInput);
+
+        Assert.Equal(ObuFrameType.KeyFrame, frameOutput.FrameType);
+        Assert.False(frameOutput.ShowFrame);
+        Assert.True(frameOutput.ShowableFrame);
+        Assert.Equal(0b0000_0101U, frameOutput.RefreshFrameFlags);
+        Assert.Equal(frameInput.FrameSize.FrameWidth, frameOutput.FrameSize.FrameWidth);
+        Assert.Equal(frameInput.FrameSize.FrameHeight, frameOutput.FrameSize.FrameHeight);
+    }
+
+    /// <summary>
+    /// Verifies that the writer emits a complete intra-only frame header without using key-frame refresh semantics.
+    /// </summary>
+    [Fact]
+    public void WriteIntraOnlyFrameHeader()
+    {
+        ObuSequenceHeader sequenceInput = GetDefaultSequenceHeader();
+        sequenceInput.IsStillPicture = false;
+        sequenceInput.IsReducedStillPictureHeader = false;
+        ObuFrameHeader frameInput = GetKeyFrameHeader();
+        frameInput.FrameType = ObuFrameType.IntraOnlyFrame;
+        frameInput.ShowFrame = true;
+        frameInput.ShowableFrame = true;
+        frameInput.ErrorResilientMode = false;
+        frameInput.RefreshFrameFlags = 0b0000_0010;
+
+        ObuFrameHeader frameOutput = WriteAndReadFrameHeader(sequenceInput, frameInput);
+
+        Assert.Equal(ObuFrameType.IntraOnlyFrame, frameOutput.FrameType);
+        Assert.True(frameOutput.ShowFrame);
+        Assert.True(frameOutput.ShowableFrame);
+        Assert.Equal(0b0000_0010U, frameOutput.RefreshFrameFlags);
+        Assert.Equal(frameInput.FrameSize.FrameWidth, frameOutput.FrameSize.FrameWidth);
+        Assert.Equal(frameInput.FrameSize.FrameHeight, frameOutput.FrameSize.FrameHeight);
+    }
+
+    /// <summary>
     /// Verifies that content-light metadata is parsed from the OBU and retained for image metadata transfer.
     /// </summary>
     [Fact]
@@ -1141,6 +1191,27 @@ public class ObuFrameHeaderTests
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
         obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
+    }
+
+    /// <summary>
+    /// Writes and parses one frame header through the production OBU paths.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence syntax controlling the frame header.</param>
+    /// <param name="frameHeader">The frame syntax to round trip.</param>
+    /// <returns>The parsed frame header.</returns>
+    private static ObuFrameHeader WriteAndReadFrameHeader(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    {
+        Av1TileDecoderStub tileStub = new();
+        tileStub.ReadTile([0x80], 0);
+        using MemoryStream stream = new();
+        using ObuWriter writer = new(Configuration.Default);
+        writer.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileStub);
+        byte[] bitStream = stream.ToArray();
+        Av1BitStreamReader reader = new(bitStream);
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref reader, bitStream.Length, () => new Av1TileDecoderStub());
+
+        return Assert.IsType<ObuFrameHeader>(obuReader.FrameHeader);
     }
 
     private static ObuFrameHeader GetKeyFrameHeader()

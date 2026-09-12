@@ -190,10 +190,12 @@ public class Av1CoefficientsEntropyTests
         Assert.False(modeInfo.Skip);
         Assert.False(modeInfo.SkipMode);
         Assert.False(modeInfo.UseIntraBlockCopy);
+        Assert.Equal(Av1ReferenceFrameType.None, modeInfo.SecondaryReferenceFrame);
 
         modeInfo.Skip = true;
         modeInfo.SkipMode = true;
         modeInfo.UseIntraBlockCopy = true;
+        modeInfo.SecondaryReferenceFrame = Av1ReferenceFrameType.Golden;
         modeInfo.BlockSize = Av1BlockSize.Block16x16;
         modeInfo.PartitionType = Av1PartitionType.Split;
         modeInfo.SegmentId = 3;
@@ -203,6 +205,7 @@ public class Av1CoefficientsEntropyTests
         Assert.True(modeInfo.Skip);
         Assert.True(modeInfo.SkipMode);
         Assert.True(modeInfo.UseIntraBlockCopy);
+        Assert.Equal(Av1ReferenceFrameType.Golden, modeInfo.SecondaryReferenceFrame);
         Assert.Equal(Av1BlockSize.Block16x16, modeInfo.BlockSize);
         Assert.Equal(Av1PartitionType.Split, modeInfo.PartitionType);
         Assert.Equal(3, modeInfo.SegmentId);
@@ -210,10 +213,12 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(Av1ChromaPredictionMode.Smooth, modeInfo.UvMode);
 
         modeInfo.SkipMode = false;
+        modeInfo.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
 
         Assert.True(modeInfo.Skip);
         Assert.False(modeInfo.SkipMode);
         Assert.True(modeInfo.UseIntraBlockCopy);
+        Assert.Equal(Av1ReferenceFrameType.None, modeInfo.SecondaryReferenceFrame);
     }
 
     [Fact]
@@ -242,6 +247,7 @@ public class Av1CoefficientsEntropyTests
                             Skip = true,
                             SkipMode = true,
                             UseIntraBlockCopy = true,
+                            SecondaryReferenceFrame = Av1ReferenceFrameType.Golden,
                             SegmentId = segment,
                             ReferenceFrame = (Av1ReferenceFrameType)reference,
                             VerticalInterpolationFilter = (Av1InterpolationFilter)vertical,
@@ -255,6 +261,7 @@ public class Av1CoefficientsEntropyTests
                         Assert.True(modeInfo.Skip);
                         Assert.True(modeInfo.SkipMode);
                         Assert.True(modeInfo.UseIntraBlockCopy);
+                        Assert.Equal(Av1ReferenceFrameType.Golden, modeInfo.SecondaryReferenceFrame);
 
                         // Overwrite every bit in each shared region after the adjacent value has been populated.
                         modeInfo.SegmentId = segment ^ 7;
@@ -271,6 +278,10 @@ public class Av1CoefficientsEntropyTests
                         Assert.False(modeInfo.Skip);
                         Assert.False(modeInfo.SkipMode);
                         Assert.False(modeInfo.UseIntraBlockCopy);
+                        Assert.Equal(Av1ReferenceFrameType.Golden, modeInfo.SecondaryReferenceFrame);
+                        modeInfo.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
+                        Assert.Equal((Av1InterpolationFilter)(vertical ^ 3), modeInfo.VerticalInterpolationFilter);
+                        Assert.Equal((Av1InterpolationFilter)(horizontal ^ 3), modeInfo.HorizontalInterpolationFilter);
                     }
                 }
             }

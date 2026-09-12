@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -21,6 +22,161 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1TransformBlockEncoderTests
 {
+    /// <summary>
+    /// Verifies that a high-energy mode candidate uses regular quantization when speed-level thresholds reject refinement.
+    /// </summary>
+    [Fact]
+    public void LossyCandidateUsesRegularQuantizationWhenCoefficientOptimizationIsRejected()
+    {
+        const int QIndex = 120;
+        Av1TransformSize transformSize = Av1TransformSize.Size8x8;
+        int width = transformSize.GetWidth();
+        int coefficientCount = transformSize.GetAdjusted().GetSize2d();
+        int[] expectedTransformed = new int[coefficientCount];
+        int[] expectedQuantized = new int[coefficientCount];
+        int[] expectedDequantized = new int[coefficientCount];
+        int[] expectedTransformWorkspace = new int[Av1TransformWorkspace.MaximumLength];
+        int[] actualQuantized = new int[coefficientCount];
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 1024, QIndex, updateCdf: false)
+        {
+            EncodingSpeed = HeifEncodingSpeed.Level6
+        };
+
+        FillResidual(workspace.Residual, width, width, byte.MaxValue);
+        Av1ForwardTransformer.Transform2d(
+            workspace.Residual,
+            expectedTransformed,
+            (uint)width,
+            Av1TransformType.DctDct,
+            transformSize,
+            8,
+            expectedTransformWorkspace);
+
+        ushort expectedEndOfBlock = Av1ForwardQuantizer.QuantizeRegular(
+            expectedTransformed,
+            expectedQuantized,
+            expectedDequantized,
+            transformSize,
+            Av1TransformType.DctDct,
+            QIndex,
+            0,
+            0,
+            Av1BitDepth.EightBit,
+            0);
+
+        Av1EncoderTransformBlockState actualState = default;
+        Av1TransformBlockEncoder.EncodeLossyCandidate(
+            workspace,
+            writer,
+            default,
+            workspace.Residual,
+            width,
+            actualQuantized,
+            transformSize,
+            Av1TransformType.DctDct,
+            QIndex,
+            0,
+            0,
+            Av1BitDepth.EightBit,
+            Av1ComponentType.Luminance,
+            128,
+            false,
+            false,
+            false,
+            ref actualState);
+
+        Assert.Equal(expectedQuantized, actualQuantized);
+        Assert.Equal(expectedDequantized, workspace.DequantizedCoefficients[..coefficientCount].ToArray());
+        Assert.Equal(expectedEndOfBlock, actualState.EndOfBlock);
+    }
+
+    /// <summary>
+    /// Verifies that winner evaluation applies fast quantization and coefficient refinement even when mode gating rejected it.
+    /// </summary>
+    [Fact]
+    public void LossyWinnerAppliesDeferredCoefficientOptimization()
+    {
+        const int QIndex = 120;
+        const int RateMultiplier = 128;
+        Av1TransformSize transformSize = Av1TransformSize.Size8x8;
+        int width = transformSize.GetWidth();
+        int coefficientCount = transformSize.GetAdjusted().GetSize2d();
+        int[] expectedTransformed = new int[coefficientCount];
+        int[] expectedQuantized = new int[coefficientCount];
+        int[] expectedDequantized = new int[coefficientCount];
+        int[] expectedTransformWorkspace = new int[Av1TransformWorkspace.MaximumLength];
+        int[] actualQuantized = new int[coefficientCount];
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 1024, QIndex, updateCdf: false);
+        using Av1SymbolEncoder actualWriter = new(Configuration.Default, 1024, QIndex, updateCdf: false)
+        {
+            EncodingSpeed = HeifEncodingSpeed.Level6
+        };
+
+        FillResidual(workspace.Residual, width, width, byte.MaxValue);
+        Av1ForwardTransformer.Transform2d(
+            workspace.Residual,
+            expectedTransformed,
+            (uint)width,
+            Av1TransformType.DctDct,
+            transformSize,
+            8,
+            expectedTransformWorkspace);
+
+        ushort expectedEndOfBlock = Av1ForwardQuantizer.QuantizeLossy(
+            expectedTransformed,
+            expectedQuantized,
+            expectedDequantized,
+            transformSize,
+            Av1TransformType.DctDct,
+            QIndex,
+            0,
+            0,
+            Av1BitDepth.EightBit);
+
+        expectedEndOfBlock = expectedWriter.OptimizeCoefficients(
+            expectedTransformed,
+            expectedQuantized,
+            expectedDequantized,
+            transformSize,
+            Av1TransformType.DctDct,
+            Av1ComponentType.Luminance,
+            default,
+            Av1QuantizationLookup.GetDcQuant(QIndex, 0, Av1BitDepth.EightBit),
+            Av1QuantizationLookup.GetAcQuant(QIndex, 0, Av1BitDepth.EightBit),
+            RateMultiplier,
+            Av1BitDepth.EightBit,
+            false,
+            false,
+            expectedEndOfBlock);
+
+        Av1EncoderTransformBlockState actualState = default;
+        Av1TransformBlockEncoder.EncodeLossyCandidate(
+            workspace,
+            actualWriter,
+            default,
+            workspace.Residual,
+            width,
+            actualQuantized,
+            transformSize,
+            Av1TransformType.DctDct,
+            QIndex,
+            0,
+            0,
+            Av1BitDepth.EightBit,
+            Av1ComponentType.Luminance,
+            RateMultiplier,
+            false,
+            false,
+            true,
+            ref actualState);
+
+        Assert.Equal(expectedQuantized, actualQuantized);
+        Assert.Equal(expectedDequantized, workspace.DequantizedCoefficients[..coefficientCount].ToArray());
+        Assert.Equal(expectedEndOfBlock, actualState.EndOfBlock);
+    }
+
     /// <summary>
     /// Verifies that the composed block path retains the exact outputs already established for its arithmetic stages.
     /// </summary>

@@ -30,6 +30,86 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1IntraSuperblockEncoderTests
 {
+    [Theory]
+    [InlineData((int)Av1PredictionMode.DC, (int)Av1ChromaPredictionMode.DC)]
+    [InlineData((int)Av1PredictionMode.DC, (int)Av1ChromaPredictionMode.Smooth)]
+    [InlineData((int)Av1PredictionMode.Vertical, (int)Av1ChromaPredictionMode.Vertical)]
+    [InlineData((int)Av1PredictionMode.Horizontal, (int)Av1ChromaPredictionMode.Horizontal)]
+    [InlineData((int)Av1PredictionMode.Directional45Degrees, (int)Av1ChromaPredictionMode.Directional45Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees, (int)Av1ChromaPredictionMode.Directional135Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional113Degrees, (int)Av1ChromaPredictionMode.Directional113Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional157Degrees, (int)Av1ChromaPredictionMode.Directional157Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional203Degrees, (int)Av1ChromaPredictionMode.Directional203Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional67Degrees, (int)Av1ChromaPredictionMode.Directional67Degrees)]
+    [InlineData((int)Av1PredictionMode.SmoothVertical, (int)Av1ChromaPredictionMode.SmoothVertical)]
+    [InlineData((int)Av1PredictionMode.SmoothHorizontal, (int)Av1ChromaPredictionMode.SmoothHorizontal)]
+    [InlineData((int)Av1PredictionMode.Paeth, (int)Av1ChromaPredictionMode.Paeth)]
+    public void SpeedFourChromaPruningRetainsLumaDerivedMode(int lumaModeValue, int chromaModeValue)
+    {
+        Av1PredictionMode lumaMode = (Av1PredictionMode)lumaModeValue;
+        Av1ChromaPredictionMode chromaMode = (Av1ChromaPredictionMode)chromaModeValue;
+
+        Assert.True(Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator>.ShouldSearchChromaMode(
+            HeifEncodingSpeed.Level4,
+            lumaMode,
+            chromaMode));
+
+        Assert.True(Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator>.ShouldSearchChromaMode(
+            HeifEncodingSpeed.Level4,
+            lumaMode,
+            Av1ChromaPredictionMode.DC));
+
+        Assert.True(Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator>.ShouldSearchChromaMode(
+            HeifEncodingSpeed.Level4,
+            lumaMode,
+            Av1ChromaPredictionMode.Smooth));
+    }
+
+    [Fact]
+    public void ChromaPruningUsesLibaomSpeedBoundaryAndRejectsUnrelatedModes()
+    {
+        Assert.True(Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator>.ShouldSearchChromaMode(
+            HeifEncodingSpeed.Level3,
+            Av1PredictionMode.Vertical,
+            Av1ChromaPredictionMode.Paeth));
+
+        Assert.False(Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator>.ShouldSearchChromaMode(
+            HeifEncodingSpeed.Level4,
+            Av1PredictionMode.Vertical,
+            Av1ChromaPredictionMode.Paeth));
+    }
+
+    [Theory]
+    [InlineData((int)ObuFrameType.KeyFrame, true)]
+    [InlineData((int)ObuFrameType.IntraOnlyFrame, true)]
+    [InlineData((int)ObuFrameType.InterFrame, false)]
+    public void ChromaPaletteHeaderTerminationMatchesIntraFrameClassification(int frameTypeValue, bool expected)
+        => Assert.Equal(
+            expected,
+            Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator>.ShouldPruneChromaPaletteByHeader(
+                (ObuFrameType)frameTypeValue));
+
+    [Theory]
+    [InlineData((int)HeifEncodingSpeed.Level3, (int)Av1BlockSize.Block16x16, true, true, false)]
+    [InlineData((int)HeifEncodingSpeed.Level4, (int)Av1BlockSize.Block64x64, true, true, false)]
+    [InlineData((int)HeifEncodingSpeed.Level4, (int)Av1BlockSize.Block16x16, false, true, false)]
+    [InlineData((int)HeifEncodingSpeed.Level4, (int)Av1BlockSize.Block16x16, true, false, false)]
+    [InlineData((int)HeifEncodingSpeed.Level4, (int)Av1BlockSize.Block16x16, true, true, true)]
+    public void PartitionSearchTerminationMatchesLibaomBounds(
+        int speedValue,
+        int blockSizeValue,
+        bool noneInvalid,
+        bool splitInvalid,
+        bool expected)
+        => Assert.Equal(
+            expected,
+            Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator>.ShouldTerminatePartitionSearchAfterNoneAndSplit(
+                (HeifEncodingSpeed)speedValue,
+                (Av1BlockSize)blockSizeValue,
+                Av1BlockSize.Block64x64,
+                noneInvalid,
+                splitInvalid));
+
     /// <summary>
     /// Verifies non-regular filter selection, retained reconstruction, and allocation-free inter tile coding.
     /// </summary>
@@ -141,6 +221,8 @@ public class Av1IntraSuperblockEncoderTests
             symbolEncoder,
             source.Frame,
             reference.Frame,
+            reference.Frame,
+            false,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
@@ -326,7 +408,7 @@ public class Av1IntraSuperblockEncoderTests
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
         int allocationCount = allocator.AllocationLog.Count;
         Av1TileEncoder tileWriter = new(
-            symbolEncoder, source.Frame, reference.Frame, reconstruction.Frame, picture.Picture, coefficients, tileWorkspace, blockWorkspace, Effort);
+            symbolEncoder, source.Frame, reference.Frame, reference.Frame, false, reconstruction.Frame, picture.Picture, coefficients, tileWorkspace, blockWorkspace, Effort);
 
         Assert.Equal(allocationCount, allocator.AllocationLog.Count);
 
@@ -839,7 +921,8 @@ public class Av1IntraSuperblockEncoderTests
                         Av1PartitionType.None,
                         template.Sequence.SequenceHeader,
                         picture.Parent.FrameHeader,
-                        Av1ReferenceFrameType.Last);
+                        Av1ReferenceFrameType.Last,
+                        Av1ReferenceFrameType.None);
 
                     // Thirty-two preceding global-motion symbols make the zero global predictor the cheapest
                     // mode. Keep every competing mode enabled so this fixture tests residual skipping independently
@@ -943,6 +1026,8 @@ public class Av1IntraSuperblockEncoderTests
                 Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> decision = new(
                     source.Frame,
                     reference.Frame,
+                    reference.Frame,
+                    false,
                     reconstruction.Frame,
                     picture,
                     superblock,
@@ -1375,6 +1460,8 @@ public class Av1IntraSuperblockEncoderTests
             source.Frame,
             reconstruction.Frame,
             reconstruction.Frame,
+            false,
+            reconstruction.Frame,
             picture,
             superblock,
             coefficients,
@@ -1387,16 +1474,16 @@ public class Av1IntraSuperblockEncoderTests
         using Av1SymbolEncoder writer = new(Configuration.Default, 256, QIndex, updateCdf: true);
         decision.EncodeBlock(writer, macroBlock, Point.Empty, 0, ref modeInfo, ref block, ref palette);
 
-        Assert.Equal(Av1PredictionMode.DC, modeInfo.Block.Mode);
         Assert.Equal(Av1TransformSize.Size8x8, modeInfo.Block.TransformSize);
         Assert.False(modeInfo.Block.Skip);
+        int lumaAngleDelta = block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y];
         int expectedRate = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
         expectedRate += Av1TileWriter.GetLumaModeCost(
             writer,
             macroBlock,
             Av1BlockSize.Block8x8,
-            Av1PredictionMode.DC,
-            0,
+            modeInfo.Block.Mode,
+            lumaAngleDelta,
             isIntraFrame: true);
 
         if (!isMonochrome)
@@ -1408,7 +1495,7 @@ public class Av1IntraSuperblockEncoderTests
                 colorConfig,
                 modeInfo,
                 Av1BlockSize.Block8x8,
-                Av1PredictionMode.DC,
+                modeInfo.Block.Mode,
                 Av1ChromaPredictionMode.DC,
                 0);
         }
@@ -1431,7 +1518,7 @@ public class Av1IntraSuperblockEncoderTests
             expectedRate += writer.GetCoefficientCost(
                 transformSize,
                 state.TransformType,
-                Av1PredictionMode.DC,
+                modeInfo.Block.Mode,
                 coefficients.GetPlaneSpan(0, plane)[..transformSize.GetSize2d()],
                 component,
                 Av1TileWriter.GetTransformBlockContexts(component, neighbors, Point.Empty, blockSize, transformSize),
@@ -1864,7 +1951,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Parent.Common.ModeInfoColumnCount);
 
         Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator> decision = new(
-            source.Frame, reconstruction.Frame, reconstruction.Frame, picture, superblock, coefficients, blockWorkspace, effort: 5);
+            source.Frame, reconstruction.Frame, reconstruction.Frame, false, reconstruction.Frame, picture, superblock, coefficients, blockWorkspace, effort: 5);
 
         Av1EncoderBlockStruct block = default;
         Av1EncoderPaletteInfo palette = default;
@@ -2706,6 +2793,7 @@ public class Av1IntraSuperblockEncoderTests
             filterIntraModeValue,
             8,
             false,
+            HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
                     writer,
@@ -2738,6 +2826,7 @@ public class Av1IntraSuperblockEncoderTests
             filterIntraModeValue,
             bitDepth,
             false,
+            HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
                     writer,
@@ -2766,6 +2855,7 @@ public class Av1IntraSuperblockEncoderTests
             (int)Av1FilterIntraMode.DC,
             8,
             true,
+            HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
                     writer,
@@ -2788,6 +2878,7 @@ public class Av1IntraSuperblockEncoderTests
             (int)Av1FilterIntraMode.DC,
             bitDepth,
             true,
+            HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
                     writer,
@@ -2814,6 +2905,7 @@ public class Av1IntraSuperblockEncoderTests
         int filterIntraModeValue,
         int bitDepth,
         bool useSplitTransform,
+        HeifEncodingSpeed speed,
         TileWriterFactory<TSample> createWriter,
         FilterPrediction<TSample> predictFilter)
         where TSample : unmanaged, IBinaryInteger<TSample>
@@ -2870,6 +2962,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderModeInfoBuffer pilotModeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
         Av1PictureControlSet pilotTemplate = CreatePicture(pilotModeInfo, colorConfig, use128x128Superblock: false, QIndex);
         pilotTemplate.Sequence.SequenceHeader.EnableFilterIntra = true;
+        pilotTemplate.Parent.EncodingSpeed = speed;
         pilotTemplate.Parent.FrameHeader.TransformMode = useSplitTransform
             ? Av1TransformMode.Select
             : Av1TransformMode.Largest;
@@ -2893,6 +2986,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1SymbolEncoder pilotSymbolEncoder = CreateTileSymbolEncoder(
             pilotPicture.Picture,
             TileBufferLength);
+        pilotSymbolEncoder.EncodingSpeed = speed;
 
         Av1TileEncoder pilotWriter = createWriter(
             pilotSymbolEncoder,
@@ -3034,6 +3128,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
         Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
         pictureTemplate.Sequence.SequenceHeader.EnableFilterIntra = true;
+        pictureTemplate.Parent.EncodingSpeed = speed;
         pictureTemplate.Parent.FrameHeader.TransformMode = useSplitTransform
             ? Av1TransformMode.Select
             : Av1TransformMode.Largest;
@@ -3057,6 +3152,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
             picture.Picture,
             TileBufferLength);
+        symbolEncoder.EncodingSpeed = speed;
 
         Av1TileEncoder tileWriter = createWriter(
             symbolEncoder,

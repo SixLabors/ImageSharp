@@ -430,6 +430,32 @@ public class HeifEncoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level0)]
+    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level6)]
+    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level9)]
+    public void EncodeScreenContent(TestImageProvider<Rgba32> provider, HeifEncodingSpeed speed)
+    {
+        using Image<Rgba32> image = provider.GetImage();
+        image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+        HeifEncoder encoder = new()
+        {
+            Quality = 99,
+            Effort = 5,
+            Speed = speed,
+            ChromaSubsampling = HeifChromaSubsampling.Yuv444
+        };
+
+        IImageDecoder referenceDecoder = MagickReferenceDecoder.Heif;
+        string outputFile = provider.Utility.SaveTestOutputFile(image, "avif", encoder, speed);
+
+        using FileStream stream = File.OpenRead(outputFile);
+        using Image<Rgba32> reference = referenceDecoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+        stream.Position = 0;
+        using Image<Rgba32> managed = Image.Load<Rgba32>(stream);
+        Assert.Empty(ImageComparer.Exact.CompareImages(reference, managed));
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.Ducky, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
@@ -446,16 +472,17 @@ public class HeifEncoderTests
             Effort = 0
         };
 
+        IImageDecoder referenceDecoder = MagickReferenceDecoder.Heif;
         string outputFile = image.VerifyEncoder(
             provider,
             "avif",
             null,
             encoder,
             ImageComparer.Exact,
-            referenceDecoder: MagickReferenceDecoder.Heif);
+            referenceDecoder: referenceDecoder);
 
         using FileStream stream = File.OpenRead(outputFile);
-        using Image<Rgba32> reference = MagickReferenceDecoder.Heif.Decode<Rgba32>(DecoderOptions.Default, stream);
+        using Image<Rgba32> reference = referenceDecoder.Decode<Rgba32>(DecoderOptions.Default, stream);
         reference.DebugSave(provider, extension: "png", encoder: new PngEncoder());
     }
 
@@ -476,16 +503,17 @@ public class HeifEncoderTests
             Effort = 0
         };
 
+        IImageDecoder referenceDecoder = MagickReferenceDecoder.Heif;
         string outputFile = image.VerifyEncoder(
             provider,
             "avif",
             bitDepth,
             encoder,
             ImageComparer.Exact,
-            referenceDecoder: MagickReferenceDecoder.Heif);
+            referenceDecoder: referenceDecoder);
 
         using FileStream stream = File.OpenRead(outputFile);
-        using Image<Rgba64> reference = MagickReferenceDecoder.Heif.Decode<Rgba64>(DecoderOptions.Default, stream);
+        using Image<Rgba64> reference = referenceDecoder.Decode<Rgba64>(DecoderOptions.Default, stream);
         reference.DebugSave(provider, bitDepth, encoder: new PngEncoder
         {
             BitDepth = PngBitDepth.Bit16

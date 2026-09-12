@@ -67,8 +67,8 @@ public class Av1EncoderModeInfoBufferTests
         const int BlockPaletteStorageLength = AllocatedBlockCount * 50;
         const int PaletteTokenStorageLength = 2 * 128 * 128;
 
-        // Four vectors (16 bytes), four weights (8), mode context (2), count (1), and one alignment byte.
-        const int ReferenceContextStorageLength = AllocatedBlockCount * 28;
+        // Five vectors (20 bytes), four weights (8), mode context (2), count (1), and one alignment byte.
+        const int ReferenceContextStorageLength = AllocatedBlockCount * 32;
 
         // Retained syntax uses fixed-width entries at the existing block origins. Palette tokens reserve
         // two complete maximum-superblock planes, including coded padding beyond this small visible frame.
@@ -134,7 +134,7 @@ public class Av1EncoderModeInfoBufferTests
             Av1PictureControlSet picture = buffer.Picture;
             Assert.Equal(AllocatedBlockCount, picture.BlockEncodings.Length);
             Assert.Equal(8, sizeof(Av1EncoderBlockStruct));
-            Assert.Equal(28, sizeof(Av1EncoderReferenceContext));
+            Assert.Equal(32, sizeof(Av1EncoderReferenceContext));
             Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockEncodings.Span).IndexOfAnyExcept((byte)0));
             Assert.Equal(16, picture.SegmentationNeighborMap.Length);
             Assert.Equal(32, picture.PartitionContexts[0].Left.Length);
@@ -299,9 +299,12 @@ public class Av1EncoderModeInfoBufferTests
 
         Point position = new(2, 2);
         Av1MotionVector vector = new(-32, 40);
+        Av1MotionVector secondaryVector = new(24, -16);
         picture.MapModeInfoBlock(position, Av1BlockSize.Block8x8);
         picture.SetDisplacementVector(position, vector);
+        picture.SetSecondaryDisplacementVector(position, secondaryVector);
         Assert.Equal(vector, picture.GetDisplacementVector(new Point(3, 3)));
+        Assert.Equal(secondaryVector, picture.GetSecondaryDisplacementVector(new Point(3, 3)));
     }
 
     [Fact]

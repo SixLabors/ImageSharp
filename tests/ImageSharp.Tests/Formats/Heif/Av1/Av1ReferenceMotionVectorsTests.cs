@@ -66,7 +66,8 @@ public class Av1ReferenceMotionVectorsTests
             frameInfo,
             sequenceHeader,
             frameHeader,
-            Av1ReferenceFrameType.Last);
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.None);
 
         Assert.Equal(2, referenceMotionVectors.Count);
         Assert.Equal(84, referenceMotionVectors.ModeContext);
@@ -148,7 +149,8 @@ public class Av1ReferenceMotionVectorsTests
             frameInfo,
             sequenceHeader,
             frameHeader,
-            Av1ReferenceFrameType.Last);
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.None);
 
         Assert.Equal(3, referenceMotionVectors.Count);
         Assert.Equal(nearest, referenceMotionVectors.Candidates[0]);
@@ -206,7 +208,8 @@ public class Av1ReferenceMotionVectorsTests
             frameInfo,
             sequenceHeader,
             frameHeader,
-            Av1ReferenceFrameType.Last);
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.None);
 
         Av1MotionVector expectedGlobal = globalMotion.GetMotionVector(
             frameHeader.AllowHighPrecisionMotionVector,
@@ -276,7 +279,8 @@ public class Av1ReferenceMotionVectorsTests
             frameInfo,
             sequenceHeader,
             frameHeader,
-            Av1ReferenceFrameType.Last);
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.None);
 
         Av1MotionVector expected = new(-40, 24);
         Assert.Equal(2, referenceMotionVectors.Count);
@@ -339,7 +343,8 @@ public class Av1ReferenceMotionVectorsTests
             frameInfo,
             sequenceHeader,
             frameHeader,
-            Av1ReferenceFrameType.Last);
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.None);
 
         Assert.Equal(1, referenceMotionVectors.Count);
         Assert.Equal(default, referenceMotionVectors.Candidates[0]);

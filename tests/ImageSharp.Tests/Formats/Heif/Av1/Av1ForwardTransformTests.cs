@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
@@ -26,6 +27,133 @@ public class Av1ForwardTransformTests
     /// Gets every normative transform size, type, and bit-depth combination shared with the inverse suite.
     /// </summary>
     public static TheoryData<int, int, int> ValidTransformCases { get; } = CreateValidTransformCases();
+
+    /// <summary>
+    /// Verifies the fast screening transform against the independent Hadamard matrix definition at every sample precision.
+    /// </summary>
+    /// <param name="maximum">The largest residual magnitude for the coded sample precision.</param>
+    [Theory]
+    [InlineData(255)]
+    [InlineData(1023)]
+    [InlineData(4095)]
+    public void HadamardScreeningCostMatchesAnalyticalReference(int maximum)
+    {
+        const int width = 8;
+        short[] residual = new short[width * width];
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        for (int pattern = 0; pattern < 5; pattern++)
+        {
+            for (int i = 0; i < residual.Length; i++)
+            {
+                residual[i] = (short)(pattern switch
+                {
+                    0 => maximum,
+                    1 => i == 19 ? -maximum : 0,
+                    2 => (i & 1) == 0 ? maximum : -maximum,
+                    3 => (((i / width) + (i % width)) & 1) == 0 ? maximum : -maximum,
+                    _ => ((i * 7919) % ((2 * maximum) + 1)) - maximum
+                });
+            }
+
+            int expected = 0;
+            for (int v = 0; v < width; v++)
+            {
+                for (int u = 0; u < width; u++)
+                {
+                    int coefficient = 0;
+                    for (int y = 0; y < width; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            // H[u,x] = (-1)^popcount(u & x). Direct matrix multiplication is independent of the
+                            // production butterfly stages, transpose tiles, and vectorized magnitude reduction.
+                            int parity = (BitOperations.PopCount((uint)(u & x)) + BitOperations.PopCount((uint)(v & y))) & 1;
+                            coefficient += (parity == 0 ? 1 : -1) * residual[(y * width) + x];
+                        }
+                    }
+
+                    expected += Math.Abs(coefficient);
+                }
+            }
+
+            Assert.Equal(expected, Av1ForwardTransformer.GetHadamard8x8Cost(residual, workspace));
+        }
+    }
+
+    /// <summary>
+    /// Verifies that intra screening reuses the block workspace without allocating per candidate.
+    /// </summary>
+    [Fact]
+    public void HadamardScreeningDoesNotAllocatePerCandidate()
+    {
+        short[] residual = new short[64];
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        Array.Fill(residual, (short)4095);
+        Av1ForwardTransformer.GetHadamard8x8Cost(residual, workspace);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        int cost = 0;
+        for (int i = 0; i < 32; i++)
+        {
+            cost = Av1ForwardTransformer.GetHadamard8x8Cost(residual, workspace);
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(64 * 4095, cost);
+        Assert.Equal(0, allocated);
+    }
+
+    /// <summary>
+    /// Verifies every quick Hadamard size against the scalar libaom transform hierarchy.
+    /// </summary>
+    /// <param name="size">The square transform width.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    [Theory]
+    [InlineData(4, 8)]
+    [InlineData(8, 8)]
+    [InlineData(16, 8)]
+    [InlineData(32, 8)]
+    [InlineData(4, 10)]
+    [InlineData(8, 10)]
+    [InlineData(16, 10)]
+    [InlineData(32, 10)]
+    [InlineData(4, 12)]
+    [InlineData(8, 12)]
+    [InlineData(16, 12)]
+    [InlineData(32, 12)]
+    public void QuickHadamardCostMatchesLibaomReference(int size, int bitDepth)
+    {
+        int maximum = (1 << bitDepth) - 1;
+        short[] residual = new short[size * size];
+        int[] coefficients = new int[size * size];
+        int[] expectedCoefficients = new int[size * size];
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        for (int pattern = 0; pattern < 5; pattern++)
+        {
+            for (int i = 0; i < residual.Length; i++)
+            {
+                residual[i] = (short)(pattern switch
+                {
+                    0 => maximum,
+                    1 => i == 19 % residual.Length ? -maximum : 0,
+                    2 => (i & 1) == 0 ? maximum : -maximum,
+                    3 => (((i / size) + (i % size)) & 1) == 0 ? maximum : -maximum,
+                    _ => ((i * 7919) % ((2 * maximum) + 1)) - maximum
+                });
+            }
+
+            ReferenceHadamard(residual, size, size, bitDepth > 8, expectedCoefficients);
+            long expected = expectedCoefficients.Sum(value => Math.Abs((long)value));
+            long actual = Av1ForwardTransformer.GetHadamardCost(
+                residual,
+                size,
+                size,
+                bitDepth > 8,
+                coefficients,
+                workspace);
+
+            Assert.Equal(expected, actual);
+        }
+    }
 
     /// <summary>
     /// Verifies every one-dimensional stage network across its scalar and available vector representations.
@@ -638,6 +766,7 @@ public class Av1ForwardTransformTests
                     2 => ((index * 73) % ((2 * sampleMaximum) + 1)) - sampleMaximum,
                     _ => 0,
                 });
+
             }
         }
 
@@ -845,6 +974,101 @@ public class Av1ForwardTransformTests
             3 => -255,
             _ => (((index * 73) + (lane * 151)) % 511) - 255,
         });
+
+    private static void ReferenceHadamard(
+        ReadOnlySpan<short> residual,
+        int stride,
+        int size,
+        bool highBitDepth,
+        Span<int> coefficients)
+    {
+        if (size is 4 or 8)
+        {
+            int[] intermediate = new int[size * size];
+            ReferenceHadamardPass(residual, stride, size, size == 4 || !highBitDepth, intermediate);
+            ReferenceHadamardPass(intermediate, size, size, size == 4 || !highBitDepth, coefficients);
+            return;
+        }
+
+        int half = size >> 1;
+        int quadrantLength = half * half;
+        for (int quadrant = 0; quadrant < 4; quadrant++)
+        {
+            int rowOffset = (quadrant >> 1) * half;
+            int columnOffset = (quadrant & 1) * half;
+            ReferenceHadamard(
+                residual[(rowOffset * stride + columnOffset)..],
+                stride,
+                half,
+                highBitDepth,
+                coefficients.Slice(quadrant * quadrantLength, quadrantLength));
+        }
+
+        int shift = size == 32 ? 2 : 1;
+        for (int index = 0; index < quadrantLength; index++)
+        {
+            int a0 = coefficients[index];
+            int a1 = coefficients[quadrantLength + index];
+            int a2 = coefficients[(2 * quadrantLength) + index];
+            int a3 = coefficients[(3 * quadrantLength) + index];
+            int b0 = (a0 + a1) >> shift;
+            int b1 = (a0 - a1) >> shift;
+            int b2 = (a2 + a3) >> shift;
+            int b3 = (a2 - a3) >> shift;
+            coefficients[index] = highBitDepth ? b0 + b2 : (short)(b0 + b2);
+            coefficients[quadrantLength + index] = highBitDepth ? b1 + b3 : (short)(b1 + b3);
+            coefficients[(2 * quadrantLength) + index] = highBitDepth ? b0 - b2 : (short)(b0 - b2);
+            coefficients[(3 * quadrantLength) + index] = highBitDepth ? b1 - b3 : (short)(b1 - b3);
+        }
+    }
+
+    private static void ReferenceHadamardPass<T>(
+        ReadOnlySpan<T> source,
+        int stride,
+        int size,
+        bool narrow,
+        Span<int> destination)
+        where T : unmanaged, INumber<T>
+    {
+        for (int column = 0; column < size; column++)
+        {
+            Span<int> values = stackalloc int[8];
+            for (int row = 0; row < size; row++)
+            {
+                values[row] = int.CreateChecked(source[(row * stride) + column]);
+            }
+
+            if (size == 4)
+            {
+                for (int pair = 0; pair < 4; pair += 2)
+                {
+                    int first = values[pair];
+                    int second = values[pair + 1];
+                    values[pair] = (first + second) >> 1;
+                    values[pair + 1] = (first - second) >> 1;
+                }
+            }
+
+            for (int half = size == 4 ? 2 : 1; half < size; half *= 2)
+            {
+                for (int start = 0; start < size; start += 2 * half)
+                {
+                    for (int index = start; index < start + half; index++)
+                    {
+                        int first = values[index];
+                        int second = values[index + half];
+                        values[index] = narrow ? (short)(first + second) : first + second;
+                        values[index + half] = narrow ? (short)(first - second) : first - second;
+                    }
+                }
+            }
+
+            for (int row = 0; row < size; row++)
+            {
+                destination[(column * size) + row] = values[row];
+            }
+        }
+    }
 
     /// <summary>
     /// Creates the complete normative transform matrix shared by the forward and inverse tests.

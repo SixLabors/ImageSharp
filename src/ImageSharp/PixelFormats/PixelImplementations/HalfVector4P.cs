@@ -250,7 +250,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float QuantizeScaledAlpha(float alpha)
     {
-        float nativeAlpha = HalfTypeHelper.FromScaled(Numerics.Clamp(alpha, 0F, 1F));
+        float nativeAlpha = HalfTypeHelper.FromScaled(alpha);
         return HalfTypeHelper.ToScaled(HalfTypeHelper.Unpack(HalfTypeHelper.Pack(nativeAlpha)));
     }
 

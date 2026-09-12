@@ -277,8 +277,8 @@ public partial struct RgbaHalfP
             {
                 for (; i <= componentCount - Vector512<ushort>.Count; i += Vector512<ushort>.Count)
                 {
-                    Vector512<float> lower = ClampUnit(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                    Vector512<float> upper = ClampUnit(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count)));
+                    Vector512<float> lower = Numerics.Clamp(Vector512.LoadUnsafe(ref sourceBase, (nuint)i), Vector512<float>.Zero, Vector512<float>.One);
+                    Vector512<float> upper = Numerics.Clamp(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count)), Vector512<float>.Zero, Vector512<float>.One);
                     Vector512.StoreUnsafe(HalfTypeHelper.Pack(lower, upper), ref destinationBase, (nuint)i);
                 }
             }
@@ -287,8 +287,8 @@ public partial struct RgbaHalfP
             {
                 for (; i <= componentCount - Vector256<ushort>.Count; i += Vector256<ushort>.Count)
                 {
-                    Vector256<float> lower = ClampUnit(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                    Vector256<float> upper = ClampUnit(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count)));
+                    Vector256<float> lower = Numerics.Clamp(Vector256.LoadUnsafe(ref sourceBase, (nuint)i), Vector256<float>.Zero, Vector256<float>.One);
+                    Vector256<float> upper = Numerics.Clamp(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count)), Vector256<float>.Zero, Vector256<float>.One);
                     Vector256.StoreUnsafe(HalfTypeHelper.Pack(lower, upper), ref destinationBase, (nuint)i);
                 }
             }
@@ -297,15 +297,15 @@ public partial struct RgbaHalfP
             {
                 for (; i <= componentCount - Vector128<ushort>.Count; i += Vector128<ushort>.Count)
                 {
-                    Vector128<float> lower = ClampUnit(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                    Vector128<float> upper = ClampUnit(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count)));
+                    Vector128<float> lower = Numerics.Clamp(Vector128.LoadUnsafe(ref sourceBase, (nuint)i), Vector128<float>.Zero, Vector128<float>.One);
+                    Vector128<float> upper = Numerics.Clamp(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count)), Vector128<float>.Zero, Vector128<float>.One);
                     Vector128.StoreUnsafe(HalfTypeHelper.Pack(lower, upper), ref destinationBase, (nuint)i);
                 }
 
                 if (i < componentCount)
                 {
                     // Duplicate the final vector to use the two-input narrowing primitive, then store only one complete pixel.
-                    Vector128<float> vector = ClampUnit(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
+                    Vector128<float> vector = Numerics.Clamp(Vector128.LoadUnsafe(ref sourceBase, (nuint)i), Vector128<float>.Zero, Vector128<float>.One);
                     Vector128<ushort> packed = HalfTypeHelper.Pack(vector, vector);
                     Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref destinationBase, (uint)i)), packed.AsUInt64().GetElement(0));
                 }
@@ -401,8 +401,8 @@ public partial struct RgbaHalfP
             {
                 for (; i <= componentCount - Vector512<ushort>.Count; i += Vector512<ushort>.Count)
                 {
-                    Vector512<float> lower = ClampUnit(Unassociate(Vector512.LoadUnsafe(ref sourceBase, (nuint)i)));
-                    Vector512<float> upper = ClampUnit(Unassociate(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count))));
+                    Vector512<float> lower = Numerics.Clamp(Unassociate(Vector512.LoadUnsafe(ref sourceBase, (nuint)i)), Vector512<float>.Zero, Vector512<float>.One);
+                    Vector512<float> upper = Numerics.Clamp(Unassociate(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count))), Vector512<float>.Zero, Vector512<float>.One);
                     Vector512.StoreUnsafe(HalfTypeHelper.Pack(lower, upper), ref destinationBase, (nuint)i);
                 }
             }
@@ -411,8 +411,8 @@ public partial struct RgbaHalfP
             {
                 for (; i <= componentCount - Vector256<ushort>.Count; i += Vector256<ushort>.Count)
                 {
-                    Vector256<float> lower = ClampUnit(Unassociate(Vector256.LoadUnsafe(ref sourceBase, (nuint)i)));
-                    Vector256<float> upper = ClampUnit(Unassociate(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count))));
+                    Vector256<float> lower = Numerics.Clamp(Unassociate(Vector256.LoadUnsafe(ref sourceBase, (nuint)i)), Vector256<float>.Zero, Vector256<float>.One);
+                    Vector256<float> upper = Numerics.Clamp(Unassociate(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count))), Vector256<float>.Zero, Vector256<float>.One);
                     Vector256.StoreUnsafe(HalfTypeHelper.Pack(lower, upper), ref destinationBase, (nuint)i);
                 }
             }
@@ -421,15 +421,15 @@ public partial struct RgbaHalfP
             {
                 for (; i <= componentCount - Vector128<ushort>.Count; i += Vector128<ushort>.Count)
                 {
-                    Vector128<float> lower = ClampUnit(Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)));
-                    Vector128<float> upper = ClampUnit(Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count))));
+                    Vector128<float> lower = Numerics.Clamp(Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)), Vector128<float>.Zero, Vector128<float>.One);
+                    Vector128<float> upper = Numerics.Clamp(Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count))), Vector128<float>.Zero, Vector128<float>.One);
                     Vector128.StoreUnsafe(HalfTypeHelper.Pack(lower, upper), ref destinationBase, (nuint)i);
                 }
 
                 if (i < componentCount)
                 {
                     // Duplicate the final vector to use the two-input narrowing primitive, then store only one complete pixel.
-                    Vector128<float> vector = ClampUnit(Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)));
+                    Vector128<float> vector = Numerics.Clamp(Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)), Vector128<float>.Zero, Vector128<float>.One);
                     Vector128<ushort> packed = HalfTypeHelper.Pack(vector, vector);
                     Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref destinationBase, (uint)i)), packed.AsUInt64().GetElement(0));
                 }
@@ -650,48 +650,6 @@ public partial struct RgbaHalfP
         }
 
         /// <summary>
-        /// Clamps vectors to the unit range represented by the pixel format.
-        /// </summary>
-        /// <param name="source">The vectors to clamp.</param>
-        /// <returns>The clamped vectors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<float> ClampUnit(Vector128<float> source)
-        {
-            Vector128<float> clamped = Vector128.Min(Vector128.Max(source, Vector128<float>.Zero), Vector128<float>.One);
-
-            // Ordered comparison is false for NaN, restoring the source lane to match the scalar clamp contract.
-            return Vector128.ConditionalSelect(Vector128.Equals(source, source), clamped, source);
-        }
-
-        /// <summary>
-        /// Clamps vectors to the unit range represented by the pixel format.
-        /// </summary>
-        /// <param name="source">The vectors to clamp.</param>
-        /// <returns>The clamped vectors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<float> ClampUnit(Vector256<float> source)
-        {
-            Vector256<float> clamped = Vector256.Min(Vector256.Max(source, Vector256<float>.Zero), Vector256<float>.One);
-
-            // Ordered comparison is false for NaN, restoring the source lane to match the scalar clamp contract.
-            return Vector256.ConditionalSelect(Vector256.Equals(source, source), clamped, source);
-        }
-
-        /// <summary>
-        /// Clamps vectors to the unit range represented by the pixel format.
-        /// </summary>
-        /// <param name="source">The vectors to clamp.</param>
-        /// <returns>The clamped vectors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector512<float> ClampUnit(Vector512<float> source)
-        {
-            Vector512<float> clamped = Vector512.Min(Vector512.Max(source, Vector512<float>.Zero), Vector512<float>.One);
-
-            // Ordered comparison is false for NaN, restoring the source lane to match the scalar clamp contract.
-            return Vector512.ConditionalSelect(Vector512.Equals(source, source), clamped, source);
-        }
-
-        /// <summary>
         /// Associates unassociated vectors with the alpha value binary16 storage can reproduce.
         /// </summary>
         /// <param name="source">The unassociated vectors.</param>
@@ -699,7 +657,7 @@ public partial struct RgbaHalfP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<float> AssociateForStorage(Vector128<float> source)
         {
-            source = ClampUnit(source);
+            source = Numerics.Clamp(source, Vector128<float>.Zero, Vector128<float>.One);
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
             Vector128<float> storedAlpha = HalfTypeHelper.RoundToHalf(alpha);
             Vector128<float> result = source * storedAlpha;
@@ -714,7 +672,7 @@ public partial struct RgbaHalfP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<float> AssociateForStorage(Vector256<float> source)
         {
-            source = ClampUnit(source);
+            source = Numerics.Clamp(source, Vector256<float>.Zero, Vector256<float>.One);
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
             Vector256<float> storedAlpha = HalfTypeHelper.RoundToHalf(alpha);
             Vector256<float> result = source * storedAlpha;
@@ -729,7 +687,7 @@ public partial struct RgbaHalfP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector512<float> AssociateForStorage(Vector512<float> source)
         {
-            source = ClampUnit(source);
+            source = Numerics.Clamp(source, Vector512<float>.Zero, Vector512<float>.One);
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
             Vector512<float> storedAlpha = HalfTypeHelper.RoundToHalf(alpha);
             Vector512<float> result = source * storedAlpha;
@@ -747,11 +705,13 @@ public partial struct RgbaHalfP
         {
             Vector128<float> zero = Vector128<float>.Zero;
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector128<float> clampedAlpha = ClampUnit(alpha);
+            Vector128<float> clampedAlpha = Numerics.Clamp(alpha, Vector128<float>.Zero, Vector128<float>.One);
             Vector128<float> storedAlpha = HalfTypeHelper.RoundToHalf(clampedAlpha);
             Vector128<float> result = source * (storedAlpha / alpha);
             result = Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), storedAlpha, result);
-            result = Vector128.Min(Vector128.Max(result, zero), storedAlpha);
+
+            // Clamp after the alpha ratio, matching the scalar conversion for nonfinite RGB.
+            result = Numerics.Clamp(result, zero, storedAlpha);
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -765,11 +725,13 @@ public partial struct RgbaHalfP
         {
             Vector256<float> zero = Vector256<float>.Zero;
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector256<float> clampedAlpha = ClampUnit(alpha);
+            Vector256<float> clampedAlpha = Numerics.Clamp(alpha, Vector256<float>.Zero, Vector256<float>.One);
             Vector256<float> storedAlpha = HalfTypeHelper.RoundToHalf(clampedAlpha);
             Vector256<float> result = source * (storedAlpha / alpha);
             result = Vector256.ConditionalSelect(Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle(), storedAlpha, result);
-            result = Vector256.Min(Vector256.Max(result, zero), storedAlpha);
+
+            // Clamp after the alpha ratio, matching the scalar conversion for nonfinite RGB.
+            result = Numerics.Clamp(result, zero, storedAlpha);
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -783,12 +745,14 @@ public partial struct RgbaHalfP
         {
             Vector512<float> zero = Vector512<float>.Zero;
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector512<float> clampedAlpha = ClampUnit(alpha);
+            Vector512<float> clampedAlpha = Numerics.Clamp(alpha, Vector512<float>.Zero, Vector512<float>.One);
             Vector512<float> storedAlpha = HalfTypeHelper.RoundToHalf(clampedAlpha);
             Vector512<float> result = source * (storedAlpha / alpha);
             Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Vector512.Min(Vector512.Max(result, zero), storedAlpha);
+
+            // Clamp after the alpha ratio, matching the scalar conversion for nonfinite RGB.
+            result = Numerics.Clamp(result, zero, storedAlpha);
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(alpha, zero), zero, result);
         }
     }

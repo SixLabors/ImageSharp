@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
@@ -50,52 +51,228 @@ internal static class HalfTypeHelper
     internal static float Unpack(ushort value) => (float)BitConverter.UInt16BitsToHalf(value);
 
     /// <summary>
-    /// Normalizes a finite binary16 value to the scaled pixel range.
+    /// Normalizes a binary16 value to [0, 1], saturating infinities and mapping NaN to zero.
     /// </summary>
     /// <param name="value">The native binary16 value represented as a <see cref="float"/>.</param>
     /// <returns>The normalized value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static float ToScaled(float value) => (value * InverseFiniteRange) + ScaledMidpoint;
+    public static float ToScaled(float value)
+    {
+        // Clamp after mapping so native infinities reach the scaled endpoints and NaN becomes zero.
+        return Numerics.Clamp((value * InverseFiniteRange) + ScaledMidpoint, 0F, 1F);
+    }
 
     /// <summary>
-    /// Normalizes finite binary16 values to the scaled pixel range.
+    /// Normalizes binary16 values to [0, 1], saturating infinities and mapping NaN to zero.
     /// </summary>
     /// <param name="value">The native binary16 values.</param>
     /// <returns>The normalized values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector2 ToScaled(Vector2 value) => (value * InverseFiniteRange) + new Vector2(ScaledMidpoint);
+    public static Vector2 ToScaled(Vector2 value) => ToScaled(value.AsVector128()).AsVector2();
 
     /// <summary>
-    /// Normalizes finite binary16 values to the scaled pixel range.
+    /// Normalizes binary16 values to [0, 1], saturating infinities and mapping NaN to zero.
     /// </summary>
     /// <param name="value">The native binary16 values.</param>
     /// <returns>The normalized values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector4 ToScaled(Vector4 value) => (value * InverseFiniteRange) + new Vector4(ScaledMidpoint);
+    public static Vector4 ToScaled(Vector4 value) => ToScaled(value.AsVector128()).AsVector4();
 
     /// <summary>
-    /// Expands a normalized value to the finite binary16 range.
+    /// Normalizes binary16 values to [0, 1], saturating infinities and mapping NaN to zero.
+    /// </summary>
+    /// <param name="value">The component values.</param>
+    /// <returns>The converted values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> ToScaled(Vector128<float> value)
+    {
+        Vector128<float> scaled = (value * Vector128.Create(InverseFiniteRange)) + Vector128.Create(ScaledMidpoint);
+
+        return Numerics.Clamp(scaled, Vector128<float>.Zero, Vector128<float>.One);
+    }
+
+    /// <summary>
+    /// Normalizes binary16 values to [0, 1], saturating infinities and mapping NaN to zero.
+    /// </summary>
+    /// <param name="value">The component values.</param>
+    /// <returns>The converted values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> ToScaled(Vector256<float> value)
+    {
+        Vector256<float> scaled = (value * Vector256.Create(InverseFiniteRange)) + Vector256.Create(ScaledMidpoint);
+
+        return Numerics.Clamp(scaled, Vector256<float>.Zero, Vector256<float>.One);
+    }
+
+    /// <summary>
+    /// Normalizes binary16 values to [0, 1], saturating infinities and mapping NaN to zero.
+    /// </summary>
+    /// <param name="value">The component values.</param>
+    /// <returns>The converted values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> ToScaled(Vector512<float> value)
+    {
+        Vector512<float> scaled = (value * Vector512.Create(InverseFiniteRange)) + Vector512.Create(ScaledMidpoint);
+
+        return Numerics.Clamp(scaled, Vector512<float>.Zero, Vector512<float>.One);
+    }
+
+    /// <summary>
+    /// Normalizes binary16 values to [0, 1], saturating infinities and mapping NaN to zero.
+    /// </summary>
+    /// <param name="values">The component values to convert in place.</param>
+    public static void ToScaled(Span<Vector4> values)
+    {
+        ref Vector4 source = ref MemoryMarshal.GetReference(values);
+        int i = 0;
+
+        // Each register contains whole RGBA pixels. Convert wide groups first, then narrower
+        // remainders without revisiting any pixel: mapping the same pixel twice would change its value.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            int pixelsPerRegister = Vector512<float>.Count / Vector128<float>.Count;
+
+            for (; i <= values.Length - pixelsPerRegister; i += pixelsPerRegister)
+            {
+                ref Vector512<float> vector = ref Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref source, (uint)i));
+
+                vector = ToScaled(vector);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            int pixelsPerRegister = Vector256<float>.Count / Vector128<float>.Count;
+
+            for (; i <= values.Length - pixelsPerRegister; i += pixelsPerRegister)
+            {
+                ref Vector256<float> vector = ref Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref source, (uint)i));
+
+                vector = ToScaled(vector);
+            }
+        }
+
+        // One Vector4 uses the same 128-bit conversion as an individual pixel, including the
+        // runtime's software fallback when SIMD is unavailable. No separate scalar mapping is needed.
+        for (; i < values.Length; i++)
+        {
+            ref Vector4 vector = ref Unsafe.Add(ref source, (uint)i);
+
+            vector = ToScaled(vector);
+        }
+    }
+
+    /// <summary>
+    /// Normalizes a scaled value, mapping NaN to zero, and expands it to the finite binary16 range.
     /// </summary>
     /// <param name="value">The normalized value.</param>
     /// <returns>The native binary16 value represented as a <see cref="float"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static float FromScaled(float value) => (value * FiniteRange) + FiniteMinimum;
+    public static float FromScaled(float value)
+    {
+        // Clamp before expanding so nonfinite scaled input cannot become nonfinite half storage.
+        return (Numerics.Clamp(value, 0F, 1F) * FiniteRange) + FiniteMinimum;
+    }
 
     /// <summary>
-    /// Expands normalized values to the finite binary16 range.
+    /// Normalizes scaled values, mapping NaN to zero, and expands them to the finite binary16 range.
     /// </summary>
     /// <param name="value">The normalized values.</param>
     /// <returns>The native binary16 values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector2 FromScaled(Vector2 value) => (value * FiniteRange) + new Vector2(FiniteMinimum);
+    public static Vector2 FromScaled(Vector2 value) => FromScaled(value.AsVector128()).AsVector2();
 
     /// <summary>
-    /// Expands normalized values to the finite binary16 range.
+    /// Normalizes scaled values, mapping NaN to zero, and expands them to the finite binary16 range.
     /// </summary>
     /// <param name="value">The normalized values.</param>
     /// <returns>The native binary16 values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector4 FromScaled(Vector4 value) => (value * FiniteRange) + new Vector4(FiniteMinimum);
+    public static Vector4 FromScaled(Vector4 value) => FromScaled(value.AsVector128()).AsVector4();
+
+    /// <summary>
+    /// Normalizes scaled values, mapping NaN to zero, and expands them to the finite binary16 range.
+    /// </summary>
+    /// <param name="value">The component values.</param>
+    /// <returns>The converted values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> FromScaled(Vector128<float> value)
+    {
+        Vector128<float> scaled = Numerics.Clamp(value, Vector128<float>.Zero, Vector128<float>.One);
+
+        return (scaled * Vector128.Create(FiniteRange)) + Vector128.Create(FiniteMinimum);
+    }
+
+    /// <summary>
+    /// Normalizes scaled values, mapping NaN to zero, and expands them to the finite binary16 range.
+    /// </summary>
+    /// <param name="value">The component values.</param>
+    /// <returns>The converted values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> FromScaled(Vector256<float> value)
+    {
+        Vector256<float> scaled = Numerics.Clamp(value, Vector256<float>.Zero, Vector256<float>.One);
+
+        return (scaled * Vector256.Create(FiniteRange)) + Vector256.Create(FiniteMinimum);
+    }
+
+    /// <summary>
+    /// Normalizes scaled values, mapping NaN to zero, and expands them to the finite binary16 range.
+    /// </summary>
+    /// <param name="value">The component values.</param>
+    /// <returns>The converted values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> FromScaled(Vector512<float> value)
+    {
+        Vector512<float> scaled = Numerics.Clamp(value, Vector512<float>.Zero, Vector512<float>.One);
+
+        return (scaled * Vector512.Create(FiniteRange)) + Vector512.Create(FiniteMinimum);
+    }
+
+    /// <summary>
+    /// Normalizes scaled values, mapping NaN to zero, and expands them to the finite binary16 range.
+    /// </summary>
+    /// <param name="values">The component values to convert in place.</param>
+    public static void FromScaled(Span<Vector4> values)
+    {
+        ref Vector4 source = ref MemoryMarshal.GetReference(values);
+        int i = 0;
+
+        // Each register contains whole RGBA pixels. Clamping and expansion happen together in
+        // the conversion overload, so each pixel is loaded and stored once without a clamp-only pass.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            int pixelsPerRegister = Vector512<float>.Count / Vector128<float>.Count;
+
+            for (; i <= values.Length - pixelsPerRegister; i += pixelsPerRegister)
+            {
+                ref Vector512<float> vector = ref Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref source, (uint)i));
+
+                vector = FromScaled(vector);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            int pixelsPerRegister = Vector256<float>.Count / Vector128<float>.Count;
+
+            for (; i <= values.Length - pixelsPerRegister; i += pixelsPerRegister)
+            {
+                ref Vector256<float> vector = ref Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref source, (uint)i));
+
+                vector = FromScaled(vector);
+            }
+        }
+
+        // The remaining whole pixels use the same 128-bit conversion as individual pixels,
+        // or its software fallback. Narrowing the remainder never reprocesses a converted pixel.
+        for (; i < values.Length; i++)
+        {
+            ref Vector4 vector = ref Unsafe.Add(ref source, (uint)i);
+
+            vector = FromScaled(vector);
+        }
+    }
 
     /// <summary>
     /// Unpacks eight binary16 values into two vectors of single-precision values.

@@ -195,11 +195,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     switch (chunk.Type)
                     {
                         case PngChunkType.Header:
-                            if (!Equals(this.header, default(PngHeader)))
-                            {
-                                PngThrowHelper.ThrowInvalidHeader();
-                            }
-
                             this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.AnimationControl:
@@ -656,7 +651,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         frameMetadata.FromChunk(in frameControl);
 
         this.bytesPerPixel = this.CalculateBytesPerPixel();
-        this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
+        this.bytesPerScanline = CalculateScanlineLength(this.header.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
         this.bytesPerSample = 1;
         if (this.header.BitDepth >= 8)
         {
@@ -741,21 +736,29 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// Calculates the scanline length.
     /// </summary>
     /// <param name="width">The width of the row.</param>
+    /// <param name="bitDepth">The number of bits per sample.</param>
+    /// <param name="bytesPerPixel">The number of bytes per pixel.</param>
     /// <returns>
     /// The <see cref="int"/> representing the length.
     /// </returns>
-    private int CalculateScanlineLength(int width)
+    internal static int CalculateScanlineLength(int width, int bitDepth, int bytesPerPixel)
     {
-        int mod = this.header.BitDepth == 16 ? 16 : 8;
-        int scanlineLength = width * this.header.BitDepth * this.bytesPerPixel;
+        int mod = bitDepth == 16 ? 16 : 8;
+        long scanlineLength = (long)width * bitDepth * bytesPerPixel;
 
-        int amount = scanlineLength % mod;
+        long amount = scanlineLength % mod;
         if (amount != 0)
         {
             scanlineLength += mod - amount;
         }
 
-        return scanlineLength / mod;
+        scanlineLength /= mod;
+        if (scanlineLength >= int.MaxValue)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("PNG scanline length exceeds the supported maximum.");
+        }
+
+        return (int)scanlineLength;
     }
 
     /// <summary>
@@ -875,13 +878,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            int bytesPerFrameScanline = this.CalculateScanlineLength((int)frameControl.Width) + 1;
+            int bytesPerFrameScanline = CalculateScanlineLength((int)frameControl.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
             Span<byte> scanSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
             Span<byte> prevSpan = this.previousScanline.GetSpan()[..bytesPerFrameScanline];
 
             while (currentRowBytesRead < bytesPerFrameScanline)
             {
-                int bytesRead = compressedStream.Read(scanSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
+                int bytesRead = compressedStream.Read(scanSpan.Slice(currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead));
                 if (bytesRead <= 0)
                 {
                     goto EXIT;
@@ -1006,14 +1009,14 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 continue;
             }
 
-            int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
+            int bytesPerInterlaceScanline = CalculateScanlineLength(numColumns, this.header.BitDepth, this.bytesPerPixel) + 1;
 
             while (currentRow < endRow)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 while (currentRowBytesRead < bytesPerInterlaceScanline)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline.GetSpan(), currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead);
+                    int bytesRead = compressedStream.Read(this.scanline.GetSpan().Slice(currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead));
                     if (bytesRead <= 0)
                     {
                         goto EXIT;
@@ -1439,6 +1442,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
     private void ReadHeaderChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
     {
+        if (!Equals(this.header, default(PngHeader)))
+        {
+            PngThrowHelper.ThrowInvalidHeader();
+        }
+
         this.header = PngHeader.Parse(data);
 
         this.header.Validate();
@@ -1976,21 +1984,36 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 return false;
             }
 
-            int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
-            while (bytesRead != 0)
+            try
             {
-                if (memoryStreamOutput.Length > maxLength)
+                int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
+                while (bytesRead != 0)
                 {
-                    uncompressedBytesArray = [];
-                    return false;
+                    if (memoryStreamOutput.Length > maxLength)
+                    {
+                        uncompressedBytesArray = [];
+                        return false;
+                    }
+
+                    memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
+                    bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
                 }
 
-                memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
-                bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                uncompressedBytesArray = memoryStreamOutput.ToArray();
+                return true;
             }
+            catch (InvalidDataException ex)
+            {
+                // ICC and text chunks are already bounded in memory, so rejecting their compressed contents
+                // does not lose the next chunk boundary. Apply the ancillary policy without keeping partial output.
+                if (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.Strict)
+                {
+                    throw new InvalidImageContentException("Invalid compressed PNG metadata.", ex);
+                }
 
-            uncompressedBytesArray = memoryStreamOutput.ToArray();
-            return true;
+                uncompressedBytesArray = [];
+                return false;
+            }
         }
     }
 

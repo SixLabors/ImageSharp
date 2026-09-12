@@ -53,6 +53,36 @@ public class IccDataReaderLutTests
         Assert.Equal(expected, output);
     }
 
+    [Fact]
+    public void ReadClut_WithOversizedDimensions_ThrowsInvalidIccProfileException()
+    {
+        byte[] gridPointCount = Enumerable.Repeat((byte)3, 15).ToArray();
+
+        Assert.Throws<InvalidIccProfileException>(() => CreateReader(new byte[8]).ReadClut8(15, 15, gridPointCount));
+        Assert.Throws<InvalidIccProfileException>(() => CreateReader(new byte[8]).ReadClut16(15, 15, gridPointCount));
+        Assert.Throws<InvalidIccProfileException>(() => CreateReader(new byte[8]).ReadClutF32(15, 15, gridPointCount));
+    }
+
+    /// <summary>
+    /// A complete profile header and element table do not make absent CLUT values readable.
+    /// </summary>
+    [Fact]
+    public void ReadTagDataEntry_WithTruncatedClut_RejectsMissingValues()
+    {
+        // A2B0 starts at byte 144; its element at byte 168 declares a 15-channel, three-point grid.
+        byte[] data = Convert.FromHexString(
+            "000000C874657374040000006D6E74725247422058595A200000000000000000000000006163737000000000000000000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" +
+            "00000000000000000000000000000000000000000000000000000000000000014132423000000090000000386D7065740000" +
+            "000000000000000000010000001800000020636C7574000F000F030303030303030303030303030303000000000000000000");
+
+        IccDataReader reader = new(data);
+        IccTagTableEntry tag = new(IccProfileTag.AToB0, 144, 56);
+
+        Assert.Throws<InvalidIccProfileException>(() => reader.ReadTagDataEntry(tag));
+        Assert.Empty(new IccProfile(data).Entries);
+    }
+
     [Theory]
     [MemberData(nameof(IccTestDataLut.Lut8TestData), MemberType = typeof(IccTestDataLut))]
     internal void ReadLut8(byte[] data, IccLut expected)

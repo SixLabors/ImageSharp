@@ -197,7 +197,7 @@ public class ChunkedMemoryStreamTests
             readonlyStream.Position = 0;
 
             bytArrRet = new byte[(int)readonlyStream.Length];
-            readonlyStream.Read(bytArrRet, 0, (int)readonlyStream.Length);
+            readonlyStream.Read(bytArrRet);
             for (int i = 0; i < bytArr.Length; i++)
             {
                 Assert.Equal(bytArr[i], bytArrRet[i]);
@@ -216,7 +216,7 @@ public class ChunkedMemoryStreamTests
             ms2.WriteTo(ms3);
             ms3.Position = 0;
             bytArrRet = new byte[(int)ms3.Length];
-            ms3.Read(bytArrRet, 0, (int)ms3.Length);
+            ms3.Read(bytArrRet);
             for (int i = 0; i < bytArr.Length; i++)
             {
                 Assert.Equal(bytArr[i], bytArrRet[i]);

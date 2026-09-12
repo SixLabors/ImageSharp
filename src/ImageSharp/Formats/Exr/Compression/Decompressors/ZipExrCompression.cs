@@ -26,15 +26,14 @@ internal class ZipExrCompression : ExrBaseDecompressor
         : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
     /// <inheritdoc/>
-    public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
+    public override void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
-        Span<byte> uncompressed = this.tmpBuffer.GetSpan();
+        Span<byte> uncompressed = this.tmpBuffer.GetSpan()[..(int)uncompressedBytes];
 
-        uint uncompressedBytes = (uint)buffer.Length;
         int totalRead = UndoZipCompression(stream, compressedBytes, uncompressed, uncompressedBytes);
 
-        Reconstruct(uncompressed, (uint)totalRead);
-        Interleave(uncompressed, (uint)totalRead, buffer);
+        Reconstruct(uncompressed, uncompressedBytes);
+        Interleave(uncompressed, uncompressedBytes, buffer);
     }
 
     /// <inheritdoc/>

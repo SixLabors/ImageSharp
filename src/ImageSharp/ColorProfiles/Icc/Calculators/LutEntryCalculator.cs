@@ -59,6 +59,11 @@ internal class LutEntryCalculator : IVector4Calculator
 
     private void Init(IccLut[] inputCurve, IccLut[] outputCurve, IccClut clut, Matrix4x4 matrix)
     {
+        if (inputCurve.Length > 4 || outputCurve.Length > 4)
+        {
+            throw new InvalidIccProfileException("ICC conversion supports at most four input and output channels.");
+        }
+
         this.inputCurve = InitLut(inputCurve);
         this.outputCurve = InitLut(outputCurve);
         this.clutCalculator = new ClutCalculator(clut);

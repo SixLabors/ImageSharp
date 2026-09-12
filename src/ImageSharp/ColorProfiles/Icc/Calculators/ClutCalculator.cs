@@ -42,6 +42,10 @@ internal class ClutCalculator : IVector4Calculator
         Guard.NotNull(clut, nameof(clut));
         Guard.MustBeGreaterThan(clut.InputChannelCount, 0, nameof(clut.InputChannelCount));
         Guard.MustBeGreaterThan(clut.OutputChannelCount, 0, nameof(clut.OutputChannelCount));
+        if (clut.InputChannelCount > 4 || clut.OutputChannelCount > 4)
+        {
+            throw new InvalidIccProfileException("ICC conversion supports at most four input and output channels.");
+        }
 
         this.inputCount = clut.InputChannelCount;
         this.outputCount = clut.OutputChannelCount;

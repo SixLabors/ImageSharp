@@ -57,6 +57,7 @@ public static class TestImages
         public const string LowColorVariance = "Png/low-variance.png";
         public const string PngWithMetadata = "Png/PngWithMetaData.png";
         public const string InvalidTextData = "Png/InvalidTextData.png";
+        public const string DuplicateHeaderChunkResync = "Png/duplicate-header-chunk-resync.png";
         public const string David = "Png/david.png";
         public const string TestPattern31x31 = "Png/testpattern31x31.png";
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";

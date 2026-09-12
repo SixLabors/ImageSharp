@@ -554,6 +554,45 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_BlackIsZero_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax);
 
+    /// <summary>
+    /// CCITT row framing must fit even when each row contains only one pixel.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(64)]
+    public void TiffEncoder_EncodeNarrowCcittGroup3Fax_Works(int width)
+    {
+        using Image<L8> image = new(width, 2000);
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                image[x, y] = new L8((byte)(((x + y) & 1) == 0 ? 255 : 0));
+            }
+        }
+
+        TiffFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+        metadata.BitsPerPixel = TiffBitsPerPixel.Bit1;
+        metadata.Compression = TiffCompression.CcittGroup3Fax;
+
+        using MemoryStream output = new();
+        image.Save(output, new TiffEncoder());
+
+        output.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(output);
+        Assert.Equal(image.Size, decoded.Size);
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                Assert.Equal(image[x, y], decoded[x, y]);
+            }
+        }
+    }
+
     [Theory]
     [WithFile(Issues2255, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_WithoutSpecifyingBitPerPixel_Works<TPixel>(TestImageProvider<TPixel> provider)
@@ -568,6 +607,26 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeBiColor_WithCcittGroup4FaxCompression_BlackIsZero_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup4Fax);
+
+    /// <summary>
+    /// Re-encoding a one-pixel Group 4 image must retain its pixel and fit the end-of-block code.
+    /// </summary>
+    [Fact]
+    public void TiffEncoder_ReencodeNarrowCcittGroup4Fax_Works()
+    {
+        byte[] data = Convert.FromBase64String(
+            "SUkqAAgAAAAJAAABAwABAAAAAQAAAAEBAwABAAAAAQAAAAIBAwABAAAAAQAAAAMBAwABAAAABAAAAAYBAwABAAAAAAAAABEBBAABAAAA" +
+            "egAAABUBAwABAAAAAQAAABYBBAABAAAAAQAAABcBBAABAAAABAAAAAAAAACACACA");
+
+        using Image<L8> image = Image.Load<L8>(data);
+        using MemoryStream output = new();
+        image.Save(output, new TiffEncoder());
+
+        output.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(output);
+        Assert.Equal(new Size(1, 1), decoded.Size);
+        Assert.Equal(image[0, 0], decoded[0, 0]);
+    }
 
     [Theory]
     [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]

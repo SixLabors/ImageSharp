@@ -261,11 +261,6 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             this.currentLocalColorTable?.Dispose();
         }
 
-        if (this.logicalScreenDescriptor.Width == 0 && this.logicalScreenDescriptor.Height == 0)
-        {
-            GifThrowHelper.ThrowNoHeader();
-        }
-
         // Ignoring a malformed ancillary extension must not let identify succeed for a file
         // that never contained any readable image frame data.
         if (previousFrame is null)
@@ -328,6 +323,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
+        if (this.logicalScreenDescriptor.Width == 0 || this.logicalScreenDescriptor.Height == 0)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
+        }
     }
 
     /// <summary>

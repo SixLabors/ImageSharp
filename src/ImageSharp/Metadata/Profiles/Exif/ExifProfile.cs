@@ -221,14 +221,21 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
         => this.SetValueInternal(tag, value);
 
     /// <summary>
-    /// Converts this instance to a byte array.
+    /// Converts the sections selected by <see cref="Parts"/> to a byte array.
     /// </summary>
     /// <returns>The <see cref="T:byte[]"/></returns>
     public byte[]? ToByteArray()
     {
         if (this.values is null)
         {
-            return this.data;
+            // The original bytes include every section. They can only be reused when no filtering
+            // is requested; otherwise lazy profiles must go through the same writer as initialized ones.
+            if (this.Parts == ExifParts.All)
+            {
+                return this.data;
+            }
+
+            this.InitializeValues();
         }
 
         if (this.values.Count == 0)

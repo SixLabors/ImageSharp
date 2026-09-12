@@ -20,16 +20,11 @@ public partial struct HalfVector4P
     /// </summary>
     internal class PixelOperations : AssociatedAlphaPixelOperations<HalfVector4P>
     {
-        private static readonly Vector4 NativeToScaledMultiplier = new(HalfTypeHelper.InverseFiniteRange);
-        private static readonly Vector4 NativeToScaledOffset = new(HalfTypeHelper.ScaledMidpoint);
-        private static readonly Vector4 ScaledToNativeMultiplier = new(HalfTypeHelper.FiniteRange);
-        private static readonly Vector4 ScaledToNativeOffset = new(HalfTypeHelper.FiniteMinimum);
-
         /// <inheritdoc />
         protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<HalfVector4P> source, Span<Vector4> destination)
         {
             this.ToUnassociatedScaledVector4(configuration, source, destination);
-            Vector4Converters.MultiplyThenAdd(destination[..source.Length], ScaledToNativeMultiplier, ScaledToNativeOffset);
+            HalfTypeHelper.FromScaled(destination[..source.Length]);
         }
 
         /// <inheritdoc />
@@ -54,7 +49,7 @@ public partial struct HalfVector4P
 
             destination = destination[..source.Length];
             RgbaHalfP.PixelOperations.Unpack(MemoryMarshal.Cast<HalfVector4P, RgbaHalfP>(source), destination);
-            Vector4Converters.MultiplyThenAdd(destination, NativeToScaledMultiplier, NativeToScaledOffset);
+            HalfTypeHelper.ToScaled(destination);
         }
 
         /// <inheritdoc />
@@ -62,7 +57,7 @@ public partial struct HalfVector4P
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            Vector4Converters.MultiplyThenAdd(source, NativeToScaledMultiplier, NativeToScaledOffset);
+            HalfTypeHelper.ToScaled(source);
             Associate(source);
             PackAssociatedScaled(source, destination[..source.Length]);
         }
@@ -72,7 +67,7 @@ public partial struct HalfVector4P
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            Vector4Converters.MultiplyThenAdd(source, NativeToScaledMultiplier, NativeToScaledOffset);
+            HalfTypeHelper.ToScaled(source);
             Reassociate(source);
             PackAssociatedScaled(source, destination[..source.Length]);
         }
@@ -250,7 +245,9 @@ public partial struct HalfVector4P
             Vector128<float> storedAlpha = QuantizeScaledAlpha(alpha);
             Vector128<float> result = source * (storedAlpha / alpha);
             result = Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), storedAlpha, result);
-            result = Vector128.Min(Vector128.Max(result, zero), storedAlpha);
+
+            // Clamp after the alpha ratio, matching the scalar conversion for nonfinite RGB.
+            result = Numerics.Clamp(result, zero, storedAlpha);
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -267,7 +264,9 @@ public partial struct HalfVector4P
             Vector256<float> storedAlpha = QuantizeScaledAlpha(alpha);
             Vector256<float> result = source * (storedAlpha / alpha);
             result = Vector256.ConditionalSelect(Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle(), storedAlpha, result);
-            result = Vector256.Min(Vector256.Max(result, zero), storedAlpha);
+
+            // Clamp after the alpha ratio, matching the scalar conversion for nonfinite RGB.
+            result = Numerics.Clamp(result, zero, storedAlpha);
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -285,7 +284,9 @@ public partial struct HalfVector4P
             Vector512<float> result = source * (storedAlpha / alpha);
             Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Vector512.Min(Vector512.Max(result, zero), storedAlpha);
+
+            // Clamp after the alpha ratio, matching the scalar conversion for nonfinite RGB.
+            result = Numerics.Clamp(result, zero, storedAlpha);
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -297,8 +298,8 @@ public partial struct HalfVector4P
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<float> QuantizeScaledAlpha(Vector128<float> alpha)
         {
-            Vector128<float> native = (ClampUnit(alpha) * Vector128.Create(HalfTypeHelper.FiniteRange)) + Vector128.Create(HalfTypeHelper.FiniteMinimum);
-            return (HalfTypeHelper.RoundToHalf(native) * Vector128.Create(HalfTypeHelper.InverseFiniteRange)) + Vector128.Create(HalfTypeHelper.ScaledMidpoint);
+            Vector128<float> native = HalfTypeHelper.FromScaled(alpha);
+            return HalfTypeHelper.ToScaled(HalfTypeHelper.RoundToHalf(native));
         }
 
         /// <summary>
@@ -309,8 +310,8 @@ public partial struct HalfVector4P
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<float> QuantizeScaledAlpha(Vector256<float> alpha)
         {
-            Vector256<float> native = (ClampUnit(alpha) * Vector256.Create(HalfTypeHelper.FiniteRange)) + Vector256.Create(HalfTypeHelper.FiniteMinimum);
-            return (HalfTypeHelper.RoundToHalf(native) * Vector256.Create(HalfTypeHelper.InverseFiniteRange)) + Vector256.Create(HalfTypeHelper.ScaledMidpoint);
+            Vector256<float> native = HalfTypeHelper.FromScaled(alpha);
+            return HalfTypeHelper.ToScaled(HalfTypeHelper.RoundToHalf(native));
         }
 
         /// <summary>
@@ -321,45 +322,33 @@ public partial struct HalfVector4P
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector512<float> QuantizeScaledAlpha(Vector512<float> alpha)
         {
-            Vector512<float> native = (ClampUnit(alpha) * Vector512.Create(HalfTypeHelper.FiniteRange)) + Vector512.Create(HalfTypeHelper.FiniteMinimum);
-            return (HalfTypeHelper.RoundToHalf(native) * Vector512.Create(HalfTypeHelper.InverseFiniteRange)) + Vector512.Create(HalfTypeHelper.ScaledMidpoint);
+            Vector512<float> native = HalfTypeHelper.FromScaled(alpha);
+            return HalfTypeHelper.ToScaled(HalfTypeHelper.RoundToHalf(native));
         }
 
         /// <summary>
-        /// Clamps vectors to the scaled color range while preserving NaN lanes.
+        /// Clamps vectors to the scaled color range, mapping NaN lanes to zero.
         /// </summary>
         /// <param name="source">The vectors to clamp.</param>
         /// <returns>The clamped vectors.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<float> ClampUnit(Vector128<float> source)
-        {
-            Vector128<float> clamped = Vector128.Min(Vector128.Max(source, Vector128<float>.Zero), Vector128<float>.One);
-            return Vector128.ConditionalSelect(Vector128.Equals(source, source), clamped, source);
-        }
+        private static Vector128<float> ClampUnit(Vector128<float> source) => Numerics.Clamp(source, Vector128<float>.Zero, Vector128<float>.One);
 
         /// <summary>
-        /// Clamps vectors to the scaled color range while preserving NaN lanes.
+        /// Clamps vectors to the scaled color range, mapping NaN lanes to zero.
         /// </summary>
         /// <param name="source">The vectors to clamp.</param>
         /// <returns>The clamped vectors.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<float> ClampUnit(Vector256<float> source)
-        {
-            Vector256<float> clamped = Vector256.Min(Vector256.Max(source, Vector256<float>.Zero), Vector256<float>.One);
-            return Vector256.ConditionalSelect(Vector256.Equals(source, source), clamped, source);
-        }
+        private static Vector256<float> ClampUnit(Vector256<float> source) => Numerics.Clamp(source, Vector256<float>.Zero, Vector256<float>.One);
 
         /// <summary>
-        /// Clamps vectors to the scaled color range while preserving NaN lanes.
+        /// Clamps vectors to the scaled color range, mapping NaN lanes to zero.
         /// </summary>
         /// <param name="source">The vectors to clamp.</param>
         /// <returns>The clamped vectors.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector512<float> ClampUnit(Vector512<float> source)
-        {
-            Vector512<float> clamped = Vector512.Min(Vector512.Max(source, Vector512<float>.Zero), Vector512<float>.One);
-            return Vector512.ConditionalSelect(Vector512.Equals(source, source), clamped, source);
-        }
+        private static Vector512<float> ClampUnit(Vector512<float> source) => Numerics.Clamp(source, Vector512<float>.Zero, Vector512<float>.One);
 
         /// <summary>
         /// Maps associated scaled vectors to native components and packs them as binary16 values.
@@ -368,7 +357,7 @@ public partial struct HalfVector4P
         /// <param name="destination">The destination pixels.</param>
         private static void PackAssociatedScaled(Span<Vector4> source, Span<HalfVector4P> destination)
         {
-            Vector4Converters.MultiplyThenAdd(source, ScaledToNativeMultiplier, ScaledToNativeOffset);
+            HalfTypeHelper.FromScaled(source);
             RgbaHalfP.PixelOperations.PackUnclamped(source, MemoryMarshal.Cast<HalfVector4P, RgbaHalfP>(destination));
         }
     }

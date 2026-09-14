@@ -26,8 +26,6 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     private readonly bool hasAlpha;
     private Color[]? paletteColors;
 
-    private const float InvMax = 1f / 65535f;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteTiffColor{TPixel}"/> class.
     /// </summary>
@@ -42,8 +40,15 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
         int colorCount = 1 << this.bitsPerSample0;
 
+        // Match libtiff's legacy palette detection: use 8-bit scaling only when every RGB entry
+        // fits in 0-255. The runtime vectorizes this range check without allocating.
+        // Normalize by the selected channel range, not the observed maximum, to preserve brightness.
+        float colorScale = colorMap.AsSpan().ContainsAnyExceptInRange((ushort)0, (ushort)255)
+            ? 1f / 65535f
+            : 1f / 255f;
+
         // TIFF PaletteColor uses ColorMap (tag 320 / 0x0140) which is RGB-only (no alpha).
-        this.vectorPallete = GenerateVectorPalette(colorMap, colorCount);
+        this.vectorPallete = GenerateVectorPalette(colorMap, colorCount, colorScale);
 
         // ExtraSamples (tag 338 / 0x0152) describes extra per-pixel samples stored in the image data stream.
         // For PaletteColor, any alpha is per pixel (stored alongside the index), not per palette entry.
@@ -61,7 +66,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         else
         {
             // Pre-generate pixel palette for non-alpha case for performance.
-            this.pixelPalette = GeneratePixelPalette(colorMap, colorCount);
+            this.pixelPalette = GeneratePixelPalette(colorMap, colorCount, colorScale);
         }
     }
 
@@ -131,7 +136,14 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         }
     }
 
-    private static Vector4[] GenerateVectorPalette(ushort[] colorMap, int colorCount)
+    /// <summary>
+    /// Converts the RGB color map to normalized vectors with opaque alpha.
+    /// </summary>
+    /// <param name="colorMap">The planar RGB color map.</param>
+    /// <param name="colorCount">The number of palette colors.</param>
+    /// <param name="colorScale">The reciprocal of the detected channel range maximum.</param>
+    /// <returns>The normalized vector palette.</returns>
+    private static Vector4[] GenerateVectorPalette(ushort[] colorMap, int colorCount, float colorScale)
     {
         Vector4[] palette = new Vector4[colorCount];
 
@@ -141,16 +153,23 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
         for (int i = 0; i < palette.Length; i++)
         {
-            float r = colorMap[rOffset + i] * InvMax;
-            float g = colorMap[gOffset + i] * InvMax;
-            float b = colorMap[bOffset + i] * InvMax;
+            float r = colorMap[rOffset + i] * colorScale;
+            float g = colorMap[gOffset + i] * colorScale;
+            float b = colorMap[bOffset + i] * colorScale;
             palette[i] = new Vector4(r, g, b, 1f);
         }
 
         return palette;
     }
 
-    private static TPixel[] GeneratePixelPalette(ushort[] colorMap, int colorCount)
+    /// <summary>
+    /// Converts the RGB color map to pixels with opaque alpha.
+    /// </summary>
+    /// <param name="colorMap">The planar RGB color map.</param>
+    /// <param name="colorCount">The number of palette colors.</param>
+    /// <param name="colorScale">The reciprocal of the detected channel range maximum.</param>
+    /// <returns>The pixel palette.</returns>
+    private static TPixel[] GeneratePixelPalette(ushort[] colorMap, int colorCount, float colorScale)
     {
         TPixel[] palette = new TPixel[colorCount];
 
@@ -160,9 +179,9 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
         for (int i = 0; i < palette.Length; i++)
         {
-            float r = colorMap[rOffset + i] * InvMax;
-            float g = colorMap[gOffset + i] * InvMax;
-            float b = colorMap[bOffset + i] * InvMax;
+            float r = colorMap[rOffset + i] * colorScale;
+            float g = colorMap[gOffset + i] * colorScale;
+            float b = colorMap[bOffset + i] * colorScale;
             palette[i] = TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f));
         }
 

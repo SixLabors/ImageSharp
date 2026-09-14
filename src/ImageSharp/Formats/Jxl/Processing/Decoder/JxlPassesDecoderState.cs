@@ -39,7 +39,7 @@ internal sealed class JxlPassesDecoderState
 
     public JxlPassesSharedState Shared { get; set; }
 
-    public RenderPipelineStageBase[] Upsampler8x { get; set; } = [];
+    public RenderPipelineStageBase Upsampler8x { get; set; } = new();
 
     public List<JxlAnsCode> Code { get; set; } = [];
 

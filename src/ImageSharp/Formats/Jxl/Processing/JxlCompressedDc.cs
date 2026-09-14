@@ -13,7 +13,7 @@ internal static class JxlCompressedDc
     private const float W2 = 0.0334829185968739f;
     private const float W0 = 1.0f - (4.0f * (W1 + W2));
 
-    private static unsafe void ComputePixelChannelPacked(float dcFactor, Span<float> rowTop, Span<float> row, Span<float> rowBottom, out Vector<float> mc, out Vector<float> sm, out Vector<float> gap, int x)
+    private static unsafe void ComputePixelChannelPacked(float dcFactor, Span<float> rowTop, Span<float> row, Span<float> rowBottom, out Vector<float> mc, out Vector<float> sm, ref Vector<float> gap, int x)
     {
         // Use ptr for aligned vector loads
         fixed (float* pRowTop = rowTop)
@@ -30,7 +30,24 @@ internal static class JxlCompressedDc
                     Vector<float> tc = Vector.LoadAlignedNonTemporal(pRowTop + x);
                     Vector<float> tr = Vector.Load(pRowTop + x + 1);
 
-                    // TODO
+                    Vector<float> ml = Vector.Load(pRow + x - 1);
+                    mc = Vector.LoadAlignedNonTemporal(pRow + x);
+                    Vector<float> mr = Vector.Load(pRow + x + 1);
+
+                    Vector<float> bl = Vector.Load(pRowBottom + x - 1);
+                    Vector<float> bc = Vector.LoadAligned(pRowBottom + x);
+                    Vector<float> br = Vector.Load(pRowBottom + x + 1);
+
+                    Vector<float> wCenter = Vector.Create(W0);
+                    Vector<float> wSide = Vector.Create(W1);
+                    Vector<float> wCorner = Vector.Create(W2);
+
+                    Vector<float> corner = (tl + tr) + (bl + br);
+                    Vector<float> side = (ml + mr) + (tc + bc);
+                    sm = (corner * wCorner) + ((side * wSide) + (mc * wCenter));
+
+                    Vector<float> dcQuant = Vector.Create(dcFactor);
+                    gap = Vector.Max(gap, Vector.Abs((mc - sm) / dcQuant));
                 }
             }
         }

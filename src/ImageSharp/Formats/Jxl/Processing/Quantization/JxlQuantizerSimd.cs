@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 /// </summary>
 internal static class JxlQuantizerSimd
 {
-    public static Vector<float> AdjustQuantBias(int c, Vector<int> quantI, Span<float> biases)
+    public static Vector<float> AdjustQuantBias(int c, Vector<int> quantI, ReadOnlySpan<float> biases)
     {
         Vector<float> quant = quantI.As<int, float>();
         Vector<float> constSign = Vector.Create(int.MinValue).As<int, float>();

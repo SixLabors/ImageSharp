@@ -81,6 +81,13 @@ internal class JxlPlane<T> : JxlPlaneBase
     public Span<T> GetRowPlus(int y, int plus) => this.GetRowMinusBase<T>(y, plus);
 
     /// <summary>
+    /// Returns a memory for the specified row.
+    /// </summary>
+    /// <param name="y">The row index.</param>
+    /// <returns>A memory which covers data for the specified row.</returns>
+    public Memory<T> GetRowMemory(int y) => this.GetRowMemoryBase<T>(y);
+
+    /// <summary>
     /// Returns a span for the specified row within the specified rectangle bounds.
     /// </summary>
     /// <param name="rectangle">The bounds.</param>

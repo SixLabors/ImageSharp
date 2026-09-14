@@ -6,6 +6,7 @@
 // so we can use the ref keyword on them directly.
 #pragma warning disable IDE0032 // Use auto property
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
@@ -345,6 +346,43 @@ internal sealed class JxlFrameHeader : IJxlFields
                                    !this.isLast &&
                                        this.frameType != JxlFrameType.DcFrame &&
                                        (this.animationFrame?.Duration == 0 || this.saveAsReference != 0);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static InlineArray3<int> JpegOrder(JxlColorTransform transform, bool isGray)
+    {
+        if (isGray)
+        {
+            return default; // {0, 0, 0}
+        }
+
+        switch (transform)
+        {
+            case JxlColorTransform.YCbCr:
+            {
+                // {1, 0, 2}
+                InlineArray3<int> result = default;
+                result[0] = 1;
+                result[2] = 2;
+                return result;
+            }
+
+            case JxlColorTransform.None:
+            {
+                // {0, 1, 2}
+                InlineArray3<int> result = default;
+                result[1] = 1;
+                result[2] = 2;
+                return result;
+            }
+
+            case JxlColorTransform.Xyb:
+                // JPEG does not support XYB
+                throw new InvalidOperationException("Color transform cannot be XYB");
+
+            default:
+                throw new InvalidOperationException("Invalid color transform for JPEG order");
+        }
+    }
 
     private void UpdateFlag(bool condition, ulong flag)
     {

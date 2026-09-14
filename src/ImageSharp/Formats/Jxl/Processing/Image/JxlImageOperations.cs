@@ -401,7 +401,7 @@ internal static class JxlImageOperations
     /// Core method for the WrapMirror function.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int Mirror(long x, long xSize)
+    public static int Mirror(long x, long xSize)
     {
         DebugGuard.MustBeGreaterThan(xSize, 0, nameof(xSize));
 

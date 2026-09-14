@@ -175,6 +175,15 @@ internal class JxlPlaneBase : IDisposable
         return MemoryMarshal.Cast<byte, T>(row);
     }
 
+    protected Memory<T> GetRowMemoryBase<T>(int y)
+        where T : unmanaged
+    {
+        DebugGuard.MustBeLessThan(y, this.YSize, nameof(y));
+
+        Memory<byte> row = this.Bytes[(y * this.BytesPerRow)..];
+        return JxlMemoryHelpers.CastMemory<byte, T>(row);
+    }
+
     /// <summary>
     /// Swaps properties &amp; data of this image with the specified image.
     /// </summary>

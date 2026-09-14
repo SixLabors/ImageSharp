@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
 
 internal sealed class JxlGroupBorderAssigner
 {

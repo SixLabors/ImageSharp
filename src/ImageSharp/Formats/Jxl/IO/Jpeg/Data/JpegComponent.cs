@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 
 // We may need to get a ref to fields, so don't
@@ -50,4 +52,16 @@ internal sealed class JpegComponent
     /// Gets or sets DCT coefficients.
     /// </summary>
     public List<int> Coefficients { get; set; } = [];
+
+    /// <summary>
+    /// Gets the <see cref="Coefficients"/> as a <see cref="Span{T}"/>.
+    /// </summary>
+    /// <returns>Lightweight <see cref="Span{T}"/> wrapper over <see cref="Coefficients"/> data.</returns>
+    /// <remarks>
+    /// ⚠️ Adding or removing things from <see cref="Coefficients"/> and using an old
+    /// <see cref="Span{T}"/> wrapper means the span's length wouldn't be updated. This would
+    /// result in an access violation exception if items out of bounds were accessed
+    /// through the span.
+    /// </remarks>
+    public Span<int> DangerousCoefficientsAsSpan() => CollectionsMarshal.AsSpan(this.Coefficients);
 }

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 [DebuggerDisplay($"{{{nameof(Name)}}}")]
 internal abstract class RenderPipelineStageBase(Configuration configuration) : IDisposable
 {
-    private const int RenderPipelineXOffset = 32;
+    public const int RenderPipelineXOffset = 32;
 
     /// <summary>
     /// Gets or sets the configuration for this render pipeline stage.

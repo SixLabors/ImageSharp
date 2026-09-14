@@ -370,9 +370,10 @@ internal sealed class FjxlPrefixCode
         }
 
         // Lengths for representing the code length
-        Span<byte> codeLengthLengths = stackalloc byte[32].Slice(0, 18);
-        Span<byte> codeLengthLengthsMinimum = stackalloc byte[32].Slice(0, 18);
-        Span<byte> codeLengthLengthsMaximum = stackalloc byte[32].Slice(0, 18);
+        Span<byte> codeLengthsBuffer = stackalloc byte[64]; // nearest power of 2 alignment for 18*3 = 64
+        Span<byte> codeLengthLengths = codeLengthsBuffer.Slice(0, 18);
+        Span<byte> codeLengthLengthsMinimum = codeLengthsBuffer.Slice(18, 18);
+        Span<byte> codeLengthLengthsMaximum = codeLengthsBuffer.Slice(18 * 2, 18);
 
         codeLengthLengths.Clear();
         codeLengthLengthsMinimum.Clear();

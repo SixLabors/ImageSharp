@@ -49,11 +49,15 @@ internal readonly struct FjxlChunkEncoderMoreThan14Bits
     public static void EncodeChunkSimd(Span<uint> residuals, int n, int skip, ReadOnlySpan<byte> rawNBitsSimd, ReadOnlySpan<byte> rawBitsSimd, ref FjxlBitWriter output)
     {
         Span<FjxlBits32> bits32 = stackalloc FjxlBits32[2 * ChunkSize / FjxlSimdVec16.Lanes];
-        Span<uint> bits = stackalloc uint[FjxlSimdVec16.Lanes];
-        Span<uint> nbits = stackalloc uint[FjxlSimdVec16.Lanes];
-        Span<ushort> bitsHuff = stackalloc ushort[FjxlSimdVec16.Lanes];
-        Span<ushort> nbitsHuff = stackalloc ushort[FjxlSimdVec16.Lanes];
-        Span<ushort> token = stackalloc ushort[FjxlSimdVec16.Lanes];
+
+        Span<uint> bufferU32 = stackalloc uint[FjxlSimdVec16.Lanes * 2];
+        Span<uint> bits = bufferU32.Slice(0, FjxlSimdVec16.Lanes);
+        Span<uint> nbits = bufferU32.Slice(FjxlSimdVec16, FjxlSimdVec16.Lanes);
+
+        Span<ushort> bufferU16 = stackalloc uint[FjxlSimdVec16.Lanes * 3];
+        Span<ushort> bitsHuff = bufferU16.Slice(0, FjxlSimdVec16.Lanes);
+        Span<ushort> nbitsHuff = bufferU16.Slice(FjxlSimdVec16.Lanes, FjxlSimdVec16.Lanes);
+        Span<ushort> token = bufferU16.Slice(FjxlSimdVec16.Lanes * 2, FjxlSimdVec16.Lanes);
 
         for (int i = 0; i < ChunkSize; i += FjxlSimdVec16.Lanes)
         {

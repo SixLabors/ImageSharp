@@ -450,13 +450,8 @@ internal static class JxlTransformsDecoder
         Span<float> coeff = stackalloc float[4 * 4]; // No need to zero-initialize
         coeff[0] = dcs[0];
 
-        // TODO: unrolling this would lead to big performance benefits
-        for (int iy = 0; iy < 4; iy++)
+        for (int iy = 0, iy4 = 0, iy28 = 0; iy < 4; iy++, iy4 += 4, iy28 += 16)
         {
-            // Variables so we don't repeat multiplication over and over again
-            int iy4 = iy * 4; // iy multiplied by 4
-            int iy28 = iy * 2 * 8; // iy multiplied by 2 multiplied by 8
-
             for (int ix = 0; ix < 4; ix++)
             {
                 if (ix == 0 && iy == 0)
@@ -489,11 +484,8 @@ internal static class JxlTransformsDecoder
 
         // IDCT4x4 in (odd, even) positions.
         block[0] = dcs[1];
-        for (int iy = 0; iy < 4; iy++)
+        for (int iy = 0, iy4 = 0, iy28 = 0; iy < 4; iy++, iy4 += 4, iy28 += 16)
         {
-            int iy4 = iy * 4;
-            int iy28 = iy * 2 * 8;
-
             for (int ix = 0; ix < 4; ix++)
             {
                 if (ix == 0 && iy == 0)
@@ -514,10 +506,8 @@ internal static class JxlTransformsDecoder
 
         block[0] = dcs[2];
 
-        for (int iy = 0; iy < 4; iy++)
+        for (int iy = 0, iy8 = 0; iy < 4; iy++, iy8 += 8)
         {
-            int iy8 = iy * 8;
-
             for (int ix = 0; ix < 8; ix++)
             {
                 if (ix == 0 && iy == 0)

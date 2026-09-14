@@ -5,9 +5,8 @@
 - Bounded LAST+GOLDEN `NEAREST_NEAREST` compound encoding now follows pinned libaom reference-mode and
   entropy-context rules. Inter frames use `REFERENCE_MODE_SELECT`, compound search is excluded from fixed
   `SINGLE_REFERENCE` frames, and the encoder-side compound-reference-type context matches
-  `av1_get_comp_reference_type_context`. The focused compound suite passes 25/25 on Release/net10.0,
-  and FFmpeg 9.0.1 independently decoded the emitted three-frame OBU sequence. A broader 372-case AV1
-  encoder run passed 366 cases; the six failures are existing interpolation mode-selection expectations in
+  `av1_get_comp_reference_type_context`. The focused compound suite passes 25/25 on Release/net10.0.
+  A broader 372-case AV1 encoder run passed 366 cases; the six failures are existing interpolation mode-selection expectations in
   `ProductionTileSelectsNonRegularInterpolation` and `ProductionTileSelectsDualAxisInterpolationHighBitDepth`.
 - Candidate quantization now follows the libaom-derived residual-energy and transform-SATD
   gates, while committed winners always receive coefficient refinement. Speed levels 4 and

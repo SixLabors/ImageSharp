@@ -202,6 +202,17 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    /// <summary>
+    /// Palette TIFFs with LZW compression and horizontal prediction preserve colors for both palette ranges.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The TIFF image provider.</param>
+    [Theory]
+    [WithFile(Issue3182ColorMap16Bit, PixelTypes.Rgba64)]
+    [WithFile(Issue3182ColorMap8Bit, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_PaletteWithLzwAndPredictor<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
     [Theory]
     [WithFile(Rgb4BitPalette, PixelTypes.Rgba32)]
     [WithFile(Flower4BitPalette, PixelTypes.Rgba32)]

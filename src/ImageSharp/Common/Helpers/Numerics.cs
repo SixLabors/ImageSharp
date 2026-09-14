@@ -1067,15 +1067,6 @@ internal static class Numerics
         => (uint)length / (uint)Vector512<TVector>.Count;
 
     /// <summary>
-    /// Normalizes the values in a given <see cref="Span{T}"/>.
-    /// </summary>
-    /// <param name="span">The sequence of <see cref="float"/> values to normalize.</param>
-    /// <param name="sum">The sum of the values in <paramref name="span"/>.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Normalize(Span<float> span, float sum)
-        => TensorPrimitives_.Divide(span, sum, span);
-
-    /// <summary>
     /// Clamps a floating-point component while mapping NaN to the lower bound.
     /// </summary>
     /// <typeparam name="T">The component type.</typeparam>

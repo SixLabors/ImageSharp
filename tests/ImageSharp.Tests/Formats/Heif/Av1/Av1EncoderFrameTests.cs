@@ -533,20 +533,21 @@ public class Av1EncoderFrameTests
     /// <summary>
     /// Verifies retained reference reconstruction and frame-level speed policy through production sequence decoding.
     /// </summary>
-    [Fact]
-    public void SequenceEncoderUsesRetainedReconstructionForInterFrame()
+    [Theory]
+    [InlineData(16, Yuv420)]
+    [InlineData(64, Yuv422)]
+    [InlineData(64, Yuv444)]
+    public void SequenceEncoderUsesRetainedReconstructionForInterFrame(int size, int colorFormatValue)
     {
-        const int Width = 16;
-        const int Height = 16;
         Rgba32 sourceColor = new(48, 96, 192);
-        using Image<Rgba32> source = new(Width, Height, sourceColor);
+        using Image<Rgba32> source = new(size, size, sourceColor);
         using MemoryStream firstSample = new();
         using MemoryStream secondSample = new();
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420);
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, (Av1ColorFormat)colorFormatValue);
         using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
             Configuration.Default,
-            Width,
-            Height,
+            size,
+            size,
             colorConfig,
             qIndex: 37,
             speed: HeifEncodingSpeed.Level0);
@@ -555,7 +556,7 @@ public class Av1EncoderFrameTests
         encoder.EncodeInterFrame(source.Frames.RootFrame, secondSample);
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using ImageFrame<Rgba32> decodedFirst = new(Configuration.Default, Width, Height);
+        using ImageFrame<Rgba32> decodedFirst = new(Configuration.Default, size, size);
         decoder.DecodeSequenceFrame(
             firstSample.ToArray(),
             null,
@@ -576,7 +577,7 @@ public class Av1EncoderFrameTests
             Assert.False(mode.Skip);
         }
 
-        using ImageFrame<Rgba32> decodedSecond = new(Configuration.Default, Width, Height);
+        using ImageFrame<Rgba32> decodedSecond = new(Configuration.Default, size, size);
         decoder.DecodeSequenceFrame(
             secondSample.ToArray(),
             null,
@@ -608,14 +609,16 @@ public class Av1EncoderFrameTests
         {
             hasSkippedInterBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last && mode.Skip;
             hasLargeInterBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last &&
-                (mode.BlockSize.GetWidth() == 16 || mode.BlockSize.GetHeight() == 16);
+                (mode.BlockSize.GetWidth() == size || mode.BlockSize.GetHeight() == size);
         }
 
         // Repeated frames still use the inter skip alternative when prediction supplies the retained samples.
         Assert.True(hasSkippedInterBlock);
         Assert.True(hasLargeInterBlock);
 
-        for (int y = 0; y < Height; y++)
+        // Larger chroma planes span several transforms. Compare the complete retained frame so
+        // missing reconstruction outside the first transform's region cannot pass.
+        for (int y = 0; y < size; y++)
         {
             Assert.Equal(
                 decodedFirst.PixelBuffer.DangerousGetRowSpan(y),

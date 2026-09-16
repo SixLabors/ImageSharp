@@ -152,6 +152,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
         /// <param name="transformSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="plane">The component plane. Only luma constructs the difference-weighted mask.</param>
         /// <param name="lumaBlockSize">The luma block dimensions used to construct the blend mask.</param>
         /// <param name="compoundType">The blend applied to the two predictors.</param>
         /// <param name="firstWeight">The primary predictor's distance weight.</param>
@@ -182,6 +183,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> predictionScratch,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth,
+            Av1Plane plane,
             Av1BlockSize lumaBlockSize,
             Av1CompoundType compoundType,
             int firstWeight,
@@ -478,8 +480,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
-        /// <param name="prediction">The contiguous prediction samples.</param>
-        /// <param name="residual">The contiguous source-minus-prediction samples.</param>
+        /// <param name="prediction">The prediction samples at the transform origin.</param>
+        /// <param name="residual">The source-minus-prediction samples at the transform origin.</param>
+        /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
         /// <param name="reconstruction">The candidate reconstruction.</param>
         /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
         /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
@@ -503,6 +506,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ReadOnlySpan<TSample> prediction,
             ReadOnlySpan<short> residual,
+            int inputStride,
             Span<TSample> reconstruction,
             int reconstructionStride,
             Span<int> quantizedCoefficients,
@@ -1119,6 +1123,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> predictionScratch,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth,
+            Av1Plane plane,
             Av1BlockSize lumaBlockSize,
             Av1CompoundType compoundType,
             int firstWeight,
@@ -1201,7 +1206,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         bitCount);
                     break;
                 case Av1CompoundType.DifferenceWeighted:
-                    if (subsamplingX == 0 && subsamplingY == 0)
+                    // Chroma reuses the luma mask even when its sample dimensions are identical.
+                    if (plane == Av1Plane.Y)
                     {
                         Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
                             compoundMask,
@@ -1300,6 +1306,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ReadOnlySpan<byte> prediction,
             ReadOnlySpan<short> residual,
+            int inputStride,
             Span<byte> reconstruction,
             int reconstructionStride,
             Span<int> quantizedCoefficients,
@@ -1322,6 +1329,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 prediction,
                 residual,
+                inputStride,
                 reconstruction,
                 reconstructionStride,
                 quantizedCoefficients,
@@ -1925,6 +1933,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> predictionScratch,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth,
+            Av1Plane plane,
             Av1BlockSize lumaBlockSize,
             Av1CompoundType compoundType,
             int firstWeight,
@@ -2009,7 +2018,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         bitCount);
                     break;
                 case Av1CompoundType.DifferenceWeighted:
-                    if (subsamplingX == 0 && subsamplingY == 0)
+                    // Chroma reuses the luma mask even when its sample dimensions are identical.
+                    if (plane == Av1Plane.Y)
                     {
                         Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
                             compoundMask,
@@ -2115,6 +2125,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ReadOnlySpan<ushort> prediction,
             ReadOnlySpan<short> residual,
+            int inputStride,
             Span<ushort> reconstruction,
             int reconstructionStride,
             Span<int> quantizedCoefficients,
@@ -2137,6 +2148,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 prediction,
                 residual,
+                inputStride,
                 reconstruction,
                 reconstructionStride,
                 quantizedCoefficients,

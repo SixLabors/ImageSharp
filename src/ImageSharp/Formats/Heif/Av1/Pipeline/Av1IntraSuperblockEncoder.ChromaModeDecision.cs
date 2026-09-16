@@ -1119,6 +1119,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 transformOrigin,
                                 prediction,
                                 residual,
+                                transformSize.GetWidth(),
                                 candidateReconstruction[reconstructionOffset..],
                                 blockWidth,
                                 transformCoefficients,

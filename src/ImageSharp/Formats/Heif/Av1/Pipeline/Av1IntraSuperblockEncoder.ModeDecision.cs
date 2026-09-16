@@ -929,11 +929,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 paletteInfo = context.Snapshot.Palette;
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra)
                 {
-                    InlineArray18<Av1EncoderTransformBlockState> states = default;
+                    InlineArray24<Av1EncoderTransformBlockState> states = default;
                     Av1TransformSize replayTransformSize = modeInfo.Block.TransformSize;
-                    int lumaTransformCount =
-                        (modeInfo.Block.BlockSize.GetWidth() / replayTransformSize.GetWidth()) *
-                        (modeInfo.Block.BlockSize.GetHeight() / replayTransformSize.GetHeight());
+                    Size replayExtent = GetCodedTransformExtent(macroBlock, modeInfo.Block.BlockSize, replayTransformSize, 0, 0);
+                    int lumaTransformCount = replayExtent.Width * replayExtent.Height / replayTransformSize.GetSize2d();
                     int lumaStateStride = replayTransformSize.GetSize2d() /
                         Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
                     ReadOnlySpan<Av1EncoderTransformBlockState> replayLumaStates = context.GetTransformStates(Av1Plane.Y);
@@ -944,8 +943,20 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (block.HasChroma)
                     {
-                        states[16] = context.GetTransformStates(Av1Plane.U)[0];
-                        states[17] = context.GetTransformStates(Av1Plane.V)[0];
+                        int subX = this.source.ChromaSubsamplingX;
+                        int subY = this.source.ChromaSubsamplingY;
+                        Av1TransformSize chromaTransformSize = modeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+                        Av1BlockSize chromaBlockSize = modeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0);
+                        Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subX, subY);
+                        int chromaTransformCount = chromaExtent.Width * chromaExtent.Height / chromaTransformSize.GetSize2d();
+                        int chromaStateStride = chromaTransformSize.GetSize2d() / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                        ReadOnlySpan<Av1EncoderTransformBlockState> blueStates = context.GetTransformStates(Av1Plane.U);
+                        ReadOnlySpan<Av1EncoderTransformBlockState> redStates = context.GetTransformStates(Av1Plane.V);
+                        for (int index = 0; index < chromaTransformCount; index++)
+                        {
+                            states[16 + index] = blueStates[index * chromaStateStride];
+                            states[20 + index] = redStates[index * chromaStateStride];
+                        }
                     }
 
                     this.ReconstructSelectedInterBlock(
@@ -1043,7 +1054,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics interStatistics = Av1RateDistortionStatistics.Invalid;
             Av1MacroBlockModeInfo interModeInfo = default;
             Av1EncoderBlockStruct interBlock = default;
-            InlineArray18<Av1EncoderTransformBlockState> interStates = default;
+            InlineArray24<Av1EncoderTransformBlockState> interStates = default;
             Av1MotionVector interVector = default;
             Av1MotionVector interSecondaryVector = default;
             if (isInterFrame)
@@ -1360,10 +1371,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 int transformCount = (lumaExtent.Width * lumaExtent.Height) / transformArea;
                 int stateStride = transformArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
                 ReadOnlySpan<Av1EncoderTransformBlockState> retainedLumaStates = context.GetTransformStates(Av1Plane.Y);
-                InlineArray18<Av1EncoderTransformBlockState> states = default;
+                InlineArray24<Av1EncoderTransformBlockState> states = default;
 
                 // Partition snapshots retain coefficient-addressed states. Inter reconstruction consumes
-                // consecutive luma transforms followed by the two chroma states at fixed slots.
+                // consecutive luma transforms followed by up to four transforms for each chroma plane.
                 for (int index = 0; index < transformCount; index++)
                 {
                     states[index] = retainedLumaStates[index * stateStride];
@@ -1371,8 +1382,20 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (snapshot.Block.HasChroma)
                 {
-                    states[16] = context.GetTransformStates(Av1Plane.U)[0];
-                    states[17] = context.GetTransformStates(Av1Plane.V)[0];
+                    int subX = this.source.ChromaSubsamplingX;
+                    int subY = this.source.ChromaSubsamplingY;
+                    Av1TransformSize chromaTransformSize = snapshot.ModeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+                    Av1BlockSize chromaBlockSize = snapshot.ModeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0);
+                    Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subX, subY);
+                    int chromaTransformCount = chromaExtent.Width * chromaExtent.Height / chromaTransformSize.GetSize2d();
+                    int chromaStateStride = chromaTransformSize.GetSize2d() / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                    ReadOnlySpan<Av1EncoderTransformBlockState> blueStates = context.GetTransformStates(Av1Plane.U);
+                    ReadOnlySpan<Av1EncoderTransformBlockState> redStates = context.GetTransformStates(Av1Plane.V);
+                    for (int index = 0; index < chromaTransformCount; index++)
+                    {
+                        states[16 + index] = blueStates[index * chromaStateStride];
+                        states[20 + index] = redStates[index * chromaStateStride];
+                    }
                 }
 
                 this.ReconstructSelectedInterBlock(
@@ -1656,6 +1679,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformSize,
                                     prediction,
                                     residual,
+                                    transformSize.GetWidth(),
                                     states[stateIndex],
                                     snapshot.ModeInfo.Block.Skip,
                                     coefficientOffset + (transformIndex * sampleCount));
@@ -3301,6 +3325,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformOrigin,
                             prediction,
                             residual,
+                            transformSize.GetWidth(),
                             candidateTransformReconstruction,
                             transformWidth,
                             candidateTransformCoefficients,
@@ -3607,6 +3632,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 prediction,
                 residual,
+                transformSize.GetWidth(),
                 candidateReconstruction,
                 transformSize.GetWidth(),
                 candidateCoefficients,
@@ -3687,6 +3713,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 prediction,
                 residual,
+                transformSize.GetWidth(),
                 candidateReconstruction,
                 transformSize.GetWidth(),
                 candidateCoefficients,
@@ -3903,6 +3930,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             ReadOnlySpan<TSample> prediction,
             ReadOnlySpan<short> residual,
+            int inputStride,
             Av1EncoderTransformBlockState selectedState,
             bool skipTransform,
             int coefficientOffset)
@@ -3913,7 +3941,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = transformSize.GetHeight();
             for (int row = 0; row < height; row++)
             {
-                prediction.Slice(row * width, width).CopyTo(destination.Slice(row * destinationPlane.Stride, width));
+                prediction.Slice(row * inputStride, width).CopyTo(destination.Slice(row * destinationPlane.Stride, width));
             }
 
             Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)
@@ -3940,7 +3968,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 context,
                 residual,
-                transformSize.GetWidth(),
+                inputStride,
                 coefficients,
                 transformSize,
                 selectedState.TransformType,

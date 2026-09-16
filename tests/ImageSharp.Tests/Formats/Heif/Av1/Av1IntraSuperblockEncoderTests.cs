@@ -985,6 +985,7 @@ public class Av1IntraSuperblockEncoderTests
                         blockOrigin,
                         prediction,
                         residual,
+                        Av1TransformSize.Size8x8.GetWidth(),
                         trialReconstruction,
                         Width,
                         trialCoefficients,

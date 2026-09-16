@@ -1,6 +1,6 @@
 # AV1/AVIF remaining implementation plan
 
-Assessment updated after checkpoint `9da472720` on 2026-09-16.
+Assessment updated during milestone 1 on 2026-09-16.
 This is the remaining-work list, not a record of earlier experiments or passing component tests.
 Only one production milestone is active at a time; complete its implementation and verification before advancing.
 
@@ -59,32 +59,23 @@ Do not reuse older build settings or measurements as evidence for this checkout.
 - [ ] Replace the independent effort-driven search restrictions with the native-valued `HeifEncodingSpeed` policy.
   Resolve settings once for the actual coding mode, frame role, resolution, quantizer, and content classification.
   Complete the public option transition and its callers; do not retain two conflicting control systems.
-  In progress: option and parameter removal, partition bounds, and allocation sizing build in Release/.NET 11.
-  Public encoder run: 75/76 passed; the remaining padded-edge chroma variance exception was corrected. After the final
-  source edits, 24 focused VSTest cases pass, including that failure, speed-3 directional pruning, and 10/12-bit lossless planes.
-  The broader frame run then passed 156/177: five motion-cache indexing failures, thirteen subpixel-sequence entropy failures,
-  one global-motion header alignment failure, one filter-intra buffer failure, and one transform-selection assertion failed.
-  These failures must be resolved before advancing. The DRL cache correction (`rdopt.c:1196-1233`) and inter partition
-  replay correction (`partition_search.c:408-502`) reduced the failures to 12/177. Enforcing the global-motion translation
-  domain (`global_motion.c:39-46`, `common/mv.h:164-180`) removed the header alignment failures; the focused LAST/GOLDEN
-  cases then passed, while the global-translation case reached a tile entropy failure.
-  Symbol tracing located the first mismatch at split inter-transform traversal: managed residuals used raster order,
-  while `bitstream.c:1395-1429` and `pack_txb_tokens` traverse the transform tree. Search, reconstruction, context publication,
-  and writing now share that order. The next frame run passed 168/177: seven small 4:2:0 entropy failures, a global-motion
-  vector assertion, and the four-transform selection assertion remained. Chroma tracing identified stale transform-type
-  inheritance after luma refinement (`common/blockd.h:1283-1315`); chroma is now re-evaluated and included in candidate costs.
-  Final verification: 40/40 affected sequence/public screen-content cases pass; the full frame class passes 175/177.
-  The remaining failures are the global-motion vector and four-transform selection assertions. No bitstream, indexing,
-  or buffer exception remains in this frame run. This is managed runtime coverage, not independent encoder parity.
-  Temporary tracing has been removed.
-  The four-transform selection assertion remains unchanged: diagnostic output shows four 16x4 blocks using 16x4 transforms.
-  Frame tests whose names say "native planes"
-  currently inspect the managed stream and decoded syntax; they do not independently compare native decoded planes.
-  Still required: reconcile real-time sequence policy at speeds 7-9, remaining controller settings, and broader verification.
+  Implemented: sole speed option, partition bounds, DRL cache indexing, inter partition replay, global-motion
+  syntax range, depth-first inter-transform coding, and chroma transform inheritance after luma refinement.
+  The latest completed frame/public run passed 181/183. The global-motion vector and four-transform selection
+  assertions remain unchanged and failing; both require controller corrections. The four-transform diagnostic
+  shows four 16x4 blocks using 16x4 transforms. No decoder entropy, indexing, or buffer exception remains in that run.
+  Still required: real-time sequence policy at speeds 7-9, remaining controller settings, and independent verification.
+  Frame tests whose names say "native planes" inspect managed syntax; they do not independently compare native planes.
 - [ ] Complete partition selection and breakout, block-size eligibility, and transform-size/type search, including
   the forced 128x128 inter split and 8x8-only intra-block-copy boundary. Preserve valid chroma and frame-edge geometry.
-  Complete multi-transform inter chroma handling: `GetMaxUvTransformSize` caps a 64x64 4:4:4 plane at 32x32, while
-  `ReconstructSelectedInterBlock` and its retained state currently process one transform per chroma plane.
+  Multi-transform inter chroma is now connected through search, refinement, retained states, reconstruction, and partition replay.
+  Full-plane predictions feed strided transform regions without another pixel buffer. Each chroma transform inherits
+  the luma type at its own origin and updates the following coefficient contexts. Difference-weighted chroma reuses
+  the luma mask, including 4:4:4. Evidence: `encodemb.c:780-826`, `common/blockd.h:1283-1315`,
+  and `common/reconinter.c:522-531`; managed `ReferenceModeDecision.cs` and `Operator.cs`.
+  The retained-frame regression passes at 16x16 4:2:0 and 64x64 4:2:2/4:4:4; final combined verification passes 181/183,
+  with only the two controller assertions listed above failing. Release/.NET 11 builds and Roslynk reports no errors.
+  Independent nonzero chroma-residual and compound comparisons remain required before parity is established.
   Resolve the boundary difference in `Av1IntraSuperblockEncoder.ModeDecision.cs:3398-3428`: managed neighbor counts
   use upper bounds only, while current `reconintra.c` clamps both bounds. Establish the caller's reachable counts and
   preserve the required zero-neighbor behavior; do not add speculative guards or claim a reproduced failure from this source difference alone.

@@ -440,7 +440,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockStruct block,
             out Av1MotionVector selectedVector,
             out Av1MotionVector selectedSecondaryVector,
-            out InlineArray18<Av1EncoderTransformBlockState> selectedStates)
+            out InlineArray24<Av1EncoderTransformBlockState> selectedStates)
         {
             Av1MacroBlockModeInfo initialModeInfo = modeInfo;
             Av1EncoderBlockStruct initialBlock = block;
@@ -488,7 +488,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref goldenBlock,
                 out Av1MotionVector goldenVector,
                 out Av1MotionVector goldenSecondaryVector,
-                out InlineArray18<Av1EncoderTransformBlockState> goldenStates,
+                out InlineArray24<Av1EncoderTransformBlockState> goldenStates,
                 out InlineArray3<Av1MotionVector> goldenNewVectors,
                 out byte goldenNewVectorMask);
 
@@ -571,7 +571,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
             ref Av1RateDistortionStatistics selectedStatistics,
-            ref InlineArray18<Av1EncoderTransformBlockState> selectedStates)
+            ref InlineArray24<Av1EncoderTransformBlockState> selectedStates)
         {
             Av1TransformSize maximumTransformSize = modeInfo.Block.BlockSize.GetMaximumTransformSize();
             if (modeInfo.Block.Skip ||
@@ -599,15 +599,28 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<Av1EncoderTransformBlockState>.Empty);
 
             Av1RateDistortionStatistics maximumChromaStatistics = this.EvaluateRefinedInterChroma(
-                writer, tileIndex, blockOrigin, modeInfo, block, vector, secondaryVector, selectedStates[0], out _, out _);
+                writer,
+                macroBlock,
+                tileIndex,
+                blockOrigin,
+                modeInfo,
+                block,
+                vector,
+                secondaryVector,
+                maximumTransformSize,
+                selectedStates[..1],
+                out _,
+                out _);
 
             maximumStatistics.Add(this.rateMultiplier, in maximumChromaStatistics);
 
             Av1RateDistortionStatistics bestStatistics = maximumStatistics;
             Av1TransformSize bestTransformSize = maximumTransformSize;
             InlineArray16<Av1EncoderTransformBlockState> bestStates = default;
-            Av1EncoderTransformBlockState bestBlueState = selectedStates[16];
-            Av1EncoderTransformBlockState bestRedState = selectedStates[17];
+            InlineArray4<Av1EncoderTransformBlockState> bestBlueState = default;
+            InlineArray4<Av1EncoderTransformBlockState> bestRedState = default;
+            selectedStates[16..20].CopyTo(bestBlueState);
+            selectedStates[20..24].CopyTo(bestRedState);
             int bestStateCount = 0;
             Av1TransformSize candidateTransformSize = maximumTransformSize;
             Span<Av1EncoderTransformBlockState> candidateStates = stackalloc Av1EncoderTransformBlockState[16];
@@ -630,15 +643,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 // both chroma residuals and their rate, so retain and compare the complete candidate.
                 Av1RateDistortionStatistics chromaStatistics = this.EvaluateRefinedInterChroma(
                     writer,
+                    macroBlock,
                     tileIndex,
                     blockOrigin,
                     modeInfo,
                     block,
                     vector,
                     secondaryVector,
-                    candidateStates[0],
-                    out Av1EncoderTransformBlockState blueState,
-                    out Av1EncoderTransformBlockState redState);
+                    candidateTransformSize,
+                    candidateStates[..transformCount],
+                    out InlineArray4<Av1EncoderTransformBlockState> blueState,
+                    out InlineArray4<Av1EncoderTransformBlockState> redState);
 
                 candidateStatistics.Add(this.rateMultiplier, in chromaStatistics);
 
@@ -669,35 +684,39 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedStatistics.Distortion + bestStatistics.Distortion - maximumStatistics.Distortion);
             modeInfo.Block.TransformSize = bestTransformSize;
             bestStates[..bestStateCount].CopyTo(selectedStates);
-            selectedStates[16] = bestBlueState;
-            selectedStates[17] = bestRedState;
+            bestBlueState[..].CopyTo(selectedStates[16..20]);
+            bestRedState[..].CopyTo(selectedStates[20..24]);
         }
 
         /// <summary>
-        /// Evaluates chroma residuals with the transform type inherited from the selected luma origin.
+        /// Evaluates both chroma planes using the transform types at their corresponding luma positions.
         /// </summary>
         /// <param name="writer">The current entropy cost model.</param>
+        /// <param name="macroBlock">The coded block and its frame-edge geometry.</param>
         /// <param name="tileIndex">The tile owning the coefficient contexts.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction mode.</param>
         /// <param name="block">The selected block state.</param>
         /// <param name="vector">The primary motion vector.</param>
         /// <param name="secondaryVector">The secondary motion vector.</param>
-        /// <param name="lumaState">The transform state at the luma origin.</param>
-        /// <param name="blueState">The selected U transform state.</param>
-        /// <param name="redState">The selected V transform state.</param>
+        /// <param name="lumaTransformSize">The uniform luma transform size being evaluated.</param>
+        /// <param name="lumaStates">The coded luma transform states in tree order.</param>
+        /// <param name="blueState">The U transform states in coding order.</param>
+        /// <param name="redState">The V transform states in coding order.</param>
         /// <returns>The combined chroma rate and distortion.</returns>
         private Av1RateDistortionStatistics EvaluateRefinedInterChroma(
             Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
             ushort tileIndex,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
             Av1EncoderBlockStruct block,
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
-            Av1EncoderTransformBlockState lumaState,
-            out Av1EncoderTransformBlockState blueState,
-            out Av1EncoderTransformBlockState redState)
+            Av1TransformSize lumaTransformSize,
+            ReadOnlySpan<Av1EncoderTransformBlockState> lumaStates,
+            out InlineArray4<Av1EncoderTransformBlockState> blueState,
+            out InlineArray4<Av1EncoderTransformBlockState> redState)
         {
             blueState = default;
             redState = default;
@@ -708,39 +727,19 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
-            int subX = this.source.ChromaSubsamplingX;
-            int subY = this.source.ChromaSubsamplingY;
-            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
-            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(subX != 0, subY != 0);
-            Av1TransformSize transformSize = blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
-            Av1TransformSetType transformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
-                transformSize, isInter: true, this.picture.Parent.FrameHeader.UseReducedTransformSet);
-
-            Av1TransformType transformType = lumaState.EndOfBlock == 0 || !lumaState.TransformType.IsExtendedSetUsed(transformSet)
-                ? Av1TransformType.DctDct
-                : lumaState.TransformType;
-
-            Av1EncoderFrame<TSample>.PlanarView primaryReference = modeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Golden
-                ? this.goldenReference
-                : this.reference;
-
             for (int planeIndex = 1; planeIndex < 3; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
-                Av1NeighborArrayUnit<byte> neighbors = plane == Av1Plane.U
-                    ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex]
-                    : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
-
-                Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
-                    Av1ComponentType.Chroma, neighbors, chromaOrigin, chromaBlockSize, transformSize);
-
-                this.EvaluateInterPlane(
+                this.EvaluateInterChromaPlane(
                     writer,
+                    macroBlock,
+                    tileIndex,
+                    blockOrigin,
+                    modeInfo.Block.BlockSize,
+                    plane,
+                    modeInfo.Block.ReferenceFrame,
                     vector,
                     secondaryVector,
-                    plane,
-                    Av1ComponentType.Chroma,
                     modeInfo.Block.Mode,
                     modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra,
                     modeInfo.Block.CompoundType,
@@ -749,22 +748,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.Block.DifferenceWeightedMaskType,
                     modeInfo.Block.HorizontalInterpolationFilter,
                     modeInfo.Block.VerticalInterpolationFilter,
-                    primaryReference.GetPlane(plane),
-                    this.goldenReference.GetPlane(plane),
-                    blockOrigin,
-                    subX,
-                    subY,
-                    blockSize,
-                    transformSize,
-                    transformType,
-                    context,
-                    plane == Av1Plane.U ? workspace.BluePrediction : workspace.RedPrediction,
-                    workspace.Residual,
-                    workspace.TransformReconstruction,
-                    workspace.TransformCoefficients,
+                    lumaTransformSize,
+                    lumaStates,
                     plane == Av1Plane.U ? workspace.BlueCandidateReconstruction : workspace.RedCandidateReconstruction,
                     plane == Av1Plane.U ? workspace.BlueCandidateCoefficients : workspace.RedCandidateCoefficients,
-                    out Av1EncoderTransformBlockState state,
+                    out InlineArray4<Av1EncoderTransformBlockState> states,
                     out int rate,
                     out long distortion,
                     out _);
@@ -773,11 +761,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 statistics.Add(this.rateMultiplier, in planeStatistics);
                 if (plane == Av1Plane.U)
                 {
-                    blueState = state;
+                    blueState = states;
                 }
                 else
                 {
-                    redState = state;
+                    redState = states;
                 }
             }
 
@@ -798,7 +786,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
-                    hasChroma: false,
+                    block.HasChroma,
                     modeInfo.Block.ReferenceFrame,
                     vector,
                     modeInfo.Block.HorizontalInterpolationFilter,
@@ -854,6 +842,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     workspace.PredictionScratch,
                     transformSize,
                     this.bitDepth,
+                    Av1Plane.Y,
                     modeInfo.Block.BlockSize,
                     modeInfo.Block.CompoundType,
                     firstWeight,
@@ -984,6 +973,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformOrigin,
                         tilePrediction,
                         residual,
+                        transformSize.GetWidth(),
                         reconstruction,
                         transformWidth,
                         candidateCoefficients,
@@ -1154,7 +1144,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1RateDistortionStatistics selectedStatistics,
             ref Av1MotionVector selectedVector,
             ref Av1MotionVector selectedSecondaryVector,
-            ref InlineArray18<Av1EncoderTransformBlockState> selectedStates)
+            ref InlineArray24<Av1EncoderTransformBlockState> selectedStates)
         {
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
@@ -1176,6 +1166,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                 writer,
+                macroBlock,
                 blockOrigin,
                 blockSize,
                 tileIndex,
@@ -1207,8 +1198,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 workspace.RedCandidateCoefficients,
                 out _,
                 out Av1EncoderTransformBlockState lumaState,
-                out Av1EncoderTransformBlockState blueState,
-                out Av1EncoderTransformBlockState redState);
+                out InlineArray4<Av1EncoderTransformBlockState> blueState,
+                out InlineArray4<Av1EncoderTransformBlockState> redState);
 
             if (candidateStatistics.Cost > selectedStatistics.Cost)
             {
@@ -1219,8 +1210,8 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedVector = primaryVector;
             selectedSecondaryVector = secondaryVector;
             selectedStates[0] = lumaState;
-            selectedStates[16] = blueState;
-            selectedStates[17] = redState;
+            blueState[..].CopyTo(selectedStates[16..20]);
+            redState[..].CopyTo(selectedStates[20..24]);
             modeInfo.Block.ReferenceFrame = Av1ReferenceFrameType.Last;
             modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.Golden;
             modeInfo.Block.Mode = Av1PredictionMode.NearestNearestMotionVector;
@@ -1245,7 +1236,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockStruct block,
             out Av1MotionVector selectedVector,
             out Av1MotionVector selectedSecondaryVector,
-            out InlineArray18<Av1EncoderTransformBlockState> selectedStates,
+            out InlineArray24<Av1EncoderTransformBlockState> selectedStates,
             out InlineArray3<Av1MotionVector> searchedNewVectors,
             out byte searchedNewVectorMask)
         {
@@ -1375,8 +1366,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool selectedInterIntraWedge = false;
             int selectedInterIntraWedgeIndex = 0;
             Av1EncoderTransformBlockState selectedLumaState = default;
-            Av1EncoderTransformBlockState selectedBlueState = default;
-            Av1EncoderTransformBlockState selectedRedState = default;
+            InlineArray4<Av1EncoderTransformBlockState> selectedBlueState = default;
+            InlineArray4<Av1EncoderTransformBlockState> selectedRedState = default;
 
             ObuSequenceHeader sequenceHeader = this.picture.Sequence.SequenceHeader;
             bool interIntraEligible = sequenceHeader.EnableInterIntraCompound &&
@@ -1655,6 +1646,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                     writer,
+                    macroBlock,
                     blockOrigin,
                     blockSize,
                     tileIndex,
@@ -1686,8 +1678,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateRedCoefficients,
                     out bool candidateSkip,
                     out Av1EncoderTransformBlockState candidateLumaState,
-                    out Av1EncoderTransformBlockState candidateBlueState,
-                    out Av1EncoderTransformBlockState candidateRedState);
+                    out InlineArray4<Av1EncoderTransformBlockState> candidateBlueState,
+                    out InlineArray4<Av1EncoderTransformBlockState> candidateRedState);
 
                 // Strict replacement preserves nearest, new, near, then global mode order on equal RD cost.
                 if (candidateStatistics.Cost < selectedStatistics.Cost)
@@ -1765,6 +1757,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Av1RateDistortionStatistics interIntraStatistics = this.EvaluateInterCandidate(
                         writer,
+                        macroBlock,
                         blockOrigin,
                         blockSize,
                         tileIndex,
@@ -1796,8 +1789,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateRedCoefficients,
                         out bool interIntraSkip,
                         out Av1EncoderTransformBlockState interIntraLumaState,
-                        out Av1EncoderTransformBlockState interIntraBlueState,
-                        out Av1EncoderTransformBlockState interIntraRedState);
+                        out InlineArray4<Av1EncoderTransformBlockState> interIntraBlueState,
+                        out InlineArray4<Av1EncoderTransformBlockState> interIntraRedState);
 
                     if (interIntraStatistics.Cost >= selectedStatistics.Cost)
                     {
@@ -1968,6 +1961,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                             writer,
+                            macroBlock,
                             blockOrigin,
                             blockSize,
                             tileIndex,
@@ -1999,8 +1993,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateRedCoefficients,
                             out bool candidateSkip,
                             out Av1EncoderTransformBlockState candidateLumaState,
-                            out Av1EncoderTransformBlockState candidateBlueState,
-                            out Av1EncoderTransformBlockState candidateRedState);
+                            out InlineArray4<Av1EncoderTransformBlockState> candidateBlueState,
+                            out InlineArray4<Av1EncoderTransformBlockState> candidateRedState);
 
                         // libaom searches compound modes and blend syntax in stable order. Strict replacement
                         // retains the earlier motion mode, blend, and lower DRL entry on equal cost.
@@ -2035,8 +2029,8 @@ internal static partial class Av1IntraSuperblockEncoder
             // Candidate pixels and coefficients remain scratch. Preserve the transform decisions so final
             // reconstruction can regenerate only the winner after other mode families reuse this storage.
             selectedStates[0] = selectedLumaState;
-            selectedStates[16] = selectedBlueState;
-            selectedStates[17] = selectedRedState;
+            selectedBlueState[..].CopyTo(selectedStates[16..20]);
+            selectedRedState[..].CopyTo(selectedStates[20..24]);
 
             modeInfo.Block.Mode = selectedMode;
             modeInfo.Block.Skip = selectedSkip;
@@ -2225,7 +2219,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1RateDistortionStatistics selectedStatistics,
             ref Av1MotionVector selectedVector,
             ref Av1MotionVector selectedSecondaryVector,
-            ref InlineArray18<Av1EncoderTransformBlockState> selectedStates)
+            ref InlineArray24<Av1EncoderTransformBlockState> selectedStates)
         {
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             if (!this.hasDistinctGoldenReference ||
@@ -2404,6 +2398,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                         writer,
+                        macroBlock,
                         blockOrigin,
                         blockSize,
                         tileIndex,
@@ -2435,8 +2430,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         workspace.RedCandidateCoefficients,
                         out bool candidateSkip,
                         out Av1EncoderTransformBlockState candidateLumaState,
-                        out Av1EncoderTransformBlockState candidateBlueState,
-                        out Av1EncoderTransformBlockState candidateRedState);
+                        out InlineArray4<Av1EncoderTransformBlockState> candidateBlueState,
+                        out InlineArray4<Av1EncoderTransformBlockState> candidateRedState);
 
                     if (candidateStatistics.Cost >= selectedStatistics.Cost)
                     {
@@ -2447,8 +2442,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedVector = primaryVectors[candidateIndex];
                     selectedSecondaryVector = secondaryVectors[candidateIndex];
                     selectedStates[0] = candidateLumaState;
-                    selectedStates[16] = candidateBlueState;
-                    selectedStates[17] = candidateRedState;
+                    candidateBlueState[..].CopyTo(selectedStates[16..20]);
+                    candidateRedState[..].CopyTo(selectedStates[20..24]);
                     modeInfo.Block.ReferenceFrame = Av1ReferenceFrameType.Last;
                     modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.Golden;
                     modeInfo.Block.Mode = modes[candidateIndex];
@@ -2478,6 +2473,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="vector">The selected motion vector in eighth-luma-sample units.</param>
         /// <param name="secondaryVector">The selected compound secondary vector, or zero for a single-reference block.</param>
         /// <param name="states">The selected transform choices, indexed by plane.</param>
+        /// <summary>
+        /// Reconstructs the selected inter transforms in coding order, carrying each plane's coefficient contexts forward.
+        /// </summary>
         private void ReconstructSelectedInterBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -2491,18 +2489,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             bool isInterIntra = modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
-            bool usesSplitLumaTransforms = modeInfo.Block.TransformSize != modeInfo.Block.BlockSize.GetMaximumTransformSize();
-            if (usesSplitLumaTransforms)
-            {
-                this.PrepareSelectedInterLumaPrediction(
-                    macroBlock,
-                    blockOrigin,
-                    modeInfo,
-                    block,
-                    vector,
-                    secondaryVector);
-            }
-            else if (isInterIntra)
+            if (isInterIntra)
             {
                 this.PrepareInterIntraPrediction(
                     macroBlock,
@@ -2518,241 +2505,122 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.Block.InterIntraWedgeIndex);
             }
 
-            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            Av1EncoderFrame<TSample>.PlanarView primaryReference = modeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Golden
+                ? this.goldenReference
+                : this.reference;
             int planeCount = block.HasChroma ? 3 : 1;
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
                 int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                 int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
-                Point planeOrigin = new(blockOrigin.X >> subX, blockOrigin.Y >> subY);
+                Point planeOrigin = planeIndex == 0 ? blockOrigin : Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
+                Av1BlockSize planeBlockSize = modeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0);
+                Av1TransformSize rootSize = planeBlockSize.GetMaximumTransformSize();
                 Av1TransformSize transformSize = planeIndex == 0
                     ? modeInfo.Block.TransformSize
-                    : modeInfo.Block.BlockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
-
-                if (planeIndex == 0 && usesSplitLumaTransforms)
-                {
-                    this.ReconstructSelectedInterLumaGrid(
-                        writer,
-                        macroBlock,
-                        tileIndex,
-                        blockOrigin,
-                        modeInfo,
-                        states);
-                    continue;
-                }
-
+                    : modeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+                int width = planeBlockSize.GetWidth();
+                int transformWidth = transformSize.GetWidth();
+                int transformHeight = transformSize.GetHeight();
                 int sampleCount = transformSize.GetSize2d();
-                Span<TSample> prediction = workspace.LumaPrediction[..sampleCount];
-                Span<short> residual = workspace.Residual[..sampleCount];
-
-                // Convert eighth-luma-sample motion into the plane's sixteenth-sample interpolation
-                // coordinates. The low four bits carry the phase; the remaining bits locate the reference.
-                int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subX));
-                int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subY));
-                if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+                Size extent = GetCodedTransformExtent(macroBlock, planeBlockSize, transformSize, subX, subY);
+                Span<TSample> prediction = plane switch
                 {
-                    int firstWeight = 8;
-                    int secondWeight = 8;
-                    if (modeInfo.Block.CompoundType == Av1CompoundType.DistanceWeighted)
-                    {
-                        Av1CompoundDistanceWeights.Derive(
-                            this.picture.Sequence.SequenceHeader.OrderHintInfo,
-                            this.picture.Parent.FrameHeader,
-                            modeInfo.Block.ReferenceFrame,
-                            modeInfo.Block.SecondaryReferenceFrame,
-                            out firstWeight,
-                            out secondWeight);
-                    }
+                    Av1Plane.Y => workspace.LumaPrediction,
+                    Av1Plane.U => workspace.BluePrediction,
+                    _ => workspace.RedPrediction,
+                };
 
-                    int secondaryColumnQ4 = (planeOrigin.X << 4) + (secondaryVector.Column << (1 - subX));
-                    int secondaryRowQ4 = (planeOrigin.Y << 4) + (secondaryVector.Row << (1 - subY));
-                    this.blockWorkspace.GetCompoundPredictionIntermediates(
-                        out Span<ushort> firstIntermediate,
-                        out Span<ushort> secondIntermediate);
+                // Keep motion interpolation and compound masks in full-block coordinates. Transform
+                // leaves consume strided views, while coefficients remain packed in coding order.
+                this.PrepareInterPlanePrediction(
+                    vector,
+                    secondaryVector,
+                    plane,
+                    modeInfo.Block.Mode,
+                    isInterIntra,
+                    modeInfo.Block.CompoundType,
+                    modeInfo.Block.CompoundWedgeIndex,
+                    modeInfo.Block.CompoundWedgeSign,
+                    modeInfo.Block.DifferenceWeightedMaskType,
+                    modeInfo.Block.HorizontalInterpolationFilter,
+                    modeInfo.Block.VerticalInterpolationFilter,
+                    primaryReference.GetPlane(plane),
+                    this.goldenReference.GetPlane(plane),
+                    new Point(planeOrigin.X << subX, planeOrigin.Y << subY),
+                    subX,
+                    subY,
+                    modeInfo.Block.BlockSize,
+                    rootSize,
+                    prediction,
+                    workspace.Residual);
 
-                    TOperator.PrepareCompoundInterPrediction(
-                        this.source.GetPlane(plane),
-                        planeOrigin,
-                        this.reference.GetPlane(plane),
-                        new Point(columnQ4 >> 4, rowQ4 >> 4),
-                        columnQ4 & 15,
-                        rowQ4 & 15,
-                        this.goldenReference.GetPlane(plane),
-                        new Point(secondaryColumnQ4 >> 4, secondaryRowQ4 >> 4),
-                        secondaryColumnQ4 & 15,
-                        secondaryRowQ4 & 15,
-                        modeInfo.Block.HorizontalInterpolationFilter,
-                        modeInfo.Block.VerticalInterpolationFilter,
-                        prediction,
-                        residual,
-                        firstIntermediate,
-                        secondIntermediate,
-                        this.blockWorkspace.GetCompoundPredictionMask(),
-                        workspace.PredictionScratch,
-                        transformSize,
-                        this.bitDepth,
-                        modeInfo.Block.BlockSize,
-                        modeInfo.Block.CompoundType,
-                        firstWeight,
-                        secondWeight,
-                        subX,
-                        subY,
-                        modeInfo.Block.CompoundWedgeIndex,
-                        modeInfo.Block.CompoundWedgeSign,
-                        modeInfo.Block.DifferenceWeightedMaskType);
-                }
-                else if (!isInterIntra)
-                {
-                    Buffer2DRegion<TSample> primaryReferencePlane = modeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Golden
-                        ? this.goldenReference.GetPlane(plane)
-                        : this.reference.GetPlane(plane);
-
-                    TOperator.PrepareTranslationalInterPrediction(
-                        this.source.GetPlane(plane),
-                        planeOrigin,
-                        primaryReferencePlane,
-                        new Point(columnQ4 >> 4, rowQ4 >> 4),
-                        modeInfo.Block.HorizontalInterpolationFilter,
-                        modeInfo.Block.VerticalInterpolationFilter,
-                        columnQ4 & 15,
-                        rowQ4 & 15,
-                        prediction,
-                        residual,
-                        workspace.PredictionScratch,
-                        transformSize,
-                        this.bitDepth);
-                }
-
-                if (isInterIntra)
-                {
-                    prediction = plane switch
-                    {
-                        Av1Plane.Y => workspace.LumaPrediction[..sampleCount],
-                        Av1Plane.U => workspace.BluePrediction[..sampleCount],
-                        _ => workspace.RedPrediction[..sampleCount],
-                    };
-                    TOperator.SubtractPrediction(
-                        this.source.GetPlane(plane),
-                        planeOrigin,
-                        prediction,
-                        residual,
-                        transformSize);
-                }
-
-                int codedArea = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
                 Av1NeighborArrayUnit<byte> neighbors = plane switch
                 {
                     Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                     Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
-                    _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
+                    _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
                 };
-
-                Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
-                    planeIndex == 0 ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-                    neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), transformSize.Get4x4WideCount()),
-                    neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), transformSize.Get4x4HighCount()),
-                    modeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0),
-                    transformSize);
-
-                this.ReconstructSelectedTransform(
-                    writer,
-                    blockContext,
-                    true,
-                    planeOrigin,
-                    plane,
-                    transformSize,
-                    prediction,
-                    residual,
-                    states[planeIndex == 0 ? 0 : 15 + planeIndex],
-                    modeInfo.Block.Skip,
-                    codedArea);
-            }
-        }
-
-        private void ReconstructSelectedInterLumaGrid(
-            Av1SymbolEncoder writer,
-            Av1MacroBlockD macroBlock,
-            ushort tileIndex,
-            Point blockOrigin,
-            Av1MacroBlockModeInfo modeInfo,
-            ReadOnlySpan<Av1EncoderTransformBlockState> states)
-        {
-            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
-            Av1TransformSize transformSize = modeInfo.Block.TransformSize;
-            int blockWidth = blockSize.GetWidth();
-            int transformWidth = transformSize.GetWidth();
-            int transformHeight = transformSize.GetHeight();
-            int transformSampleCount = transformSize.GetSize2d();
-            Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
-            Av1TransformSize rootSize = blockSize.GetMaximumTransformSize();
-            int leafCount = rootSize.GetSize2d() / transformSampleCount;
-            int transformIndex = 0;
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-            this.blockWorkspace.GetInterIntraStorage<TSample>(out Span<TSample> tilePrediction, out _, out _);
-            Span<short> residual = workspace.Residual[..transformSampleCount];
-            Av1NeighborArrayUnit<byte> neighbors = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
-            Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-            int contextWidth = blockSize.Get4x4WideCount();
-            int contextHeight = blockSize.Get4x4HighCount();
-            Span<byte> topContexts = modeWorkspace.TransformContexts[..contextWidth];
-            Span<byte> leftContexts = modeWorkspace.TransformContexts.Slice(contextWidth, contextHeight);
-            neighbors.Top.Slice(neighbors.GetTopIndex(blockOrigin), contextWidth).CopyTo(topContexts);
-            neighbors.Left.Slice(neighbors.GetLeftIndex(blockOrigin), contextHeight).CopyTo(leftContexts);
-            for (int leaf = 0; leaf < leafCount; leaf++)
-            {
-                Point offset = rootSize.GetPartitionOrigin(transformSize, leaf);
-                if (offset.X >= codedExtent.Width || offset.Y >= codedExtent.Height)
+                Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+                int contextWidth = planeBlockSize.Get4x4WideCount();
+                int contextHeight = planeBlockSize.Get4x4HighCount();
+                Span<byte> topContexts = modeWorkspace.TransformContexts[..contextWidth];
+                Span<byte> leftContexts = modeWorkspace.TransformContexts.Slice(contextWidth, contextHeight);
+                neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
+                neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
+                int codedArea = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
+                int stateOffset = planeIndex == 0 ? 0 : 16 + ((planeIndex - 1) * 4);
+                int leafCount = planeBlockSize.GetWidth() * planeBlockSize.GetHeight() / sampleCount;
+                int columns = width / transformWidth;
+                int transformIndex = 0;
+                for (int leaf = 0; leaf < leafCount; leaf++)
                 {
-                    continue;
+                    Point offset = planeIndex == 0
+                        ? rootSize.GetPartitionOrigin(transformSize, leaf)
+                        : new Point((leaf % columns) * transformWidth, (leaf / columns) * transformHeight);
+                    if (offset.X >= extent.Width || offset.Y >= extent.Height)
+                    {
+                        continue;
+                    }
+
+                    Span<byte> top = topContexts.Slice(offset.X >> 2, transformSize.Get4x4WideCount());
+                    Span<byte> left = leftContexts.Slice(offset.Y >> 2, transformSize.Get4x4HighCount());
+                    Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                        planeIndex == 0 ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                        top,
+                        left,
+                        planeBlockSize,
+                        transformSize);
+
+                    int inputOffset = (offset.Y * width) + offset.X;
+                    int coefficientOffset = codedArea + (transformIndex * sampleCount);
+                    this.ReconstructSelectedTransform(
+                        writer,
+                        context,
+                        true,
+                        planeOrigin + new Size(offset.X, offset.Y),
+                        plane,
+                        transformSize,
+                        prediction[inputOffset..],
+                        workspace.Residual[inputOffset..],
+                        width,
+                        states[stateOffset + transformIndex],
+                        modeInfo.Block.Skip,
+                        coefficientOffset);
+
+                    Av1EncoderTransformBlockState state = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
+                        coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
+                    byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                        this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)[coefficientOffset..],
+                        transformSize,
+                        state.TransformType,
+                        state.EndOfBlock);
+
+                    top.Fill(coefficientContext);
+                    left.Fill(coefficientContext);
+                    transformIndex++;
                 }
-
-                int column = offset.X / transformWidth;
-                int row = offset.Y / transformHeight;
-                int sourceOffset = (row * transformHeight * blockWidth) + (column * transformWidth);
-                for (int sampleRow = 0; sampleRow < transformHeight; sampleRow++)
-                {
-                    workspace.LumaPrediction.Slice(sourceOffset + (sampleRow * blockWidth), transformWidth)
-                        .CopyTo(tilePrediction.Slice(sampleRow * transformWidth, transformWidth));
-                }
-
-                Point transformOrigin = blockOrigin + new Size(column * transformWidth, row * transformHeight);
-                TOperator.SubtractPrediction(
-                    this.source.GetPlane(Av1Plane.Y),
-                    transformOrigin,
-                    tilePrediction,
-                    residual,
-                    transformSize);
-                Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
-                    Av1ComponentType.Luminance,
-                    topContexts.Slice(offset.X >> 2, transformSize.Get4x4WideCount()),
-                    leftContexts.Slice(offset.Y >> 2, transformSize.Get4x4HighCount()),
-                    blockSize,
-                    transformSize);
-                this.ReconstructSelectedTransform(
-                    writer,
-                    context,
-                    true,
-                    transformOrigin,
-                    Av1Plane.Y,
-                    transformSize,
-                    tilePrediction,
-                    residual,
-                    states[transformIndex],
-                    modeInfo.Block.Skip,
-                    this.codedAreaLuma + (transformIndex * transformSampleCount));
-
-                int coefficientOffset = this.codedAreaLuma + (transformIndex * transformSampleCount);
-                Av1EncoderTransformBlockState state = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y)[
-                    coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
-                byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
-                    this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y)[coefficientOffset..],
-                    transformSize,
-                    state.TransformType,
-                    state.EndOfBlock);
-                topContexts.Slice(offset.X >> 2, transformSize.Get4x4WideCount()).Fill(coefficientContext);
-                leftContexts.Slice(offset.Y >> 2, transformSize.Get4x4HighCount()).Fill(coefficientContext);
-                transformIndex++;
             }
         }
 
@@ -2784,9 +2652,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int subsamplingX = plane == Av1Plane.Y ? 0 : this.source.ChromaSubsamplingX;
                 int subsamplingY = plane == Av1Plane.Y ? 0 : this.source.ChromaSubsamplingY;
                 Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
-                Av1TransformSize transformSize = plane == Av1Plane.Y
-                    ? blockSize.GetMaximumTransformSize()
-                    : blockSize.GetMaxUvTransformSize(subsamplingX != 0, subsamplingY != 0);
+                Av1TransformSize transformSize = planeBlockSize.GetMaximumTransformSize();
                 int width = transformSize.GetWidth();
                 int height = transformSize.GetHeight();
                 Point planeOrigin = new(blockOrigin.X >> subsamplingX, blockOrigin.Y >> subsamplingY);
@@ -2865,6 +2731,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         private Av1RateDistortionStatistics EvaluateInterCandidate(
             Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
@@ -2896,8 +2763,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> redCoefficients,
             out bool skip,
             out Av1EncoderTransformBlockState lumaState,
-            out Av1EncoderTransformBlockState blueState,
-            out Av1EncoderTransformBlockState redState)
+            out InlineArray4<Av1EncoderTransformBlockState> blueState,
+            out InlineArray4<Av1EncoderTransformBlockState> redState)
         {
             Av1TransformSize lumaTransformSize = blockSize.GetMaximumTransformSize();
             Av1EncoderInterPredictionWorkspace<TSample> workspace =
@@ -2954,18 +2821,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 lumaState.TransformType = Av1TransformType.DctDct;
             }
 
-            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
-            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
-            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
-                blockOrigin,
-                subsamplingX,
-                subsamplingY);
-
-            Av1TransformSize chromaTransformSize = blockSize.GetMaxUvTransformSize(
-                colorConfig.SubSamplingX,
-                colorConfig.SubSamplingY);
-
             int blueRate = 0;
             int redRate = 0;
             long blueDistortion = 0;
@@ -2976,41 +2831,17 @@ internal static partial class Av1IntraSuperblockEncoder
             redState = default;
             if (hasChroma)
             {
-                Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
-                    colorConfig.SubSamplingX,
-                    colorConfig.SubSamplingY);
-
-                Av1TransformBlockContext blueContext = Av1TileWriter.GetTransformBlockContexts(
-                    Av1ComponentType.Chroma,
-                    this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
-                    chromaOrigin,
-                    chromaBlockSize,
-                    chromaTransformSize);
-
-                Av1TransformBlockContext redContext = Av1TileWriter.GetTransformBlockContexts(
-                    Av1ComponentType.Chroma,
-                    this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
-                    chromaOrigin,
-                    chromaBlockSize,
-                    chromaTransformSize);
-
-                Av1TransformType chromaTransformType = lumaState.TransformType;
-                Av1TransformSetType chromaTransformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
-                    chromaTransformSize,
-                    isInter: true,
-                    this.picture.Parent.FrameHeader.UseReducedTransformSet);
-
-                if (!chromaTransformType.IsExtendedSetUsed(chromaTransformSet))
-                {
-                    chromaTransformType = Av1TransformType.DctDct;
-                }
-
-                this.EvaluateInterPlane(
+                ReadOnlySpan<Av1EncoderTransformBlockState> lumaStates = new(in lumaState);
+                this.EvaluateInterChromaPlane(
                     writer,
+                    macroBlock,
+                    tileIndex,
+                    blockOrigin,
+                    blockSize,
+                    Av1Plane.U,
+                    referenceFrame,
                     vector,
                     secondaryVector,
-                    Av1Plane.U,
-                    Av1ComponentType.Chroma,
                     mode,
                     usePreparedPrediction,
                     compoundType,
@@ -3019,32 +2850,24 @@ internal static partial class Av1IntraSuperblockEncoder
                     differenceWeightedMaskType,
                     horizontalFilter,
                     verticalFilter,
-                    primaryReference.GetPlane(Av1Plane.U),
-                    this.goldenReference.GetPlane(Av1Plane.U),
-                    blockOrigin,
-                    subsamplingX,
-                    subsamplingY,
-                    blockSize,
-                    chromaTransformSize,
-                    chromaTransformType,
-                    blueContext,
-                    workspace.BluePrediction,
-                    workspace.Residual,
-                    workspace.TransformReconstruction,
-                    workspace.TransformCoefficients,
+                    lumaTransformSize,
+                    lumaStates,
                     blueReconstruction,
                     blueCoefficients,
                     out blueState,
                     out blueRate,
                     out blueDistortion,
                     out bluePredictionDistortion);
-
-                this.EvaluateInterPlane(
+                this.EvaluateInterChromaPlane(
                     writer,
+                    macroBlock,
+                    tileIndex,
+                    blockOrigin,
+                    blockSize,
+                    Av1Plane.V,
+                    referenceFrame,
                     vector,
                     secondaryVector,
-                    Av1Plane.V,
-                    Av1ComponentType.Chroma,
                     mode,
                     usePreparedPrediction,
                     compoundType,
@@ -3053,19 +2876,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     differenceWeightedMaskType,
                     horizontalFilter,
                     verticalFilter,
-                    primaryReference.GetPlane(Av1Plane.V),
-                    this.goldenReference.GetPlane(Av1Plane.V),
-                    blockOrigin,
-                    subsamplingX,
-                    subsamplingY,
-                    blockSize,
-                    chromaTransformSize,
-                    chromaTransformType,
-                    redContext,
-                    workspace.RedPrediction,
-                    workspace.Residual,
-                    workspace.TransformReconstruction,
-                    workspace.TransformCoefficients,
+                    lumaTransformSize,
+                    lumaStates,
                     redReconstruction,
                     redCoefficients,
                     out redState,
@@ -3107,7 +2919,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // All-empty residuals omit the transform tree. Nonempty residuals can also be discarded when
             // prediction alone costs no more; shared prediction syntax must not affect the rounded comparison.
-            skip = forceSkip || (lumaState.EndOfBlock == 0 && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0) ||
+            bool allEmpty = lumaState.EndOfBlock == 0;
+            for (int index = 0; index < 4; index++)
+            {
+                allEmpty &= blueState[index].EndOfBlock == 0 && redState[index].EndOfBlock == 0;
+            }
+
+            skip = forceSkip || allEmpty ||
                 Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion) <=
                 Av1RateDistortion.GetCost(this.rateMultiplier, codedRate - predictionRate, codedDistortion);
 
@@ -3122,7 +2940,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 lumaState = default;
                 if (hasChroma)
                 {
-                    int chromaSampleCount = chromaTransformSize.GetSize2d();
+                    Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
+                        this.source.ChromaSubsamplingX != 0, this.source.ChromaSubsamplingY != 0);
+                    int chromaSampleCount = chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight();
                     workspace.BluePrediction[..chromaSampleCount].CopyTo(blueReconstruction);
                     workspace.RedPrediction[..chromaSampleCount].CopyTo(redReconstruction);
                     blueCoefficients[..chromaSampleCount].Clear();
@@ -3260,7 +3080,176 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Builds one plane prediction and selects its transform without repeating interpolation for each transform type.
+        /// Evaluates chroma transforms using full-plane prediction and sequential coefficient contexts.
+        /// </summary>
+        private void EvaluateInterChromaPlane(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            ushort tileIndex,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1Plane plane,
+            Av1ReferenceFrameType referenceFrame,
+            Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
+            Av1PredictionMode predictionMode,
+            bool usePreparedPrediction,
+            Av1CompoundType compoundType,
+            int compoundWedgeIndex,
+            bool compoundWedgeSign,
+            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            Av1TransformSize lumaTransformSize,
+            ReadOnlySpan<Av1EncoderTransformBlockState> lumaStates,
+            Span<TSample> selectedReconstruction,
+            Span<int> selectedCoefficients,
+            out InlineArray4<Av1EncoderTransformBlockState> states,
+            out int rate,
+            out long distortion,
+            out long predictionDistortion)
+        {
+            int subX = this.source.ChromaSubsamplingX;
+            int subY = this.source.ChromaSubsamplingY;
+            Point planeOrigin = Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
+            Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX != 0, subY != 0);
+            Av1TransformSize transformSize = blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+            int width = planeBlockSize.GetWidth();
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int sampleCount = transformSize.GetSize2d();
+            Size extent = GetCodedTransformExtent(macroBlock, planeBlockSize, transformSize, subX, subY);
+            Av1TransformSize lumaRootSize = blockSize.GetMaximumTransformSize();
+            Size lumaExtent = GetCodedTransformExtent(macroBlock, blockSize, lumaTransformSize, 0, 0);
+            int lumaLeafCount = lumaRootSize.GetSize2d() / lumaTransformSize.GetSize2d();
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            Span<TSample> prediction = plane == Av1Plane.U ? workspace.BluePrediction : workspace.RedPrediction;
+            Av1EncoderFrame<TSample>.PlanarView primaryReference = referenceFrame == Av1ReferenceFrameType.Golden
+                ? this.goldenReference
+                : this.reference;
+
+            // Build the whole plane so interpolation and compound masks retain their block coordinates.
+            // Transform origins then select strided views without repacking the predicted pixels.
+            this.PrepareInterPlanePrediction(
+                vector,
+                secondaryVector,
+                plane,
+                predictionMode,
+                usePreparedPrediction,
+                compoundType,
+                compoundWedgeIndex,
+                compoundWedgeSign,
+                differenceWeightedMaskType,
+                horizontalFilter,
+                verticalFilter,
+                primaryReference.GetPlane(plane),
+                this.goldenReference.GetPlane(plane),
+                new Point(planeOrigin.X << subX, planeOrigin.Y << subY),
+                subX,
+                subY,
+                blockSize,
+                planeBlockSize.GetMaximumTransformSize(),
+                prediction,
+                workspace.Residual);
+
+            Av1NeighborArrayUnit<byte> neighbors = plane == Av1Plane.U
+                ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex]
+                : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
+            Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+            int contextWidth = planeBlockSize.Get4x4WideCount();
+            int contextHeight = planeBlockSize.Get4x4HighCount();
+            Span<byte> topContexts = modeWorkspace.TransformContexts[..contextWidth];
+            Span<byte> leftContexts = modeWorkspace.TransformContexts.Slice(contextWidth, contextHeight);
+            neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
+            neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
+            Av1TransformSetType transformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
+                transformSize, isInter: true, this.picture.Parent.FrameHeader.UseReducedTransformSet);
+
+            states = default;
+            rate = 0;
+            distortion = 0;
+            predictionDistortion = 0;
+            int transformIndex = 0;
+            for (int y = 0; y < extent.Height; y += transformHeight)
+            {
+                for (int x = 0; x < extent.Width; x += transformWidth)
+                {
+                    // Chroma inherits the luma type at its top-left sample. Luma states follow the
+                    // transform tree and omit leaves outside the coded frame, so advance only for coded leaves.
+                    Av1EncoderTransformBlockState lumaState = default;
+                    int lumaIndex = 0;
+                    for (int leaf = 0; leaf < lumaLeafCount; leaf++)
+                    {
+                        Point offset = lumaRootSize.GetPartitionOrigin(lumaTransformSize, leaf);
+                        if (offset.X >= lumaExtent.Width || offset.Y >= lumaExtent.Height)
+                        {
+                            continue;
+                        }
+
+                        if ((x << subX) >= offset.X && (x << subX) < offset.X + lumaTransformSize.GetWidth() &&
+                            (y << subY) >= offset.Y && (y << subY) < offset.Y + lumaTransformSize.GetHeight())
+                        {
+                            lumaState = lumaStates[lumaIndex];
+                            break;
+                        }
+
+                        lumaIndex++;
+                    }
+
+                    Av1TransformType transformType = lumaState.EndOfBlock == 0 || !lumaState.TransformType.IsExtendedSetUsed(transformSet)
+                        ? Av1TransformType.DctDct
+                        : lumaState.TransformType;
+                    Span<byte> top = topContexts.Slice(x >> 2, transformSize.Get4x4WideCount());
+                    Span<byte> left = leftContexts.Slice(y >> 2, transformSize.Get4x4HighCount());
+                    Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                        Av1ComponentType.Chroma,
+                        top,
+                        left,
+                        planeBlockSize,
+                        transformSize);
+
+                    int inputOffset = (y * width) + x;
+                    int coefficientOffset = transformIndex * sampleCount;
+                    Span<int> coefficients = selectedCoefficients.Slice(coefficientOffset, sampleCount);
+                    this.EvaluateInterTransform(
+                        writer,
+                        plane,
+                        Av1ComponentType.Chroma,
+                        predictionMode,
+                        planeOrigin + new Size(x, y),
+                        transformSize,
+                        transformType,
+                        context,
+                        prediction[inputOffset..],
+                        workspace.Residual[inputOffset..],
+                        width,
+                        workspace.TransformReconstruction,
+                        workspace.TransformCoefficients,
+                        selectedReconstruction.Slice(coefficientOffset, sampleCount),
+                        coefficients,
+                        out Av1EncoderTransformBlockState state,
+                        out int transformRate,
+                        out long transformDistortion,
+                        out long transformPredictionDistortion);
+
+                    states[transformIndex++] = state;
+                    rate += transformRate;
+                    distortion += transformDistortion;
+                    predictionDistortion += transformPredictionDistortion;
+                    byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                        coefficients,
+                        transformSize,
+                        state.TransformType,
+                        state.EndOfBlock);
+
+                    top.Fill(coefficientContext);
+                    left.Fill(coefficientContext);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Builds one prediction and evaluates its transform candidates.
         /// </summary>
         private void EvaluateInterPlane(
             Av1SymbolEncoder writer,
@@ -3295,6 +3284,76 @@ internal static partial class Av1IntraSuperblockEncoder
             out int selectedRate,
             out long selectedDistortion,
             out long predictionDistortion)
+        {
+            this.PrepareInterPlanePrediction(
+                vector,
+                secondaryVector,
+                plane,
+                predictionMode,
+                usePreparedPrediction,
+                compoundType,
+                compoundWedgeIndex,
+                compoundWedgeSign,
+                differenceWeightedMaskType,
+                horizontalFilter,
+                verticalFilter,
+                referencePlane,
+                secondaryReferencePlane,
+                lumaOrigin,
+                subsamplingX,
+                subsamplingY,
+                blockSize,
+                transformSize,
+                prediction,
+                residual);
+
+            Point planeOrigin = new(lumaOrigin.X >> subsamplingX, lumaOrigin.Y >> subsamplingY);
+            this.EvaluateInterTransform(
+                writer,
+                plane,
+                componentType,
+                predictionMode,
+                planeOrigin,
+                transformSize,
+                transformTypeSelection,
+                blockContext,
+                prediction,
+                residual,
+                transformSize.GetWidth(),
+                transformReconstruction,
+                transformCoefficients,
+                selectedReconstruction,
+                selectedCoefficients,
+                out selectedState,
+                out selectedRate,
+                out selectedDistortion,
+                out predictionDistortion);
+        }
+
+        /// <summary>
+        /// Builds the complete plane prediction and residual in contiguous block rows.
+        /// </summary>
+        private void PrepareInterPlanePrediction(
+            Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
+            Av1Plane plane,
+            Av1PredictionMode predictionMode,
+            bool usePreparedPrediction,
+            Av1CompoundType compoundType,
+            int compoundWedgeIndex,
+            bool compoundWedgeSign,
+            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            Buffer2DRegion<TSample> referencePlane,
+            Buffer2DRegion<TSample> secondaryReferencePlane,
+            Point lumaOrigin,
+            int subsamplingX,
+            int subsamplingY,
+            Av1BlockSize blockSize,
+            Av1TransformSize transformSize,
+            Span<TSample> prediction,
+            Span<short> residual)
         {
             Point planeOrigin = new(lumaOrigin.X >> subsamplingX, lumaOrigin.Y >> subsamplingY);
             int sourceColumnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
@@ -3348,6 +3407,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch,
                     transformSize,
                     this.bitDepth,
+                    plane,
                     blockSize,
                     compoundType,
                     firstWeight,
@@ -3395,6 +3455,34 @@ internal static partial class Av1IntraSuperblockEncoder
                     residual[..sampleCount],
                     transformSize);
             }
+        }
+
+        /// <summary>
+        /// Evaluates transform types over strided prediction and residual samples at one transform origin.
+        /// </summary>
+        private void EvaluateInterTransform(
+            Av1SymbolEncoder writer,
+            Av1Plane plane,
+            Av1ComponentType componentType,
+            Av1PredictionMode predictionMode,
+            Point planeOrigin,
+            Av1TransformSize transformSize,
+            Av1TransformType transformTypeSelection,
+            Av1TransformBlockContext blockContext,
+            ReadOnlySpan<TSample> prediction,
+            ReadOnlySpan<short> residual,
+            int inputStride,
+            Span<TSample> transformReconstruction,
+            Span<int> transformCoefficients,
+            Span<TSample> selectedReconstruction,
+            Span<int> selectedCoefficients,
+            out Av1EncoderTransformBlockState selectedState,
+            out int selectedRate,
+            out long selectedDistortion,
+            out long predictionDistortion)
+        {
+            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+            int sampleCount = transformSize.GetSize2d();
 
             // Prediction-only error remains available even when every transform quantizes to nonzero coefficients.
             // Normalize squared sample precision with rounding before adding four fractional distortion bits.
@@ -3402,7 +3490,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int visibleWidth = Math.Min(width, sourcePlane.Width - planeOrigin.X);
             int visibleHeight = Math.Min(transformSize.GetHeight(), sourcePlane.Height - planeOrigin.Y);
             long predictionSquaredError = 0;
-            if (visibleWidth == width)
+            if (visibleWidth == inputStride)
             {
                 predictionSquaredError = Av1ResidualBuilder.SumSquares(residual[..(width * visibleHeight)]);
             }
@@ -3410,7 +3498,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int row = 0; row < visibleHeight; row++)
                 {
-                    predictionSquaredError += Av1ResidualBuilder.SumSquares(residual.Slice(row * width, visibleWidth));
+                    predictionSquaredError += Av1ResidualBuilder.SumSquares(residual.Slice(row * inputStride, visibleWidth));
                 }
             }
 
@@ -3463,8 +3551,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.Sequence.SequenceHeader.IsStillPicture,
                     sourcePlane,
                     planeOrigin,
-                    prediction[..sampleCount],
-                    residual[..sampleCount],
+                    prediction,
+                    residual,
+                    inputStride,
                     candidateReconstruction,
                     transformSize.GetWidth(),
                     candidateCoefficients,

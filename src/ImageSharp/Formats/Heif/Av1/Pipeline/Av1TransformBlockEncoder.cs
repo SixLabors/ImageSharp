@@ -215,8 +215,9 @@ internal static class Av1TransformBlockEncoder
     /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
-    /// <param name="prediction">The contiguous prediction samples.</param>
-    /// <param name="residual">The contiguous source-minus-prediction samples.</param>
+    /// <param name="prediction">The prediction samples at the transform origin.</param>
+    /// <param name="residual">The source-minus-prediction samples at the transform origin.</param>
+    /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
     /// <param name="reconstruction">The candidate reconstruction.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
@@ -239,6 +240,7 @@ internal static class Av1TransformBlockEncoder
         Point blockOrigin,
         ReadOnlySpan<byte> prediction,
         ReadOnlySpan<short> residual,
+        int inputStride,
         Span<byte> reconstruction,
         int reconstructionStride,
         Span<int> quantizedCoefficients,
@@ -252,22 +254,21 @@ internal static class Av1TransformBlockEncoder
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        int sampleCount = transformSize.GetSize2d();
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
         // Each transform trial overwrites reconstruction but consumes the prepared residual read-only.
         // Row copies preserve a larger candidate surface without materializing a second compact block.
         for (int row = 0; row < height; row++)
         {
-            prediction.Slice(row * width, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+            prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
         }
 
         EncodeLossyCandidate(
             workspace,
             writer,
             context,
-            residual[..sampleCount],
-            width,
+            residual,
+            inputStride,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -622,8 +623,9 @@ internal static class Av1TransformBlockEncoder
     /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
-    /// <param name="prediction">The contiguous prediction samples.</param>
-    /// <param name="residual">The contiguous source-minus-prediction samples.</param>
+    /// <param name="prediction">The prediction samples at the transform origin.</param>
+    /// <param name="residual">The source-minus-prediction samples at the transform origin.</param>
+    /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
     /// <param name="reconstruction">The candidate reconstruction.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
@@ -647,6 +649,7 @@ internal static class Av1TransformBlockEncoder
         Point blockOrigin,
         ReadOnlySpan<ushort> prediction,
         ReadOnlySpan<short> residual,
+        int inputStride,
         Span<ushort> reconstruction,
         int reconstructionStride,
         Span<int> quantizedCoefficients,
@@ -661,22 +664,21 @@ internal static class Av1TransformBlockEncoder
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        int sampleCount = transformSize.GetSize2d();
         ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
         // Each transform trial overwrites reconstruction but consumes the prepared residual read-only.
         // Row copies preserve a larger candidate surface without materializing a second compact block.
         for (int row = 0; row < height; row++)
         {
-            prediction.Slice(row * width, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+            prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
         }
 
         EncodeLossyCandidate(
             workspace,
             writer,
             context,
-            residual[..sampleCount],
-            width,
+            residual,
+            inputStride,
             quantizedCoefficients,
             transformSize,
             transformType,

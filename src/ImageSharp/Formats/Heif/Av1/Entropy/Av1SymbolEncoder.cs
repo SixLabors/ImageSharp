@@ -358,7 +358,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             this.writer = new(configuration, bufferLength, updateCdf);
             this.baseQIndex = qIndex;
         }
-
         catch
         {
             // The level buffer is already owned here; a later allocation failure cannot be unwound by the caller.

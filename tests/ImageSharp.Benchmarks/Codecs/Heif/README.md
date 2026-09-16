@@ -51,10 +51,10 @@ Do not compare them with `aomenc`'s internal encode-time report, which excludes 
 
 The source is the existing `TestImages.Png.Bike` photograph. Frames one and two are independently translated by half a pixel and one pixel on both axes.
 Encoder setup also checks all three encoded photographic frames with independent ImageSharp and libaom decoder contexts, including their retained references.
-The parameter matrix contains 256x256 and 512x512 frames at ImageSharp efforts seven, eight, and nine.
+The parameter matrix contains 256x256 and 512x512 frames at ImageSharp `Speed=Level6`.
 Input is full-range BT.601, eight-bit 4:2:0; each sequence contains one key frame and two dependent frames.
 Both codecs use one coding thread. Libaom uses good-quality mode, no lookahead, disabled automatic key frames, and `cpu-used=6`.
-That speed is an independent reference setting, not a mapping from the ImageSharp effort scale.
+Both speed settings use the same native numeric value; the removed ImageSharp effort option is no longer a parameter.
 
 ImageSharp's base quantizer index is 120. Libaom's public quantizer 30 maps to that same index in the pinned reference.
 The native minimum and maximum quantizers are both fixed to 30, in addition to the CQ setting, so frame-level CQ boosts cannot lower the base quantizer.
@@ -111,7 +111,7 @@ Run one pair first, in the existing benchmark host with the in-process toolchain
 
 ```powershell
 $benchmarkAssembly = 'artifacts/bin/tests/ImageSharp.Benchmarks/Release/net11.0/ImageSharp.Benchmarks.dll'
-$benchmarkFilter = '*Av1SequenceEncoderBenchmarks.*(Dimension: 256, Effort: 7)'
+$benchmarkFilter = '*Av1SequenceEncoderBenchmarks.*(Dimension: 256)'
 
 dotnet $benchmarkAssembly --inProcess --job Dry --filter $benchmarkFilter `
     --stopOnFirstError --noOverwrite --artifacts artifacts/BenchmarkDotNet/av1-sequence-rgb-dry

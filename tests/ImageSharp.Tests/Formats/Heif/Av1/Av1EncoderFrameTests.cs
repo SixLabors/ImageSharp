@@ -158,7 +158,6 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 0,
-            effort: 0,
             speed: HeifEncodingSpeed.Level0);
 
         using Av1Decoder decoder = new(Configuration.Default);
@@ -251,7 +250,6 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort: 5,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -339,7 +337,6 @@ public class Av1EncoderFrameTests
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 5,
                 speed: HeifEncodingSpeed.Level0)
             : Av1FrameEncoder.CreateColorSequenceEncoder(
                 Configuration.Default,
@@ -347,7 +344,6 @@ public class Av1EncoderFrameTests
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 5,
                 speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(source.Frames.RootFrame, stream);
@@ -386,63 +382,58 @@ public class Av1EncoderFrameTests
     /// Verifies dependent color samples with odd visible dimensions and motion across subsampled chroma phases.
     /// </summary>
     [Theory]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level0)]
-    [InlineData(EightBit, Yuv420, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, Yuv420, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, Yuv420, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(EightBit, Yuv422, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, Yuv422, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, Yuv422, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(EightBit, Yuv444, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, Yuv444, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, Yuv444, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level1)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level2)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level3)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level4)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level5)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level6)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level7)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level8)]
-    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level9)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level1)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level2)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level3)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level4)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level5)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level6)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level7)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level8)]
-    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level9)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level1)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level2)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level3)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level4)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level5)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level6)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level7)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level8)]
-    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level9)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level0)]
+    [InlineData(EightBit, Yuv422, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, Yuv422, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, Yuv422, HeifEncodingSpeed.Level0)]
+    [InlineData(EightBit, Yuv444, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, Yuv444, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, Yuv444, HeifEncodingSpeed.Level0)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level1)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level2)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level3)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level4)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level5)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level6)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level7)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level8)]
+    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level9)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level1)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level2)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level3)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level4)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level5)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level6)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level7)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level8)]
+    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level9)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level1)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level2)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level3)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level4)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level5)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level6)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level7)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level8)]
+    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level9)]
     public void SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion(
         int bitDepthValue,
         int colorFormatValue,
-        int effort,
         HeifEncodingSpeed speed)
-        => VerifySequenceEncoderColorPlanes(bitDepthValue, colorFormatValue, effort, speed, 23, 19);
+        => VerifySequenceEncoderColorPlanes(bitDepthValue, colorFormatValue, speed, 23, 19);
 
     [Theory]
     [InlineData(HeifEncodingSpeed.Level0)]
     [InlineData(HeifEncodingSpeed.Level3)]
     [InlineData(HeifEncodingSpeed.Level5)]
     public void SequenceEncoderPreservesNativeColorPlanesAcrossMotionCostRefreshRows(HeifEncodingSpeed speed)
-        => VerifySequenceEncoderColorPlanes(EightBit, Yuv420, 8, speed, 129, 273);
+        => VerifySequenceEncoderColorPlanes(EightBit, Yuv420, speed, 129, 273);
 
     private static void VerifySequenceEncoderColorPlanes(
         int bitDepthValue,
         int colorFormatValue,
-        int effort,
         HeifEncodingSpeed speed,
         int width,
         int height)
@@ -462,7 +453,6 @@ public class Av1EncoderFrameTests
             height,
             colorConfig,
             QIndex,
-            effort,
             speed);
 
         using Av1Decoder decoder = new(Configuration.Default);
@@ -543,12 +533,8 @@ public class Av1EncoderFrameTests
     /// <summary>
     /// Verifies retained reference reconstruction and frame-level speed policy through production sequence decoding.
     /// </summary>
-    [Theory]
-    [InlineData(5, false, false)]
-    [InlineData(7, false, false)]
-    [InlineData(8, true, false)]
-    [InlineData(9, true, true)]
-    public void SequenceEncoderUsesRetainedReconstructionForInterFrame(int effort, bool switchableFilters, bool dualFilters)
+    [Fact]
+    public void SequenceEncoderUsesRetainedReconstructionForInterFrame()
     {
         const int Width = 16;
         const int Height = 16;
@@ -563,7 +549,6 @@ public class Av1EncoderFrameTests
             Height,
             colorConfig,
             qIndex: 37,
-            effort,
             speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(source.Frames.RootFrame, firstSample);
@@ -611,7 +596,7 @@ public class Av1EncoderFrameTests
         Assert.False(frameHeader.ForceIntegerMotionVector);
         Assert.True(frameHeader.AllowHighPrecisionMotionVector);
         Assert.Equal(37, frameHeader.QuantizationParameters.BaseQIndex);
-        Assert.Equal(switchableFilters ? Av1InterpolationFilter.Switchable : Av1InterpolationFilter.Regular, frameHeader.InterpolationFilter);
+        Assert.Equal(Av1InterpolationFilter.Switchable, frameHeader.InterpolationFilter);
         Assert.False(decoder.SequenceHeader.EnableDualFilter);
         Assert.Equal(1U, frameHeader.RefreshFrameFlags);
         Assert.Equal(0U, frameHeader.GetReferenceFrameIndices()[(int)Av1ReferenceFrameType.Last - 1]);
@@ -628,10 +613,7 @@ public class Av1EncoderFrameTests
 
         // Repeated frames still use the inter skip alternative when prediction supplies the retained samples.
         Assert.True(hasSkippedInterBlock);
-        if (effort >= 9)
-        {
-            Assert.True(hasLargeInterBlock);
-        }
+        Assert.True(hasLargeInterBlock);
 
         for (int y = 0; y < Height; y++)
         {
@@ -678,7 +660,6 @@ public class Av1EncoderFrameTests
             Height,
             colorConfig,
             qIndex: 0,
-            effort: 6,
             speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(golden.Frames.RootFrame, goldenSample);
@@ -768,7 +749,6 @@ public class Av1EncoderFrameTests
             Height,
             colorConfig,
             qIndex: 0,
-            effort: 6,
             speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(golden.Frames.RootFrame, goldenSample);
@@ -861,7 +841,6 @@ public class Av1EncoderFrameTests
             Height,
             colorConfig,
             qIndex: 4,
-            effort: 6,
             speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(first.Frames.RootFrame, firstSample);
@@ -931,7 +910,6 @@ public class Av1EncoderFrameTests
                 32,
                 colorConfig,
                 17,
-                9,
                 speed: HeifEncodingSpeed.Level0);
         });
 
@@ -957,8 +935,8 @@ public class Av1EncoderFrameTests
         successfulAllocator.EnableNonThreadSafeLogging();
         configuration.MemoryAllocator = successfulAllocator;
         using (Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
-            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0)
-            : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0))
+            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, speed: HeifEncodingSpeed.Level0)
+            : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, speed: HeifEncodingSpeed.Level0))
         {
             Assert.NotEmpty(successfulAllocator.AllocationLog);
         }
@@ -974,8 +952,8 @@ public class Av1EncoderFrameTests
             InvalidMemoryOperationException exception = Assert.Throws<InvalidMemoryOperationException>(() =>
             {
                 using Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
-                    ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0)
-                    : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0);
+                    ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, speed: HeifEncodingSpeed.Level0)
+                    : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, speed: HeifEncodingSpeed.Level0);
             });
 
             Assert.Equal("Sequence allocation failure.", exception.Message);
@@ -1021,7 +999,6 @@ public class Av1EncoderFrameTests
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 6,
                 speed: HeifEncodingSpeed.Level0)
             : Av1FrameEncoder.CreateColorSequenceEncoder(
                 configuration,
@@ -1029,7 +1006,6 @@ public class Av1EncoderFrameTests
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 6,
                 speed: HeifEncodingSpeed.Level0))
         {
             rowStorage = Assert.Single(
@@ -1060,15 +1036,15 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(TenBit, 8, 8, 0, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, 8, 8, 0, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, 24, 16, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, 24, 16, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, 16, 24, 10, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, 16, 24, 10, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, 77, 21, 5, HeifEncodingSpeed.Level7)]
-    [InlineData(TwelveBit, 21, 77, 5, HeifEncodingSpeed.Level9)]
-    public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue, int width, int height, int effort, HeifEncodingSpeed speed)
+    [InlineData(TenBit, 8, 8, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, 8, 8, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, 24, 16, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, 24, 16, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, 16, 24, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, 16, 24, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, 77, 21, HeifEncodingSpeed.Level7)]
+    [InlineData(TwelveBit, 21, 77, HeifEncodingSpeed.Level9)]
+    public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue, int width, int height, HeifEncodingSpeed speed)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         using Image<Rgb48> source = new(width, height);
@@ -1117,7 +1093,6 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 0,
-            effort,
             speed);
 
         byte[] payload = stream.ToArray();
@@ -1147,20 +1122,20 @@ public class Av1EncoderFrameTests
     /// Verifies that live partition search preserves lossless syntax across clipped parent nodes and superblocks.
     /// </summary>
     [Theory]
-    [InlineData(48, 24, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(24, 48, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(80, 24, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(24, 80, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(96, 24, 10, HeifEncodingSpeed.Level0)]
-    [InlineData(24, 96, 10, HeifEncodingSpeed.Level0)]
-    [InlineData(13, 21, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(21, 13, 9, HeifEncodingSpeed.Level0)]
-    [InlineData(77, 21, 10, HeifEncodingSpeed.Level0)]
-    [InlineData(21, 77, 10, HeifEncodingSpeed.Level0)]
-    [InlineData(13, 21, 5, HeifEncodingSpeed.Level7)]
-    [InlineData(77, 21, 5, HeifEncodingSpeed.Level8)]
-    [InlineData(21, 77, 5, HeifEncodingSpeed.Level9)]
-    public void EncodeLosslessPartitionSearchAcrossClippedSuperblocks(int width, int height, int effort, HeifEncodingSpeed speed)
+    [InlineData(48, 24, HeifEncodingSpeed.Level0)]
+    [InlineData(24, 48, HeifEncodingSpeed.Level0)]
+    [InlineData(80, 24, HeifEncodingSpeed.Level0)]
+    [InlineData(24, 80, HeifEncodingSpeed.Level0)]
+    [InlineData(96, 24, HeifEncodingSpeed.Level0)]
+    [InlineData(24, 96, HeifEncodingSpeed.Level0)]
+    [InlineData(13, 21, HeifEncodingSpeed.Level0)]
+    [InlineData(21, 13, HeifEncodingSpeed.Level0)]
+    [InlineData(77, 21, HeifEncodingSpeed.Level0)]
+    [InlineData(21, 77, HeifEncodingSpeed.Level0)]
+    [InlineData(13, 21, HeifEncodingSpeed.Level7)]
+    [InlineData(77, 21, HeifEncodingSpeed.Level8)]
+    [InlineData(21, 77, HeifEncodingSpeed.Level9)]
+    public void EncodeLosslessPartitionSearchAcrossClippedSuperblocks(int width, int height, HeifEncodingSpeed speed)
     {
         ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
         using Image<L8> source = new(width, height);
@@ -1178,7 +1153,7 @@ public class Av1EncoderFrameTests
         ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
         colorConfig.ColorRange = true;
         using MemoryStream stream = new();
-        Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, effort, speed);
+        Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, speed);
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _);
@@ -1193,7 +1168,7 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void EncodeEffortNineSelectsSubEightPartition()
+    public void EncodeSelectsSubEightPartition()
     {
         const int Size = 16;
         using Image<Rgba32> source = new(Size, Size);
@@ -1231,7 +1206,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
             qIndex: 4,
-            effort: 9,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -1273,7 +1247,7 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void EncodeEffortNineReconstructsSubEightPartitionsAtSubsampledChromaBoundaries()
+    public void EncodeReconstructsSubEightPartitionsAtSubsampledChromaBoundaries()
     {
         const int Size = 512;
         string sourcePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Bike);
@@ -1287,7 +1261,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
             qIndex: 4,
-            effort: 9,
             speed: HeifEncodingSpeed.Level0);
 
         using Av1Decoder decoder = new(Configuration.Default);
@@ -1305,7 +1278,7 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void EncodeEffortNineSelectsSixteenBySixteenVerticalPartition()
+    public void EncodeSelectsSixteenBySixteenVerticalPartition()
     {
         const int Size = 32;
         using Image<Rgba32> source = new(Size, Size);
@@ -1343,7 +1316,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
             qIndex: 4,
-            effort: 9,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -1380,7 +1352,7 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void EncodeEffortTenSelectsThirtyTwoByThirtyTwoBlocks()
+    public void EncodeSelectsThirtyTwoByThirtyTwoBlocks()
     {
         const int Size = 32;
         using Image<Rgba32> source = new(Size, Size);
@@ -1400,7 +1372,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
             qIndex: 4,
-            effort: 10,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -1439,7 +1410,7 @@ public class Av1EncoderFrameTests
     [Theory]
     [InlineData(Yuv400)]
     [InlineData(Yuv444)]
-    public void EncodeEffortTenSelectsSixtyFourBySixtyFourBlock(int colorFormatValue)
+    public void EncodeSelectsSixtyFourBySixtyFourBlock(int colorFormatValue)
     {
         const int Size = 64;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
@@ -1460,7 +1431,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
             qIndex: 4,
-            effort: 10,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -1499,7 +1469,7 @@ public class Av1EncoderFrameTests
     [Theory]
     [InlineData(Yuv400)]
     [InlineData(Yuv444)]
-    public void EncodeEffortTenSelectsOneHundredTwentyEightByOneHundredTwentyEightBlock(int colorFormatValue)
+    public void EncodeSelectsOneHundredTwentyEightByOneHundredTwentyEightBlock(int colorFormatValue)
     {
         const int Size = 128;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
@@ -1520,7 +1490,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
             qIndex: 4,
-            effort: 10,
             speed: HeifEncodingSpeed.Level0);
 
         Assert.True(sequenceHeader.Use128x128Superblock);
@@ -1558,7 +1527,7 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void EncodeEffortTenSearchesHighBitDepthOneHundredTwentyEightRoot()
+    public void EncodeSearchesHighBitDepthOneHundredTwentyEightRoot()
     {
         const int Size = 128;
         using Image<Rgba32> source = new(Size, Size);
@@ -1578,7 +1547,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
             qIndex: 4,
-            effort: 10,
             speed: HeifEncodingSpeed.Level0);
 
         Assert.True(sequenceHeader.Use128x128Superblock);
@@ -1631,7 +1599,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(bitDepth),
             qIndex: 37,
-            effort: 5,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -1734,7 +1701,6 @@ public class Av1EncoderFrameTests
             stream,
             CreateColorConfig(bitDepth, colorFormat),
             qIndex: 37,
-            effort: 5,
             speed: HeifEncodingSpeed.Level0);
 
         Av1CodecConfiguration configuration = new(sequenceHeader);
@@ -1925,7 +1891,6 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort: 5,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -1958,21 +1923,17 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(0, true, true, false)]
-    [InlineData(1, true, true, false)]
-    [InlineData(2, true, true, false)]
-    [InlineData(3, true, true, false)]
-    [InlineData(4, true, true, false)]
-    [InlineData(5, true, true, false)]
-    [InlineData(6, true, true, true)]
-    [InlineData(7, true, true, true)]
-    [InlineData(8, true, true, true)]
-    [InlineData(10, true, true, true)]
-    public void EncodeEffortControlsSearchFeatures(
-        int effort,
-        bool enableFilterIntra,
-        bool enableScreenContentTools,
-        bool selectTransformSize)
+    [InlineData(HeifEncodingSpeed.Level0)]
+    [InlineData(HeifEncodingSpeed.Level1)]
+    [InlineData(HeifEncodingSpeed.Level2)]
+    [InlineData(HeifEncodingSpeed.Level3)]
+    [InlineData(HeifEncodingSpeed.Level4)]
+    [InlineData(HeifEncodingSpeed.Level5)]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level7)]
+    [InlineData(HeifEncodingSpeed.Level8)]
+    [InlineData(HeifEncodingSpeed.Level9)]
+    public void EncodeSpeedPreservesEnabledIntraTools(HeifEncodingSpeed speed)
     {
         const int width = 16;
         const int height = 16;
@@ -1996,8 +1957,7 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort,
-            speed: HeifEncodingSpeed.Level0);
+            speed);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -2021,46 +1981,23 @@ public class Av1EncoderFrameTests
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        Assert.Equal(enableFilterIntra, sequenceHeader.EnableFilterIntra);
-        Assert.Equal(enableScreenContentTools, frameHeader.AllowScreenContentTools);
-        Assert.Equal(enableScreenContentTools, frameHeader.AllowIntraBlockCopy);
-        Assert.Equal(
-            selectTransformSize ? Av1TransformMode.Select : Av1TransformMode.Largest,
-            frameHeader.TransformMode);
+        Assert.True(sequenceHeader.EnableFilterIntra);
+        Assert.True(frameHeader.AllowScreenContentTools);
+        Assert.True(frameHeader.AllowIntraBlockCopy);
+        Assert.Equal(Av1TransformMode.Select, frameHeader.TransformMode);
         Assert.Equal(new Size(width, height), decoded.Size);
 
         int modeCount = 0;
         foreach (Av1BlockModeInfo modeInfo in frameInfo.GetSuperblock(Point.Empty).GetModeInfos())
         {
             modeCount++;
-            if (effort == 0)
-            {
-                Assert.Equal(Av1PredictionMode.DC, modeInfo.YMode);
-                Assert.Equal(Av1ChromaPredictionMode.DC, modeInfo.UvMode);
-            }
-
-            if (effort <= 1)
-            {
-                Assert.Equal(0, modeInfo.GetAngleDelta(Av1Plane.Y));
-                Assert.Equal(0, modeInfo.GetAngleDelta(Av1Plane.U));
-            }
-
-            if (effort < 4)
-            {
-                Assert.False(modeInfo.UseFilterIntra);
-            }
-
-            if (effort < 5)
-            {
-                Assert.False(modeInfo.UseIntraBlockCopy);
-            }
         }
 
         Assert.NotEqual(0, modeCount);
     }
 
     [Fact]
-    public void EncodeEffortSixSelectsFourByFourLumaTransforms()
+    public void EncodeSelectsFourByFourLumaTransforms()
     {
         const int Width = 16;
         const int Height = 16;
@@ -2083,7 +2020,6 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort: 6,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -2118,12 +2054,8 @@ public class Av1EncoderFrameTests
         Assert.Equal(new Size(Width, Height), decoded.Size);
     }
 
-    [Theory]
-    [InlineData(5, false)]
-    [InlineData(6, true)]
-    public void EncodeSelectsIntraBlockCopyForRepeatedScreenContent(
-        int effort,
-        bool selectTransformSize)
+    [Fact]
+    public void EncodeSelectsIntraBlockCopyForRepeatedScreenContent()
     {
         const int Width = 328;
         const int Height = 16;
@@ -2149,7 +2081,6 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = stream.ToArray();
@@ -2174,9 +2105,7 @@ public class Av1EncoderFrameTests
         Assert.NotNull(decoder.FrameHeader);
         Assert.True(decoder.FrameHeader.AllowScreenContentTools);
         Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
-        Assert.Equal(
-            selectTransformSize ? Av1TransformMode.Select : Av1TransformMode.Largest,
-            decoder.FrameHeader.TransformMode);
+        Assert.Equal(Av1TransformMode.Select, decoder.FrameHeader.TransformMode);
         Assert.NotNull(decoder.FrameInfo);
         int superblockSizeLog2 = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).SuperblockSizeLog2;
         Av1SuperblockInfo targetSuperblock = decoder.FrameInfo.GetSuperblock(new Point((Width - 1) >> superblockSizeLog2, 0));
@@ -2381,7 +2310,6 @@ public class Av1EncoderFrameTests
             destination,
             CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
             qIndex: 37,
-            effort: 5,
             speed: HeifEncodingSpeed.Level0);
 
         Assert.False(destination.CanSeek);

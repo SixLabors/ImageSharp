@@ -19,11 +19,6 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private int? alphaQuality;
 
     /// <summary>
-    /// Backing field for <see cref="Effort"/>.
-    /// </summary>
-    private int effort = 5;
-
-    /// <summary>
     /// The AV1 encoding speed.
     /// </summary>
     private HeifEncodingSpeed speed;
@@ -65,25 +60,6 @@ public sealed class HeifEncoder : AnimatedImageEncoder
             }
 
             this.alphaQuality = value;
-        }
-    }
-
-    /// <summary>
-    /// Gets the encoding effort in the range 0 to 10. A value of 0 selects the fastest encoding and 10 selects the
-    /// slowest encoding with the greatest compression effort. The default is 5.
-    /// </summary>
-    /// <exception cref="ArgumentException">The effort is outside the range 0 to 10.</exception>
-    public int Effort
-    {
-        get => this.effort;
-        init
-        {
-            if (value is < 0 or > 10)
-            {
-                throw new ArgumentException("Effort must be in the range [0..10].");
-            }
-
-            this.effort = value;
         }
     }
 

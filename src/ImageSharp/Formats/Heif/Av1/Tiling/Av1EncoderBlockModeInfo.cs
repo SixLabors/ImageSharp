@@ -151,7 +151,7 @@ internal struct Av1EncoderBlockModeInfo
     }
 
     /// <summary>
-    /// Gets or sets the selected wedge orientation.
+    /// Gets or sets a value indicating whether the selected wedge reverses the predictor weights.
     /// </summary>
     public bool CompoundWedgeSign
     {

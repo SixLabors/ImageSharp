@@ -159,7 +159,7 @@ internal static partial class Av1ForwardTransformer
             int rowOffset = (quadrant >> 1) * half;
             int columnOffset = (quadrant & 1) * half;
             GetHadamardCost(
-                residual[(rowOffset * stride + columnOffset)..],
+                residual[((rowOffset * stride) + columnOffset)..],
                 stride,
                 half,
                 highBitDepth,

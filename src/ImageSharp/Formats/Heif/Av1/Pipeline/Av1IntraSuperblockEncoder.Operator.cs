@@ -130,7 +130,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
-        /// Builds an equal-weight compound prediction from two retained reference frames.
+        /// Builds a compound prediction from two retained reference frames using the selected blend.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The destination block origin in plane samples.</param>
@@ -148,9 +148,19 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
         /// <param name="firstIntermediate">The reusable primary unsigned compound intermediate.</param>
         /// <param name="secondIntermediate">The reusable secondary unsigned compound intermediate.</param>
+        /// <param name="compoundMask">The reusable luma-resolution blend mask.</param>
         /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
         /// <param name="transformSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="lumaBlockSize">The luma block dimensions used to construct the blend mask.</param>
+        /// <param name="compoundType">The blend applied to the two predictors.</param>
+        /// <param name="firstWeight">The primary predictor's distance weight.</param>
+        /// <param name="secondWeight">The secondary predictor's distance weight.</param>
+        /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
+        /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
+        /// <param name="wedgeIndex">The selected wedge shape.</param>
+        /// <param name="wedgeSign">Whether to reverse the wedge's predictor weights.</param>
+        /// <param name="differenceWeightedMaskType">The polarity of the difference-weighted mask.</param>
         public static abstract void PrepareCompoundInterPrediction(
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
@@ -185,6 +195,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Blends a spatial intra predictor into a completed inter predictor through an AV1 alpha mask.
         /// </summary>
+        /// <param name="interPrediction">The inter predictor, overwritten by the blended samples.</param>
+        /// <param name="intraPrediction">The contiguous intra predictor samples.</param>
+        /// <param name="mask">The per-sample intra weights in the inclusive range zero through 64.</param>
+        /// <param name="width">The prediction width in samples.</param>
+        /// <param name="height">The prediction height in samples.</param>
         public static abstract void BlendInterIntraPrediction(
             Span<TSample> interPrediction,
             ReadOnlySpan<TSample> intraPrediction,
@@ -1156,26 +1171,65 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 case Av1CompoundType.DistanceWeighted:
                     Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width,
-                        width, height, firstWeight, secondWeight, bitCount);
+                        prediction,
+                        width,
+                        firstIntermediate,
+                        width,
+                        secondIntermediate,
+                        width,
+                        width,
+                        height,
+                        firstWeight,
+                        secondWeight,
+                        bitCount);
                     break;
                 case Av1CompoundType.Wedge:
                     Av1WedgeMask.Fill(compoundMask, lumaBlockSize.GetWidth(), lumaBlockSize, wedgeIndex, wedgeSign, 0, 0, invert: false);
                     Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width,
-                        compoundMask, lumaBlockSize.GetWidth(), width, height, subsamplingX, subsamplingY, bitCount);
+                        prediction,
+                        width,
+                        firstIntermediate,
+                        width,
+                        secondIntermediate,
+                        width,
+                        compoundMask,
+                        lumaBlockSize.GetWidth(),
+                        width,
+                        height,
+                        subsamplingX,
+                        subsamplingY,
+                        bitCount);
                     break;
                 case Av1CompoundType.DifferenceWeighted:
                     if (subsamplingX == 0 && subsamplingY == 0)
                     {
                         Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
-                            compoundMask, width, firstIntermediate, width, secondIntermediate, width,
-                            width, height, bitCount, differenceWeightedMaskType);
+                            compoundMask,
+                            width,
+                            firstIntermediate,
+                            width,
+                            secondIntermediate,
+                            width,
+                            width,
+                            height,
+                            bitCount,
+                            differenceWeightedMaskType);
                     }
 
                     Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width,
-                        compoundMask, lumaBlockSize.GetWidth(), width, height, subsamplingX, subsamplingY, bitCount);
+                        prediction,
+                        width,
+                        firstIntermediate,
+                        width,
+                        secondIntermediate,
+                        width,
+                        compoundMask,
+                        lumaBlockSize.GetWidth(),
+                        width,
+                        height,
+                        subsamplingX,
+                        subsamplingY,
+                        bitCount);
                     break;
                 default:
                     Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
@@ -1925,26 +1979,65 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 case Av1CompoundType.DistanceWeighted:
                     Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width,
-                        width, height, firstWeight, secondWeight, bitCount);
+                        prediction,
+                        width,
+                        firstIntermediate,
+                        width,
+                        secondIntermediate,
+                        width,
+                        width,
+                        height,
+                        firstWeight,
+                        secondWeight,
+                        bitCount);
                     break;
                 case Av1CompoundType.Wedge:
                     Av1WedgeMask.Fill(compoundMask, lumaBlockSize.GetWidth(), lumaBlockSize, wedgeIndex, wedgeSign, 0, 0, invert: false);
                     Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width,
-                        compoundMask, lumaBlockSize.GetWidth(), width, height, subsamplingX, subsamplingY, bitCount);
+                        prediction,
+                        width,
+                        firstIntermediate,
+                        width,
+                        secondIntermediate,
+                        width,
+                        compoundMask,
+                        lumaBlockSize.GetWidth(),
+                        width,
+                        height,
+                        subsamplingX,
+                        subsamplingY,
+                        bitCount);
                     break;
                 case Av1CompoundType.DifferenceWeighted:
                     if (subsamplingX == 0 && subsamplingY == 0)
                     {
                         Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
-                            compoundMask, width, firstIntermediate, width, secondIntermediate, width,
-                            width, height, bitCount, differenceWeightedMaskType);
+                            compoundMask,
+                            width,
+                            firstIntermediate,
+                            width,
+                            secondIntermediate,
+                            width,
+                            width,
+                            height,
+                            bitCount,
+                            differenceWeightedMaskType);
                     }
 
                     Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width,
-                        compoundMask, lumaBlockSize.GetWidth(), width, height, subsamplingX, subsamplingY, bitCount);
+                        prediction,
+                        width,
+                        firstIntermediate,
+                        width,
+                        secondIntermediate,
+                        width,
+                        compoundMask,
+                        lumaBlockSize.GetWidth(),
+                        width,
+                        height,
+                        subsamplingX,
+                        subsamplingY,
+                        bitCount);
                     break;
                 default:
                     Av1CompoundIntermediateAveragePredictor.AverageIntermediate(

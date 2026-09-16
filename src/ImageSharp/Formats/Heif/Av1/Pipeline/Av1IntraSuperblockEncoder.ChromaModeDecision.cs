@@ -16,6 +16,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </content>
 internal static partial class Av1IntraSuperblockEncoder
 {
+    private static readonly ushort[] LumaDerivedChromaModeMasks =
+    [
+        0x2201, 0x2203, 0x2205, 0x2209, 0x2211, 0x2221, 0x2241,
+        0x2281, 0x2301, 0x2201, 0x2601, 0x2A01, 0x3201
+    ];
+
     /// <summary>
     /// Gets the spatial chroma modes in the order used by the reference encoder.
     /// </summary>
@@ -34,12 +40,6 @@ internal static partial class Av1IntraSuperblockEncoder
         Av1ChromaPredictionMode.Directional67Degrees,
         Av1ChromaPredictionMode.Directional113Degrees,
         Av1ChromaPredictionMode.Directional45Degrees
-    ];
-
-    private static readonly ushort[] LumaDerivedChromaModeMasks =
-    [
-        0x2201, 0x2203, 0x2205, 0x2209, 0x2211, 0x2221, 0x2241,
-        0x2281, 0x2301, 0x2201, 0x2601, 0x2A01, 0x3201
     ];
 
     internal partial struct ModeDecision<TSample, TOperator>
@@ -284,12 +284,21 @@ internal static partial class Av1IntraSuperblockEncoder
             int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1ChromaPredictionMode.Directional67Degrees - (int)Av1ChromaPredictionMode.Vertical + 1;
             HeifEncodingSpeed speed = this.picture.Parent.EncodingSpeed;
+
+            // Directional evidence excludes the replicated border, unlike block variance. Chroma's
+            // normalized histogram is scaled by its sample area before evaluating the directional scores.
             byte directionalModeSkipMask = speed == HeifEncodingSpeed.Level3
-                ? GetDirectionalModeSkipMask(blueSource, chromaOrigin, height, width, -1.2F)
+                ? GetDirectionalModeSkipMask(
+                    blueSource,
+                    chromaOrigin,
+                    Math.Min(height, blueSource.Height - chromaOrigin.Y),
+                    Math.Min(width, blueSource.Width - chromaOrigin.X),
+                    (1 + subsamplingX) * (1 + subsamplingY),
+                    -1.2F)
                 : (byte)0;
 
-            // Libaom suppresses UV_SMOOTH_PRED at speed six and above only when both chroma planes have
-            // per-pixel source variance below 20. Values are normalized to eight-bit precision first.
+            // Suppress smooth prediction only when both chroma planes have per-pixel variance below 20.
+            // Variance is normalized to eight-bit precision after accumulating the full-precision differences.
             bool pruneSmooth = speed >= HeifEncodingSpeed.Level6 &&
                 GetSourceVariance(blueSource, chromaOrigin, width, height, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, width, height, this.bitDepth) < 20;
@@ -503,7 +512,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateBlueCoefficients[..sampleCount],
                         ref candidateBlueState,
                         out blueRates[alphaCandidateIndex]);
-
                 }
 
                 for (int alphaCandidateIndex = firstRedCandidate; alphaCandidateIndex < lastRedCandidate; alphaCandidateIndex++)
@@ -730,7 +738,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
             HeifEncodingSpeed speed = this.picture.Parent.EncodingSpeed;
             byte directionalModeSkipMask = speed == HeifEncodingSpeed.Level3
-                ? GetDirectionalModeSkipMask(blueSource, chromaOrigin, blockHeight, blockWidth, -1.2F)
+                ? GetDirectionalModeSkipMask(
+                    blueSource,
+                    chromaOrigin,
+                    Math.Min(blockHeight, blueSource.Height - chromaOrigin.Y),
+                    Math.Min(blockWidth, blueSource.Width - chromaOrigin.X),
+                    (1 + subsamplingX) * (1 + subsamplingY),
+                    -1.2F)
                 : (byte)0;
 
             bool pruneSmooth = speed >= HeifEncodingSpeed.Level6 &&
@@ -921,26 +935,36 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth)
         {
             int shift = bitDepth.GetBitCount() - 8;
+            int midpoint = 128 << shift;
+
+            // Source ownership includes replicated edge padding. Candidates at the image boundary
+            // still cover their full block, so preserve the physical stride beyond the visible region.
+            ReadOnlySpan<TSample> sourceSamples = Av1TransformBlockEncoder.GetPlaneSpan(source, origin);
             long sum = 0;
             long sumOfSquares = 0;
             for (int row = 0; row < height; row++)
             {
-                ReadOnlySpan<TSample> sourceRow = source.DangerousGetRowSpan(origin.Y + row).Slice(origin.X, width);
+                ReadOnlySpan<TSample> sourceRow = sourceSamples.Slice(row * source.Stride, width);
                 for (int column = 0; column < width; column++)
                 {
-                    int sample = TOperator.GetSampleValue(sourceRow[column]);
-                    if (shift != 0)
-                    {
-                        sample = (sample + (1 << (shift - 1))) >> shift;
-                    }
-
+                    int sample = TOperator.GetSampleValue(sourceRow[column]) - midpoint;
                     sum += sample;
                     sumOfSquares += sample * sample;
                 }
             }
 
+            // Round the accumulated difference and squared difference independently. Rounding each
+            // source sample first changes the variance and can incorrectly prune a chroma candidate.
+            if (shift != 0)
+            {
+                sum = (sum + (1L << (shift - 1))) >> shift;
+                int squaredShift = shift * 2;
+                sumOfSquares = (sumOfSquares + (1L << (squaredShift - 1))) >> squaredShift;
+            }
+
             int sampleCount = width * height;
-            return (int)Math.Max(0, (sumOfSquares - ((sum * sum) / sampleCount) + (sampleCount >> 1)) / sampleCount);
+            long variance = Math.Max(0, sumOfSquares - ((sum * sum) / sampleCount));
+            return (int)((variance + (sampleCount >> 1)) / sampleCount);
         }
 
         private long GetTiledPlaneCost(

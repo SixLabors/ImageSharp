@@ -67,12 +67,13 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
-        /// Computes the libaom all-intra directional-mode skip mask from a source block's Sobel histogram.
+        /// Computes the directional-mode skip mask from a source block's Sobel histogram.
         /// </summary>
-        /// <param name="source">The source luma plane.</param>
+        /// <param name="source">The source component plane.</param>
         /// <param name="origin">The visible block origin.</param>
         /// <param name="rows">The visible row count.</param>
         /// <param name="columns">The visible column count.</param>
+        /// <param name="histogramScale">The chroma subsampling area factor, or one for luma.</param>
         /// <param name="threshold">The speed-dependent neural score threshold.</param>
         /// <returns>A bit mask whose eight bits correspond to the contiguous directional prediction modes.</returns>
         internal static byte GetDirectionalModeSkipMask(
@@ -80,9 +81,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Point origin,
             int rows,
             int columns,
+            int histogramScale,
             float threshold)
         {
             Span<float> histogram = stackalloc float[GradientBinCount];
+            histogram.Clear();
             float total = 0.1F;
             ReadOnlySpan<int> thresholds = GradientThresholds;
             for (int row = 1; row < rows - 1; row++)
@@ -133,10 +136,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 int weightOffset = mode * GradientBinCount;
                 for (int bin = 0; bin < GradientBinCount; bin++)
                 {
-                    score += weights[weightOffset + bin] * (histogram[bin] / total);
+                    score += weights[weightOffset + bin] * ((histogram[bin] / total) * histogramScale);
                 }
 
-                // Libaom reduces neural outputs to Q9 before comparing the speed-dependent threshold.
+                // Reduce neural outputs to Q9 before comparing the speed-dependent threshold.
                 score = (int)((score * 512F) + 0.5F) / 512F;
                 if (score <= threshold)
                 {

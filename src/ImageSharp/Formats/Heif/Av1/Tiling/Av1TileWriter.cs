@@ -1168,7 +1168,6 @@ internal partial class Av1TileWriter
                                 break;
                             }
                         }
-
                     }
 
                     int newReferenceIndex = lumaMode is Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector

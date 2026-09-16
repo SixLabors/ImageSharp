@@ -19,16 +19,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1IntraSuperblockEncoder
 {
     /// <summary>
-    /// The first effort tier that refines full-pixel motion to quarter-pixel precision.
-    /// </summary>
-    private const int MinimumSubpixelMotionSearchEffort = 7;
-
-    /// <summary>
-    /// The first effort tier that adds the final eighth-pixel refinement step.
-    /// </summary>
-    private const int MinimumHighPrecisionMotionSearchEffort = 8;
-
-    /// <summary>
     /// One nearest, three near, one global, and four searched new-motion references.
     /// The fourth NEWMV result is retained only for mixed compound modes whose near-index syntax addresses stack entry three.
     /// </summary>
@@ -614,13 +604,13 @@ internal static partial class Av1IntraSuperblockEncoder
             InlineArray16<Av1EncoderTransformBlockState> bestStates = default;
             int bestStateCount = 0;
             Av1TransformSize candidateTransformSize = maximumTransformSize;
+            Span<Av1EncoderTransformBlockState> candidateStates = stackalloc Av1EncoderTransformBlockState[16];
             for (int depth = 1; depth <= Av1Constants.MaxVarTransform; depth++)
             {
                 candidateTransformSize = candidateTransformSize.GetSubSize();
                 int transformCount =
                     (modeInfo.Block.BlockSize.GetWidth() / candidateTransformSize.GetWidth()) *
                     (modeInfo.Block.BlockSize.GetHeight() / candidateTransformSize.GetHeight());
-                Span<Av1EncoderTransformBlockState> candidateStates = stackalloc Av1EncoderTransformBlockState[16];
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluatePreparedInterLumaGrid(
                     writer,
                     macroBlock,
@@ -1532,8 +1522,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     tileIndex,
                     block.HasChroma,
-                    commonPredictionRate + filterRate +
-                        (interIntraEligible ? writer.GetInterIntraCost(blockSize, false, default, false, 0) : 0),
+                    commonPredictionRate + filterRate + (interIntraEligible ? writer.GetInterIntraCost(blockSize, false, default, false, 0) : 0),
                     skipContext,
                     transformPartitionRate,
                     referenceFrame,
@@ -1872,9 +1861,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateRedReconstruction,
                             candidateRedCoefficients,
                             out bool candidateSkip,
-                        out Av1EncoderTransformBlockState candidateLumaState,
-                        out Av1EncoderTransformBlockState candidateBlueState,
-                        out Av1EncoderTransformBlockState candidateRedState);
+                            out Av1EncoderTransformBlockState candidateLumaState,
+                            out Av1EncoderTransformBlockState candidateBlueState,
+                            out Av1EncoderTransformBlockState candidateRedState);
 
                         // libaom searches compound modes and blend syntax in stable order. Strict replacement
                         // retains the earlier motion mode, blend, and lower DRL entry on equal cost.
@@ -1921,6 +1910,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo.Block.UseInterIntraWedge = selectedInterIntraWedge;
                 modeInfo.Block.InterIntraWedgeIndex = (byte)selectedInterIntraWedgeIndex;
             }
+
             modeInfo.Block.VerticalInterpolationFilter = selectedVerticalFilter;
             modeInfo.Block.HorizontalInterpolationFilter = selectedHorizontalFilter;
             block.ReferenceMotionVectorIndex = selectedReferenceIndex;
@@ -2341,6 +2331,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Reconstructs the selected inter mode after intra trials have reused its arithmetic storage.
         /// </summary>
         /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="macroBlock">The block geometry and neighboring transform contexts.</param>
         /// <param name="tileIndex">The tile containing the coefficient neighbors.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>

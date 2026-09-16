@@ -182,7 +182,6 @@ public class Av1IntraSuperblockEncoderTests
             Height,
             colorConfig,
             qIndex: 0,
-            effort,
             speed: HeifEncodingSpeed.Level0);
 
         // Keep frame filtering outside this motion-search allocation and interpolation test.
@@ -227,8 +226,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             coefficients,
             tileWorkspace,
-            blockWorkspace,
-            effort);
+            blockWorkspace);
 
         Assert.Equal(allocationCount, allocator.AllocationLog.Count);
         Point targetPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, 0);
@@ -308,7 +306,6 @@ public class Av1IntraSuperblockEncoderTests
         const int TargetRow = 8;
         const int BlockSize = 8;
         const int QIndex = 1;
-        const int Effort = 9;
         const int TileBufferLength = 8192;
         const int FilterScale = 128;
         int sampleScale = 1 << (bitDepth - 8);
@@ -372,7 +369,6 @@ public class Av1IntraSuperblockEncoderTests
             Height,
             colorConfig,
             qIndex: 0,
-            Effort,
             speed: HeifEncodingSpeed.Level0);
 
         // Keep frame filtering outside this motion-search allocation and interpolation test.
@@ -408,7 +404,7 @@ public class Av1IntraSuperblockEncoderTests
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
         int allocationCount = allocator.AllocationLog.Count;
         Av1TileEncoder tileWriter = new(
-            symbolEncoder, source.Frame, reference.Frame, reference.Frame, false, reconstruction.Frame, picture.Picture, coefficients, tileWorkspace, blockWorkspace, Effort);
+            symbolEncoder, source.Frame, reference.Frame, reference.Frame, false, reconstruction.Frame, picture.Picture, coefficients, tileWorkspace, blockWorkspace);
 
         Assert.Equal(allocationCount, allocator.AllocationLog.Count);
 
@@ -691,8 +687,7 @@ public class Av1IntraSuperblockEncoderTests
             tilePicture.Picture,
             tileCoefficients,
             tileSuperblockWorkspace,
-            tileBlockWorkspace,
-            effort: 0);
+            tileBlockWorkspace);
 
         // Both paths evaluate DC only, so differing bytes identify a traversal or writing defect rather than a different mode choice.
         Assert.True(encoded.GetSpan().SequenceEqual(tileWriter.GetTileData(0)));
@@ -1032,8 +1027,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     superblock,
                     coefficients,
-                    blockWorkspace,
-                    effort: 0);
+                    blockWorkspace);
 
                 ref Av1MacroBlockModeInfo modeInfo = ref picture.GetMacroBlockModeInfo(modeInfoPosition);
                 Av1EncoderBlockStruct block = default;
@@ -1244,8 +1238,7 @@ public class Av1IntraSuperblockEncoderTests
             livePicture.Picture,
             liveCoefficients,
             liveSuperblockWorkspace,
-            liveBlockWorkspace,
-            effort: 5);
+            liveBlockWorkspace);
 
         Assert.True(precomputedTile.GetSpan().SequenceEqual(liveTileWriter.GetTileData(0)));
     }
@@ -1375,8 +1368,7 @@ public class Av1IntraSuperblockEncoderTests
             tilePicture.Picture,
             tileCoefficients,
             tileSuperblockWorkspace,
-            tileBlockWorkspace,
-            effort: 5);
+            tileBlockWorkspace);
 
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
         ushort reconstructedSample = tileReconstruction.Frame.CodedView
@@ -1465,8 +1457,7 @@ public class Av1IntraSuperblockEncoderTests
             picture,
             superblock,
             coefficients,
-            blockWorkspace,
-            effort: 0);
+            blockWorkspace);
 
         ref Av1MacroBlockModeInfo modeInfo = ref picture.GetMacroBlockModeInfo(Point.Empty);
         Av1EncoderBlockStruct block = default;
@@ -1750,8 +1741,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5));
+                    blockWorkspace));
 
         AssertProductionTileSelectsExactLumaPalette(
             Av1BitDepth.TwelveBit,
@@ -1771,8 +1761,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5));
+                    blockWorkspace));
 
         AssertProductionTileSelectsExactLumaPalette(
             Av1BitDepth.EightBit,
@@ -1792,8 +1781,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5));
+                    blockWorkspace));
     }
 
     [Theory]
@@ -1814,7 +1802,7 @@ public class Av1IntraSuperblockEncoderTests
             896,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1TileEncoder(
-                    writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                    writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
 
         AssertProductionTileSelectsExactLumaPalette(
             Av1BitDepth.TwelveBit,
@@ -1828,7 +1816,7 @@ public class Av1IntraSuperblockEncoderTests
             3584,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1TileEncoder(
-                    writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                    writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
     }
 
     [Fact]
@@ -1852,8 +1840,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 6));
+                    blockWorkspace));
 
         AssertProductionTileSelectsExactLumaPalette(
             Av1BitDepth.TwelveBit,
@@ -1873,8 +1860,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 6));
+                    blockWorkspace));
     }
 
     [Theory]
@@ -1951,7 +1937,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Parent.Common.ModeInfoColumnCount);
 
         Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator> decision = new(
-            source.Frame, reconstruction.Frame, reconstruction.Frame, false, reconstruction.Frame, picture, superblock, coefficients, blockWorkspace, effort: 5);
+            source.Frame, reconstruction.Frame, reconstruction.Frame, false, reconstruction.Frame, picture, superblock, coefficients, blockWorkspace);
 
         Av1EncoderBlockStruct block = default;
         Av1EncoderPaletteInfo palette = default;
@@ -2113,8 +2099,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             coefficients,
             superblockWorkspace,
-            blockWorkspace,
-            effort: 5);
+            blockWorkspace);
 
         ref Av1MacroBlockModeInfo mode = ref picture.Picture.GetMacroBlockModeInfo(default);
         Assert.Equal(Av1ChromaPredictionMode.DC, mode.Block.UvMode);
@@ -2350,8 +2335,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             coefficients,
             superblockWorkspace,
-            blockWorkspace,
-            effort: 5);
+            blockWorkspace);
 
         ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
         Assert.Equal(expectedMode, targetBlock.Block.Mode);
@@ -2469,8 +2453,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             coefficients,
             superblockWorkspace,
-            blockWorkspace,
-            effort: 5);
+            blockWorkspace);
 
         ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
         Assert.Equal(expectedMode, targetBlock.Block.UvMode);
@@ -2510,8 +2493,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5));
+                    blockWorkspace));
 
     [Theory]
     [InlineData((int)Av1ColorFormat.Yuv420, 10)]
@@ -2534,8 +2516,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5));
+                    blockWorkspace));
 
     private static void VerifyProductionTileSelectsChromaFromReconstructedLuma<TSample>(
         int colorFormatValue,
@@ -2802,8 +2783,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5),
+                    blockWorkspace),
             static (mode, destination, stride, above, left, width, height, _, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
                     .Predict(destination, stride, above, left, width, height, scratch));
@@ -2835,8 +2815,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5),
+                    blockWorkspace),
             static (mode, destination, stride, above, left, width, height, sampleBitDepth, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
                     .Predict(
@@ -2864,8 +2843,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 6),
+                    blockWorkspace),
             static (mode, destination, stride, above, left, width, height, _, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
                     .Predict(destination, stride, above, left, width, height, scratch));
@@ -2887,8 +2865,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 6),
+                    blockWorkspace),
             static (mode, destination, stride, above, left, width, height, sampleBitDepth, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
                     .Predict(
@@ -3372,8 +3349,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             coefficients,
             superblockWorkspace,
-            blockWorkspace,
-            effort: 5);
+            blockWorkspace);
 
         ref Av1MacroBlockModeInfo topRightBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(0, 2));
         ref Av1MacroBlockModeInfo bottomLeftBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(16, 0));
@@ -3397,8 +3373,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5));
+                    blockWorkspace));
 
         VerifyProductionTileSelectsIntraBlockCopy(
             Av1BitDepth.TwelveBit,
@@ -3412,8 +3387,7 @@ public class Av1IntraSuperblockEncoderTests
                     picture,
                     coefficients,
                     superblockWorkspace,
-                    blockWorkspace,
-                    effort: 5));
+                    blockWorkspace));
     }
 
     private static void VerifyProductionTileSelectsIntraBlockCopy<TSample>(
@@ -3662,8 +3636,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             coefficients,
             superblockWorkspace,
-            blockWorkspace,
-            effort: 5);
+            blockWorkspace);
 
         Point targetModeInfoPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, 0);
         ref Av1MacroBlockModeInfo targetMode = ref picture.Picture.GetMacroBlockModeInfo(targetModeInfoPosition);
@@ -3778,8 +3751,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             coefficients,
             superblockWorkspace,
-            blockWorkspace,
-            effort: 5);
+            blockWorkspace);
 
         Assert.Equal(4, coefficients.SuperblockCount);
         bool usesNonDctTransform = false;
@@ -3861,7 +3833,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
         using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture, 8192);
         Av1TileEncoder tileWriter = new(
-            symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace, effort: 9);
+            symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace);
 
         byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, size, size);
         using Av1Decoder decoder = new(Configuration.Default);
@@ -3905,7 +3877,7 @@ public class Av1IntraSuperblockEncoderTests
             false,
             HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
 
     [Theory]
     [InlineData((int)Av1ColorFormat.Yuv400, 10)]
@@ -3924,7 +3896,7 @@ public class Av1IntraSuperblockEncoderTests
             false,
             HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
 
     [Theory]
     [InlineData((int)Av1ColorFormat.Yuv400, HeifEncodingSpeed.Level0)]
@@ -3939,7 +3911,7 @@ public class Av1IntraSuperblockEncoderTests
             false,
             speed,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
 
     [Theory]
     [InlineData((int)Av1ColorFormat.Yuv400, 10, HeifEncodingSpeed.Level0)]
@@ -3958,7 +3930,7 @@ public class Av1IntraSuperblockEncoderTests
             false,
             speed,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
 
     [Theory]
     [InlineData((int)Av1ColorFormat.Yuv400)]
@@ -3973,7 +3945,7 @@ public class Av1IntraSuperblockEncoderTests
             true,
             HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
 
     [Theory]
     [InlineData((int)Av1ColorFormat.Yuv400, 10)]
@@ -3992,7 +3964,7 @@ public class Av1IntraSuperblockEncoderTests
             true,
             HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace));
 
     /// <summary>
     /// Verifies that decoding the emitted stream reproduces the retained, filtered reconstruction exactly.

@@ -26,12 +26,6 @@ public class AvifEncoderBenchmarks
     public int Dimension { get; set; }
 
     /// <summary>
-    /// Gets or sets the encoder search effort.
-    /// </summary>
-    [Params(7, 9)]
-    public int Effort { get; set; }
-
-    /// <summary>
     /// Gets or sets the native-valued encoder speed.
     /// </summary>
     [Params(HeifEncodingSpeed.Level0, HeifEncodingSpeed.Level6, HeifEncodingSpeed.Level9)]
@@ -50,7 +44,6 @@ public class AvifEncoderBenchmarks
         this.encoder = new HeifEncoder
         {
             Quality = 75,
-            Effort = this.Effort,
             Speed = this.Speed,
             BitDepth = HeifBitDepth.Bit8,
             ChromaSubsampling = HeifChromaSubsampling.Yuv420

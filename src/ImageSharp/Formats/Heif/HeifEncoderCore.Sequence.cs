@@ -235,7 +235,6 @@ internal sealed partial class HeifEncoderCore
             image.Height,
             settings.ColorConfig,
             settings.ColorQIndex,
-            this.encoder.Effort,
             speed: this.encoder.Speed))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -293,7 +292,6 @@ internal sealed partial class HeifEncoderCore
                 image.Height,
                 settings.AlphaConfig,
                 settings.AlphaQIndex,
-                this.encoder.Effort,
                 speed: this.encoder.Speed))
             {
                 cancellationToken.ThrowIfCancellationRequested();

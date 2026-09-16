@@ -15,15 +15,30 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <param name="allIntra">Whether the sequence uses the all-intra profile.</param>
     /// <param name="intraFrame">Whether the current picture is intra-only.</param>
     /// <param name="qIndex">The current base quantizer index.</param>
-    public Av1EncoderSpeedSettings(HeifEncodingSpeed speed, bool allIntra, bool intraFrame, int qIndex)
+    /// <param name="frameSize">The visible frame dimensions.</param>
+    public Av1EncoderSpeedSettings(HeifEncodingSpeed speed, bool allIntra, bool intraFrame, int qIndex, Size frameSize)
     {
         this.Speed = speed;
+
         // GOOD mode disables dual interpolation filtering in its baseline speed features. All-intra pictures do not
         // write inter filters, so keeping the sequence flag disabled avoids advertising an unused coding tool.
         this.EnableDualFilter = false;
         this.EnableRestoration = !allIntra || speed < HeifEncodingSpeed.Level5;
         this.AllowHighPrecisionMotionVector = !intraFrame && qIndex < 128;
         this.UseVarianceBasedPartition = allIntra && speed >= HeifEncodingSpeed.Level7;
+        int minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
+        this.MinimumPartitionSize = minimumDimension >= 2160 ||
+            (speed >= HeifEncodingSpeed.Level6 && minimumDimension >= 1080) ||
+            speed >= HeifEncodingSpeed.Level7
+                ? Av1BlockSize.Block8x8
+                : Av1BlockSize.Block4x4;
+
+        // Fast still-image search caps its leaves at 32 samples. Larger roots must split before
+        // mode evaluation; slower still-image and sequence searches retain the full size range.
+        this.MaximumPartitionSize = allIntra && speed >= HeifEncodingSpeed.Level6
+            ? Av1BlockSize.Block32x32
+            : Av1BlockSize.Block128x128;
+
         this.PaletteSearchLevel = speed == HeifEncodingSpeed.Level0 ? 0 : speed < HeifEncodingSpeed.Level3 ? 1 : 2;
         this.LumaPaletteHeaderPruneLevel = allIntra ? speed == HeifEncodingSpeed.Level0 ? 1 : 2 : 0;
         this.EarlyTerminateChromaPaletteSearch = allIntra || speed >= HeifEncodingSpeed.Level6;
@@ -53,6 +68,16 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets a value indicating whether all-intra variance-based partitioning replaces rate-distortion partition search.
     /// </summary>
     public bool UseVarianceBasedPartition { get; }
+
+    /// <summary>
+    /// Gets the smallest square partition permitted by the speed and resolution policy.
+    /// </summary>
+    public Av1BlockSize MinimumPartitionSize { get; }
+
+    /// <summary>
+    /// Gets the largest square partition permitted by the speed policy.
+    /// </summary>
+    public Av1BlockSize MaximumPartitionSize { get; }
 
     /// <summary>
     /// Gets the dominant-color and k-means palette search pruning level.

@@ -146,7 +146,6 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly ObuQuantizationParameters quantization;
         private readonly Av1BitDepth bitDepth;
         private readonly int rateMultiplier;
-        private readonly int effort;
         private int codedAreaLuma;
         private int codedAreaChroma;
         private int replayNodeIndex;
@@ -166,7 +165,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="superblock">The current superblock.</param>
         /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
         /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-        /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
         public ModeDecision(
             Av1EncoderFrame<TSample> source,
             Av1EncoderFrame<TSample> reference,
@@ -176,8 +174,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PictureControlSet picture,
             Av1Superblock superblock,
             Av1EncoderCoefficientBuffer coefficientBuffer,
-            Av1EncoderBlockWorkspace blockWorkspace,
-            int effort)
+            Av1EncoderBlockWorkspace blockWorkspace)
         {
             this.source = source.CodedView;
             this.reference = reference.CodedView;
@@ -245,7 +242,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.rateMultiplier = Math.Max(1, (this.rateMultiplier * modifier) >> 7);
             }
 
-            this.effort = effort;
             this.codedAreaLuma = 0;
             this.codedAreaChroma = 0;
             this.SelectedBlockStatistics = default;
@@ -253,7 +249,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.replayPartition = Av1PartitionType.Invalid;
             this.replayPartitionOrigin = default;
             this.replayParentSize = Av1BlockSize.Invalid;
-            if (effort >= 9)
+            if (!picture.Parent.SpeedSettings.UseVarianceBasedPartition)
             {
                 int side = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
                 int x = (superblock.Index % coefficientBuffer.SuperblockColumnCount) * side;
@@ -286,6 +282,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PartitionType preparedPartition)
         {
             this.replayNodeIndex = -1;
+
             // Live decisions change the number of nodes visited before this position. The original flat
             // skeleton's index no longer identifies this block, so derive its default from current geometry.
             // Otherwise an earlier unsplit 16x16 can make a later 32x32 consume an old 8x8 NONE entry.
@@ -316,23 +313,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 return variancePartition;
             }
 
-            bool searchPartition = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block16x16 ||
-                (this.effort == 10 &&
-                    blockSize is Av1BlockSize.Block32x32 or Av1BlockSize.Block64x64 or Av1BlockSize.Block128x128);
-
             // Inter prediction currently retains one transform per plane. A 128x128 parent requires four
             // 64x64 transform regions, so keep its prepared split until tiled inter transforms are available.
             if (!this.picture.Parent.FrameHeader.IsIntra && blockSize == Av1BlockSize.Block128x128)
-            {
-                return preparedPartition;
-            }
-
-            if (!searchPartition)
-            {
-                return preparedPartition;
-            }
-
-            if (this.effort < 9)
             {
                 return preparedPartition;
             }
@@ -746,6 +729,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType partitionType)
         {
+            Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
+            if (blockSize > speedSettings.MaximumPartitionSize && partitionType != Av1PartitionType.Split)
+            {
+                return false;
+            }
+
             int halfWidth = blockSize.GetWidth() >> 1;
             int halfHeight = blockSize.GetHeight() >> 1;
             bool hasRows = blockOrigin.Y + halfHeight <
@@ -753,6 +742,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool hasColumns = blockOrigin.X + halfWidth <
                 (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2);
+
+            // Reaching the configured minimum closes the ordinary split and rectangle searches.
+            // A partial frame-edge block must still split when its midpoint is outside the frame.
+            if (blockSize <= speedSettings.MinimumPartitionSize && partitionType != Av1PartitionType.None && hasRows && hasColumns)
+            {
+                return false;
+            }
 
             // At frame edges the partition alphabet depends on whether each midpoint is visible.
             // A remaining half-block is split implicitly; permitted leaves may extend into padding.
@@ -1001,6 +997,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, context);
                 }
+
                 this.SelectedBlockStatistics = context.Snapshot.Statistics;
                 return;
             }
@@ -3759,15 +3756,18 @@ internal static partial class Av1IntraSuperblockEncoder
         private static bool IsFilterIntraModeDerivedFromBestMode(
             Av1FilterIntraMode filterIntraMode,
             Av1PredictionMode bestMode)
-            => filterIntraMode == Av1FilterIntraMode.DC ||
-                (bestMode switch
-                {
-                    Av1PredictionMode.Vertical => Av1FilterIntraMode.Vertical,
-                    Av1PredictionMode.Horizontal => Av1FilterIntraMode.Horizontal,
-                    Av1PredictionMode.Directional157Degrees => Av1FilterIntraMode.Directional157,
-                    Av1PredictionMode.Paeth => Av1FilterIntraMode.Paeth,
-                    _ => Av1FilterIntraMode.DC
-                }) == filterIntraMode;
+        {
+            Av1FilterIntraMode derivedMode = bestMode switch
+            {
+                Av1PredictionMode.Vertical => Av1FilterIntraMode.Vertical,
+                Av1PredictionMode.Horizontal => Av1FilterIntraMode.Horizontal,
+                Av1PredictionMode.Directional157Degrees => Av1FilterIntraMode.Directional157,
+                Av1PredictionMode.Paeth => Av1FilterIntraMode.Paeth,
+                _ => Av1FilterIntraMode.DC
+            };
+
+            return filterIntraMode == Av1FilterIntraMode.DC || filterIntraMode == derivedMode;
+        }
 
         /// <summary>
         /// Builds the directional-mode skip mask selected by libaom's all-intra speed policy.
@@ -3797,6 +3797,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 visibleHeight,
                 visibleWidth,
+                1,
                 threshold);
         }
 

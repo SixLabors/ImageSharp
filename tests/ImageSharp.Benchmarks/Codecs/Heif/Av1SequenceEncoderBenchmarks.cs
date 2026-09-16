@@ -39,12 +39,6 @@ public class Av1SequenceEncoderBenchmarks
     public int Dimension { get; set; }
 
     /// <summary>
-    /// Gets or sets the managed search effort while native speed remains fixed and recorded independently.
-    /// </summary>
-    [Params(7, 8, 9)]
-    public int Effort { get; set; }
-
-    /// <summary>
     /// Loads and prepares the source sequence, then verifies both encoded payloads through managed and native decoders.
     /// </summary>
     [GlobalSetup]
@@ -117,7 +111,6 @@ public class Av1SequenceEncoderBenchmarks
             this.Dimension,
             this.colorConfig,
             ManagedQIndex,
-            this.Effort,
             HeifEncodingSpeed.Level6);
 
         encoder.EncodeKeyFrame(this.frames[0].Frames.RootFrame, this.imageSharpOutput);

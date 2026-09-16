@@ -43,7 +43,7 @@ public class HeifEncoderTests
 
         Assert.Null(encoder.Quality);
         Assert.Null(encoder.AlphaQuality);
-        Assert.Equal(5, encoder.Effort);
+        Assert.Equal(HeifEncodingSpeed.Level0, encoder.Speed);
         Assert.False(encoder.Lossless);
         Assert.Null(encoder.BitDepth);
         Assert.Null(encoder.ChromaSubsampling);
@@ -65,25 +65,25 @@ public class HeifEncoderTests
 
     [Theory]
     [InlineData(-1)]
-    [InlineData(11)]
-    public void EffortOutsideRangeThrows(int effort)
-        => Assert.Throws<ArgumentException>(() => new HeifEncoder { Effort = effort });
+    [InlineData(10)]
+    public void SpeedOutsideRangeThrows(int speed)
+        => Assert.Throws<ArgumentException>(() => new HeifEncoder { Speed = (HeifEncodingSpeed)speed });
 
     [Theory]
     [InlineData(0, 0, 0)]
-    [InlineData(100, 100, 10)]
-    public void OptionRangeBoundariesAreAccepted(int quality, int alphaQuality, int effort)
+    [InlineData(100, 100, 9)]
+    public void OptionRangeBoundariesAreAccepted(int quality, int alphaQuality, int speed)
     {
         HeifEncoder encoder = new()
         {
             Quality = quality,
             AlphaQuality = alphaQuality,
-            Effort = effort
+            Speed = (HeifEncodingSpeed)speed
         };
 
         Assert.Equal(quality, encoder.Quality);
         Assert.Equal(alphaQuality, encoder.AlphaQuality);
-        Assert.Equal(effort, encoder.Effort);
+        Assert.Equal((HeifEncodingSpeed)speed, encoder.Speed);
     }
 
     [Fact]
@@ -109,7 +109,6 @@ public class HeifEncoderTests
         {
             AnimateRootFrame = false,
             Lossless = true,
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -181,7 +180,6 @@ public class HeifEncoderTests
                 payload,
                 colorConfig,
                 qIndex: 0,
-                effort: 0,
                 speed: HeifEncodingSpeed.Level0);
 
             uint itemId = (uint)tileIndex + 2;
@@ -344,7 +342,6 @@ public class HeifEncoderTests
         {
             Lossless = true,
             ChromaSubsampling = chromaSubsampling,
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -431,6 +428,7 @@ public class HeifEncoderTests
 
     [Theory]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level0)]
+    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level3)]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level6)]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level9)]
     public void EncodeScreenContent(TestImageProvider<Rgba32> provider, HeifEncodingSpeed speed)
@@ -440,7 +438,6 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             Quality = 99,
-            Effort = 5,
             Speed = speed,
             ChromaSubsampling = HeifChromaSubsampling.Yuv444
         };
@@ -469,7 +466,6 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             Lossless = true,
-            Effort = 0
         };
 
         IImageDecoder referenceDecoder = MagickReferenceDecoder.Heif;
@@ -500,7 +496,6 @@ public class HeifEncoderTests
             BitDepth = bitDepth,
             ChromaSubsampling = HeifChromaSubsampling.Yuv444,
             Lossless = true,
-            Effort = 0
         };
 
         IImageDecoder referenceDecoder = MagickReferenceDecoder.Heif;
@@ -571,7 +566,6 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             Lossless = true,
-            Effort = 0,
             RepeatCount = encoderRepeatCount
         };
 
@@ -645,7 +639,6 @@ public class HeifEncoderTests
         using NonSeekableStream destination = new(storage);
         HeifEncoder encoder = new()
         {
-            Effort = 0,
             SkipMetadata = true
         };
 
@@ -680,7 +673,6 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             Quality = 75,
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -728,7 +720,6 @@ public class HeifEncoderTests
         {
             Quality = 75,
             AlphaQuality = 100,
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -819,7 +810,6 @@ public class HeifEncoderTests
         {
             BitDepth = bitDepth,
             ChromaSubsampling = chromaSubsampling,
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -864,7 +854,6 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             ChromaSubsampling = HeifChromaSubsampling.Yuv444,
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -949,7 +938,6 @@ public class HeifEncoderTests
             BitDepth = bitDepth,
             ChromaSubsampling = HeifChromaSubsampling.Yuv444,
             Lossless = true,
-            Effort = 0
         });
 
         Assert.Same(profile, image.Metadata.CicpProfile);
@@ -1025,7 +1013,6 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             ChromaSubsampling = subsampling,
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -1065,7 +1052,6 @@ public class HeifEncoderTests
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -1144,7 +1130,6 @@ public class HeifEncoderTests
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
-            Effort = 0,
             SkipMetadata = true
         };
 
@@ -1188,7 +1173,6 @@ public class HeifEncoderTests
         using NonSeekableStream destination = new(storage);
         HeifEncoder encoder = new()
         {
-            Effort = 0
         };
 
         image.Save(destination, encoder);
@@ -1207,7 +1191,6 @@ public class HeifEncoderTests
         long fileStart = stream.Position;
         HeifEncoder encoder = new()
         {
-            Effort = 0
         };
 
         image.Save(stream, encoder);
@@ -1573,7 +1556,6 @@ public class HeifEncoderTests
             payloadStream,
             colorConfig,
             qIndex: 0,
-            effort: 0,
             speed: HeifEncodingSpeed.Level0);
 
         byte[] payload = payloadStream.ToArray();

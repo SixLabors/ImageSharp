@@ -1102,7 +1102,6 @@ internal sealed partial class HeifEncoderCore
                     stream,
                     settings.ColorConfig,
                     settings.ColorQIndex,
-                    this.encoder.Effort,
                     this.encoder.Speed);
 
                 long colorLength = stream.Length - colorOffset;
@@ -1178,7 +1177,6 @@ internal sealed partial class HeifEncoderCore
                         stream,
                         settings.AlphaConfig,
                         settings.AlphaQIndex,
-                        this.encoder.Effort,
                         this.encoder.Speed);
 
                     long alphaLength = stream.Length - alphaOffset;
@@ -1298,7 +1296,6 @@ internal sealed partial class HeifEncoderCore
             stream,
             settings.ColorConfig,
             settings.ColorQIndex,
-            this.encoder.Effort,
             this.encoder.Speed);
 
         long colorLength = stream.Length - colorOffset;
@@ -1316,7 +1313,6 @@ internal sealed partial class HeifEncoderCore
                 stream,
                 settings.AlphaConfig,
                 settings.AlphaQIndex,
-                this.encoder.Effort,
                 this.encoder.Speed);
 
             alphaLength = stream.Length - alphaOffset;

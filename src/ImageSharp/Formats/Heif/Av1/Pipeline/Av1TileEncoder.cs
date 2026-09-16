@@ -29,7 +29,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<byte> source,
@@ -37,8 +36,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
@@ -52,8 +50,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture,
             coefficientBuffer,
             new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
-            blockWorkspace,
-            effort);
+            blockWorkspace);
     }
 
     /// <summary>
@@ -69,7 +66,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<byte> source,
@@ -80,8 +76,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
@@ -95,8 +90,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture,
             coefficientBuffer,
             new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
-            blockWorkspace,
-            effort);
+            blockWorkspace);
     }
 
     /// <summary>
@@ -112,7 +106,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<byte> source,
@@ -123,8 +116,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderTileWorkspace tileWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
@@ -138,8 +130,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture,
             coefficientBuffer,
             tileWorkspace,
-            blockWorkspace,
-            effort);
+            blockWorkspace);
     }
 
     /// <summary>
@@ -152,7 +143,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<ushort> source,
@@ -160,8 +150,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
@@ -175,8 +164,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture,
             coefficientBuffer,
             new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
-            blockWorkspace,
-            effort);
+            blockWorkspace);
     }
 
     /// <summary>
@@ -192,7 +180,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<ushort> source,
@@ -203,8 +190,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
@@ -218,8 +204,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture,
             coefficientBuffer,
             new Av1EncoderTileWorkspace(picture.Parent.FrameHeader, superblockWorkspace),
-            blockWorkspace,
-            effort);
+            blockWorkspace);
     }
 
     /// <summary>
@@ -235,7 +220,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<ushort> source,
@@ -246,8 +230,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderTileWorkspace tileWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
@@ -261,8 +244,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture,
             coefficientBuffer,
             tileWorkspace,
-            blockWorkspace,
-            effort);
+            blockWorkspace);
     }
 
     /// <inheritdoc/>
@@ -283,8 +265,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderTileWorkspace tileWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
         where TSample : unmanaged
         where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
@@ -293,6 +274,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         Av1PictureParentControlSet parent = picture.Parent;
         ObuFrameHeader frameHeader = parent.FrameHeader;
+        parent.SpeedSettings = new Av1EncoderSpeedSettings(
+            parent.EncodingSpeed,
+            picture.Sequence.SequenceHeader.IsStillPicture,
+            frameHeader.IsIntra,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            new Size(source.Width, source.Height));
+
         Av1MotionSearchSettings motionSettings = new(
             parent.EncodingSpeed,
             picture.Sequence.SequenceHeader.IsStillPicture,
@@ -333,7 +321,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration = false;
         parent.MotionSearchStepParameter = stepParameter;
         _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
-            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
+            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);
         bool useRestoration = picture.Sequence.SequenceHeader.EnableRestoration && !frameHeader.AllLossless && !frameHeader.AllowIntraBlockCopy;
@@ -359,7 +347,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // from the same entropy edges and probabilities while the completed frame decisions remain available.
         picture.ResetEntropyContexts();
         return ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
-            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
+            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
     }
 
     private static ReadOnlyMemory<byte> ProcessTiles<TSample, TOperator, TSymbolOperation>(
@@ -372,8 +360,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderTileWorkspace tileWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        int effort)
+        Av1EncoderBlockWorkspace blockWorkspace)
         where TSample : unmanaged
         where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         where TSymbolOperation : struct, Av1SymbolEncoder.ISymbolOperation
@@ -512,8 +499,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 picture,
                                 superblock,
                                 coefficientBuffer,
-                                blockWorkspace,
-                                effort);
+                                blockWorkspace);
 
                             Av1TileWriter.WriteSuperblock<
                                 TSymbolOperation,

@@ -39,55 +39,6 @@ internal ref struct Av1Transform2dFlipConfiguration
     private InlineArray12<byte> stageRangeRow;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1Transform2dFlipConfiguration"/> struct.
-    /// </summary>
-    /// <param name="transformType">The compound horizontal and vertical transform type.</param>
-    /// <param name="transformSize">The transform-block dimensions.</param>
-    /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="isForward">Whether to configure the forward transform pipeline.</param>
-    private Av1Transform2dFlipConfiguration(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth, bool isForward)
-    {
-        this = default;
-
-        // Resolve the axis operators and fixed-point settings once so the hot traversal contains no per-row
-        // transform-type lookup or flip decision.
-        this.TransformSize = transformSize;
-        this.TransformType = transformType;
-        this.NonzeroWidth = Math.Min(transformSize.GetWidth(), 32);
-        this.NonzeroHeight = Math.Min(transformSize.GetHeight(), 32);
-        this.SetFlip(transformType);
-        this.TransformTypeColumn = VerticalType[(int)transformType];
-        this.TransformTypeRow = HorizontalType[(int)transformType];
-        int transformWidthIndex = transformSize.GetBlockWidthLog2() - SmallestTransformSizeLog2;
-        int transformHeightIndex = transformSize.GetBlockHeightLog2() - SmallestTransformSizeLog2;
-        this.TransformFunctionTypeColumn = TransformFunctionTypeMap[(transformHeightIndex * 4) + (int)this.TransformTypeColumn];
-        this.TransformFunctionTypeRow = TransformFunctionTypeMap[(transformWidthIndex * 4) + (int)this.TransformTypeRow];
-        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeColumn] : -1;
-        this.StageNumberRow = this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeRow] : -1;
-
-        if (isForward)
-        {
-            int shiftIndex = (int)transformSize * 3;
-            this.shift[0] = ForwardShiftMap[shiftIndex];
-            this.shift[1] = ForwardShiftMap[shiftIndex + 1];
-            this.shift[2] = ForwardShiftMap[shiftIndex + 2];
-            this.CosBitColumn = ForwardCosBitColumnMap[(transformWidthIndex * 5) + transformHeightIndex];
-            this.CosBitRow = ForwardCosBitRowMap[(transformWidthIndex * 5) + transformHeightIndex];
-            this.InitializeForwardStageRange();
-            this.GenerateForwardStageRange(bitDepth);
-        }
-        else
-        {
-            int shiftIndex = (int)transformSize * 2;
-            this.shift[0] = InverseShiftMap[shiftIndex];
-            this.shift[1] = InverseShiftMap[shiftIndex + 1];
-            this.CosBitColumn = InverseCosBit;
-            this.CosBitRow = InverseCosBit;
-            this.GenerateInverseStageRange(bitDepth);
-        }
-    }
-
-    /// <summary>
     /// Gets the function applied down the transform columns for each compound transform type.
     /// </summary>
     private static readonly Av1TransformType1d[] VerticalType =
@@ -318,6 +269,55 @@ internal ref struct Av1Transform2dFlipConfiguration
             3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx16_range_mult2
             4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx32_range_mult2
         ];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1Transform2dFlipConfiguration"/> struct.
+    /// </summary>
+    /// <param name="transformType">The compound horizontal and vertical transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="isForward">Whether to configure the forward transform pipeline.</param>
+    private Av1Transform2dFlipConfiguration(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth, bool isForward)
+    {
+        this = default;
+
+        // Resolve the axis operators and fixed-point settings once so the hot traversal contains no per-row
+        // transform-type lookup or flip decision.
+        this.TransformSize = transformSize;
+        this.TransformType = transformType;
+        this.NonzeroWidth = Math.Min(transformSize.GetWidth(), 32);
+        this.NonzeroHeight = Math.Min(transformSize.GetHeight(), 32);
+        this.SetFlip(transformType);
+        this.TransformTypeColumn = VerticalType[(int)transformType];
+        this.TransformTypeRow = HorizontalType[(int)transformType];
+        int transformWidthIndex = transformSize.GetBlockWidthLog2() - SmallestTransformSizeLog2;
+        int transformHeightIndex = transformSize.GetBlockHeightLog2() - SmallestTransformSizeLog2;
+        this.TransformFunctionTypeColumn = TransformFunctionTypeMap[(transformHeightIndex * 4) + (int)this.TransformTypeColumn];
+        this.TransformFunctionTypeRow = TransformFunctionTypeMap[(transformWidthIndex * 4) + (int)this.TransformTypeRow];
+        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeColumn] : -1;
+        this.StageNumberRow = this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeRow] : -1;
+
+        if (isForward)
+        {
+            int shiftIndex = (int)transformSize * 3;
+            this.shift[0] = ForwardShiftMap[shiftIndex];
+            this.shift[1] = ForwardShiftMap[shiftIndex + 1];
+            this.shift[2] = ForwardShiftMap[shiftIndex + 2];
+            this.CosBitColumn = ForwardCosBitColumnMap[(transformWidthIndex * 5) + transformHeightIndex];
+            this.CosBitRow = ForwardCosBitRowMap[(transformWidthIndex * 5) + transformHeightIndex];
+            this.InitializeForwardStageRange();
+            this.GenerateForwardStageRange(bitDepth);
+        }
+        else
+        {
+            int shiftIndex = (int)transformSize * 2;
+            this.shift[0] = InverseShiftMap[shiftIndex];
+            this.shift[1] = InverseShiftMap[shiftIndex + 1];
+            this.CosBitColumn = InverseCosBit;
+            this.CosBitRow = InverseCosBit;
+            this.GenerateInverseStageRange(bitDepth);
+        }
+    }
 
     /// <summary>
     /// Gets the fixed-point cosine precision used by the column transform.

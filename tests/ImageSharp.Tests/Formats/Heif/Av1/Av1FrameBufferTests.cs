@@ -57,7 +57,7 @@ public class Av1FrameBufferTests
 
             using MemoryStream output = new();
             ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
-                Configuration.Default, source.Frames.RootFrame, output, colorConfig, qIndex: 0, effort: 10, speed: HeifEncodingSpeed.Level0);
+                Configuration.Default, source.Frames.RootFrame, output, colorConfig, qIndex: 0, speed: HeifEncodingSpeed.Level0);
 
             Assert.Equal(i == 1, sequenceHeader.Use128x128Superblock);
             workspaceLengths[i] = Av1BlockDecoder.GetWorkspaceLength(sequenceHeader);

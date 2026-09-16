@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.FastLossless.Simd.ChunkEncoders;
 
@@ -43,8 +44,8 @@ internal readonly struct FjxlChunkEncoderExactly14Bits
 
         for (int i = 0; i < ChunkSize; i += FjxlSimdVec16.Lanes)
         {
-            TokenizeSimd(residuals[i..], token, nbits, bits);
-            HuffmanSimd14(token, rawNBitsSimd, rawBitsSimd, nbitsHuff, bitsHuff);
+            FjxlTokenization.TokenizeSimd(residuals[i..], token, nbits, bits);
+            FjxlHuffman.HuffmanSimd14(token, rawNBitsSimd, rawBitsSimd, nbitsHuff, bitsHuff);
 
             StoreSimdUpTo14(
                 nbits,

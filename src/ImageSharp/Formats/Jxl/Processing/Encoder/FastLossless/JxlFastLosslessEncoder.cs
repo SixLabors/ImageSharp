@@ -48,7 +48,7 @@ internal sealed class JxlFastLosslessEncoder
     /// </summary>
     public const int Lz77CacheSize = 32;
 
-    public const int Lz77Offset = 224;
+    public const int Lz77Offset = 224; // ⚠️ This must always be 224. Don't change this constant. Changing this will break compression.
 
     public const int Lz77MinLength = 7;
 
@@ -618,6 +618,119 @@ internal sealed class JxlFastLosslessEncoder
         {
             EncodeHybridUint000(residuals[ix], out uint token, out uint nbits, out uint bits);
             output.Write((int)(code.RawLengths[(int)token] + nbits), code.RawCodes[(int)token] | (bits << code.RawLengths[(int)token]));
+        }
+    }
+
+    public static void PrepareDcGlobalCommon(InlineArray4<FjxlPrefixCode> code, FjxlBitWriter output)
+    {
+        // No patches, spline, or noise.
+        output.Write(1, 1); // Default DC dequantization factors
+        output.Write(1, 1); // Use global trees and histograms
+        output.Write(1, 0); // Don't use LZ77 compression for the tree.
+
+        output.Write(1, 1); // Simple code for the tree's context map
+        output.Write(2, 0); // All contexts clustered together
+        output.Write(1, 1); // Use prefix code for tree
+        output.Write(4, 0); // 000 hybrid unsigned integer
+        output.Write(6, 0b100011); // Alphabet size is 4
+        output.Write(2, 1); // Simple prefix code
+        output.Write(2, 3); // With 4 symbols
+
+        output.Write(2, 0);
+        output.Write(2, 1);
+        output.Write(2, 2);
+        output.Write(2, 3);
+        output.Write(1, 0); // First tree encoding option
+
+        // Huffman table and extra bits for the tree
+        Span<byte> symbolBits = [0b00, 0b10, 0b001, 0b101, 0b0011, 0b0111];
+        Span<byte> symbolLengths = [2, 2, 3, 3, 4, 4];
+
+        Span<byte> predictors =
+        [
+            1, 2, 1, 4, 1, 0, 0, 5, 0, 0, 0, 0, 5,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0
+        ];
+
+        ref byte unsafePred = ref MemoryMarshal.GetReference(predictors);
+
+        for (int i = 0; i < predictors.Length; i++)
+        {
+            byte predictor = Unsafe.AddByteOffset(ref unsafePred, i);
+            output.Write(symbolLengths[predictor], symbolBits[predictor]);
+        }
+
+        output.Write(1, 1); // Enable LZ77 compression for the main bit-stream
+        output.Write(2, 0b00); // LZ77 offset 224
+        output.Write(4, 0b1010); // LZ77 minimum length 7
+
+        // 400 hybrid uint configuration for LZ77
+        output.Write(4, 4);
+        output.Write(3, 0);
+        output.Write(3, 0);
+
+        output.Write(1, 1); // simple code for the context map
+        output.Write(2, 3); // 3 bits per entry
+        output.Write(3, 4); // channel 3
+        output.Write(3, 3); // channel 2
+        output.Write(3, 2); // channel 1
+        output.Write(3, 1); // channel 0
+        output.Write(3, 0); // distance histogram first
+
+        output.Write(1, 1); // use prefix codes
+        output.Write(4, 0); // 000 hybrid uint configuration for distances (only need 0)
+
+        for (int i = 0; i < 4; i++)
+        {
+            output.Write(4, 0); // 000 hybrid uint configuration for symbols (only <= 10)
+        }
+
+        // Distance alphabet size
+        output.Write(5, 0b00001); // 2: just need 1 for RLE (i.e. distance 1)
+
+        // Symbol + LZ77 alphabet size
+        for (int i = 0; i < 4; i++)
+        {
+            output.Write(1, 1); // > 1
+            output.Write(4, 8); // <= 512
+            output.Write(8, 256); // == 512
+        }
+
+        // Distance histogram
+        output.Write(2, 1); // simple prefix code
+        output.Write(2, 0); // With 1 symbol
+        output.Write(1, 1); // 1
+
+        // write all prefix codes
+        for (int i = 0; i < 4; i++)
+        {
+            code[i].Write(output);
+        }
+
+        // group header for global modular image
+        output.Write(1, 1); // Global tree
+        output.Write(1, 1); // All default weighted prediction
+    }
+
+    public static void PrepareDcGlobal(int numChannels, bool isSingleGroup, InlineArray4<FjxlPrefixCode> codes, FjxlBitWriter output)
+    {
+        PrepareDcGlobalCommon(codes, output);
+
+        if (numChannels > 2)
+        {
+            output.Write(2, 0b01); // 1 transform
+            output.Write(2, 0b00); // RCT
+            output.Write(5, 0b00000); // Starting from channel 0
+            output.Write(2, 0b00); // YCoCg
+        }
+        else
+        {
+            output.Write(2, 0b00); // 0 transforms
+        }
+
+        if (!isSingleGroup)
+        {
+            output.ZeroPadToByte();
         }
     }
 

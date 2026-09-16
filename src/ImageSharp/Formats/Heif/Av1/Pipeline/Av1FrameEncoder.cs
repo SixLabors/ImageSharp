@@ -1189,7 +1189,12 @@ internal static class Av1FrameEncoder
             (source.CodedWidth - analysisWidth) >> 1,
             (source.CodedHeight - analysisHeight) >> 1);
 
-        int searchRadius = Math.Min(referenceLuma.Bounds.X, referenceLuma.Bounds.Y);
+        // Integer translations must fit the model's signed fixed-point range before their coding cost
+        // is evaluated. Padding bounds the readable pixels independently of that syntax limit.
+        const int MaximumTranslation = 1 <<
+            (Av1GlobalMotionParameters.AbsoluteTranslationBits - Av1GlobalMotionParameters.TranslationPrecisionBits);
+
+        int searchRadius = Math.Min(MaximumTranslation, Math.Min(referenceLuma.Bounds.X, referenceLuma.Bounds.Y));
 
         Point bestOffset = default;
         long bestAnalysisError = GetGlobalMotionSquaredError<TSample, TOperator>(

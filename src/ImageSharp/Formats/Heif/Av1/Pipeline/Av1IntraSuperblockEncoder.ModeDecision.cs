@@ -1352,7 +1352,61 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int lumaArea = this.codedAreaLuma;
             int chromaArea = this.codedAreaChroma;
-            this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, context);
+            if (snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                Av1TransformSize transformSize = snapshot.ModeInfo.Block.TransformSize;
+                Size lumaExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
+                int transformArea = transformSize.GetSize2d();
+                int transformCount = (lumaExtent.Width * lumaExtent.Height) / transformArea;
+                int stateStride = transformArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                ReadOnlySpan<Av1EncoderTransformBlockState> retainedLumaStates = context.GetTransformStates(Av1Plane.Y);
+                InlineArray18<Av1EncoderTransformBlockState> states = default;
+
+                // Partition snapshots retain coefficient-addressed states. Inter reconstruction consumes
+                // consecutive luma transforms followed by the two chroma states at fixed slots.
+                for (int index = 0; index < transformCount; index++)
+                {
+                    states[index] = retainedLumaStates[index * stateStride];
+                }
+
+                if (snapshot.Block.HasChroma)
+                {
+                    states[16] = context.GetTransformStates(Av1Plane.U)[0];
+                    states[17] = context.GetTransformStates(Av1Plane.V)[0];
+                }
+
+                this.ReconstructSelectedInterBlock(
+                    writer,
+                    macroBlock,
+                    tileIndex,
+                    blockOrigin,
+                    snapshot.ModeInfo,
+                    snapshot.Block,
+                    snapshot.Displacement,
+                    snapshot.SecondaryDisplacement,
+                    states);
+                this.picture.SetDisplacementVector(modeInfoPosition, snapshot.Displacement);
+                if (snapshot.ModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+                {
+                    this.picture.SetSecondaryDisplacementVector(modeInfoPosition, snapshot.SecondaryDisplacement);
+                }
+
+                this.codedAreaLuma += lumaExtent.Width * lumaExtent.Height;
+                if (snapshot.Block.HasChroma)
+                {
+                    int subX = this.source.ChromaSubsamplingX;
+                    int subY = this.source.ChromaSubsamplingY;
+                    Av1BlockSize chromaSize = blockSize.GetSubsampled(subX != 0, subY != 0);
+                    Av1TransformSize chromaTransform = blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+                    Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaSize, chromaTransform, subX, subY);
+                    this.codedAreaChroma += chromaExtent.Width * chromaExtent.Height;
+                }
+            }
+            else
+            {
+                this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, context);
+            }
+
             if (publishContexts)
             {
                 this.PublishPartitionLeafContexts(
@@ -1693,6 +1747,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0),
                 transformSize,
                 Av1BlockSize.Block64x64,
+                modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ? blockSize.GetMaximumTransformSize() : transformSize,
                 lumaCoefficients[lumaArea..],
                 lumaStates[(lumaArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..]);
 
@@ -1752,6 +1807,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subsamplingX, subsamplingY),
                 chromaTransformSize,
                 maximumChromaUnitBlockSize,
+                chromaTransformSize,
                 blueCoefficients[chromaArea..],
                 blueStates[chromaStateIndex..]);
 
@@ -1761,6 +1817,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subsamplingX, subsamplingY),
                 chromaTransformSize,
                 maximumChromaUnitBlockSize,
+                chromaTransformSize,
                 redCoefficients[chromaArea..],
                 redStates[chromaStateIndex..]);
         }
@@ -1771,6 +1828,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Size codedExtent,
             Av1TransformSize transformSize,
             Av1BlockSize maximumUnitBlockSize,
+            Av1TransformSize rootTransformSize,
             ReadOnlySpan<int> coefficients,
             ReadOnlySpan<Av1EncoderTransformBlockState> states)
         {
@@ -1798,25 +1856,37 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int regionColumn = 0; regionColumn < blockWidth; regionColumn += maximumUnitWidth)
                 {
                     int unitRight = Math.Min(regionColumn + maximumUnitWidth, blockWidth);
-                    for (int row = regionRow; row < unitBottom; row += transformHeight)
+                    for (int rootRow = regionRow; rootRow < unitBottom; rootRow += rootTransformSize.GetHeight())
                     {
-                        for (int column = regionColumn; column < unitRight; column += transformWidth)
+                        for (int rootColumn = regionColumn; rootColumn < unitRight; rootColumn += rootTransformSize.GetWidth())
                         {
-                            Av1EncoderTransformBlockState state = states[transformStateOffset];
-                            byte context = Av1SymbolContextHelper.GetCoefficientContext(
-                                coefficients[coefficientOffset..],
-                                transformSize,
-                                state.TransformType,
-                                state.EndOfBlock);
+                            int leafCount = rootTransformSize.GetSize2d() / transformSampleCount;
+                            for (int leaf = 0; leaf < leafCount; leaf++)
+                            {
+                                Point offset = rootTransformSize.GetPartitionOrigin(transformSize, leaf);
+                                int column = rootColumn + offset.X;
+                                int row = rootRow + offset.Y;
+                                if (column >= unitRight || row >= unitBottom)
+                                {
+                                    continue;
+                                }
 
-                            neighbors.UnitModeWrite(
-                                context,
-                                blockOrigin + new Size(column, row),
-                                new Size(transformWidth, transformHeight),
-                                EdgeMask);
+                                Av1EncoderTransformBlockState state = states[transformStateOffset];
+                                byte context = Av1SymbolContextHelper.GetCoefficientContext(
+                                    coefficients[coefficientOffset..],
+                                    transformSize,
+                                    state.TransformType,
+                                    state.EndOfBlock);
 
-                            coefficientOffset += transformSampleCount;
-                            transformStateOffset += transformStateStride;
+                                neighbors.UnitModeWrite(
+                                    context,
+                                    blockOrigin + new Size(column, row),
+                                    new Size(transformWidth, transformHeight),
+                                    EdgeMask);
+
+                                coefficientOffset += transformSampleCount;
+                                transformStateOffset += transformStateStride;
+                            }
                         }
                     }
                 }

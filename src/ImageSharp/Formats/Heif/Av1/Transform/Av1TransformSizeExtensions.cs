@@ -217,6 +217,35 @@ internal static class Av1TransformSizeExtensions
     public static Av1TransformSize GetSubSize(this Av1TransformSize size) => SubTransformSize[(int)size];
 
     /// <summary>
+    /// Gets a uniformly subdivided transform's sample origin in depth-first coding order.
+    /// </summary>
+    /// <param name="size">The root transform size.</param>
+    /// <param name="leafSize">The selected descendant transform size.</param>
+    /// <param name="index">The leaf index before frame-edge clipping.</param>
+    /// <returns>The sample offset from the root transform origin.</returns>
+    public static Point GetPartitionOrigin(this Av1TransformSize size, Av1TransformSize leafSize, int index)
+    {
+        Point origin = default;
+        int leafArea = leafSize.GetSize2d();
+        while (size != leafSize)
+        {
+            Av1TransformSize childSize = size.GetSubSize();
+            int childLeaves = childSize.GetSize2d() / leafArea;
+            int childIndex = index / childLeaves;
+            int childColumns = size.GetWidth() / childSize.GetWidth();
+
+            // Finish every descendant of a child before visiting its next sibling. Rectangular
+            // transforms can split into two children, so the column count comes from their dimensions.
+            origin.X += (childIndex % childColumns) * childSize.GetWidth();
+            origin.Y += (childIndex / childColumns) * childSize.GetHeight();
+            index %= childLeaves;
+            size = childSize;
+        }
+
+        return origin;
+    }
+
+    /// <summary>
     /// Gets the square transform based on the smaller dimension of a rectangular transform.
     /// </summary>
     /// <param name="size">The transform size.</param>

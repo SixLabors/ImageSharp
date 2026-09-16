@@ -2045,12 +2045,15 @@ public class Av1EncoderFrameTests
         Assert.Equal(Av1TransformMode.Select, decoder.FrameHeader.TransformMode);
         Assert.NotNull(decoder.FrameInfo);
         bool foundSplitTransform = false;
+        List<string> selectedTransforms = [];
         foreach (Av1BlockModeInfo modeInfo in decoder.FrameInfo.GetSuperblock(Point.Empty).GetModeInfos())
         {
             foundSplitTransform |= modeInfo.GetTransformUnitCount(Av1Plane.Y) == 4;
+            selectedTransforms.Add(FormattableString.Invariant(
+                $"{modeInfo.BlockSize}: {modeInfo.TransformSize}, {modeInfo.GetTransformUnitCount(Av1Plane.Y)} transforms"));
         }
 
-        Assert.True(foundSplitTransform);
+        Assert.True(foundSplitTransform, string.Join(Environment.NewLine, selectedTransforms));
         Assert.Equal(new Size(Width, Height), decoded.Size);
     }
 

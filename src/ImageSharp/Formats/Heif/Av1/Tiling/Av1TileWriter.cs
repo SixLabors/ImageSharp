@@ -2893,8 +2893,6 @@ internal partial class Av1TileWriter
                 ? Av1TransformSize.Size4x4
                 : lumaBlockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
 
-        int transformBlockWidth = transformSize.Get4x4WideCount();
-        int transformBlockHeight = transformSize.Get4x4HighCount();
         int transformWidth = transformSize.GetWidth();
         int transformHeight = transformSize.GetHeight();
         bool usesInterTransformSet =
@@ -2912,71 +2910,90 @@ internal partial class Av1TileWriter
             ? entropyCodingContext.CodedAreaSuperblock
             : entropyCodingContext.CodedAreaSuperblockUv;
 
-        for (int blockRow = regionRow; blockRow < unitBottom; blockRow += transformBlockHeight)
+        Av1TransformSize rootSize = isLuma && usesInterTransformSet && !frameHeader.LosslessArray[
+            entropyCodingContext.MacroBlockModeInfo.Block.SegmentId]
+            ? lumaBlockSize.GetMaximumTransformSize()
+            : transformSize;
+        int leafCount = rootSize.GetSize2d() / transformSize.GetSize2d();
+
+        // Split inter transforms follow their syntax tree. Intra and chroma roots each have one leaf,
+        // preserving their raster traversal while all paths share coefficient and context ownership.
+        for (int rootRow = regionRow; rootRow < unitBottom; rootRow += rootSize.Get4x4HighCount())
         {
-            for (int blockColumn = regionColumn; blockColumn < unitRight; blockColumn += transformBlockWidth)
+            for (int rootColumn = regionColumn; rootColumn < unitRight; rootColumn += rootSize.Get4x4WideCount())
             {
-                int transformStateIndex =
-                    codedArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-
-                ref Av1EncoderTransformBlockState transformBlock =
-                    ref planeTransformBlocks[transformStateIndex];
-
-                Point transformOrigin = planeBlockOrigin + new Size(
-                    blockColumn << Av1Constants.ModeInfoSizeLog2,
-                    blockRow << Av1Constants.ModeInfoSizeLog2);
-
-                Span<int> coefficients = planeCoefficients[codedArea..];
-                Av1TransformBlockContext blockContext;
-                if (useRetainedContexts)
+                for (int leaf = 0; leaf < leafCount; leaf++)
                 {
-                    byte packedContext = transformBlock.EntropyContext;
-                    blockContext = new Av1TransformBlockContext
+                    Point offset = rootSize.GetPartitionOrigin(transformSize, leaf);
+                    int blockRow = rootRow + (offset.Y >> Av1Constants.ModeInfoSizeLog2);
+                    int blockColumn = rootColumn + (offset.X >> Av1Constants.ModeInfoSizeLog2);
+                    if (blockRow >= unitBottom || blockColumn >= unitRight)
                     {
-                        SkipContext = packedContext & 15,
-                        DcSignContext = packedContext >> 4
-                    };
-                }
-                else
-                {
-                    blockContext = GetTransformBlockContexts(
+                        continue;
+                    }
+
+                    int transformStateIndex =
+                        codedArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+                    ref Av1EncoderTransformBlockState transformBlock =
+                        ref planeTransformBlocks[transformStateIndex];
+
+                    Point transformOrigin = planeBlockOrigin + new Size(
+                        blockColumn << Av1Constants.ModeInfoSizeLog2,
+                        blockRow << Av1Constants.ModeInfoSizeLog2);
+
+                    Span<int> coefficients = planeCoefficients[codedArea..];
+                    Av1TransformBlockContext blockContext;
+                    if (useRetainedContexts)
+                    {
+                        byte packedContext = transformBlock.EntropyContext;
+                        blockContext = new Av1TransformBlockContext
+                        {
+                            SkipContext = packedContext & 15,
+                            DcSignContext = packedContext >> 4
+                        };
+                    }
+                    else
+                    {
+                        blockContext = GetTransformBlockContexts(
+                            componentType,
+                            coefficientNeighbors,
+                            transformOrigin,
+                            planeBlockSize,
+                            transformSize);
+
+                        // Neighbor probabilities must describe the selected transform at analysis time, before
+                        // final packing revisits the frame. Both context alphabets fit in the existing spare byte.
+                        transformBlock.EntropyContext = (byte)(blockContext.SkipContext | (blockContext.DcSignContext << 4));
+                    }
+
+                    Av1TransformType transformType = transformBlock.TransformType;
+                    if (isLuma && transformBlock.EndOfBlock == 0)
+                    {
+                        // Empty luma transforms carry no transform-type symbol, so retain the canonical state.
+                        transformType = transformBlock.TransformType = Av1TransformType.DctDct;
+                    }
+
+                    int culLevel = writer.WriteCoefficients<TOperation>(
+                        transformSize,
+                        transformType,
+                        intraLumaMode,
+                        coefficients,
                         componentType,
-                        coefficientNeighbors,
+                        blockContext,
+                        transformBlock.EndOfBlock,
+                        frameHeader.UseReducedTransformSet,
+                        block.FilterIntraMode,
+                        usesInterTransformSet);
+
+                    coefficientNeighbors.UnitModeWrite(
+                        (byte)culLevel,
                         transformOrigin,
-                        planeBlockSize,
-                        transformSize);
+                        new Size(transformWidth, transformHeight),
+                        Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
-                    // Neighbor probabilities must describe the selected transform at analysis time, before
-                    // final packing revisits the frame. Both context alphabets fit in the existing spare byte.
-                    transformBlock.EntropyContext = (byte)(blockContext.SkipContext | (blockContext.DcSignContext << 4));
+                    codedArea += transformWidth * transformHeight;
                 }
-
-                Av1TransformType transformType = transformBlock.TransformType;
-                if (isLuma && transformBlock.EndOfBlock == 0)
-                {
-                    // Empty luma transforms carry no transform-type symbol, so retain the canonical state.
-                    transformType = transformBlock.TransformType = Av1TransformType.DctDct;
-                }
-
-                int culLevel = writer.WriteCoefficients<TOperation>(
-                    transformSize,
-                    transformType,
-                    intraLumaMode,
-                    coefficients,
-                    componentType,
-                    blockContext,
-                    transformBlock.EndOfBlock,
-                    frameHeader.UseReducedTransformSet,
-                    block.FilterIntraMode,
-                    usesInterTransformSet);
-
-                coefficientNeighbors.UnitModeWrite(
-                    (byte)culLevel,
-                    transformOrigin,
-                    new Size(transformWidth, transformHeight),
-                    Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
-
-                codedArea += transformWidth * transformHeight;
             }
         }
 

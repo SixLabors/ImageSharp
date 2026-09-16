@@ -903,6 +903,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             int contextWidth = blockSize.Get4x4WideCount();
             int contextHeight = blockSize.Get4x4HighCount();
+            Size frameContextSize = new(this.picture.Parent.FrameHeader.ModeInfoColumnCount, this.picture.Parent.FrameHeader.ModeInfoRowCount);
             Span<byte> topContexts = modeWorkspace.TransformContexts[..contextWidth];
             Span<byte> leftContexts = modeWorkspace.TransformContexts.Slice(contextWidth, contextHeight);
             Av1NeighborArrayUnit<byte> coefficientNeighbors = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
@@ -1018,8 +1019,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     bestState.TransformType,
                     bestState.EndOfBlock);
-                topContexts.Slice(column * transformSize.Get4x4WideCount(), transformSize.Get4x4WideCount()).Fill(coefficientContext);
-                leftContexts.Slice(row * transformSize.Get4x4HighCount(), transformSize.Get4x4HighCount()).Fill(coefficientContext);
+                Av1TileWriter.UpdateCoefficientContexts(
+                    topContexts.Slice(column * transformSize.Get4x4WideCount(), transformSize.Get4x4WideCount()),
+                    leftContexts.Slice(row * transformSize.Get4x4HighCount(), transformSize.Get4x4HighCount()),
+                    coefficientContext,
+                    transformOrigin,
+                    frameContextSize);
+
                 rate += bestRate;
                 distortion += bestDistortion;
                 retainedIndex++;
@@ -2514,6 +2520,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1Plane plane = (Av1Plane)planeIndex;
                 int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                 int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
+                Size frameContextSize = new(
+                    this.picture.Parent.FrameHeader.ModeInfoColumnCount >> subX,
+                    this.picture.Parent.FrameHeader.ModeInfoRowCount >> subY);
+
                 Point planeOrigin = planeIndex == 0 ? blockOrigin : Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
                 Av1BlockSize planeBlockSize = modeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0);
                 Av1TransformSize rootSize = planeBlockSize.GetMaximumTransformSize();
@@ -2617,8 +2627,13 @@ internal static partial class Av1IntraSuperblockEncoder
                         state.TransformType,
                         state.EndOfBlock);
 
-                    top.Fill(coefficientContext);
-                    left.Fill(coefficientContext);
+                    Av1TileWriter.UpdateCoefficientContexts(
+                        top,
+                        left,
+                        coefficientContext,
+                        planeOrigin + new Size(offset.X, offset.Y),
+                        frameContextSize);
+
                     transformIndex++;
                 }
             }
@@ -3111,6 +3126,10 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             int subX = this.source.ChromaSubsamplingX;
             int subY = this.source.ChromaSubsamplingY;
+            Size frameContextSize = new(
+                this.picture.Parent.FrameHeader.ModeInfoColumnCount >> subX,
+                this.picture.Parent.FrameHeader.ModeInfoRowCount >> subY);
+
             Point planeOrigin = Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
             Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX != 0, subY != 0);
             Av1TransformSize transformSize = blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
@@ -3242,8 +3261,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         state.TransformType,
                         state.EndOfBlock);
 
-                    top.Fill(coefficientContext);
-                    left.Fill(coefficientContext);
+                    Av1TileWriter.UpdateCoefficientContexts(
+                        top,
+                        left,
+                        coefficientContext,
+                        planeOrigin + new Size(x, y),
+                        frameContextSize);
                 }
             }
         }

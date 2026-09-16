@@ -2895,6 +2895,10 @@ internal partial class Av1TileWriter
 
         int transformWidth = transformSize.GetWidth();
         int transformHeight = transformSize.GetHeight();
+        Size frameContextSize = new(
+            frameHeader.ModeInfoColumnCount >> (!isLuma && colorConfig.SubSamplingX ? 1 : 0),
+            frameHeader.ModeInfoRowCount >> (!isLuma && colorConfig.SubSamplingY ? 1 : 0));
+
         bool usesInterTransformSet =
             entropyCodingContext.MacroBlockModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ||
             entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
@@ -2986,11 +2990,12 @@ internal partial class Av1TileWriter
                         block.FilterIntraMode,
                         usesInterTransformSet);
 
-                    coefficientNeighbors.UnitModeWrite(
+                    UpdateCoefficientContexts(
+                        coefficientNeighbors.Top.Slice(coefficientNeighbors.GetTopIndex(transformOrigin), transformSize.Get4x4WideCount()),
+                        coefficientNeighbors.Left.Slice(coefficientNeighbors.GetLeftIndex(transformOrigin), transformSize.Get4x4HighCount()),
                         (byte)culLevel,
                         transformOrigin,
-                        new Size(transformWidth, transformHeight),
-                        Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
+                        frameContextSize);
 
                     codedArea += transformWidth * transformHeight;
                 }
@@ -3019,6 +3024,31 @@ internal partial class Av1TileWriter
         => new(
             (lumaOrigin.X >> (Av1Constants.ModeInfoSizeLog2 + subsamplingX)) << Av1Constants.ModeInfoSizeLog2,
             (lumaOrigin.Y >> (Av1Constants.ModeInfoSizeLog2 + subsamplingY)) << Av1Constants.ModeInfoSizeLog2);
+
+    /// <summary>
+    /// Publishes coefficient activity on the coded edge and clears the part outside the frame.
+    /// </summary>
+    /// <param name="topContexts">The complete above edge of the transform.</param>
+    /// <param name="leftContexts">The complete left edge of the transform.</param>
+    /// <param name="context">The packed coefficient level and DC sign.</param>
+    /// <param name="transformOrigin">The transform origin in plane samples.</param>
+    /// <param name="frameContextSize">The coded plane extent in four-sample units.</param>
+    public static void UpdateCoefficientContexts(
+        Span<byte> topContexts,
+        Span<byte> leftContexts,
+        byte context,
+        Point transformOrigin,
+        Size frameContextSize)
+    {
+        // Transforms retain their full size at the frame edge, but padded samples cannot contribute
+        // activity to later transforms. Clear the unused tail even when an earlier trial populated it.
+        int topCount = Math.Min(topContexts.Length, frameContextSize.Width - (transformOrigin.X >> Av1Constants.ModeInfoSizeLog2));
+        int leftCount = Math.Min(leftContexts.Length, frameContextSize.Height - (transformOrigin.Y >> Av1Constants.ModeInfoSizeLog2));
+        topContexts[..topCount].Fill(context);
+        topContexts[topCount..].Clear();
+        leftContexts[..leftCount].Fill(context);
+        leftContexts[leftCount..].Clear();
+    }
 
     /// <summary>
     /// Derives coefficient skip and DC-sign contexts from the transform block's above and left neighbors.

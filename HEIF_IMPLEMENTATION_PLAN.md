@@ -26,7 +26,7 @@ Source evidence for the remaining work (paths below are relative to `src/ImageSh
 | `Speed` is now the sole public search control; option validation and affected focused encoding checks pass. | `HeifEncoder.cs`; `Av1/Pipeline/Av1FrameEncoder.cs` |
 | Partition search now uses speed/resolution limits instead of effort thresholds. Inter 128x128 leaves are still forced to split. Native breakout and pruning remain incomplete. | `Av1/Pipeline/Av1IntraSuperblockEncoder.ModeDecision.cs:276-343,726-797`; `Av1/Tiling/Av1EncoderSpeedSettings.cs:19-44` |
 | Inter runs before intra, but intra is then evaluated without using the inter result to bound its search. | `Av1/Pipeline/Av1IntraSuperblockEncoder.ModeDecision.cs:1043-1229` |
-| Single-transform luma searches all transform sizes only for an 8x8 starting transform; deferred refinement retains one preliminary mode. | `Av1/Pipeline/Av1IntraSuperblockEncoder.ModeDecision.cs:2267-2279,2622-2778` |
+| Uniform intra transform-size search now covers eligible rectangular and large blocks. Deferred refinement still retains one preliminary mode; complete stage and pruning policy remains unfinished. | `Av1/Pipeline/Av1IntraSuperblockEncoder.ModeDecision.cs:2197-3540`; `Av1/Tiling/Av1EncoderSpeedSettings.cs:48-51` |
 | Intra-block-copy selection remains limited to 8x8 blocks. | `Av1/Pipeline/Av1IntraSuperblockEncoder.ModeDecision.cs:1166-1167` |
 | Frames force error resilience and disable frame-end CDF propagation; temporal reference motion vectors and super-resolution are disabled. | `Av1/Pipeline/Av1FrameEncoder.cs:386-438,527-569` |
 | Inter selection searches LAST and GOLDEN. The sequence retains the key picture as GOLDEN and refreshes LAST, rather than implementing the complete reference-update policy. | `Av1/Pipeline/Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:445-573`; `Av1/Pipeline/Av1FrameEncoder.cs:1911-1977` |
@@ -51,8 +51,11 @@ and frame-size-dependent state/storage (`encoder.c`, `allintra_vis.c`, `lookahea
 (`aq_complexity.c:144-148`). These belong to the boundary, reference-control, and quantization tasks below.
 The CDEF change selects module-specific worker counts; it does not alter the sequential search arithmetic.
 VMAF tuning removal and native worker scheduling do not require new managed features under the existing PSNR/sequential contract.
-Before accepting new comparisons, verify the official main revision and the optimized binary's source/build configuration.
-Do not reuse older build settings or measurements as evidence for this checkout.
+The local Release tools at `D:\GitHub\ynse01\aom-06f068d1-build-x64-release` were built from this checkout for the current
+same-bitstream verification: MSVC 19.51.36256.0, NASM 3.02, x86-64, runtime CPU detection, high-bit-depth support,
+SSE2/SSE4.1/AVX2/AVX512 enabled; WebM I/O and libyuv disabled. The generated version is `3.15.0-35-g06f068d1bc`.
+No new timings were collected. Verify the official main revision again before accepting subsequent comparisons;
+do not reuse older build settings or measurements as evidence for this checkout.
 
 ## 1. Complete encoder decision policy — active
 
@@ -61,9 +64,8 @@ Do not reuse older build settings or measurements as evidence for this checkout.
   Complete the public option transition and its callers; do not retain two conflicting control systems.
   Implemented: sole speed option, partition bounds, DRL cache indexing, inter partition replay, global-motion
   syntax range, depth-first inter-transform coding, and chroma transform inheritance after luma refinement.
-  The latest completed frame/public run passed 181/183. The global-motion vector and four-transform selection
-  assertions remain unchanged and failing; both require controller corrections. The four-transform diagnostic
-  shows four 16x4 blocks using 16x4 transforms. No decoder entropy, indexing, or buffer exception remains in that run.
+  The latest completed frame/public run passed 255/256. Only the global-motion vector assertion remains failing.
+  The unchanged four-transform selection assertion now passes. No decoder entropy, indexing, or buffer exception remains in that run.
   Still required: real-time sequence policy at speeds 7-9, remaining controller settings, and independent verification.
   Frame tests whose names say "native planes" inspect managed syntax; they do not independently compare native planes.
 - [ ] Complete partition selection and breakout, block-size eligibility, and transform-size/type search, including
@@ -73,10 +75,20 @@ Do not reuse older build settings or measurements as evidence for this checkout.
   the luma type at its own origin and updates the following coefficient contexts. Difference-weighted chroma reuses
   the luma mask, including 4:4:4. Evidence: `encodemb.c:780-826`, `common/blockd.h:1283-1315`,
   and `common/reconinter.c:522-531`; managed `ReferenceModeDecision.cs` and `Operator.cs`.
-  The retained-frame regression passes at 16x16 4:2:0 and 64x64 4:2:2/4:4:4; final combined verification passes 181/183,
-  with only the two controller assertions listed above failing. Release/.NET 11 builds and Roslynk reports no errors.
-  Independent nonzero chroma-residual and compound comparisons remain required before parity is established.
-  Resolve the boundary difference in `Av1IntraSuperblockEncoder.ModeDecision.cs:3398-3428`: managed neighbor counts
+  The retained-frame regression passes at 16x16 4:2:0 and 64x64 4:2:2/4:4:4.
+  Uniform intra depth search now covers rectangular and large blocks, including tiled 128x128 blocks, with
+  region-ordered transforms and speed/shape/quantizer depth limits. Evidence: `tx_search.c:2970-3071`,
+  `speed_features.c:367,409,437-460,1151,1218,2133,2890-2942`; managed `ModeDecision.cs:2197-3540`.
+  Its complete candidate/winner stage policy and neural-network depth pruning remain required.
+  Fixed a demonstrated entropy defect exposed by the additional transform sizes: nonzero coefficient contexts
+  extended beyond the coded frame. Search, replay, and packing now clear those padded context entries.
+  Evidence: `av1/common/blockd.c:29-57`; managed `Av1TileWriter.cs:3036-3051` and its mode-search callers.
+  Focused verification passes 15/15; full frame/public verification passes 255/256 as described above.
+  Current libaom and managed decoding of three 129x273, three-frame, 8-bit 4:2:0 sequences at speeds 0/3/5
+  agrees across 477,243 samples: maximum Y/U/V errors 0/0/0, differing counts 0/0/0, counts above one 0/0/0.
+  This is same-bitstream decoder agreement, not separate-encoder parity. High-bit-depth, 4:2:2/4:4:4,
+  and compound native comparisons remain required. Release/.NET 11 builds and Roslynk reports no errors.
+  Resolve the boundary difference in `Av1IntraSuperblockEncoder.ModeDecision.cs:3622-3650`: managed neighbor counts
   use upper bounds only, while current `reconintra.c` clamps both bounds. Establish the caller's reachable counts and
   preserve the required zero-neighbor behavior; do not add speculative guards or claim a reproduced failure from this source difference alone.
 - [ ] Reconcile the connected HOG, model-cost, angle, filter-intra, chroma, and palette pruning paths with their complete

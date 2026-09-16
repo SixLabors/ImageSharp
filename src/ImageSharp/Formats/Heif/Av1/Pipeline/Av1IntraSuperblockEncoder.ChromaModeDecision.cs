@@ -1003,6 +1003,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformSampleCount = transformSize.GetSize2d();
             int transformWidth4x4 = transformSize.Get4x4WideCount();
             int transformHeight4x4 = transformSize.Get4x4HighCount();
+            Size frameContextSize = new(
+                this.picture.Parent.FrameHeader.ModeInfoColumnCount >> subsamplingX,
+                this.picture.Parent.FrameHeader.ModeInfoRowCount >> subsamplingY);
+
             Size codedExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY);
             int maximumUnitWidth = Math.Min(maximumUnitBlockSize.GetWidth(), codedExtent.Width);
             int maximumUnitHeight = Math.Min(maximumUnitBlockSize.GetHeight(), codedExtent.Height);
@@ -1150,13 +1154,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                 transformType,
                                 state.EndOfBlock);
 
-                            topContexts
-                                .Slice(transformColumn * transformWidth4x4, transformWidth4x4)
-                                .Fill(coefficientContext);
-
-                            leftContexts
-                                .Slice(transformRow * transformHeight4x4, transformHeight4x4)
-                                .Fill(coefficientContext);
+                            Av1TileWriter.UpdateCoefficientContexts(
+                                topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4),
+                                leftContexts.Slice(transformRow * transformHeight4x4, transformHeight4x4),
+                                coefficientContext,
+                                transformOrigin,
+                                frameContextSize);
 
                             coefficientOffset += transformSampleCount;
                         }

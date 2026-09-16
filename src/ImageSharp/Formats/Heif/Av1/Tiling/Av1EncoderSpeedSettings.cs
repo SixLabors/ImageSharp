@@ -42,6 +42,14 @@ internal readonly struct Av1EncoderSpeedSettings
         this.PaletteSearchLevel = speed == HeifEncodingSpeed.Level0 ? 0 : speed < HeifEncodingSpeed.Level3 ? 1 : 2;
         this.LumaPaletteHeaderPruneLevel = allIntra ? speed == HeifEncodingSpeed.Level0 ? 1 : 2 : 0;
         this.EarlyTerminateChromaPaletteSearch = allIntra || speed >= HeifEncodingSpeed.Level6;
+
+        // Search depth counts splits below the largest transform. Square blocks normally test one
+        // split; rectangular blocks at the slowest tier can test two unless the size/quantizer policy narrows it.
+        this.IntraSquareTransformSearchDepth = !allIntra && speed >= HeifEncodingSpeed.Level7 ? 0 : 1;
+        this.IntraRectangularTransformSearchDepth = speed == HeifEncodingSpeed.Level0 &&
+            !(minimumDimension >= 720 && qIndex <= 128) ? 2 : 1;
+
+        this.UseIntraTransformRdBreakout = allIntra && speed >= HeifEncodingSpeed.Level3;
     }
 
     /// <summary>
@@ -93,4 +101,19 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets a value indicating whether chroma palette-size search terminates when its header alone exceeds the best cost.
     /// </summary>
     public bool EarlyTerminateChromaPaletteSearch { get; }
+
+    /// <summary>
+    /// Gets the maximum number of transform-size splits searched in a square intra block.
+    /// </summary>
+    public int IntraSquareTransformSearchDepth { get; }
+
+    /// <summary>
+    /// Gets the maximum number of transform-size splits searched in a rectangular intra block.
+    /// </summary>
+    public int IntraRectangularTransformSearchDepth { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether a better transform-size result tightens the remaining search bound.
+    /// </summary>
+    public bool UseIntraTransformRdBreakout { get; }
 }

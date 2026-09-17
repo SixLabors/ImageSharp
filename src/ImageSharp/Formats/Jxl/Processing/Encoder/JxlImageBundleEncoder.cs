@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
@@ -122,5 +124,83 @@ internal class JxlImageBundleEncoder
         });
 
         return false;
+    }
+
+    // Copies ib:rect, converts, and copies into out.
+    public static bool CopyToT(
+        Configuration configuration,
+        JxlImageMetadata metadata,
+        JxlImageBundle ib,
+        Rectangle rectangle,
+        JxlColorEncoding desiredEncoding,
+        JxlCmsInterface cms,
+        JxlImage3F output)
+        => TryApplyColorTransform(
+            configuration,
+            ib.CurrentColorEncoding!,
+            metadata.IntensityTarget,
+            ib.Color!,
+            ib.Black!,
+            rectangle,
+            desiredEncoding,
+            cms,
+            output);
+
+    public static bool TransformIfNeeded(
+        Configuration configuration,
+        JxlImageBundle input,
+        JxlColorEncoding desiredEncoding,
+        JxlCmsInterface cms,
+        JxlImageBundle store,
+        ref JxlImageBundle output)
+    {
+        if (input.CurrentColorEncoding!.IsSameColorEncoding(desiredEncoding) && !input.ContainsBlack)
+        {
+            output = input;
+            return true;
+        }
+
+        using JxlImage3F color = new(configuration, input.Color!.XSize, input.Color.YSize);
+
+        if (!JxlImageOperations.CopyImage(input.Color!, color))
+        {
+            return false;
+        }
+
+        if (!store.SetFromImage(color, input.CurrentColorEncoding!))
+        {
+            return false;
+        }
+
+        if (input.ContainsExtraChannels())
+        {
+            List<JxlImageF> extraChannels = [];
+
+            foreach (JxlImageF extraChannel in input.EnumerateExtraChannels())
+            {
+                JxlImageF ec = new(configuration, extraChannel.XSize, extraChannel.YSize);
+
+                if (!JxlImageOperations.CopyImage(extraChannel, ec))
+                {
+                    return false;
+                }
+
+                extraChannels.Add(ec);
+                extraChannel.Dispose();
+            }
+
+            if (!store.TrySetExtraChannels(extraChannels))
+            {
+                return false;
+            }
+        }
+
+        if (!store.TransformTo(configuration, desiredEncoding, cms))
+        {
+            return false;
+        }
+
+        output = store;
+        return true;
     }
 }

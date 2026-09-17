@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
@@ -503,5 +504,34 @@ internal sealed class JxlImageBundle
         }
 
         return copy;
+    }
+
+    public bool CopyTo(
+        Configuration configuration,
+        Rectangle rectangle,
+        JxlColorEncoding desiredEncoding,
+        JxlCmsInterface cms,
+        JxlImage3F output)
+        => JxlImageBundleEncoder.CopyToT(
+            configuration,
+            this.Metadata!,
+            this,
+            rectangle,
+            desiredEncoding,
+            cms,
+            output);
+
+    public bool TransformTo(
+        Configuration configuration,
+        JxlColorEncoding desiredEncoding,
+        JxlCmsInterface cms)
+    {
+        if (!this.CopyTo(configuration, this.Color!.GetRectangle(), desiredEncoding, cms, this.Color!))
+        {
+            return false;
+        }
+
+        this.CurrentColorEncoding = desiredEncoding;
+        return true;
     }
 }

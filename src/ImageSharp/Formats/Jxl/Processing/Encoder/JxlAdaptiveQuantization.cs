@@ -4,16 +4,20 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Comparator;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
@@ -33,6 +37,9 @@ internal static class JxlAdaptiveQuantization
     private const float DcQuantPow = 0.83f;
     private const float DcQuant = 1.095924047623553f;
     private const float AcQuant = 0.765f;
+
+    private const int DefaultButteraugliIterations = 2;
+    private const int MaxButteraugliIterations = 4;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float ComputeMaskForAcStrategyUse(float outputValue)
@@ -712,7 +719,10 @@ internal static class JxlAdaptiveQuantization
 
         JxlImage3F tmp = new(configuration, opsin.XSize, opsin.YSize);
 
-        decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding);
+        if (!decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding))
+        {
+            throw new InvalidOperationException("Could not set image bundle");
+        }
 
         JxlPassesDecoderState.PipelineOptions options = new()
         {
@@ -844,6 +854,366 @@ internal static class JxlAdaptiveQuantization
                     }
                 }
             }
+        }
+
+        return true;
+    }
+
+    public static bool FindBestQuantization(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F linear, JxlImage3F opsin, JxlImageF quantField, JxlPassesEncoderState encState, JxlCmsInterface cms, JxlAuxiliaryOutput auxOut)
+    {
+        JxlCompressionParameters cparams = encState.CompressionParameters;
+
+        if (cparams.Resampling > 1 && cparams.OriginalButteraugliDistance <= 4.0f * cparams.Resampling)
+        {
+            // For downsampled opsin image, the butteraugli based adaptive quantization
+            // loop would only make the size bigger without improving the distance much,
+            // so in this case we enable it only for very high butteraugli targets.
+            return true;
+        }
+
+        JxlQuantizer quantizer = encState.Shared.Quantizer;
+        JxlImageI rawQuantField = encState.Shared.RawQuantField;
+        float butteraugliTarget = cparams.ButteraugliDistance;
+        float originalButteraugli = cparams.OriginalButteraugliDistance;
+
+        ButteraugliParameters parameters = new();
+        JxlCustomTransferFunction tf = frameHeader.Metadata!.ImageMetadata!.ColorEncoding!.TransferFunction;
+
+        parameters.IntensityTarget = tf.IsPq || tf.IsHlg ? frameHeader.Metadata.ImageMetadata.IntensityTarget : 0;
+
+        ButteraugliJxlComparator comparator = new(parameters, cms);
+        comparator.SetReferenceImage(configuration, linear);
+
+        bool lowerIsBetter = comparator.GoodQualityScore < comparator.BadQualityScore;
+        float initialQuantDc = InitialQuantDc(butteraugliTarget);
+
+        if (!AdjustQuantField(encState.Shared.AcStrategy, quantField.GetRectangle(), originalButteraugli, quantField))
+        {
+            return false;
+        }
+
+        using JxlImageF initialQuantField = new(configuration, quantField.XSize, quantField.YSize);
+
+        if (!JxlImageOperations.CopyImage(quantField, initialQuantField))
+        {
+            return false;
+        }
+
+        JxlImageOperations.ImageMinMax(initialQuantField, out float initialQfMin, out float initialQfMax);
+
+        float initialQfRatio = initialQfMax / initialQfMin;
+        float qfMaxDeviationLow = MathF.Sqrt(250f / initialQfRatio);
+        float asymmetry = 2;
+
+        if (qfMaxDeviationLow < asymmetry)
+        {
+            asymmetry = qfMaxDeviationLow;
+        }
+
+        float qfLower = initialQfMin / (asymmetry * qfMaxDeviationLow);
+        float qfHigher = initialQfMax * (qfMaxDeviationLow / asymmetry);
+
+        if (qfHigher / qfLower < 253)
+        {
+            return false;
+        }
+
+        const int originalComparisonRound = 1;
+        int iters = DefaultButteraugliIterations;
+
+        if (cparams.SpeedTier <= JxlSpeedTier.Tortoise)
+        {
+            iters = MaxButteraugliIterations;
+        }
+
+        JxlImageF tileDistmap = new();
+
+        for (int i = 0; i < iters + 1; i++)
+        {
+            if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+            {
+                return false;
+            }
+
+            JxlImageBundle decLinear = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
+
+            JxlImageF diffmap = new();
+            comparator.CompareWith(configuration, decLinear, diffmap, out float score);
+
+            if (!lowerIsBetter)
+            {
+                score = -score;
+                ScoreImage(-1.0f, diffmap);
+            }
+
+            tileDistmap = TileDistMap(configuration, diffmap, 8 * cparams.Resampling, 0, encState.Shared.AcStrategy);
+
+            auxOut.NumberOfButteraugliIterations++;
+            if (i == iters)
+            {
+                break;
+            }
+
+            Span<double> pow = [0.2, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+            Span<double> powMod = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+            if (i == originalComparisonRound)
+            {
+                double initMul = 0.6;
+                double oneMinusInitMul = 1.0 - initMul;
+
+                for (int y = 0; y < quantField.YSize; y++)
+                {
+                    Span<float> rowQ = quantField.GetRow(y);
+                    Span<float> rowInit = initialQuantField.GetRow(y);
+
+                    for (int x = 0; x < quantField.XSize; x++)
+                    {
+                        double clamp = (oneMinusInitMul * rowQ[x]) + (initMul * rowInit[x]);
+
+                        if (rowQ[x] < clamp)
+                        {
+                            rowQ[x] = (float)clamp;
+
+                            if (rowQ[x] > qfHigher)
+                            {
+                                rowQ[x] = qfHigher;
+                            }
+
+                            if (rowQ[x] < qfLower)
+                            {
+                                rowQ[x] = qfLower;
+                            }
+                        }
+                    }
+                }
+            }
+
+            double curPow = 0;
+
+            if (i < 7)
+            {
+                curPow = pow[i] + ((originalButteraugli - 1.0) * powMod[i]);
+
+                if (curPow < 0)
+                {
+                    curPow = 0;
+                }
+            }
+
+            if (curPow == 0.0)
+            {
+                for (int y = 0; y < quantField.YSize; y++)
+                {
+                    Span<float> rowDist = tileDistmap.GetRow(y);
+                    Span<float> rowQ = quantField.GetRow(y);
+
+                    for (int x = 0; x < quantField.XSize; x++)
+                    {
+                        float diff = rowDist[x] / originalButteraugli;
+
+                        if (diff > 1.0f)
+                        {
+                            float old = rowQ[x];
+                            int qfOld = (int)MathF.Round(old * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
+                            int qfNew = (int)MathF.Round(rowQ[x] * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
+
+                            if (qfOld == qfNew)
+                            {
+                                rowQ[x] = old + quantizer.Scale;
+                            }
+                        }
+
+                        if (rowQ[x] > qfHigher)
+                        {
+                            rowQ[x] = qfHigher;
+                        }
+
+                        if (rowQ[x] < qfLower)
+                        {
+                            rowQ[x] = qfLower;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int y = 0; y < quantField.YSize; y++)
+                {
+                    Span<float> rowDist = tileDistmap.GetRow(y);
+                    Span<float> rowQ = quantField.GetRow(y);
+
+                    for (int x = 0; x < quantField.XSize; x++)
+                    {
+                        float diff = rowDist[x] / originalButteraugli;
+
+                        if (diff <= 1.0f)
+                        {
+                            rowQ[x] *= (float)Math.Pow(diff, curPow);
+                        }
+                        else
+                        {
+                            float old = rowQ[x];
+                            rowQ[x] *= diff;
+
+                            int qfOld = (int)MathF.Round(old * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
+                            int qfNew = (int)MathF.Round(rowQ[x] * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
+
+                            if (qfOld == qfNew)
+                            {
+                                rowQ[x] = old + quantizer.Scale;
+                            }
+                        }
+
+                        if (rowQ[x] < qfHigher)
+                        {
+                            rowQ[x] = qfHigher;
+                        }
+
+                        if (rowQ[x] < qfLower)
+                        {
+                            rowQ[x] = qfLower;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool FindBestQuantizationMaxError(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F opsin, JxlImageF quantField, JxlPassesEncoderState encState, JxlCmsInterface cms, JxlAuxiliaryOutput auxOut)
+    {
+        JxlCompressionParameters cparams = encState.CompressionParameters;
+        JxlQuantizer quantizer = encState.Shared.Quantizer;
+        JxlImageI rawQuantField = encState.Shared.RawQuantField;
+
+        float initialQuantDc = 16f * MathF.Sqrt(0.1f / cparams.ButteraugliDistance);
+
+        if (!AdjustQuantField(encState.Shared.AcStrategy, quantField.GetRectangle(), cparams.OriginalButteraugliDistance, quantField))
+        {
+            return false;
+        }
+
+        InlineArray3<float> inverseMaxError = default;
+        inverseMaxError[0] = 1.0f / cparams.MaxError[0];
+        inverseMaxError[1] = 1.0f / cparams.MaxError[1];
+        inverseMaxError[2] = 1.0f / cparams.MaxError[2];
+
+        for (int i = 0; i < MaxButteraugliIterations + 1; i++)
+        {
+            if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+            {
+                return false;
+            }
+
+            JxlImageBundle decoded = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
+
+            for (int by = 0; by < encState.Shared.FrameDimensions.YSizeBlocks; by++)
+            {
+                JxlAcStrategyRow acStrategyRow = encState.Shared.AcStrategy.GetRow(by);
+
+                for (int bx = 0; bx < encState.Shared.FrameDimensions.XSizeBlocks; bx++)
+                {
+                    JxlAcStrategy acs = acStrategyRow[bx];
+
+                    if (!acs.IsFirstBlock)
+                    {
+                        continue;
+                    }
+
+                    float maxError = 0;
+
+                    for (int c = 0; c < 3; c++)
+                    {
+                        for (int y = by * JxlFrameDimensions.BlockDimensions; y < (by + acs.CoveredBlocksY) * JxlFrameDimensions.BlockDimensions; y++)
+                        {
+                            if (y >= decoded.YSize)
+                            {
+                                continue;
+                            }
+
+                            Span<float> inRow = opsin.PlaneRow(c, y);
+                            Span<float> decRow = decoded.Color!.PlaneRow(c, y);
+
+                            for (int x = bx * JxlFrameDimensions.BlockDimensions; x < (bx + acs.CoveredBlocksX) * JxlFrameDimensions.BlockDimensions; x++)
+                            {
+                                if (x >= decoded.XSize)
+                                {
+                                    continue;
+                                }
+
+                                maxError = MathF.Max(MathF.Abs(inRow[x] - decRow[x]) * inverseMaxError[c], maxError);
+                            }
+                        }
+                    }
+
+                    // Target an error between max_error/2 and max_error.
+                    // If the error in the varblock is above the target, increase the qf to
+                    // compensate. If the error is below the target, decrease the qf.
+                    // However, to avoid an excessive increase of the qf, only do so if the
+                    // error is less than half the maximum allowed error.
+                    float qfMul =
+                        maxError < 0.5f
+                        ? maxError * 2.0f
+                        : maxError > 1.0f
+                            ? maxError
+                            : 1.0f;
+
+                    for (int qy = by; qy < by + acs.CoveredBlocksY; qy++)
+                    {
+                        Span<float> qfRow = quantField.GetRow(qy);
+
+                        for (int qx = bx; qx < bx + acs.CoveredBlocksX; qx++)
+                        {
+                            qfRow[qx] *= qfMul;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static JxlImageF InitialQuantField(Configuration configuration, float butteraugliTarget, JxlImage3F opsin, Rectangle rect, float rescale, JxlImageF mask, JxlImageF mask1x1)
+    {
+        float quantAc = AcQuant / butteraugliTarget;
+
+        return AdaptiveQuantizationMap(configuration, butteraugliTarget, opsin, rect, quantAc * rescale, mask, mask1x1);
+    }
+
+    public static bool FindBestQuantizer(
+        Configuration configuration,
+        JxlFrameHeader frameHeader,
+        JxlImage3F linear,
+        JxlImage3F opsin,
+        JxlImageF quantField,
+        JxlPassesEncoderState encState,
+        JxlCmsInterface cms,
+        JxlAuxiliaryOutput auxOut,
+        double rescale)
+    {
+        _ = rescale; // This parameter is unused but is present in reference
+        JxlCompressionParameters cparams = encState.CompressionParameters;
+
+        if (cparams.MaxErrorMode)
+        {
+            return FindBestQuantizationMaxError(configuration, frameHeader, opsin, quantField, encState, cms, auxOut);
+        }
+        else if (linear && cparams.SpeedTier <= JxlSpeedTier.Kitten)
+        {
+            return FindBestQuantization(configuration, frameHeader, linear, opsin, quantField, encState, cms, auxOut);
         }
 
         return true;

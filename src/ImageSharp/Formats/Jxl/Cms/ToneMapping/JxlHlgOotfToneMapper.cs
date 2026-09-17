@@ -2,10 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Cms.ToneMapping;
 
-internal struct JxlHlgOotfToneMapper
+internal readonly struct JxlHlgOotfToneMapper
 {
     private readonly float exponent;
     private readonly bool applyOotf;
@@ -29,6 +30,16 @@ internal struct JxlHlgOotfToneMapper
     {
     }
 
+    public readonly bool WarrantsGamutMapping => this.applyOotf && this.exponent < 0;
+
+    public static JxlHlgOotfToneMapper FromSceneLight(float displayLuminance, Vector3 primariesLuminances) => new(
+            gamma: 1.2f * MathF.Pow(1.111f, MathF.Log2(displayLuminance / 1000.0f)),
+            luminances: primariesLuminances);
+
+    public static JxlHlgOotfToneMapper ToSceneLight(float displayLuminance, Vector3 primariesLuminances) => new(
+            gamma: (1 / 1.2f) * MathF.Pow(1.111f, -MathF.Log2(displayLuminance / 1000.0f)),
+            luminances: primariesLuminances);
+
     public readonly void Apply(Span<float> rgb)
     {
         if (!this.applyOotf)
@@ -42,5 +53,20 @@ internal struct JxlHlgOotfToneMapper
         rgb[0] *= ratio;
         rgb[1] *= ratio;
         rgb[2] *= ratio;
+    }
+
+    public readonly void Apply(ref Vector<float> red, ref Vector<float> green, ref Vector<float> blue)
+    {
+        if (!this.applyOotf)
+        {
+            return;
+        }
+
+        Vector<float> luminance = (this.redY * red) + (this.greenY * green) + (this.blueY * blue);
+        Vector<float> ratio = Vector.Min(JxlSimdUtils.FastPowf(luminance, Vector.Create(this.exponent)), Vector.Create(1e9f));
+
+        red *= ratio;
+        green *= ratio;
+        blue *= ratio;
     }
 }

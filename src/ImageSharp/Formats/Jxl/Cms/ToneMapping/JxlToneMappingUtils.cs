@@ -57,4 +57,66 @@ internal static class JxlToneMappingUtils
         rgb[1] *= normalizer;
         rgb[2] *= normalizer;
     }
+
+    public static void GamutMap(ref Vector<float> red, ref Vector<float> green, ref Vector<float> blue, Vector3 primariesLuminances, float preserveSaturation = 0.1f)
+    {
+        Vector<float> luminance =
+            (new Vector<float>(primariesLuminances.X) * red) +
+            (new Vector<float>(primariesLuminances.Y) * green) +
+            (new Vector<float>(primariesLuminances.Z) * blue);
+
+        // Desaturate out-of-gamut pixels by mixing each pixel with gray
+        // of the target luminance until all components are non-negative.
+        Vector<float> zero = Vector<float>.Zero;
+        Vector<float> one = Vector<float>.One;
+
+        Vector<float> grayMixSaturation = zero;
+        Vector<float> grayMixLuminance = zero;
+
+        Span<Vector<float>> channels = [red, green, blue];
+
+        foreach (Vector<float> val in channels)
+        {
+            Vector<float> valMinusGray = val - luminance;
+
+            Vector<float> invValMinusGray = one / Vector.ConditionalSelect(
+                Vector.Equals(valMinusGray, zero),
+                one,
+                valMinusGray);
+
+            Vector<float> valOverValMinusGray = val * invValMinusGray;
+
+            grayMixSaturation = Vector.ConditionalSelect(
+                Vector.GreaterThanOrEqual(valMinusGray, zero),
+                grayMixSaturation,
+                Vector.Max(grayMixSaturation, valOverValMinusGray));
+
+            grayMixLuminance = Vector.Max(
+                grayMixLuminance,
+                Vector.ConditionalSelect(
+                    Vector.LessThanOrEqual(valMinusGray, zero),
+                    grayMixSaturation,
+                    valOverValMinusGray - invValMinusGray));
+        }
+
+        Vector<float> grayMix = Vector.Min(
+            one,
+            Vector.Max(
+                zero,
+                (new Vector<float>(preserveSaturation) * (grayMixSaturation - grayMixLuminance)) + grayMixLuminance));
+
+        red = (grayMix * (luminance - red)) + red;
+        green = (grayMix * (luminance - green)) + green;
+        blue = (grayMix * (luminance - blue)) + blue;
+
+        Vector<float> maxClr = Vector.Max(
+            Vector.Max(one, red),
+            Vector.Max(green, blue));
+
+        Vector<float> normalizer = one / maxClr;
+
+        red *= normalizer;
+        green *= normalizer;
+        blue *= normalizer;
+    }
 }

@@ -28,6 +28,8 @@ internal readonly struct JxlRec2048ToneMapper
     private readonly InlineArray2<float> sourceRange;
     private readonly InlineArray2<float> targetRange;
 
+    private readonly JxlPqTransferFunction tfPq = new(1.0f);
+
     public JxlRec2048ToneMapper(InlineArray2<float> sourceRange, InlineArray2<float> targetRange, Vector3 primariesLuminances)
     {
         this.redY = primariesLuminances.X;
@@ -53,8 +55,18 @@ internal readonly struct JxlRec2048ToneMapper
 
     private static float InverseEotf(float luminance) => (float)JxlPqTransferFunction.EncodedFromDisplay(1.0f, luminance);
 
+    private Vector<float> InverseEotf(Vector<float> luminance) => this.tfPq.EncodedFromDisplay(luminance);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float T(float a) => (a - this.ks) * this.inverseOneMinusKs;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Vector<float> T(Vector<float> a)
+    {
+        Vector<float> ks = Vector.Create(this.ks);
+        Vector<float> inverseOneMinusKs = Vector.Create(this.inverseOneMinusKs);
+        return (a - ks) * inverseOneMinusKs;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float P(float b)
@@ -66,6 +78,24 @@ internal readonly struct JxlRec2048ToneMapper
         return (((2 * tb3) - (3 * tb2) + 1) * this.ks) +
            ((tb3 - (2 * tb2) + tb) * (1 - this.ks)) +
            (((-2 * tb3) + (3 * tb2)) * this.maxLum);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Vector<float> P(Vector<float> b)
+    {
+        Vector<float> tb = this.T(b); // tb = T(b)
+        Vector<float> tb2 = tb * tb; // tb²
+        Vector<float> tb3 = tb2 * tb2; // tb³
+
+        Vector<float> v2 = Vector.Create(2.0f);
+        Vector<float> v3 = Vector.Create(3.0f);
+        Vector<float> v1 = Vector.Create(1.0f);
+        Vector<float> vm2 = Vector.Create(-2.0f);
+        Vector<float> vks = Vector.Create(this.ks);
+
+        return (((v2 * tb3) - (v3 * tb2) + v1) * this.ks) +
+           ((tb3 - (v2 * tb2) + tb) * (v1 - vks)) +
+           (((vm2 * tb3) + (v3 * tb2)) * this.maxLum);
     }
 
     public void ToneMap(Span<float> rgb)
@@ -98,5 +128,53 @@ internal readonly struct JxlRec2048ToneMapper
             rgb[1] *= multiplier;
             rgb[2] *= multiplier;
         }
+    }
+
+    public void ToneMap(ref Vector<float> red, ref Vector<float> green, ref Vector<float> blue)
+    {
+        Vector<float> luminance =
+            this.sourceRange[1] *
+            ((this.redY * red) + (this.greenY * green) + (this.blueY * blue));
+
+        Vector<float> pqMasteringMin = new(this.pqMasteringMin);
+        Vector<float> invPqMasteringRange = new(this.inversePqMasteringRange);
+
+        Vector<float> normalizedPq = Vector.Min(
+            Vector<float>.One,
+            (this.InverseEotf(luminance) - pqMasteringMin) * invPqMasteringRange);
+
+        Vector<float> ks = new(this.ks);
+        Vector<float> e2 = Vector.ConditionalSelect(
+            Vector.LessThan(normalizedPq, ks),
+            normalizedPq,
+            this.P(normalizedPq));
+
+        Vector<float> oneMinusE2 = Vector<float>.One - e2;
+        Vector<float> oneMinusE2_2 = oneMinusE2 * oneMinusE2;
+        Vector<float> oneMinusE2_4 = oneMinusE2_2 * oneMinusE2_2;
+
+        Vector<float> b = new(this.minLum);
+        Vector<float> e3 = (b * oneMinusE2_4) + e2;
+
+        Vector<float> pqMasteringRange = new(this.pqMasteringRange);
+        Vector<float> e4 = (e3 * pqMasteringRange) + pqMasteringMin;
+
+        Vector<float> newLuminance = Vector.Min(
+            new Vector<float>(this.targetRange[1]),
+            Vector.Max(
+                this.tfPq.DisplayFromEncoded(e4),
+                Vector<float>.Zero));
+
+        Vector<float> minLuminance = new(1e-6f);
+        Vector<int> useCap = Vector.LessThanOrEqual(luminance, minLuminance);
+
+        Vector<float> ratio = newLuminance / Vector.Max(luminance, minLuminance);
+        Vector<float> cap = newLuminance * new Vector<float>(this.inverseTargetPeak);
+        Vector<float> normalizer = new(this.normalizer);
+        Vector<float> multiplier = ratio * normalizer;
+
+        red = Vector.ConditionalSelect(useCap, cap, red * multiplier);
+        green = Vector.ConditionalSelect(useCap, cap, green * multiplier);
+        blue = Vector.ConditionalSelect(useCap, cap, blue * multiplier);
     }
 }

@@ -373,10 +373,10 @@ internal static class JxlTransformsEncoder
                 float c10 = block[(((y * 2) + 1) * stride) + (x * 2)];
                 float c11 = block[(((y * 2) + 1) * stride) + (x * 2) + 1];
 
-                float r00 = c00 + c01 + c10 + c11;
-                float r01 = c00 + c01 - c10 - c11;
-                float r10 = c00 - c01 + c10 - c11;
-                float r11 = c00 - c01 - c10 + c11;
+                float r00 = (c00 + c01) + (c10 + c11);
+                float r01 = (c00 + c01) - (c10 - c11);
+                float r10 = (c00 - c01) + (c10 - c11);
+                float r11 = (c00 - c01) - (c10 + c11);
 
                 r00 *= 0.25f;
                 r01 *= 0.25f;
@@ -552,10 +552,10 @@ internal static class JxlTransformsEncoder
                 float block10 = coefficients[8];
                 float block11 = coefficients[9];
 
-                coefficients[0] = (block00 + block01 + block10 + block11) * 0.25f;
-                coefficients[1] = (block00 + block01 - block10 - block11) * 0.25f;
-                coefficients[8] = (block00 - block01 + block10 - block11) * 0.25f;
-                coefficients[9] = (block00 - block01 - block10 + block11) * 0.25f;
+                coefficients[0] = ((block00 + block01) + (block10 + block11)) * 0.25f;
+                coefficients[1] = ((block00 + block01) - (block10 - block11)) * 0.25f;
+                coefficients[8] = ((block00 - block01) + (block10 - block11)) * 0.25f;
+                coefficients[9] = ((block00 - block01) - (block10 + block11)) * 0.25f;
 
                 break;
             }
@@ -653,10 +653,10 @@ internal static class JxlTransformsEncoder
                 float block10 = coefficients[8];
                 float block11 = coefficients[9];
 
-                coefficients[0] = (block00 + block01 + block10 + block11) * 0.25f;
-                coefficients[1] = (block00 + block01 - block10 - block11) * 0.25f;
-                coefficients[8] = (block00 - block01 + block10 - block11) * 0.25f;
-                coefficients[9] = (block00 - block01 - block10 + block11) * 0.25f;
+                coefficients[0] = ((block00 + block01) + (block10 + block11)) * 0.25f;
+                coefficients[1] = ((block00 + block01) - (block10 - block11)) * 0.25f;
+                coefficients[8] = ((block00 - block01) + (block10 - block11)) * 0.25f;
+                coefficients[9] = ((block00 - block01) - (block10 + block11)) * 0.25f;
 
                 break;
             }

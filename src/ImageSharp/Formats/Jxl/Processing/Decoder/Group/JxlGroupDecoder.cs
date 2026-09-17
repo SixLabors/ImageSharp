@@ -182,7 +182,7 @@ internal static class JxlGroupDecoder
                 return false;
             }
 
-            jpegCMap = JxlFrameHeader.JpegOrder(frameHeader.ColorTransform, jpegIsGray);
+            JxlFrameHeader.JpegOrder(frameHeader.ColorTransform, jpegIsGray, out jpegCMap);
 
             Span<JxlQuantizerEncoding> qe = decState.Shared.Matrices.GetEncodings();
 
@@ -415,7 +415,7 @@ internal static class JxlGroupDecoder
                         return false;
                     }
 
-                    foreach (int c in new[] { 1, 0, 2 })
+                    foreach (int c in (ReadOnlySpan<int>)[1, 0, 2])
                     {
                         // Propagate only Y for grayscale.
                         if (jpegIsGray && c != 1)

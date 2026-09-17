@@ -371,10 +371,10 @@ internal static class JxlTransformsDecoder
                 float c10 = block[((y + num2x2) * JxlFrameDimensions.BlockDimensions) + x];
                 float c11 = block[((y + num2x2) * JxlFrameDimensions.BlockDimensions) + n2x2PlusX];
 
-                float r00 = c00 + c01 + c10 + c11;
-                float r01 = c00 + c01 - c10 - c11;
-                float r10 = c00 - c01 + c10 - c11;
-                float r11 = c00 - c01 - c10 + c11;
+                float r00 = (c00 + c01) + (c10 + c11);
+                float r01 = (c00 + c01) - (c10 - c11);
+                float r10 = (c00 - c01) + (c10 - c11);
+                float r11 = (c00 - c01) - (c10 + c11);
 
                 temp[(y2 * JxlFrameDimensions.BlockDimensions) + x2] = r00;
                 temp[(y2 * JxlFrameDimensions.BlockDimensions) + x2Plus1] = r01;
@@ -450,18 +450,23 @@ internal static class JxlTransformsDecoder
         Span<float> coeff = stackalloc float[4 * 4]; // No need to zero-initialize
         coeff[0] = dcs[0];
 
-        for (int iy = 0, iy4 = 0, iy28 = 0; iy < 4; iy++, iy4 += 4, iy28 += 16)
+        int iy28 = 0; // iy * 2 * 8
+        for (int iy4 = 0; iy4 < 16; iy4 += 4)
         {
             for (int ix = 0; ix < 4; ix++)
             {
-                if (ix == 0 && iy == 0)
+                if (ix == 0 && iy4 == 0)
                 {
                     continue;
                 }
 
                 coeff[iy4 + ix] = coefficients[iy28 + (ix * 2)];
             }
+
+            iy28 += 16;
         }
+
+        iy28 = 0;
 
         Span<float> block = stackalloc float[4 * 8]; // Don't zero-init
         AfvIdct4x4(coeff, block);
@@ -484,18 +489,22 @@ internal static class JxlTransformsDecoder
 
         // IDCT4x4 in (odd, even) positions.
         block[0] = dcs[1];
-        for (int iy = 0, iy4 = 0, iy28 = 0; iy < 4; iy++, iy4 += 4, iy28 += 16)
+        for (int iy4 = 0; iy4 < 16; iy4 += 4)
         {
             for (int ix = 0; ix < 4; ix++)
             {
-                if (ix == 0 && iy == 0)
+                if (ix == 0 && iy4 == 0)
                 {
                     continue;
                 }
 
                 block[iy4 + ix] = coefficients[iy28 + (ix * 2) + 1];
             }
+
+            iy28 += 16;
         }
+
+        iy28 = 0;
 
         JxlDct.ComputeScaledInverseDct(
             4,
@@ -506,7 +515,8 @@ internal static class JxlTransformsDecoder
 
         block[0] = dcs[2];
 
-        for (int iy = 0, iy8 = 0; iy < 4; iy++, iy8 += 8)
+        int iy8 = 0;
+        for (int iy = 0; iy < 4; iy++)
         {
             for (int ix = 0; ix < 8; ix++)
             {
@@ -517,7 +527,11 @@ internal static class JxlTransformsDecoder
 
                 block[iy8 + ix] = coefficients[((1 + (iy * 2)) * 8) + ix];
             }
+
+            iy8 += 8;
         }
+
+        iy8 = 0;
 
         JxlDct.ComputeScaledInverseDct(
             4,
@@ -541,10 +555,10 @@ internal static class JxlTransformsDecoder
                 float block10 = coefficients[8];
                 float block11 = coefficients[9];
 
-                dcs[0] = block00 + block01 + block10 + block11;
-                dcs[1] = block00 + block01 - block10 - block11;
-                dcs[2] = block00 - block01 + block10 - block11;
-                dcs[3] = block00 - block01 - block10 + block11;
+                dcs[0] = (block00 + block01) + (block10 + block11);
+                dcs[1] = (block00 + block01) - (block10 - block11);
+                dcs[2] = (block00 - block01) + (block10 - block11);
+                dcs[3] = (block00 - block01) - (block10 + block11);
 
                 for (int y = 0; y < 2; y++)
                 {

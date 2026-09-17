@@ -55,8 +55,7 @@ internal class JxlToJpegDecoder
 
     public void StartBox(bool boxUntilEof, long contentsSize)
     {
-        this.buffer.Dispose();
-        this.buffer = new MemoryStream();
+        this.buffer.Position = 0;
         this.IsParsingBox = true;
 
         if (boxUntilEof)

@@ -348,11 +348,12 @@ internal sealed class JxlFrameHeader : IJxlFields
                                        (this.animationFrame?.Duration == 0 || this.saveAsReference != 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static InlineArray3<int> JpegOrder(JxlColorTransform transform, bool isGray)
+    public static void JpegOrder(JxlColorTransform transform, bool isGray, out InlineArray3<int> result)
     {
         if (isGray)
         {
-            return default; // {0, 0, 0}
+            result = default; // {0, 0, 0}
+            return;
         }
 
         switch (transform)
@@ -360,19 +361,19 @@ internal sealed class JxlFrameHeader : IJxlFields
             case JxlColorTransform.YCbCr:
             {
                 // {1, 0, 2}
-                InlineArray3<int> result = default;
+                result = default;
                 result[0] = 1;
                 result[2] = 2;
-                return result;
+                return;
             }
 
             case JxlColorTransform.None:
             {
                 // {0, 1, 2}
-                InlineArray3<int> result = default;
+                result = default;
                 result[1] = 1;
                 result[2] = 2;
-                return result;
+                return;
             }
 
             case JxlColorTransform.Xyb:

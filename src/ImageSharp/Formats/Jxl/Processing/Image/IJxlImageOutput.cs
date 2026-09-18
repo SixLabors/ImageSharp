@@ -11,6 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 internal interface IJxlImageOutput : IDisposable
 {
     /// <summary>
+    /// Gets or sets the index of this channel.
+    /// </summary>
+    public int ChannelIndex { get; set; }
+
+    /// <summary>
     /// Gets or sets the pixel format for the output pixels.
     /// </summary>
     public JxlPixelFormat PixelFormat { get; set; }
@@ -29,6 +34,12 @@ internal interface IJxlImageOutput : IDisposable
     /// Gets or sets length of a row of image buffer in bytes.
     /// </summary>
     public int Stride { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether endianness must be
+    /// swapped.
+    /// </summary>
+    public bool SwapEndianness { get; set; }
 
     /// <summary>
     /// Outputs the image.

@@ -313,6 +313,12 @@ internal sealed class JxlImageBundle
     public IEnumerable<JxlImageF> EnumerateExtraChannels() => this.extraChannels;
 
     /// <summary>
+    /// Adds a specified extra channel.
+    /// </summary>
+    /// <param name="channel">The extra channel to be added to the image bundle.</param>
+    public void AddExtraChannel(JxlImageF channel) => this.extraChannels.Add(channel);
+
+    /// <summary>
     /// Sets the extra channels.
     /// </summary>
     /// <param name="extraChannels">The extra channels.</param>

@@ -1,34 +1,72 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 
-internal sealed class WriteToOutputStage
+internal sealed class WriteToOutputStage : RenderPipelineStageBase, IDisposable
 {
     private const int ChunkSize = 1024;
 
-    private int width;
-    private int height;
-    private IJxlImageOutput main;
-    private int numColors;
-    private bool wantAlpha;
-    private bool hasAlpha;
-    private bool unpremultiplyAlpha;
-    private int alphaC;
-    private bool flipX;
-    private bool flipY;
-    private bool transpose;
+    private readonly int width;
+    private readonly int height;
+    private readonly IJxlImageOutput main;
+    private readonly int numColors;
+    private readonly bool wantAlpha;
+    private readonly bool hasAlpha;
+    private readonly bool unpremultiplyAlpha;
+    private readonly int alphaC;
+    private readonly bool flipX;
+    private readonly bool flipY;
+    private readonly bool transpose;
     private readonly List<IJxlImageOutput> extraChannels = [];
     private readonly List<float> opaqueAlpha = [];
-    private readonly Configuration configuration;
-    private List<Memory<byte>> tempIn;
-    private List<Memory<byte>> tempOut;
+    private readonly List<Memory<byte>> tempIn = [];
+    private readonly List<Memory<byte>> tempOut = [];
+
+    // For Dispose()
+    private readonly List<IMemoryOwner<byte>> disposables = [];
+
+    public WriteToOutputStage(Configuration configuration, IJxlImageOutput output, int width, int height, bool hasAlpha, bool unpremultiplyAlpha, int alphaC, JxlExifOrientation undoOrientation, List<IJxlImageOutput> extraChannel, Func<IJxlImageOutput, IJxlImageOutput> extraFactory)
+        : base(configuration)
+    {
+        this.width = width;
+        this.height = height;
+        this.main = output;
+        this.numColors = this.main.PixelFormat.Channels < 3 ? 1 : 3;
+        this.wantAlpha = this.main.PixelFormat.Channels is 2 or 4;
+        this.hasAlpha = hasAlpha;
+        this.unpremultiplyAlpha = unpremultiplyAlpha;
+        this.alphaC = alphaC;
+        this.flipX = ShouldFlipX(undoOrientation);
+        this.flipY = ShouldFlipY(undoOrientation);
+        this.transpose = ShouldTranspose(undoOrientation);
+        this.opaqueAlpha = new(ChunkSize);
+        CollectionsMarshal.AsSpan(this.opaqueAlpha).Fill(1.0f);
+
+        for (int ec = 0; ec < this.extraChannels.Count; ec++)
+        {
+            if (extraChannel[ec].IsPresent)
+            {
+                IJxlImageOutput extra = extraFactory(extraChannel[ec]);
+                extra.ChannelIndex = 3 + ec;
+                this.extraChannels.Add(extra);
+            }
+        }
+    }
+
+    public override string Name => "WritePixelCB";
 
     /// <summary>
     /// Gets the 32x32 blue noise dithering pattern lookup
@@ -251,7 +289,118 @@ internal sealed class WriteToOutputStage
             JxlExifOrientation.Rotate270 or
             JxlExifOrientation.AntiTranspose;
 
-    private unsafe void UnpremultiplyAlpha(int threadId, int len, float** lineBuffers)
+    public override RenderPipelineChannelMode GetChannelMode(int channel)
+    {
+        if (channel < this.numColors || (this.hasAlpha && channel == this.alphaC))
+        {
+            return RenderPipelineChannelMode.Input;
+        }
+
+        foreach (IJxlImageOutput ec in this.extraChannels)
+        {
+            if (channel == ec.ChannelIndex)
+            {
+                return RenderPipelineChannelMode.Input;
+            }
+        }
+
+        return RenderPipelineChannelMode.Ignored;
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+
+        foreach (IDisposable disposables in this.disposables)
+        {
+            disposables.Dispose();
+        }
+    }
+
+    public override void ProcessRow(Buffer2D<Memory<float>> inputRows, Buffer2D<Memory<float>> outputRows, int xExtraLeft, int xExtraRight, int width, int xPos, int yPos)
+    {
+        // HACK: to pass thread ID we use the mask in xExtraLeft, which shall be 0 anyway
+        int threadId = xExtraLeft & ~7;
+
+        if (yPos >= this.height)
+        {
+            return;
+        }
+
+        if (xPos >= this.width)
+        {
+            return;
+        }
+
+        if (this.flipY)
+        {
+            yPos = this.height - 1 - yPos;
+        }
+
+        int limit = Math.Min(width, this.width - xPos);
+
+        for (int x0 = 0; x0 < limit; x0 += ChunkSize)
+        {
+            int xStart = xPos + x0;
+            int length = Math.Min(ChunkSize, limit - x0);
+
+            Span<Memory<float>> lineBuffers = [Memory<float>.Empty, Memory<float>.Empty, Memory<float>.Empty, Memory<float>.Empty];
+
+            for (int c = 0; c < this.numColors; c++)
+            {
+                lineBuffers[c] = this.GetInputRowMemory(inputRows, c, 0)[x0..];
+            }
+
+            if (this.hasAlpha)
+            {
+                lineBuffers[this.numColors] = this.GetInputRowMemory(inputRows, this.alphaC, 0)[x0..];
+            }
+            else
+            {
+                lineBuffers[this.numColors] = JxlMemoryHelpers.MemoryFromList(this.opaqueAlpha);
+            }
+
+            if (this.hasAlpha && this.wantAlpha && this.unpremultiplyAlpha)
+            {
+                this.UnpremultiplyAlpha(threadId, length, lineBuffers);
+            }
+
+            this.OutputBuffers(this.main, threadId, yPos, ref xStart, length, lineBuffers[0], lineBuffers[1], lineBuffers[2], lineBuffers[3]);
+
+            foreach (IJxlImageOutput extra in this.extraChannels)
+            {
+                lineBuffers[0] = this.GetInputRowMemory(inputRows, extra.ChannelIndex, 0)[x0..];
+                this.OutputBuffers(extra, threadId, yPos, ref xStart, length, lineBuffers[0], lineBuffers[1], lineBuffers[2], lineBuffers[3]);
+            }
+        }
+    }
+
+    public void PrepareForThreads(Configuration configuration, int numThreads)
+    {
+        this.tempOut.Resize(numThreads);
+        int allocSize = sizeof(float) * ChunkSize;
+
+        for (int i = 0; i < this.tempOut.Count; i++)
+        {
+            IMemoryOwner<byte> owner = configuration.MemoryAllocator.Allocate<byte>(allocSize * this.main.PixelFormat.Channels);
+            this.disposables.Add(owner);
+            this.tempOut[i] = owner.Memory;
+        }
+
+        if ((this.hasAlpha && this.wantAlpha && this.unpremultiplyAlpha) || this.flipX)
+        {
+            this.tempIn.Resize(numThreads * this.main.PixelFormat.Channels);
+
+            for (int i = 0; i < this.tempIn.Count; i++)
+            {
+                IMemoryOwner<byte> owner = configuration.MemoryAllocator.Allocate<byte>(allocSize);
+                this.disposables.Add(owner);
+                this.tempIn[i] = owner.Memory;
+            }
+        }
+    }
+
+    private unsafe void UnpremultiplyAlpha(int threadId, int len, Span<Memory<float>> lineBuffers)
     {
         // Highly unsafe code! ⚠️
         float** tempIn = stackalloc float*[4];
@@ -266,7 +415,7 @@ internal sealed class WriteToOutputStage
 
             tempIn[c] = (float*)Unsafe.AsPointer(ref MemoryMarshal.Cast<byte, float>(this.tempIn[tix].Span)[0]);
 
-            MemoryMarshal.CreateSpan(ref Unsafe.AsRef<float>(lineBuffers[c]), len)
+            lineBuffers[c].Span[..len]
                 .CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.AsRef<float>(tempIn[c]), len));
         }
 
@@ -325,10 +474,304 @@ internal sealed class WriteToOutputStage
 
         for (int c = 0; c < this.main.PixelFormat.Channels; c++)
         {
-            fixed (byte* ptr = this.tempIn[c].Span)
+            lineBuffers[c] = JxlMemoryHelpers.CastMemory<byte, float>(this.tempIn[c]);
+        }
+    }
+
+    private static void StoreFloatRow(IJxlImageOutput output, Span<float> input0, Span<float> input1, Span<float> input2, Span<float> input3, int length, Span<float> result)
+    {
+        Span<float> bufferSpan = MemoryMarshal.Cast<byte, float>(output.Buffer.Span);
+
+        if (output.PixelFormat.Channels == 1)
+        {
+            input0.CopyTo(result);
+        }
+        else if (output.PixelFormat.Channels == 2)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
             {
-                lineBuffers[c] = (float*)ptr;
+                JxlSimdUtils.StoreInterleaved(
+                    Vector.Create<float>(input0[i..]),
+                    Vector.Create<float>(input1[i..]),
+                    ref bufferSpan[2 * i]);
             }
         }
+        else if (output.PixelFormat.Channels == 3)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                JxlSimdUtils.StoreInterleaved(
+                    Vector.Create<float>(input0[i..]),
+                    Vector.Create<float>(input1[i..]),
+                    Vector.Create<float>(input2[i..]),
+                    ref bufferSpan[3 * i]);
+            }
+        }
+        else if (output.PixelFormat.Channels == 4)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                JxlSimdUtils.StoreInterleaved(
+                    Vector.Create<float>(input0[i..]),
+                    Vector.Create<float>(input1[i..]),
+                    Vector.Create<float>(input2[i..]),
+                    Vector.Create<float>(input3[i..]),
+                    ref bufferSpan[4 * i]);
+            }
+        }
+    }
+
+    private static void StoreFloat16Row(IJxlImageOutput output, Span<float> input0, Span<float> input1, Span<float> input2, Span<float> input3, int length, Span<ushort> result)
+    {
+        if (output.PixelFormat.Channels == 1)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                Vector<float> v0 = Vector.Create<float>(input0[i..]);
+                JxlHalfUtils.ConvertSingleToHalf(v0).CopyTo(result[i..]);
+            }
+        }
+        else if (output.PixelFormat.Channels == 2)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                Vector<float> v0 = Vector.Create<float>(input0[i..]);
+                Vector<float> v1 = Vector.Create<float>(input1[i..]);
+                JxlSimdUtils.StoreInterleaved(
+                    JxlHalfUtils.ConvertSingleToHalf(v0),
+                    JxlHalfUtils.ConvertSingleToHalf(v1),
+                    ref result[i * 2]);
+            }
+        }
+        else if (output.PixelFormat.Channels == 3)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                Vector<float> v0 = Vector.Create<float>(input0[i..]);
+                Vector<float> v1 = Vector.Create<float>(input1[i..]);
+                Vector<float> v2 = Vector.Create<float>(input2[i..]);
+                JxlSimdUtils.StoreInterleaved(
+                    JxlHalfUtils.ConvertSingleToHalf(v0),
+                    JxlHalfUtils.ConvertSingleToHalf(v1),
+                    JxlHalfUtils.ConvertSingleToHalf(v2),
+                    ref result[i * 3]);
+            }
+        }
+        else if (output.PixelFormat.Channels == 4)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                Vector<float> v0 = Vector.Create<float>(input0[i..]);
+                Vector<float> v1 = Vector.Create<float>(input1[i..]);
+                Vector<float> v2 = Vector.Create<float>(input2[i..]);
+                Vector<float> v3 = Vector.Create<float>(input3[i..]);
+                JxlSimdUtils.StoreInterleaved(
+                    JxlHalfUtils.ConvertSingleToHalf(v0),
+                    JxlHalfUtils.ConvertSingleToHalf(v1),
+                    JxlHalfUtils.ConvertSingleToHalf(v2),
+                    JxlHalfUtils.ConvertSingleToHalf(v3),
+                    ref result[i * 4]);
+            }
+        }
+    }
+
+    private static void StoreUnsignedRow<TUnsigned>(IJxlImageOutput output, Span<float> input0, Span<float> input1, Span<float> input2, Span<float> input3, int length, Span<TUnsigned> result, int xStart, int yPos)
+        where TUnsigned : unmanaged, INumber<TUnsigned>
+    {
+        Vector<float> mul = Vector.Create((1 << output.BitsPerSample) - 1.0f);
+
+        if (output.PixelFormat.Channels == 1)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                MakeUnsigned<TUnsigned>(
+                    Vector.Create<float>(input0[i..]),
+                    xStart + i,
+                    yPos,
+                    mul,
+                    0)
+                .CopyTo(result[i..]);
+            }
+        }
+        else if (output.PixelFormat.Channels == 2)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                JxlSimdUtils.StoreInterleaved(
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input0[i..]), xStart + i, yPos, mul, 0),
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input1[i..]), xStart + i, yPos, mul, 1),
+                    ref result[i * 2]);
+            }
+        }
+        else if (output.PixelFormat.Channels == 3)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                JxlSimdUtils.StoreInterleaved(
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input0[i..]), xStart + i, yPos, mul, 0),
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input1[i..]), xStart + i, yPos, mul, 1),
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input2[i..]), xStart + i, yPos, mul, 2),
+                    ref result[i * 3]);
+            }
+        }
+        else if (output.PixelFormat.Channels == 4)
+        {
+            for (int i = 0; i < length; i += Vector<float>.Count)
+            {
+                JxlSimdUtils.StoreInterleaved(
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input0[i..]), xStart + i, yPos, mul, 0),
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input1[i..]), xStart + i, yPos, mul, 1),
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input2[i..]), xStart + i, yPos, mul, 2),
+                    MakeUnsigned<TUnsigned>(Vector.Create<float>(input3[i..]), xStart + i, yPos, mul, 3),
+                    ref result[i * 4]);
+            }
+        }
+    }
+
+    private static Vector<T> MakeUnsigned<T>(Vector<float> v, int x0, int y0, Vector<float> mul, int c)
+        where T : unmanaged
+    {
+        v *= mul;
+
+        if (typeof(T) == typeof(byte))
+        {
+            int xOff = (x0 + (c * 23)) % 32;
+            int yOff = (y0 + (c * 13)) % 32;
+            int pos = (yOff * 48) + xOff;
+
+            Vector<float> dither = Vector.Create(DitheringPattern[pos..]);
+            v += dither;
+        }
+
+        v = Vector.Min(Vector.Max(Vector<float>.Zero, v), mul);
+
+        Vector<int> ni = Vector.ConvertToInt32(v);
+        Vector<uint> nu = Vector.AsVectorUInt32(ni);
+
+        if (typeof(T) == typeof(uint))
+        {
+            return (Vector<T>)(object)nu;
+        }
+
+        return nu.As<uint, T>();
+    }
+
+    private void FlipX(IJxlImageOutput output, int threadId, int length, ref int xStart, Span<Memory<float>> lineBuffers)
+    {
+        InlineArray4<Memory<float>> temporaryInput = default;
+
+        for (int c = 0; c < output.PixelFormat.Channels; c++)
+        {
+            int tix = (threadId * this.main.PixelFormat.Channels) + c;
+            temporaryInput[c] = JxlMemoryHelpers.CastMemory<byte, float>(this.tempIn[tix]);
+
+            lineBuffers[c][..length].Span.CopyTo(temporaryInput[c].Span);
+        }
+
+        int last = length - 1;
+        int num = length / 2;
+
+        for (int i = 0; i < num; i++)
+        {
+            for (int c = 0; c < output.PixelFormat.Channels; c++)
+            {
+                RuntimeUtility.Swap(ref temporaryInput[c].Span[i], ref temporaryInput[c].Span[last - i]);
+            }
+        }
+
+        for (int c = 0; c < output.PixelFormat.Channels; c++)
+        {
+            lineBuffers[c] = temporaryInput[c];
+        }
+
+        xStart = this.width - xStart - length;
+    }
+
+    private unsafe void WriteToOutput<T>(IJxlImageOutput output, int yPos, int xStart, int length, Span<T> result)
+        where T : unmanaged
+    {
+        if (this.transpose)
+        {
+            int stride = output.PixelFormat.Channels * sizeof(T);
+            int offset = (xStart * output.Stride) + (yPos * stride);
+
+            for (int i = 0, j = 0; i < length; i++, j += output.PixelFormat.Channels)
+            {
+                int ix = offset + (i * output.Stride);
+                MemoryMarshal.Cast<T, byte>(result).Slice(j, stride).CopyTo(output.Buffer.Span[ix..]);
+            }
+        }
+        else
+        {
+            int stride = output.PixelFormat.Channels * sizeof(T);
+            int offset = (yPos * output.Stride) + (xStart * stride);
+            MemoryMarshal.Cast<T, byte>(result)[..(length * stride)].CopyTo(output.Buffer.Span[offset..]);
+        }
+    }
+
+    private void OutputBuffers(IJxlImageOutput output, int threadId, int ypos, ref int xstart, int length, Memory<float> input0, Memory<float> input1, Memory<float> input2, Memory<float> input3)
+    {
+        if (this.flipX)
+        {
+            Span<Memory<float>> buffers = [input0, input1, input2, input3];
+            this.FlipX(output, threadId, length, ref xstart, buffers);
+        }
+
+        if (output.PixelFormat.DataType == IO.JxlDataType.Byte)
+        {
+            Span<byte> temp = this.tempOut[threadId].Span;
+            StoreUnsignedRow(output, input0.Span, input1.Span, input2.Span, input3.Span, length, temp, xstart, ypos);
+            this.WriteToOutput(output, ypos, xstart, length, temp);
+        }
+        else if (output.PixelFormat.DataType is IO.JxlDataType.UInt16 or IO.JxlDataType.Single)
+        {
+            Span<ushort> temp = MemoryMarshal.Cast<byte, ushort>(this.tempOut[threadId].Span);
+
+            if (output.PixelFormat.DataType == IO.JxlDataType.UInt16)
+            {
+                StoreUnsignedRow(output, input0.Span, input1.Span, input2.Span, input3.Span, length, temp, xstart, ypos);
+            }
+            else
+            {
+                StoreFloat16Row(output, input0.Span, input1.Span, input2.Span, input3.Span, length, temp);
+            }
+
+            if (output.SwapEndianness)
+            {
+                int outputLength = length * output.PixelFormat.Channels;
+                for (int j = 0; j < outputLength; j += Vector<ushort>.Count)
+                {
+                    Vector<ushort> v = Vector.Create<ushort>(temp[j..]);
+                    Vector<ushort> vswap = Vector.ShiftRightLogical(v, 8) | (v << 8);
+                    vswap.CopyTo(temp[j..]);
+                }
+            }
+
+            this.WriteToOutput(output, ypos, xstart, length, temp);
+        }
+        else if (output.PixelFormat.DataType == IO.JxlDataType.Single)
+        {
+            Span<float> temp = MemoryMarshal.Cast<byte, float>(this.tempOut[threadId].Span);
+            StoreFloatRow(output, input0.Span, input1.Span, input2.Span, input3.Span, length, temp);
+
+            if (output.SwapEndianness)
+            {
+                int outputLength = length * output.PixelFormat.Channels;
+
+                for (int j = 0; j < outputLength; j++)
+                {
+                    temp[j] = ReverseEndianness(temp[j]);
+                }
+            }
+
+            this.WriteToOutput(output, ypos, xstart, length, temp);
+        }
+    }
+
+    private static float ReverseEndianness(float value)
+    {
+        int bits = BitConverter.SingleToInt32Bits(value);
+        bits = BinaryPrimitives.ReverseEndianness(bits);
+        return BitConverter.Int32BitsToSingle(bits);
     }
 }

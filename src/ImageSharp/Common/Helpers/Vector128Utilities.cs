@@ -859,4 +859,84 @@ internal static class Vector128_
         Vector128<sbyte> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
         return Vector128.ShuffleNative(unpacked, Vector128.Create(0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
     }
+
+    /// <summary>
+    /// Interleaves the lower half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[0], b[0], a[1], b[1] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> InterleaveLower(Vector128<int> a, Vector128<int> b)
+    {
+        Vector128<int> shuffledA = Vector128.Shuffle(a, Vector128.Create(0, 0, 1, 1));
+        Vector128<int> shuffledB = Vector128.Shuffle(b, Vector128.Create(0, 0, 1, 1));
+
+        Vector128<int> maskA = Vector128.Create(-1, 0, -1, 0);
+        Vector128<int> maskB = Vector128.Create(0, -1, 0, -1);
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
+
+    /// <summary>
+    /// Interleaves the upper half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[2], b[2], a[3], b[3] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> InterleaveUpper(Vector128<int> a, Vector128<int> b)
+    {
+        Vector128<int> shuffledA = Vector128.Shuffle(a, Vector128.Create(2, 2, 3, 3));
+        Vector128<int> shuffledB = Vector128.Shuffle(b, Vector128.Create(2, 2, 3, 3));
+
+        Vector128<int> maskA = Vector128.Create(-1, 0, -1, 0);
+        Vector128<int> maskB = Vector128.Create(0, -1, 0, -1);
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
+
+    /// <summary>
+    /// Interleaves the lower half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[0], b[0], a[1], b[1] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> InterleaveLower(Vector128<float> a, Vector128<float> b)
+    {
+        Vector128<float> shuffledA = Vector128.Shuffle(a, Vector128.Create(0, 0, 1, 1));
+        Vector128<float> shuffledB = Vector128.Shuffle(b, Vector128.Create(0, 0, 1, 1));
+
+        Vector128<float> maskA = Vector128.Create(-1, 0, -1, 0).AsSingle();
+        Vector128<float> maskB = Vector128.Create(0, -1, 0, -1).AsSingle();
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
+
+    /// <summary>
+    /// Interleaves the upper half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[2], b[2], a[3], b[3] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> InterleaveUpper(Vector128<float> a, Vector128<float> b)
+    {
+        Vector128<float> shuffledA = Vector128.Shuffle(a, Vector128.Create(2, 2, 3, 3));
+        Vector128<float> shuffledB = Vector128.Shuffle(b, Vector128.Create(2, 2, 3, 3));
+
+        Vector128<float> maskA = Vector128.Create(-1, 0, -1, 0).AsSingle();
+        Vector128<float> maskB = Vector128.Create(0, -1, 0, -1).AsSingle();
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
 }

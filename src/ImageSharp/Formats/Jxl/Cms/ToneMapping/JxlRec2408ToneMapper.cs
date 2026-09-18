@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Cms.TransferFunctions;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Cms.ToneMapping;
 
-internal readonly struct JxlRec2048ToneMapper
+internal readonly struct JxlRec2408ToneMapper
 {
     private readonly float redY;
     private readonly float greenY;
@@ -30,7 +30,7 @@ internal readonly struct JxlRec2048ToneMapper
 
     private readonly JxlPqTransferFunction tfPq = new(1.0f);
 
-    public JxlRec2048ToneMapper(InlineArray2<float> sourceRange, InlineArray2<float> targetRange, Vector3 primariesLuminances)
+    public JxlRec2408ToneMapper(InlineArray2<float> sourceRange, InlineArray2<float> targetRange, Vector3 primariesLuminances)
     {
         this.redY = primariesLuminances.X;
         this.greenY = primariesLuminances.Y;

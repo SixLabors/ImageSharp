@@ -173,6 +173,24 @@ internal static partial class SimdUtils
         }
     }
 
+    internal static Vector<int> GatherBytes(Vector<byte> indices, Vector<int> table)
+    {
+        Span<byte> indexValues = stackalloc byte[Vector<byte>.Count];
+        Span<int> tableValues = stackalloc int[Vector<byte>.Count];
+        Span<int> resultValues = stackalloc int[Vector<byte>.Count];
+
+        indices.CopyTo(indexValues);
+        table.CopyTo(tableValues);
+
+        for (int i = 0; i < resultValues.Length; i++)
+        {
+            byte index = indexValues[i];
+            resultValues[i] = index < tableValues.Length ? tableValues[index] : 0;
+        }
+
+        return Vector.Create<int>(resultValues);
+    }
+
     [Conditional("DEBUG")]
     private static void DebugVerifySpanInput(ReadOnlySpan<byte> source, ReadOnlySpan<float> dest, int shouldBeDivisibleBy)
     {

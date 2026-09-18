@@ -103,12 +103,12 @@ internal static class JxlConvolve
         ref JxlWeightsSymmetric5 weights,
         Span<float> rowOut)
     {
-        Vector<float> w0 = LoadDuplicate128(weights.GetCVector());  // c
-        Vector<float> w1 = LoadDuplicate128(weights.GetRVector());  // r
-        Vector<float> w2 = LoadDuplicate128(weights.GetR2Vector()); // R
-        Vector<float> w4 = LoadDuplicate128(weights.GetDVector());  // d
-        Vector<float> w5 = LoadDuplicate128(weights.GetLVector());  // L
-        Vector<float> w8 = LoadDuplicate128(weights.GetD2Vector()); // D
+        Vector<float> w0 = JxlSimdUtils.LoadDuplicate128(weights.GetCVector());  // c
+        Vector<float> w1 = JxlSimdUtils.LoadDuplicate128(weights.GetRVector());  // r
+        Vector<float> w2 = JxlSimdUtils.LoadDuplicate128(weights.GetR2Vector()); // R
+        Vector<float> w4 = JxlSimdUtils.LoadDuplicate128(weights.GetDVector());  // d
+        Vector<float> w5 = JxlSimdUtils.LoadDuplicate128(weights.GetLVector());  // L
+        Vector<float> w8 = JxlSimdUtils.LoadDuplicate128(weights.GetD2Vector()); // D
 
         int height = image.YSize;
         Vector<float> sum0 = WeightedSum(image, wrapY, ix, iy, height, w0, w1, w2)
@@ -388,37 +388,6 @@ internal static class JxlConvolve
         {
             dst[i] = c[i - 2];
         }
-    }
-
-    /// <summary>
-    /// A SIMD utility method which takes in the 128 bit vector
-    /// and duplicates its values to fit in the CPU vector size.
-    /// For example,
-    ///
-    ///     128 bit vectors: A B C D    (as-is)
-    ///     256 bit vectors: A B C D A B C D (duplicate once)
-    ///     512 bit vectors: A B C D A B C D A B C D A B C D (duplicate three times)
-    ///
-    /// Vector&lt;T&gt; has support for arbitrarily large
-    /// vector sizes. For example, some ARM CPUs support 2048-bit
-    /// vectors through Vector&lt;T&gt;. In that specific case, this
-    /// method can be used for future-proofing.
-    ///
-    /// Note that this method, albeit future-proof, may be considered
-    /// slow for smaller vector sizes (think CPUs with 256bit vectors).
-    /// </summary>
-    /// <param name="vec">Vector to duplicate.</param>
-    /// <returns>New vector that is duplicated across the width.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector<float> LoadDuplicate128(Vector128<float> vec)
-    {
-        Span<float> value = stackalloc float[Vector<float>.Count];
-        for (int i = 0; i < Vector<float>.Count; i += 4)
-        {
-            vec.CopyTo(value[i..]);
-        }
-
-        return new(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

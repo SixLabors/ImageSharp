@@ -542,6 +542,38 @@ internal static partial class JxlSimdUtils
     }
 
     /// <summary>
+    /// A SIMD utility method which takes in the 128 bit vector
+    /// and duplicates its values to fit in the CPU vector size.
+    /// For example,
+    ///
+    ///     128 bit vectors: A B C D    (as-is)
+    ///     256 bit vectors: A B C D A B C D (duplicate once)
+    ///     512 bit vectors: A B C D A B C D A B C D A B C D (duplicate three times)
+    ///
+    /// Vector&lt;T&gt; has support for arbitrarily large
+    /// vector sizes. For example, some ARM CPUs support 2048-bit
+    /// vectors through Vector&lt;T&gt;. In that specific case, this
+    /// method can be used for future-proofing.
+    ///
+    /// Note that this method, albeit future-proof, may be considered
+    /// slow for smaller vector sizes (think CPUs with 256bit vectors).
+    /// </summary>
+    /// <param name="vec">Vector to duplicate.</param>
+    /// <returns>New vector that is duplicated across the width.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector<T> LoadDuplicate128<T>(Vector128<T> vec)
+        where T : unmanaged
+    {
+        Span<T> value = stackalloc T[Vector<T>.Count];
+        for (int i = 0; i < Vector<T>.Count; i += 4)
+        {
+            vec.CopyTo(value[i..]);
+        }
+
+        return new(value);
+    }
+
+    /// <summary>
     /// Incrementing values to compute the Iota function.
     /// </summary>
     /// <remarks>

@@ -16,7 +16,11 @@ internal class IccDataToDataConverter : IccConverterBase
     /// </summary>
     /// <param name="profile">The ICC profile to use for the conversions</param>
     public IccDataToDataConverter(IccProfile profile)
-        : base(profile, true) // toPCS is true because in this case the PCS space is also a data space
+
+        // toPCS is true because the PCS space is also a data space for a DeviceLink profile.
+        // The shared base constructor requires an intent. Pass the profile's header value;
+        // DeviceLink transform selection uses CheckMethod2 and ignores rendering intent.
+        : base(profile, true, profile.Header.RenderingIntent)
     {
     }
 }

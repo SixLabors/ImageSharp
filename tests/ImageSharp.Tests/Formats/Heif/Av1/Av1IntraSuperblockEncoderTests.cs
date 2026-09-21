@@ -317,7 +317,11 @@ public class Av1IntraSuperblockEncoderTests
         const int TargetColumn = 16;
         const int TargetRow = 8;
         const int BlockSize = 8;
-        const int QIndex = 1;
+        // The reference never searches a mode whose threshold exceeds the best cost so far
+        // (skip_inter_mode, rdopt.c L5258-L5262). At a near-lossless quantizer every cost falls
+        // under that threshold, so only NEARESTMV is ever measured. This quantizer keeps the
+        // exact two-axis predictor preferable while leaving NEWMV inside the search.
+        const int QIndex = 37;
         const int TileBufferLength = 8192;
         const int FilterScale = 128;
         int sampleScale = 1 << (bitDepth - 8);
@@ -436,7 +440,9 @@ public class Av1IntraSuperblockEncoderTests
         // This block is at least three reference taps from every frame edge. It must retain two genuinely
         // fractional axes, not a zero-phase filter alias.
         Point targetPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, TargetRow >> Av1Constants.ModeInfoSizeLog2);
-        ref Av1MacroBlockModeInfo targetMode = ref picture.Picture.GetMacroBlockModeInfo(targetPosition);
+        // A block larger than 4x4 stores its decision once, and the grid maps every covered
+        // position to it. The displacement vector below already reads through that grid.
+        ref Av1MacroBlockModeInfo targetMode = ref picture.Picture.GetFromModeInfoGrid(targetPosition);
         Assert.Equal(Av1ReferenceFrameType.Last, targetMode.Block.ReferenceFrame);
         Assert.Equal(horizontalFilter, targetMode.Block.HorizontalInterpolationFilter);
         Assert.Equal(verticalFilter, targetMode.Block.VerticalInterpolationFilter);

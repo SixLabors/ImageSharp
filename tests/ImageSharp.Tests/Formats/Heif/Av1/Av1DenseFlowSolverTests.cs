@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -79,8 +79,9 @@ public class Av1DenseFlowSolverTests
             double actualU = start[0];
             double actualV = start[1];
             Av1DenseFlowSolver.Solve(
-                source.AsSpan(origin),
-                reference.AsSpan(origin),
+                source,
+                reference,
+                origin,
                 x,
                 y,
                 Width,

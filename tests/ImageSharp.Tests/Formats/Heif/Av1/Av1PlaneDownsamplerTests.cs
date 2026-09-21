@@ -11,11 +11,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1PlaneDownsamplerTests
 {
     /// <summary>
-    /// Gets one half of the normative symmetric-even kernel, as the reference decoder states it.
-    /// </summary>
-    private static ReadOnlySpan<short> HalfFilter => [56, 12, -3, -1];
-
-    /// <summary>
     /// The configuration set the other AV1 vector tests use, so every supported width and the
     /// scalar remainder are all exercised.
     /// </summary>
@@ -63,7 +58,7 @@ public class Av1PlaneDownsamplerTests
 
         byte[] expected = new byte[destinationStride * halvedHeight];
         byte[] actual = new byte[destinationStride * halvedHeight];
-        ApplyReference(source, sourceStride, width, height, expected, destinationStride);
+        Av1PlaneDownsamplerOracle.Halve(source, sourceStride, width, height, expected, destinationStride);
 
         Av1PlaneDownsampler.Halve(
             Configuration.Default.MemoryAllocator,
@@ -89,68 +84,4 @@ public class Av1PlaneDownsamplerTests
     [InlineData(1, 1, true)]
     public void IsHalvedFollowsTheReferenceLength(int length, int halvedLength, bool expected)
         => Assert.Equal(expected, Av1PlaneDownsampler.IsHalved(length, halvedLength));
-
-    /// <summary>
-    /// Halves one plane with a direct transcription of the reference's two separable passes.
-    /// </summary>
-    /// <remarks>Reference: av1_resize_plane_to_half() and down2_symeven() in av1/common/resize.c.</remarks>
-    private static void ApplyReference(
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        int width,
-        int height,
-        Span<byte> destination,
-        int destinationStride)
-    {
-        int halvedWidth = width >> 1;
-        int halvedHeight = height >> 1;
-        byte[] intermediate = new byte[halvedWidth * height];
-        for (int y = 0; y < height; y++)
-        {
-            ApplyReferenceLine(
-                source.Slice(y * sourceStride, width),
-                intermediate.AsSpan(y * halvedWidth, halvedWidth));
-        }
-
-        byte[] column = new byte[height];
-        byte[] halvedColumn = new byte[halvedHeight];
-        for (int x = 0; x < halvedWidth; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                column[y] = intermediate[(y * halvedWidth) + x];
-            }
-
-            ApplyReferenceLine(column, halvedColumn);
-
-            for (int y = 0; y < halvedHeight; y++)
-            {
-                destination[(y * destinationStride) + x] = halvedColumn[y];
-            }
-        }
-    }
-
-    /// <summary>
-    /// Halves one line with the reference's clamped symmetric kernel.
-    /// </summary>
-    /// <remarks>
-    /// This oracle keeps one clamped form for every output, which is the same result the reference
-    /// reaches through its three-part split.
-    /// </remarks>
-    private static void ApplyReferenceLine(ReadOnlySpan<byte> source, Span<byte> destination)
-    {
-        ReadOnlySpan<short> filter = HalfFilter;
-        int last = source.Length - 1;
-        int index = 0;
-        for (int position = 0; position < source.Length; position += 2)
-        {
-            int sum = 1 << 6;
-            for (int tap = 0; tap < filter.Length; tap++)
-            {
-                sum += (source[Math.Max(position - tap, 0)] + source[Math.Min(position + 1 + tap, last)]) * filter[tap];
-            }
-
-            destination[index++] = (byte)Math.Clamp(sum >> 7, 0, 255);
-        }
-    }
 }

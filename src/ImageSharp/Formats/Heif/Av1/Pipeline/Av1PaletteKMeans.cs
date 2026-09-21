@@ -1,16 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
 /// Assigns luma samples to AV1 palette colors and refines one-dimensional palette centroids.
 /// </summary>
-internal static class Av1PaletteKMeans
+internal static partial class Av1PaletteKMeans
 {
     /// <summary>
     /// The iteration limit used by the reference encoder for palette clustering.
@@ -23,120 +19,12 @@ internal static class Av1PaletteKMeans
     /// <param name="samples">The active block samples.</param>
     /// <param name="centroids">The candidate palette colors.</param>
     /// <param name="indices">The destination palette indices.</param>
-    /// <returns>The sum of squared sample-to-centroid distances.</returns>
+    /// <returns>The sum of the squared sample-to-color distances.</returns>
     public static long AssignIndices(
         ReadOnlySpan<short> samples,
         ReadOnlySpan<short> centroids,
         Span<byte> indices)
-    {
-        Span<short> distanceScratch = stackalloc short[Vector512<short>.Count];
-        Span<short> indexScratch = stackalloc short[Vector512<short>.Count];
-        ref short sampleBase = ref MemoryMarshal.GetReference(samples);
-        int offset = 0;
-        long distortion = 0;
-
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = Numerics.Vector512Count(samples);
-            for (; vectorCount > 0; vectorCount--, offset += Vector512<short>.Count)
-            {
-                Vector512<short> sample = Vector512.LoadUnsafe(ref sampleBase, (nuint)offset);
-                Vector512<short> bestDistance = Vector512.Abs(sample - Vector512.Create(centroids[0]));
-                Vector512<short> bestIndex = Vector512<short>.Zero;
-                for (int centroidIndex = 1; centroidIndex < centroids.Length; centroidIndex++)
-                {
-                    Vector512<short> distance = Vector512.Abs(sample - Vector512.Create(centroids[centroidIndex]));
-                    Vector512<short> replace = Vector512.LessThan(distance, bestDistance);
-                    bestDistance = Vector512.ConditionalSelect(replace, distance, bestDistance);
-                    bestIndex = Vector512.ConditionalSelect(replace, Vector512.Create((short)centroidIndex), bestIndex);
-                }
-
-                // Strict comparison preserves the first centroid on ties, matching scalar AV1 palette selection.
-                bestDistance.CopyTo(distanceScratch);
-                bestIndex.CopyTo(indexScratch);
-                for (int lane = 0; lane < Vector512<short>.Count; lane++)
-                {
-                    indices[offset + lane] = (byte)indexScratch[lane];
-                    long distance = distanceScratch[lane];
-                    distortion += distance * distance;
-                }
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = Numerics.Vector256Count(samples[offset..]);
-            for (; vectorCount > 0; vectorCount--, offset += Vector256<short>.Count)
-            {
-                Vector256<short> sample = Vector256.LoadUnsafe(ref sampleBase, (nuint)offset);
-                Vector256<short> bestDistance = Vector256.Abs(sample - Vector256.Create(centroids[0]));
-                Vector256<short> bestIndex = Vector256<short>.Zero;
-                for (int centroidIndex = 1; centroidIndex < centroids.Length; centroidIndex++)
-                {
-                    Vector256<short> distance = Vector256.Abs(sample - Vector256.Create(centroids[centroidIndex]));
-                    Vector256<short> replace = Vector256.LessThan(distance, bestDistance);
-                    bestDistance = Vector256.ConditionalSelect(replace, distance, bestDistance);
-                    bestIndex = Vector256.ConditionalSelect(replace, Vector256.Create((short)centroidIndex), bestIndex);
-                }
-
-                bestDistance.CopyTo(distanceScratch);
-                bestIndex.CopyTo(indexScratch);
-                for (int lane = 0; lane < Vector256<short>.Count; lane++)
-                {
-                    indices[offset + lane] = (byte)indexScratch[lane];
-                    long distance = distanceScratch[lane];
-                    distortion += distance * distance;
-                }
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = Numerics.Vector128Count(samples[offset..]);
-            for (; vectorCount > 0; vectorCount--, offset += Vector128<short>.Count)
-            {
-                Vector128<short> sample = Vector128.LoadUnsafe(ref sampleBase, (nuint)offset);
-                Vector128<short> bestDistance = Vector128.Abs(sample - Vector128.Create(centroids[0]));
-                Vector128<short> bestIndex = Vector128<short>.Zero;
-                for (int centroidIndex = 1; centroidIndex < centroids.Length; centroidIndex++)
-                {
-                    Vector128<short> distance = Vector128.Abs(sample - Vector128.Create(centroids[centroidIndex]));
-                    Vector128<short> replace = Vector128.LessThan(distance, bestDistance);
-                    bestDistance = Vector128.ConditionalSelect(replace, distance, bestDistance);
-                    bestIndex = Vector128.ConditionalSelect(replace, Vector128.Create((short)centroidIndex), bestIndex);
-                }
-
-                bestDistance.CopyTo(distanceScratch);
-                bestIndex.CopyTo(indexScratch);
-                for (int lane = 0; lane < Vector128<short>.Count; lane++)
-                {
-                    indices[offset + lane] = (byte)indexScratch[lane];
-                    long distance = distanceScratch[lane];
-                    distortion += distance * distance;
-                }
-            }
-        }
-
-        for (; offset < samples.Length; offset++)
-        {
-            int bestDistance = Math.Abs(samples[offset] - centroids[0]);
-            int bestIndex = 0;
-            for (int centroidIndex = 1; centroidIndex < centroids.Length; centroidIndex++)
-            {
-                int distance = Math.Abs(samples[offset] - centroids[centroidIndex]);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestIndex = centroidIndex;
-                }
-            }
-
-            indices[offset] = (byte)bestIndex;
-            distortion += (long)bestDistance * bestDistance;
-        }
-
-        return distortion;
-    }
+        => Assign<NearestOperator>.Apply(samples, centroids, indices);
 
     /// <summary>
     /// Refines initialized palette colors through the reference encoder's deterministic clustering sequence.

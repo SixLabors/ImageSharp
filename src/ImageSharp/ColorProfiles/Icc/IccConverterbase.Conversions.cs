@@ -104,6 +104,6 @@ internal abstract partial class IccConverterBase
     private static GrayTrcCalculator InitGrayTrc(IccProfile profile, bool toPcs)
     {
         IccTagDataEntry entry = GetTag(profile, IccProfileTag.GrayTrc);
-        return new GrayTrcCalculator(entry, toPcs);
+        return new GrayTrcCalculator(entry, profile.Header.ProfileConnectionSpace, toPcs);
     }
 }

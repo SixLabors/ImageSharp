@@ -433,6 +433,26 @@ public partial class JpegDecoderTests
         image.CompareToReferenceOutput(provider);
     }
 
+    /// <summary>
+    /// Verifies that converting the grayscale ICC profile preserves the sample's distinct neutral tones.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The image provider.</param>
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.Issue3197, PixelTypes.Rgba32)]
+    public void Decode_Grayscale_ICC_Jpeg_Issue3197<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new()
+        {
+            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
+        };
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/2948
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2948, PixelTypes.Rgb24)]

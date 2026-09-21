@@ -286,7 +286,9 @@ public class Av1TranslationalInterPredictorTests
             new("sharp-bilinear-two-dimensional", 36, 8, Av1InterpolationFilter.Sharp, Av1InterpolationFilter.Bilinear, 8, 3),
             new("smooth-sharp-reduced-two-dimensional", 4, 4, Av1InterpolationFilter.Smooth, Av1InterpolationFilter.Sharp, 7, 13),
             new("bilinear-regular-small-height", 20, 4, Av1InterpolationFilter.Bilinear, Av1InterpolationFilter.Regular, 11, 5),
-            new("sharp-smooth-small-width", 4, 8, Av1InterpolationFilter.Sharp, Av1InterpolationFilter.Smooth, 5, 7)
+            new("sharp-smooth-small-width", 4, 8, Av1InterpolationFilter.Sharp, Av1InterpolationFilter.Smooth, 5, 7),
+            new("probe-sharp-smooth-half", 8, 8, Av1InterpolationFilter.Sharp, Av1InterpolationFilter.Smooth, 8, 8),
+            new("probe-smooth-sharp-half", 8, 8, Av1InterpolationFilter.Smooth, Av1InterpolationFilter.Sharp, 8, 8)
     ];
 
     /// <summary>
@@ -791,6 +793,7 @@ public class Av1TranslationalInterPredictorTests
         {
             (Av1InterpolationFilter.Regular, false, 1) => RegularEightTapPhase1,
             (Av1InterpolationFilter.Smooth, false, 7) => SmoothEightTapPhase7,
+            (Av1InterpolationFilter.Smooth, false, 8) => SmoothEightTapPhase8,
             (Av1InterpolationFilter.Smooth, false, 15) => SmoothEightTapPhase15,
             (Av1InterpolationFilter.Sharp, false, 8) => SharpEightTapPhase8,
             (Av1InterpolationFilter.Regular, true, 3) => RegularFourTapPhase3,
@@ -812,6 +815,11 @@ public class Av1TranslationalInterPredictorTests
     /// Gets the smooth eight-tap Q7 kernel for phase 7 from AOM's normative decoder table.
     /// </summary>
     private static ReadOnlySpan<short> SmoothEightTapPhase7 => [0, -2, 16, 54, 48, 12, 0, 0];
+
+    /// <summary>
+    /// Gets the smooth eight-tap Q7 kernel for phase 8 from AOM's normative decoder table.
+    /// </summary>
+    private static ReadOnlySpan<short> SmoothEightTapPhase8 => [0, -2, 14, 52, 52, 14, -2, 0];
 
     /// <summary>
     /// Gets the smooth eight-tap Q7 kernel for phase 15 from AOM's normative decoder table.

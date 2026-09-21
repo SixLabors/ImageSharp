@@ -473,7 +473,11 @@ public class Av1IntraBlockCopyTests
         const int Height = 256;
         const int QIndex = 23;
         Point blockOrigin = new(0, 128);
-        Point predictionOrigin = new(256, 8);
+        // The reference sweeps mesh columns in groups of four and drops the terminal partial
+        // group (exhaustive_mesh_search, mcomp.c). With a range of 256 from column zero, the
+        // group at offset 256 is empty, so a match placed there is unreachable. This origin
+        // sits inside a complete group.
+        Point predictionOrigin = new(248, 8);
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         ObuFrameHeader frameHeader = CreateFrameHeader();
         frameHeader.AllowScreenContentTools = true;
@@ -562,7 +566,7 @@ public class Av1IntraBlockCopyTests
 
         Assert.Equal(1, candidateCount);
         Assert.Equal(-960, candidates[0].Row);
-        Assert.Equal(2048, candidates[0].Column);
+        Assert.Equal(1984, candidates[0].Column);
     }
 
     /// <summary>

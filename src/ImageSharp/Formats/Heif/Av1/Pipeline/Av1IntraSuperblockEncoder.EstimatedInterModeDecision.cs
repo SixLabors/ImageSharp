@@ -262,7 +262,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref transformType);
 
             modeInfo.Block = winner;
-            block.FilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
+            // Filter intra and the dynamic-reference-list entry share one packed byte, so only an
+            // intra winner may carry the filter-intra sentinel. An inter winner of this path always
+            // takes the first list entry.
+            block.ReferenceMotionVectorIndex = 0;
+            if (winner.ReferenceFrame <= Av1ReferenceFrameType.Intra)
+            {
+                block.FilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
+            }
+
             block.PredictionUnit.AngleDelta[0] = 0;
             block.PredictionUnit.AngleDelta[1] = 0;
             Point position = new(origin.X >> Av1Constants.ModeInfoSizeLog2, origin.Y >> Av1Constants.ModeInfoSizeLog2);

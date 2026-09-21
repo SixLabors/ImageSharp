@@ -1248,18 +1248,27 @@ internal static class Av1FrameEncoder
 
         Buffer2DRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
-        int analysisWidth = Math.Min(source.CodedWidth, MaximumGlobalMotionAnalysisDimension);
-        int analysisHeight = Math.Min(source.CodedHeight, MaximumGlobalMotionAnalysisDimension);
-        Point analysisOrigin = new(
-            (source.CodedWidth - analysisWidth) >> 1,
-            (source.CodedHeight - analysisHeight) >> 1);
 
         // Integer translations must fit the model's signed fixed-point range before their coding cost
         // is evaluated. Padding bounds the readable pixels independently of that syntax limit.
         const int MaximumTranslation = 1 <<
             (Av1GlobalMotionParameters.AbsoluteTranslationBits - Av1GlobalMotionParameters.TranslationPrecisionBits);
 
-        int searchRadius = Math.Min(MaximumTranslation, Math.Min(referenceLuma.Bounds.X, referenceLuma.Bounds.Y));
+        // Every compared sample has to be a coded sample. An offset that reaches past the frame compares
+        // against replicated padding, whose error can fall below the error of the real content and select
+        // a model that describes no motion at all. The analysis window keeps a margin on each side, and
+        // that margin bounds the search.
+        int searchRadius = Math.Min(
+            MaximumTranslation,
+            Math.Min(
+                Math.Min(source.CodedWidth, source.CodedHeight) >> 2,
+                Math.Min(referenceLuma.Bounds.X, referenceLuma.Bounds.Y)));
+
+        int analysisWidth = Math.Min(source.CodedWidth - (2 * searchRadius), MaximumGlobalMotionAnalysisDimension);
+        int analysisHeight = Math.Min(source.CodedHeight - (2 * searchRadius), MaximumGlobalMotionAnalysisDimension);
+        Point analysisOrigin = new(
+            (source.CodedWidth - analysisWidth) >> 1,
+            (source.CodedHeight - analysisHeight) >> 1);
 
         Point bestOffset = default;
         long bestAnalysisError = GetGlobalMotionSquaredError<TSample, TOperator>(
@@ -1270,41 +1279,55 @@ internal static class Av1FrameEncoder
             analysisHeight,
             bestOffset);
 
+        // The reference refines one model parameter at a time and keeps stepping in the winning
+        // direction until the error rises, rather than taking one step of a fixed direction set.
+        // Reference: av1_refine_integerized_param() in global_motion.c, L364.
         for (int step = searchRadius; step > 0; step >>= 1)
         {
-            Point stageBestOffset = bestOffset;
-            long stageBestError = bestAnalysisError;
-            for (int directionIndex = 0; directionIndex < GlobalMotionSearchDirectionCount; directionIndex++)
+            for (int parameter = 0; parameter < 2; parameter++)
             {
-                Point direction = GetGlobalMotionSearchDirection(directionIndex);
-                Point candidateOffset = new(
-                    bestOffset.X + (direction.X * step),
-                    bestOffset.Y + (direction.Y * step));
-
-                if (Math.Abs(candidateOffset.X) > searchRadius ||
-                    Math.Abs(candidateOffset.Y) > searchRadius)
+                Point stageOffset = bestOffset;
+                int stepDirection = 0;
+                for (int direction = -1; direction <= 1; direction += 2)
                 {
-                    continue;
+                    Point candidateOffset = OffsetGlobalMotionParameter(stageOffset, parameter, step * direction);
+                    if (!IsGlobalMotionOffsetInRange(candidateOffset, searchRadius))
+                    {
+                        continue;
+                    }
+
+                    long stepError = GetGlobalMotionSquaredError<TSample, TOperator>(
+                        sourceLuma, referenceLuma, analysisOrigin, analysisWidth, analysisHeight, candidateOffset);
+
+                    // Strict replacement preserves identity and the earlier direction on ties.
+                    if (stepError < bestAnalysisError)
+                    {
+                        bestAnalysisError = stepError;
+                        bestOffset = candidateOffset;
+                        stepDirection = direction;
+                    }
                 }
 
-                long directionError = GetGlobalMotionSquaredError<TSample, TOperator>(
-                    sourceLuma,
-                    referenceLuma,
-                    analysisOrigin,
-                    analysisWidth,
-                    analysisHeight,
-                    candidateOffset);
-
-                // Strict replacement preserves identity and the earlier reference search order on ties.
-                if (directionError < stageBestError)
+                while (stepDirection != 0)
                 {
-                    stageBestError = directionError;
-                    stageBestOffset = candidateOffset;
+                    Point candidateOffset = OffsetGlobalMotionParameter(bestOffset, parameter, step * stepDirection);
+                    if (!IsGlobalMotionOffsetInRange(candidateOffset, searchRadius))
+                    {
+                        break;
+                    }
+
+                    long stepError = GetGlobalMotionSquaredError<TSample, TOperator>(
+                        sourceLuma, referenceLuma, analysisOrigin, analysisWidth, analysisHeight, candidateOffset);
+
+                    if (stepError >= bestAnalysisError)
+                    {
+                        break;
+                    }
+
+                    bestAnalysisError = stepError;
+                    bestOffset = candidateOffset;
                 }
             }
-
-            bestOffset = stageBestOffset;
-            bestAnalysisError = stageBestError;
         }
 
         if (bestOffset == default)
@@ -1370,6 +1393,25 @@ internal static class Av1FrameEncoder
             models[0] = candidate;
         }
     }
+
+    /// <summary>
+    /// Offsets one translation parameter of a global-motion candidate.
+    /// </summary>
+    /// <param name="offset">The current integer translation.</param>
+    /// <param name="parameter">Zero for the horizontal parameter, one for the vertical parameter.</param>
+    /// <param name="delta">The signed sample step.</param>
+    /// <returns>The offset candidate.</returns>
+    private static Point OffsetGlobalMotionParameter(Point offset, int parameter, int delta)
+        => parameter == 0 ? new Point(offset.X + delta, offset.Y) : new Point(offset.X, offset.Y + delta);
+
+    /// <summary>
+    /// Gets whether an integer translation stays inside the searched range.
+    /// </summary>
+    /// <param name="offset">The integer translation.</param>
+    /// <param name="searchRadius">The inclusive range on each axis.</param>
+    /// <returns>Whether both components are inside the range.</returns>
+    private static bool IsGlobalMotionOffsetInRange(Point offset, int searchRadius)
+        => Math.Abs(offset.X) <= searchRadius && Math.Abs(offset.Y) <= searchRadius;
 
     /// <summary>
     /// Calculates squared error for one translated luma candidate using the physical reference border.

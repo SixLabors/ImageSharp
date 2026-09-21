@@ -16,7 +16,10 @@ internal class IccPcsToPcsConverter : IccConverterBase
     /// </summary>
     /// <param name="profile">The ICC profile to use for the conversions</param>
     public IccPcsToPcsConverter(IccProfile profile)
-        : base(profile, true)
+
+        // The shared base constructor requires an intent. Pass the profile's header value;
+        // Abstract transform selection uses CheckMethod2 and ignores rendering intent.
+        : base(profile, true, profile.Header.RenderingIntent)
     {
     }
 }

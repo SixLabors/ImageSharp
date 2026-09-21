@@ -31,7 +31,9 @@ internal class LutCalculator : ISingleCalculator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float Lookup(float value)
     {
-        value = Math.Max(value, 0);
+        // Sampled ICC curves cover [0, 1]. Saturate before scaling so out-of-domain values
+        // select the endpoint instead of extrapolating or producing an invalid table index.
+        value = Numerics.Clamp(value, 0, 1);
 
         float factor = value * (this.lut.Length - 1);
         int index = (int)factor;

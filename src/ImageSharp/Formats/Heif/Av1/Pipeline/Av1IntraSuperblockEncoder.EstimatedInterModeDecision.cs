@@ -262,6 +262,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref transformType);
 
             modeInfo.Block = winner;
+
             // Filter intra and the dynamic-reference-list entry share one packed byte, so only an
             // intra winner may carry the filter-intra sentinel. An inter winner of this path always
             // takes the first list entry.

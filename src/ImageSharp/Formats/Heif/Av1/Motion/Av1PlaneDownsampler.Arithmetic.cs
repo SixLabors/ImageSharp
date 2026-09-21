@@ -39,10 +39,11 @@ internal static partial class Av1PlaneDownsampler
     /// <param name="even">Receives the even-position samples at <see cref="SeparatedPadding"/>.</param>
     /// <param name="odd">Receives the odd-position samples at <see cref="SeparatedPadding"/>.</param>
     /// <remarks>
-    /// Two adjacent source vectors hold the interleaved streams, and one shuffle of each with a table
-    /// of even indices and a table of odd indices separates them. The .NET cross-platform shuffle is a
-    /// full-width permutation, so unlike the reference's lane-local byte shuffle it needs no lane
-    /// correction afterwards.
+    /// Two adjacent samples share one sixteen-bit element, which holds the even-position sample in its
+    /// low byte. Narrowing the elements of two source vectors therefore yields one whole vector of the
+    /// even stream, and narrowing them after a byte shift yields the odd stream. Narrowing is defined
+    /// as a plain concatenation of the narrowed elements, so unlike the reference's lane-local byte
+    /// shuffle it needs no lane correction afterwards.
     /// </remarks>
     private static void SeparateCore(ReadOnlySpan<byte> source, int halvedWidth, Span<byte> even, Span<byte> odd)
     {

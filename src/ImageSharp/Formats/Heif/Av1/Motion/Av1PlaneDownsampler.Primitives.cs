@@ -13,66 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 internal static partial class Av1PlaneDownsampler
 {
     /// <summary>
-    /// Gets the shuffle table that gathers even-position bytes into the lower half of a vector.
-    /// </summary>
-    /// <remarks>
-    /// The upper half repeats the last index because those lanes are discarded by the half join. The
-    /// .NET cross-platform shuffle permutes the whole vector, so one table serves every lane.
-    /// </remarks>
-    private static ReadOnlySpan<byte> EvenIndices128 =>
-    [
-        0, 2, 4, 6, 8, 10, 12, 14,
-        14, 14, 14, 14, 14, 14, 14, 14
-    ];
-
-    /// <summary>
-    /// Gets the shuffle table that gathers odd-position bytes into the lower half of a vector.
-    /// </summary>
-    private static ReadOnlySpan<byte> OddIndices128 =>
-    [
-        1, 3, 5, 7, 9, 11, 13, 15,
-        15, 15, 15, 15, 15, 15, 15, 15
-    ];
-
-    /// <summary>
-    /// Gets the two hundred and fifty-six bit form of <see cref="EvenIndices128"/>.
-    /// </summary>
-    private static ReadOnlySpan<byte> EvenIndices256 =>
-    [
-        0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30,
-        30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30
-    ];
-
-    /// <summary>
-    /// Gets the two hundred and fifty-six bit form of <see cref="OddIndices128"/>.
-    /// </summary>
-    private static ReadOnlySpan<byte> OddIndices256 =>
-    [
-        1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31,
-        31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31
-    ];
-
-    /// <summary>
-    /// Joins the lower halves of two vectors into one whole vector.
-    /// </summary>
-    /// <param name="low">The vector supplying the lower lanes.</param>
-    /// <param name="high">The vector supplying the upper lanes.</param>
-    /// <returns>The joined vector.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<byte> JoinLowerHalves(Vector128<byte> low, Vector128<byte> high)
-        => Vector128.Create(low.GetLower(), high.GetLower());
-
-    /// <summary>
-    /// Joins the lower halves of two vectors into one whole vector.
-    /// </summary>
-    /// <param name="low">The vector supplying the lower lanes.</param>
-    /// <param name="high">The vector supplying the upper lanes.</param>
-    /// <returns>The joined vector.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<byte> JoinLowerHalves(Vector256<byte> low, Vector256<byte> high)
-        => Vector256.Create(low.GetLower(), high.GetLower());
-
-    /// <summary>
     /// Loads one band of a source row, with the row index clamped to the plane.
     /// </summary>
     /// <param name="plane">The first sample of the plane.</param>

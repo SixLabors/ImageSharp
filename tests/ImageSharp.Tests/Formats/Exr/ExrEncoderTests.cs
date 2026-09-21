@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
@@ -36,6 +37,30 @@ public class ExrEncoderTests
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ExrMetadata exrMetaData = output.Metadata.GetExrMetadata();
         Assert.Equal(expectedPixelType, exrMetaData.PixelType);
+    }
+
+    [Theory]
+    [InlineData(ExrPixelType.Half)]
+    [InlineData(ExrPixelType.Float)]
+    [InlineData(ExrPixelType.UnsignedInt)]
+    public void Encode_PixelFormatWithNonUnitNativeRange_WritesScaledValues(ExrPixelType pixelType)
+    {
+        // arrange
+        // HalfVector4 stores the scaled range [0, 1] as the native range [-65504, 65504], so its native and scaled
+        // vectors differ. The alpha of 0.5 makes the test sensitive to the alpha channel too: a wrong alpha value
+        // larger than 1 would otherwise be hidden by the clamp in the decoder.
+        Vector4 expected = new(0.25F, 0.5F, 0.75F, 0.5F);
+        ExrEncoder exrEncoder = new() { PixelType = pixelType };
+        using Image<HalfVector4> input = new(2, 2, HalfVector4.FromScaledVector4(expected));
+        using MemoryStream memStream = new();
+
+        // act
+        input.Save(memStream, exrEncoder);
+
+        // assert
+        memStream.Position = 0;
+        using Image<RgbaVector> output = Image.Load<RgbaVector>(memStream);
+        Assert.Equal(expected, output[0, 0].ToScaledVector4(), new ApproximateFloatComparer(1e-4F));
     }
 
     [Theory]

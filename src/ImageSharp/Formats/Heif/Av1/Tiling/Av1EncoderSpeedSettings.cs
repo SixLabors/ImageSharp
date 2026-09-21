@@ -1285,6 +1285,24 @@ internal readonly struct Av1EncoderSpeedSettings
         => !this.realtime && this.Speed >= HeifEncodingSpeed.Level5 && this.minimumDimension >= 720 && !screenContent && !intraFrame;
 
     /// <summary>
+    /// Gets whether an asymmetric sub-block keeps the luma mode of the candidate that covered
+    /// the same samples, instead of searching every mode again.
+    /// </summary>
+    /// <param name="intraFrame">Whether the frame has no inter prediction.</param>
+    /// <returns>Whether the asymmetric sub-block searches one luma mode only.</returns>
+    public bool ReuseBestPredictionForAsymmetricPartitions(bool intraFrame)
+    {
+        if (this.realtime)
+        {
+            return false;
+        }
+
+        return this.allIntra
+            ? this.Speed >= HeifEncodingSpeed.Level1
+            : this.Speed >= HeifEncodingSpeed.Level2 && !intraFrame;
+    }
+
+    /// <summary>
     /// Resolves whether 8x8 splits follow neighboring block sizes or are omitted unconditionally.
     /// </summary>
     /// <param name="screenContent">Whether the frame permits screen-content tools.</param>

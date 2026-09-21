@@ -170,6 +170,10 @@ internal static partial class Av1IntraSuperblockEncoder
         private bool mustFindValidPartition;
         private long blockCostLimit;
         private Av1BlockSize maximumPartitionSize;
+
+        private InlineArray3<Av1AsymmetricModeCacheEntry> asymmetricModeCache;
+
+        private Av1AsymmetricModeCacheEntry activeModeCache;
         private bool intraPartitionFeaturesValid;
         private float intraPartitionLogQuantizer;
         private readonly Av1SourceSadLevel sourceSadLevel;
@@ -627,11 +631,18 @@ internal static partial class Av1IntraSuperblockEncoder
             InlineArray4<long> splitNoneCosts = default;
             InlineArray2<long> horizontalCosts = default;
             InlineArray2<long> verticalCosts = default;
+            InlineArray4<Av1AsymmetricModeCacheEntry> splitModeCache = default;
+            InlineArray2<Av1AsymmetricModeCacheEntry> horizontalModeCache = default;
+            InlineArray2<Av1AsymmetricModeCacheEntry> verticalModeCache = default;
             int asymmetricMask = 15;
             int fourStripMask = 3;
             int parentSourceVariance = -1;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1EncoderSpeedSettings partitionSettings = this.picture.Parent.SpeedSettings;
+
+            // Asymmetric candidates exist only above 8x8, so no smaller block keeps a cached decision.
+            bool cacheAsymmetricModes = blockSize > Av1BlockSize.Block8x8 &&
+                partitionSettings.ReuseBestPredictionForAsymmetricPartitions(frameHeader.IsIntra);
             Av1BlockSize extendedThreshold = partitionSettings.GetExtendedPartitionThreshold(
                 frameHeader.AllowScreenContentTools, frameHeader.IsIntra, this.picture.Parent.FrameUpdateType);
             bool restrictExtendedToWinner = !this.mustFindValidPartition && partitionSettings.RestrictExtendedPartitionsToWinner(
@@ -1029,6 +1040,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     _ => []
                 };
 
+                // An asymmetric sub-block keeps the luma mode of the candidate that already covered
+                // the same samples. Reference: set_mode_cache_for_partition_ab(), partition_search.c L3737.
+                this.asymmetricModeCache = default;
+                if (cacheAsymmetricModes && partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.VerticalB)
+                {
+                    SetAsymmetricModeCache(
+                        ref this.asymmetricModeCache, partitionType, splitModeCache, horizontalModeCache, verticalModeCache);
+                }
+
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluatePartitionCandidate(
                     writer,
                     macroBlock,
@@ -1044,6 +1064,18 @@ internal static partial class Av1IntraSuperblockEncoder
                     partitionType == Av1PartitionType.Split ? childRectangleWins : [],
                     out int stoppedAtLeaf,
                     out long accumulatedCost);
+                this.asymmetricModeCache = default;
+                if (cacheAsymmetricModes)
+                {
+                    this.CaptureAsymmetricModeCacheSources(
+                        nodeIndex,
+                        partitionType,
+                        stoppedAtLeaf,
+                        childCosts,
+                        ref splitModeCache,
+                        ref horizontalModeCache,
+                        ref verticalModeCache);
+                }
 
                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
                     $"PART {blockOrigin.X},{blockOrigin.Y} {blockSize} type {(int)partitionType} rate {candidateStatistics.Rate} dist {candidateStatistics.Distortion} rd {candidateStatistics.Cost} acc {accumulatedCost} leaf {stoppedAtLeaf} best {bestStatistics.Cost}");
@@ -1525,6 +1557,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1RateDistortionStatistics remainingCost = costLimit.Subtract(this.rateMultiplier, in statistics);
                 bool publishContexts = leafIndex < leafCount - 1 || publishFinalContexts;
+                this.activeModeCache = searchChildren && partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.VerticalB
+                    ? this.asymmetricModeCache[leafIndex]
+                    : default;
                 long childNoneCost = 0;
                 byte childWins = 3;
                 Av1RateDistortionStatistics childStatistics = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
@@ -1560,6 +1595,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
                             publishContexts);
 
+                this.activeModeCache = default;
                 if (!childRectangleWins.IsEmpty)
                 {
                     childRectangleWins[leafIndex] = childWins;
@@ -1747,6 +1783,108 @@ internal static partial class Av1IntraSuperblockEncoder
             Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             return modeInfoPosition.Y < this.picture.Parent.Common.ModeInfoRowCount &&
                 modeInfoPosition.X < this.picture.Parent.Common.ModeInfoColumnCount;
+        }
+
+        /// <summary>
+        /// Selects the source candidate of every asymmetric sub-block's cached luma decision.
+        /// </summary>
+        /// <remarks>Reference: set_mode_cache_for_partition_ab() in partition_search.c, L3737.</remarks>
+        private static void SetAsymmetricModeCache(
+            ref InlineArray3<Av1AsymmetricModeCacheEntry> cache,
+            Av1PartitionType partitionType,
+            ReadOnlySpan<Av1AsymmetricModeCacheEntry> split,
+            ReadOnlySpan<Av1AsymmetricModeCacheEntry> horizontal,
+            ReadOnlySpan<Av1AsymmetricModeCacheEntry> vertical)
+        {
+            switch (partitionType)
+            {
+                case Av1PartitionType.HorizontalA:
+                    cache[0] = split[0];
+                    cache[1] = split[1];
+                    cache[2] = horizontal[1];
+                    return;
+                case Av1PartitionType.HorizontalB:
+                    cache[0] = horizontal[0];
+                    cache[1] = split[2];
+                    cache[2] = split[3];
+                    return;
+                case Av1PartitionType.VerticalA:
+                    cache[0] = split[0];
+                    cache[1] = split[2];
+                    cache[2] = vertical[1];
+                    return;
+                default:
+                    cache[0] = vertical[0];
+                    cache[1] = split[1];
+                    cache[2] = split[3];
+                    return;
+            }
+        }
+
+        /// <summary>
+        /// Retains the luma decision of a completed square or rectangular candidate, for the
+        /// asymmetric candidates that cover the same samples.
+        /// </summary>
+        /// <remarks>
+        /// The reference keeps the unsplit context of each square child and the mode context of each
+        /// rectangular half, and offers it only when that search produced a result.
+        /// Reference: copy_partition_mode_from_mode_context() in partition_search.c.
+        /// </remarks>
+        private void CaptureAsymmetricModeCacheSources(
+            int nodeIndex,
+            Av1PartitionType partitionType,
+            int stoppedAtLeaf,
+            ReadOnlySpan<long> childCosts,
+            ref InlineArray4<Av1AsymmetricModeCacheEntry> split,
+            ref InlineArray2<Av1AsymmetricModeCacheEntry> horizontal,
+            ref InlineArray2<Av1AsymmetricModeCacheEntry> vertical)
+        {
+            if (childCosts.IsEmpty)
+            {
+                return;
+            }
+
+            Av1EncoderPartitionTree tree = this.blockWorkspace.PartitionTree;
+            int count = Math.Min(childCosts.Length, stoppedAtLeaf);
+            for (int leaf = 0; leaf < count; leaf++)
+            {
+                if (childCosts[leaf] == long.MaxValue)
+                {
+                    continue;
+                }
+
+                // A candidate outside the coded frame keeps no decision, in the same way that the
+                // reference holds a null context for a sub-block it never searched.
+                int sourceNode = partitionType == Av1PartitionType.Split ? (nodeIndex * 4) + leaf + 1 : nodeIndex;
+                Av1PartitionType sourcePartition = partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType;
+                int sourceLeaf = partitionType == Av1PartitionType.Split ? 0 : leaf;
+                if (!tree.HasContext(sourceNode, sourcePartition, sourceLeaf))
+                {
+                    continue;
+                }
+
+                Av1EncoderPartitionTree.ModeSnapshot snapshot = tree.GetContext(sourceNode, sourcePartition, sourceLeaf).Snapshot;
+
+                Av1AsymmetricModeCacheEntry entry = new()
+                {
+                    Active = true,
+                    Mode = snapshot.ModeInfo.Block.Mode,
+                    FilterIntraMode = snapshot.Block.FilterIntraMode
+                };
+
+                switch (partitionType)
+                {
+                    case Av1PartitionType.Split:
+                        split[leaf] = entry;
+                        break;
+                    case Av1PartitionType.Horizontal:
+                        horizontal[leaf] = entry;
+                        break;
+                    default:
+                        vertical[leaf] = entry;
+                        break;
+                }
+            }
         }
 
         private static int GetPartitionLeafCount(Av1PartitionType partitionType)
@@ -3991,6 +4129,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     mode = Av1PredictionMode.DC;
                     filterMode = (Av1FilterIntraMode)(index - filterStart);
+
+                    // A cached decision without filter intra excludes every filter mode, and a cached
+                    // filter mode excludes the others. Reference: rd_pick_filter_intra_sby() L255-L272.
+                    if (this.activeModeCache.Active && filterMode != this.activeModeCache.FilterIntraMode)
+                    {
+                        continue;
+                    }
+
                     if (settings.FilterIntraPruneLevel == 1 && !IsFilterIntraModeDerivedFromBestMode(filterMode, filterBaseMode))
                     {
                         continue;
@@ -4018,6 +4164,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (settings.DisableSmoothIntra &&
                         (mode is Av1PredictionMode.SmoothHorizontal or Av1PredictionMode.SmoothVertical ||
                          (mode == Av1PredictionMode.Smooth && (!intraFrame || settings.FilterIntraPruneLevel == 0))))
+                    {
+                        continue;
+                    }
+
+                    // Reference: the mode cache test in av1_rd_pick_intra_sby_mode(),
+                    // intra_mode_search.c L1583. The angle delta stays free.
+                    if (this.activeModeCache.Active && mode != this.activeModeCache.Mode)
                     {
                         continue;
                     }
@@ -5633,6 +5786,28 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Retains the prediction syntax needed to repeat transform search for one luma candidate.
         /// </summary>
+        /// <summary>
+        /// One asymmetric sub-block's cached luma decision.
+        /// </summary>
+        private struct Av1AsymmetricModeCacheEntry
+        {
+            /// <summary>
+            /// Whether a source candidate produced this decision.
+            /// </summary>
+            public bool Active;
+
+            /// <summary>
+            /// The luma prediction mode that the source candidate selected.
+            /// </summary>
+            public Av1PredictionMode Mode;
+
+            /// <summary>
+            /// The filter-intra mode of the source candidate, or
+            /// <see cref="Av1FilterIntraMode.AllFilterIntraModes"/> when it used none.
+            /// </summary>
+            public Av1FilterIntraMode FilterIntraMode;
+        }
+
         private struct LumaCandidate
         {
             public Av1PredictionMode Mode;

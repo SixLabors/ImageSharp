@@ -97,6 +97,32 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
         return new ModeContext(storage[contextOffset..], this.planeCount);
     }
 
+    /// <summary>
+    /// Gets whether one leaf of a partition candidate has retained storage in this superblock.
+    /// </summary>
+    /// <param name="nodeIndex">The parent quadtree index.</param>
+    /// <param name="partition">The candidate partition.</param>
+    /// <param name="leafIndex">The leaf index within that candidate.</param>
+    /// <returns>Whether the layout holds that leaf.</returns>
+    public bool HasContext(int nodeIndex, Av1PartitionType partition, int leafIndex)
+    {
+        Span<byte> storage = this.storage.Span;
+        int nodeCount = this.superblockSize == Av1BlockSize.Block128x128 ? 341 : 85;
+        if ((uint)nodeIndex >= (uint)nodeCount)
+        {
+            return false;
+        }
+
+        int nodeOffset = MemoryMarshal.Cast<byte, int>(storage)[nodeIndex];
+        if (nodeOffset < 0)
+        {
+            return false;
+        }
+
+        int contextIndex = GetFirstContextIndex(partition) + leafIndex;
+        return MemoryMarshal.Cast<byte, int>(storage.Slice(nodeOffset, NodeHeaderLength))[contextIndex] >= 0;
+    }
+
     /// <inheritdoc/>
     public void Dispose() => this.owner?.Dispose();
 

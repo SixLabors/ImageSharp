@@ -782,32 +782,20 @@ internal static class Av1SymbolContextHelper
         // Resolve the level plane once. Every neighbor read below is then a fixed offset from one reference.
         Span<byte> active = levels.GetActiveLevels();
         ref byte levelBase = ref MemoryMarshal.GetReference(active);
-        int stride = levels.Stride;
-        int widthLog2 = levels.WidthLog2;
         int last = eob - 1;
-        if (Vector128.IsHardwareAccelerated && last > 0)
+        if (last > 0)
         {
-            // Vector lanes derive every position of the block at once, as av1_get_nz_map_contexts_sse2 does.
-            // Positions after the end of block are unused, so their contexts cost nothing to discard.
-            Av1NzMap.GetNzMapContextsVector(
+            // The whole block is derived at once. Positions after the end of block are unused, so
+            // their contexts cost nothing to discard, and deriving them keeps one traversal rather
+            // than a scan-order loop that repeats the same arithmetic.
+            Av1NzMap.GetNzMapContexts(
                 ref levelBase,
-                stride,
+                levels.Stride,
                 levels.Size.Width,
                 levels.Size.Height,
                 transformSize,
                 transformClass,
                 ref MemoryMarshal.GetReference(coefficientContexts));
-        }
-        else
-        {
-            for (int i = 0; i < last; ++i)
-            {
-                int pos = scan[i];
-
-                // Contexts before the final coefficient use the raster position and the forward neighbors.
-                ref byte level = ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2));
-                coefficientContexts[pos] = (sbyte)GetLowerLevelsContext(ref level, stride, pos, widthLog2, transformSize, transformClass);
-            }
         }
 
         // The final coefficient context is based on its scan position alone.

@@ -395,6 +395,42 @@ internal static partial class Av1NzMap
     ];
 
     /// <summary>
+    /// The two-dimensional positional offsets as bytes, in the order of <see cref="NzMapContextOffset"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is declared after the table it converts. Static fields of one type are initialized in
+    /// declaration order, and the order of two partial files is not defined, so a declaration in
+    /// another file would read an empty table.
+    /// </remarks>
+    private static readonly byte[][] NzMapContextOffsetBytes = BuildOffsetBytes();
+
+    /// <summary>
+    /// Converts the positional context tables to bytes for vector loads.
+    /// </summary>
+    /// <returns>The byte tables in transform-size order.</returns>
+    /// <remarks>
+    /// Every entry is a context offset well below 256, so the narrowing is exact. Holding them as
+    /// bytes lets the traversal add a whole vector of offsets to a whole vector of magnitude bands.
+    /// </remarks>
+    private static byte[][] BuildOffsetBytes()
+    {
+        byte[][] tables = new byte[NzMapContextOffset.Length][];
+        for (int i = 0; i < tables.Length; i++)
+        {
+            int[] source = NzMapContextOffset[i];
+            byte[] bytes = new byte[source.Length];
+            for (int j = 0; j < bytes.Length; j++)
+            {
+                bytes[j] = (byte)source[j];
+            }
+
+            tables[i] = bytes;
+        }
+
+        return tables;
+    }
+
+    /// <summary>
     /// Sums the clipped magnitudes of the transform-class-specific forward coefficient neighbors.
     /// </summary>
     /// <param name="levels">The padded absolute-coefficient level plane.</param>

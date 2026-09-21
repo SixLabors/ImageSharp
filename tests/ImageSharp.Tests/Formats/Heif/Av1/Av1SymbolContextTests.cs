@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using Microsoft.Diagnostics.Symbols;
@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -42,7 +43,7 @@ public class Av1SymbolContextTests
             levels.Initialize(coefficients);
             Span<byte> active = levels.GetActiveLevels();
             sbyte[] actual = new sbyte[width * height];
-            Av1NzMap.GetNzMapContextsVector(
+            Av1NzMap.GetNzMapContexts(
                 ref active[0],
                 levels.Stride,
                 width,
@@ -237,5 +238,83 @@ public class Av1SymbolContextTests
         }
 
         return 3;
+    }
+
+    /// <summary>
+    /// The configuration set the other AV1 vector tests use, so every supported width and the
+    /// scalar path are all exercised.
+    /// </summary>
+    private const HwIntrinsics ContextConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// Verifies that every register width and the scalar path derive the same contexts.
+    /// </summary>
+    /// <param name="transformSizeValue">The transform size.</param>
+    /// <param name="transformClassValue">The transform class.</param>
+    /// <remarks>
+    /// The sizes cover the three layouts of the traversal: a transform four samples wide and one
+    /// eight samples wide, which pack whole rows into a vector, and wider transforms, which walk a
+    /// row at a time.
+    /// </remarks>
+    [Theory]
+    [InlineData((int)Av1TransformSize.Size4x4, 0)]
+    [InlineData((int)Av1TransformSize.Size4x16, 1)]
+    [InlineData((int)Av1TransformSize.Size8x8, 2)]
+    [InlineData((int)Av1TransformSize.Size8x32, 0)]
+    [InlineData((int)Av1TransformSize.Size16x16, 1)]
+    [InlineData((int)Av1TransformSize.Size32x32, 2)]
+    [InlineData((int)Av1TransformSize.Size64x64, 0)]
+    public void NzMapContextsAgreeAcrossEveryRegisterWidth(int transformSizeValue, int transformClassValue)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            static parameters =>
+            {
+                string[] values = parameters.Split(',');
+                ValidateNzMapContexts(int.Parse(values[0]), int.Parse(values[1]));
+            },
+            FormattableString.Invariant($"{transformSizeValue},{transformClassValue}"),
+            ContextConfigurations);
+
+    /// <summary>
+    /// Compares the derived contexts with the scalar derivation for one transform size and class.
+    /// </summary>
+    /// <param name="transformSizeValue">The transform size.</param>
+    /// <param name="transformClassValue">The transform class.</param>
+    private static void ValidateNzMapContexts(int transformSizeValue, int transformClassValue)
+    {
+        Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
+        Av1TransformClass transformClass = (Av1TransformClass)transformClassValue;
+        Av1TransformSize adjusted = transformSize.GetAdjusted();
+        int width = adjusted.GetWidth();
+        int height = adjusted.GetHeight();
+        int[] coefficients = new int[width * height];
+        Random random = new(transformSizeValue + (17 * transformClassValue));
+        for (int i = 0; i < coefficients.Length; i++)
+        {
+            int roll = random.Next(16);
+            coefficients[i] = roll < 6 ? 0 : roll < 12 ? random.Next(-3, 4) : random.Next(-200, 201);
+        }
+
+        using Av1LevelBuffer levels = new(Configuration.Default, new Size(width, height));
+        levels.Initialize(coefficients);
+        Span<byte> active = levels.GetActiveLevels();
+        sbyte[] actual = new sbyte[width * height];
+        Av1NzMap.GetNzMapContexts(
+            ref active[0], levels.Stride, width, height, transformSize, transformClass, ref actual[0]);
+
+        for (int pos = 0; pos < actual.Length; pos++)
+        {
+            int expected = Av1SymbolContextHelper.GetLowerLevelsContext(
+                ref active[Av1LevelBuffer.GetPaddedIndex(pos, levels.WidthLog2)],
+                levels.Stride,
+                pos,
+                levels.WidthLog2,
+                transformSize,
+                transformClass);
+
+            Assert.True(
+                expected == actual[pos],
+                $"size={transformSize} class={transformClass} position={pos}: expected {expected}, actual {actual[pos]}");
+        }
     }
 }

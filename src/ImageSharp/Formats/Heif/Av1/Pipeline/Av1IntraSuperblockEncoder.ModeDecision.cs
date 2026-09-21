@@ -1499,7 +1499,13 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int leafIndex = 0; leafIndex < leafCount; leafIndex++)
             {
                 stoppedAtLeaf = leafIndex;
-                if (statistics.Cost >= costLimit.Cost)
+
+                // Only a square split compares the partition symbol alone against the bound. Every
+                // other shape measures its first sub-block first and leaves those samples behind.
+                // Reference: the loop condition of split_partition_search(), against
+                // none_partition_search(), rectangular_partition_search() and rd_try_subblock().
+                if ((leafIndex > 0 || partitionType == Av1PartitionType.Split) &&
+                    statistics.Cost >= costLimit.Cost)
                 {
                     return Av1RateDistortionStatistics.Invalid;
                 }

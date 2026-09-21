@@ -15,8 +15,9 @@ internal class IccDataToPcsConverter : IccConverterBase
     /// Initializes a new instance of the <see cref="IccDataToPcsConverter"/> class.
     /// </summary>
     /// <param name="profile">The ICC profile to use for the conversions</param>
-    public IccDataToPcsConverter(IccProfile profile)
-        : base(profile, true)
+    /// <param name="renderingIntent">The rendering intent selected for the profile connection.</param>
+    public IccDataToPcsConverter(IccProfile profile, IccRenderingIntent renderingIntent)
+        : base(profile, true, renderingIntent)
     {
     }
 }

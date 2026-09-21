@@ -414,6 +414,28 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         Assert.Null(image.Metadata.IccProfile);
     }
 
+    /// <summary>
+    /// Verifies conversion of the reporter's CMYK profile using its relative-colorimetric intent.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The image provider.</param>
+    [Theory]
+    [WithFile(Issue3198, PixelTypes.Rgba32)]
+    public void Decode_CmykIcc_Issue3198<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+        image.DebugSave(provider);
+
+        // LittleCMS 2.19 generated the reference from the embedded profile to CompactSrgbV4Profile,
+        // using relative colorimetric intent without black-point compensation.
+        // Measured differences are at most one 8-bit channel value, totaling 0.000083% of the image.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
+    }
+
     [Theory]
     [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
     [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]

@@ -1213,6 +1213,7 @@ public static class TestImages
         public const string Issue2983 = "Tiff/Issues/Issue2983.tiff";
         public const string Issue3182ColorMap8Bit = "Tiff/Issues/Issue3182ColorMap8Bit.tiff";
         public const string Issue3182ColorMap16Bit = "Tiff/Issues/Issue3182ColorMap16Bit.tiff";
+        public const string Issue3198 = "Tiff/Issues/Issue3198.tiff";
 
         public static readonly string[] Multiframes = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
         ];

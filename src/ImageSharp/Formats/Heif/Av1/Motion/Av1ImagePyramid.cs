@@ -12,26 +12,26 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// <remarks>
 /// Every level is eight bits deep, whatever the coded depth, and carries a replicated border so that
 /// the flow kernels may read past a level's edge without a boundary test. Reference:
-/// aom_alloc_pyramid(), fill_pyramid() and fill_border() in aom_dsp/pyramid.c.
+/// aom_alloc_pyramid(), fill_pyramid() and fill_border().
 /// </remarks>
 internal sealed class Av1ImagePyramid : IDisposable
 {
     /// <summary>
     /// The samples of replicated border held on each side of every level.
     /// </summary>
-    /// <remarks>Reference: PYRAMID_PADDING in aom_dsp/pyramid.h.</remarks>
+    /// <remarks>Reference: PYRAMID_PADDING.</remarks>
     public const int Padding = 16;
 
     /// <summary>
     /// The byte alignment of the first coded sample of every row of every level.
     /// </summary>
-    /// <remarks>Reference: PYRAMID_ALIGNMENT in aom_dsp/pyramid.h.</remarks>
+    /// <remarks>Reference: PYRAMID_ALIGNMENT.</remarks>
     private const int Alignment = 32;
 
     /// <summary>
     /// The base-two logarithm of the smallest level extent the reference will produce.
     /// </summary>
-    /// <remarks>Reference: MIN_PYRAMID_SIZE_LOG2 in aom_dsp/pyramid.h.</remarks>
+    /// <remarks>Reference: MIN_PYRAMID_SIZE_LOG2.</remarks>
     private const int MinimumSizeLog2 = 3;
 
     private readonly MemoryAllocator allocator;
@@ -90,7 +90,7 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <remarks>
     /// Halving stops once the shorter side reaches the smallest useful extent, so the count is the
     /// position of the shorter side's most significant bit less that extent's logarithm.
-    /// Reference: aom_alloc_pyramid() in pyramid.c.
+    /// Reference: aom_alloc_pyramid().
     /// </remarks>
     public static int GetMaximumLevelCount(int width, int height)
     {
@@ -190,7 +190,7 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <remarks>
     /// The left and right borders repeat each row's end samples, and the top and bottom borders then
     /// repeat the first and last complete row, which carries the corners with them.
-    /// Reference: fill_border() in pyramid.c.
+    /// Reference: fill_border().
     /// </remarks>
     private static void FillBorder(Span<byte> storage, Level level)
     {

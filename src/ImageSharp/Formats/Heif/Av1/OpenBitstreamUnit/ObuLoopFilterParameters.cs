@@ -38,7 +38,7 @@ internal sealed class ObuLoopFilterParameters
     /// Gets the default reference deltas, indexed from Intra through Alternate.
     /// </summary>
     /// <remarks>
-    /// This is <c>av1_set_default_ref_deltas</c> (entropymode.c L1027-1038): intra blocks filter one level
+    /// This is <c>av1_set_default_ref_deltas</c>: intra blocks filter one level
     /// stronger, Golden, Alternate-2 and Alternate one level weaker, and the remaining references unchanged.
     /// The default mode deltas are zero.
     /// </remarks>

@@ -1221,7 +1221,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         out long bluePredictionDistortion,
                         out int blueRate);
 
-                    // block_rd_txfm (tx_search.c L3122-3140) scores an intra transform with its coefficient
+                    // block_rd_txfm scores an intra transform with its coefficient
                     // rate and distortion alone, and invalidates the plane as soon as the running cost passes
                     // the reference. The skipped alternative belongs to inter blocks.
                     if (blueRate == int.MaxValue ||
@@ -1913,8 +1913,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
-            // search_tx_type is shared by both planes, so chroma follows the same distortion policy as luma
-            // (tx_search.c L2162-2179). The policy belongs to the active mode evaluation stage.
+            // search_tx_type is shared by both planes, so chroma follows the same distortion policy as luma.
+            // The policy belongs to the active mode evaluation stage.
             Av1EncoderSpeedSettings distortionSettings = this.picture.Parent.SpeedSettings;
             (int Type, uint Threshold) distortionPolicy = this.blockWorkspace.EvaluationStage switch
             {
@@ -2034,7 +2034,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraMode.AllFilterIntraModes,
                 usesInterTransformSet: false);
 
-            // block_rd_txfm (tx_search.c L3122-3140) scores an intra transform with its coefficient rate and
+            // block_rd_txfm scores an intra transform with its coefficient rate and
             // distortion alone. The skipped alternative belongs to inter blocks.
             if (Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion) > costLimit)
             {

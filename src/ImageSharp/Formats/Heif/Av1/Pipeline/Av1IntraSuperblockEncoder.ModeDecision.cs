@@ -230,9 +230,9 @@ internal static partial class Av1IntraSuperblockEncoder
             this.rateMultiplier = Av1RateDistortion.GetRateMultiplier(
                 this.quantization.QIndex[0] + this.quantization.DeltaQDc[0], this.bitDepth, picture.Parent.FrameUpdateType);
 
-            // rd_pick_partition measures the superblock at its root (partition_search.c L5719-5734). The
+            // rd_pick_partition measures the superblock at its root. The
             // variance-based partition search of the fastest speeds does not run it, so its rate weight
-            // stays at 128 there (encodeframe.c L1310-1312).
+            // stays at 128 there.
             if (picture.Sequence.SequenceHeader.IsStillPicture && !picture.Parent.SpeedSettings.UseVarianceBasedPartition)
             {
                 // Measure 4x4 source variation once for the entire superblock. Mixed flat and detailed
@@ -251,7 +251,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modifier -= range > 8 ? 48 : (int)(range * 6);
                 }
 
-                // The reference widens the product before the shift (partition_search.c L651).
+                // The reference widens the product before the shift.
                 this.rateMultiplier = (int)Math.Max(1, ((long)this.rateMultiplier * modifier) >> 7);
             }
 
@@ -1041,7 +1041,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 };
 
                 // An asymmetric sub-block keeps the luma mode of the candidate that already covered
-                // the same samples. Reference: set_mode_cache_for_partition_ab(), partition_search.c L3737.
+                // the same samples. Reference: set_mode_cache_for_partition_ab().
                 this.asymmetricModeCache = default;
                 if (cacheAsymmetricModes && partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.VerticalB)
                 {
@@ -1241,7 +1241,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // A block above the maximum partition size never reconstructs its winning subtree
                 // again, so the split children keep the contexts and coefficients they produced.
-                // Reference: split_partition_search() in partition_search.c, L4650-L4658.
+                // Reference: split_partition_search().
                 if (partitionType != Av1PartitionType.Split ||
                     blockSize <= this.maximumPartitionSize ||
                     blockSize == this.picture.Sequence.SequenceHeader.SuperblockSize)
@@ -1471,7 +1471,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// surrounding block predicts from them. A block above the maximum partition size always
         /// splits, so its search result is already final. The fourth child is the last one searched,
         /// so no sibling predicts from it, and its parent reconstructs the whole subtree afterwards.
-        /// Reference: should_do_dry_run_encode_for_current_block() in partition_search.c, L5566.
+        /// Reference: should_do_dry_run_encode_for_current_block().
         /// </remarks>
         private bool ShouldReconstructSelectedTree(Av1BlockSize blockSize, int nodeIndex)
         {
@@ -1788,7 +1788,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Selects the source candidate of every asymmetric sub-block's cached luma decision.
         /// </summary>
-        /// <remarks>Reference: set_mode_cache_for_partition_ab() in partition_search.c, L3737.</remarks>
+        /// <remarks>Reference: set_mode_cache_for_partition_ab().</remarks>
         private static void SetAsymmetricModeCache(
             ref InlineArray3<Av1AsymmetricModeCacheEntry> cache,
             Av1PartitionType partitionType,
@@ -1828,7 +1828,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <remarks>
         /// The reference keeps the unsplit context of each square child and the mode context of each
         /// rectangular half, and offers it only when that search produced a result.
-        /// Reference: copy_partition_mode_from_mode_context() in partition_search.c.
+        /// Reference: copy_partition_mode_from_mode_context().
         /// </remarks>
         private void CaptureAsymmetricModeCacheSources(
             int nodeIndex,
@@ -3665,7 +3665,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
-            // get_tx_mask (tx_search.c L1823-1830) takes the direction of a filter-intra block from
+            // get_tx_mask takes the direction of a filter-intra block from
             // fimode_to_intradir, where the Paeth filter is a DC direction.
             Av1PredictionMode direction = filterMode == Av1FilterIntraMode.AllFilterIntraModes
                 ? mode
@@ -4168,8 +4168,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    // Reference: the mode cache test in av1_rd_pick_intra_sby_mode(),
-                    // intra_mode_search.c L1583. The angle delta stays free.
+                    // Reference: the mode cache test in av1_rd_pick_intra_sby_mode().
+                    // The angle delta stays free.
                     if (this.activeModeCache.Active && mode != this.activeModeCache.Mode)
                     {
                         continue;
@@ -4532,9 +4532,9 @@ internal static partial class Av1IntraSuperblockEncoder
             // contributes its own coefficient cost; lossless and fixed-size modes do not signal a size choice.
             bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
 
-            // tx_size_cost (tx_search.c L94-104) charges nothing while this stage searches the largest
-            // transform only, which mode evaluation does from all-intra speed 4 (tx_size_search_methods,
-            // speed_features.c L106-111). The transform size is still signaled for the frame.
+            // tx_size_cost charges nothing while this stage searches the largest
+            // transform only, which mode evaluation does from all-intra speed 4 (tx_size_search_methods).
+            // The transform size is still signaled for the frame.
             bool searchesTransformSize = !this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
                 this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate;
             int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 && searchesTransformSize &&
@@ -4585,7 +4585,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasCoefficients = false;
             long distortion = 0;
 
-            // uniform_txfm_yrd (tx_search.c L2927-2938) opens the transform budget with the cost of the
+            // uniform_txfm_yrd opens the transform budget with the cost of the
             // non-skip flag and the transform-size syntax, because an intra block always signals non-skip.
             // block_rd_txfm (L3122-3140) then adds the rate-distortion cost of each transform and drops the
             // candidate as soon as the running cost passes the reference.
@@ -4763,7 +4763,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 }
                             }
 
-                            // Block-level decisions of search_tx_type (tx_search.c:2126-2179). The residual energy of
+                            // Block-level decisions of search_tx_type. The residual energy of
                             // the visible samples gates coefficient refinement for every type, and selects
                             // transform-domain distortion by the speed policy of the current evaluation stage.
                             int visibleWidth = Math.Min(transformWidth, sourcePlane.Width - transformOrigin.X);
@@ -4840,12 +4840,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             bool isHighEnergy = blockError >= highEnergyThreshold;
                             int adaptiveSearchLevel = typeSettings.InterAdaptiveTransformSearchLevel;
 
-                            // search_tx_type receives what is left of the budget (block_rd_txfm, tx_search.c L3110-3113).
+                            // search_tx_type receives what is left of the budget (block_rd_txfm).
                             long remainingCostLimit = costLimit == long.MaxValue ? long.MaxValue : costLimit - runningCost;
                             bool bestReconstructed = false;
                             Av1WorkCounters.Count(Av1WorkCounters.SearchTxTypeY);
 
-                            // predict_dc_only_block (tx_search.c L2116-2124) settles a block whose residual cannot
+                            // predict_dc_only_block settles a block whose residual cannot
                             // survive quantization: no transform type is searched, the prediction stands as the
                             // reconstruction, and the block costs the all-zero flag alone.
                             if (predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
@@ -5102,8 +5102,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 HasCoefficients = hasCoefficients,
 
                 // An intra candidate is always priced as non-skip, because its transform search reports
-                // no skipped plane (block_rd_txfm, tx_search.c L3131-3134) and the inter-frame comparison
-                // adds the non-skip flag to it (intra_mode_search.c L1165-1172).
+                // no skipped plane (block_rd_txfm) and the inter-frame comparison
+                // adds the non-skip flag to it.
                 LumaCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate + noSkipRate, distortion)
             };
         }
@@ -5315,10 +5315,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Calculates the luma extent that the chroma-from-luma surface of a block holds.
         /// </summary>
         /// <remarks>
-        /// The reference stores each coded luma transform of the block (<c>cfl_store_tx</c>, cfl.c L390-403), so
+        /// The reference stores each coded luma transform of the block (<c>cfl_store_tx</c>), so
         /// the surface ends at the last transform that starts inside the coded frame. A sub-8x8 luma block shares
-        /// its surface with the siblings that complete its 8x8 luma region (<c>sub8x8_adjust_offset</c>,
-        /// cfl.c L372-388). That region always lies inside the coded frame, because the mode-information grid is
+        /// its surface with the siblings that complete its 8x8 luma region (<c>sub8x8_adjust_offset</c>).
+        /// That region always lies inside the coded frame, because the mode-information grid is
         /// eight-sample aligned, but a sibling can align the shared dimension to a different transform size.
         /// </remarks>
         /// <param name="macroBlock">The block's frame edges.</param>
@@ -5737,7 +5737,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? (byte)(context.SkipContext | (context.DcSignContext << 4))
                 : selectedState.EntropyContext;
 
-            // encode_block_intra (encodemb.c L844-881) transforms, quantizes and optimizes every transform
+            // encode_block_intra transforms, quantizes and optimizes every transform
             // block of a block that the mode decision did not mark as skipped, even when the winning search
             // candidate left it empty. Only the block skip flag suppresses the residual.
             if (skipTransform)

@@ -222,7 +222,7 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// </summary>
     /// <remarks>
     /// The chroma of a block at the right or bottom frame edge can cover more samples than the luma that the
-    /// encoder stored. <c>cfl_pad</c> (cfl.c L81-113) repeats the last stored sample over the remainder.
+    /// encoder stored. <c>cfl_pad</c> repeats the last stored sample over the remainder.
     /// </remarks>
     /// <param name="q3Buffer">The fixed-stride Q3 predictor surface.</param>
     /// <param name="bufferWidth">The stored width in chroma samples.</param>

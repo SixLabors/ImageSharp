@@ -84,7 +84,7 @@ public class Av1EncoderFrameTests
 
         plane.DangerousGetRowSpan(0)[0] = TOperator.CreateSample(100 * scale);
 
-        // Native reconintra.c extends a four-sample edge through its four-sample neighbor, then
+        // The reference extends a four-sample edge through its four-sample neighbor, then
         // repeats sample seven to cover the twenty samples required by a 4x16 directional ray.
         // A clipped frame leaves only two adjacent samples; backing-buffer values beyond the region
         // must not contribute. These explicit offsets distinguish all three extension cases.

@@ -461,7 +461,7 @@ internal sealed partial class Av1FrameInfo : IDisposable
             primaryReferenceState.SegmentIdColumnCount == this.segmentIdColumnCount &&
             primaryReferenceState.SegmentIdRowCount == this.segmentIdRowCount)
         {
-            // AV1 decodemv.c copies the selected primary frame's block coverage when update_map is zero. Copying the
+            // libaom copies the selected primary frame's block coverage when update_map is zero. Copying the
             // same contiguous map once establishes the identical final state without repeating a row copy per block.
             primarySegmentIds.CopyTo(this.segmentIds);
         }

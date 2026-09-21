@@ -474,7 +474,7 @@ public class Av1IntraBlockCopyTests
         const int QIndex = 23;
         Point blockOrigin = new(0, 128);
         // The reference sweeps mesh columns in groups of four and drops the terminal partial
-        // group (exhaustive_mesh_search, mcomp.c). With a range of 256 from column zero, the
+        // group (exhaustive_mesh_search). With a range of 256 from column zero, the
         // group at offset 256 is empty, so a match placed there is unreachable. This origin
         // sits inside a complete group.
         Point predictionOrigin = new(248, 8);

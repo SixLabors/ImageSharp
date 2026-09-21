@@ -15,14 +15,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 /// Selects the frame deblocking levels and applies them to the encoder reconstruction.
 /// </summary>
 /// <remarks>
-/// The level selection ports libaom <c>av1_pick_filter_level</c> (picklpf.c). The configurations this encoder
+/// The level selection ports libaom <c>av1_pick_filter_level</c>. The configurations this encoder
 /// exposes never enable two-pass statistics, screen-content cyclic refresh, selective loop filter control,
 /// adaptive sharpness, or the SSE-based skips, so those branches of the reference have no counterpart here.
 /// </remarks>
 internal static class Av1LoopFilterEncoder
 {
     /// <summary>
-    /// The side of the square tiles <c>get_sse</c> (psnr.c) measures a plane in.
+    /// The side of the square tiles <c>get_sse</c> measures a plane in.
     /// </summary>
     private const int ErrorTileSize = 16;
 
@@ -30,8 +30,8 @@ internal static class Av1LoopFilterEncoder
     /// Chooses the four frame deblocking levels for the completed, unfiltered reconstruction.
     /// </summary>
     /// <remarks>
-    /// Ports the frame-level part of <c>loopfilter_frame</c> (encoder.c L3787-3791, L2894-2895) together with
-    /// <c>av1_pick_filter_level</c> (picklpf.c L218-470). The reconstruction is unchanged on return.
+    /// Ports the frame-level part of <c>loopfilter_frame</c> together with
+    /// <c>av1_pick_filter_level</c>. The reconstruction is unchanged on return.
     /// </remarks>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
     /// <typeparam name="TVerticalOperator">The vertical sample accessor.</typeparam>
@@ -56,7 +56,7 @@ internal static class Av1LoopFilterEncoder
         ObuFrameHeader header = picture.Parent.FrameHeader;
         ObuLoopFilterParameters parameters = header.LoopFilterParameters;
 
-        // An inter frame starts each search at the levels the preceding frame chose (picklpf.c L352-358).
+        // An inter frame starts each search at the levels the preceding frame chose.
         // Read them before the reset below, which only affects what the next frame receives.
         Span<int> lastLevels = stackalloc int[4];
         if (!header.IsIntra)
@@ -64,14 +64,14 @@ internal static class Av1LoopFilterEncoder
             previousLevels.CopyTo(lastLevels);
         }
 
-        // set_postproc_filter_default_params (encoder.h L4534-4550) clears the luma levels and their backups
+        // set_postproc_filter_default_params clears the luma levels and their backups
         // before every frame; the chroma backups keep their earlier values. The header levels were
         // cleared when the frame was prepared.
         previousLevels[0] = 0;
         previousLevels[1] = 0;
 
         // Intra block copy frames skip loopfilter_frame altogether and coded lossless frames do not use the
-        // loop filter (encoder.c L3790, encoder.h L4473-4475).
+        // loop filter.
         if (header.AllowIntraBlockCopy || header.CodedLossless)
         {
             return;
@@ -117,7 +117,7 @@ internal static class Av1LoopFilterEncoder
                 picture, source, reconstruction, backup, lastLevels, Av1Plane.V, 0);
         }
 
-        // The searched levels seed the next frame (picklpf.c L397-400, encoder.c L5176-5179).
+        // The searched levels seed the next frame.
         previousLevels[0] = parameters.FilterLevel[0];
         previousLevels[1] = parameters.FilterLevel[1];
         previousLevels[2] = parameters.FilterLevelU;
@@ -203,7 +203,7 @@ internal static class Av1LoopFilterEncoder
 
     /// <summary>
     /// Estimates one deblocking level for every plane from the base quantizer, as the
-    /// <c>LPF_PICK_FROM_Q</c> branch of <c>av1_pick_filter_level</c> does (picklpf.c L266-330).
+    /// <c>LPF_PICK_FROM_Q</c> branch of <c>av1_pick_filter_level</c> does.
     /// </summary>
     /// <param name="header">The frame header holding the base quantizer index and frame type.</param>
     /// <param name="bitDepth">The sequence sample depth.</param>
@@ -234,7 +234,7 @@ internal static class Av1LoopFilterEncoder
 
     /// <summary>
     /// Finds the level that minimizes the filtered error of one plane and direction by a biased step search,
-    /// as <c>search_filter_level</c> does (picklpf.c L96-216).
+    /// as <c>search_filter_level</c> does.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
     /// <typeparam name="TVerticalOperator">The vertical sample accessor.</typeparam>
@@ -357,7 +357,7 @@ internal static class Av1LoopFilterEncoder
 
     /// <summary>
     /// Filters one plane at a trial level, measures it against the source, and restores the unfiltered plane,
-    /// as <c>try_filter_frame</c> does (picklpf.c L55-94).
+    /// as <c>try_filter_frame</c> does.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
     /// <typeparam name="TVerticalOperator">The vertical sample accessor.</typeparam>
@@ -416,7 +416,7 @@ internal static class Av1LoopFilterEncoder
 
     /// <summary>
     /// Sums the squared differences of two visible planes in 16 by 16 tiles plus the right and bottom
-    /// remainders, as <c>get_sse</c> and <c>highbd_get_sse</c> do (psnr.c L75-108).
+    /// remainders, as <c>get_sse</c> and <c>highbd_get_sse</c> do.
     /// </summary>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <param name="first">The first plane.</param>

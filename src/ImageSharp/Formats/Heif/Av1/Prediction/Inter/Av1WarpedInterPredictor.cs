@@ -442,10 +442,9 @@ internal static partial class Av1WarpedInterPredictor
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         // Every horizontal tap is clamped to the frame: av1_warp_affine_c uses
-        // sample_x = clamp(ix + m, 0, width - 1) (warped_motion.c L582-587). A tile whose
+        // sample_x = clamp(ix + m, 0, width - 1). A tile whose
         // window lies inside the frame needs no clamping, which keeps the common case at one
-        // load per window. The three edge cases follow av1_warp_affine_sse4_1
-        // (warp_plane_sse4.c L847-895).
+        // load per window. The three edge cases follow av1_warp_affine_sse4_1.
         if (integerX <= -7 || integerX >= sourceWidth + 6)
         {
             // Every clamped tap is the same edge column. The eight taps of any phase sum to
@@ -563,10 +562,9 @@ internal static partial class Av1WarpedInterPredictor
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         // Every horizontal tap is clamped to the frame: av1_warp_affine_c uses
-        // sample_x = clamp(ix + m, 0, width - 1) (warped_motion.c L582-587). A tile whose
+        // sample_x = clamp(ix + m, 0, width - 1). A tile whose
         // window lies inside the frame needs no clamping, which keeps the common case at one
-        // load per window. The three edge cases follow av1_warp_affine_sse4_1
-        // (warp_plane_sse4.c L847-895).
+        // load per window. The three edge cases follow av1_warp_affine_sse4_1.
         if (integerX <= -7 || integerX >= sourceWidth + 6)
         {
             // Every clamped tap is the same edge column. The eight taps of any phase sum to

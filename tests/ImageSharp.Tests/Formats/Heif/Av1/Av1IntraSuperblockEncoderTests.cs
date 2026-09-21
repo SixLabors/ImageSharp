@@ -190,7 +190,7 @@ public class Av1IntraSuperblockEncoderTests
         keyEncoder.SequenceHeader.EnableRestoration = false;
 
         // Independent filters per axis are a sequence tool. Good quality and real-time both clear it
-        // (disable_dual_filter, speed_features.c L1145 and L2005), so this fixture states it directly.
+        // (disable_dual_filter), so this fixture states it directly.
         keyEncoder.SequenceHeader.EnableDualFilter = dualFilter;
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
@@ -318,7 +318,7 @@ public class Av1IntraSuperblockEncoderTests
         const int TargetRow = 8;
         const int BlockSize = 8;
         // The reference never searches a mode whose threshold exceeds the best cost so far
-        // (skip_inter_mode, rdopt.c L5258-L5262). At a near-lossless quantizer every cost falls
+        // (skip_inter_mode). At a near-lossless quantizer every cost falls
         // under that threshold, so only NEARESTMV is ever measured. This quantizer keeps the
         // exact two-axis predictor preferable while leaving NEWMV inside the search.
         const int QIndex = 37;
@@ -392,7 +392,7 @@ public class Av1IntraSuperblockEncoderTests
         keyEncoder.SequenceHeader.EnableRestoration = false;
 
         // Independent filters per axis are a sequence tool. Good quality and real-time both clear it
-        // (disable_dual_filter, speed_features.c L1145 and L2005), so this fixture states it directly.
+        // (disable_dual_filter), so this fixture states it directly.
         keyEncoder.SequenceHeader.EnableDualFilter = true;
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;

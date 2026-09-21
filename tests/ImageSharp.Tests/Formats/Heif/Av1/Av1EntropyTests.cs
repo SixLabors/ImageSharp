@@ -36,7 +36,7 @@ public class Av1EntropyTests
         Av1Distribution[] channels = new Av1Distribution[channelCount];
         for (int channel = 0; channel < channelCount; channel++)
         {
-            // libaom entropymode.c gives each multi-delta channel this independent initial CDF.
+            // libaom gives each multi-delta channel this independent initial CDF.
             channels[channel] = new(28160, 32120, 32677);
         }
 

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 /// <remarks>
 /// This is the oracle the halving filter and the image pyramid are both measured against, so it is
 /// deliberately written as the plainest possible form of the reference rather than as fast code.
-/// Reference: av1_resize_plane_to_half() and down2_symeven() in av1/common/resize.c.
+/// Reference: av1_resize_plane_to_half() and down2_symeven().
 /// </remarks>
 internal static class Av1PlaneDownsamplerOracle
 {

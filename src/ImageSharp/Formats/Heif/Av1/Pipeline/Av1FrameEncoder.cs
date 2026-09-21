@@ -397,8 +397,8 @@ internal static class Av1FrameEncoder
             },
             EnableSuperResolution = false,
 
-            // The reference disables CDEF by default in all-intra mode because it blurs images
-            // (av1_cx_iface.c L3088-3090); other modes keep it enabled.
+            // The reference disables CDEF by default in all-intra mode because it blurs images.
+            // Every other mode keeps it enabled.
             EnableCdef = !isStillPicture,
             EnableRestoration = speedSettings.EnableRestoration,
             ColorConfig = colorConfig
@@ -407,7 +407,7 @@ internal static class Av1FrameEncoder
 
     /// <summary>
     /// Infers the lowest level whose picture size, dimension, and display sample rate limits hold the frame,
-    /// as <c>set_bitstream_level_tier</c> does (encoder.c L481-560).
+    /// as <c>set_bitstream_level_tier</c> does.
     /// </summary>
     /// <remarks>
     /// Levels 7.x and 8.x are only chosen by the reference when explicitly requested, so larger frames stay
@@ -1281,7 +1281,7 @@ internal static class Av1FrameEncoder
 
         // The reference refines one model parameter at a time and keeps stepping in the winning
         // direction until the error rises, rather than taking one step of a fixed direction set.
-        // Reference: av1_refine_integerized_param() in global_motion.c, L364.
+        // Reference: av1_refine_integerized_param().
         for (int step = searchRadius; step > 0; step >>= 1)
         {
             for (int parameter = 0; parameter < 2; parameter++)

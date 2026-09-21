@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 /// Written as the plainest possible form of the reference rather than as fast code, so that it is
 /// easy to compare with the C source line by line. Reference: aom_compute_flow_at_point_c(),
 /// sobel_filter(), compute_flow_matrix(), invert_2x2(), compute_flow_vector(),
-/// get_cubic_kernel_int() and get_cubic_value_int() in aom_dsp/flow_estimation/disflow.c.
+/// get_cubic_kernel_int() and get_cubic_value_int().
 /// </remarks>
 internal static class Av1DenseFlowSolverOracle
 {

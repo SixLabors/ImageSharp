@@ -384,8 +384,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the luma vertical, luma horizontal, U, and V deblocking levels retained from the preceding frame.
     /// </summary>
     /// <remarks>
-    /// This mirrors libaom <c>ppi-&gt;filter_level[0..1]</c>, <c>filter_level_u</c>, and <c>filter_level_v</c>
-    /// (encoder.c L5176-5179), which a full-image level search of an inter frame uses as its starting point.
+    /// This mirrors libaom <c>ppi-&gt;filter_level[0..1]</c>, <c>filter_level_u</c>, and <c>filter_level_v</c>,
+    /// which a full-image level search of an inter frame uses as its starting point.
     /// </remarks>
     public Span<int> PreviousLoopFilterLevels => this.owner.Memory.Span.Slice(
         this.loopFilterLevelStorageOffset, LoopFilterLevelCount);

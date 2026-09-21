@@ -80,22 +80,22 @@ public class Av1MotionSearchSettingsTests
         Assert.True(intraOnly.UseFastIntraBlockCopySearch);
         Assert.True(intraOnly.LimitIntraBlockCopyHashBlockSize);
         Assert.True(intraOnly.LimitFullPixelStartingCandidates);
-        // Real-time keeps block copy available for screen content (rt_use_intrabc, speed_features.c L1770),
+        // Real-time keeps block copy available for screen content (rt_use_intrabc),
         // where good quality drops it from speed three (use_intrabc, L1312).
         Assert.True(sequence.AllowIntraBlockCopy);
         Assert.False(sequence.LimitFullPixelStartingCandidates);
         // All-intra keeps the eight-tap subpel filter of init_mv_sf; real-time drops to two taps
-        // (use_accurate_subpel_search, speed_features.c L2021 and L2358).
+        // (use_accurate_subpel_search).
         Assert.Equal(8, intraOnly.FractionalInterpolationTaps);
         Assert.Equal(2, sequence.FractionalInterpolationTaps);
         Assert.Equal(2, intraOnly.FractionalIterationsPerStep);
         Assert.Equal(1, sequence.FractionalIterationsPerStep);
         // All-intra stops the simple motion search at half a sample from speed four; real-time keeps the
-        // eighth-sample default (simple_motion_subpel_force_stop, speed_features.c L482 and L2354).
+        // eighth-sample default (simple_motion_subpel_force_stop).
         Assert.Equal(SearchPrecision.HalfSample, intraOnly.SimpleMotionPrecision);
         Assert.Equal(SearchPrecision.EighthSample, sequence.SimpleMotionPrecision);
         // Screen content halves the all-intra mesh threshold and speed one doubles it again; real-time
-        // never searches the mesh (exhaustive_searches_thresh, speed_features.c L2018).
+        // never searches the mesh (exhaustive_searches_thresh).
         Assert.Equal(2_097_152, intraOnly.MeshErrorThreshold);
         Assert.Equal(int.MaxValue, sequence.MeshErrorThreshold);
     }

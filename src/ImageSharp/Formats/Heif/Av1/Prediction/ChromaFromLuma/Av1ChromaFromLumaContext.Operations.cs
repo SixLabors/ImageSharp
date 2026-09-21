@@ -40,7 +40,7 @@ internal partial class Av1ChromaFromLumaContext
         int subX = subsamplingX ? 1 : 0;
         int subY = subsamplingY ? 1 : 0;
 
-        // cfl_store_tx (cfl.c L390-403) stores each coded luma transform. Beyond the coded extent the
+        // cfl_store_tx stores each coded luma transform. Beyond the coded extent the
         // reference has nothing stored, so cfl_pad repeats the last stored column and row instead.
         int lumaWidth = Math.Min(lumaExtent.Width, transformSize.GetWidth() << subX);
         int lumaHeight = Math.Min(lumaExtent.Height, transformSize.GetHeight() << subY);
@@ -71,7 +71,7 @@ internal partial class Av1ChromaFromLumaContext
         int subX = subsamplingX ? 1 : 0;
         int subY = subsamplingY ? 1 : 0;
 
-        // cfl_store_tx (cfl.c L390-403) stores each coded luma transform. Beyond the coded extent the
+        // cfl_store_tx stores each coded luma transform. Beyond the coded extent the
         // reference has nothing stored, so cfl_pad repeats the last stored column and row instead.
         int lumaWidth = Math.Min(lumaExtent.Width, transformSize.GetWidth() << subX);
         int lumaHeight = Math.Min(lumaExtent.Height, transformSize.GetHeight() << subY);

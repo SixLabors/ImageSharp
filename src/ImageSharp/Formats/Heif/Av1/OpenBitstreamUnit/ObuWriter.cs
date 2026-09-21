@@ -1102,8 +1102,8 @@ internal sealed class ObuWriter : IDisposable
         }
 
         // encode_loopfilter signals an update only when a delta differs from the primary reference
-        // frame's, or from the defaults when the frame has none (is_mode_ref_delta_meaningful,
-        // bitstream.c L2002-2028), and then marks each delta that changed (L2066-2081). The encoder
+        // frame's, or from the defaults when the frame has none (is_mode_ref_delta_meaningful),
+        // and then marks each delta that changed. The encoder
         // keeps the default deltas, so every reference it writes carries them and they are the
         // comparison for every frame.
         bool update = false;

@@ -191,7 +191,7 @@ internal static class Av1ScreenContentDetector
 
     /// <summary>
     /// Decides the screen-content tools of an eight-bit frame, as <c>av1_set_screen_content_options</c> does for
-    /// automatic screen-content selection (encoder.c L2447-2486).
+    /// automatic screen-content selection.
     /// </summary>
     /// <param name="source">The converted source frame.</param>
     /// <param name="allIntra">Whether the encoder runs the reference's all-intra mode.</param>
@@ -209,7 +209,7 @@ internal static class Av1ScreenContentDetector
 
     /// <summary>
     /// Decides the screen-content tools of a high-bit-depth frame, as <c>av1_set_screen_content_options</c> does
-    /// for automatic screen-content selection (encoder.c L2447-2486).
+    /// for automatic screen-content selection.
     /// </summary>
     /// <param name="source">The converted source frame.</param>
     /// <param name="allIntra">Whether the encoder runs the reference's all-intra mode.</param>
@@ -235,7 +235,7 @@ internal static class Av1ScreenContentDetector
         where TOperator : struct, ISampleOperator<TSample>
     {
         // Realtime encoding never evaluates the tools. Neither does all-intra speed 9, which picks modes
-        // without rate-distortion search and without the hybrid intra search (speed_features.c L233-253).
+        // without rate-distortion search and without the hybrid intra search.
         bool realtime = !allIntra && speed >= HeifEncodingSpeed.Level7;
         if (realtime || (allIntra && speed >= HeifEncodingSpeed.Level9))
         {
@@ -244,8 +244,8 @@ internal static class Av1ScreenContentDetector
             return false;
         }
 
-        // All-intra mode defaults to the anti-aliasing aware detection (av1_cx_iface.c L3091-3093), sampling
-        // half of the blocks from speed 3 (speed_features.c L98).
+        // All-intra mode defaults to the anti-aliasing aware detection, sampling
+        // half of the blocks from speed 3.
         return allIntra
             ? DetectAntialiasingAware<TSample, TOperator>(
                 source, speed >= HeifEncodingSpeed.Level3, out allowScreenContentTools, out allowIntraBlockCopy)
@@ -255,7 +255,7 @@ internal static class Av1ScreenContentDetector
     /// <summary>
     /// Classifies 16x16 luma blocks as simple palette, complex palette, or photo-like blocks, dilating complex
     /// blocks with their dominant color so anti-aliased edge colors do not count, as
-    /// <c>estimate_screen_content_antialiasing_aware</c> does (encoder.c L2228-2439).
+    /// <c>estimate_screen_content_antialiasing_aware</c> does.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The native sample operations.</typeparam>
@@ -365,7 +365,7 @@ internal static class Av1ScreenContentDetector
 
     /// <summary>
     /// Counts the distinct values of a block, stopping once the count exceeds a threshold, as
-    /// <c>av1_count_colors_with_threshold</c> does (intra_mode_search.c L381-400).
+    /// <c>av1_count_colors_with_threshold</c> does.
     /// </summary>
     /// <param name="block">The eight-bit block samples.</param>
     /// <param name="threshold">The largest count of interest.</param>
@@ -395,9 +395,9 @@ internal static class Av1ScreenContentDetector
     }
 
     /// <summary>
-    /// Grows the most frequent value of a block over its eight neighbors, as <c>av1_dilate_block</c> does
-    /// (encoder.c L2160-2211). The first value to reach the highest count is the dominant one
-    /// (<c>av1_find_dominant_value</c>, encoder.c L2118-2138).
+    /// Grows the most frequent value of a block over its eight neighbors, as <c>av1_dilate_block</c> does.
+    /// The first value to reach the highest count is the dominant one
+    /// (<c>av1_find_dominant_value</c>).
     /// </summary>
     /// <param name="block">The eight-bit block samples.</param>
     /// <param name="dilated">The dilated block.</param>
@@ -443,8 +443,7 @@ internal static class Av1ScreenContentDetector
 
     /// <summary>
     /// Measures the per-sample variance of a 16x16 source block against a flat mid-range block, as
-    /// <c>av1_get_perpixel_variance</c> does with the 8-, 10-, or 12-bit variance function (encodeframe.c L190-203,
-    /// variance.c L328-360).
+    /// <c>av1_get_perpixel_variance</c> does with the 8-, 10-, or 12-bit variance function.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The native sample operations.</typeparam>

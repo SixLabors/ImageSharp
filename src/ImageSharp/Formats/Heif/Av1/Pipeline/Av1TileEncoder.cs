@@ -232,8 +232,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
     /// <summary>
     /// Determines whether any coded block uses a transform smaller than the largest its size permits, the
-    /// condition under which the reference increments <c>txb_split_count</c> while it encodes each block
-    /// (partition_search.c L258, L512-556).
+    /// condition under which the reference increments <c>txb_split_count</c> while it encodes each block.
     /// </summary>
     /// <param name="picture">The completed frame decisions.</param>
     /// <returns><see langword="true"/> when at least one transform is split.</returns>
@@ -414,7 +413,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         // Deblocking levels are also chosen from the completed reconstruction. av1_encode_frame enables the
         // reference and mode deltas from the encoder configuration, whose default is on, and keeps their
-        // default values (encodeframe.c L2380-2387, av1_cx_iface.c L401).
+        // default values.
         ObuLoopFilterParameters loopFilter = frameHeader.LoopFilterParameters;
         loopFilter.FilterLevel.Clear();
         loopFilter.FilterLevelU = 0;
@@ -445,7 +444,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer, source, references, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         // When no coded block split its transform, av1_encode_frame signals the largest transforms instead of
-        // selecting them per block (encodeframe.c L2798-2840). The frame parameter update that holds this runs
+        // selecting them per block. The frame parameter update that holds this runs
         // outside realtime mode, and in realtime mode while estimated compound prediction is enabled
         // (use_comp_ref_nonrd).
         Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
@@ -456,7 +455,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.TransformMode = Av1TransformMode.Largest;
         }
 
-        // loopfilter_frame (encoder.c L2894-2912) picks the levels against the source, then filters the frame.
+        // loopfilter_frame picks the levels against the source, then filters the frame.
         Av1LoopFilterEncoder.PickFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
             blockWorkspace.MemoryAllocator, picture, source, reconstruction, blockWorkspace.PreviousLoopFilterLevels);
         Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);

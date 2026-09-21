@@ -24,7 +24,7 @@ internal static class Av1TransformBlockEncoder
     /// Gets the Q12 terms that normalize a DC coefficient for the shape of its transform.
     /// </summary>
     /// <remarks>
-    /// This is <c>dc_coeff_scale</c> (encodemb.h L172-175). Rectangles of 1:2 carry a square-root of two,
+    /// This is <c>dc_coeff_scale</c>. Rectangles of 1:2 carry a square-root of two,
     /// rectangles of 1:4 a factor of two, transforms of 8x8 and below another factor of two, and the
     /// 64-point transforms have no entry because they are excluded from this prediction.
     /// </remarks>
@@ -176,7 +176,7 @@ internal static class Av1TransformBlockEncoder
             workspace.Residual,
             transformSize);
 
-        // search_tx_type (tx_search.c L2126-2179) measures the residual energy of the visible samples and
+        // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
         // transform keeps half of its coefficients, so its transform-domain error is not comparable.
         int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
@@ -195,7 +195,7 @@ internal static class Av1TransformBlockEncoder
             : GetBlockError(
                 workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
 
-        // predict_dc_only_block (tx_search.c L2116-2124) settles a block whose residual cannot survive
+        // predict_dc_only_block settles a block whose residual cannot survive
         // quantization. Its prediction stands as the reconstruction and it codes the all-zero flag alone.
         if (predictDcBlock && PredictSkippedBlock(
             transformSize,
@@ -216,7 +216,7 @@ internal static class Av1TransformBlockEncoder
 
         // This search holds one transform type, as a chroma search always does. A policy that measures
         // the winner in the pixel domain then has nothing left to compare, so it measures every candidate
-        // there instead (search_tx_type, tx_search.c L2172-2179).
+        // there instead (search_tx_type).
         bool useTransformDomainDistortion = distortionPolicy.Type > 1 &&
             blockMseQ8 >= distortionPolicy.Threshold &&
             transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
@@ -329,7 +329,7 @@ internal static class Av1TransformBlockEncoder
         Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
     {
-        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // search_tx_type measures the residual of the visible samples, can settle
         // the block as skipped before any transform, and selects the distortion domain of this stage.
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -399,7 +399,7 @@ internal static class Av1TransformBlockEncoder
 
         // An empty transform reconstructs the prediction, so its error is the residual energy. This search
         // holds one transform type, so a policy that measures the winner in the pixel domain measures
-        // every candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        // every candidate there (search_tx_type).
         if (state.EndOfBlock == 0)
         {
             return residualEnergy;
@@ -613,7 +613,7 @@ internal static class Av1TransformBlockEncoder
             width,
             height);
 
-        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // search_tx_type measures the residual of the visible samples, can settle
         // the block as skipped before any transform, and selects the distortion domain of this stage.
         int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
         int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
@@ -681,7 +681,7 @@ internal static class Av1TransformBlockEncoder
 
         // An empty transform reconstructs the prediction, so its error is the residual energy. This search
         // holds one transform type, so a policy that measures the winner in the pixel domain measures every
-        // candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        // candidate there (search_tx_type).
         if (state.EndOfBlock == 0)
         {
             return residualEnergy;
@@ -861,7 +861,7 @@ internal static class Av1TransformBlockEncoder
             transformSize,
             bitDepth);
 
-        // search_tx_type (tx_search.c L2126-2179) measures the residual energy of the visible samples and
+        // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
         // transform keeps half of its coefficients, so its transform-domain error is not comparable.
         int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
@@ -880,7 +880,7 @@ internal static class Av1TransformBlockEncoder
             : GetBlockError(
                 workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
 
-        // predict_dc_only_block (tx_search.c L2116-2124) settles a block whose residual cannot survive
+        // predict_dc_only_block settles a block whose residual cannot survive
         // quantization. Its prediction stands as the reconstruction and it codes the all-zero flag alone.
         if (predictDcBlock && PredictSkippedBlock(
             transformSize,
@@ -901,7 +901,7 @@ internal static class Av1TransformBlockEncoder
 
         // This search holds one transform type, as a chroma search always does. A policy that measures
         // the winner in the pixel domain then has nothing left to compare, so it measures every candidate
-        // there instead (search_tx_type, tx_search.c L2172-2179).
+        // there instead (search_tx_type).
         bool useTransformDomainDistortion = distortionPolicy.Type > 1 &&
             blockMseQ8 >= distortionPolicy.Threshold &&
             transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
@@ -1022,7 +1022,7 @@ internal static class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         ref Av1EncoderTransformBlockState state)
     {
-        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // search_tx_type measures the residual of the visible samples, can settle
         // the block as skipped before any transform, and selects the distortion domain of this stage.
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -1093,7 +1093,7 @@ internal static class Av1TransformBlockEncoder
 
         // An empty transform reconstructs the prediction, so its error is the residual energy. This search
         // holds one transform type, so a policy that measures the winner in the pixel domain measures
-        // every candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        // every candidate there (search_tx_type).
         if (state.EndOfBlock == 0)
         {
             return residualEnergy;
@@ -1287,7 +1287,7 @@ internal static class Av1TransformBlockEncoder
             width,
             height);
 
-        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // search_tx_type measures the residual of the visible samples, can settle
         // the block as skipped before any transform, and selects the distortion domain of this stage.
         int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
         int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
@@ -1356,7 +1356,7 @@ internal static class Av1TransformBlockEncoder
 
         // An empty transform reconstructs the prediction, so its error is the residual energy. This search
         // holds one transform type, so a policy that measures the winner in the pixel domain measures every
-        // candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        // candidate there (search_tx_type).
         if (state.EndOfBlock == 0)
         {
             return residualEnergy;
@@ -2310,7 +2310,7 @@ internal static class Av1TransformBlockEncoder
     /// Measures the residual energy, mean, and variance of the visible part of one transform block.
     /// </summary>
     /// <remarks>
-    /// This is <c>pixel_diff_stats</c> (tx_search.c L155-188) with the eight-bit normalization and the
+    /// This is <c>pixel_diff_stats</c> with the eight-bit normalization and the
     /// scaling that <c>search_tx_type</c> applies to its results. It replaces <see cref="GetBlockError"/>
     /// when the speed policy predicts skipped blocks, and normalizes the mean in a way that measurement
     /// does not: the mean moves to the transform domain, where a DC coefficient scale applies to it.
@@ -2374,7 +2374,7 @@ internal static class Av1TransformBlockEncoder
     /// <summary>
     /// Gets the transform-domain distortion policy of the current mode evaluation stage.
     /// </summary>
-    /// <remarks>This is <c>set_tx_domain_dist_params</c> (rdopt_utils.h L586-603).</remarks>
+    /// <remarks>This is <c>set_tx_domain_dist_params</c>.</remarks>
     /// <param name="workspace">The workspace holding the speed settings and the evaluation stage.</param>
     /// <returns>The distortion type and its mean-error threshold.</returns>
     public static (int Type, uint Threshold) GetDistortionPolicy(Av1EncoderBlockWorkspace workspace)
@@ -2403,7 +2403,7 @@ internal static class Av1TransformBlockEncoder
     /// Predicts whether one transform block codes no coefficients at all.
     /// </summary>
     /// <remarks>
-    /// This is the skip branch of <c>predict_dc_only_block</c> (tx_search.c L1998-2053). A residual whose
+    /// This is the skip branch of <c>predict_dc_only_block</c>. A residual whose
     /// variance stays below the quantizer step and whose transform-domain mean stays below the DC step
     /// quantizes to nothing, so the block keeps its prediction and costs only the all-zero flag. The
     /// remaining branch of the reference predicts DC-only blocks at level two, which the still-picture

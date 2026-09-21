@@ -79,7 +79,7 @@ internal static partial class Av1CompoundInterPredictor
     {
         // The bias removal can leave a value outside the signed sixteen-bit range for
         // twelve-bit content, so the subtraction, rounding and clipping run in thirty-two-bit
-        // lanes as the reference does with int32_t tmp (convolve.c L1055-1063). The pair of
+        // lanes as the reference does with int32_t tmp. The pair of
         // halves narrows back to unsigned sixteen-bit only after the clip.
         (Vector128<uint> lower, Vector128<uint> upper) = Vector128.Widen(value);
         Vector128<int> bias = Vector128.Create(roundOffset);
@@ -109,7 +109,7 @@ internal static partial class Av1CompoundInterPredictor
     {
         // The bias removal can leave a value outside the signed sixteen-bit range for
         // twelve-bit content, so the subtraction, rounding and clipping run in thirty-two-bit
-        // lanes as the reference does with int32_t tmp (convolve.c L1055-1063). The pair of
+        // lanes as the reference does with int32_t tmp. The pair of
         // halves narrows back to unsigned sixteen-bit only after the clip.
         (Vector256<uint> lower, Vector256<uint> upper) = Vector256.Widen(value);
         Vector256<int> bias = Vector256.Create(roundOffset);
@@ -139,7 +139,7 @@ internal static partial class Av1CompoundInterPredictor
     {
         // The bias removal can leave a value outside the signed sixteen-bit range for
         // twelve-bit content, so the subtraction, rounding and clipping run in thirty-two-bit
-        // lanes as the reference does with int32_t tmp (convolve.c L1055-1063). The pair of
+        // lanes as the reference does with int32_t tmp. The pair of
         // halves narrows back to unsigned sixteen-bit only after the clip.
         (Vector512<uint> lower, Vector512<uint> upper) = Vector512.Widen(value);
         Vector512<int> bias = Vector512.Create(roundOffset);

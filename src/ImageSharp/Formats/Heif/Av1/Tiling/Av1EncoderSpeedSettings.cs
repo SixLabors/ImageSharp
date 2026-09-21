@@ -323,7 +323,7 @@ internal readonly struct Av1EncoderSpeedSettings
 
         // lpf_pick: the full-image search is the default (init_lpf_sf); all-intra and good quality drop the
         // separate direction searches from speed 4, all-intra derives the levels from the quantizer from
-        // speed 6, and realtime always does (speed_features.c L496, L559, L1425, L2056).
+        // speed 6, and realtime always does.
         this.LoopFilterPickMethod = realtime || (allIntra && speed >= HeifEncodingSpeed.Level6)
             ? Av1LoopFilterPickMethod.FromQuantizer
             : speed >= HeifEncodingSpeed.Level4 ? Av1LoopFilterPickMethod.FullImageNonDual : Av1LoopFilterPickMethod.FullImage;
@@ -430,8 +430,8 @@ internal readonly struct Av1EncoderSpeedSettings
             : this.DefaultTransformDomainDistortion;
         this.SkipTransformSearchAfterEmptyBlock = realtime || speed >= HeifEncodingSpeed.Level1 || (!allIntra && largeLowQuantizer);
 
-        // Skip and DC-only block prediction follows dc_blk_pred_level and the predict_dc_levels rows
-        // (speed_features.c L136-138). Boosted frames are the independent pictures of this encoder.
+        // Skip and DC-only block prediction follows dc_blk_pred_level and the predict_dc_levels rows.
+        // Boosted frames are the independent pictures of this encoder.
         int dcPredictionLevel = realtime ? intraFrame ? 0 : 3 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level5 ? 2

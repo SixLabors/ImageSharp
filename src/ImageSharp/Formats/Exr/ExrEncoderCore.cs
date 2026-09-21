@@ -206,9 +206,11 @@ internal sealed class ExrEncoderCore
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
                 for (int x = 0; x < width; x++)
                 {
-                    // OpenEXR stores RGB associated with alpha. Use the native vector domain so floating-point and HDR component
-                    // ranges are preserved instead of being clamped through the scaled [0, 1] representation.
-                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedVector4();
+                    // OpenEXR stores RGB associated with alpha, and the decoder maps an EXR value of 1 to a scaled value of 1.
+                    // Read the scaled vector so that encoding and decoding agree for every pixel format. The native vector
+                    // is wrong here because its range belongs to the pixel format, not to OpenEXR. For example, HalfVector4
+                    // stores opaque alpha as the native value 65504, which would be written to the file unchanged.
+                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedScaledVector4();
                     redBuffer[x] = vector4.X;
                     greenBuffer[x] = vector4.Y;
                     blueBuffer[x] = vector4.Z;
@@ -305,8 +307,10 @@ internal sealed class ExrEncoderCore
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
                 for (int x = 0; x < width; x++)
                 {
-                    // OpenEXR channels use associated alpha; the native vector conversion also preserves the integer channel range.
-                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedVector4();
+                    // OpenEXR channels use associated alpha. Rgba128.FromVector4 expects components in [0, 1], which is the
+                    // scaled range. The native range of the source pixel format can differ, so read the scaled vector,
+                    // the same domain that the decoder writes.
+                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedScaledVector4();
                     rgb = Rgba128.FromVector4(vector4);
 
                     redBuffer[x] = rgb.R;

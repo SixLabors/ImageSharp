@@ -212,9 +212,27 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// <param name="height">The required predictor height in chroma samples.</param>
     private void Pad(int width, int height)
     {
-        int differenceWidth = width - this.bufferWidth;
-        int differenceHeight = height - this.bufferHeight;
-        Span<short> q3Buffer = this.Q3Buffer;
+        Pad(this.Q3Buffer, this.bufferWidth, this.bufferHeight, width, height);
+        this.bufferWidth = Math.Max(this.bufferWidth, width);
+        this.bufferHeight = Math.Max(this.bufferHeight, height);
+    }
+
+    /// <summary>
+    /// Extends the last stored column and row of a predictor surface to the requested dimensions.
+    /// </summary>
+    /// <remarks>
+    /// The chroma of a block at the right or bottom frame edge can cover more samples than the luma that the
+    /// encoder stored. <c>cfl_pad</c> (cfl.c L81-113) repeats the last stored sample over the remainder.
+    /// </remarks>
+    /// <param name="q3Buffer">The fixed-stride Q3 predictor surface.</param>
+    /// <param name="bufferWidth">The stored width in chroma samples.</param>
+    /// <param name="bufferHeight">The stored height in chroma samples.</param>
+    /// <param name="width">The required predictor width in chroma samples.</param>
+    /// <param name="height">The required predictor height in chroma samples.</param>
+    internal static void Pad(Span<short> q3Buffer, int bufferWidth, int bufferHeight, int width, int height)
+    {
+        int differenceWidth = width - bufferWidth;
+        int differenceHeight = height - bufferHeight;
 
         if (differenceWidth > 0)
         {
@@ -224,23 +242,19 @@ internal sealed partial class Av1ChromaFromLumaContext
             for (int y = 0; y < minimumHeight; y++)
             {
                 int rowOffset = y * BufferLine;
-                short lastPixel = q3Buffer[rowOffset + this.bufferWidth - 1];
-                q3Buffer.Slice(rowOffset + this.bufferWidth, differenceWidth).Fill(lastPixel);
+                short lastPixel = q3Buffer[rowOffset + bufferWidth - 1];
+                q3Buffer.Slice(rowOffset + bufferWidth, differenceWidth).Fill(lastPixel);
             }
-
-            this.bufferWidth = width;
         }
 
         if (differenceHeight > 0)
         {
             // Missing bottom rows repeat the last available row after horizontal extension is complete.
-            for (int y = this.bufferHeight; y < height; y++)
+            for (int y = bufferHeight; y < height; y++)
             {
                 int rowOffset = y * BufferLine;
                 q3Buffer.Slice(rowOffset - BufferLine, width).CopyTo(q3Buffer.Slice(rowOffset, width));
             }
-
-            this.bufferHeight = height;
         }
     }
 }

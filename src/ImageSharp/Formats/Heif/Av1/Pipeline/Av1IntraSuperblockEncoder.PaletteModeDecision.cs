@@ -28,10 +28,32 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int colorThreshold,
+            int dcModeCost,
             ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize)
         {
+            long workStart = Av1WorkCounters.Start();
+            bool workResult = this.SelectLumaPaletteCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedCoefficients, retainedStates, colorThreshold, dcModeCost, ref bestStatistics, ref paletteInfo, ref selectedTransformSize);
+            Av1WorkCounters.Stop(Av1WorkCounters.PaletteYSearch, workStart);
+            return workResult;
+        }
+
+        private bool SelectLumaPaletteCore(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            ushort tileIndex,
+            Span<int> retainedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedStates,
+            int colorThreshold,
+            int dcModeCost,
+            ref Av1RateDistortionStatistics bestStatistics,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            ref Av1TransformSize selectedTransformSize)
+        {
+            Av1WorkCounters.Count(Av1WorkCounters.PaletteYSearch);
             Av1EncoderPaletteWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int blockWidth = blockSize.GetWidth();
@@ -49,6 +71,9 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 return false;
             }
+
+            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                $"PAL {blockOrigin.X},{blockOrigin.Y} {blockSize} colors {colorCount} bins {occupiedBins} best {bestStatistics.Cost} limit {this.blockCostLimit}");
 
             int maximumPaletteSize = Math.Min(colorCount, Av1Constants.PaletteMaxSize);
             InlineArray8<short> dominantColors = default;
@@ -155,6 +180,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             retainedCoefficients,
                             retainedStates,
                             gateHeader ? headerPruneLevel : 0,
+                            dcModeCost,
                             ref bestStatistics,
                             ref paletteInfo,
                             ref selectedTransformSize,
@@ -240,11 +266,44 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int headerPruneLevel,
+            int dcModeCost,
             ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize,
             out bool headerBreakout)
         {
+            long workStart = Av1WorkCounters.Start();
+            bool workResult = this.EvaluateLumaPaletteCandidateCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, transformSizeContext, sourceVariance, samples, rows, columns, colorCache, blockSizeContext, neighborContext, centroids, colorIndexMap, retainedCoefficients, retainedStates, headerPruneLevel, dcModeCost, ref bestStatistics, ref paletteInfo, ref selectedTransformSize, out headerBreakout);
+            Av1WorkCounters.Stop(Av1WorkCounters.PaletteCandidate, workStart);
+            return workResult;
+        }
+
+        private bool EvaluateLumaPaletteCandidateCore(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            ushort tileIndex,
+            int transformSizeContext,
+            int sourceVariance,
+            ReadOnlySpan<short> samples,
+            int rows,
+            int columns,
+            ReadOnlySpan<ushort> colorCache,
+            int blockSizeContext,
+            int neighborContext,
+            Span<short> centroids,
+            Buffer2DRegion<byte> colorIndexMap,
+            Span<int> retainedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedStates,
+            int headerPruneLevel,
+            int dcModeCost,
+            ref Av1RateDistortionStatistics bestStatistics,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            ref Av1TransformSize selectedTransformSize,
+            out bool headerBreakout)
+        {
+            Av1WorkCounters.Count(Av1WorkCounters.PaletteYRd);
             headerBreakout = false;
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
@@ -313,13 +372,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     .CopyTo(colorIndexMap.DangerousGetRowSpan(row));
             }
 
-            int rate = Av1TileWriter.GetLumaModeCost(
-                writer,
-                macroBlock,
-                blockSize,
-                Av1PredictionMode.DC,
-                0,
-                this.picture.Parent.FrameHeader.IsIntra);
+            int rate = dcModeCost;
+
+            if (!this.picture.Parent.FrameHeader.IsIntra && !this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision)
+            {
+                rate += writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock));
+            }
 
             rate += writer.GetPaletteYModeCost(true, blockSizeContext, neighborContext);
             rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Y);
@@ -328,8 +386,10 @@ internal static partial class Av1IntraSuperblockEncoder
             if (headerPruneLevel != 0)
             {
                 long headerCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0);
-                if ((headerCost >> (headerPruneLevel == 1 ? 1 : 0)) > bestStatistics.Cost)
+                if ((headerCost >> (headerPruneLevel == 1 ? 1 : 0)) > Math.Min(this.blockCostLimit, bestStatistics.Cost))
                 {
+                    Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                        $"PALGATE {blockOrigin.X},{blockOrigin.Y} header {rate} headerCost {headerCost} best {bestStatistics.Cost} limit {this.blockCostLimit}");
                     headerBreakout = true;
                     return false;
                 }
@@ -342,18 +402,20 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateCoefficients = modeDecisionWorkspace.GetCandidateCoefficients(0)[..sampleCount];
             bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
             Av1TransformSize transformSize = lossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
-            int speed = (int)this.picture.Parent.EncodingSpeed;
-            int initialDepth = lossless || this.picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select
-                ? 2
-                : blockWidth == blockHeight || speed >= 1 ? 1 : 0;
+            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+            int maximumDepth = lossless || this.picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select ||
+                (settings.DeferTransformSizeSearch && this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate)
+                    ? 0
+                    : blockWidth == blockHeight ? settings.IntraSquareTransformSearchDepth : settings.IntraRectangularTransformSearchDepth;
 
-            long initialCostLimit = bestStatistics.Cost;
+            long initialCostLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
             long previousCost = long.MaxValue;
             bool selected = false;
+            long candidateCost = long.MaxValue;
 
             // Each size covers the complete coding block. Preserve only improving mosaics before the
             // next size reuses candidate storage; coefficient states retain their transform-unit spacing.
-            for (int depth = initialDepth; depth <= 2; depth++, transformSize = transformSize.GetSubSize())
+            for (int depth = 0; depth <= maximumDepth; depth++, transformSize = transformSize.GetSubSize())
             {
                 int transformCount = sampleCount / transformSize.GetSize2d();
                 Span<Av1EncoderTransformBlockState> candidateStates = modeDecisionWorkspace.CandidateTransformBlocks[..transformCount];
@@ -366,6 +428,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     transformSize,
                     tileIndex,
+                    sourceVariance,
                     Av1PredictionMode.DC,
                     0,
                     Av1FilterIntraMode.AllFilterIntraModes,
@@ -374,12 +437,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     rate,
                     0,
                     transformSizeContext,
-                    speed >= 3 ? bestStatistics.Cost : initialCostLimit,
+                    settings.UseIntraTransformRdBreakout ? Math.Min(this.blockCostLimit, bestStatistics.Cost) : initialCostLimit,
                     candidateReconstruction,
                     candidateCoefficients,
-                    candidateStates);
+                    candidateStates,
+                    out bool skipSmallerTransforms);
 
-                if (candidateStatistics.Cost < bestStatistics.Cost)
+                candidateCost = Math.Min(candidateCost, candidateStatistics.Cost);
+                if (candidateStatistics.Cost < Math.Min(this.blockCostLimit, bestStatistics.Cost))
                 {
                     CopyTiledCandidate(
                         candidateReconstruction,
@@ -405,8 +470,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     selected = true;
                 }
 
-                if (transformSize == Av1TransformSize.Size4x4 ||
-                    (depth > initialDepth && depth < 2 && sourceVariance < 256 &&
+                if (skipSmallerTransforms || transformSize == Av1TransformSize.Size4x4 ||
+                    (depth > 0 && depth < maximumDepth && sourceVariance < 256 &&
                         previousCost != long.MaxValue && candidateStatistics.Cost > previousCost))
                 {
                     break;
@@ -414,6 +479,23 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 previousCost = candidateStatistics.Cost;
             }
+
+            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                $"PALCAND {blockOrigin.X},{blockOrigin.Y} n {paletteSize} header {rate} cost {candidateCost} best {bestStatistics.Cost} limit {this.blockCostLimit} selected {selected}");
+
+            Av1EncoderPaletteInfo candidatePalette = default;
+            candidatePalette.PaletteSizes[0] = (byte)paletteSize;
+            candidatePalette.SetColors(Av1Plane.Y, paletteColors);
+            this.RetainLumaCandidate(
+                new LumaCandidate
+                {
+                    Mode = Av1PredictionMode.DC,
+                    FilterMode = Av1FilterIntraMode.AllFilterIntraModes,
+                    Palette = candidatePalette,
+                    PaletteHeaderRate = rate,
+                    Cost = candidateCost
+                },
+                blockSize);
 
             return selected;
         }

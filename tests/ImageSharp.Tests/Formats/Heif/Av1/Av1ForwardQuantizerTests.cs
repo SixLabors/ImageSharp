@@ -125,10 +125,19 @@ public class Av1ForwardQuantizerTests
 
             foreach (int qIndex in quantizerIndices)
             {
-                FillCoefficients(coefficients, qIndex);
-
                 foreach (Av1BitDepth bitDepth in bitDepths)
                 {
+                    FillCoefficients(coefficients, qIndex);
+                    if (bitDepth == Av1BitDepth.EightBit)
+                    {
+                        // libaom's eight-bit quantizers pack coefficients to sixteen bits because its eight-bit forward
+                        // transforms produce sixteen-bit results; its own tests cover that range against the C model.
+                        for (int i = 0; i < coefficients.Length; i++)
+                        {
+                            coefficients[i] = Math.Clamp(coefficients[i], -short.MaxValue, short.MaxValue);
+                        }
+                    }
+
                     ushort expectedEndOfBlock = QuantizeReference(
                         coefficients,
                         expectedQuantized,

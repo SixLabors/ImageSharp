@@ -36,7 +36,12 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// <summary>
     /// The complete byte length of the decision and palette-map regions.
     /// </summary>
-    public const int StorageByteLength = DecisionStorageByteLength + Av1EncoderPaletteMapBuffer.StorageLength;
+    public const int StorageByteLength = DecisionStorageByteLength + Av1EncoderPaletteMapBuffer.StorageLength + LowVarianceFlagCount;
+
+    /// <summary>
+    /// The number of temporal low-variance flags for square and rectangular partitions.
+    /// </summary>
+    private const int LowVarianceFlagCount = 105;
 
     private const int PartitionStorageOffset = MaximumFinalBlockCount * Av1EncoderBlockStruct.StorageSize;
 
@@ -80,6 +85,12 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
         => this.owner.Memory.Span.Slice(PartitionStorageOffset + MaximumPartitionCount, MaximumPartitionCount);
 
     /// <summary>
+    /// Gets temporal low-variance decisions retained across the superblock's coding blocks.
+    /// </summary>
+    public Span<byte> LowVarianceFlags
+        => this.owner.Memory.Span.Slice(DecisionStorageByteLength + Av1EncoderPaletteMapBuffer.StorageLength, LowVarianceFlagCount);
+
+    /// <summary>
     /// Gets the palette sizes and colors selected for the block currently being written.
     /// </summary>
     public ref Av1EncoderPaletteInfo PaletteInfo => ref this.paletteInfo;
@@ -109,6 +120,7 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
         this.FinalBlocks.Fill(initialBlock);
         this.PartitionTypes.Clear();
         this.PartitionSearchTypes.Fill((byte)Av1PartitionType.Invalid);
+        this.LowVarianceFlags.Clear();
         this.paletteInfo = default;
     }
 

@@ -23,7 +23,7 @@ internal static partial class Av1IntraSuperblockEncoder
     ];
 
     /// <summary>
-    /// Gets the spatial chroma modes in the order used by the reference encoder.
+    /// Gets the spatial chroma mode evaluation order.
     /// </summary>
     private static ReadOnlySpan<Av1ChromaPredictionMode> ChromaModeSearchOrder =>
     [
@@ -42,10 +42,227 @@ internal static partial class Av1IntraSuperblockEncoder
         Av1ChromaPredictionMode.Directional45Degrees
     ];
 
+    /// <summary>
+    /// Gets the chroma angle order with even neighbors evaluated before odd-angle pruning.
+    /// </summary>
+    private static ReadOnlySpan<sbyte> ChromaAngleSearchOrder => [0, 2, -2, 1, -1, 3, -3];
+
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
+        /// <summary>
+        /// Refines coefficients for the selected UV predictor without repeating mode or alpha search.
+        /// </summary>
+        private Av1RateDistortionStatistics RefineSelectedChroma(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1MacroBlockModeInfo modeInfo,
+            Av1EncoderBlockStruct block,
+            Av1EncoderPaletteInfo paletteInfo,
+            Av1RateDistortionStatistics previousStatistics)
+        {
+            if (!block.HasChroma)
+            {
+                return new(this.rateMultiplier, 0, 0);
+            }
+
+            Av1BlockSize blockSize = modeInfo.Block.BlockSize;
+            int subX = this.source.ChromaSubsamplingX;
+            int subY = this.source.ChromaSubsamplingY;
+            Point origin = Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
+            Av1BlockSize planeSize = blockSize.GetSubsampled(subX != 0, subY != 0);
+            Av1TransformSize transformSize = blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+            Av1BlockSize maximumUnit = Av1BlockSize.Block64x64.GetSubsampled(subX != 0, subY != 0);
+            Size extent = GetCodedTransformExtent(macroBlock, planeSize, transformSize, subX, subY);
+            int width = planeSize.GetWidth();
+            int sampleCount = width * planeSize.GetHeight();
+            int contextWidth = planeSize.Get4x4WideCount();
+            int contextHeight = planeSize.Get4x4HighCount();
+            int transformCount = sampleCount / transformSize.GetSize2d();
+            Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+            bool usesChromaFromLuma = modeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
+            ReadOnlySpan<short> lumaQ3 = default;
+            if (usesChromaFromLuma)
+            {
+                TOperator.PrepareChromaFromLuma(
+                    this.reconstruction.GetPlane(Av1Plane.Y),
+                    new Point(origin.X << subX, origin.Y << subY),
+                    workspace.ChromaFromLumaSamples,
+                    transformSize,
+                    this.GetChromaFromLumaExtent(macroBlock, blockOrigin, blockSize, modeInfo.Block.TransformSize, subX, subY),
+                    subX != 0,
+                    subY != 0);
+
+                lumaQ3 = workspace.ChromaFromLumaSamples;
+            }
+
+            int rate = previousStatistics.Rate - previousStatistics.ResidualRate;
+            int residualRate = usesChromaFromLuma
+                ? writer.GetChromaFromLumaCost(block.PredictionUnit.ChromaFromLumaIndex, block.PredictionUnit.ChromaFromLumaSigns)
+                : 0;
+            long distortion = 0;
+            bool hasCoefficients = false;
+            for (int planeIndex = 1; planeIndex < 3; planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                Buffer2DRegion<TSample> source = this.source.GetPlane(plane);
+
+                Buffer2DRegion<TSample> reconstruction = this.reconstruction.GetPlane(plane);
+                Span<TSample> samples = workspace.GetCandidateReconstruction(planeIndex - 1)[..sampleCount];
+                Span<int> coefficients = workspace.GetCandidateCoefficients(planeIndex - 1)[..sampleCount];
+                Span<Av1EncoderTransformBlockState> states = workspace.CandidateTransformBlocks[..transformCount];
+                Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
+                Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
+
+                Av1NeighborArrayUnit<byte> neighbors = plane == Av1Plane.U
+                    ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex]
+                    : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
+
+                neighbors.Top.Slice(neighbors.GetTopIndex(origin), contextWidth).CopyTo(topContexts);
+
+                neighbors.Left.Slice(neighbors.GetLeftIndex(origin), contextHeight).CopyTo(leftContexts);
+                int planeRate;
+                if (usesChromaFromLuma)
+                {
+                    // CfL is a single chroma transform. Its centered luma remains in transient storage;
+                    // DC prediction uses candidate pixels so it cannot overwrite those luma samples.
+                    Span<TSample> above = workspace.GetReferenceSamples(0);
+
+                    Span<TSample> left = workspace.GetReferenceSamples(1);
+                    this.PrepareTransformReferenceSamples(
+                        reconstruction,
+                        blockOrigin,
+                        origin,
+                        blockSize,
+                        macroBlock,
+                        0,
+                        0,
+                        width,
+                        transformSize,
+                        subX,
+                        subY,
+                        samples,
+                        above,
+                        left,
+                        out bool hasLeft,
+                        out bool hasAbove);
+
+                    int edgeCount = transformSize.GetWidth() + transformSize.GetHeight();
+                    TOperator.PrepareChromaFromLumaDc(
+                        samples,
+                        above.Slice(1, edgeCount),
+                        left.Slice(1, edgeCount),
+                        hasLeft,
+                        hasAbove,
+                        transformSize,
+                        this.bitDepth);
+
+                    TSample dc = samples[0];
+                    int jointSign = block.PredictionUnit.ChromaFromLumaSigns;
+                    int packedIndex = block.PredictionUnit.ChromaFromLumaIndex;
+                    int sign = plane == Av1Plane.U
+                        ? Av1ChromaFromLumaMath.SignU(jointSign)
+                        : Av1ChromaFromLumaMath.SignV(jointSign);
+
+                    int magnitude = plane == Av1Plane.U
+                        ? Av1ChromaFromLumaMath.IndexU(packedIndex)
+                        : Av1ChromaFromLumaMath.IndexV(packedIndex);
+
+                    int alpha = sign == Av1ChromaFromLumaMath.SignZero
+                        ? 0
+                        : (magnitude + 1) * (sign == Av1ChromaFromLumaMath.SignNegative ? -1 : 1);
+
+                    Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                        Av1ComponentType.Chroma, topContexts, leftContexts, planeSize, transformSize);
+
+                    states[0] = default;
+                    distortion += this.GetChromaFromLumaPlaneCost(
+                        writer,
+                        modeInfo.Block.Mode,
+                        plane,
+                        origin,
+                        transformSize,
+                        source,
+                        dc,
+                        context,
+                        lumaQ3,
+                        alpha,
+                        samples,
+                        coefficients,
+                        ref states[0],
+                        out planeRate);
+                }
+                else
+                {
+                    int paletteSize = paletteInfo.PaletteSizes[(int)Av1PlaneType.Uv];
+                    ReadOnlySpan<ushort> colors = paletteSize == 0 ? [] : paletteInfo.GetColors(plane)[..paletteSize];
+                    Buffer2DRegion<byte> map = paletteSize == 0
+                        ? default
+                        : this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Uv, width, planeSize.GetHeight());
+
+                    distortion += this.GetTiledPlaneCost(
+                        writer,
+                        macroBlock,
+                        blockOrigin,
+                        origin,
+                        blockSize,
+                        planeSize,
+                        transformSize,
+                        maximumUnit,
+                        subX,
+                        subY,
+                        modeInfo.Block.Mode,
+                        modeInfo.Block.UvMode.ToLumaMode(),
+                        block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv],
+                        plane,
+                        source,
+                        reconstruction,
+                        colors,
+                        map,
+                        samples,
+                        coefficients,
+                        states,
+                        topContexts,
+                        leftContexts,
+                        long.MaxValue,
+                        out _,
+                        out planeRate);
+                }
+
+                residualRate += planeRate;
+                int activeTransforms = extent.Width * extent.Height / transformSize.GetSize2d();
+
+                for (int index = 0; index < activeTransforms; index++)
+                {
+                    hasCoefficients |= states[index].EndOfBlock != 0;
+                }
+
+                Span<Av1EncoderTransformBlockState> committedStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
+                    (this.codedAreaChroma / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..];
+
+                CopyTiledCandidate(
+                    samples,
+                    coefficients,
+                    states,
+                    reconstruction,
+                    origin,
+                    width,
+                    extent,
+                    transformSize,
+                    this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)[this.codedAreaChroma..],
+                    committedStates);
+            }
+
+            return new(this.rateMultiplier, rate + residualRate, distortion)
+            {
+                ResidualRate = residualRate,
+                HasCoefficients = hasCoefficients
+            };
+        }
+
         private Av1ChromaPredictionMode SelectChromaMode(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -66,6 +283,33 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out Av1RateDistortionStatistics selectedStatistics)
         {
+            long workStart = Av1WorkCounters.Start();
+            Av1ChromaPredictionMode workResult = this.SelectChromaModeCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, blockSize, tileIndex, lumaMode, transformSize, retainedBlueCoefficients, retainedRedCoefficients, retainedBlueStates, retainedRedStates, ref paletteInfo, out selectedAngleDelta, out selectedChromaFromLumaIndex, out selectedChromaFromLumaSigns, out selectedStatistics);
+            Av1WorkCounters.Stop(Av1WorkCounters.IntraSbuv, workStart);
+            return workResult;
+        }
+
+        private Av1ChromaPredictionMode SelectChromaModeCore(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Av1MacroBlockModeInfo modeInfo,
+            Point lumaOrigin,
+            Point chromaOrigin,
+            Av1BlockSize blockSize,
+            ushort tileIndex,
+            Av1PredictionMode lumaMode,
+            Av1TransformSize transformSize,
+            Span<int> retainedBlueCoefficients,
+            Span<int> retainedRedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedBlueStates,
+            Span<Av1EncoderTransformBlockState> retainedRedStates,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            out int selectedAngleDelta,
+            out byte selectedChromaFromLumaIndex,
+            out sbyte selectedChromaFromLumaSigns,
+            out Av1RateDistortionStatistics selectedStatistics)
+        {
+            Av1WorkCounters.Count(Av1WorkCounters.IntraSbuv);
             Av1ChromaPredictionMode mode = this.SelectChromaPrediction(
                 writer,
                 macroBlock,
@@ -111,10 +355,53 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedChromaFromLumaSigns = 0;
             }
 
+            // Retained states use one entry per 4x4 coefficient slot. Only each transform's first
+            // entry is live; inspect those entries so unused slots cannot mark an empty residual as coded.
+            if (selectedStatistics.Cost != long.MaxValue)
+            {
+                int subX = this.source.ChromaSubsamplingX;
+                int subY = this.source.ChromaSubsamplingY;
+                Av1BlockSize planeSize = blockSize.GetSubsampled(subX != 0, subY != 0);
+                Size extent = GetCodedTransformExtent(macroBlock, planeSize, transformSize, subX, subY);
+                int stateStride = transformSize.GetSize2d() / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                int stateCount = extent.Width * extent.Height / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                for (int index = 0; index < stateCount; index += stateStride)
+                {
+                    selectedStatistics.HasCoefficients |=
+                        retainedBlueStates[index].EndOfBlock != 0 || retainedRedStates[index].EndOfBlock != 0;
+                }
+            }
+
             return mode;
         }
 
         private Av1ChromaPredictionMode SelectChromaPrediction(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Av1MacroBlockModeInfo modeInfo,
+            Point lumaOrigin,
+            Point chromaOrigin,
+            Av1BlockSize blockSize,
+            ushort tileIndex,
+            Av1PredictionMode lumaMode,
+            Av1TransformSize transformSize,
+            Span<int> retainedBlueCoefficients,
+            Span<int> retainedRedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedBlueStates,
+            Span<Av1EncoderTransformBlockState> retainedRedStates,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            out int selectedAngleDelta,
+            out byte selectedChromaFromLumaIndex,
+            out sbyte selectedChromaFromLumaSigns,
+            out Av1RateDistortionStatistics selectedStatistics)
+        {
+            long workStart = Av1WorkCounters.Start();
+            Av1ChromaPredictionMode workResult = this.SelectChromaPredictionCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, blockSize, tileIndex, lumaMode, transformSize, retainedBlueCoefficients, retainedRedCoefficients, retainedBlueStates, retainedRedStates, ref paletteInfo, out selectedAngleDelta, out selectedChromaFromLumaIndex, out selectedChromaFromLumaSigns, out selectedStatistics);
+            Av1WorkCounters.Stop(Av1WorkCounters.ChromaPrediction, workStart);
+            return workResult;
+        }
+
+        private Av1ChromaPredictionMode SelectChromaPredictionCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
@@ -189,11 +476,22 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             bool rightAvailable = modeInfoColumn + (transformSize.Get4x4WideCount() << subsamplingX) < macroBlock.Tile.ModeInfoColumnEnd;
-            bool bottomAvailable = modeInfoRow + (transformSize.Get4x4HighCount() << subsamplingY) < macroBlock.Tile.ModeInfoRowEnd;
+
+            // Samples below the transform exist only while coded rows remain below it.
+            int rowsBelow = (macroBlock.ToBottomEdge >> (3 + subsamplingY)) + chromaBlockSize.GetHeight() - height;
+            bool bottomAvailable = rowsBelow > 0 &&
+                modeInfoRow + (transformSize.Get4x4HighCount() << subsamplingY) < macroBlock.Tile.ModeInfoRowEnd;
+
             Av1PartitionType partitionType = modeInfo.Block.PartitionType;
+
+            // Availability tables describe prediction blocks. Subsampled chroma of a luma block narrower or
+            // shorter than eight samples belongs to the enclosing 8x8 region, so its geometry uses that region.
+            Av1BlockSize availabilityBlockSize = Av1IntraReferenceAvailability.ScaleChromaBlockSize(
+                blockSize, subsamplingX != 0, subsamplingY != 0);
+
             bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
-                blockSize,
+                availabilityBlockSize,
                 modeInfoRow,
                 modeInfoColumn,
                 hasAbove,
@@ -207,7 +505,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool hasBottomLeft = Av1IntraReferenceAvailability.HasBottomLeft(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
-                blockSize,
+                availabilityBlockSize,
                 modeInfoRow,
                 modeInfoColumn,
                 bottomAvailable,
@@ -280,32 +578,32 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedAngleDelta = 0;
             selectedChromaFromLumaIndex = 0;
             selectedChromaFromLumaSigns = 0;
-            int baseModeCount = ChromaModeSearchOrder.Length;
-            int deltaCount = AngleDeltaSearchOrder.Length;
-            int directionalModeCount = (int)Av1ChromaPredictionMode.Directional67Degrees - (int)Av1ChromaPredictionMode.Vertical + 1;
-            HeifEncodingSpeed speed = this.picture.Parent.EncodingSpeed;
+            Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
+            int hogLevel = speedSettings.ChromaHogPruningLevel;
+            float hogThreshold = this.picture.Parent.FrameHeader.IsIntra
+                ? hogLevel == 4 ? 0.4F : hogLevel == 3 ? -0.6F : -1.2F
+                : hogLevel == 4 ? 1.2F : hogLevel == 1 ? -1.2F : 0F;
+
+            ushort chromaModeMask = speedSettings.GetChromaModeMask(
+                blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY));
 
             // Directional evidence excludes the replicated border, unlike block variance. Chroma's
             // normalized histogram is scaled by its sample area before evaluating the directional scores.
-            byte directionalModeSkipMask = speed == HeifEncodingSpeed.Level3
+            byte directionalModeSkipMask = hogLevel != 0
                 ? GetDirectionalModeSkipMask(
                     blueSource,
                     chromaOrigin,
-                    Math.Min(height, blueSource.Height - chromaOrigin.Y),
-                    Math.Min(width, blueSource.Width - chromaOrigin.X),
+                    (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY,
+                    (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX,
                     (1 + subsamplingX) * (1 + subsamplingY),
-                    -1.2F)
+                    hogThreshold)
                 : (byte)0;
 
             // Suppress smooth prediction only when both chroma planes have per-pixel variance below 20.
             // Variance is normalized to eight-bit precision after accumulating the full-precision differences.
-            bool pruneSmooth = speed >= HeifEncodingSpeed.Level6 &&
+            bool pruneSmooth = speedSettings.PruneChromaSmoothByVariance &&
                 GetSourceVariance(blueSource, chromaOrigin, width, height, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, width, height, this.bitDepth) < 20;
-
-            int candidateCount = blockSize >= Av1BlockSize.Block8x8
-                ? baseModeCount + (directionalModeCount * deltaCount)
-                : baseModeCount;
 
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
@@ -314,25 +612,292 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
                 : 0;
 
-            // Spatial base modes precede the six nonzero adjustments for each directional mode.
-            // Chroma-from-luma remains a separate search because it consumes reconstructed luma AC state.
-            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
+            bool chromaFromLumaAllowed = blockSize.AllowsChromaFromLuma(
+                this.picture.Parent.FrameHeader.LosslessArray[modeInfo.Block.SegmentId],
+                colorConfig.SubSamplingX,
+                colorConfig.SubSamplingY);
+
+            Span<long> angleCosts = stackalloc long[7];
+            for (int modeIndex = 0; modeIndex < ChromaModeSearchOrder.Length; modeIndex++)
             {
-                Av1ChromaPredictionMode chromaMode;
-                int angleDelta;
-                if (candidateIndex < baseModeCount)
+                // Chroma-from-luma follows DC so its complete cost bounds the remaining spatial modes.
+                if (modeIndex == 1)
                 {
-                    chromaMode = ChromaModeSearchOrder[candidateIndex];
-                    angleDelta = 0;
-                }
-                else
-                {
-                    int adjustedIndex = candidateIndex - baseModeCount;
-                    chromaMode = (Av1ChromaPredictionMode)((int)Av1ChromaPredictionMode.Vertical + (adjustedIndex / deltaCount));
-                    angleDelta = AngleDeltaSearchOrder[adjustedIndex % deltaCount];
+                    if (chromaFromLumaAllowed &&
+                        (chromaModeMask & (1 << (int)Av1ChromaPredictionMode.ChromaFromLuma)) != 0 &&
+                        Av1RateDistortion.GetCost(
+                            this.rateMultiplier,
+                            writer.GetChromaModeCost(Av1ChromaPredictionMode.ChromaFromLuma, true, lumaMode),
+                            0) <= bestStatistics.Cost)
+                    {
+                        Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
+                        Point chromaLumaOrigin = new(
+                            chromaOrigin.X << subsamplingX,
+                            chromaOrigin.Y << subsamplingY);
+
+                        // CfL consumes the complete luma region represented by this chroma block, which starts before
+                        // the bottom-right ownership point for subsampled 4x4 luma leaves.
+                        TOperator.PrepareChromaFromLuma(
+                            this.reconstruction.GetPlane(Av1Plane.Y),
+                            chromaLumaOrigin,
+                            lumaQ3,
+                            transformSize,
+                            this.GetChromaFromLumaExtent(
+                                macroBlock, lumaOrigin, blockSize, modeInfo.Block.TransformSize, subsamplingX, subsamplingY),
+                            colorConfig.SubSamplingX,
+                            colorConfig.SubSamplingY);
+
+                        // Every alpha candidate uses the same constant DC predictor, so compute each plane once and
+                        // refill the candidate block from its sample instead of rebuilding the identical edge average.
+                        TOperator.PrepareChromaFromLumaDc(
+                            candidateBlueReconstruction[..sampleCount],
+                            blueAbove,
+                            blueLeft,
+                            hasLeft,
+                            hasAbove,
+                            transformSize,
+                            this.bitDepth);
+
+                        TSample blueDc = candidateBlueReconstruction[0];
+                        TOperator.PrepareChromaFromLumaDc(
+                            candidateRedReconstruction[..sampleCount],
+                            redAbove,
+                            redLeft,
+                            hasLeft,
+                            hasAbove,
+                            transformSize,
+                            this.bitDepth);
+
+                        TSample redDc = candidateRedReconstruction[0];
+                        Span<int> blueRates = workspace.GetChromaFromLumaRates(0);
+                        Span<int> redRates = workspace.GetChromaFromLumaRates(1);
+                        Span<long> blueDistortions = workspace.GetChromaFromLumaDistortions(0);
+                        Span<long> redDistortions = workspace.GetChromaFromLumaDistortions(1);
+                        int estimatedBlueCandidate = speedSettings.ChromaFromLumaSearchRange == Av1ChromaFromLumaMath.AlphaCandidateCount
+                            ? Av1ChromaFromLumaMath.AlphaZeroIndex
+                            : FindBestChromaFromLumaEstimate(
+                            blueSource,
+                            chromaOrigin,
+                            blueDc,
+                            lumaQ3,
+                            transformSize,
+                            this.bitDepth,
+                            candidateBlueReconstruction,
+                            workspace.Residual,
+                            this.blockWorkspace.TransformCoefficients,
+                            this.blockWorkspace.TransformWorkspace);
+
+                        int estimatedRedCandidate = speedSettings.ChromaFromLumaSearchRange == Av1ChromaFromLumaMath.AlphaCandidateCount
+                            ? Av1ChromaFromLumaMath.AlphaZeroIndex
+                            : FindBestChromaFromLumaEstimate(
+                            redSource,
+                            chromaOrigin,
+                            redDc,
+                            lumaQ3,
+                            transformSize,
+                            this.bitDepth,
+                            candidateRedReconstruction,
+                            workspace.Residual,
+                            this.blockWorkspace.TransformCoefficients,
+                            this.blockWorkspace.TransformWorkspace);
+
+                        // Estimate each signed alpha from transform energy, then code only the nearby candidates.
+                        // The two planes refine independently before their syntax costs are combined.
+                        bool evaluateAlpha = true;
+                        if (speedSettings.ChromaFromLumaSearchRange == 1)
+                        {
+                            int alphaU = Av1ChromaFromLumaMath.CandidateIndexToAlpha(estimatedBlueCandidate);
+                            int alphaV = Av1ChromaFromLumaMath.CandidateIndexToAlpha(estimatedRedCandidate);
+                            evaluateAlpha = alphaU != 0 || alphaV != 0;
+                            if (evaluateAlpha)
+                            {
+                                int jointSign = Av1ChromaFromLumaMath.JointSign(
+                                    Av1ChromaFromLumaMath.AlphaToSign(alphaU), Av1ChromaFromLumaMath.AlphaToSign(alphaV));
+                                int packedIndex = Av1ChromaFromLumaMath.PackIndices(
+                                    Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU), Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaV));
+                                int headerRate = writer.GetChromaModeCost(Av1ChromaPredictionMode.ChromaFromLuma, true, lumaMode) +
+                                    writer.GetChromaFromLumaCost(packedIndex, jointSign);
+                                evaluateAlpha = Av1RateDistortion.GetCost(this.rateMultiplier, headerRate, 0) <= bestStatistics.Cost;
+                            }
+                        }
+
+                        int radius = speedSettings.ChromaFromLumaSearchRange - 1;
+                        int firstBlueCandidate = Math.Max(0, estimatedBlueCandidate - radius);
+                        int lastBlueCandidate = Math.Min(Av1ChromaFromLumaMath.AlphaCandidateCount, estimatedBlueCandidate + radius + 1);
+                        int firstRedCandidate = Math.Max(0, estimatedRedCandidate - radius);
+                        int lastRedCandidate = Math.Min(Av1ChromaFromLumaMath.AlphaCandidateCount, estimatedRedCandidate + radius + 1);
+                        for (int alphaCandidateIndex = firstBlueCandidate;
+                            evaluateAlpha && alphaCandidateIndex < lastBlueCandidate;
+                            alphaCandidateIndex++)
+                        {
+                            int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
+                            Av1EncoderTransformBlockState candidateBlueState = default;
+                            blueDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
+                                writer,
+                                lumaMode,
+                                Av1Plane.U,
+                                chromaOrigin,
+                                transformSize,
+                                blueSource,
+                                blueDc,
+                                blueContext,
+                                lumaQ3,
+                                alphaQ3,
+                                candidateBlueReconstruction[..sampleCount],
+                                candidateBlueCoefficients[..sampleCount],
+                                ref candidateBlueState,
+                                out blueRates[alphaCandidateIndex]);
+                        }
+
+                        for (int alphaCandidateIndex = firstRedCandidate;
+                            evaluateAlpha && alphaCandidateIndex < lastRedCandidate;
+                            alphaCandidateIndex++)
+                        {
+                            int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
+                            Av1EncoderTransformBlockState candidateRedState = default;
+                            redDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
+                                writer,
+                                lumaMode,
+                                Av1Plane.V,
+                                chromaOrigin,
+                                transformSize,
+                                redSource,
+                                redDc,
+                                redContext,
+                                lumaQ3,
+                                alphaQ3,
+                                candidateRedReconstruction[..sampleCount],
+                                candidateRedCoefficients[..sampleCount],
+                                ref candidateRedState,
+                                out redRates[alphaCandidateIndex]);
+                        }
+
+                        int chromaFromLumaModeRate = Av1TileWriter.GetChromaModeCost(
+                            writer,
+                            this.picture.Parent.FrameHeader,
+                            colorConfig,
+                            modeInfo,
+                            blockSize,
+                            lumaMode,
+                            Av1ChromaPredictionMode.ChromaFromLuma,
+                            0);
+
+                        bool chromaFromLumaSelected = false;
+                        int selectedBlueCandidateIndex = 0;
+                        int selectedRedCandidateIndex = 0;
+                        for (int blueCandidateIndex = firstBlueCandidate;
+                            evaluateAlpha && blueCandidateIndex < lastBlueCandidate;
+                            blueCandidateIndex++)
+                        {
+                            int alphaU = Av1ChromaFromLumaMath.CandidateIndexToAlpha(blueCandidateIndex);
+                            int signU = Av1ChromaFromLumaMath.AlphaToSign(alphaU);
+                            int indexU = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU);
+                            for (int redCandidateIndex = firstRedCandidate; redCandidateIndex < lastRedCandidate; redCandidateIndex++)
+                            {
+                                int alphaV = Av1ChromaFromLumaMath.CandidateIndexToAlpha(redCandidateIndex);
+                                int signV = Av1ChromaFromLumaMath.AlphaToSign(alphaV);
+                                if (signU == Av1ChromaFromLumaMath.SignZero && signV == Av1ChromaFromLumaMath.SignZero)
+                                {
+                                    continue;
+                                }
+
+                                int indexV = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaV);
+                                int jointSign = Av1ChromaFromLumaMath.JointSign(signU, signV);
+                                int packedIndex = Av1ChromaFromLumaMath.PackIndices(indexU, indexV);
+
+                                // Alpha syntax is part of the CfL residual decision; the UV mode symbol is separate.
+                                int residualRate = blueRates[blueCandidateIndex] + redRates[redCandidateIndex] +
+                                    writer.GetChromaFromLumaCost(packedIndex, jointSign);
+                                int rate = chromaFromLumaModeRate + residualRate;
+
+                                long distortion = blueDistortions[blueCandidateIndex] + redDistortions[redCandidateIndex];
+                                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion)
+                                {
+                                    ResidualRate = residualRate
+                                };
+
+                                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                                    $"UVCFL {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} cfl {packedIndex}:{jointSign} rate {rate} resrate {residualRate} dist {distortion} cost {candidateStatistics.Cost} best {bestStatistics.Cost}");
+
+                                if (candidateStatistics.Cost < bestStatistics.Cost)
+                                {
+                                    bestStatistics = candidateStatistics;
+                                    bestMode = Av1ChromaPredictionMode.ChromaFromLuma;
+                                    selectedAngleDelta = 0;
+                                    selectedBlueCandidateIndex = blueCandidateIndex;
+                                    selectedRedCandidateIndex = redCandidateIndex;
+                                    selectedChromaFromLumaIndex = (byte)packedIndex;
+                                    selectedChromaFromLumaSigns = (sbyte)jointSign;
+                                    chromaFromLumaSelected = true;
+                                }
+                            }
+                        }
+
+                        if (chromaFromLumaSelected)
+                        {
+                            // The alpha tables retain only rate and distortion. Regenerate the two selected planes
+                            // once here instead of copying reconstruction and coefficient blocks for all 66 trials.
+                            Av1EncoderTransformBlockState candidateBlueState = default;
+                            _ = this.GetChromaFromLumaPlaneCost(
+                                writer,
+                                lumaMode,
+                                Av1Plane.U,
+                                chromaOrigin,
+                                transformSize,
+                                blueSource,
+                                blueDc,
+                                blueContext,
+                                lumaQ3,
+                                Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedBlueCandidateIndex),
+                                candidateBlueReconstruction[..sampleCount],
+                                candidateBlueCoefficients[..sampleCount],
+                                ref candidateBlueState,
+                                out _);
+
+                            CopyCandidate(
+                                candidateBlueReconstruction,
+                                candidateBlueCoefficients,
+                                blueReconstruction,
+                                chromaOrigin,
+                                retainedBlueCoefficients,
+                                transformSize,
+                                candidateBlueState,
+                                ref retainedBlueStates[0]);
+
+                            Av1EncoderTransformBlockState candidateRedState = default;
+                            _ = this.GetChromaFromLumaPlaneCost(
+                                writer,
+                                lumaMode,
+                                Av1Plane.V,
+                                chromaOrigin,
+                                transformSize,
+                                redSource,
+                                redDc,
+                                redContext,
+                                lumaQ3,
+                                Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedRedCandidateIndex),
+                                candidateRedReconstruction[..sampleCount],
+                                candidateRedCoefficients[..sampleCount],
+                                ref candidateRedState,
+                                out _);
+
+                            CopyCandidate(
+                                candidateRedReconstruction,
+                                candidateRedCoefficients,
+                                redReconstruction,
+                                chromaOrigin,
+                                retainedRedCoefficients,
+                                transformSize,
+                                candidateRedState,
+                                ref retainedRedStates[0]);
+                        }
+                    }
                 }
 
-                if (!ShouldSearchChromaMode(this.picture.Parent.EncodingSpeed, lumaMode, chromaMode))
+                Av1ChromaPredictionMode chromaMode = ChromaModeSearchOrder[modeIndex];
+                if ((chromaModeMask & (1 << (int)chromaMode)) == 0 ||
+                    (speedSettings.PruneChromaModesUsingLumaWinner &&
+                    !ShouldSearchChromaMode(this.picture.Parent.EncodingSpeed, lumaMode, chromaMode)))
                 {
                     continue;
                 }
@@ -342,312 +907,113 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                if (chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
+                if (blockSize >= Av1BlockSize.Block8x8 &&
+                    chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
                     (directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
                 {
                     continue;
                 }
 
-                Av1EncoderTransformBlockState candidateBlueState = default;
-                Av1EncoderTransformBlockState candidateRedState = default;
-
-                // A chroma mode and angle are shared by U and V, so neither plane can replace the
-                // retained result independently. Their complete rate and distortion compete jointly.
-                Av1RateDistortionStatistics candidateStatistics = this.GetChromaCandidateCost(
-                    writer,
-                    modeInfo,
-                    lumaMode,
-                    chromaMode,
-                    angleDelta,
-                    blockSize,
-                    chromaOrigin,
-                    transformSize,
-                    blueSource,
-                    redSource,
-                    blueAbove,
-                    blueLeft,
-                    redAbove,
-                    redLeft,
-                    hasLeft,
-                    hasAbove,
-                    this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, Av1Plane.U),
-                    blueContext,
-                    redContext,
-                    paletteDisabledCost,
-                    candidateBlueReconstruction[..sampleCount],
-                    candidateRedReconstruction[..sampleCount],
-                    candidateBlueCoefficients[..sampleCount],
-                    candidateRedCoefficients[..sampleCount],
-                    ref candidateBlueState,
-                    ref candidateRedState);
-
-                if (candidateStatistics.Cost < bestStatistics.Cost)
+                int modeRate = writer.GetChromaModeCost(chromaMode, chromaFromLumaAllowed, lumaMode);
+                if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
                 {
-                    CopyCandidate(
-                        candidateBlueReconstruction,
-                        candidateBlueCoefficients,
-                        blueReconstruction,
-                        chromaOrigin,
-                        retainedBlueCoefficients,
-                        transformSize,
-                        candidateBlueState,
-                        ref retainedBlueStates[0]);
-
-                    CopyCandidate(
-                        candidateRedReconstruction,
-                        candidateRedCoefficients,
-                        redReconstruction,
-                        chromaOrigin,
-                        retainedRedCoefficients,
-                        transformSize,
-                        candidateRedState,
-                        ref retainedRedStates[0]);
-
-                    bestStatistics = candidateStatistics;
-                    bestMode = chromaMode;
-                    selectedAngleDelta = angleDelta;
-                }
-            }
-
-            bool chromaFromLumaAllowed = blockSize.AllowsChromaFromLuma(
-                this.picture.Parent.FrameHeader.LosslessArray[modeInfo.Block.SegmentId],
-                colorConfig.SubSamplingX,
-                colorConfig.SubSamplingY);
-
-            if (chromaFromLumaAllowed)
-            {
-                Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
-                Point chromaLumaOrigin = new(
-                    chromaOrigin.X << subsamplingX,
-                    chromaOrigin.Y << subsamplingY);
-
-                // CfL consumes the complete luma region represented by this chroma block, which starts before
-                // the bottom-right ownership point for subsampled 4x4 luma leaves.
-                TOperator.PrepareChromaFromLuma(
-                    this.reconstruction.GetPlane(Av1Plane.Y),
-                    chromaLumaOrigin,
-                    lumaQ3,
-                    transformSize,
-                    colorConfig.SubSamplingX,
-                    colorConfig.SubSamplingY);
-
-                // Every alpha candidate uses the same constant DC predictor, so compute each plane once and
-                // refill the candidate block from its sample instead of rebuilding the identical edge average.
-                TOperator.PrepareChromaFromLumaDc(
-                    candidateBlueReconstruction[..sampleCount],
-                    blueAbove,
-                    blueLeft,
-                    hasLeft,
-                    hasAbove,
-                    transformSize,
-                    this.bitDepth);
-
-                TSample blueDc = candidateBlueReconstruction[0];
-                TOperator.PrepareChromaFromLumaDc(
-                    candidateRedReconstruction[..sampleCount],
-                    redAbove,
-                    redLeft,
-                    hasLeft,
-                    hasAbove,
-                    transformSize,
-                    this.bitDepth);
-
-                TSample redDc = candidateRedReconstruction[0];
-                Span<int> blueRates = workspace.GetChromaFromLumaRates(0);
-                Span<int> redRates = workspace.GetChromaFromLumaRates(1);
-                Span<long> blueDistortions = workspace.GetChromaFromLumaDistortions(0);
-                Span<long> redDistortions = workspace.GetChromaFromLumaDistortions(1);
-                int firstBlueCandidate = 0;
-                int lastBlueCandidate = Av1ChromaFromLumaMath.AlphaCandidateCount;
-                int firstRedCandidate = 0;
-                int lastRedCandidate = Av1ChromaFromLumaMath.AlphaCandidateCount;
-                if (speed >= HeifEncodingSpeed.Level6)
-                {
-                    firstBlueCandidate = FindBestChromaFromLumaEstimate(
-                        blueSource,
-                        chromaOrigin,
-                        blueDc,
-                        lumaQ3,
-                        transformSize,
-                        this.bitDepth,
-                        candidateBlueReconstruction,
-                        workspace.Residual,
-                        this.blockWorkspace.TransformCoefficients,
-                        this.blockWorkspace.TransformWorkspace);
-
-                    lastBlueCandidate = firstBlueCandidate + 1;
-                    firstRedCandidate = FindBestChromaFromLumaEstimate(
-                        redSource,
-                        chromaOrigin,
-                        redDc,
-                        lumaQ3,
-                        transformSize,
-                        this.bitDepth,
-                        candidateRedReconstruction,
-                        workspace.Residual,
-                        this.blockWorkspace.TransformCoefficients,
-                        this.blockWorkspace.TransformWorkspace);
-
-                    lastRedCandidate = firstRedCandidate + 1;
+                    continue;
                 }
 
-                // At speed six and above libaom estimates all alpha magnitudes with DCT SATD and performs full RD
-                // only for the best signed alpha on each plane. Lower speeds retain the exhaustive 66 transforms.
-                for (int alphaCandidateIndex = firstBlueCandidate; alphaCandidateIndex < lastBlueCandidate; alphaCandidateIndex++)
+                bool directional = chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees;
+                int angleCount = directional && blockSize >= Av1BlockSize.Block8x8 ? ChromaAngleSearchOrder.Length : 1;
+                angleCosts.Fill(long.MaxValue);
+                for (int angleIndex = 0; angleIndex < angleCount; angleIndex++)
                 {
-                    int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
-                    Av1EncoderTransformBlockState candidateBlueState = default;
-                    blueDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
-                        writer,
-                        lumaMode,
-                        Av1Plane.U,
-                        chromaOrigin,
-                        transformSize,
-                        blueSource,
-                        blueDc,
-                        blueContext,
-                        lumaQ3,
-                        alphaQ3,
-                        candidateBlueReconstruction[..sampleCount],
-                        candidateBlueCoefficients[..sampleCount],
-                        ref candidateBlueState,
-                        out blueRates[alphaCandidateIndex]);
-                }
-
-                for (int alphaCandidateIndex = firstRedCandidate; alphaCandidateIndex < lastRedCandidate; alphaCandidateIndex++)
-                {
-                    int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
-                    Av1EncoderTransformBlockState candidateRedState = default;
-                    redDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
-                        writer,
-                        lumaMode,
-                        Av1Plane.V,
-                        chromaOrigin,
-                        transformSize,
-                        redSource,
-                        redDc,
-                        redContext,
-                        lumaQ3,
-                        alphaQ3,
-                        candidateRedReconstruction[..sampleCount],
-                        candidateRedCoefficients[..sampleCount],
-                        ref candidateRedState,
-                        out redRates[alphaCandidateIndex]);
-                }
-
-                int chromaFromLumaModeRate = Av1TileWriter.GetChromaModeCost(
-                    writer,
-                    this.picture.Parent.FrameHeader,
-                    colorConfig,
-                    modeInfo,
-                    blockSize,
-                    lumaMode,
-                    Av1ChromaPredictionMode.ChromaFromLuma,
-                    0);
-
-                bool chromaFromLumaSelected = false;
-                int selectedBlueCandidateIndex = 0;
-                int selectedRedCandidateIndex = 0;
-                for (int blueCandidateIndex = firstBlueCandidate; blueCandidateIndex < lastBlueCandidate; blueCandidateIndex++)
-                {
-                    int alphaU = Av1ChromaFromLumaMath.CandidateIndexToAlpha(blueCandidateIndex);
-                    int signU = Av1ChromaFromLumaMath.AlphaToSign(alphaU);
-                    int indexU = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU);
-                    for (int redCandidateIndex = firstRedCandidate; redCandidateIndex < lastRedCandidate; redCandidateIndex++)
+                    int angleDelta = ChromaAngleSearchOrder[angleIndex];
+                    if ((angleDelta & 1) != 0)
                     {
-                        int alphaV = Av1ChromaFromLumaMath.CandidateIndexToAlpha(redCandidateIndex);
-                        int signV = Av1ChromaFromLumaMath.AlphaToSign(alphaV);
-                        if (signU == Av1ChromaFromLumaMath.SignZero && signV == Av1ChromaFromLumaMath.SignZero)
+                        long limit = bestStatistics.Cost == long.MaxValue ? long.MaxValue : bestStatistics.Cost + (bestStatistics.Cost >> 5);
+                        long lowerCost = angleDelta == -3 ? long.MaxValue : angleCosts[angleDelta + 2];
+                        long upperCost = angleDelta == 3 ? long.MaxValue : angleCosts[angleDelta + 4];
+                        if (lowerCost > limit && upperCost > limit)
                         {
                             continue;
                         }
-
-                        int indexV = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaV);
-                        int jointSign = Av1ChromaFromLumaMath.JointSign(signU, signV);
-                        int packedIndex = Av1ChromaFromLumaMath.PackIndices(indexU, indexV);
-                        int rate = chromaFromLumaModeRate
-                            + blueRates[blueCandidateIndex]
-                            + redRates[redCandidateIndex]
-                            + writer.GetChromaFromLumaCost(packedIndex, jointSign);
-
-                        long distortion = blueDistortions[blueCandidateIndex] + redDistortions[redCandidateIndex];
-                        Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
-                        bool winsSearchOrderTie = candidateStatistics.Cost == bestStatistics.Cost
-                            && !chromaFromLumaSelected
-                            && bestMode != Av1ChromaPredictionMode.DC;
-
-                        // CfL follows DC and precedes every other chroma mode in the reference search order.
-                        if (candidateStatistics.Cost < bestStatistics.Cost || winsSearchOrderTie)
-                        {
-                            bestStatistics = candidateStatistics;
-                            bestMode = Av1ChromaPredictionMode.ChromaFromLuma;
-                            selectedAngleDelta = 0;
-                            selectedBlueCandidateIndex = blueCandidateIndex;
-                            selectedRedCandidateIndex = redCandidateIndex;
-                            selectedChromaFromLumaIndex = (byte)packedIndex;
-                            selectedChromaFromLumaSigns = (sbyte)jointSign;
-                            chromaFromLumaSelected = true;
-                        }
                     }
-                }
 
-                if (chromaFromLumaSelected)
-                {
-                    // The alpha tables retain only rate and distortion. Regenerate the two selected planes
-                    // once here instead of copying reconstruction and coefficient blocks for all 66 trials.
+                    long costLimit = bestStatistics.Cost;
+                    if (angleCount > 1 && (angleDelta & 1) == 0 && costLimit != long.MaxValue)
+                    {
+                        costLimit += costLimit >> (angleDelta == 0 ? 3 : 5);
+                    }
+
                     Av1EncoderTransformBlockState candidateBlueState = default;
-                    _ = this.GetChromaFromLumaPlaneCost(
+                    Av1EncoderTransformBlockState candidateRedState = default;
+
+                    // A chroma mode and angle are shared by U and V, so neither plane can replace the
+                    // retained result independently. Their complete rate and distortion compete jointly.
+                    Av1RateDistortionStatistics candidateStatistics = this.GetChromaCandidateCost(
                         writer,
+                        modeInfo,
                         lumaMode,
-                        Av1Plane.U,
+                        chromaMode,
+                        angleDelta,
+                        blockSize,
                         chromaOrigin,
                         transformSize,
                         blueSource,
-                        blueDc,
-                        blueContext,
-                        lumaQ3,
-                        Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedBlueCandidateIndex),
-                        candidateBlueReconstruction[..sampleCount],
-                        candidateBlueCoefficients[..sampleCount],
-                        ref candidateBlueState,
-                        out _);
-
-                    CopyCandidate(
-                        candidateBlueReconstruction,
-                        candidateBlueCoefficients,
-                        blueReconstruction,
-                        chromaOrigin,
-                        retainedBlueCoefficients,
-                        transformSize,
-                        candidateBlueState,
-                        ref retainedBlueStates[0]);
-
-                    Av1EncoderTransformBlockState candidateRedState = default;
-                    _ = this.GetChromaFromLumaPlaneCost(
-                        writer,
-                        lumaMode,
-                        Av1Plane.V,
-                        chromaOrigin,
-                        transformSize,
                         redSource,
-                        redDc,
+                        blueAbove,
+                        blueLeft,
+                        redAbove,
+                        redLeft,
+                        hasLeft,
+                        hasAbove,
+                        this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, Av1Plane.U),
+                        blueContext,
                         redContext,
-                        lumaQ3,
-                        Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedRedCandidateIndex),
+                        paletteDisabledCost,
+                        costLimit,
+                        candidateBlueReconstruction[..sampleCount],
                         candidateRedReconstruction[..sampleCount],
+                        candidateBlueCoefficients[..sampleCount],
                         candidateRedCoefficients[..sampleCount],
-                        ref candidateRedState,
-                        out _);
+                        ref candidateBlueState,
+                        ref candidateRedState);
 
-                    CopyCandidate(
-                        candidateRedReconstruction,
-                        candidateRedCoefficients,
-                        redReconstruction,
-                        chromaOrigin,
-                        retainedRedCoefficients,
-                        transformSize,
-                        candidateRedState,
-                        ref retainedRedStates[0]);
+                    if (angleDelta == 0 && candidateStatistics.Cost == long.MaxValue)
+                    {
+                        break;
+                    }
+
+                    Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                        $"UVMODE {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} uvmode {(int)chromaMode} angle {angleDelta} rate {candidateStatistics.Rate} resrate {candidateStatistics.ResidualRate} dist {candidateStatistics.Distortion} cost {candidateStatistics.Cost} best {bestStatistics.Cost}");
+
+                    angleCosts[angleDelta + 3] = candidateStatistics.Cost;
+                    if (candidateStatistics.Cost < bestStatistics.Cost)
+                    {
+                        CopyCandidate(
+                            candidateBlueReconstruction,
+                            candidateBlueCoefficients,
+                            blueReconstruction,
+                            chromaOrigin,
+                            retainedBlueCoefficients,
+                            transformSize,
+                            candidateBlueState,
+                            ref retainedBlueStates[0]);
+
+                        CopyCandidate(
+                            candidateRedReconstruction,
+                            candidateRedCoefficients,
+                            redReconstruction,
+                            chromaOrigin,
+                            retainedRedCoefficients,
+                            transformSize,
+                            candidateRedState,
+                            ref retainedRedStates[0]);
+
+                        bestStatistics = candidateStatistics;
+                        bestMode = chromaMode;
+                        selectedAngleDelta = angleDelta;
+                        selectedChromaFromLumaIndex = 0;
+                        selectedChromaFromLumaSigns = 0;
+                    }
                 }
             }
 
@@ -736,18 +1102,25 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
             Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
             Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
-            HeifEncodingSpeed speed = this.picture.Parent.EncodingSpeed;
-            byte directionalModeSkipMask = speed == HeifEncodingSpeed.Level3
+            Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
+            int hogLevel = speedSettings.ChromaHogPruningLevel;
+            float hogThreshold = this.picture.Parent.FrameHeader.IsIntra
+                ? hogLevel == 4 ? 0.4F : hogLevel == 3 ? -0.6F : -1.2F
+                : hogLevel == 4 ? 1.2F : hogLevel == 1 ? -1.2F : 0F;
+
+            ushort chromaModeMask = speedSettings.GetChromaModeMask(
+                blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY));
+            byte directionalModeSkipMask = hogLevel != 0
                 ? GetDirectionalModeSkipMask(
                     blueSource,
                     chromaOrigin,
-                    Math.Min(blockHeight, blueSource.Height - chromaOrigin.Y),
-                    Math.Min(blockWidth, blueSource.Width - chromaOrigin.X),
+                    (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY,
+                    (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX,
                     (1 + subsamplingX) * (1 + subsamplingY),
-                    -1.2F)
+                    hogThreshold)
                 : (byte)0;
 
-            bool pruneSmooth = speed >= HeifEncodingSpeed.Level6 &&
+            bool pruneSmooth = speedSettings.PruneChromaSmoothByVariance &&
                 GetSourceVariance(blueSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
@@ -757,44 +1130,19 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
                 : 0;
 
-            int baseModeCount = ChromaModeSearchOrder.Length;
-            int deltaCount = AngleDeltaSearchOrder.Length;
-            int directionalModeCount =
-                (int)Av1ChromaPredictionMode.Directional67Degrees -
-                (int)Av1ChromaPredictionMode.Vertical +
-                1;
-
-            int candidateCount = blockSize >= Av1BlockSize.Block8x8
-                ? baseModeCount + (directionalModeCount * deltaCount)
-                : baseModeCount;
-
             Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             Av1ChromaPredictionMode bestMode = Av1ChromaPredictionMode.DC;
             selectedAngleDelta = 0;
             selectedChromaFromLumaIndex = 0;
             selectedChromaFromLumaSigns = 0;
 
-            // A large chroma block is predicted and transformed in the same raster order used by the tile
-            // writer. Each completed transform supplies both reconstructed edges and coefficient contexts.
-            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
+            Span<long> angleCosts = stackalloc long[7];
+            for (int modeIndex = 0; modeIndex < ChromaModeSearchOrder.Length; modeIndex++)
             {
-                Av1ChromaPredictionMode chromaMode;
-                int angleDelta;
-                if (candidateIndex < baseModeCount)
-                {
-                    chromaMode = ChromaModeSearchOrder[candidateIndex];
-                    angleDelta = 0;
-                }
-                else
-                {
-                    int adjustedIndex = candidateIndex - baseModeCount;
-                    chromaMode = (Av1ChromaPredictionMode)(
-                        (int)Av1ChromaPredictionMode.Vertical + (adjustedIndex / deltaCount));
-
-                    angleDelta = AngleDeltaSearchOrder[adjustedIndex % deltaCount];
-                }
-
-                if (!ShouldSearchChromaMode(this.picture.Parent.EncodingSpeed, lumaMode, chromaMode))
+                Av1ChromaPredictionMode chromaMode = ChromaModeSearchOrder[modeIndex];
+                if ((chromaModeMask & (1 << (int)chromaMode)) == 0 ||
+                    (speedSettings.PruneChromaModesUsingLumaWinner &&
+                    !ShouldSearchChromaMode(this.picture.Parent.EncodingSpeed, lumaMode, chromaMode)))
                 {
                     continue;
                 }
@@ -804,115 +1152,185 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                if (chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
+                if (blockSize >= Av1BlockSize.Block8x8 &&
+                    chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
                     (directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
                 {
                     continue;
                 }
 
-                blueNeighbors.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
-                blueNeighbors.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
-                redNeighbors.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
-                redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
-                Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
-                long distortion = this.GetTiledPlaneCost(
-                    writer,
-                    macroBlock,
-                    lumaOrigin,
-                    chromaOrigin,
-                    blockSize,
-                    chromaBlockSize,
-                    transformSize,
-                    maximumUnitBlockSize,
-                    subsamplingX,
-                    subsamplingY,
-                    lumaMode,
-                    predictionMode,
-                    angleDelta,
-                    Av1Plane.U,
-                    blueSource,
-                    blueReconstruction,
-                    [],
-                    default,
-                    candidateBlueReconstruction,
-                    candidateBlueCoefficients,
-                    candidateBlueStates,
-                    blueTopContexts,
-                    blueLeftContexts,
-                    out int blueRate);
-
-                distortion += this.GetTiledPlaneCost(
-                    writer,
-                    macroBlock,
-                    lumaOrigin,
-                    chromaOrigin,
-                    blockSize,
-                    chromaBlockSize,
-                    transformSize,
-                    maximumUnitBlockSize,
-                    subsamplingX,
-                    subsamplingY,
-                    lumaMode,
-                    predictionMode,
-                    angleDelta,
-                    Av1Plane.V,
-                    redSource,
-                    redReconstruction,
-                    [],
-                    default,
-                    candidateRedReconstruction,
-                    candidateRedCoefficients,
-                    candidateRedStates,
-                    redTopContexts,
-                    redLeftContexts,
-                    out int redRate);
-
-                int rate = Av1TileWriter.GetChromaModeCost(
-                    writer,
-                    this.picture.Parent.FrameHeader,
-                    colorConfig,
-                    modeInfo,
-                    blockSize,
-                    lumaMode,
-                    chromaMode,
-                    angleDelta);
-
-                rate += blueRate + redRate;
-                if (chromaMode == Av1ChromaPredictionMode.DC)
+                int modeRate = writer.GetChromaModeCost(chromaMode, false, lumaMode);
+                if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
                 {
-                    rate += paletteDisabledCost;
+                    continue;
                 }
 
-                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
-                if (candidateStatistics.Cost < bestStatistics.Cost)
+                bool directional = chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees;
+                int angleCount = directional && blockSize >= Av1BlockSize.Block8x8 ? ChromaAngleSearchOrder.Length : 1;
+                angleCosts.Fill(long.MaxValue);
+                for (int angleIndex = 0; angleIndex < angleCount; angleIndex++)
                 {
-                    CopyTiledCandidate(
+                    int angleDelta = ChromaAngleSearchOrder[angleIndex];
+                    if ((angleDelta & 1) != 0)
+                    {
+                        long limit = bestStatistics.Cost == long.MaxValue ? long.MaxValue : bestStatistics.Cost + (bestStatistics.Cost >> 5);
+                        long lowerCost = angleDelta == -3 ? long.MaxValue : angleCosts[angleDelta + 2];
+                        long upperCost = angleDelta == 3 ? long.MaxValue : angleCosts[angleDelta + 4];
+                        if (lowerCost > limit && upperCost > limit)
+                        {
+                            continue;
+                        }
+                    }
+
+                    long costLimit = bestStatistics.Cost;
+                    if (angleCount > 1 && (angleDelta & 1) == 0 && costLimit != long.MaxValue)
+                    {
+                        costLimit += costLimit >> (angleDelta == 0 ? 3 : 5);
+                    }
+
+                    blueNeighbors.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
+                    blueNeighbors.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
+                    redNeighbors.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
+                    redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
+                    Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
+                    long distortion = this.GetTiledPlaneCost(
+                        writer,
+                        macroBlock,
+                        lumaOrigin,
+                        chromaOrigin,
+                        blockSize,
+                        chromaBlockSize,
+                        transformSize,
+                        maximumUnitBlockSize,
+                        subsamplingX,
+                        subsamplingY,
+                        lumaMode,
+                        predictionMode,
+                        angleDelta,
+                        Av1Plane.U,
+                        blueSource,
+                        blueReconstruction,
+                        [],
+                        default,
                         candidateBlueReconstruction,
                         candidateBlueCoefficients,
                         candidateBlueStates,
-                        blueReconstruction,
-                        chromaOrigin,
-                        blockWidth,
-                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
-                        transformSize,
-                        retainedBlueCoefficients,
-                        retainedBlueStates);
+                        blueTopContexts,
+                        blueLeftContexts,
+                        costLimit,
+                        out long bluePredictionDistortion,
+                        out int blueRate);
 
-                    CopyTiledCandidate(
+                    // block_rd_txfm (tx_search.c L3122-3140) scores an intra transform with its coefficient
+                    // rate and distortion alone, and invalidates the plane as soon as the running cost passes
+                    // the reference. The skipped alternative belongs to inter blocks.
+                    if (blueRate == int.MaxValue ||
+                        Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion) > costLimit)
+                    {
+                        if (angleDelta == 0)
+                        {
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    long redDistortion = this.GetTiledPlaneCost(
+                        writer,
+                        macroBlock,
+                        lumaOrigin,
+                        chromaOrigin,
+                        blockSize,
+                        chromaBlockSize,
+                        transformSize,
+                        maximumUnitBlockSize,
+                        subsamplingX,
+                        subsamplingY,
+                        lumaMode,
+                        predictionMode,
+                        angleDelta,
+                        Av1Plane.V,
+                        redSource,
+                        redReconstruction,
+                        [],
+                        default,
                         candidateRedReconstruction,
                         candidateRedCoefficients,
                         candidateRedStates,
-                        redReconstruction,
-                        chromaOrigin,
-                        blockWidth,
-                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
-                        transformSize,
-                        retainedRedCoefficients,
-                        retainedRedStates);
+                        redTopContexts,
+                        redLeftContexts,
+                        costLimit,
+                        out long redPredictionDistortion,
+                        out int redRate);
 
-                    bestStatistics = candidateStatistics;
-                    bestMode = chromaMode;
-                    selectedAngleDelta = angleDelta;
+                    if (redRate == int.MaxValue ||
+                        Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion + redDistortion) > costLimit)
+                    {
+                        if (angleDelta == 0)
+                        {
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    distortion += redDistortion;
+
+                    int rate = Av1TileWriter.GetChromaModeCost(
+                        writer,
+                        this.picture.Parent.FrameHeader,
+                        colorConfig,
+                        modeInfo,
+                        blockSize,
+                        lumaMode,
+                        chromaMode,
+                        angleDelta);
+
+                    rate += blueRate + redRate;
+                    if (chromaMode == Av1ChromaPredictionMode.DC)
+                    {
+                        rate += paletteDisabledCost;
+                    }
+
+                    Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion)
+                    {
+                        ResidualRate = blueRate + redRate
+                    };
+
+                    Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                        $"UVTILED {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} uvmode {(int)chromaMode} angle {angleDelta} rate {candidateStatistics.Rate} resrate {candidateStatistics.ResidualRate} dist {candidateStatistics.Distortion} cost {candidateStatistics.Cost} best {bestStatistics.Cost}");
+
+                    angleCosts[angleDelta + 3] = candidateStatistics.Cost;
+                    if (candidateStatistics.Cost < bestStatistics.Cost)
+                    {
+                        CopyTiledCandidate(
+                            candidateBlueReconstruction,
+                            candidateBlueCoefficients,
+                            candidateBlueStates,
+                            blueReconstruction,
+                            chromaOrigin,
+                            blockWidth,
+                            GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
+                            transformSize,
+                            retainedBlueCoefficients,
+                            retainedBlueStates);
+
+                        CopyTiledCandidate(
+                            candidateRedReconstruction,
+                            candidateRedCoefficients,
+                            candidateRedStates,
+                            redReconstruction,
+                            chromaOrigin,
+                            blockWidth,
+                            GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
+                            transformSize,
+                            retainedRedCoefficients,
+                            retainedRedStates);
+
+                        bestStatistics = candidateStatistics;
+                        bestMode = chromaMode;
+                        selectedAngleDelta = angleDelta;
+                    }
                 }
             }
 
@@ -991,6 +1409,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> candidateStates,
             Span<byte> topContexts,
             Span<byte> leftContexts,
+            long costLimit,
+            out long predictionDistortion,
             out int rate)
         {
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
@@ -1030,6 +1450,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int coefficientOffset = 0;
             int transformIndex = 0;
             long distortion = 0;
+            long accumulatedCost = 0;
+            predictionDistortion = 0;
             rate = 0;
 
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
@@ -1045,6 +1467,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         int transformRow = rowOffset / transformHeight;
                         for (int columnOffset = regionColumn; columnOffset < unitRight; columnOffset += transformWidth)
                         {
+                            if (accumulatedCost > costLimit)
+                            {
+                                rate = int.MaxValue;
+                                return long.MaxValue;
+                            }
+
                             int transformColumn = columnOffset / transformWidth;
                             int reconstructionOffset = (rowOffset * blockWidth) + columnOffset;
                             Point transformOrigin = chromaOrigin + new Size(columnOffset, rowOffset);
@@ -1111,8 +1539,14 @@ internal static partial class Av1IntraSuperblockEncoder
                                 coefficientOffset,
                                 transformSampleCount);
 
+                            predictionDistortion += this.GetChromaPredictionDistortion(
+                                residual,
+                                transformWidth,
+                                Math.Min(transformWidth, source.Width - transformOrigin.X),
+                                Math.Min(transformHeight, source.Height - transformOrigin.Y));
+
                             ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
-                            distortion += TOperator.EncodePredictionCandidate(
+                            long transformDistortion = TOperator.EncodePredictionCandidate(
                                 this.blockWorkspace,
                                 writer,
                                 blockContext,
@@ -1136,7 +1570,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 this.bitDepth,
                                 ref state);
 
-                            rate += writer.GetCoefficientCost(
+                            int transformRate = writer.GetCoefficientCost(
                                 transformSize,
                                 transformType,
                                 lumaMode,
@@ -1147,6 +1581,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                                 Av1FilterIntraMode.AllFilterIntraModes,
                                 usesInterTransformSet: false);
+
+                            rate += transformRate;
+                            distortion += transformDistortion;
+                            accumulatedCost += Av1RateDistortion.GetCost(this.rateMultiplier, transformRate, transformDistortion);
 
                             byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                                 transformCoefficients,
@@ -1254,7 +1692,39 @@ internal static partial class Av1IntraSuperblockEncoder
             return distortion;
         }
 
+        private long GetChromaPredictionDistortion(ReadOnlySpan<short> residual, int stride, int width, int height)
+        {
+            long squares = 0;
+            for (int row = 0; row < height; row++)
+            {
+                squares += Av1ResidualBuilder.SumSquares(residual.Slice(row * stride, width));
+            }
+
+            // Keep the same eight-bit distortion scale for every sample precision, rounding once
+            // for the complete transform before accumulating it with the other transforms.
+            int shift = (this.bitDepth.GetBitCount() - 8) * 2;
+            return ((squares + ((1L << shift) >> 1)) >> shift) << 4;
+        }
+
         private static int FindBestChromaFromLumaEstimate(
+            Buffer2DRegion<TSample> source,
+            Point chromaOrigin,
+            TSample dc,
+            ReadOnlySpan<short> lumaQ3,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth,
+            Span<TSample> prediction,
+            Span<short> residual,
+            Span<int> coefficients,
+            Span<int> transformWorkspace)
+        {
+            long workStart = Av1WorkCounters.Start();
+            int workResult = FindBestChromaFromLumaEstimateCore(source, chromaOrigin, dc, lumaQ3, transformSize, bitDepth, prediction, residual, coefficients, transformWorkspace);
+            Av1WorkCounters.Stop(Av1WorkCounters.CflEstimate, workStart);
+            return workResult;
+        }
+
+        private static int FindBestChromaFromLumaEstimateCore(
             Buffer2DRegion<TSample> source,
             Point chromaOrigin,
             TSample dc,
@@ -1269,34 +1739,45 @@ internal static partial class Av1IntraSuperblockEncoder
             int sampleCount = transformSize.GetSize2d();
             long bestCost = long.MaxValue;
             int bestCandidate = Av1ChromaFromLumaMath.AlphaZeroIndex;
-            for (int candidate = 0; candidate < Av1ChromaFromLumaMath.AlphaCandidateCount; candidate++)
+
+            // Start at zero, then walk positive and negative alpha independently. Stop each
+            // direction when its transform energy no longer improves the best estimate.
+            for (int directionIndex = 0; directionIndex < 2; directionIndex++)
             {
-                prediction[..sampleCount].Fill(dc);
-                TOperator.ApplyChromaFromLuma(
-                    lumaQ3,
-                    prediction,
-                    Av1ChromaFromLumaMath.CandidateIndexToAlpha(candidate),
-                    transformSize,
-                    bitDepth);
-
-                TOperator.SubtractPrediction(source, chromaOrigin, prediction, residual, transformSize);
-                Av1ForwardTransformer.Transform2d(
-                    residual,
-                    coefficients,
-                    (uint)transformSize.GetWidth(),
-                    Av1TransformType.DctDct,
-                    transformSize,
-                    bitDepth.GetBitCount(),
-                    transformWorkspace);
-
-                long cost = 0;
-                for (int index = 0; index < sampleCount; index++)
+                int direction = directionIndex == 0 ? 1 : -1;
+                int firstStep = directionIndex == 0 ? 0 : 1;
+                for (int step = firstStep; step <= Av1ChromaFromLumaMath.AlphaMagnitudeCount; step++)
                 {
-                    cost += Math.Abs((long)coefficients[index]);
-                }
+                    int candidate = Av1ChromaFromLumaMath.AlphaZeroIndex + (direction * step);
+                    prediction[..sampleCount].Fill(dc);
+                    TOperator.ApplyChromaFromLuma(
+                        lumaQ3,
+                        prediction,
+                        Av1ChromaFromLumaMath.CandidateIndexToAlpha(candidate),
+                        transformSize,
+                        bitDepth);
 
-                if (cost < bestCost)
-                {
+                    TOperator.SubtractPrediction(source, chromaOrigin, prediction, residual, transformSize.GetWidth(), transformSize.GetHeight());
+                    Av1ForwardTransformer.Transform2d(
+                        residual,
+                        coefficients,
+                        (uint)transformSize.GetWidth(),
+                        Av1TransformType.DctDct,
+                        transformSize,
+                        bitDepth.GetBitCount(),
+                        transformWorkspace);
+
+                    long cost = 0;
+                    for (int index = 0; index < sampleCount; index++)
+                    {
+                        cost += Math.Abs((long)coefficients[index]);
+                    }
+
+                    if (cost >= bestCost)
+                    {
+                        break;
+                    }
+
                     bestCost = cost;
                     bestCandidate = candidate;
                 }
@@ -1377,6 +1858,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext blueContext,
             Av1TransformBlockContext redContext,
             int paletteDisabledCost,
+            long costLimit,
             Span<TSample> candidateBlueReconstruction,
             Span<TSample> candidateRedReconstruction,
             Span<int> candidateBlueCoefficients,
@@ -1384,6 +1866,42 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState candidateBlueState,
             ref Av1EncoderTransformBlockState candidateRedState)
         {
+            long workStart = Av1WorkCounters.Start();
+            Av1RateDistortionStatistics workResult = this.GetChromaCandidateCostCore(writer, modeInfo, lumaMode, chromaMode, angleDelta, blockSize, chromaOrigin, transformSize, blueSource, redSource, blueAbove, blueLeft, redAbove, redLeft, hasLeft, hasAbove, smoothIntraEdges, blueContext, redContext, paletteDisabledCost, costLimit, candidateBlueReconstruction, candidateRedReconstruction, candidateBlueCoefficients, candidateRedCoefficients, ref candidateBlueState, ref candidateRedState);
+            Av1WorkCounters.Stop(Av1WorkCounters.ChromaCandidate, workStart);
+            return workResult;
+        }
+
+        private Av1RateDistortionStatistics GetChromaCandidateCostCore(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockModeInfo modeInfo,
+            Av1PredictionMode lumaMode,
+            Av1ChromaPredictionMode chromaMode,
+            int angleDelta,
+            Av1BlockSize blockSize,
+            Point chromaOrigin,
+            Av1TransformSize transformSize,
+            Buffer2DRegion<TSample> blueSource,
+            Buffer2DRegion<TSample> redSource,
+            ReadOnlySpan<TSample> blueAbove,
+            ReadOnlySpan<TSample> blueLeft,
+            ReadOnlySpan<TSample> redAbove,
+            ReadOnlySpan<TSample> redLeft,
+            bool hasLeft,
+            bool hasAbove,
+            bool smoothIntraEdges,
+            Av1TransformBlockContext blueContext,
+            Av1TransformBlockContext redContext,
+            int paletteDisabledCost,
+            long costLimit,
+            Span<TSample> candidateBlueReconstruction,
+            Span<TSample> candidateRedReconstruction,
+            Span<int> candidateBlueCoefficients,
+            Span<int> candidateRedCoefficients,
+            ref Av1EncoderTransformBlockState candidateBlueState,
+            ref Av1EncoderTransformBlockState candidateRedState)
+        {
+            Av1WorkCounters.Count(Av1WorkCounters.ChromaUvrd);
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
 
             // Intra chroma derives one transform type from the shared UV prediction mode. The type is not
@@ -1394,6 +1912,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     predictionMode,
                     transformSize,
                     this.picture.Parent.FrameHeader.UseReducedTransformSet);
+
+            // search_tx_type is shared by both planes, so chroma follows the same distortion policy as luma
+            // (tx_search.c L2162-2179). The policy belongs to the active mode evaluation stage.
+            Av1EncoderSpeedSettings distortionSettings = this.picture.Parent.SpeedSettings;
+            (int Type, uint Threshold) distortionPolicy = this.blockWorkspace.EvaluationStage switch
+            {
+                Av1EncoderEvaluationStage.Candidate => distortionSettings.ModeTransformDomainDistortion,
+                Av1EncoderEvaluationStage.Winner => distortionSettings.WinnerTransformDomainDistortion,
+                _ => distortionSettings.DefaultTransformDomainDistortion
+            };
 
             long distortion = TOperator.EncodeCandidate(
                 this.blockWorkspace,
@@ -1420,7 +1948,32 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.quantization.DeltaQDc[(int)Av1Plane.U],
                 this.quantization.DeltaQAc[(int)Av1Plane.U],
                 this.bitDepth,
+                distortionPolicy,
                 ref candidateBlueState);
+
+            int blueRate = writer.GetCoefficientCost(
+                transformSize,
+                transformType,
+                lumaMode,
+                candidateBlueCoefficients,
+                Av1ComponentType.Chroma,
+                blueContext,
+                candidateBlueState.EndOfBlock,
+                this.picture.Parent.FrameHeader.UseReducedTransformSet,
+                Av1FilterIntraMode.AllFilterIntraModes,
+                usesInterTransformSet: false);
+
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            int visibleWidth = Math.Min(width, blueSource.Width - chromaOrigin.X);
+            int visibleHeight = Math.Min(height, blueSource.Height - chromaOrigin.Y);
+            long predictionDistortion = this.GetChromaPredictionDistortion(this.blockWorkspace.Residual, width, visibleWidth, visibleHeight);
+            if (Math.Min(
+                Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion),
+                Av1RateDistortion.GetCost(this.rateMultiplier, 0, predictionDistortion)) > costLimit)
+            {
+                return Av1RateDistortionStatistics.Invalid;
+            }
 
             distortion += TOperator.EncodeCandidate(
                 this.blockWorkspace,
@@ -1447,7 +2000,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.quantization.DeltaQDc[(int)Av1Plane.V],
                 this.quantization.DeltaQAc[(int)Av1Plane.V],
                 this.bitDepth,
+                distortionPolicy,
                 ref candidateRedState);
+
+            predictionDistortion += this.GetChromaPredictionDistortion(this.blockWorkspace.Residual, width, visibleWidth, visibleHeight);
 
             // The mode and angle are written once for the UV pair; coefficient syntax remains independent
             // because each plane has its own EOB, scan values, and neighboring coefficient context.
@@ -1466,19 +2022,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 rate += paletteDisabledCost;
             }
 
-            rate += writer.GetCoefficientCost(
-                transformSize,
-                transformType,
-                lumaMode,
-                candidateBlueCoefficients,
-                Av1ComponentType.Chroma,
-                blueContext,
-                candidateBlueState.EndOfBlock,
-                this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                Av1FilterIntraMode.AllFilterIntraModes,
-                usesInterTransformSet: false);
-
-            rate += writer.GetCoefficientCost(
+            int redRate = writer.GetCoefficientCost(
                 transformSize,
                 transformType,
                 lumaMode,
@@ -1490,7 +2034,19 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraMode.AllFilterIntraModes,
                 usesInterTransformSet: false);
 
-            return new(this.rateMultiplier, rate, distortion);
+            // block_rd_txfm (tx_search.c L3122-3140) scores an intra transform with its coefficient rate and
+            // distortion alone. The skipped alternative belongs to inter blocks.
+            if (Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion) > costLimit)
+            {
+                return Av1RateDistortionStatistics.Invalid;
+            }
+
+            return new(this.rateMultiplier, rate + blueRate + redRate, distortion)
+            {
+                PredictionDistortion = predictionDistortion,
+                ResidualRate = blueRate + redRate,
+                HasCoefficients = candidateBlueState.EndOfBlock != 0 || candidateRedState.EndOfBlock != 0
+            };
         }
 
         /// <summary>

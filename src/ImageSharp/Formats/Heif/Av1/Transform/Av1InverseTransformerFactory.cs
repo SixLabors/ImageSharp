@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics.X86;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <summary>
@@ -41,6 +43,45 @@ internal static class Av1InverseTransformerFactory
                 transformFunctionParameters.EndOfBuffer,
                 workspace);
 
+            return;
+        }
+
+        if (Av1TransformKernels.IsSupported && Ssse3.IsSupported && transformFunctionParameters.TransformSize == Av1TransformSize.Size8x8)
+        {
+            // The most frequent block has a register-resident kernel that needs no configuration or workspace.
+            Av1InverseTransformer.Inverse8x8(
+                coefficients,
+                readBuffer,
+                readStride,
+                writeBuffer,
+                writeStride,
+                transformFunctionParameters.TransformType,
+                transformFunctionParameters.EndOfBuffer);
+            return;
+        }
+
+        if (Av1TransformKernels.IsSupported && Ssse3.IsSupported && transformFunctionParameters.TransformSize == Av1TransformSize.Size4x4)
+        {
+            Av1InverseTransformer.Inverse4x4(
+                coefficients,
+                readBuffer,
+                readStride,
+                writeBuffer,
+                writeStride,
+                transformFunctionParameters.TransformType);
+            return;
+        }
+
+        if (Av1TransformKernels.IsWideSupported && transformFunctionParameters.TransformSize == Av1TransformSize.Size16x16)
+        {
+            Av1InverseTransformer.Inverse16x16(
+                coefficients,
+                readBuffer,
+                readStride,
+                writeBuffer,
+                writeStride,
+                transformFunctionParameters.TransformType,
+                transformFunctionParameters.EndOfBuffer);
             return;
         }
 

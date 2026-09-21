@@ -429,6 +429,8 @@ public class HeifEncoderTests
     [Theory]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level0)]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level3)]
+    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level4)]
+    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level5)]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level6)]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level9)]
     public void EncodeScreenContent(TestImageProvider<Rgba32> provider, HeifEncodingSpeed speed)

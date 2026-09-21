@@ -61,7 +61,10 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     private const int TransformContextStorageLength =
         4 * (MaximumBlockDimension >> Av1Constants.ModeInfoSizeLog2) * sizeof(byte) / sizeof(int);
 
-    private const int TransientStorageOffset = TransformContextStorageOffset + TransformContextStorageLength;
+    private const int WinnerPaletteStorageOffset = TransformContextStorageOffset + TransformContextStorageLength;
+    private const int WinnerPaletteSampleCount = Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize;
+    private const int WinnerPaletteStorageLength = 3 * WinnerPaletteSampleCount / sizeof(int);
+    private const int TransientStorageOffset = WinnerPaletteStorageOffset + WinnerPaletteStorageLength;
     private const int ChromaFromLumaSampleCount = Av1ChromaFromLumaContext.BufferLength;
 
     private const int ChromaFromLumaSampleStorageLength = ChromaFromLumaSampleCount * sizeof(short) / sizeof(int);
@@ -124,6 +127,15 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// </summary>
     public Span<byte> TransformContexts
         => MemoryMarshal.AsBytes(this.storage.Slice(TransformContextStorageOffset, TransformContextStorageLength));
+
+    /// <summary>
+    /// Gets a retained luma palette map for one winner candidate.
+    /// </summary>
+    /// <param name="index">The candidate slot.</param>
+    /// <returns>The retained color-index storage.</returns>
+    public Span<byte> GetWinnerPaletteMap(int index)
+        => MemoryMarshal.AsBytes(this.storage.Slice(WinnerPaletteStorageOffset, WinnerPaletteStorageLength))
+            .Slice(index * WinnerPaletteSampleCount, WinnerPaletteSampleCount);
 
     /// <summary>
     /// Gets one reference edge including its common-corner prefix.

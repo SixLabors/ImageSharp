@@ -98,4 +98,161 @@ internal static class Av1PaletteColorMap
             _ => -1
         };
     }
+
+    /// <summary>
+    /// Derives the palette color context and the coded color rank for one map sample while encoding.
+    /// </summary>
+    /// <remarks>
+    /// The encoder needs only the rank of the current color, not the complete neighbor-ordered color list that
+    /// the decoder maintains. With at most three neighbors (left, above, above-left), merging duplicates and
+    /// ordering the survivors takes a few comparisons, so no score table, inverse order, or selection sort is
+    /// needed. The result equals <see cref="GetContext"/> for every map.
+    /// </remarks>
+    /// <param name="colorIndexMap">The palette index map, addressed with <paramref name="stride"/>.</param>
+    /// <param name="stride">The number of map samples between rows.</param>
+    /// <param name="row">The sample row. The first sample of the map is coded separately.</param>
+    /// <param name="column">The sample column.</param>
+    /// <param name="colorOrderIndex">The rank of the sample's color in the neighbor-ordered color list.</param>
+    /// <returns>The color-index probability context.</returns>
+    public static int GetEncoderContext(
+        ReadOnlySpan<byte> colorIndexMap,
+        int stride,
+        int row,
+        int column,
+        out int colorOrderIndex)
+    {
+        int index = (row * stride) + column;
+        int currentColor = colorIndexMap[index];
+        bool hasAbove = row > 0;
+        bool hasLeft = column > 0;
+        if (hasAbove != hasLeft)
+        {
+            // A first-row or first-column sample has one neighbor. That neighbor leads the color order, so every
+            // color below it moves down one rank. Its score of two always selects context zero.
+            int neighbor = hasAbove ? colorIndexMap[index - stride] : colorIndexMap[index - 1];
+            colorOrderIndex = neighbor > currentColor ? currentColor + 1 : neighbor == currentColor ? 0 : currentColor;
+            return 0;
+        }
+
+        // Visit left, above, then above-left. Direct neighbors weigh two and the diagonal weighs one, so distinct
+        // neighbors are already in descending score order with the lower palette index first on the only
+        // possible tie.
+        const int invalid = byte.MaxValue;
+        int color0 = colorIndexMap[index - 1];
+        int color1 = colorIndexMap[index - stride];
+        int color2 = colorIndexMap[index - stride - 1];
+        int score0 = 2;
+        int score1 = 2;
+        int score2 = 1;
+        int validCount = 3;
+
+        // Merge the scores of equal neighbors.
+        if (color0 == color1)
+        {
+            score0 += score1;
+            color1 = invalid;
+            validCount--;
+            if (color0 == color2)
+            {
+                score0 += score2;
+                validCount--;
+            }
+        }
+        else if (color0 == color2)
+        {
+            score0 += score2;
+            validCount--;
+        }
+        else if (color1 == color2)
+        {
+            score1 += score2;
+            validCount--;
+        }
+
+        if (validCount > 1)
+        {
+            if (color1 == invalid)
+            {
+                score1 = score2;
+                color1 = color2;
+            }
+
+            // Equal scores keep the lower palette index first.
+            if (score0 < score1 || (score0 == score1 && color0 > color1))
+            {
+                (score0, score1) = (score1, score0);
+                (color0, color1) = (color1, color0);
+            }
+
+            if (validCount > 2)
+            {
+                if (score0 < score2)
+                {
+                    (score0, score2) = (score2, score0);
+                    (color0, color2) = (color2, color0);
+                }
+
+                if (score1 < score2)
+                {
+                    (score1, score2) = (score2, score1);
+                    (color1, color2) = (color2, color1);
+                }
+            }
+        }
+
+        // Each ranked neighbor above the current color moves it down one rank, unless the current color is
+        // itself a ranked neighbor.
+        colorOrderIndex = currentColor;
+        if (color0 == currentColor)
+        {
+            colorOrderIndex = 0;
+        }
+        else
+        {
+            if (color0 > currentColor)
+            {
+                colorOrderIndex++;
+            }
+
+            if (validCount > 1)
+            {
+                if (color1 == currentColor)
+                {
+                    colorOrderIndex = 1;
+                }
+                else
+                {
+                    if (color1 > currentColor)
+                    {
+                        colorOrderIndex++;
+                    }
+
+                    if (validCount > 2)
+                    {
+                        if (color2 == currentColor)
+                        {
+                            colorOrderIndex = 2;
+                        }
+                        else if (color2 > currentColor)
+                        {
+                            colorOrderIndex++;
+                        }
+                    }
+                }
+            }
+        }
+
+        // The hash weights the ranked scores 1, 2, 2. Its values 5 through 8 map to contexts 4 through 1.
+        int hash = score0;
+        if (validCount > 1)
+        {
+            hash += 2 * score1;
+            if (validCount > 2)
+            {
+                hash += 2 * score2;
+            }
+        }
+
+        return 9 - hash;
+    }
 }

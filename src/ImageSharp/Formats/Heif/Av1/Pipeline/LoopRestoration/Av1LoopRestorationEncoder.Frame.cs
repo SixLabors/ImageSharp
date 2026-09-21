@@ -157,9 +157,8 @@ internal static partial class Av1LoopRestorationEncoder
         Span<ushort> wienerScratch = MemoryMarshal.Cast<int, ushort>(filterStorage[((2 * projectionLength) + selfGuidedLength)..])[..wienerLength];
         Span<TSample> savedRows = MemoryMarshal.Cast<ushort, TSample>(boundary.GetStripeSaveBuffer());
         int rateQIndex = qIndex + header.QuantizationParameters.DeltaQDc[0];
-        int rateMultiplier = header.IsIntra
-            ? Av1RateDistortion.GetKeyFrameRateMultiplier(rateQIndex, sequence.ColorConfig.BitDepth)
-            : Av1RateDistortion.GetInterFrameRateMultiplier(rateQIndex, sequence.ColorConfig.BitDepth);
+        int rateMultiplier = Av1RateDistortion.GetRateMultiplier(
+            rateQIndex, sequence.ColorConfig.BitDepth, picture.Parent.FrameUpdateType);
 
         int quantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, sequence.ColorConfig.BitDepth) >> 3;
         long varianceThreshold = ((long)quantizer * quantizer * settings.WienerVariancePruning) >> 4;

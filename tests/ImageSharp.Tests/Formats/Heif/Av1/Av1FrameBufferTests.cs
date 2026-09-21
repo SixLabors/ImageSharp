@@ -55,9 +55,16 @@ public class Av1FrameBufferTests
                 ColorRange = true
             };
 
+            // The two streams must need different decoder workspaces. Small frames use 64x64 superblocks
+            // above speed zero and 128x128 superblocks at speed zero, so the speed selects the geometry.
             using MemoryStream output = new();
             ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
-                Configuration.Default, source.Frames.RootFrame, output, colorConfig, qIndex: 0, speed: HeifEncodingSpeed.Level0);
+                Configuration.Default,
+                source.Frames.RootFrame,
+                output,
+                colorConfig,
+                qIndex: 0,
+                speed: i == 0 ? HeifEncodingSpeed.Level1 : HeifEncodingSpeed.Level0);
 
             Assert.Equal(i == 1, sequenceHeader.Use128x128Superblock);
             workspaceLengths[i] = Av1BlockDecoder.GetWorkspaceLength(sequenceHeader);

@@ -233,6 +233,28 @@ internal static partial class Av1ForwardTransformer
         int bitDepth,
         Span<int> workspace)
     {
+        if (KernelsSupported && bitDepth == 8)
+        {
+            // The most frequent blocks of a still image have kernels that need no configuration or workspace.
+            if (transformSize == Av1TransformSize.Size8x8)
+            {
+                Transform8x8(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size4x4)
+            {
+                Transform4x4(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size16x16 && WideKernelsSupported)
+            {
+                Transform16x16(input, stride, transformType, coefficients);
+                return;
+            }
+        }
+
         Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, bitDepth);
         Guard.MustBeSizedAtLeast(workspace, Av1TransformWorkspace.GetRequiredLength(transformSize), nameof(workspace));
 

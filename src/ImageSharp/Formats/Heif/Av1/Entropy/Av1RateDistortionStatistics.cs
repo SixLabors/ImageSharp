@@ -19,6 +19,7 @@ internal struct Av1RateDistortionStatistics
         this.Rate = rate;
         this.Distortion = distortion;
         this.Cost = Av1RateDistortion.GetCost(rateMultiplier, rate, distortion);
+        this.LumaCost = long.MaxValue;
     }
 
     /// <summary>
@@ -28,7 +29,8 @@ internal struct Av1RateDistortionStatistics
     {
         Rate = int.MaxValue,
         Distortion = long.MaxValue,
-        Cost = long.MaxValue
+        Cost = long.MaxValue,
+        LumaCost = long.MaxValue
     };
 
     /// <summary>
@@ -42,9 +44,34 @@ internal struct Av1RateDistortionStatistics
     public long Distortion { get; private set; }
 
     /// <summary>
-    /// Gets the rounded rate-distortion cost.
+    /// Gets or sets the residual syntax rate, including skip syntax for inter candidates.
     /// </summary>
-    public long Cost { get; private set; }
+    public int ResidualRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the distortion before residual coding.
+    /// </summary>
+    public long PredictionDistortion { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether any transform retains nonzero coefficients.
+    /// </summary>
+    public bool HasCoefficients { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether every searched transform was empty before the skip-cost comparison.
+    /// </summary>
+    public bool AllTransformsEmpty { get; set; }
+
+    /// <summary>
+    /// Gets or sets the luma cost used to compare prediction families, including prediction and skip syntax.
+    /// </summary>
+    public long LumaCost { get; set; }
+
+    /// <summary>
+    /// Gets or sets the candidate comparison cost, including any mode-selection adjustment.
+    /// </summary>
+    public long Cost { get; set; }
 
     /// <summary>
     /// Adds a valid candidate's rate and distortion and updates the combined cost.
@@ -56,7 +83,10 @@ internal struct Av1RateDistortionStatistics
         // Round the combined rate only once. Adding the already rounded child costs can change
         // partition and inter/intra decisions even when both children have the same reconstruction.
         this.Rate += other.Rate;
+        this.ResidualRate += other.ResidualRate;
         this.Distortion += other.Distortion;
+        this.PredictionDistortion += other.PredictionDistortion;
+        this.HasCoefficients |= other.HasCoefficients;
         this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
     }
 

@@ -2,8 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -38,6 +40,7 @@ internal sealed class Av1LevelBuffer : IDisposable
     public Av1LevelBuffer(Configuration configuration, Size size)
     {
         this.Size = size;
+        this.WidthLog2 = BitOperations.Log2((uint)size.Width);
 
         // Coefficient-context derivation reads fixed neighboring offsets around the coded transform.
         // Keeping those offsets inside one clean allocation avoids branches at transform boundaries.
@@ -57,36 +60,134 @@ internal sealed class Av1LevelBuffer : IDisposable
     public int Stride { get; private set; }
 
     /// <summary>
+    /// Gets the base-two logarithm of the unpadded width. Every entropy-coded transform width is a power of two,
+    /// which lets a raster index split into its row and column with a shift and a mask instead of a division.
+    /// </summary>
+    public int WidthLog2 { get; private set; }
+
+    /// <summary>
     /// Gets the coefficient level at the specified unpadded position.
     /// </summary>
     /// <param name="position">The coefficient position.</param>
     public int this[Point position] => this.GetRow(position.Y)[position.X];
 
     /// <summary>
-    /// Initializes the unpadded level plane from raster-ordered coefficient magnitudes.
+    /// Initializes the level plane, its right padding, and its bottom padding from raster-ordered coefficients.
     /// </summary>
+    /// <remarks>
+    /// Context derivation reads only forward neighbors: up to four samples to the right and four rows down.
+    /// Writing those regions here makes a preceding clear of the active layout unnecessary.
+    /// </remarks>
     /// <param name="coefficientBuffer">The coefficient levels to copy.</param>
     public void Initialize(ReadOnlySpan<int> coefficientBuffer)
     {
-        ObjectDisposedException.ThrowIf(this.memory == null, this);
-        ArgumentOutOfRangeException.ThrowIfLessThan(coefficientBuffer.Length, this.Size.Width * this.Size.Height, nameof(coefficientBuffer));
-        for (int y = 0; y < this.Size.Height; y++)
-        {
-            ref byte destRef = ref this.GetRow(y)[0];
-            ref int sourceRef = ref Unsafe.Add(
-                ref MemoryMarshal.GetReference(coefficientBuffer),
-                y * this.Size.Width);
+        int width = this.Size.Width;
+        int height = this.Size.Height;
+        ArgumentOutOfRangeException.ThrowIfLessThan(coefficientBuffer.Length, width * height, nameof(coefficientBuffer));
 
-            for (int x = 0; x < this.Size.Width; x++)
+        int stride = this.Stride;
+        Span<byte> levels = this.GetActiveLevels();
+        ref byte destinationBase = ref MemoryMarshal.GetReference(levels);
+        ref int sourceBase = ref MemoryMarshal.GetReference(coefficientBuffer);
+
+        if (Vector256.IsHardwareAccelerated && (width & 7) == 0)
+        {
+            // Sixteen or eight coefficients narrow to bytes in one step, as av1_txb_init_levels_avx2 packs them.
+            // Narrowing keeps element order, so the low byte of each saturated magnitude lands in row order.
+            Vector256<int> maximum = Vector256.Create((int)sbyte.MaxValue);
+            for (int y = 0; y < height; y++)
             {
-                // Entropy contexts use the absolute level, saturated to the signed-byte range used by the
-                // normative nonzero-map context calculation.
-                destRef = (byte)Math.Min(Math.Abs(sourceRef), sbyte.MaxValue);
-                destRef = ref Unsafe.Add(ref destRef, 1);
-                sourceRef = ref Unsafe.Add(ref sourceRef, 1);
+                ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
+                ref int source = ref Unsafe.Add(ref sourceBase, y * width);
+                int x = 0;
+                for (; x <= width - 16; x += 16)
+                {
+                    Vector256<int> first = Vector256.Min(Vector256.Abs(Vector256.LoadUnsafe(ref source, (nuint)x)), maximum);
+                    Vector256<int> second = Vector256.Min(Vector256.Abs(Vector256.LoadUnsafe(ref source, (nuint)(x + 8))), maximum);
+                    Vector256<short> packed = Vector256.Narrow(first, second);
+                    Vector128.Narrow(packed.GetLower(), packed.GetUpper()).AsByte().StoreUnsafe(ref destination, (nuint)x);
+                }
+
+                if (x < width)
+                {
+                    Vector256<int> values = Vector256.Min(Vector256.Abs(Vector256.LoadUnsafe(ref source, (nuint)x)), maximum);
+                    Vector128<short> packed = Vector128.Narrow(values.GetLower(), values.GetUpper());
+                    Unsafe.WriteUnaligned(
+                        ref Unsafe.Add(ref destination, x),
+                        Vector128.Narrow(packed, Vector128<short>.Zero).AsUInt64().ToScalar());
+                }
+
+                // The four padding bytes after each row are the right-hand neighbors of its final columns.
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
             }
         }
+        else if (Vector128.IsHardwareAccelerated && (width & 3) == 0)
+        {
+            // Entropy contexts use the absolute level saturated to the signed-byte maximum. Each vector holds four
+            // 32-bit coefficients: take the magnitude, clamp it to 127 so it fits the low byte of its lane, then
+            // gather those four low bytes (byte offsets 0, 4, 8, 12) into the first lane with one byte shuffle.
+            // Coded transform widths are 4, 8, 16, or 32, so rows never need a scalar remainder.
+            Vector128<int> maximum = Vector128.Create((int)sbyte.MaxValue);
+            Vector128<byte> gather = Vector128.Create((byte)0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12);
+            for (int y = 0; y < height; y++)
+            {
+                ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
+                ref int source = ref Unsafe.Add(ref sourceBase, y * width);
+                for (int x = 0; x < width; x += 4)
+                {
+                    Vector128<int> magnitude = Vector128.Min(Vector128.Abs(Vector128.LoadUnsafe(ref source, (nuint)x)), maximum);
+                    uint packed = Vector128.Shuffle(magnitude.AsByte(), gather).AsUInt32().ToScalar();
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, x), packed);
+                }
+
+                // The four padding bytes after each row are the right-hand neighbors of its final columns.
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
+            }
+        }
+        else
+        {
+            for (int y = 0; y < height; y++)
+            {
+                ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
+                ref int source = ref Unsafe.Add(ref sourceBase, y * width);
+                for (int x = 0; x < width; x++)
+                {
+                    Unsafe.Add(ref destination, x) = (byte)Math.Min(Math.Abs(Unsafe.Add(ref source, x)), sbyte.MaxValue);
+                }
+
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
+            }
+        }
+
+        // Rows below the transform are the lower neighbors of its final rows.
+        levels.Slice(height * stride, Av1Constants.TransformPadBottom * stride).Clear();
     }
+
+    /// <summary>
+    /// Gets the active level plane, starting at the first coded row and including the bottom context padding.
+    /// </summary>
+    /// <remarks>
+    /// Hot paths fetch this span once per transform block and address it with <see cref="GetPaddedIndex"/>.
+    /// Resolving the owned memory for every neighbor read costs more than the context arithmetic itself.
+    /// </remarks>
+    /// <returns>The padded rows of the active layout.</returns>
+    public Span<byte> GetActiveLevels()
+    {
+        ObjectDisposedException.ThrowIf(this.memory == null, this);
+        return this.memory.Memory.Span.Slice(
+            Av1Constants.TransformPadTop * this.Stride,
+            (this.Size.Height + Av1Constants.TransformPadBottom) * this.Stride);
+    }
+
+    /// <summary>
+    /// Converts a raster-order coefficient index to its offset in the span from <see cref="GetActiveLevels"/>.
+    /// </summary>
+    /// <param name="index">The raster-order coefficient index.</param>
+    /// <param name="widthLog2">The base-two logarithm of the unpadded width.</param>
+    /// <returns>The offset that accounts for the horizontal padding of every preceding row.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetPaddedIndex(int index, int widthLog2)
+        => index + ((index >> widthLog2) << Av1Constants.TransformPadHorizontalLog2);
 
     /// <summary>
     /// Converts a raster-order coefficient index to its two-dimensional position.
@@ -95,8 +196,9 @@ internal sealed class Av1LevelBuffer : IDisposable
     /// <returns>The corresponding coefficient position.</returns>
     public Point GetPosition(int index)
     {
-        int x = index % this.Size.Width;
-        int y = index / this.Size.Width;
+        // The width is a power of two, so the row and column split without a division.
+        int x = index & (this.Size.Width - 1);
+        int y = index >> this.WidthLog2;
         return new Point(x, y);
     }
 
@@ -143,6 +245,7 @@ internal sealed class Av1LevelBuffer : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         this.Size = size;
+        this.WidthLog2 = BitOperations.Log2((uint)size.Width);
         this.Stride = Av1Constants.TransformPadHorizontal + size.Width;
 
         if (clear)

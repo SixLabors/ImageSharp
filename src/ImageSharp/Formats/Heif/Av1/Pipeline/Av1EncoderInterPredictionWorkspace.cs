@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -13,9 +14,9 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     where TSample : unmanaged
 {
     /// <summary>
-    /// The largest single-transform prediction dimension handled directly by inter search.
+    /// The largest coding-block dimension handled by inter prediction.
     /// </summary>
-    private const int MaximumBlockDimension = Av1Constants.MaxTransformSize;
+    private const int MaximumBlockDimension = 1 << Av1Constants.MaxSuperBlockSizeLog2;
 
     /// <summary>
     /// The maximum number of samples in one directly evaluated inter block.
@@ -32,12 +33,17 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <summary>
     /// The number of sample buffers retained by one mode decision.
     /// </summary>
-    public const int SampleBufferCount = 10;
+    public const int SampleBufferCount = 9;
+
+    /// <summary>
+    /// The sample capacity shared by sequential transform trials.
+    /// </summary>
+    public const int TransformSampleCount = Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize;
 
     /// <summary>
     /// The number of coefficient buffers retained by one mode decision.
     /// </summary>
-    public const int CoefficientBufferCount = 7;
+    public const int CoefficientBufferCount = 6;
 
     private readonly Span<TSample> samples;
     private readonly Span<short> residual;
@@ -111,7 +117,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <summary>
     /// Gets the reconstruction scratch overwritten by each transform trial.
     /// </summary>
-    public Span<TSample> TransformReconstruction => this.GetSamples(9);
+    public Span<TSample> TransformReconstruction => this.samples.Slice(SampleBufferCount * MaximumSampleCount, TransformSampleCount);
 
     /// <summary>
     /// Gets the residual scratch shared by sequential plane evaluations.
@@ -122,6 +128,12 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// Gets the intermediate scratch used when both translational interpolation axes are filtered.
     /// </summary>
     public Span<short> PredictionScratch => this.predictionScratch;
+
+    /// <summary>
+    /// Gets the local coefficient and transform edge contexts retained during inter search.
+    /// </summary>
+    public Span<byte> TransformContexts => MemoryMarshal.AsBytes(
+        this.coefficients[((CoefficientBufferCount * MaximumSampleCount) + TransformSampleCount)..]);
 
     /// <summary>
     /// Gets the selected luma coefficients.
@@ -156,7 +168,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <summary>
     /// Gets the coefficient scratch overwritten by each transform trial.
     /// </summary>
-    public Span<int> TransformCoefficients => this.GetCoefficients(6);
+    public Span<int> TransformCoefficients => this.coefficients.Slice(CoefficientBufferCount * MaximumSampleCount, TransformSampleCount);
 
     private Span<TSample> GetSamples(int index)
         => this.samples.Slice(index * MaximumSampleCount, MaximumSampleCount);

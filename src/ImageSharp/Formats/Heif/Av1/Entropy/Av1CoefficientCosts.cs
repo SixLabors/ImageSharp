@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 /// <summary>
@@ -18,10 +20,10 @@ internal readonly ref struct Av1CoefficientCosts
     private const int RangeContextCount = 21;
     private const int RangeLength = 13;
     private const int BaseEndOfBlockOffset = SkipContextCount * 2;
-    private const int BaseOffset = BaseEndOfBlockOffset + (BaseEndOfBlockContextCount * 3);
+    public const int BaseOffset = BaseEndOfBlockOffset + (BaseEndOfBlockContextCount * 3);
     private const int ExtraOffset = BaseOffset + (BaseContextCount * 8);
     private const int SignOffset = ExtraOffset + (ExtraContextCount * 2);
-    private const int RangeOffset = SignOffset + (SignContextCount * 2);
+    public const int RangeOffset = SignOffset + (SignContextCount * 2);
     private const int PlaneLength = RangeOffset + (RangeContextCount * RangeLength * 2);
     private const int EndOfBlockOffset = TransformSizeCount * PlaneCount * PlaneLength;
     private const int EndOfBlockSizeCount = 7;
@@ -173,6 +175,7 @@ internal readonly ref struct Av1CoefficientCosts
     /// <param name="context">The symbol context.</param>
     /// <param name="symbol">The symbol index.</param>
     /// <returns>The rate in 1/512-bit units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetBase(ReadOnlySpan<int> plane, int context, int symbol) => plane[BaseOffset + (context * 8) + symbol];
 
     /// <summary>
@@ -200,5 +203,6 @@ internal readonly ref struct Av1CoefficientCosts
     /// <param name="context">The symbol context.</param>
     /// <param name="symbol">The symbol index.</param>
     /// <returns>The rate in 1/512-bit units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetRange(ReadOnlySpan<int> plane, int context, int symbol) => plane[RangeOffset + (context * 26) + symbol];
 }

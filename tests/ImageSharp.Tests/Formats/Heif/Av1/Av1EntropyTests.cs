@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -962,7 +963,7 @@ public class Av1EntropyTests
         int qIndex,
         int bitDepth,
         int expected)
-        => Assert.Equal(expected, Av1RateDistortion.GetKeyFrameRateMultiplier(qIndex, (Av1BitDepth)bitDepth));
+        => Assert.Equal(expected, Av1RateDistortion.GetRateMultiplier(qIndex, (Av1BitDepth)bitDepth, Av1FrameUpdateType.Key));
 
     [Theory]
     [InlineData(0, 0, 51)]
@@ -975,7 +976,7 @@ public class Av1EntropyTests
         int qIndex,
         int bitDepth,
         int expected)
-        => Assert.Equal(expected, Av1RateDistortion.GetInterFrameRateMultiplier(qIndex, (Av1BitDepth)bitDepth));
+        => Assert.Equal(expected, Av1RateDistortion.GetRateMultiplier(qIndex, (Av1BitDepth)bitDepth, Av1FrameUpdateType.Last));
 
     [Theory]
     [InlineData(0)]

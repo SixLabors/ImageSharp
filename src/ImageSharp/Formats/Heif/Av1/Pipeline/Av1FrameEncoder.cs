@@ -53,6 +53,12 @@ internal static class Av1FrameEncoder
     private const int UnconstrainedSequenceLevelIndex = 31;
 
     /// <summary>
+    /// The display frame rate the level inference assumes. The encoder has no timing input, so it uses the
+    /// reference's default time base of 1/30 second (<c>aom_codec_enc_config_default</c>).
+    /// </summary>
+    private const int LevelFrameRate = 30;
+
+    /// <summary>
     /// The native component precision used by the byte pipeline.
     /// </summary>
     private const int ByteSampleBitDepth = 8;
@@ -370,7 +376,7 @@ internal static class Av1FrameEncoder
             IsStillPicture = isStillPicture,
             IsReducedStillPictureHeader = isStillPicture,
             SequenceProfile = sequenceProfile,
-            OperatingPoint = [new ObuOperatingPoint { SequenceLevelIndex = UnconstrainedSequenceLevelIndex }],
+            OperatingPoint = [new ObuOperatingPoint { SequenceLevelIndex = GetSequenceLevelIndex(width, height, LevelFrameRate) }],
             FrameWidthBits = width > 1 ? Av1Math.MostSignificantBit((uint)(width - 1)) + 1 : 1,
             FrameHeightBits = height > 1 ? Av1Math.MostSignificantBit((uint)(height - 1)) + 1 : 1,
             MaxFrameWidth = width,
@@ -390,10 +396,61 @@ internal static class Av1FrameEncoder
                 OrderHintBits = isStillPicture ? 0 : 8
             },
             EnableSuperResolution = false,
-            EnableCdef = true,
+
+            // The reference disables CDEF by default in all-intra mode because it blurs images
+            // (av1_cx_iface.c L3088-3090); other modes keep it enabled.
+            EnableCdef = !isStillPicture,
             EnableRestoration = speedSettings.EnableRestoration,
             ColorConfig = colorConfig
         };
+    }
+
+    /// <summary>
+    /// Infers the lowest level whose picture size, dimension, and display sample rate limits hold the frame,
+    /// as <c>set_bitstream_level_tier</c> does (encoder.c L481-560).
+    /// </summary>
+    /// <remarks>
+    /// Levels 7.x and 8.x are only chosen by the reference when explicitly requested, so larger frames stay
+    /// unconstrained.
+    /// </remarks>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="frameRate">The display frame rate.</param>
+    /// <returns>The sequence level index.</returns>
+    private static int GetSequenceLevelIndex(int width, int height, int frameRate)
+    {
+        // Each row holds the level's maximum width and height, its maximum frame rate at that size, the
+        // multiple of the width and height any single dimension may reach, and the level index.
+        ReadOnlySpan<int> levels =
+        [
+            512, 288, 30, 4, 0,
+            704, 396, 30, 4, 1,
+            1088, 612, 30, 4, 4,
+            1376, 774, 30, 4, 5,
+            2048, 1152, 30, 3, 8,
+            2048, 1152, 60, 3, 9,
+            4096, 2176, 30, 2, 12,
+            4096, 2176, 60, 2, 13,
+            4096, 2176, 120, 2, 14,
+            8192, 4352, 30, 2, 16,
+            8192, 4352, 60, 2, 17,
+            8192, 4352, 120, 2, 18
+        ];
+
+        long lumaSamples = (long)width * height;
+        for (int i = 0; i < levels.Length; i += 5)
+        {
+            long levelLumaSamples = (long)levels[i] * levels[i + 1];
+            if (lumaSamples <= levelLumaSamples &&
+                lumaSamples * frameRate <= levelLumaSamples * levels[i + 2] &&
+                width <= levels[i] * levels[i + 3] &&
+                height <= levels[i + 1] * levels[i + 3])
+            {
+                return levels[i + 4];
+            }
+        }
+
+        return UnconstrainedSequenceLevelIndex;
     }
 
     private static ObuTileGroupHeader CreateTileGroupHeader(
@@ -531,7 +588,7 @@ internal static class Av1FrameEncoder
 
     private static int GetTileBufferLength(int width, int height, ObuColorConfig colorConfig)
     {
-        // Libaom reserves 2.5 times the 32-sample-aligned native input for an all-intra output packet.
+        // Reserve 2.5 times the 32-sample-aligned component storage for an all-intra output packet.
         // Counting the active planes directly retains that headroom without charging monochrome for unused chroma.
         // This is an initial estimate: the range writer grows if encoded syntax exceeds its remaining capacity.
         int alignedWidth = Av1Math.AlignPowerOf2(width, OutputAlignmentLog2);
@@ -654,10 +711,20 @@ internal static class Av1FrameEncoder
         using Av1EncoderBlockWorkspace blockWorkspace = new(
             configuration,
             allocateInterMotionCosts: false,
-            allocateDisplacementCosts: frameHeader.AllowIntraBlockCopy);
+            allocateDisplacementCosts: frameHeader.AllowIntraBlockCopy,
+            sequenceHeader.SuperblockSize);
 
         Av1EncoderSpeedSettings speedSettings = new(
             speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
+
+        Av1MotionSearchSettings motionSettings = new(
+            speed,
+            sequenceHeader.IsStillPicture,
+            frameSize,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            frameHeader.IsIntra,
+            isScreenContent);
+        int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
 
         using Av1EncoderPictureBuffer picture = new(
             configuration,
@@ -665,6 +732,7 @@ internal static class Av1FrameEncoder
             frameHeader,
             source.Frame.Width,
             source.Frame.Height,
+            maximumHashBlockSize,
             disallow4x4AllFrames: !frameHeader.CodedLossless && speedSettings.MinimumPartitionSize >= Av1BlockSize.Block8x8);
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
@@ -677,9 +745,7 @@ internal static class Av1FrameEncoder
             frameHeader,
             picture.Picture,
             source,
-            reconstruction,
-            reconstruction,
-            false,
+            default,
             reconstruction,
             coefficients,
             tileWorkspace,
@@ -754,10 +820,20 @@ internal static class Av1FrameEncoder
         using Av1EncoderBlockWorkspace blockWorkspace = new(
             configuration,
             allocateInterMotionCosts: false,
-            allocateDisplacementCosts: frameHeader.AllowIntraBlockCopy);
+            allocateDisplacementCosts: frameHeader.AllowIntraBlockCopy,
+            sequenceHeader.SuperblockSize);
 
         Av1EncoderSpeedSettings speedSettings = new(
             speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
+
+        Av1MotionSearchSettings motionSettings = new(
+            speed,
+            sequenceHeader.IsStillPicture,
+            frameSize,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            frameHeader.IsIntra,
+            isScreenContent);
+        int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
 
         using Av1EncoderPictureBuffer picture = new(
             configuration,
@@ -765,6 +841,7 @@ internal static class Av1FrameEncoder
             frameHeader,
             source.Frame.Width,
             source.Frame.Height,
+            maximumHashBlockSize,
             disallow4x4AllFrames: !frameHeader.CodedLossless && speedSettings.MinimumPartitionSize >= Av1BlockSize.Block8x8);
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
@@ -777,9 +854,7 @@ internal static class Av1FrameEncoder
             frameHeader,
             picture.Picture,
             source,
-            reconstruction,
-            reconstruction,
-            false,
+            default,
             reconstruction,
             coefficients,
             tileWorkspace,
@@ -865,8 +940,10 @@ internal static class Av1FrameEncoder
             frameHeader,
             sequenceHeader.ColorConfig.BitDepth);
 
-        bool isScreenContent = Av1ScreenContentDetector.Detect(
+        bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
+            sequenceHeader.IsStillPicture,
+            speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
@@ -880,12 +957,9 @@ internal static class Av1FrameEncoder
 
         frameHeader.AllowScreenContentTools = allowScreenContentTools;
 
-        // The current intra-block-copy search owns one 8x8 transform. Lossless coding requires reversible
-        // 4x4 transforms, so palette remains available while this incompatible candidate is omitted.
         frameHeader.AllowIntraBlockCopy =
             frameHeader.IsIntra &&
             motionSettings.AllowIntraBlockCopy &&
-            !frameHeader.CodedLossless &&
             frameHeader.AllowScreenContentTools &&
             allowIntraBlockCopy;
 
@@ -969,8 +1043,10 @@ internal static class Av1FrameEncoder
             frameHeader,
             sequenceHeader.ColorConfig.BitDepth);
 
-        bool isScreenContent = Av1ScreenContentDetector.Detect(
+        bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
+            sequenceHeader.IsStillPicture,
+            speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
@@ -984,12 +1060,9 @@ internal static class Av1FrameEncoder
 
         frameHeader.AllowScreenContentTools = allowScreenContentTools;
 
-        // The current intra-block-copy search owns one 8x8 transform. Lossless coding requires reversible
-        // 4x4 transforms, so palette remains available while this incompatible candidate is omitted.
         frameHeader.AllowIntraBlockCopy =
             frameHeader.IsIntra &&
             motionSettings.AllowIntraBlockCopy &&
-            !frameHeader.CodedLossless &&
             frameHeader.AllowScreenContentTools &&
             allowIntraBlockCopy;
 
@@ -1003,9 +1076,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1PictureControlSet picture,
         Av1EncoderFrameBuffer<byte> source,
-        Av1EncoderFrameBuffer<byte> reference,
-        Av1EncoderFrameBuffer<byte> goldenReference,
-        bool hasDistinctGoldenReference,
+        ReadOnlyMemory<Av1EncoderFrame<byte>> references,
         Av1EncoderFrameBuffer<byte> reconstruction,
         Av1EncoderCoefficientBuffer coefficients,
         Av1EncoderTileWorkspace tileWorkspace,
@@ -1016,9 +1087,7 @@ internal static class Av1FrameEncoder
         Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
-            reference.Frame,
-            goldenReference.Frame,
-            hasDistinctGoldenReference,
+            references,
             reconstruction.Frame,
             picture,
             coefficients,
@@ -1042,9 +1111,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1PictureControlSet picture,
         Av1EncoderFrameBuffer<ushort> source,
-        Av1EncoderFrameBuffer<ushort> reference,
-        Av1EncoderFrameBuffer<ushort> goldenReference,
-        bool hasDistinctGoldenReference,
+        ReadOnlyMemory<Av1EncoderFrame<ushort>> references,
         Av1EncoderFrameBuffer<ushort> reconstruction,
         Av1EncoderCoefficientBuffer coefficients,
         Av1EncoderTileWorkspace tileWorkspace,
@@ -1055,9 +1122,7 @@ internal static class Av1FrameEncoder
         Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
-            reference.Frame,
-            goldenReference.Frame,
-            hasDistinctGoldenReference,
+            references,
             reconstruction.Frame,
             picture,
             coefficients,
@@ -1273,9 +1338,10 @@ internal static class Av1FrameEncoder
         candidate[1] = bestOffset.Y * Av1GlobalMotionParameters.ModelScale;
         candidate.UpdateShearParameters();
 
-        int rateMultiplier = Av1RateDistortion.GetInterFrameRateMultiplier(
-            frameHeader.QuantizationParameters.BaseQIndex,
-            bitDepth);
+        int rateMultiplier = Av1RateDistortion.GetRateMultiplier(
+            frameHeader.QuantizationParameters.BaseQIndex + frameHeader.QuantizationParameters.DeltaQDc[0],
+            bitDepth,
+            Av1FrameUpdateType.Last);
 
         int identityRate =
             ObuWriter.GetGlobalMotionModelBitCount(
@@ -1363,6 +1429,71 @@ internal static class Av1FrameEncoder
     {
         int shift = (bitDepth.GetBitCount() - ByteSampleBitDepth) * 2;
         return shift == 0 ? error : (error + (1L << (shift - 1))) >> shift;
+    }
+
+    /// <summary>
+    /// Measures source changes and retains the block errors used by subsequent mode decisions.
+    /// </summary>
+    /// <typeparam name="TSample">The source sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample-specific error operations.</typeparam>
+    /// <param name="source">The current bordered source planes.</param>
+    /// <param name="previousSource">The preceding bordered source planes.</param>
+    /// <param name="parent">The frame analysis state and borrowed block-error storage.</param>
+    /// <param name="isScreenContent">Whether screen-content tuning is active.</param>
+    /// <param name="framesSinceKey">The number of completed frames since the last key frame.</param>
+    /// <param name="averageSourceSad">The running average of source changes.</param>
+    private static void AnalyzeTemporalSource<TSample, TOperator>(
+        Av1EncoderFrame<TSample>.PlanarView source,
+        Av1EncoderFrame<TSample>.PlanarView previousSource,
+        Av1PictureParentControlSet parent,
+        bool isScreenContent,
+        int framesSinceKey,
+        ref ulong averageSourceSad)
+        where TSample : unmanaged
+        where TOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
+    {
+        Buffer2DRegion<TSample> current = source.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<TSample> previous = previousSource.GetPlane(Av1Plane.Y);
+        Span<ulong> blockErrors = parent.SourceBlockSad.Span;
+        int columns = (source.Width + 63) >> 6;
+        int rows = (source.Height + 63) >> 6;
+        int unchanged = 0;
+        ulong total = 0;
+
+        // Keep each block SAD for the following superblock pass. Both planes have replicated
+        // borders, so partial visible blocks use the same complete 64x64 measurement.
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                Point origin = new(column << 6, row << 6);
+                ulong sad = (ulong)TOperator.SumAbsoluteDifferences(
+                    Av1TransformBlockEncoder.GetPlaneSpan(current, origin),
+                    current.Stride,
+                    Av1TransformBlockEncoder.GetPlaneSpan(previous, origin),
+                    previous.Stride,
+                    64,
+                    64,
+                    1) >> (source.LumaBitDepth - 8);
+
+                blockErrors[(row * columns) + column] = sad;
+                total += sad;
+                unchanged += sad == 0 ? 1 : 0;
+            }
+        }
+
+        int count = rows * columns;
+        ulong average = total / (ulong)count;
+        uint minimum = isScreenContent ? 8000U : 10000U;
+        int multiplier = isScreenContent ? 5 : 6;
+        int unchangedLimit = average > 8 * minimum ? 3 * (count >> 2) : count >> 1;
+        parent.HighSourceSad = average > Math.Max(minimum, (uint)(averageSourceSad * (ulong)multiplier)) &&
+            framesSinceKey > 2 && unchanged < unchangedLimit;
+
+        parent.FrameSourceSad = average;
+        parent.SourceMotionPercentage = ((count - unchanged) * 100) / count;
+        averageSourceSad = ((3 * averageSourceSad) + average) >> 2;
+        parent.AverageSourceSad = averageSourceSad;
     }
 
     /// <summary>
@@ -1566,8 +1697,7 @@ internal static class Av1FrameEncoder
 
                 bool allocateIntraBlockCopySearch =
                     allocateScreenContentState &&
-                    motionSettings.AllowIntraBlockCopy &&
-                    !this.FrameHeader.CodedLossless;
+                    motionSettings.AllowIntraBlockCopy;
 
                 // Sequence geometry and maximum tool capacity are fixed before the first sample. Reusing this owner
                 // avoids renting the complete mode grid and optional screen-content index for every frame.
@@ -1580,6 +1710,7 @@ internal static class Av1FrameEncoder
                     this.FrameHeader,
                     width,
                     height,
+                    motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << this.SequenceHeader.SuperblockSizeLog2,
                     disallow4x4AllFrames: !this.FrameHeader.CodedLossless && speedSettings.MinimumPartitionSize >= Av1BlockSize.Block8x8,
                     allocateScreenContentState: allocateScreenContentState,
                     allocateMotionVectorState: true,
@@ -1600,7 +1731,8 @@ internal static class Av1FrameEncoder
                 this.BlockWorkspace = new Av1EncoderBlockWorkspace(
                     configuration,
                     allocateInterMotionCosts: true,
-                    allocateDisplacementCosts: allocateIntraBlockCopySearch);
+                    allocateDisplacementCosts: allocateIntraBlockCopySearch,
+                    this.SequenceHeader.SuperblockSize);
 
                 // Tile probabilities adapt within a sample, while error-resilient frame headers prohibit carrying
                 // those updates into the next sample. The retained encoder is therefore reset before each frame.
@@ -1699,6 +1831,12 @@ internal static class Av1FrameEncoder
 
         protected void CompleteFrameHeader()
         {
+            Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
+            if (parent.FrameUpdateType == Av1FrameUpdateType.Last)
+            {
+                parent.AverageInterQuantizer = ((3 * parent.AverageInterQuantizer) + this.FrameHeader.QuantizationParameters.BaseQIndex + 2) >> 2;
+            }
+
             Span<bool> referenceValidity = this.FrameHeader.GetReferenceValidity();
             Span<uint> referenceOrderHints = this.FrameHeader.GetReferenceOrderHints();
             for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
@@ -1765,7 +1903,12 @@ internal static class Av1FrameEncoder
 
     private sealed class ByteSequenceEncoder : SequenceEncoder
     {
-        private readonly Av1EncoderFrameBuffer<byte> source;
+        private Av1EncoderFrameBuffer<byte> source;
+        private Av1EncoderFrameBuffer<byte>? previousSource;
+        private readonly IMemoryOwner<ulong>? sourceBlockSad;
+        private ulong averageSourceSad;
+        private int framesSinceKey;
+        private readonly Av1EncoderFrame<byte>[] references = new Av1EncoderFrame<byte>[Av1Constants.ReferenceFrameCount];
         private Av1EncoderFrameBuffer<byte> reference;
         private Av1EncoderFrameBuffer<byte> goldenReference;
         private Av1EncoderFrameBuffer<byte> reconstruction;
@@ -1805,6 +1948,23 @@ internal static class Av1FrameEncoder
                     CenteredChromaSamplePosition,
                     CenteredChromaSamplePosition,
                     lumaBorder);
+
+                if (speed >= HeifEncodingSpeed.Level7)
+                {
+                    this.sourceBlockSad = configuration.MemoryAllocator.Allocate<ulong>(((width + 63) >> 6) * ((height + 63) >> 6));
+
+                    // Rotate source owners after encoding so temporal analysis sees uncompressed samples
+                    // without a frame copy. The padding also supplies complete edge superblocks.
+                    this.previousSource = new(
+                        configuration,
+                        width,
+                        height,
+                        ByteSampleBitDepth,
+                        colorFormat,
+                        CenteredChromaSamplePosition,
+                        CenteredChromaSamplePosition,
+                        lumaBorder);
+                }
 
                 this.goldenReference = new(
                     configuration,
@@ -1846,11 +2006,13 @@ internal static class Av1FrameEncoder
 
         protected override void DisposeFrames()
         {
-            // A derived constructor can fail before all three frame owners exist.
+            // A derived constructor can fail before all frame owners exist.
             this.goldenReference?.Dispose();
             this.reconstruction?.Dispose();
             this.reference?.Dispose();
             this.source?.Dispose();
+            this.previousSource?.Dispose();
+            this.sourceBlockSad?.Dispose();
         }
 
         protected override void EncodeFrame<TPixel>(
@@ -1876,7 +2038,37 @@ internal static class Av1FrameEncoder
                 this.ConversionWorkspace);
 
             this.PictureBuffer.Reset(frameHeader);
-            this.PictureBuffer.Picture.Parent.IsScreenContent = isScreenContent;
+            Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
+            parent.PreviousSource = this.previousSource is not null ? this.previousSource.Frame.CodedView : default;
+
+            parent.SourceBlockSad = this.sourceBlockSad is not null ? this.sourceBlockSad.Memory : default;
+            parent.HighSourceSad = false;
+            parent.FrameSourceSad = 0;
+            parent.SourceMotionPercentage = 0;
+            if (this.previousSource is not null && this.framesSinceKey != 0)
+            {
+                AnalyzeTemporalSource<byte, Av1MotionSearchBase.ByteOperator>(
+                    this.source.Frame.CodedView,
+                    this.previousSource.Frame.CodedView,
+                    parent,
+                    isScreenContent,
+                    this.framesSinceKey,
+                    ref this.averageSourceSad);
+            }
+
+            if (frameHeader.IsIntra)
+            {
+                this.framesSinceKey = 0;
+            }
+
+            this.references[(int)Av1ReferenceFrameType.Last] = this.reference.Frame;
+            this.references[(int)Av1ReferenceFrameType.Golden] = this.hasDistinctGoldenReference ? this.goldenReference.Frame : this.reference.Frame;
+            parent.AvailableReferenceMask = frameHeader.IsIntra ? (byte)0 :
+                (byte)((1 << (int)Av1ReferenceFrameType.Last) | (this.hasDistinctGoldenReference ? 1 << (int)Av1ReferenceFrameType.Golden : 0));
+
+            parent.FramesSinceKey = this.framesSinceKey;
+            parent.FramesSinceGolden = Math.Max(0, this.framesSinceKey - 1);
+            parent.IsScreenContent = isScreenContent;
             this.PictureBuffer.Picture.Parent.SpeedSettings = new(
                 this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
 
@@ -1887,9 +2079,7 @@ internal static class Av1FrameEncoder
                 frameHeader,
                 this.PictureBuffer.Picture,
                 this.source,
-                this.reference,
-                this.goldenReference,
-                this.hasDistinctGoldenReference,
+                this.references,
                 this.reconstruction,
                 this.Coefficients,
                 this.TileWorkspace,
@@ -1898,6 +2088,12 @@ internal static class Av1FrameEncoder
                 writeSequenceHeader);
 
             this.CompleteFrameHeader();
+
+            this.framesSinceKey++;
+            if (this.previousSource is not null)
+            {
+                (this.source, this.previousSource) = (this.previousSource, this.source);
+            }
 
             this.reconstruction.Frame.ExtendBorders();
 
@@ -1921,7 +2117,12 @@ internal static class Av1FrameEncoder
 
     private sealed class HighBitDepthSequenceEncoder : SequenceEncoder
     {
-        private readonly Av1EncoderFrameBuffer<ushort> source;
+        private Av1EncoderFrameBuffer<ushort> source;
+        private Av1EncoderFrameBuffer<ushort>? previousSource;
+        private readonly IMemoryOwner<ulong>? sourceBlockSad;
+        private ulong averageSourceSad;
+        private int framesSinceKey;
+        private readonly Av1EncoderFrame<ushort>[] references = new Av1EncoderFrame<ushort>[Av1Constants.ReferenceFrameCount];
         private Av1EncoderFrameBuffer<ushort> reference;
         private Av1EncoderFrameBuffer<ushort> goldenReference;
         private Av1EncoderFrameBuffer<ushort> reconstruction;
@@ -1963,6 +2164,20 @@ internal static class Av1FrameEncoder
                     CenteredChromaSamplePosition,
                     lumaBorder);
 
+                if (speed >= HeifEncodingSpeed.Level7)
+                {
+                    this.sourceBlockSad = configuration.MemoryAllocator.Allocate<ulong>(((width + 63) >> 6) * ((height + 63) >> 6));
+                    this.previousSource = new(
+                        configuration,
+                        width,
+                        height,
+                        bitDepth,
+                        colorFormat,
+                        CenteredChromaSamplePosition,
+                        CenteredChromaSamplePosition,
+                        lumaBorder);
+                }
+
                 this.goldenReference = new(
                     configuration,
                     width,
@@ -2003,11 +2218,13 @@ internal static class Av1FrameEncoder
 
         protected override void DisposeFrames()
         {
-            // A derived constructor can fail before all three frame owners exist.
+            // A derived constructor can fail before all frame owners exist.
             this.goldenReference?.Dispose();
             this.reconstruction?.Dispose();
             this.reference?.Dispose();
             this.source?.Dispose();
+            this.previousSource?.Dispose();
+            this.sourceBlockSad?.Dispose();
         }
 
         protected override void EncodeFrame<TPixel>(
@@ -2033,7 +2250,38 @@ internal static class Av1FrameEncoder
                 this.ConversionWorkspace);
 
             this.PictureBuffer.Reset(frameHeader);
-            this.PictureBuffer.Picture.Parent.IsScreenContent = isScreenContent;
+            Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
+            parent.IsScreenContent = isScreenContent;
+            parent.SpeedSettings = new(
+                this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+
+            parent.SourceBlockSad = this.sourceBlockSad is not null ? this.sourceBlockSad.Memory : default;
+            parent.HighSourceSad = false;
+            parent.FrameSourceSad = 0;
+            parent.SourceMotionPercentage = 0;
+            if (this.previousSource is not null && this.framesSinceKey != 0)
+            {
+                AnalyzeTemporalSource<ushort, Av1MotionSearchBase.UInt16Operator>(
+                    this.source.Frame.CodedView,
+                    this.previousSource.Frame.CodedView,
+                    parent,
+                    isScreenContent,
+                    this.framesSinceKey,
+                    ref this.averageSourceSad);
+            }
+
+            if (frameHeader.IsIntra)
+            {
+                this.framesSinceKey = 0;
+            }
+
+            this.references[(int)Av1ReferenceFrameType.Last] = this.reference.Frame;
+            this.references[(int)Av1ReferenceFrameType.Golden] = this.hasDistinctGoldenReference ? this.goldenReference.Frame : this.reference.Frame;
+            parent.AvailableReferenceMask = frameHeader.IsIntra ? (byte)0 :
+                (byte)((1 << (int)Av1ReferenceFrameType.Last) | (this.hasDistinctGoldenReference ? 1 << (int)Av1ReferenceFrameType.Golden : 0));
+
+            parent.FramesSinceKey = this.framesSinceKey;
+            parent.FramesSinceGolden = Math.Max(0, this.framesSinceKey - 1);
             Encode(
                 this.ObuWriter,
                 stream,
@@ -2041,9 +2289,7 @@ internal static class Av1FrameEncoder
                 frameHeader,
                 this.PictureBuffer.Picture,
                 this.source,
-                this.reference,
-                this.goldenReference,
-                this.hasDistinctGoldenReference,
+                this.references,
                 this.reconstruction,
                 this.Coefficients,
                 this.TileWorkspace,
@@ -2052,6 +2298,12 @@ internal static class Av1FrameEncoder
                 writeSequenceHeader);
 
             this.CompleteFrameHeader();
+            this.framesSinceKey++;
+
+            if (this.previousSource is not null)
+            {
+                (this.source, this.previousSource) = (this.previousSource, this.source);
+            }
 
             this.reconstruction.Frame.ExtendBorders();
 

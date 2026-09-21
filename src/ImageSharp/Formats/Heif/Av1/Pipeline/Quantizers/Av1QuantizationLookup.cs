@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
@@ -149,6 +150,26 @@ internal static class Av1QuantizationLookup
     ];
 
     /// <summary>
+    /// The Q16 reciprocals of the dequantization values, in the table order DC 8, 10, 12 then AC 8, 10, 12.
+    /// </summary>
+    /// <remarks>
+    /// The fast quantizer multiplies by <c>(1 &lt;&lt; 16) / dequantizer</c>. libaom computes that reciprocal once for
+    /// each quantizer index in <c>av1_build_quantizer</c>; a division for each transform block would cost more
+    /// than the quantization itself.
+    /// </remarks>
+    private static readonly int[] Reciprocals = BuildReciprocals();
+
+    /// <summary>
+    /// The regular-quantizer multipliers of <c>invert_quant</c>, in the same table order as <see cref="Reciprocals"/>.
+    /// </summary>
+    private static readonly int[] RegularQuantizers = BuildRegularQuantizers(out RegularShifts);
+
+    /// <summary>
+    /// The regular-quantizer shifts of <c>invert_quant</c>, in the same table order as <see cref="Reciprocals"/>.
+    /// </summary>
+    private static readonly int[] RegularShifts;
+
+    /// <summary>
     /// Converts a quantizer on libaom's external zero-through-63 scale to an AV1 quantizer index.
     /// </summary>
     /// <param name="quantizer">The external quantizer.</param>
@@ -164,6 +185,56 @@ internal static class Av1QuantizationLookup
 
         return quantizer == PenultimateQuantizer ? PenultimateQuantizerIndex : Av1Constants.MaxQ;
     }
+
+    /// <summary>
+    /// Gets the regular-quantizer multiplier and shift of the DC dequantization value.
+    /// </summary>
+    /// <param name="qIndex">The frame or segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The signed DC quantizer adjustment for the selected plane.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="shift">The quantizer shift.</param>
+    /// <returns>The quantizer multiplier.</returns>
+    public static int GetDcRegularQuantizer(int qIndex, int dcDeltaQ, Av1BitDepth bitDepth, out int shift)
+    {
+        int index = (GetTableIndex(bitDepth) * (Av1Constants.MaxQ + 1)) + Av1Math.Clamp(qIndex + dcDeltaQ, 0, Av1Constants.MaxQ);
+        shift = RegularShifts[index];
+        return RegularQuantizers[index];
+    }
+
+    /// <summary>
+    /// Gets the regular-quantizer multiplier and shift of the AC dequantization value.
+    /// </summary>
+    /// <param name="qIndex">The frame or segment quantizer index.</param>
+    /// <param name="acDeltaQ">The signed AC quantizer adjustment for the selected plane.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="shift">The quantizer shift.</param>
+    /// <returns>The quantizer multiplier.</returns>
+    public static int GetAcRegularQuantizer(int qIndex, int acDeltaQ, Av1BitDepth bitDepth, out int shift)
+    {
+        int index = ((3 + GetTableIndex(bitDepth)) * (Av1Constants.MaxQ + 1)) + Av1Math.Clamp(qIndex + acDeltaQ, 0, Av1Constants.MaxQ);
+        shift = RegularShifts[index];
+        return RegularQuantizers[index];
+    }
+
+    /// <summary>
+    /// Gets the Q16 reciprocal of the DC dequantization value.
+    /// </summary>
+    /// <param name="qIndex">The frame or segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The signed DC quantizer adjustment for the selected plane.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The reciprocal that the fast quantizer multiplies with.</returns>
+    public static int GetDcQuantizer(int qIndex, int dcDeltaQ, Av1BitDepth bitDepth)
+        => Reciprocals[(GetTableIndex(bitDepth) * (Av1Constants.MaxQ + 1)) + Av1Math.Clamp(qIndex + dcDeltaQ, 0, Av1Constants.MaxQ)];
+
+    /// <summary>
+    /// Gets the Q16 reciprocal of the AC dequantization value.
+    /// </summary>
+    /// <param name="qIndex">The frame or segment quantizer index.</param>
+    /// <param name="acDeltaQ">The signed AC quantizer adjustment for the selected plane.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The reciprocal that the fast quantizer multiplies with.</returns>
+    public static int GetAcQuantizer(int qIndex, int acDeltaQ, Av1BitDepth bitDepth)
+        => Reciprocals[((3 + GetTableIndex(bitDepth)) * (Av1Constants.MaxQ + 1)) + Av1Math.Clamp(qIndex + acDeltaQ, 0, Av1Constants.MaxQ)];
 
     /// <summary>
     /// Gets the DC dequantization value after applying a plane delta to the frame quantizer index.
@@ -213,6 +284,55 @@ internal static class Av1QuantizationLookup
                 Guard.IsFalse(true, nameof(bitDepth), "bit_depth should be EB_EIGHT_BIT, EB_TEN_BIT or EB_TWELVE_BIT");
                 return -1;
         }
+    }
+
+    /// <summary>
+    /// Gets the table position of a bit depth: 0 for eight, 1 for ten, and 2 for twelve bits.
+    /// </summary>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The table position.</returns>
+    private static int GetTableIndex(Av1BitDepth bitDepth)
+        => bitDepth == Av1BitDepth.EightBit ? 0 : bitDepth == Av1BitDepth.TenBit ? 1 : 2;
+
+    /// <summary>
+    /// Computes the Q16 reciprocal of every DC and AC dequantization value.
+    /// </summary>
+    /// <returns>The reciprocals in the table order DC 8, 10, 12 then AC 8, 10, 12.</returns>
+    private static int[] BuildReciprocals()
+    {
+        short[][] tables = [DcQlookup8, DcQlookup10, DcQlookup12, AcQlookup8, AcQlookup10, AcQlookup12];
+        int[] reciprocals = new int[tables.Length * (Av1Constants.MaxQ + 1)];
+        for (int table = 0; table < tables.Length; table++)
+        {
+            for (int q = 0; q <= Av1Constants.MaxQ; q++)
+            {
+                reciprocals[(table * (Av1Constants.MaxQ + 1)) + q] = (1 << 16) / tables[table][q];
+            }
+        }
+
+        return reciprocals;
+    }
+
+    /// <summary>
+    /// Computes the <c>invert_quant</c> multiplier and shift of every DC and AC dequantization value.
+    /// </summary>
+    /// <param name="shifts">The shifts, in the same order as the returned multipliers.</param>
+    /// <returns>The multipliers in the table order DC 8, 10, 12 then AC 8, 10, 12.</returns>
+    private static int[] BuildRegularQuantizers(out int[] shifts)
+    {
+        short[][] tables = [DcQlookup8, DcQlookup10, DcQlookup12, AcQlookup8, AcQlookup10, AcQlookup12];
+        int[] quantizers = new int[tables.Length * (Av1Constants.MaxQ + 1)];
+        shifts = new int[quantizers.Length];
+        for (int table = 0; table < tables.Length; table++)
+        {
+            for (int q = 0; q <= Av1Constants.MaxQ; q++)
+            {
+                int index = (table * (Av1Constants.MaxQ + 1)) + q;
+                Av1InverseTransformMath.InvertQuantization(out quantizers[index], out shifts[index], tables[table][q]);
+            }
+        }
+
+        return quantizers;
     }
 
     /// <summary>

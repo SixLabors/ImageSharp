@@ -221,11 +221,15 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(Av1ReferenceFrameType.None, modeInfo.SecondaryReferenceFrame);
     }
 
+    /// <summary>
+    /// Verifies that the retained mode information adds no padding around the block values it wraps.
+    /// </summary>
     [Fact]
     public void EncoderModeInfoUsesPackedValueStorage()
     {
-        Assert.Equal(7, Unsafe.SizeOf<Av1EncoderBlockModeInfo>());
-        Assert.Equal(8, Unsafe.SizeOf<Av1MacroBlockModeInfo>());
+        // One mode entry exists for each 4x4 or 8x8 region of a frame. The entry wraps the block values and
+        // one CDEF strength byte. The absolute size follows the retained syntax, so only the packing is fixed.
+        Assert.Equal(Unsafe.SizeOf<Av1EncoderBlockModeInfo>() + sizeof(byte), Unsafe.SizeOf<Av1MacroBlockModeInfo>());
     }
 
     /// <summary>
@@ -514,7 +518,8 @@ public class Av1CoefficientsEntropyTests
             frameHeader,
             Width,
             Height,
-            disallow4x4AllFrames: true);
+            1 << sequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         Av1PictureControlSet picture = pictureBuffer.Picture;
         Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = Assert.Single(picture.PaletteContexts);

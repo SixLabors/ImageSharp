@@ -252,25 +252,6 @@ internal ref struct Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Gets twice the non-scaled bit range required after every transform stage.
-    /// </summary>
-    private static readonly int[] RangeMulti2Map =
-        [
-            0, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, // fdct4_range_mult2
-            0, 2, 4, 5, 5, 5, 0, 0, 0, 0, 0, 0, // fdct8_range_mult2
-            0, 2, 4, 6, 7, 7, 7, 7, 0, 0, 0, 0, // fdct16_range_mult2
-            0, 2, 4, 6, 8, 9, 9, 9, 9, 9, 0, 0, // fdct32_range_mult2
-            0, 2, 4, 6, 8, 10, 11, 11, 11, 11, 11, 11, // fdct64_range_mult2
-            0, 2, 4, 3, 3, 3, 3, 0, 0, 0, 0, 0, // fadst4_range_mult2
-            0, 0, 1, 3, 3, 5, 5, 5, 0, 0, 0, 0, // fadst8_range_mult2
-            0, 0, 1, 3, 3, 5, 5, 7, 7, 7, 0, 0, // fadst16_range_mult2
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx4_range_mult2
-            2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx8_range_mult2
-            3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx16_range_mult2
-            4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx32_range_mult2
-        ];
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="Av1Transform2dFlipConfiguration"/> struct.
     /// </summary>
     /// <param name="transformType">The compound horizontal and vertical transform type.</param>
@@ -305,8 +286,6 @@ internal ref struct Av1Transform2dFlipConfiguration
             this.shift[2] = ForwardShiftMap[shiftIndex + 2];
             this.CosBitColumn = ForwardCosBitColumnMap[(transformWidthIndex * 5) + transformHeightIndex];
             this.CosBitRow = ForwardCosBitRowMap[(transformWidthIndex * 5) + transformHeightIndex];
-            this.InitializeForwardStageRange();
-            this.GenerateForwardStageRange(bitDepth);
         }
         else
         {
@@ -536,6 +515,29 @@ internal ref struct Av1Transform2dFlipConfiguration
     }
 
     /// <summary>
+    /// Gets the one-dimensional axis transforms and the flips of a compound transform type without a configuration.
+    /// </summary>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="columnType">The vertical transform.</param>
+    /// <param name="rowType">The horizontal transform.</param>
+    /// <param name="flipUpsideDown">Whether the rows are mirrored.</param>
+    /// <param name="flipLeftToRight">Whether the columns are mirrored.</param>
+    public static void GetAxes(
+        Av1TransformType transformType,
+        out Av1TransformType1d columnType,
+        out Av1TransformType1d rowType,
+        out bool flipUpsideDown,
+        out bool flipLeftToRight)
+    {
+        columnType = VerticalType[(int)transformType];
+        rowType = HorizontalType[(int)transformType];
+        flipUpsideDown = transformType is Av1TransformType.FlipAdstDct or Av1TransformType.FlipAdstAdst
+            or Av1TransformType.VerticalFlipAdst or Av1TransformType.FlipAdstFlipAdst;
+        flipLeftToRight = transformType is Av1TransformType.DctFlipAdst or Av1TransformType.AdstFlipAdst
+            or Av1TransformType.HorizontalFlipAdst or Av1TransformType.FlipAdstFlipAdst;
+    }
+
+    /// <summary>
     /// Derives the axis traversal directions encoded by a compound transform type.
     /// </summary>
     /// <param name="transformType">The compound transform type.</param>
@@ -577,52 +579,6 @@ internal ref struct Av1Transform2dFlipConfiguration
             default:
                 Guard.IsTrue(false, nameof(transformType), "Unknown transform type for determining flip.");
                 break;
-        }
-    }
-
-    /// <summary>
-    /// Initializes the per-stage signed-bit ranges before input depth and pipeline shifts are applied.
-    /// </summary>
-    private void InitializeForwardStageRange()
-    {
-        if (this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid)
-        {
-            int columnRangeOffset = (int)this.TransformFunctionTypeColumn * MaxStageNumber;
-            int columnStageCount = this.StageNumberColumn;
-
-            for (int i = 0; i < columnStageCount; ++i)
-            {
-                this.stageRangeColumn[i] = (byte)((RangeMulti2Map[columnRangeOffset + i] + 1) >> 1);
-            }
-
-            if (this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid)
-            {
-                int rowStageCount = this.StageNumberRow;
-                int rowRangeOffset = (int)this.TransformFunctionTypeRow * MaxStageNumber;
-                int columnRange = RangeMulti2Map[columnRangeOffset + this.StageNumberColumn - 1];
-
-                for (int i = 0; i < rowStageCount; ++i)
-                {
-                    this.stageRangeRow[i] = (byte)((columnRange + RangeMulti2Map[rowRangeOffset + i] + 1) >> 1);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Adds input bit depth and inter-stage shifts to the non-scaled forward stage ranges.
-    /// </summary>
-    /// <param name="bitDepth">The coded sample bit depth.</param>
-    private void GenerateForwardStageRange(int bitDepth)
-    {
-        for (int i = 0; i < this.StageNumberColumn; ++i)
-        {
-            this.stageRangeColumn[i] = (byte)(this.stageRangeColumn[i] + this.Shift0 + bitDepth + 1);
-        }
-
-        for (int i = 0; i < this.StageNumberRow; ++i)
-        {
-            this.stageRangeRow[i] = (byte)(this.stageRangeRow[i] + this.Shift0 + this.Shift1 + bitDepth + 1);
         }
     }
 

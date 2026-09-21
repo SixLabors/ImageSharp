@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -391,19 +394,27 @@ internal static class Av1SymbolContextHelper
     /// <param name="scanIndex">The zero-based coefficient index in scan order.</param>
     /// <returns>The end-of-block lower-level context.</returns>
     public static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, int scanIndex)
+        => GetLowerLevelContextEndOfBlock(scanIndex, levels.Size.Height * levels.Size.Width);
+
+    /// <summary>
+    /// Derives the lower-level context for the final nonzero coefficient from its scan-order index.
+    /// </summary>
+    /// <param name="scanIndex">The zero-based coefficient index in scan order.</param>
+    /// <param name="coefficientCount">The number of coefficients in the coded transform region.</param>
+    /// <returns>The end-of-block lower-level context.</returns>
+    public static int GetLowerLevelContextEndOfBlock(int scanIndex, int coefficientCount)
     {
         if (scanIndex == 0)
         {
             return 0;
         }
 
-        int total = levels.Size.Height * levels.Size.Width;
-        if (scanIndex <= total >> 3)
+        if (scanIndex <= coefficientCount >> 3)
         {
             return 1;
         }
 
-        if (scanIndex <= total >> 2)
+        if (scanIndex <= coefficientCount >> 2)
         {
             return 2;
         }
@@ -470,49 +481,78 @@ internal static class Av1SymbolContextHelper
     /// <returns>The base-range context.</returns>
     public static int GetBaseRangeContext(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
-        Span<byte> row0 = levels.GetRow(position.Y);
-        Span<byte> row1 = levels.GetRow(position.Y + 1);
-        int mag = row0[position.X + 1];
-        mag += row1[position.X];
+        Span<byte> active = levels.GetActiveLevels();
+        return GetBaseRangeContext(
+            ref active[(position.Y * levels.Stride) + position.X],
+            levels.Stride,
+            (position.Y << levels.WidthLog2) + position.X,
+            levels.WidthLog2,
+            transformClass);
+    }
+
+    /// <summary>
+    /// Derives a base-range context from the transform-class-specific forward neighbors.
+    /// </summary>
+    /// <remarks>
+    /// Spec section 8.2.3, under 'coeff_br'. The padded level plane keeps every neighbor offset valid, so one
+    /// reference plus fixed offsets replaces a row lookup per neighbor.
+    /// </remarks>
+    /// <param name="level">The coefficient's own entry in the padded level plane.</param>
+    /// <param name="stride">The padded row stride.</param>
+    /// <param name="coefficientIndex">The row-major coefficient index in the coded transform region.</param>
+    /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The base-range context.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetBaseRangeContext(
+        ref byte level,
+        int stride,
+        int coefficientIndex,
+        int widthLog2,
+        Av1TransformClass transformClass)
+    {
+        int row = coefficientIndex >> widthLog2;
+        int column = coefficientIndex & ((1 << widthLog2) - 1);
+        int mag = Unsafe.Add(ref level, 1) + Unsafe.Add(ref level, stride);
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                mag += row1[position.X + 1];
+                mag += Unsafe.Add(ref level, stride + 1);
                 mag = Math.Min((mag + 1) >> 1, 6);
-                if ((position.X + position.Y) == 0)
+                if (coefficientIndex == 0)
                 {
                     return mag;
                 }
 
-                if (position.Y < 2 && position.X < 2)
+                if (row < 2 && column < 2)
                 {
                     return mag + 7;
                 }
 
                 break;
             case Av1TransformClass.ClassHorizontal:
-                mag += row0[position.X + 2];
+                mag += Unsafe.Add(ref level, 2);
                 mag = Math.Min((mag + 1) >> 1, 6);
-                if ((position.X + position.Y) == 0)
+                if (coefficientIndex == 0)
                 {
                     return mag;
                 }
 
-                if (position.X == 0)
+                if (column == 0)
                 {
                     return mag + 7;
                 }
 
                 break;
             case Av1TransformClass.ClassVertical:
-                mag += levels.GetRow(position.Y + 2)[position.X];
+                mag += Unsafe.Add(ref level, 2 * stride);
                 mag = Math.Min((mag + 1) >> 1, 6);
-                if ((position.X + position.Y) == 0)
+                if (coefficientIndex == 0)
                 {
                     return mag;
                 }
 
-                if (position.Y == 0)
+                if (row == 0)
                 {
                     return mag + 7;
                 }
@@ -523,6 +563,33 @@ internal static class Av1SymbolContextHelper
         }
 
         return mag + 14;
+    }
+
+    /// <summary>
+    /// Derives the base-range context of the final nonzero coefficient, whose forward neighbors are all zero.
+    /// </summary>
+    /// <param name="coefficientIndex">The row-major coefficient index in the coded transform region.</param>
+    /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The base-range context.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetBaseRangeContextEndOfBlock(int coefficientIndex, int widthLog2, Av1TransformClass transformClass)
+    {
+        if (coefficientIndex == 0)
+        {
+            return 0;
+        }
+
+        int row = coefficientIndex >> widthLog2;
+        int column = coefficientIndex & ((1 << widthLog2) - 1);
+        if ((transformClass == Av1TransformClass.Class2D && row < 2 && column < 2) ||
+            (transformClass == Av1TransformClass.ClassHorizontal && column == 0) ||
+            (transformClass == Av1TransformClass.ClassVertical && row == 0))
+        {
+            return 7;
+        }
+
+        return 14;
     }
 
     /// <summary>
@@ -564,6 +631,52 @@ internal static class Av1SymbolContextHelper
     {
         int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
         return Av1NzMap.GetNzMapContextFromStats(stats, position, transformSize, transformClass);
+    }
+
+    /// <summary>
+    /// Derives a lower-level context from the transform-class-specific nonzero-map magnitude.
+    /// </summary>
+    /// <param name="level">The coefficient's own entry in the padded level plane.</param>
+    /// <param name="stride">The padded row stride.</param>
+    /// <param name="coefficientIndex">The row-major coefficient index in the coded transform region.</param>
+    /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The lower-level coefficient context.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetLowerLevelsContext(
+        ref byte level,
+        int stride,
+        int coefficientIndex,
+        int widthLog2,
+        Av1TransformSize transformSize,
+        Av1TransformClass transformClass)
+    {
+        int stats = Av1NzMap.GetNzMagnitude(ref level, stride, transformClass);
+        return Av1NzMap.GetNzMapContextFromStats(stats, coefficientIndex, widthLog2, transformSize, transformClass);
+    }
+
+    /// <summary>
+    /// Gets the nonzero-map context of one coefficient with the positional offsets hoisted by the caller.
+    /// </summary>
+    /// <param name="level">The coefficient's own entry in the padded level plane.</param>
+    /// <param name="stride">The padded row stride.</param>
+    /// <param name="coefficientIndex">The row-major coefficient index in the coded transform region.</param>
+    /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
+    /// <param name="offsets">The first entry of the two-dimensional offset table of the transform size.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The nonzero-map probability context.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetLowerLevelsContext(
+        ref byte level,
+        int stride,
+        int coefficientIndex,
+        int widthLog2,
+        ref byte offsets,
+        Av1TransformClass transformClass)
+    {
+        int stats = Av1NzMap.GetNzMagnitude(ref level, stride, transformClass);
+        return Av1NzMap.GetNzMapContextFromStats(stats, coefficientIndex, widthLog2, ref offsets, transformClass);
     }
 
     /// <summary>
@@ -666,17 +779,39 @@ internal static class Av1SymbolContextHelper
         Av1TransformClass transformClass,
         Span<sbyte> coefficientContexts)
     {
-        for (int i = 0; i < eob; ++i)
+        // Resolve the level plane once. Every neighbor read below is then a fixed offset from one reference.
+        Span<byte> active = levels.GetActiveLevels();
+        ref byte levelBase = ref MemoryMarshal.GetReference(active);
+        int stride = levels.Stride;
+        int widthLog2 = levels.WidthLog2;
+        int last = eob - 1;
+        if (Vector128.IsHardwareAccelerated && last > 0)
         {
-            int pos = scan[i];
-            Point position = levels.GetPosition(pos);
-
-            // The final coefficient context is based on its scan position, while all preceding contexts use the
-            // coefficient's raster position and already-decoded forward neighbors.
-            coefficientContexts[pos] = i == eob - 1
-                ? (sbyte)GetLowerLevelContextEndOfBlock(levels, i)
-                : GetNzMapContext(levels, position, transformSize, transformClass);
+            // Vector lanes derive every position of the block at once, as av1_get_nz_map_contexts_sse2 does.
+            // Positions after the end of block are unused, so their contexts cost nothing to discard.
+            Av1NzMap.GetNzMapContextsVector(
+                ref levelBase,
+                stride,
+                levels.Size.Width,
+                levels.Size.Height,
+                transformSize,
+                transformClass,
+                ref MemoryMarshal.GetReference(coefficientContexts));
         }
+        else
+        {
+            for (int i = 0; i < last; ++i)
+            {
+                int pos = scan[i];
+
+                // Contexts before the final coefficient use the raster position and the forward neighbors.
+                ref byte level = ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2));
+                coefficientContexts[pos] = (sbyte)GetLowerLevelsContext(ref level, stride, pos, widthLog2, transformSize, transformClass);
+            }
+        }
+
+        // The final coefficient context is based on its scan position alone.
+        coefficientContexts[scan[last]] = (sbyte)GetLowerLevelContextEndOfBlock(levels, last);
     }
 
     /// <summary>

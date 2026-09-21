@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -19,6 +20,20 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </summary>
 internal static class Av1TransformBlockEncoder
 {
+    /// <summary>
+    /// Gets the Q12 terms that normalize a DC coefficient for the shape of its transform.
+    /// </summary>
+    /// <remarks>
+    /// This is <c>dc_coeff_scale</c> (encodemb.h L172-175). Rectangles of 1:2 carry a square-root of two,
+    /// rectangles of 1:4 a factor of two, transforms of 8x8 and below another factor of two, and the
+    /// 64-point transforms have no entry because they are excluded from this prediction.
+    /// </remarks>
+    private static ReadOnlySpan<ushort> DcCoefficientScale =>
+    [
+        1024, 2048, 4096, 4096, 0, 1448, 1448, 2896, 2896, 2896,
+        2896, 0, 0, 2048, 2048, 4096, 4096, 0, 0
+    ];
+
     /// <summary>
     /// Encodes and reconstructs one eight-bit lossy DC intra block in contiguous encoder planes.
     /// </summary>
@@ -109,8 +124,9 @@ internal static class Av1TransformBlockEncoder
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    /// <returns>The normalized distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
         Av1SymbolEncoder writer,
@@ -135,8 +151,10 @@ internal static class Av1TransformBlockEncoder
         int dcDeltaQ,
         int acDeltaQ,
         Av1Plane plane,
+        (int Type, uint Threshold) distortionPolicy,
         ref Av1EncoderTransformBlockState state)
     {
+        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
@@ -157,6 +175,51 @@ internal static class Av1TransformBlockEncoder
             smoothIntraEdges,
             workspace.Residual,
             transformSize);
+
+        // search_tx_type (tx_search.c L2126-2179) measures the residual energy of the visible samples and
+        // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
+        // transform keeps half of its coefficients, so its transform-domain error is not comparable.
+        int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
+        int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
+        int predictDcLevel = GetPredictDcLevel(workspace);
+
+        // A 64-point transform is excluded from skip prediction, because its DC coefficient carries no
+        // scaling term. Its residual is then measured without a mean and a variance.
+        bool predictDcBlock = predictDcLevel >= 1 && width != 64 && height != 64;
+        long perPixelMean = 0;
+        ulong blockVariance = 0;
+        uint blockMseQ8;
+        long residualEnergy = predictDcBlock
+            ? GetBlockStatistics(
+                workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
+            : GetBlockError(
+                workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+
+        // predict_dc_only_block (tx_search.c L2116-2124) settles a block whose residual cannot survive
+        // quantization. Its prediction stands as the reconstruction and it codes the all-zero flag alone.
+        if (predictDcBlock && PredictSkippedBlock(
+            transformSize,
+            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
+            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
+            Av1BitDepth.EightBit,
+            perPixelMean,
+            blockVariance))
+        {
+            state.EndOfBlock = 0;
+
+            // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
+            // the prediction mode, because no chroma transform type is signaled for a decoder to read.
+            state.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : transformType;
+            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+            return residualEnergy;
+        }
+
+        // This search holds one transform type, as a chroma search always does. A policy that measures
+        // the winner in the pixel domain then has nothing left to compare, so it measures every candidate
+        // there instead (search_tx_type, tx_search.c L2172-2179).
+        bool useTransformDomainDistortion = distortionPolicy.Type > 1 &&
+            blockMseQ8 >= distortionPolicy.Threshold &&
+            transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
 
         EncodeLossyCandidate(
             workspace,
@@ -192,14 +255,28 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
+        if (useTransformDomainDistortion)
+        {
+            // An empty transform reconstructs the prediction, so its error is the residual energy.
+            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+            return state.EndOfBlock == 0
+                ? residualEnergy
+                : GetTransformError(
+                    workspace.TransformCoefficients[..codedCoefficientCount],
+                    workspace.DequantizedCoefficients[..codedCoefficientCount],
+                    transformSize,
+                    Av1BitDepth.EightBit,
+                    out _);
+        }
+
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            Math.Min(width, source.Width - blockOrigin.X),
-            Math.Min(height, source.Height - blockOrigin.Y));
+            visibleWidth,
+            visibleHeight);
 
         return distortion << 4;
     }
@@ -252,49 +329,216 @@ internal static class Av1TransformBlockEncoder
         Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
     {
+        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // the block as skipped before any transform, and selects the distortion domain of this stage.
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
+        int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
+        int predictDcLevel = GetPredictDcLevel(workspace);
+        bool predictDcBlock = predictDcLevel >= 1 && width != 64 && height != 64;
+        long perPixelMean = 0;
+        ulong blockVariance = 0;
+        uint blockMseQ8;
+        long residualEnergy = predictDcBlock
+            ? GetBlockStatistics(residual, inputStride, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
+            : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+
+        if (predictDcBlock && PredictSkippedBlock(
+            transformSize,
+            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
+            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
+            Av1BitDepth.EightBit,
+            perPixelMean,
+            blockVariance))
+        {
+            state.EndOfBlock = 0;
+
+            // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
+            // the prediction mode, because no chroma transform type is signaled for a decoder to read.
+            state.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : transformType;
+            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+        }
+        else
+        {
+            EncodeLossyCandidate(
+                workspace,
+                writer,
+                context,
+                residual,
+                inputStride,
+                quantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                Av1BitDepth.EightBit,
+                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                rateMultiplier,
+                isInter,
+                useChromaWeights,
+                false,
+                ref state);
+        }
+
+        // Later transform blocks predict from these samples, so the candidate is always reconstructed.
+        long pixelDistortion = ReconstructPredictionLossyCandidate(
+            workspace,
+            workspace.DequantizedCoefficients,
+            source,
+            blockOrigin,
+            prediction,
+            inputStride,
+            reconstruction,
+            reconstructionStride,
+            transformSize,
+            qIndex,
+            plane,
+            in state);
+
+        // An empty transform reconstructs the prediction, so its error is the residual energy. This search
+        // holds one transform type, so a policy that measures the winner in the pixel domain measures
+        // every candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        if (state.EndOfBlock == 0)
+        {
+            return residualEnergy;
+        }
+
+        (int Type, uint Threshold) distortionPolicy = GetDistortionPolicy(workspace);
+        if (distortionPolicy.Type > 1 && blockMseQ8 >= distortionPolicy.Threshold &&
+            transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64)
+        {
+            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+            return GetTransformError(
+                workspace.TransformCoefficients[..codedCoefficientCount],
+                workspace.DequantizedCoefficients[..codedCoefficientCount],
+                transformSize,
+                Av1BitDepth.EightBit,
+                out _);
+        }
+
+        return pixelDistortion;
+    }
+
+    /// <summary>
+    /// Reconstructs the eight-bit candidate most recently quantized into the workspace and measures its distortion.
+    /// </summary>
+    /// <remarks>
+    /// Quantization and reconstruction are separate so that a transform search can compare the coefficient rate
+    /// with its current winner first. A candidate whose rate alone already costs more cannot win, and then needs
+    /// no inverse transform or pixel comparison.
+    /// </remarks>
+    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The transform origin in plane samples.</param>
+    /// <param name="prediction">The prepared prediction surface.</param>
+    /// <param name="inputStride">The number of prediction samples between rows.</param>
+    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
+    /// <param name="transformSize">The candidate transform dimensions.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long ReconstructPredictionLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<int> dequantized,
+        Buffer2DRegion<byte> source,
+        Point blockOrigin,
+        ReadOnlySpan<byte> prediction,
+        int inputStride,
+        Span<byte> reconstruction,
+        int reconstructionStride,
+        Av1TransformSize transformSize,
+        int qIndex,
+        Av1Plane plane,
+        in Av1EncoderTransformBlockState state)
+    {
+        long workStart = Av1WorkCounters.Start();
+        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, in state);
+        Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
+        return workResult;
+    }
+
+    public static long ReconstructPredictionLossyCandidateCore(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<int> dequantized,
+        Buffer2DRegion<byte> source,
+        Point blockOrigin,
+        ReadOnlySpan<byte> prediction,
+        int inputStride,
+        Span<byte> reconstruction,
+        int reconstructionStride,
+        Av1TransformSize transformSize,
+        int qIndex,
+        Av1Plane plane,
+        in Av1EncoderTransformBlockState state)
+    {
+        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
-        // Each transform trial overwrites reconstruction but consumes the prepared residual read-only.
-        // Row copies preserve a larger candidate surface without materializing a second compact block.
-        for (int row = 0; row < height; row++)
+        if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size8x8 &&
+            Av1TransformKernels.IsSupported && Ssse3.IsSupported)
         {
-            prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
-        }
-
-        EncodeLossyCandidate(
-            workspace,
-            writer,
-            context,
-            residual,
-            inputStride,
-            quantizedCoefficients,
-            transformSize,
-            transformType,
-            qIndex,
-            dcDeltaQ,
-            acDeltaQ,
-            Av1BitDepth.EightBit,
-            plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-            rateMultiplier,
-            isInter,
-            useChromaWeights,
-            false,
-            ref state);
-
-        if (state.EndOfBlock > 0)
-        {
-            Av1InverseTransformer.Reconstruct8Bit(
-                workspace.DequantizedCoefficients,
+            // The kernel adds the residual to the prediction directly, as lowbd_write_buffer does, so the
+            // prediction needs no copy.
+            Av1InverseTransformer.Inverse8x8(
+                dequantized,
+                prediction,
+                inputStride,
                 reconstruction,
                 reconstructionStride,
-                transformSize,
                 state.TransformType,
-                (int)plane,
-                state.EndOfBlock,
-                qIndex == 0,
-                workspace.TransformWorkspace);
+                state.EndOfBlock);
+        }
+        else if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size4x4 &&
+            Av1TransformKernels.IsSupported && Ssse3.IsSupported)
+        {
+            Av1InverseTransformer.Inverse4x4(
+                dequantized,
+                prediction,
+                inputStride,
+                reconstruction,
+                reconstructionStride,
+                state.TransformType);
+        }
+        else if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size16x16 && Av1TransformKernels.IsWideSupported)
+        {
+            Av1InverseTransformer.Inverse16x16(
+                dequantized,
+                prediction,
+                inputStride,
+                reconstruction,
+                reconstructionStride,
+                state.TransformType,
+                state.EndOfBlock);
+        }
+        else
+        {
+            // Each transform trial overwrites reconstruction but consumes the prepared prediction read-only.
+            // Row copies preserve a larger candidate surface without materializing a second compact block.
+            for (int row = 0; row < height; row++)
+            {
+                prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+            }
+
+            if (state.EndOfBlock > 0)
+            {
+                Av1InverseTransformer.Reconstruct8Bit(
+                    dequantized,
+                    reconstruction,
+                    reconstructionStride,
+                    transformSize,
+                    state.TransformType,
+                    (int)plane,
+                    state.EndOfBlock,
+                    qIndex == 0,
+                    workspace.TransformWorkspace);
+            }
         }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
@@ -351,6 +595,7 @@ internal static class Av1TransformBlockEncoder
         Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
     {
+        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
@@ -368,25 +613,57 @@ internal static class Av1TransformBlockEncoder
             width,
             height);
 
-        EncodeLossyCandidate(
-            workspace,
-            writer,
-            context,
-            workspace.Residual,
-            width,
-            quantizedCoefficients,
+        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // the block as skipped before any transform, and selects the distortion domain of this stage.
+        int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
+        int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
+        int predictDcLevel = GetPredictDcLevel(workspace);
+        bool predictDcBlock = predictDcLevel >= 1 && width != 64 && height != 64;
+        long perPixelMean = 0;
+        ulong blockVariance = 0;
+        uint blockMseQ8;
+        long residualEnergy = predictDcBlock
+            ? GetBlockStatistics(workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
+            : GetBlockError(workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+
+        bool predictedSkip = predictDcBlock && PredictSkippedBlock(
             transformSize,
-            Av1TransformType.DctDct,
-            qIndex,
-            dcDeltaQ,
-            acDeltaQ,
+            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
+            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
             Av1BitDepth.EightBit,
-            Av1ComponentType.Chroma,
-            rateMultiplier,
-            false,
-            useChromaWeights,
-            false,
-            ref state);
+            perPixelMean,
+            blockVariance);
+
+        if (predictedSkip)
+        {
+            // Chroma keeps the type derived from the prediction mode, because no chroma transform type is
+            // signaled for a decoder to read. The unchanged prediction is its own reconstruction.
+            state.EndOfBlock = 0;
+            state.TransformType = Av1TransformType.DctDct;
+            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+        }
+        else
+        {
+            EncodeLossyCandidate(
+                workspace,
+                writer,
+                context,
+                workspace.Residual,
+                width,
+                quantizedCoefficients,
+                transformSize,
+                Av1TransformType.DctDct,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                Av1BitDepth.EightBit,
+                Av1ComponentType.Chroma,
+                rateMultiplier,
+                false,
+                useChromaWeights,
+                false,
+                ref state);
+        }
 
         if (state.EndOfBlock > 0)
         {
@@ -402,6 +679,27 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
+        // An empty transform reconstructs the prediction, so its error is the residual energy. This search
+        // holds one transform type, so a policy that measures the winner in the pixel domain measures every
+        // candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        if (state.EndOfBlock == 0)
+        {
+            return residualEnergy;
+        }
+
+        (int Type, uint Threshold) distortionPolicy = GetDistortionPolicy(workspace);
+        if (distortionPolicy.Type > 1 && blockMseQ8 >= distortionPolicy.Threshold &&
+            transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64)
+        {
+            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+            return GetTransformError(
+                workspace.TransformCoefficients[..codedCoefficientCount],
+                workspace.DequantizedCoefficients[..codedCoefficientCount],
+                transformSize,
+                Av1BitDepth.EightBit,
+                out _);
+        }
+
         // Final distortion is measured against the samples a decoder reconstructs, not the unquantized predictor.
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
@@ -409,8 +707,8 @@ internal static class Av1TransformBlockEncoder
             source.Stride,
             reconstruction,
             width,
-            Math.Min(width, source.Width - blockOrigin.X),
-            Math.Min(height, source.Height - blockOrigin.Y));
+            visibleWidth,
+            visibleHeight);
 
         return distortion << 4;
     }
@@ -509,8 +807,9 @@ internal static class Av1TransformBlockEncoder
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    /// <returns>The normalized distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
         Av1SymbolEncoder writer,
@@ -536,8 +835,10 @@ internal static class Av1TransformBlockEncoder
         int acDeltaQ,
         Av1Plane plane,
         Av1BitDepth bitDepth,
+        (int Type, uint Threshold) distortionPolicy,
         ref Av1EncoderTransformBlockState state)
     {
+        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
@@ -559,6 +860,51 @@ internal static class Av1TransformBlockEncoder
             workspace.Residual,
             transformSize,
             bitDepth);
+
+        // search_tx_type (tx_search.c L2126-2179) measures the residual energy of the visible samples and
+        // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
+        // transform keeps half of its coefficients, so its transform-domain error is not comparable.
+        int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
+        int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
+        int predictDcLevel = GetPredictDcLevel(workspace);
+
+        // A 64-point transform is excluded from skip prediction, because its DC coefficient carries no
+        // scaling term. Its residual is then measured without a mean and a variance.
+        bool predictDcBlock = predictDcLevel >= 1 && width != 64 && height != 64;
+        long perPixelMean = 0;
+        ulong blockVariance = 0;
+        uint blockMseQ8;
+        long residualEnergy = predictDcBlock
+            ? GetBlockStatistics(
+                workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
+            : GetBlockError(
+                workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+
+        // predict_dc_only_block (tx_search.c L2116-2124) settles a block whose residual cannot survive
+        // quantization. Its prediction stands as the reconstruction and it codes the all-zero flag alone.
+        if (predictDcBlock && PredictSkippedBlock(
+            transformSize,
+            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
+            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
+            bitDepth,
+            perPixelMean,
+            blockVariance))
+        {
+            state.EndOfBlock = 0;
+
+            // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
+            // the prediction mode, because no chroma transform type is signaled for a decoder to read.
+            state.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : transformType;
+            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+            return residualEnergy;
+        }
+
+        // This search holds one transform type, as a chroma search always does. A policy that measures
+        // the winner in the pixel domain then has nothing left to compare, so it measures every candidate
+        // there instead (search_tx_type, tx_search.c L2172-2179).
+        bool useTransformDomainDistortion = distortionPolicy.Type > 1 &&
+            blockMseQ8 >= distortionPolicy.Threshold &&
+            transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
 
         EncodeLossyCandidate(
             workspace,
@@ -595,14 +941,28 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
+        if (useTransformDomainDistortion)
+        {
+            // An empty transform reconstructs the prediction, so its error is the residual energy.
+            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+            return state.EndOfBlock == 0
+                ? residualEnergy
+                : GetTransformError(
+                    workspace.TransformCoefficients[..codedCoefficientCount],
+                    workspace.DequantizedCoefficients[..codedCoefficientCount],
+                    transformSize,
+                    bitDepth,
+                    out _);
+        }
+
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            Math.Min(width, source.Width - blockOrigin.X),
-            Math.Min(height, source.Height - blockOrigin.Y));
+            visibleWidth,
+            visibleHeight);
 
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
@@ -662,41 +1022,173 @@ internal static class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         ref Av1EncoderTransformBlockState state)
     {
+        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // the block as skipped before any transform, and selects the distortion domain of this stage.
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
+        int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
+        int predictDcLevel = GetPredictDcLevel(workspace);
+        bool predictDcBlock = predictDcLevel >= 1 && width != 64 && height != 64;
+        long perPixelMean = 0;
+        ulong blockVariance = 0;
+        uint blockMseQ8;
+        long residualEnergy = predictDcBlock
+            ? GetBlockStatistics(residual, inputStride, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
+            : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+
+        if (predictDcBlock && PredictSkippedBlock(
+            transformSize,
+            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
+            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
+            bitDepth,
+            perPixelMean,
+            blockVariance))
+        {
+            state.EndOfBlock = 0;
+
+            // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
+            // the prediction mode, because no chroma transform type is signaled for a decoder to read.
+            state.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : transformType;
+            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+        }
+        else
+        {
+            EncodeLossyCandidate(
+                workspace,
+                writer,
+                context,
+                residual,
+                inputStride,
+                quantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth,
+                plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
+                rateMultiplier,
+                isInter,
+                useChromaWeights,
+                false,
+                ref state);
+        }
+
+        // Later transform blocks predict from these samples, so the candidate is always reconstructed.
+        long pixelDistortion = ReconstructPredictionLossyCandidate(
+            workspace,
+            workspace.DequantizedCoefficients,
+            source,
+            blockOrigin,
+            prediction,
+            inputStride,
+            reconstruction,
+            reconstructionStride,
+            transformSize,
+            qIndex,
+            plane,
+            bitDepth,
+            in state);
+
+        // An empty transform reconstructs the prediction, so its error is the residual energy. This search
+        // holds one transform type, so a policy that measures the winner in the pixel domain measures
+        // every candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        if (state.EndOfBlock == 0)
+        {
+            return residualEnergy;
+        }
+
+        (int Type, uint Threshold) distortionPolicy = GetDistortionPolicy(workspace);
+        if (distortionPolicy.Type > 1 && blockMseQ8 >= distortionPolicy.Threshold &&
+            transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64)
+        {
+            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+            return GetTransformError(
+                workspace.TransformCoefficients[..codedCoefficientCount],
+                workspace.DequantizedCoefficients[..codedCoefficientCount],
+                transformSize,
+                bitDepth,
+                out _);
+        }
+
+        return pixelDistortion;
+    }
+
+    /// <summary>
+    /// Reconstructs the high-bit-depth candidate most recently quantized into the workspace and measures its distortion.
+    /// </summary>
+    /// <remarks>
+    /// Quantization and reconstruction are separate so that a transform search can compare the coefficient rate
+    /// with its current winner first. A candidate whose rate alone already costs more cannot win, and then needs
+    /// no inverse transform or pixel comparison.
+    /// </remarks>
+    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The transform origin in plane samples.</param>
+    /// <param name="prediction">The prepared prediction surface.</param>
+    /// <param name="inputStride">The number of prediction samples between rows.</param>
+    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
+    /// <param name="transformSize">The candidate transform dimensions.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long ReconstructPredictionLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<int> dequantized,
+        Buffer2DRegion<ushort> source,
+        Point blockOrigin,
+        ReadOnlySpan<ushort> prediction,
+        int inputStride,
+        Span<ushort> reconstruction,
+        int reconstructionStride,
+        Av1TransformSize transformSize,
+        int qIndex,
+        Av1Plane plane,
+        Av1BitDepth bitDepth,
+        in Av1EncoderTransformBlockState state)
+    {
+        long workStart = Av1WorkCounters.Start();
+        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, bitDepth, in state);
+        Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
+        return workResult;
+    }
+
+    public static long ReconstructPredictionLossyCandidateCore(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<int> dequantized,
+        Buffer2DRegion<ushort> source,
+        Point blockOrigin,
+        ReadOnlySpan<ushort> prediction,
+        int inputStride,
+        Span<ushort> reconstruction,
+        int reconstructionStride,
+        Av1TransformSize transformSize,
+        int qIndex,
+        Av1Plane plane,
+        Av1BitDepth bitDepth,
+        in Av1EncoderTransformBlockState state)
+    {
+        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
-        // Each transform trial overwrites reconstruction but consumes the prepared residual read-only.
+        // Each transform trial overwrites reconstruction but consumes the prepared prediction read-only.
         // Row copies preserve a larger candidate surface without materializing a second compact block.
         for (int row = 0; row < height; row++)
         {
             prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
         }
 
-        EncodeLossyCandidate(
-            workspace,
-            writer,
-            context,
-            residual,
-            inputStride,
-            quantizedCoefficients,
-            transformSize,
-            transformType,
-            qIndex,
-            dcDeltaQ,
-            acDeltaQ,
-            bitDepth,
-            plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-            rateMultiplier,
-            isInter,
-            useChromaWeights,
-            false,
-            ref state);
-
         if (state.EndOfBlock > 0)
         {
             Av1InverseTransformer.ReconstructHighBitDepth(
-                workspace.DequantizedCoefficients,
+                dequantized,
                 MemoryMarshal.Cast<ushort, short>(reconstruction),
                 reconstructionStride,
                 transformSize,
@@ -769,6 +1261,7 @@ internal static class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         ref Av1EncoderTransformBlockState state)
     {
+        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
@@ -794,25 +1287,57 @@ internal static class Av1TransformBlockEncoder
             width,
             height);
 
-        EncodeLossyCandidate(
-            workspace,
-            writer,
-            context,
-            workspace.Residual,
-            width,
-            quantizedCoefficients,
+        // search_tx_type (tx_search.c L2116-2179) measures the residual of the visible samples, can settle
+        // the block as skipped before any transform, and selects the distortion domain of this stage.
+        int visibleWidth = Math.Min(width, source.Width - blockOrigin.X);
+        int visibleHeight = Math.Min(height, source.Height - blockOrigin.Y);
+        int predictDcLevel = GetPredictDcLevel(workspace);
+        bool predictDcBlock = predictDcLevel >= 1 && width != 64 && height != 64;
+        long perPixelMean = 0;
+        ulong blockVariance = 0;
+        uint blockMseQ8;
+        long residualEnergy = predictDcBlock
+            ? GetBlockStatistics(workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
+            : GetBlockError(workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+
+        bool predictedSkip = predictDcBlock && PredictSkippedBlock(
             transformSize,
-            Av1TransformType.DctDct,
-            qIndex,
-            dcDeltaQ,
-            acDeltaQ,
+            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
+            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
             bitDepth,
-            Av1ComponentType.Chroma,
-            rateMultiplier,
-            false,
-            useChromaWeights,
-            false,
-            ref state);
+            perPixelMean,
+            blockVariance);
+
+        if (predictedSkip)
+        {
+            // Chroma keeps the type derived from the prediction mode, because no chroma transform type is
+            // signaled for a decoder to read. The unchanged prediction is its own reconstruction.
+            state.EndOfBlock = 0;
+            state.TransformType = Av1TransformType.DctDct;
+            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+        }
+        else
+        {
+            EncodeLossyCandidate(
+                workspace,
+                writer,
+                context,
+                workspace.Residual,
+                width,
+                quantizedCoefficients,
+                transformSize,
+                Av1TransformType.DctDct,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth,
+                Av1ComponentType.Chroma,
+                rateMultiplier,
+                false,
+                useChromaWeights,
+                false,
+                ref state);
+        }
 
         if (state.EndOfBlock > 0)
         {
@@ -829,14 +1354,35 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
+        // An empty transform reconstructs the prediction, so its error is the residual energy. This search
+        // holds one transform type, so a policy that measures the winner in the pixel domain measures every
+        // candidate there (search_tx_type, tx_search.c L2172-2179, L2237-2249).
+        if (state.EndOfBlock == 0)
+        {
+            return residualEnergy;
+        }
+
+        (int Type, uint Threshold) distortionPolicy = GetDistortionPolicy(workspace);
+        if (distortionPolicy.Type > 1 && blockMseQ8 >= distortionPolicy.Threshold &&
+            transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64)
+        {
+            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+            return GetTransformError(
+                workspace.TransformCoefficients[..codedCoefficientCount],
+                workspace.DequantizedCoefficients[..codedCoefficientCount],
+                transformSize,
+                bitDepth,
+                out _);
+        }
+
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            Math.Min(width, source.Width - blockOrigin.X),
-            Math.Min(height, source.Height - blockOrigin.Y));
+            visibleWidth,
+            visibleHeight);
 
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
@@ -881,6 +1427,29 @@ internal static class Av1TransformBlockEncoder
         Span<short> residual,
         Av1TransformSize transformSize)
     {
+        long workStart = Av1WorkCounters.Start();
+        PrepareIntraPredictionCore(workspace, source, sourceStride, prediction, predictionStride, above, left, hasLeft, hasAbove, mode, angleDelta, enableIntraEdgeFilter, smoothIntraEdges, residual, transformSize);
+        Av1WorkCounters.Stop(Av1WorkCounters.PredictIntra, workStart);
+    }
+
+    public static void PrepareIntraPredictionCore(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        Span<byte> prediction,
+        int predictionStride,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        bool hasLeft,
+        bool hasAbove,
+        Av1PredictionMode mode,
+        int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
+        Span<short> residual,
+        Av1TransformSize transformSize)
+    {
+        Av1WorkCounters.Count(Av1WorkCounters.PredictIntra);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
@@ -1005,6 +1574,30 @@ internal static class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1BitDepth bitDepth)
     {
+        long workStart = Av1WorkCounters.Start();
+        PrepareIntraPredictionCore(workspace, source, sourceStride, prediction, predictionStride, above, left, hasLeft, hasAbove, mode, angleDelta, enableIntraEdgeFilter, smoothIntraEdges, residual, transformSize, bitDepth);
+        Av1WorkCounters.Stop(Av1WorkCounters.PredictIntra, workStart);
+    }
+
+    public static void PrepareIntraPredictionCore(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        Span<ushort> prediction,
+        int predictionStride,
+        ReadOnlySpan<ushort> above,
+        ReadOnlySpan<ushort> left,
+        bool hasLeft,
+        bool hasAbove,
+        Av1PredictionMode mode,
+        int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
+        Span<short> residual,
+        Av1TransformSize transformSize,
+        Av1BitDepth bitDepth)
+    {
+        Av1WorkCounters.Count(Av1WorkCounters.PredictIntra);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
@@ -1391,7 +1984,7 @@ internal static class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Transforms and quantizes one candidate using the reference coefficient-optimization policy.
+    /// Transforms and quantizes one candidate using the current coefficient-optimization policy.
     /// </summary>
     public static void EncodeLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
@@ -1413,6 +2006,7 @@ internal static class Av1TransformBlockEncoder
         bool winnerEvaluation,
         ref Av1EncoderTransformBlockState state)
     {
+        Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
         Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
@@ -1428,6 +2022,7 @@ internal static class Av1TransformBlockEncoder
             return;
         }
 
+        long workXform = Av1WorkCounters.Start();
         Av1ForwardTransformer.Transform2d(
             residual,
             transformed,
@@ -1436,20 +2031,33 @@ internal static class Av1TransformBlockEncoder
             transformSize,
             bitDepth.GetBitCount(),
             workspace.TransformWorkspace);
+        Av1WorkCounters.Stop(Av1WorkCounters.FwdXform, workXform);
 
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
         int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
-        bool optimize = ShouldOptimizeCoefficients(
+        long workSatd = Av1WorkCounters.Start();
+        Av1EncoderSpeedSettings speedSettings = workspace.SpeedSettings;
+        (uint Distortion, uint Satd) thresholds = workspace.EvaluationStage switch
+        {
+            Av1EncoderEvaluationStage.Candidate => speedSettings.ModeCoefficientOptimizationThresholds,
+            Av1EncoderEvaluationStage.Winner => speedSettings.WinnerCoefficientOptimizationThresholds,
+            _ => speedSettings.DefaultCoefficientOptimizationThresholds
+        };
+
+        bool optimize = speedSettings.EnableCoefficientOptimization && ShouldOptimizeCoefficients(
             residual,
             residualStride,
             transformed,
             transformSize,
             acDequantizer,
             bitDepth,
-            writer.EncodingSpeed,
+            thresholds,
             winnerEvaluation);
+        Av1WorkCounters.Stop(Av1WorkCounters.SatdGate, workSatd);
 
-        // libaom's fast quantizer is paired with trellis refinement. When normalized residual energy or
+        long workQuant = Av1WorkCounters.Start();
+
+        // Fast quantization is paired with trellis refinement. When normalized residual energy or
         // transformed SATD disables refinement, regular quantization supplies the stronger zero-bin and
         // reciprocal correction that the unrefined candidate requires.
         state.EndOfBlock = optimize
@@ -1457,6 +2065,7 @@ internal static class Av1TransformBlockEncoder
                 transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth)
             : Av1ForwardQuantizer.QuantizeRegular(
                 transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, 0);
+        Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
 
         if (optimize && state.EndOfBlock > 0)
         {
@@ -1474,10 +2083,357 @@ internal static class Av1TransformBlockEncoder
                 bitDepth,
                 isInter,
                 useChromaWeights,
-                state.EndOfBlock);
+                state.EndOfBlock,
+                out _);
         }
 
         state.TransformType = transformType;
+    }
+
+    /// <summary>
+    /// Transforms, quantizes, and costs one candidate of a transform-type search.
+    /// </summary>
+    /// <remarks>
+    /// This is the loop body of <c>search_tx_type</c>. The caller decides trellis use once for the block from its
+    /// residual energy; this method applies the per-type SATD gate of <c>skip_trellis_opt_based_on_satd</c>. The
+    /// trellis pass returns the coefficient rate, so no second cost pass follows it.
+    /// </remarks>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="writer">The coefficient entropy costs.</param>
+    /// <param name="context">The neighboring coefficient contexts.</param>
+    /// <param name="residual">The source-minus-prediction block.</param>
+    /// <param name="residualStride">The number of residual samples between rows.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+    /// <param name="dequantizedCoefficients">The candidate reconstruction coefficients.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The transform type.</param>
+    /// <param name="intraDirection">The spatial prediction mode selecting the transform-type context.</param>
+    /// <param name="filterIntraMode">The filter-intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
+    /// <param name="useReducedTransformSet">Whether the frame restricts transform types.</param>
+    /// <param name="usesInterTransformSet">Whether inter transform syntax applies.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="componentType">The luminance or chroma component.</param>
+    /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
+    /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
+    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
+    /// <param name="skipTrellis">Whether the block-level energy gate disabled coefficient refinement.</param>
+    /// <param name="satdThreshold">The transform-scaled SATD gate, or <see cref="uint.MaxValue"/> for none.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The coefficient rate including the skip flag and the transform type.</returns>
+    public static int EncodeTypeSearchCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        Av1TransformBlockContext context,
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        Span<int> quantizedCoefficients,
+        Span<int> dequantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        Av1FilterIntraMode filterIntraMode,
+        bool useReducedTransformSet,
+        bool usesInterTransformSet,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1BitDepth bitDepth,
+        Av1ComponentType componentType,
+        int rateMultiplier,
+        bool isInter,
+        bool useChromaWeights,
+        bool skipTrellis,
+        uint satdThreshold,
+        ref Av1EncoderTransformBlockState state)
+    {
+        Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
+        int coefficientCount = transformSize.GetAdjusted().GetSize2d();
+        Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
+        Span<int> quantized = quantizedCoefficients[..coefficientCount];
+        Span<int> dequantized = dequantizedCoefficients[..coefficientCount];
+        bool optimize = !skipTrellis;
+
+        if (qIndex == 0)
+        {
+            // Coded-lossless blocks use the reversible transform and lossless quantizer, and no refinement.
+            Av1ForwardTransformer.TransformLossless4x4(residual, transformed, (uint)residualStride);
+            state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
+            state.TransformType = Av1TransformType.DctDct;
+            optimize = false;
+        }
+        else
+        {
+            long workXform = Av1WorkCounters.Start();
+            Av1ForwardTransformer.Transform2d(
+                residual,
+                transformed,
+                (uint)residualStride,
+                transformType,
+                transformSize,
+                bitDepth.GetBitCount(),
+                workspace.TransformWorkspace);
+            Av1WorkCounters.Stop(Av1WorkCounters.FwdXform, workXform);
+        }
+
+        int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
+        int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
+        long workSatd = Av1WorkCounters.Start();
+        if (optimize && satdThreshold != uint.MaxValue)
+        {
+            // skip_trellis_opt_based_on_satd: the SATD of the coded coefficients, at transform scale one
+            // and eight-bit precision, against the threshold times the quantizer step and sqrt(pixels).
+            long satd = 0;
+            foreach (int coefficient in transformed)
+            {
+                satd += Math.Abs((long)coefficient);
+            }
+
+            int scaleShift = 1 - transformSize.GetScale();
+            satd = scaleShift >= 0 ? satd >> scaleShift : satd << -scaleShift;
+            satd >>= bitDepth.GetBitCount() - 8;
+            int dequantShift = bitDepth == Av1BitDepth.EightBit ? 3 : bitDepth.GetBitCount() - 5;
+            ulong qStep = (uint)(acDequantizer >> dequantShift);
+            ReadOnlySpan<byte> squareRootPixels = [4, 8, 16, 32, 32, 6, 6, 12, 12, 23, 23, 32, 32, 8, 8, 16, 16, 23, 23];
+            optimize = (ulong)satd <= satdThreshold * qStep * squareRootPixels[(int)transformSize];
+        }
+
+        Av1WorkCounters.Stop(Av1WorkCounters.SatdGate, workSatd);
+        Av1WorkCounters.Count(optimize ? Av1WorkCounters.OptimizeB : Av1WorkCounters.CostCoeffs);
+        if (qIndex != 0)
+        {
+            long workQuant = Av1WorkCounters.Start();
+
+            // Fast quantization is paired with trellis refinement. Without refinement, regular quantization
+            // supplies the stronger zero-bin and reciprocal correction that the unrefined candidate requires.
+            state.EndOfBlock = optimize
+                ? Av1ForwardQuantizer.QuantizeLossy(
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth)
+                : Av1ForwardQuantizer.QuantizeRegular(
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, 0);
+
+            state.TransformType = transformType;
+            Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
+        }
+
+        if (!optimize || state.EndOfBlock == 0)
+        {
+            return writer.GetCoefficientCost(
+                transformSize,
+                state.TransformType,
+                intraDirection,
+                quantized,
+                componentType,
+                context,
+                state.EndOfBlock,
+                useReducedTransformSet,
+                filterIntraMode,
+                usesInterTransformSet);
+        }
+
+        state.EndOfBlock = writer.OptimizeCoefficients(
+            transformed,
+            quantized,
+            dequantized,
+            transformSize,
+            transformType,
+            componentType,
+            context,
+            dcDequantizer,
+            acDequantizer,
+            rateMultiplier,
+            bitDepth,
+            isInter,
+            useChromaWeights,
+            state.EndOfBlock,
+            out int coefficientRate);
+
+        return writer.GetOptimizedCoefficientCost(
+            transformSize,
+            transformType,
+            intraDirection,
+            componentType,
+            context,
+            state.EndOfBlock,
+            coefficientRate,
+            useReducedTransformSet,
+            filterIntraMode,
+            usesInterTransformSet);
+    }
+
+    /// <summary>
+    /// Measures the residual energy of the visible part of one transform block.
+    /// </summary>
+    /// <remarks>
+    /// This is <c>av1_pixel_diff_dist</c> followed by the scaling of <c>search_tx_type</c>: the error is
+    /// normalized to eight-bit precision and multiplied by sixteen to match pixel-domain distortion units.
+    /// </remarks>
+    /// <param name="residual">The source-minus-prediction block.</param>
+    /// <param name="residualStride">The number of residual samples between rows.</param>
+    /// <param name="visibleWidth">The number of columns inside the frame.</param>
+    /// <param name="visibleHeight">The number of rows inside the frame.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="blockMseQ8">The mean squared error in Q8, normalized to eight-bit precision.</param>
+    /// <returns>The scaled sum of squared residual samples.</returns>
+    public static long GetBlockError(
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        int visibleWidth,
+        int visibleHeight,
+        Av1BitDepth bitDepth,
+        out uint blockMseQ8)
+    {
+        long sumOfSquares = 0;
+        for (int y = 0; y < visibleHeight; y++)
+        {
+            sumOfSquares += Av1ResidualBuilder.SumSquares(residual.Slice(y * residualStride, visibleWidth));
+        }
+
+        blockMseQ8 = visibleWidth > 0 && visibleHeight > 0
+            ? (uint)((256 * sumOfSquares) / (visibleWidth * visibleHeight))
+            : 0;
+
+        int precisionShift = 2 * (bitDepth.GetBitCount() - 8);
+        if (precisionShift > 0)
+        {
+            long rounding = 1L << (precisionShift - 1);
+            sumOfSquares = (sumOfSquares + rounding) >> precisionShift;
+            blockMseQ8 = (uint)((blockMseQ8 + rounding) >> precisionShift);
+        }
+
+        return sumOfSquares * 16;
+    }
+
+    /// <summary>
+    /// Measures the residual energy, mean, and variance of the visible part of one transform block.
+    /// </summary>
+    /// <remarks>
+    /// This is <c>pixel_diff_stats</c> (tx_search.c L155-188) with the eight-bit normalization and the
+    /// scaling that <c>search_tx_type</c> applies to its results. It replaces <see cref="GetBlockError"/>
+    /// when the speed policy predicts skipped blocks, and normalizes the mean in a way that measurement
+    /// does not: the mean moves to the transform domain, where a DC coefficient scale applies to it.
+    /// </remarks>
+    /// <param name="residual">The source-minus-prediction block.</param>
+    /// <param name="residualStride">The number of residual samples between rows.</param>
+    /// <param name="visibleWidth">The number of columns inside the frame.</param>
+    /// <param name="visibleHeight">The number of rows inside the frame.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="blockMseQ8">The mean squared error in Q8, normalized to eight-bit precision.</param>
+    /// <param name="perPixelMean">The signed mean residual sample, scaled to the transform domain.</param>
+    /// <param name="blockVariance">The residual variance, normalized to eight-bit precision.</param>
+    /// <returns>The scaled sum of squared residual samples.</returns>
+    public static long GetBlockStatistics(
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        int visibleWidth,
+        int visibleHeight,
+        Av1BitDepth bitDepth,
+        out uint blockMseQ8,
+        out long perPixelMean,
+        out ulong blockVariance)
+    {
+        long sumOfSquares = 0;
+        long sum = 0;
+        for (int y = 0; y < visibleHeight; y++)
+        {
+            sumOfSquares += Av1ResidualBuilder.SumAndSumSquares(residual.Slice(y * residualStride, visibleWidth), out long rowSum);
+            sum += rowSum;
+        }
+
+        if (visibleWidth > 0 && visibleHeight > 0)
+        {
+            // The reference normalizes with a reciprocal in double precision here, where the plain energy
+            // measurement of av1_pixel_diff_dist divides in integer precision.
+            double normalization = 1.0 / (visibleWidth * visibleHeight);
+            int signOfSum = sum > 0 ? 1 : -1;
+            perPixelMean = signOfSum * ((long)(normalization * Math.Abs(sum)) << 7);
+            blockMseQ8 = (uint)(normalization * (256 * sumOfSquares));
+            blockVariance = (ulong)sumOfSquares - (ulong)(normalization * sum * sum);
+        }
+        else
+        {
+            perPixelMean = 0;
+            blockMseQ8 = 0;
+            blockVariance = 0;
+        }
+
+        int precisionShift = 2 * (bitDepth.GetBitCount() - 8);
+        if (precisionShift > 0)
+        {
+            long rounding = 1L << (precisionShift - 1);
+            sumOfSquares = (sumOfSquares + rounding) >> precisionShift;
+            blockMseQ8 = (uint)((blockMseQ8 + rounding) >> precisionShift);
+            blockVariance = (blockVariance + (ulong)rounding) >> precisionShift;
+        }
+
+        return sumOfSquares * 16;
+    }
+
+    /// <summary>
+    /// Gets the transform-domain distortion policy of the current mode evaluation stage.
+    /// </summary>
+    /// <remarks>This is <c>set_tx_domain_dist_params</c> (rdopt_utils.h L586-603).</remarks>
+    /// <param name="workspace">The workspace holding the speed settings and the evaluation stage.</param>
+    /// <returns>The distortion type and its mean-error threshold.</returns>
+    public static (int Type, uint Threshold) GetDistortionPolicy(Av1EncoderBlockWorkspace workspace)
+        => workspace.EvaluationStage switch
+        {
+            Av1EncoderEvaluationStage.Candidate => workspace.SpeedSettings.ModeTransformDomainDistortion,
+            Av1EncoderEvaluationStage.Winner => workspace.SpeedSettings.WinnerTransformDomainDistortion,
+            _ => workspace.SpeedSettings.DefaultTransformDomainDistortion
+        };
+
+    /// <summary>
+    /// Gets the skip prediction level of the current mode evaluation stage.
+    /// </summary>
+    /// <remarks>This is the <c>predict_dc_level</c> assignment of <c>set_mode_eval_params</c>.</remarks>
+    /// <param name="workspace">The workspace holding the speed settings and the evaluation stage.</param>
+    /// <returns>The aggressiveness of skip and DC-only block prediction.</returns>
+    public static int GetPredictDcLevel(Av1EncoderBlockWorkspace workspace)
+        => workspace.EvaluationStage switch
+        {
+            Av1EncoderEvaluationStage.Candidate => workspace.SpeedSettings.ModePredictDcLevel,
+            Av1EncoderEvaluationStage.Winner => workspace.SpeedSettings.WinnerPredictDcLevel,
+            _ => workspace.SpeedSettings.DefaultPredictDcLevel
+        };
+
+    /// <summary>
+    /// Predicts whether one transform block codes no coefficients at all.
+    /// </summary>
+    /// <remarks>
+    /// This is the skip branch of <c>predict_dc_only_block</c> (tx_search.c L1998-2053). A residual whose
+    /// variance stays below the quantizer step and whose transform-domain mean stays below the DC step
+    /// quantizes to nothing, so the block keeps its prediction and costs only the all-zero flag. The
+    /// remaining branch of the reference predicts DC-only blocks at level two, which the still-picture
+    /// speed features never select.
+    /// </remarks>
+    /// <param name="transformSize">The transform dimensions scaling the mean.</param>
+    /// <param name="dcDequantizer">The DC quantizer step of the plane.</param>
+    /// <param name="acDequantizer">The AC quantizer step of the plane.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="perPixelMean">The signed mean residual sample, scaled to the transform domain.</param>
+    /// <param name="blockVariance">The residual variance, normalized to eight-bit precision.</param>
+    /// <returns><see langword="true"/> when the block is predicted to code no coefficients.</returns>
+    public static bool PredictSkippedBlock(
+        Av1TransformSize transformSize,
+        int dcDequantizer,
+        int acDequantizer,
+        Av1BitDepth bitDepth,
+        long perPixelMean,
+        ulong blockVariance)
+    {
+        int dequantShift = bitDepth == Av1BitDepth.EightBit ? 3 : bitDepth.GetBitCount() - 5;
+        ulong quantizerStep = (ulong)(acDequantizer >> dequantShift);
+        ulong varianceThreshold = (ulong)(1.8 * quantizerStep * quantizerStep);
+        if (blockVariance >= varianceThreshold)
+        {
+            return false;
+        }
+
+        ulong dcQuantizerStep = (ulong)(dcDequantizer >> 3);
+        return (ulong)Math.Abs(perPixelMean) * DcCoefficientScale[(int)transformSize] < dcQuantizerStep << 12;
     }
 
     /// <summary>
@@ -1490,27 +2446,15 @@ internal static class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         int acDequantizer,
         Av1BitDepth bitDepth,
-        HeifEncodingSpeed speed,
+        (uint Distortion, uint Satd) thresholds,
         bool winnerEvaluation)
     {
-        int numericSpeed = (int)speed;
         if (winnerEvaluation)
         {
-            // Candidate thresholds only prune search work. The committed winner always receives coefficient
-            // refinement so reconstruction and emitted coefficients use the encoder's full-quality path.
+            // Final encoding has fixed mode and transform choices. Its trellis pass is independent
+            // of the energy thresholds used to reduce candidate-search work.
             return true;
         }
-
-        // These are libaom's all-intra coeff_opt_thresholds rows after perform_coeff_opt and winner-mode
-        // policy selection. Distortion is normalized MSE in Q8; SATD is compared after transform scaling.
-        (uint Distortion, uint Satd) thresholds = numericSpeed switch
-        {
-            0 => ((uint Distortion, uint Satd))(3200U, uint.MaxValue),
-            1 => (1728U, uint.MaxValue),
-            2 or 3 => (864U, uint.MaxValue),
-            4 or 5 => (142U, 16U),
-            _ => (86U, 16U)
-        };
 
         uint distortionThreshold = thresholds.Distortion;
         uint satdThreshold = thresholds.Satd;
@@ -1530,7 +2474,7 @@ internal static class Av1TransformBlockEncoder
 
         int bitDepthShift = bitDepth.GetBitCount() - 8;
 
-        // Pixel-domain MSE uses Q8 precision before high-bit-depth normalization, matching tx_search.c.
+        // Normalize pixel-domain MSE from Q8 precision before comparing different sample depths.
         ulong blockMseQ8 = (ulong)(((squaredError * 256) + ((width * height) / 2)) / (width * height));
         blockMseQ8 >>= bitDepthShift * 2;
         int dequantShift = bitDepth == Av1BitDepth.EightBit ? 3 : bitDepth.GetBitCount() - 5;
@@ -1551,9 +2495,10 @@ internal static class Av1TransformBlockEncoder
             satd += Math.Abs((long)coefficient);
         }
 
-        // MAX_TX_SCALE is two in libaom. The fixed table is ceil(sqrt(transform pixels)) in enum order,
-        // avoiding floating-point work and allocation in this per-candidate hot path.
-        satd >>= 2 - transformSize.GetScale();
+        // skip_trellis_opt_based_on_satd scales by MAX_TX_SCALE (one) minus the transform scale, so a
+        // 64-point transform shifts left. The table is ceil(sqrt(coded transform pixels)) in enum order.
+        int scaleShift = 1 - transformSize.GetScale();
+        satd = scaleShift >= 0 ? satd >> scaleShift : satd << -scaleShift;
         satd >>= bitDepthShift;
         ReadOnlySpan<byte> squareRootPixels = [4, 8, 16, 32, 32, 6, 6, 12, 12, 23, 23, 32, 32, 8, 8, 16, 16, 23, 23];
         return (ulong)satd <= satdThreshold * qStep * squareRootPixels[(int)transformSize];
@@ -1654,7 +2599,10 @@ internal static class Av1TransformBlockEncoder
 
                 ReadOnlySpan<short> transformResidual = residual[((y * residualStride) + x)..];
                 ushort endOfBlock;
-                if (lossless)
+
+                // Only the 4x4 transform uses reversible lifting. Larger transforms here are
+                // estimates for prediction selection; final lossless residual coding still uses 4x4.
+                if (lossless && transformSize == Av1TransformSize.Size4x4)
                 {
                     Av1ForwardTransformer.TransformLossless4x4(transformResidual, transformed, (uint)residualStride);
                     endOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
@@ -1756,6 +2704,20 @@ internal static class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         out long sumOfSquares)
     {
+        long workStart = Av1WorkCounters.Start();
+        long workResult = GetTransformErrorCore(coefficients, dequantized, transformSize, bitDepth, out sumOfSquares);
+        Av1WorkCounters.Stop(Av1WorkCounters.DistTxDomain, workStart);
+        return workResult;
+    }
+
+    public static long GetTransformErrorCore(
+        ReadOnlySpan<int> coefficients,
+        ReadOnlySpan<int> dequantized,
+        Av1TransformSize transformSize,
+        Av1BitDepth bitDepth,
+        out long sumOfSquares)
+    {
+        Av1WorkCounters.Count(Av1WorkCounters.DistTxDomain);
         long error = 0;
         long energy = 0;
         int i = 0;

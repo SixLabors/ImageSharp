@@ -103,7 +103,8 @@ public class Av1IntraBlockCopyTests
             frameHeader,
             Width,
             Height,
-            disallow4x4AllFrames: true);
+            1 << sequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         Av1PictureControlSet picture = buffer.Picture;
         Point candidatePosition = new(80, 12);
@@ -165,7 +166,8 @@ public class Av1IntraBlockCopyTests
             frameHeader,
             Width,
             Height,
-            disallow4x4AllFrames: true);
+            1 << sequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         Av1PictureControlSet picture = buffer.Picture;
         Point modeInfoPosition = new(80, 0);
@@ -254,6 +256,7 @@ public class Av1IntraBlockCopyTests
         ObuFrameHeader frameHeader = CreateFrameHeader();
         frameHeader.AllowScreenContentTools = true;
         frameHeader.AllowIntraBlockCopy = true;
+        Av1MotionSearchSettings settings = new(speed, true, new Size(Width, Height), QIndex, true, true);
 
         using Av1EncoderPictureBuffer pictureBuffer = new(
             Configuration.Default,
@@ -261,7 +264,8 @@ public class Av1IntraBlockCopyTests
             frameHeader,
             Width,
             Height,
-            disallow4x4AllFrames: true);
+            settings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         using Av1EncoderFrameBuffer<byte> source = new(
             Configuration.Default,
@@ -312,19 +316,29 @@ public class Av1IntraBlockCopyTests
         using IMemoryOwner<int> costStorage = Configuration.Default.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
         Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
         writer.FillDisplacementVectorCosts(costs);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            Configuration.Default,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: true,
+            sequenceHeader.SuperblockSize);
+
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         Av1MotionVector reference = new(0, -2560);
+        Buffer2DRegion<byte> codedReconstructionLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
         int candidateCount = picture.IntraBlockCopySearch.FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
             source.Frame.CodedView.GetPlane(Av1Plane.Y),
-            reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y),
+            codedReconstructionLuma,
             blockOrigin,
+            Av1BlockSize.Block8x8,
             new Av1TileInfo(0, 0, frameHeader),
             sequenceHeader,
             costs,
             reference,
             QIndex,
-            Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
-            new Av1MotionSearchSettings(speed, true, new Size(Width, Height), QIndex, true, true),
+            Av1RateDistortion.GetRateMultiplier(QIndex, Av1BitDepth.EightBit, Av1FrameUpdateType.Key),
+            Av1MotionSearchBase.GetInitialStepParameter(Math.Max(Width, Height)),
+            settings,
+            blockWorkspace.GetMotionSearchSites(settings.GetFullPixelMethod(Av1BlockSize.Block8x8), codedReconstructionLuma.Stride),
             candidates);
 
         Assert.Equal(expectedCount, candidateCount);
@@ -350,6 +364,7 @@ public class Av1IntraBlockCopyTests
         ObuFrameHeader frameHeader = CreateFrameHeader();
         frameHeader.AllowScreenContentTools = true;
         frameHeader.AllowIntraBlockCopy = true;
+        Av1MotionSearchSettings settings = new(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true);
 
         using Av1EncoderPictureBuffer pictureBuffer = new(
             Configuration.Default,
@@ -357,7 +372,8 @@ public class Av1IntraBlockCopyTests
             frameHeader,
             Width,
             Height,
-            disallow4x4AllFrames: true);
+            settings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         using Av1EncoderFrameBuffer<byte> source = new(
             Configuration.Default,
@@ -418,19 +434,28 @@ public class Av1IntraBlockCopyTests
         using IMemoryOwner<int> costStorage = Configuration.Default.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
         Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
         writer.FillDisplacementVectorCosts(costs);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            Configuration.Default,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: true,
+            sequenceHeader.SuperblockSize);
+
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
             .FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
                 codedSourceLuma,
                 codedReconstructionLuma,
                 blockOrigin,
+                Av1BlockSize.Block8x8,
                 new Av1TileInfo(0, 0, frameHeader),
                 sequenceHeader,
                 costs,
                 new Av1MotionVector(-64, 120),
                 QIndex,
-                Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
-                new Av1MotionSearchSettings(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true),
+                Av1RateDistortion.GetRateMultiplier(QIndex, Av1BitDepth.EightBit, Av1FrameUpdateType.Key),
+                Av1MotionSearchBase.GetInitialStepParameter(Math.Max(Width, Height)),
+                settings,
+                blockWorkspace.GetMotionSearchSites(settings.GetFullPixelMethod(Av1BlockSize.Block8x8), codedReconstructionLuma.Stride),
                 candidates);
 
         Assert.Equal(1, candidateCount);
@@ -453,6 +478,7 @@ public class Av1IntraBlockCopyTests
         ObuFrameHeader frameHeader = CreateFrameHeader();
         frameHeader.AllowScreenContentTools = true;
         frameHeader.AllowIntraBlockCopy = true;
+        Av1MotionSearchSettings settings = new(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true);
 
         using Av1EncoderPictureBuffer pictureBuffer = new(
             Configuration.Default,
@@ -460,7 +486,8 @@ public class Av1IntraBlockCopyTests
             frameHeader,
             Width,
             Height,
-            disallow4x4AllFrames: true);
+            settings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         using Av1EncoderFrameBuffer<byte> source = new(
             Configuration.Default,
@@ -509,19 +536,28 @@ public class Av1IntraBlockCopyTests
         using IMemoryOwner<int> costStorage = Configuration.Default.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
         Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
         writer.FillDisplacementVectorCosts(costs);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            Configuration.Default,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: true,
+            sequenceHeader.SuperblockSize);
+
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
             .FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
                 codedSourceLuma,
                 codedReconstructionLuma,
                 blockOrigin,
+                Av1BlockSize.Block8x8,
                 new Av1TileInfo(0, 0, frameHeader),
                 sequenceHeader,
                 costs,
                 new Av1MotionVector(-64, 0),
                 QIndex,
-                Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
-                new Av1MotionSearchSettings(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true),
+                Av1RateDistortion.GetRateMultiplier(QIndex, Av1BitDepth.EightBit, Av1FrameUpdateType.Key),
+                Av1MotionSearchBase.GetInitialStepParameter(Math.Max(Width, Height)),
+                settings,
+                blockWorkspace.GetMotionSearchSites(settings.GetFullPixelMethod(Av1BlockSize.Block8x8), codedReconstructionLuma.Stride),
                 candidates);
 
         Assert.Equal(1, candidateCount);
@@ -550,13 +586,15 @@ public class Av1IntraBlockCopyTests
         ObuFrameHeader frameHeader = CreateFrameHeader();
         frameHeader.AllowScreenContentTools = true;
         frameHeader.AllowIntraBlockCopy = true;
+        Av1MotionSearchSettings settings = new(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true);
         using Av1EncoderPictureBuffer pictureBuffer = new(
             Configuration.Default,
             sequenceHeader,
             frameHeader,
             Width,
             Height,
-            disallow4x4AllFrames: true);
+            settings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         using Av1EncoderFrameBuffer<ushort> source = new(
             Configuration.Default, Width, Height, bits, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
@@ -601,18 +639,27 @@ public class Av1IntraBlockCopyTests
         Assert.True(8 + referenceMotionCost < adjacentMotionCost);
         Assert.True((8 * scale) + referenceMotionCost > adjacentMotionCost);
 
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            Configuration.Default,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: true,
+            sequenceHeader.SuperblockSize);
+
         pictureBuffer.Picture.IntraBlockCopySearch.Initialize<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(sourceLuma);
         int count = pictureBuffer.Picture.IntraBlockCopySearch.FindCandidates<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
             sourceLuma,
             reconstructedLuma,
             blockOrigin,
+            Av1BlockSize.Block8x8,
             new Av1TileInfo(0, 0, frameHeader),
             sequenceHeader,
             costs,
             reference,
             QIndex,
-            Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, sequenceHeader.ColorConfig.BitDepth),
-            new Av1MotionSearchSettings(HeifEncodingSpeed.Level0, true, new Size(Width, Height), QIndex, true, true),
+            Av1RateDistortion.GetRateMultiplier(QIndex, sequenceHeader.ColorConfig.BitDepth, Av1FrameUpdateType.Key),
+            Av1MotionSearchBase.GetInitialStepParameter(Math.Max(Width, Height)),
+            settings,
+            blockWorkspace.GetMotionSearchSites(settings.GetFullPixelMethod(Av1BlockSize.Block8x8), reconstructedLuma.Stride),
             candidates);
 
         Assert.Equal(1, count);

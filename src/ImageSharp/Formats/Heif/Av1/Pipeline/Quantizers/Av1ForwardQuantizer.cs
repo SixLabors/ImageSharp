@@ -36,27 +36,38 @@ internal static partial class Av1ForwardQuantizer
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth)
-        => bitDepth == Av1BitDepth.EightBit
-            ? Quantize<FastQuantizationOperator>(
-                coefficients,
-                quantizedCoefficients,
-                dequantizedCoefficients,
-                transformSize,
-                Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                bitDepth)
-            : Quantize<HighBitDepthFastQuantizationOperator>(
-                coefficients,
-                quantizedCoefficients,
-                dequantizedCoefficients,
-                transformSize,
-                Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                bitDepth);
+    {
+        ReadOnlySpan<short> inverseScan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan;
+        if (bitDepth != Av1BitDepth.EightBit)
+        {
+            return Quantize<HighBitDepthFastQuantizationOperator>(
+                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth);
+        }
+
+        if (!WideSupported)
+        {
+            return Quantize<FastQuantizationOperator>(
+                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth);
+        }
+
+        int count = transformSize.GetAdjusted().GetSize2d();
+        int logScale = transformSize.GetScale();
+        int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
+        int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
+        int dcQuantizer = Av1QuantizationLookup.GetDcQuantizer(qIndex, dcDeltaQ, bitDepth);
+        int acQuantizer = Av1QuantizationLookup.GetAcQuantizer(qIndex, acDeltaQ, bitDepth);
+        int dcRounding = RoundPowerOfTwo((64 * dcDequantizer) >> 7, logScale);
+        int acRounding = RoundPowerOfTwo((64 * acDequantizer) >> 7, logScale);
+        return logScale switch
+        {
+            0 => QuantizeFastWide<Scale0>(
+                coefficients, quantizedCoefficients, dequantizedCoefficients, count, dcRounding, acRounding, dcQuantizer, acQuantizer, dcDequantizer, acDequantizer, inverseScan),
+            1 => QuantizeFastWide<Scale1>(
+                coefficients, quantizedCoefficients, dequantizedCoefficients, count, dcRounding, acRounding, dcQuantizer, acQuantizer, dcDequantizer, acDequantizer, inverseScan),
+            _ => QuantizeFastWide<Scale2>(
+                coefficients, quantizedCoefficients, dequantizedCoefficients, count, dcRounding, acRounding, dcQuantizer, acQuantizer, dcDequantizer, acDequantizer, inverseScan),
+        };
+    }
 
     /// <summary>
     /// Quantizes one reversible four-by-four transform without changing its reconstruction coefficients.
@@ -76,7 +87,7 @@ internal static partial class Av1ForwardQuantizer
             quantizedCoefficients,
             dequantizedCoefficients,
             Av1TransformSize.Size4x4,
-            Av1ScanOrderConstants.GetScanOrder(Av1TransformSize.Size4x4, Av1TransformType.DctDct).Scan,
+            Av1ScanOrderConstants.GetScanOrder(Av1TransformSize.Size4x4, Av1TransformType.DctDct).InverseScan,
             0,
             0,
             0,
@@ -114,7 +125,8 @@ internal static partial class Av1ForwardQuantizer
             qIndex,
             dcDeltaQ,
             acDeltaQ,
-            bitDepth);
+            bitDepth,
+            scanOrder: true);
 
     /// <summary>
     /// Applies a closed generic quantization operator across the widest available hardware widths.
@@ -124,19 +136,20 @@ internal static partial class Av1ForwardQuantizer
         Span<int> quantizedCoefficients,
         Span<int> dequantizedCoefficients,
         Av1TransformSize transformSize,
-        ReadOnlySpan<short> scan,
+        ReadOnlySpan<short> inverseScan,
         int qIndex,
         int dcDeltaQ,
         int acDeltaQ,
-        Av1BitDepth bitDepth)
+        Av1BitDepth bitDepth,
+        bool scanOrder = false)
         where TOperator : struct, IForwardQuantizationOperator
     {
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
         int logScale = transformSize.GetScale();
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
         int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
-        int dcQuantizer = (1 << 16) / dcDequantizer;
-        int acQuantizer = (1 << 16) / acDequantizer;
+        int dcQuantizer = Av1QuantizationLookup.GetDcQuantizer(qIndex, dcDeltaQ, bitDepth);
+        int acQuantizer = Av1QuantizationLookup.GetAcQuantizer(qIndex, acDeltaQ, bitDepth);
         int dcRounding = RoundPowerOfTwo((64 * dcDequantizer) >> 7, logScale);
         int acRounding = RoundPowerOfTwo((64 * acDequantizer) >> 7, logScale);
 
@@ -254,17 +267,70 @@ internal static partial class Av1ForwardQuantizer
                 out Unsafe.Add(ref dequantizedBase, i));
         }
 
-        // Quantized coefficients remain in raster order for reconstruction and entropy coding. A reverse scan finds
-        // the final nonzero position without another buffer, and normally exits on its first iteration at high quality.
+        if (!scanOrder)
+        {
+            return GetEndOfBlock(quantizedCoefficients[..coefficientCount], inverseScan);
+        }
+
+        // Mode estimation supplies its own scan without an inverse. A reverse traversal of that scan
+        // finds the final nonzero position.
         for (int scanIndex = coefficientCount - 1; scanIndex >= 0; scanIndex--)
         {
-            if (Unsafe.Add(ref quantizedBase, scan[scanIndex]) != 0)
+            if (Unsafe.Add(ref quantizedBase, inverseScan[scanIndex]) != 0)
             {
                 return (ushort)(scanIndex + 1);
             }
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Finds the one-based scan position of the last nonzero coefficient.
+    /// </summary>
+    /// <remarks>
+    /// Quantized coefficients remain in raster order for reconstruction and entropy coding. As in
+    /// <c>av1_quantize_fp_avx2</c>, the end position is the largest inverse-scan index of a nonzero coefficient,
+    /// which vector lanes find without a scan-order gather.
+    /// </remarks>
+    /// <param name="quantized">The raster-order quantized coefficients.</param>
+    /// <param name="inverseScan">The scan position of each raster-order coefficient.</param>
+    /// <returns>The one-based end position in coefficient scan order, or zero for an empty block.</returns>
+    public static ushort GetEndOfBlock(ReadOnlySpan<int> quantized, ReadOnlySpan<short> inverseScan)
+    {
+        ref int quantizedBase = ref MemoryMarshal.GetReference(quantized);
+        ref short inverseScanBase = ref MemoryMarshal.GetReference(inverseScan);
+        int count = quantized.Length;
+        int i = 0;
+        int endOfBlock = 0;
+
+        if (Vector256.IsHardwareAccelerated && count >= Vector256<int>.Count)
+        {
+            Vector256<int> maximum = Vector256<int>.Zero;
+            Vector256<int> one = Vector256<int>.One;
+            for (; i <= count - Vector256<int>.Count; i += Vector256<int>.Count)
+            {
+                Vector256<int> values = Vector256.LoadUnsafe(ref quantizedBase, (nuint)i);
+                Vector256<int> positions = Vector256.WidenLower(Vector128.LoadUnsafe(ref inverseScanBase, (nuint)i).ToVector256Unsafe()) + one;
+                Vector256<int> nonzero = ~Vector256.Equals(values, Vector256<int>.Zero);
+                maximum = Vector256.Max(maximum, positions & nonzero);
+            }
+
+            Vector128<int> lower = Vector128.Max(maximum.GetLower(), maximum.GetUpper());
+            lower = Vector128.Max(lower, Vector128.Shuffle(lower, Vector128.Create(2, 3, 0, 1)));
+            lower = Vector128.Max(lower, Vector128.Shuffle(lower, Vector128.Create(1, 0, 3, 2)));
+            endOfBlock = lower.ToScalar();
+        }
+
+        for (; i < count; i++)
+        {
+            if (Unsafe.Add(ref quantizedBase, i) != 0)
+            {
+                endOfBlock = Math.Max(endOfBlock, Unsafe.Add(ref inverseScanBase, i) + 1);
+            }
+        }
+
+        return (ushort)endOfBlock;
     }
 
     /// <summary>

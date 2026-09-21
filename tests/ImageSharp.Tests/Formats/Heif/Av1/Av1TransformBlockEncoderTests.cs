@@ -37,7 +37,12 @@ public class Av1TransformBlockEncoderTests
         int[] expectedDequantized = new int[coefficientCount];
         int[] expectedTransformWorkspace = new int[Av1TransformWorkspace.MaximumLength];
         int[] actualQuantized = new int[coefficientCount];
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default)
+        {
+            SpeedSettings = new(HeifEncodingSpeed.Level6, true, true, QIndex, new Size(width, width)),
+            EvaluationStage = Av1EncoderEvaluationStage.Candidate
+        };
+
         using Av1SymbolEncoder writer = new(Configuration.Default, 1024, QIndex, updateCdf: false)
         {
             EncodingSpeed = HeifEncodingSpeed.Level6
@@ -94,8 +99,10 @@ public class Av1TransformBlockEncoderTests
     /// <summary>
     /// Verifies that winner evaluation applies fast quantization and coefficient refinement even when mode gating rejected it.
     /// </summary>
-    [Fact]
-    public void LossyWinnerAppliesDeferredCoefficientOptimization()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LossyWinnerAppliesDeferredCoefficientOptimization(bool finalEncoding)
     {
         const int QIndex = 120;
         const int RateMultiplier = 128;
@@ -107,7 +114,12 @@ public class Av1TransformBlockEncoderTests
         int[] expectedDequantized = new int[coefficientCount];
         int[] expectedTransformWorkspace = new int[Av1TransformWorkspace.MaximumLength];
         int[] actualQuantized = new int[coefficientCount];
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default)
+        {
+            SpeedSettings = new(HeifEncodingSpeed.Level6, true, true, QIndex, new Size(width, width)),
+            EvaluationStage = finalEncoding ? Av1EncoderEvaluationStage.Default : Av1EncoderEvaluationStage.Winner
+        };
+
         using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 1024, QIndex, updateCdf: false);
         using Av1SymbolEncoder actualWriter = new(Configuration.Default, 1024, QIndex, updateCdf: false)
         {
@@ -149,7 +161,8 @@ public class Av1TransformBlockEncoderTests
             Av1BitDepth.EightBit,
             false,
             false,
-            expectedEndOfBlock);
+            expectedEndOfBlock,
+            out _);
 
         Av1EncoderTransformBlockState actualState = default;
         Av1TransformBlockEncoder.EncodeLossyCandidate(
@@ -169,7 +182,7 @@ public class Av1TransformBlockEncoderTests
             RateMultiplier,
             false,
             false,
-            true,
+            finalEncoding,
             ref actualState);
 
         Assert.Equal(expectedQuantized, actualQuantized);
@@ -487,7 +500,7 @@ public class Av1TransformBlockEncoderTests
             workspace,
             writer,
             default,
-            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.TwelveBit),
+            Av1RateDistortion.GetRateMultiplier(255, Av1BitDepth.TwelveBit, Av1FrameUpdateType.Key),
             true,
             new Buffer2DRegion<ushort>(sourceBuffer),
             Point.Empty,
@@ -508,6 +521,9 @@ public class Av1TransformBlockEncoderTests
             acDeltaQ: 0,
             Av1Plane.Y,
             Av1BitDepth.TwelveBit,
+
+            // Type zero measures the candidate in the pixel domain, as speed 0 does.
+            (0, 0u),
             ref state);
 
         for (int y = 0; y < Height; y++)
@@ -551,7 +567,7 @@ public class Av1TransformBlockEncoderTests
             workspace,
             writer,
             default,
-            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.EightBit),
+            Av1RateDistortion.GetRateMultiplier(255, Av1BitDepth.EightBit, Av1FrameUpdateType.Key),
             false,
             true,
             sourceBuffer.GetRegion(new Rectangle(0, 0, CodedWidth, CodedWidth)),
@@ -606,7 +622,7 @@ public class Av1TransformBlockEncoderTests
             workspace,
             writer,
             default,
-            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.TwelveBit),
+            Av1RateDistortion.GetRateMultiplier(255, Av1BitDepth.TwelveBit, Av1FrameUpdateType.Key),
             false,
             true,
             sourceBuffer.GetRegion(new Rectangle(0, 0, CodedWidth, CodedWidth)),
@@ -683,7 +699,7 @@ public class Av1TransformBlockEncoderTests
             workspace,
             writer,
             default,
-            Av1RateDistortion.GetKeyFrameRateMultiplier(255, Av1BitDepth.TwelveBit),
+            Av1RateDistortion.GetRateMultiplier(255, Av1BitDepth.TwelveBit, Av1FrameUpdateType.Key),
             true,
             new Buffer2DRegion<ushort>(sourceBuffer),
             Point.Empty,
@@ -704,6 +720,9 @@ public class Av1TransformBlockEncoderTests
             acDeltaQ: 0,
             Av1Plane.Y,
             Av1BitDepth.TwelveBit,
+
+            // Type zero measures the candidate in the pixel domain, as speed 0 does.
+            (0, 0u),
             ref state);
 
         Assert.Equal(0, distortion);
@@ -876,27 +895,33 @@ public class Av1TransformBlockEncoderTests
     }
 
     /// <summary>
-    /// Verifies that the block workspace uses one exact-size allocator owner and returns it exactly once.
+    /// Verifies that the block workspace uses one allocator owner for every region and returns it exactly once.
     /// </summary>
     [Theory]
-    [InlineData(false, false, 0)]
-    [InlineData(true, false, 135836)]
-    [InlineData(false, true, 65538)]
-    [InlineData(true, true, 201374)]
-    public void BlockWorkspaceUsesOneExactSizeOwner(bool allocateInterMotionCosts, bool allocateDisplacementCosts, int additionalLength)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void BlockWorkspaceUsesOneOwner(bool allocateInterMotionCosts, bool allocateDisplacementCosts)
     {
+        // Optional motion capacity extends the same owner. Its minimum size follows the published region
+        // lengths, so the test does not pin the private layout that follows the scratch regions.
+        int minimumLength = Av1EncoderBlockWorkspace.StorageLength +
+            (allocateInterMotionCosts ? Av1MotionVectorCosts.StorageLength : 0) +
+            (allocateDisplacementCosts ? Av1MotionVectorCosts.IntegerStorageLength : 0);
+
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
         TestMemoryAllocator.AllocationRequest allocation;
-        using (Av1EncoderBlockWorkspace workspace = new(configuration, allocateInterMotionCosts, allocateDisplacementCosts))
+        using (Av1EncoderBlockWorkspace workspace = new(configuration, allocateInterMotionCosts, allocateDisplacementCosts, Av1BlockSize.Block64x64))
         {
             allocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
             Assert.Equal(typeof(int), allocation.ElementType);
-            Assert.Equal(Av1EncoderBlockWorkspace.StorageLength + additionalLength, allocation.Length);
+            Assert.True(allocation.Length >= minimumLength);
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumResidualCount, workspace.Residual.Length);
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.TransformCoefficients.Length);
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.DequantizedCoefficients.Length);

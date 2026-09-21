@@ -73,6 +73,7 @@ internal static class Av1IntraModeEstimator
     /// <param name="dcDeltaQ">The DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The AC quantizer adjustment.</param>
     /// <param name="bitDepth">The source sample precision.</param>
+    /// <param name="identity">Whether to estimate scaled identity coefficients instead of Hadamard coefficients.</param>
     /// <param name="rate">The estimated coefficient rate.</param>
     /// <param name="distortion">The normalized coefficient distortion.</param>
     /// <param name="skip">Whether every estimated coefficient is zero.</param>
@@ -86,6 +87,7 @@ internal static class Av1IntraModeEstimator
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
+        bool identity,
         out int rate,
         out long distortion,
         out bool skip)
@@ -93,12 +95,14 @@ internal static class Av1IntraModeEstimator
         int width = transformSize.GetWidth();
         int sampleCount = width * width;
         bool highBitDepth = bitDepth != Av1BitDepth.EightBit;
-        ReadOnlySpan<short> scan = width switch
-        {
-            4 => Av1ScanOrderConstants.GetScanOrder(Av1TransformSize.Size4x4, Av1TransformType.DctDct).Scan,
-            8 => Scan8x8,
-            _ => highBitDepth ? HighBitDepthScan16x16 : Scan16x16
-        };
+        ReadOnlySpan<short> scan = identity
+            ? Av1ScanOrderConstants.GetScanOrder(transformSize, Av1TransformType.DctDct).Scan
+            : width switch
+            {
+                4 => Av1ScanOrderConstants.GetScanOrder(Av1TransformSize.Size4x4, Av1TransformType.DctDct).Scan,
+                8 => Scan8x8,
+                _ => highBitDepth ? HighBitDepthScan16x16 : Scan16x16
+            };
 
         Span<int> coefficients = workspace.TransformCoefficients[..sampleCount];
         Span<int> reconstructed = workspace.DequantizedCoefficients[..sampleCount];
@@ -112,13 +116,29 @@ internal static class Av1IntraModeEstimator
         {
             for (int column = 0; column < extent.Width; column += width)
             {
-                Av1ForwardTransformer.TransformForModeEstimation(
-                    residual[((row * stride) + column)..],
-                    stride,
-                    width,
-                    coefficients,
-                    workspace.TransformWorkspace,
-                    highBitDepth);
+                ReadOnlySpan<short> transformResidual = residual[((row * stride) + column)..];
+                if (identity)
+                {
+                    // Identity estimation keeps spatial sample order and scales each residual by eight,
+                    // putting it in the same quantizer domain as the orthogonal estimation transform.
+                    for (int y = 0; y < width; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            coefficients[(y * width) + x] = transformResidual[(y * stride) + x] * 8;
+                        }
+                    }
+                }
+                else
+                {
+                    Av1ForwardTransformer.TransformForModeEstimation(
+                        transformResidual,
+                        stride,
+                        width,
+                        coefficients,
+                        workspace.TransformWorkspace,
+                        highBitDepth);
+                }
 
                 // The transform has finished with its scratch before quantization reuses that span.
                 // Estimation keeps its own scan order and never publishes these coefficients to the bitstream.

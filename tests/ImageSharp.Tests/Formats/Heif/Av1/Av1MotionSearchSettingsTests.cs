@@ -52,7 +52,7 @@ public class Av1MotionSearchSettingsTests
     [InlineData(HeifEncodingSpeed.Level1, 719, false, CandidateSelection.RateDistortion, 0)]
     [InlineData(HeifEncodingSpeed.Level2, 719, false, CandidateSelection.Variance, 2)]
     [InlineData(HeifEncodingSpeed.Level3, 719, false, CandidateSelection.Variance, 2)]
-    [InlineData(HeifEncodingSpeed.Level9, 719, true, CandidateSelection.Variance, 2)]
+    [InlineData(HeifEncodingSpeed.Level9, 719, true, CandidateSelection.RateDistortion, 1)]
     [InlineData(HeifEncodingSpeed.Level2, 720, false, CandidateSelection.FirstOnly, 1)]
     [InlineData(HeifEncodingSpeed.Level3, 720, true, CandidateSelection.RateDistortion, 1)]
     [InlineData(HeifEncodingSpeed.Level9, 720, true, CandidateSelection.RateDistortion, 1)]
@@ -80,16 +80,24 @@ public class Av1MotionSearchSettingsTests
         Assert.True(intraOnly.UseFastIntraBlockCopySearch);
         Assert.True(intraOnly.LimitIntraBlockCopyHashBlockSize);
         Assert.True(intraOnly.LimitFullPixelStartingCandidates);
-        Assert.False(sequence.AllowIntraBlockCopy);
+        // Real-time keeps block copy available for screen content (rt_use_intrabc, speed_features.c L1770),
+        // where good quality drops it from speed three (use_intrabc, L1312).
+        Assert.True(sequence.AllowIntraBlockCopy);
         Assert.False(sequence.LimitFullPixelStartingCandidates);
+        // All-intra keeps the eight-tap subpel filter of init_mv_sf; real-time drops to two taps
+        // (use_accurate_subpel_search, speed_features.c L2021 and L2358).
         Assert.Equal(8, intraOnly.FractionalInterpolationTaps);
-        Assert.Equal(4, sequence.FractionalInterpolationTaps);
+        Assert.Equal(2, sequence.FractionalInterpolationTaps);
         Assert.Equal(2, intraOnly.FractionalIterationsPerStep);
         Assert.Equal(1, sequence.FractionalIterationsPerStep);
+        // All-intra stops the simple motion search at half a sample from speed four; real-time keeps the
+        // eighth-sample default (simple_motion_subpel_force_stop, speed_features.c L482 and L2354).
         Assert.Equal(SearchPrecision.HalfSample, intraOnly.SimpleMotionPrecision);
-        Assert.Equal(SearchPrecision.Integer, sequence.SimpleMotionPrecision);
+        Assert.Equal(SearchPrecision.EighthSample, sequence.SimpleMotionPrecision);
+        // Screen content halves the all-intra mesh threshold and speed one doubles it again; real-time
+        // never searches the mesh (exhaustive_searches_thresh, speed_features.c L2018).
         Assert.Equal(2_097_152, intraOnly.MeshErrorThreshold);
-        Assert.Equal(2_097_152, sequence.MeshErrorThreshold);
+        Assert.Equal(int.MaxValue, sequence.MeshErrorThreshold);
     }
 
     [Theory]

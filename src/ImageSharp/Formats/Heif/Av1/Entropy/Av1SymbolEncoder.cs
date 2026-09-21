@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
@@ -1392,7 +1394,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1LevelBuffer levels = this.PrepareCoefficientScratch(
             width,
             height,
-            clearLevels: true,
             out Span<sbyte> coefficientContexts);
 
         levels.Initialize(coefficientBuffer);
@@ -1418,12 +1419,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
         int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         ref Av1SymbolWriter w = ref this.writer;
+        ref byte levelBase = ref MemoryMarshal.GetReference(levels.GetActiveLevels());
+        int levelStride = levels.Stride;
+        int widthLog2 = levels.WidthLog2;
         for (int c = endOfBlock - 1; c >= 0; --c)
         {
             short pos = scan[c];
             int value = coefficientBuffer[pos];
             short coefficientContext = coefficientContexts[pos];
-            Point position = levels.GetPosition(pos);
             int level = Math.Abs(value);
 
             if (c == endOfBlock - 1)
@@ -1445,7 +1448,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             {
                 // Base-range symbols extend levels above the two base levels in fixed-size chunks.
                 int baseRange = level - 1 - Av1Constants.BaseLevelsCount;
-                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+                    ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2)),
+                    levelStride,
+                    pos,
+                    widthLog2,
+                    transformClass);
+
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
                     int symbol = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
@@ -1502,6 +1511,59 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Completes the rate of a refined transform block from the coefficient rate that
+    /// <see cref="OptimizeCoefficients"/> accumulated.
+    /// </summary>
+    /// <remarks>
+    /// This is the tail of <c>av1_optimize_txb</c>: the skip flag, and for a coded luma block the transform
+    /// type, join the accumulated coefficient rate.
+    /// </remarks>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformType">The transform type.</param>
+    /// <param name="intraDirection">The block's intra prediction mode.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The refined one-based final nonzero scan position, or zero for an empty block.</param>
+    /// <param name="coefficientRate">The accumulated coefficient rate, excluding the skip flag and transform type.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetOptimizedCoefficientCost(
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        int coefficientRate,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet)
+    {
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+        int rate = this.GetTransformBlockSkipCost(endOfBlock == 0, transformSizeContext, transformBlockContext.SkipContext);
+        if (endOfBlock == 0)
+        {
+            return rate;
+        }
+
+        if (componentType == Av1ComponentType.Luminance)
+        {
+            rate += this.GetTransformTypeCost(
+                transformType,
+                transformSize,
+                useReducedTransformSet,
+                this.baseQIndex,
+                filterIntraMode,
+                intraDirection,
+                usesInterTransformSet);
+        }
+
+        return rate + coefficientRate;
+    }
+
+    /// <summary>
     /// Gets the current fixed-point rate cost of one transform block's complete coefficient syntax.
     /// </summary>
     /// <param name="transformSize">The signaled transform size.</param>
@@ -1527,15 +1589,34 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         bool usesInterTransformSet)
     {
+        long workStart = Av1WorkCounters.Start();
+        int workResult = this.GetCoefficientCostCore(transformSize, transformType, intraDirection, coefficientBuffer, componentType, transformBlockContext, endOfBlock, useReducedTransformSet, filterIntraMode, usesInterTransformSet);
+        Av1WorkCounters.Stop(Av1WorkCounters.CostCoeffs, workStart);
+        return workResult;
+    }
+
+    public int GetCoefficientCostCore(
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        ReadOnlySpan<int> coefficientBuffer,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet)
+    {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
         DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
-        ReadOnlySpan<int> costs = this.CoefficientCosts.GetPlane((int)transformSizeContext, (int)componentType);
-        int rate = this.GetTransformBlockSkipCost(
-            endOfBlock == 0,
-            transformSizeContext,
-            transformBlockContext.SkipContext);
+        Av1CoefficientCosts allCosts = this.CoefficientCosts;
+        ReadOnlySpan<int> costs = allCosts.GetPlane((int)transformSizeContext, (int)componentType);
+        int rate = Av1CoefficientCosts.GetSkip(
+            allCosts.GetPlane((int)transformSizeContext, 0),
+            transformBlockContext.SkipContext,
+            endOfBlock == 0 ? 1 : 0);
 
         if (endOfBlock == 0)
         {
@@ -1551,7 +1632,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1LevelBuffer levels = this.PrepareCoefficientScratch(
             width,
             height,
-            needsLevelMap,
             out Span<sbyte> coefficientContexts);
 
         // The final coefficient uses scan-position contexts only. Earlier coefficients need the complete
@@ -1574,7 +1654,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int endOfBlockExtra);
-        rate += this.CoefficientCosts.GetEndOfBlock(
+        rate += allCosts.GetEndOfBlock(
             transformSize.GetLog2Minus4(),
             (int)componentType,
             transformClass == Av1TransformClass.Class2D ? 0 : 1,
@@ -1588,6 +1668,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        ref byte levelBase = ref MemoryMarshal.GetReference(levels.GetActiveLevels());
+        int levelStride = levels.Stride;
+        int widthLog2 = levels.WidthLog2;
         int c = endOfBlock - 1;
         int pos = scan[c];
         int value = coefficientBuffer[pos];
@@ -1600,9 +1683,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         if (level > Av1Constants.BaseLevelsCount)
         {
-            int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(
-                levels.GetPosition(pos),
-                transformClass);
+            int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(pos, widthLog2, transformClass);
 
             rate += GetBaseRangeCost(
                 level,
@@ -1619,16 +1700,20 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         rate += Av1ProbabilityCost.GetLiteralCost(1);
+
+        // The scan, the coefficients, the contexts, and the cost plane are all sized for this block. Reference
+        // arithmetic keeps the loop free of range checks, as the C reference loop is.
+        ref short scanBase = ref MemoryMarshal.GetReference(scan);
+        ref int coefficientBase = ref MemoryMarshal.GetReference(coefficientBuffer);
+        ref sbyte contextBase = ref MemoryMarshal.GetReference(coefficientContexts);
+        ref int costBase = ref MemoryMarshal.GetReference(costs);
         for (c = endOfBlock - 2; c >= 1; --c)
         {
-            pos = scan[c];
-            value = coefficientBuffer[pos];
-            level = Math.Abs(value);
-            coefficientContext = coefficientContexts[pos];
-            rate += Av1CoefficientCosts.GetBase(
-                costs,
-                coefficientContext,
-                Math.Min(level, 3));
+            pos = Unsafe.Add(ref scanBase, c);
+            value = Unsafe.Add(ref coefficientBase, pos);
+            level = value < 0 ? -value : value;
+            coefficientContext = Unsafe.Add(ref contextBase, pos);
+            rate += Unsafe.Add(ref costBase, Av1CoefficientCosts.BaseOffset + (coefficientContext * 8) + Math.Min(level, 3));
 
             if (level == 0)
             {
@@ -1639,8 +1724,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
-                    levels,
-                    levels.GetPosition(pos),
+                    ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2)),
+                    levelStride,
+                    pos,
+                    widthLog2,
                     transformClass);
 
                 rate += GetBaseRangeCost(
@@ -1669,8 +1756,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
-                    levels,
-                    levels.GetPosition(pos),
+                    ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2)),
+                    levelStride,
+                    pos,
+                    widthLog2,
                     transformClass);
 
                 rate += GetBaseRangeCost(
@@ -1686,12 +1775,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private Av1LevelBuffer PrepareCoefficientScratch(
         int width,
         int height,
-        bool clearLevels,
         out Span<sbyte> coefficientContexts)
     {
         // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
         // creates maximum-sized workspaces once, then changes only the active views for subsequent transform blocks.
-        this.levels.Reset(new Size(width, height), clearLevels);
+        // Level initialization writes the plane and all of its forward-neighbor padding, so the active
+        // layout needs no clear between transform blocks.
+        this.levels.Reset(new Size(width, height), clear: false);
         coefficientContexts = MemoryMarshal.Cast<int, sbyte>(
             this.entropyWorkspace.Memory.Span[(Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength)..])[..(width * height)];
         return this.levels;
@@ -1941,6 +2031,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         _ = TOperation.ProcessLiteral(ref this.writer, x, length);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetBaseRangeCost(int level, ReadOnlySpan<int> costs, int context)
     {
         int baseRange = Math.Min(
@@ -1959,6 +2050,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         return rate;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetGolombBitLength(int level) => (int)Av1Math.Log2_32((uint)level + 1u) + 1;
 
     /// <summary>
@@ -2967,7 +3059,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         int tokenIndex = 1;
-        Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
+
+        // Resolve the map once. The wavefront visits a different row for every sample, so a row lookup
+        // per sample costs more than the context derivation. Palette maps wrap one contiguous workspace
+        // buffer, and indexing the group directly avoids the enumerator that a single-span query allocates.
+        int mapStride = colorIndexMap.Stride;
+        ReadOnlySpan<byte> map = colorIndexMap.Buffer.FastMemoryGroup[0].Span[
+            ((colorIndexMap.Bounds.Y * mapStride) + colorIndexMap.Bounds.X)..];
+
         for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
         {
             int firstColumn = Math.Min(diagonal, columns - 1);
@@ -2975,14 +3074,11 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             for (int column = firstColumn; column >= lastColumn; column--)
             {
                 int row = diagonal - column;
-                colorIndex = colorIndexMap.DangerousGetRowSpan(row)[column];
-                int colorContext = Av1PaletteColorMap.GetContext(
-                    colorIndexMap,
+                int colorContext = Av1PaletteColorMap.GetEncoderContext(
+                    map,
+                    mapStride,
                     row,
                     column,
-                    paletteSize,
-                    colorIndex,
-                    colorOrder,
                     out int colorOrderIndex);
 
                 if (TOperation.RetainsTokens)

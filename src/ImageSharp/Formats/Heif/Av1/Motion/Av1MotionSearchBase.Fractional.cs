@@ -64,6 +64,8 @@ internal static partial class Av1MotionSearchBase
         where TOperator : struct, IMotionSearchOperator<TSample>
     {
         private readonly ReadOnlySpan<TSample> source;
+        private readonly ReadOnlySpan<TSample> secondPrediction;
+        private readonly ReadOnlySpan<byte> mask;
         private readonly ReadOnlySpan<TSample> reference;
         private readonly Span<TSample> prediction;
         private readonly int sourceStride;
@@ -91,6 +93,8 @@ internal static partial class Av1MotionSearchBase
         /// <param name="costs">The retained motion-rate tables.</param>
         /// <param name="bitDepth">The coded component precision.</param>
         /// <param name="rateMultiplier">The block rate multiplier.</param>
+        /// <param name="secondPrediction">The fixed packed predictor, or empty for a single-reference search.</param>
+        /// <param name="mask">The packed six-bit blend mask, or empty for a single-reference search.</param>
         public FractionalSearch(
             ReadOnlySpan<TSample> source,
             int sourceStride,
@@ -103,9 +107,13 @@ internal static partial class Av1MotionSearchBase
             Av1MotionVector referenceVector,
             Av1MotionVectorCosts costs,
             Av1BitDepth bitDepth,
-            int rateMultiplier)
+            int rateMultiplier,
+            ReadOnlySpan<TSample> secondPrediction,
+            ReadOnlySpan<byte> mask)
         {
             this.source = source;
+            this.secondPrediction = secondPrediction;
+            this.mask = mask;
             this.sourceStride = sourceStride;
             this.reference = reference;
             this.referenceStride = referenceStride;
@@ -311,15 +319,36 @@ internal static partial class Av1MotionSearchBase
                 taps,
                 this.bitDepth);
 
-            TOperator.GetMoments(
-                this.prediction,
-                this.blockSize.Width,
-                this.source,
-                this.sourceStride,
-                this.blockSize.Width,
-                this.blockSize.Height,
-                out int sum,
-                out long squares);
+            int sum;
+            long squares;
+            if (this.secondPrediction.IsEmpty)
+            {
+                TOperator.GetMoments(
+                    this.prediction,
+                    this.blockSize.Width,
+                    this.source,
+                    this.sourceStride,
+                    this.blockSize.Width,
+                    this.blockSize.Height,
+                    out sum,
+                    out squares);
+            }
+            else
+            {
+                TOperator.GetCompoundMoments(
+                    this.source,
+                    this.sourceStride,
+                    this.prediction,
+                    this.blockSize.Width,
+                    this.secondPrediction,
+                    this.mask,
+                    this.blockSize.Width,
+                    this.blockSize.Height,
+                    out sum,
+                    out squares);
+
+                sum = -sum;
+            }
 
             int precisionShift = this.bitDepth - 8;
             if (precisionShift != 0)

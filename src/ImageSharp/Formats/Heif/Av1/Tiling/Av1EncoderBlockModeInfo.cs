@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -20,9 +21,6 @@ internal struct Av1EncoderBlockModeInfo
 
     /// <summary>The intra-block-copy flag in the packed prediction state.</summary>
     private const byte IntraBlockCopyMask = 1 << 2;
-
-    /// <summary>The bounded-sequence GOLDEN secondary-reference flag in the packed prediction state.</summary>
-    private const byte GoldenSecondaryReferenceMask = 1 << 7;
 
     /// <summary>The three low bits store the segment identifier, followed by the primary reference.</summary>
     private const int ReferenceFrameShift = 3;
@@ -51,26 +49,31 @@ internal struct Av1EncoderBlockModeInfo
     /// <summary>The difference-weighted mask orientation flag in the packed compound state.</summary>
     private const byte DifferenceWeightedMaskTypeMask = 1 << 3;
 
-    /// <summary>The synthetic inter-intra secondary-reference flag in the packed compound state.</summary>
-    private const byte InterIntraMask = 1 << 6;
-
     /// <summary>The compound blend type follows the compound syntax flags.</summary>
     private const int CompoundTypeShift = 4;
 
     /// <summary>Two bits represent the four compound blend types.</summary>
     private const int CompoundTypeMask = 3;
 
-    // Primary references never use the absent-secondary sentinel. Pack their three bits beside the segment,
-    // and the concrete filters beside the flags, so adding inter syntax does not enlarge the frame-wide grid.
+    // Primary references never use the absent-secondary sentinel. Their three bits share the segment byte;
+    // the secondary identifier retains its own byte so every inter and inter-intra pairing is representable.
     private byte blockSize;
     private byte partitionType;
     private byte flags;
     private byte segmentAndReference;
+    private byte secondaryReference;
     private byte transformSize;
     private byte mode;
     private byte uvMode;
     private byte compoundState;
     private byte compoundWedgeIndex;
+    private InlineArray16<Av1TransformSize> interTransformSizes;
+
+    /// <summary>
+    /// Gets the retained transform sizes for the inter transform tree.
+    /// </summary>
+    [UnscopedRef]
+    public Span<Av1TransformSize> InterTransformSizes => this.interTransformSizes;
 
     /// <summary>
     /// Gets or sets the encoded block size.
@@ -225,7 +228,11 @@ internal struct Av1EncoderBlockModeInfo
     public Av1TransformSize TransformSize
     {
         readonly get => (Av1TransformSize)this.transformSize;
-        set => this.transformSize = (byte)value;
+        set
+        {
+            this.transformSize = (byte)value;
+            this.interTransformSizes[..].Fill(value);
+        }
     }
 
     /// <summary>
@@ -258,26 +265,11 @@ internal struct Av1EncoderBlockModeInfo
     /// <summary>
     /// Gets or sets the optional secondary prediction reference selected for the block.
     /// </summary>
-    /// <remarks>
-    /// The bounded sequence encoder retains LAST and GOLDEN plus AV1's synthetic INTRA secondary reference. Inter-intra
-    /// and two-reference compound are mutually exclusive, so the synthetic-reference bit shares compound syntax state.
-    /// </remarks>
     public Av1ReferenceFrameType SecondaryReferenceFrame
     {
-        readonly get => (this.compoundState & InterIntraMask) != 0
-            ? Av1ReferenceFrameType.Intra
-            : (this.flags & GoldenSecondaryReferenceMask) == 0
-                ? Av1ReferenceFrameType.None
-                : Av1ReferenceFrameType.Golden;
-        set
-        {
-            this.flags = value == Av1ReferenceFrameType.Golden
-                ? (byte)(this.flags | GoldenSecondaryReferenceMask)
-                : (byte)(this.flags & ~GoldenSecondaryReferenceMask);
-            this.compoundState = value == Av1ReferenceFrameType.Intra
-                ? (byte)(this.compoundState | InterIntraMask)
-                : (byte)(this.compoundState & ~InterIntraMask);
-        }
+        // Offset the signed reference identifier so zero-initialized blocks retain the absent sentinel.
+        readonly get => (Av1ReferenceFrameType)(this.secondaryReference - 1);
+        set => this.secondaryReference = (byte)((int)value + 1);
     }
 
     /// <summary>
@@ -296,5 +288,19 @@ internal struct Av1EncoderBlockModeInfo
     {
         readonly get => (Av1InterpolationFilter)((this.flags >> HorizontalFilterShift) & InterpolationFilterMask);
         set => this.flags = (byte)((this.flags & ~(InterpolationFilterMask << HorizontalFilterShift)) | ((int)value << HorizontalFilterShift));
+    }
+
+    /// <summary>
+    /// Gets the transform-grid entry containing a position measured in luma four-sample units.
+    /// </summary>
+    public readonly int GetInterTransformSizeIndex(int row, int column)
+    {
+        // One subdivision of the root defines each storage cell. The final subdivision shares
+        // a size across its children, so sixteen entries cover every permitted coding block.
+        Av1TransformSize cellSize = this.BlockSize.GetMaximumTransformSize().GetSubSize();
+        int cellWidth = cellSize.Get4x4WideCount();
+        int cellHeight = cellSize.Get4x4HighCount();
+        int stride = this.BlockSize.Get4x4WideCount() / cellWidth;
+        return ((row / cellHeight) * stride) + (column / cellWidth);
     }
 }

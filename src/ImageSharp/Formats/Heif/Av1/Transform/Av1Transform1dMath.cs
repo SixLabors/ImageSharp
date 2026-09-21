@@ -169,10 +169,8 @@ internal static class Av1Transform1dMath
         Vector512<short> right = input1;
         Vector512<short> interleavedLower = Avx512BW.UnpackLow(left, right);
         Vector512<short> interleavedUpper = Avx512BW.UnpackHigh(left, right);
-        Vector512<short> weight0Values = Vector512.Create((short)weight0);
-        Vector512<short> weight1Values = Vector512.Create((short)weight1);
-        Vector512<short> weights0 = Avx512BW.UnpackLow(weight0Values, weight1Values);
-        Vector512<short> weights1 = Avx512BW.UnpackLow(weight1Values, Vector512.Create((short)-weight0));
+        Vector512<short> weights0 = Vector512.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
+        Vector512<short> weights1 = Vector512.Create((ushort)weight1 | (-weight0 << 16)).AsInt16();
         Vector512<int> output0Lower = Avx512BW.MultiplyAddAdjacent(interleavedLower, weights0);
         Vector512<int> output0Upper = Avx512BW.MultiplyAddAdjacent(interleavedUpper, weights0);
         Vector512<int> output1Lower = Avx512BW.MultiplyAddAdjacent(interleavedLower, weights1);
@@ -236,10 +234,8 @@ internal static class Av1Transform1dMath
         Vector256<short> right = input1;
         Vector256<short> interleavedLower = Avx2.UnpackLow(left, right);
         Vector256<short> interleavedUpper = Avx2.UnpackHigh(left, right);
-        Vector256<short> weight0Values = Vector256.Create((short)weight0);
-        Vector256<short> weight1Values = Vector256.Create((short)weight1);
-        Vector256<short> weights0 = Avx2.UnpackLow(weight0Values, weight1Values);
-        Vector256<short> weights1 = Avx2.UnpackLow(weight1Values, Vector256.Create((short)-weight0));
+        Vector256<short> weights0 = Vector256.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
+        Vector256<short> weights1 = Vector256.Create((ushort)weight1 | (-weight0 << 16)).AsInt16();
         Vector256<int> output0Lower = Avx2.MultiplyAddAdjacent(interleavedLower, weights0);
         Vector256<int> output0Upper = Avx2.MultiplyAddAdjacent(interleavedUpper, weights0);
         Vector256<int> output1Lower = Avx2.MultiplyAddAdjacent(interleavedLower, weights1);
@@ -285,10 +281,8 @@ internal static class Av1Transform1dMath
             // both butterfly outputs reuse the same input arrangement before signed-saturating demotion.
             Vector128<short> interleavedLower = Sse2.UnpackLow(left, right);
             Vector128<short> interleavedUpper = Sse2.UnpackHigh(left, right);
-            Vector128<short> weight0Values = Vector128.Create((short)weight0);
-            Vector128<short> weight1Values = Vector128.Create((short)weight1);
-            Vector128<short> weights0 = Sse2.UnpackLow(weight0Values, weight1Values);
-            Vector128<short> weights1 = Sse2.UnpackLow(weight1Values, Vector128.Create((short)-weight0));
+            Vector128<short> weights0 = Vector128.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
+            Vector128<short> weights1 = Vector128.Create((ushort)weight1 | (-weight0 << 16)).AsInt16();
             Vector128<int> output0Lower = Sse2.MultiplyAddAdjacent(interleavedLower, weights0);
             Vector128<int> output0Upper = Sse2.MultiplyAddAdjacent(interleavedUpper, weights0);
             Vector128<int> output1Lower = Sse2.MultiplyAddAdjacent(interleavedLower, weights1);

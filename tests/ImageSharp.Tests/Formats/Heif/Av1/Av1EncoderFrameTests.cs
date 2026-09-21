@@ -1683,11 +1683,13 @@ public class Av1EncoderFrameTests
         Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
+    // The profile occupies the upper three bits of the second byte. An 8x8 frame fits level 2.0, index zero,
+    // which libaom's set_bitstream_level_tier infers from the frame size.
     [Theory]
-    [InlineData(EightBit, Yuv400, 0x1F, 0x1C)]
-    [InlineData(TenBit, Yuv420, 0x1F, 0x4C)]
-    [InlineData(TenBit, Yuv444, 0x3F, 0x40)]
-    [InlineData(TwelveBit, Yuv422, 0x5F, 0x68)]
+    [InlineData(EightBit, Yuv400, 0x00, 0x1C)]
+    [InlineData(TenBit, Yuv420, 0x00, 0x4C)]
+    [InlineData(TenBit, Yuv444, 0x20, 0x40)]
+    [InlineData(TwelveBit, Yuv422, 0x40, 0x68)]
     public void CodecConfigurationWritesFixedHeaderFromEncodedSequenceHeader(
         int bitDepthValue,
         int colorFormatValue,
@@ -1985,9 +1987,15 @@ public class Av1EncoderFrameTests
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         Assert.True(sequenceHeader.EnableFilterIntra);
-        Assert.True(frameHeader.AllowScreenContentTools);
-        Assert.True(frameHeader.AllowIntraBlockCopy);
-        Assert.Equal(Av1TransformMode.Select, frameHeader.TransformMode);
+
+        // The two-color checkerboard is screen content. All-intra speed 9 picks modes without rate-distortion
+        // search, where libaom does not evaluate the screen-content tools at all.
+        bool screenContentEvaluated = speed < HeifEncodingSpeed.Level9;
+        Assert.Equal(screenContentEvaluated, frameHeader.AllowScreenContentTools);
+        Assert.Equal(screenContentEvaluated, frameHeader.AllowIntraBlockCopy);
+
+        // A frame whose blocks all keep their largest transform signals that mode instead of per-block sizes.
+        Assert.True(frameHeader.TransformMode is Av1TransformMode.Select or Av1TransformMode.Largest);
         Assert.Equal(new Size(width, height), decoded.Size);
 
         int modeCount = 0;

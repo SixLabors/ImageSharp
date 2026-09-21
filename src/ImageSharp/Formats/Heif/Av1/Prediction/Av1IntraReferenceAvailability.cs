@@ -12,6 +12,100 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 internal static class Av1IntraReferenceAvailability
 {
     /// <summary>
+    /// Adjusts sub-8-by-8 luma block geometry to the minimum chroma prediction block size.
+    /// </summary>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="subX">A value indicating whether chroma is horizontally subsampled.</param>
+    /// <param name="subY">A value indicating whether chroma is vertically subsampled.</param>
+    /// <returns>The block size used to evaluate chroma reference availability.</returns>
+    public static Av1BlockSize ScaleChromaBlockSize(Av1BlockSize blockSize, bool subX, bool subY)
+    {
+        Av1BlockSize bs = blockSize;
+        switch (blockSize)
+        {
+            case Av1BlockSize.Block4x4:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x4;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block4x8;
+                }
+
+                break;
+            case Av1BlockSize.Block4x8:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block4x8;
+                }
+
+                break;
+            case Av1BlockSize.Block8x4:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x4;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block8x8;
+                }
+
+                break;
+            case Av1BlockSize.Block4x16:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block8x16;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block8x16;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block4x16;
+                }
+
+                break;
+            case Av1BlockSize.Block16x4:
+                if (subX && subY)
+                {
+                    bs = Av1BlockSize.Block16x8;
+                }
+                else if (subX)
+                {
+                    bs = Av1BlockSize.Block16x4;
+                }
+                else if (subY)
+                {
+                    bs = Av1BlockSize.Block16x8;
+                }
+
+                break;
+            default:
+                break;
+        }
+
+        return bs;
+    }
+
+    /// <summary>
     /// Determines whether every bottom-left reference sample required by a transform is already reconstructed.
     /// </summary>
     /// <param name="superblockSize">The sequence superblock size.</param>

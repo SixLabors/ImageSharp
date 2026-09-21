@@ -35,6 +35,28 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
+            long workStart = Av1WorkCounters.Start();
+            bool workResult = this.SelectChromaPaletteCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, tileIndex, lumaMode, transformSize, retainedBlueCoefficients, retainedRedCoefficients, retainedBlueStates, retainedRedStates, ref bestStatistics, ref paletteInfo);
+            Av1WorkCounters.Stop(Av1WorkCounters.ChromaPalette, workStart);
+            return workResult;
+        }
+
+        private bool SelectChromaPaletteCore(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Av1MacroBlockModeInfo modeInfo,
+            Point lumaOrigin,
+            Point chromaOrigin,
+            ushort tileIndex,
+            Av1PredictionMode lumaMode,
+            Av1TransformSize transformSize,
+            Span<int> retainedBlueCoefficients,
+            Span<int> retainedRedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedBlueStates,
+            Span<Av1EncoderTransformBlockState> retainedRedStates,
+            ref Av1RateDistortionStatistics bestStatistics,
+            ref Av1EncoderPaletteInfo paletteInfo)
+        {
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Av1EncoderPaletteWorkspace<TSample> workspace = modeWorkspace.Palette;
@@ -287,9 +309,19 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateBlueStates,
                     blueTopContexts,
                     blueLeftContexts,
+                    bestStatistics.Cost,
+                    out long bluePredictionDistortion,
                     out int blueRate);
 
-                distortion += this.GetTiledPlaneCost(
+                if (blueRate == int.MaxValue ||
+                    Math.Min(
+                        Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion),
+                        Av1RateDistortion.GetCost(this.rateMultiplier, 0, bluePredictionDistortion)) > bestStatistics.Cost)
+                {
+                    continue;
+                }
+
+                long redDistortion = this.GetTiledPlaneCost(
                     writer,
                     macroBlock,
                     lumaOrigin,
@@ -313,10 +345,26 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateRedStates,
                     redTopContexts,
                     redLeftContexts,
+                    bestStatistics.Cost,
+                    out long redPredictionDistortion,
                     out int redRate);
 
+                if (redRate == int.MaxValue ||
+                    Math.Min(
+                        Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion + redDistortion),
+                        Av1RateDistortion.GetCost(this.rateMultiplier, 0, bluePredictionDistortion + redPredictionDistortion)) > bestStatistics.Cost)
+                {
+                    continue;
+                }
+
+                distortion += redDistortion;
+
                 rate += blueRate + redRate;
-                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
+                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion)
+                {
+                    ResidualRate = blueRate + redRate
+                };
+
                 if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     // Every following palette size overwrites the shared maps and candidate spans, so a

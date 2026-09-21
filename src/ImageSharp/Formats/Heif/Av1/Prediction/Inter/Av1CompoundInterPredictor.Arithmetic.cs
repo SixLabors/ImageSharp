@@ -77,14 +77,25 @@ internal static partial class Av1CompoundInterPredictor
         int roundOffset,
         int maximum)
     {
-        Vector128<short> result = (value - Vector128.Create((ushort)roundOffset)).AsInt16();
+        // The bias removal can leave a value outside the signed sixteen-bit range for
+        // twelve-bit content, so the subtraction, rounding and clipping run in thirty-two-bit
+        // lanes as the reference does with int32_t tmp (convolve.c L1055-1063). The pair of
+        // halves narrows back to unsigned sixteen-bit only after the clip.
+        (Vector128<uint> lower, Vector128<uint> upper) = Vector128.Widen(value);
+        Vector128<int> bias = Vector128.Create(roundOffset);
+        Vector128<int> lowerResult = lower.AsInt32() - bias;
+        Vector128<int> upperResult = upper.AsInt32() - bias;
         if (roundBits != 0)
         {
-            result = (result + Vector128.Create((short)(1 << (roundBits - 1)))) >> roundBits;
+            Vector128<int> rounding = Vector128.Create(1 << (roundBits - 1));
+            lowerResult = (lowerResult + rounding) >> roundBits;
+            upperResult = (upperResult + rounding) >> roundBits;
         }
 
-        result = Vector128.Max(Vector128<short>.Zero, Vector128.Min(Vector128.Create((short)maximum), result));
-        return result.AsUInt16();
+        Vector128<int> ceiling = Vector128.Create(maximum);
+        lowerResult = Vector128.Max(Vector128<int>.Zero, Vector128.Min(ceiling, lowerResult));
+        upperResult = Vector128.Max(Vector128<int>.Zero, Vector128.Min(ceiling, upperResult));
+        return Vector128.Narrow(lowerResult.AsUInt32(), upperResult.AsUInt32());
     }
 
     /// <summary>
@@ -96,14 +107,25 @@ internal static partial class Av1CompoundInterPredictor
         int roundOffset,
         int maximum)
     {
-        Vector256<short> result = (value - Vector256.Create((ushort)roundOffset)).AsInt16();
+        // The bias removal can leave a value outside the signed sixteen-bit range for
+        // twelve-bit content, so the subtraction, rounding and clipping run in thirty-two-bit
+        // lanes as the reference does with int32_t tmp (convolve.c L1055-1063). The pair of
+        // halves narrows back to unsigned sixteen-bit only after the clip.
+        (Vector256<uint> lower, Vector256<uint> upper) = Vector256.Widen(value);
+        Vector256<int> bias = Vector256.Create(roundOffset);
+        Vector256<int> lowerResult = lower.AsInt32() - bias;
+        Vector256<int> upperResult = upper.AsInt32() - bias;
         if (roundBits != 0)
         {
-            result = (result + Vector256.Create((short)(1 << (roundBits - 1)))) >> roundBits;
+            Vector256<int> rounding = Vector256.Create(1 << (roundBits - 1));
+            lowerResult = (lowerResult + rounding) >> roundBits;
+            upperResult = (upperResult + rounding) >> roundBits;
         }
 
-        result = Vector256.Max(Vector256<short>.Zero, Vector256.Min(Vector256.Create((short)maximum), result));
-        return result.AsUInt16();
+        Vector256<int> ceiling = Vector256.Create(maximum);
+        lowerResult = Vector256.Max(Vector256<int>.Zero, Vector256.Min(ceiling, lowerResult));
+        upperResult = Vector256.Max(Vector256<int>.Zero, Vector256.Min(ceiling, upperResult));
+        return Vector256.Narrow(lowerResult.AsUInt32(), upperResult.AsUInt32());
     }
 
     /// <summary>
@@ -115,14 +137,25 @@ internal static partial class Av1CompoundInterPredictor
         int roundOffset,
         int maximum)
     {
-        Vector512<short> result = (value - Vector512.Create((ushort)roundOffset)).AsInt16();
+        // The bias removal can leave a value outside the signed sixteen-bit range for
+        // twelve-bit content, so the subtraction, rounding and clipping run in thirty-two-bit
+        // lanes as the reference does with int32_t tmp (convolve.c L1055-1063). The pair of
+        // halves narrows back to unsigned sixteen-bit only after the clip.
+        (Vector512<uint> lower, Vector512<uint> upper) = Vector512.Widen(value);
+        Vector512<int> bias = Vector512.Create(roundOffset);
+        Vector512<int> lowerResult = lower.AsInt32() - bias;
+        Vector512<int> upperResult = upper.AsInt32() - bias;
         if (roundBits != 0)
         {
-            result = (result + Vector512.Create((short)(1 << (roundBits - 1)))) >> roundBits;
+            Vector512<int> rounding = Vector512.Create(1 << (roundBits - 1));
+            lowerResult = (lowerResult + rounding) >> roundBits;
+            upperResult = (upperResult + rounding) >> roundBits;
         }
 
-        result = Vector512.Max(Vector512<short>.Zero, Vector512.Min(Vector512.Create((short)maximum), result));
-        return result.AsUInt16();
+        Vector512<int> ceiling = Vector512.Create(maximum);
+        lowerResult = Vector512.Max(Vector512<int>.Zero, Vector512.Min(ceiling, lowerResult));
+        upperResult = Vector512.Max(Vector512<int>.Zero, Vector512.Min(ceiling, upperResult));
+        return Vector512.Narrow(lowerResult.AsUInt32(), upperResult.AsUInt32());
     }
 
     /// <summary>

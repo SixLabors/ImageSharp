@@ -246,6 +246,41 @@ internal static class Av1TransformSizeExtensions
     }
 
     /// <summary>
+    /// Gets a transform leaf's origin across the maximum-size roots of a coding block.
+    /// </summary>
+    /// <param name="size">The root transform size.</param>
+    /// <param name="blockSize">The complete coding-block dimensions.</param>
+    /// <param name="leafSize">The selected descendant transform size.</param>
+    /// <param name="index">The leaf index before frame-edge clipping.</param>
+    /// <param name="subsamplingX">The horizontal plane subsampling shift.</param>
+    /// <param name="subsamplingY">The vertical plane subsampling shift.</param>
+    /// <returns>The sample offset from the coding-block origin.</returns>
+    public static Point GetBlockPartitionOrigin(
+        this Av1TransformSize size,
+        Av1BlockSize blockSize,
+        Av1TransformSize leafSize,
+        int index,
+        int subsamplingX,
+        int subsamplingY)
+    {
+        int leavesPerRoot = size.GetSize2d() / leafSize.GetSize2d();
+        int regionWidth = Math.Min(blockSize.GetWidth(), Av1Constants.MaxTransformSize >> subsamplingX);
+        int regionHeight = Math.Min(blockSize.GetHeight(), Av1Constants.MaxTransformSize >> subsamplingY);
+        int leavesPerRegion = regionWidth * regionHeight / leafSize.GetSize2d();
+        int regionIndex = index / leavesPerRegion;
+        int regionColumns = blockSize.GetWidth() / regionWidth;
+        int rootIndex = (index % leavesPerRegion) / leavesPerRoot;
+        int rootColumns = regionWidth / size.GetWidth();
+
+        // Each 64x64 luma region completes before the next begins. Chroma uses the corresponding
+        // subsampled region. Roots advance in raster order, with depth-first subdivisions within each root.
+        Point origin = size.GetPartitionOrigin(leafSize, index % leavesPerRoot);
+        origin.X += ((rootIndex % rootColumns) * size.GetWidth()) + ((regionIndex % regionColumns) * regionWidth);
+        origin.Y += ((rootIndex / rootColumns) * size.GetHeight()) + ((regionIndex / regionColumns) * regionHeight);
+        return origin;
+    }
+
+    /// <summary>
     /// Gets the square transform based on the smaller dimension of a rectangular transform.
     /// </summary>
     /// <param name="size">The transform size.</param>

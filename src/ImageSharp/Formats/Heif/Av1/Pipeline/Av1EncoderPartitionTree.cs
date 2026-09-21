@@ -33,6 +33,7 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
     private bool subsamplingX;
     private bool subsamplingY;
     private bool allowPalette;
+    private bool squareLeavesOnly;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderPartitionTree"/> class.
@@ -47,7 +48,8 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
     /// <param name="width">The coded width remaining in this superblock.</param>
     /// <param name="height">The coded height remaining in this superblock.</param>
     /// <param name="allowPalette">Whether palette syntax is available.</param>
-    public void Reset(ObuSequenceHeader sequence, int width, int height, bool allowPalette)
+    /// <param name="squareLeavesOnly">Whether only unsplit square decisions are retained for partition merging.</param>
+    public void Reset(ObuSequenceHeader sequence, int width, int height, bool allowPalette, bool squareLeavesOnly)
     {
         this.superblockSize = sequence.SuperblockSize;
         this.width = width;
@@ -56,18 +58,23 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
         this.subsamplingX = sequence.ColorConfig.SubSamplingX;
         this.subsamplingY = sequence.ColorConfig.SubSamplingY;
         this.allowPalette = allowPalette;
+        this.squareLeavesOnly = squareLeavesOnly;
         int nodeCount = this.superblockSize == Av1BlockSize.Block128x128 ? 341 : 85;
         int firstNodeOffset = ((nodeCount * sizeof(int)) + Alignment - 1) & -Alignment;
 
         // Lay out only geometrically legal candidates that touch the coded frame. One pooled allocation
         // holds their mode headers, transform states and palette maps; coefficients remain worker scratch.
         int requiredLength = this.LayoutNode(default, false, 0, 0, 0, this.superblockSize, firstNodeOffset);
-        if (this.storage.Length < requiredLength)
+
+        // Compare with the capacity of the owner, not with the previous layout. A clipped superblock at a
+        // frame edge needs less storage, and the next complete superblock must not allocate again.
+        if (this.owner is null || this.owner.Memory.Length < requiredLength)
         {
             this.owner?.Dispose();
             this.owner = this.allocator.Allocate<byte>(requiredLength);
-            this.storage = this.owner.Memory[..requiredLength];
         }
+
+        this.storage = this.owner.Memory[..requiredLength];
 
         Span<byte> storage = this.storage.Span;
         MemoryMarshal.Cast<byte, int>(storage[..(nodeCount * sizeof(int))]).Fill(-1);
@@ -131,12 +138,14 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
         bool hasColumns = x + half < this.width;
         for (Av1PartitionType partition = Av1PartitionType.None; partition <= Av1PartitionType.Vertical4; partition++)
         {
-            if (partition == Av1PartitionType.Split && blockSize != Av1BlockSize.Block8x8)
+            if ((this.squareLeavesOnly && partition != Av1PartitionType.None) ||
+                (partition == Av1PartitionType.Split && blockSize != Av1BlockSize.Block8x8))
             {
                 continue;
             }
 
-            if ((partition == Av1PartitionType.None && (!hasRows || !hasColumns)) ||
+            if ((partition == Av1PartitionType.None && (!hasRows || !hasColumns) &&
+                    !(this.squareLeavesOnly && blockSize == Av1BlockSize.Block8x8)) ||
                 (partition == Av1PartitionType.Horizontal && !hasColumns) ||
                 (partition == Av1PartitionType.Vertical && !hasRows) ||
                 (partition >= Av1PartitionType.HorizontalA && (!hasRows || !hasColumns)) ||

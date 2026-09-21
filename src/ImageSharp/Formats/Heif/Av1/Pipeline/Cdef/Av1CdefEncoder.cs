@@ -146,9 +146,8 @@ internal static partial class Av1CdefEncoder
             }
 
             int qIndex = header.QuantizationParameters.BaseQIndex + header.QuantizationParameters.DeltaQDc[0];
-            int rateMultiplier = header.IsIntra
-                ? Av1RateDistortion.GetKeyFrameRateMultiplier(qIndex, sequence.ColorConfig.BitDepth)
-                : Av1RateDistortion.GetInterFrameRateMultiplier(qIndex, sequence.ColorConfig.BitDepth);
+            int rateMultiplier = Av1RateDistortion.GetRateMultiplier(
+                qIndex, sequence.ColorConfig.BitDepth, picture.Parent.FrameUpdateType);
 
             SelectStrengths(picture, candidates, lumaErrors, chromaErrors, indices[..count], errors[(2 * errorLength)..], rateMultiplier);
         }

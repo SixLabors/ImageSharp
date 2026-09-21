@@ -283,6 +283,121 @@ internal static partial class Av1MotionSearchBase
         }
 
         /// <summary>
+        /// Searches a new-motion candidate using prediction error and motion rate.
+        /// </summary>
+        /// <param name="settings">The resolved motion-search policy.</param>
+        /// <param name="frameStepParameter">The initial number of excluded outer search stages.</param>
+        /// <param name="referenceVector">The differential coding predictor.</param>
+        /// <param name="forceInteger">Whether fractional motion is prohibited.</param>
+        /// <param name="allowHighPrecision">Whether eighth-sample motion is permitted.</param>
+        /// <param name="frameLowMotion">The preceding frame's percentage of low-motion blocks.</param>
+        /// <param name="sourceSad">The source-change classification.</param>
+        /// <param name="sourceVariance">The normalized source variance.</param>
+        /// <param name="bestCost">The best complete mode cost found so far.</param>
+        /// <param name="motionRate">The selected vector's coding rate.</param>
+        /// <param name="result">The selected motion and prediction-error statistics.</param>
+        /// <returns>Whether the selected vector differs from its coding predictor.</returns>
+        public bool SearchEstimated(
+            Av1MotionSearchSettings settings,
+            int frameStepParameter,
+            Av1MotionVector referenceVector,
+            bool forceInteger,
+            bool allowHighPrecision,
+            int frameLowMotion,
+            Av1SourceSadLevel sourceSad,
+            uint sourceVariance,
+            long bestCost,
+            out int motionRate,
+            out FractionalResult result)
+        {
+            Size size = new(this.blockSize.GetWidth(), this.blockSize.GetHeight());
+            Point start = new(referenceVector.Column >> 3, referenceVector.Row >> 3);
+            FullPixelSearchMethod method = settings.GetEstimatedFullPixelMethod(this.blockSize, sourceSad);
+            FullPixelSearch<TSample, TOperator> fullSearch = new(
+                this.source,
+                this.sourceStride,
+                this.reference,
+                this.referenceStride,
+                this.referenceOrigin,
+                size,
+                referenceVector.GetFullPixelSearchBounds(this.frameBounds),
+                referenceVector,
+                this.motionCosts,
+                this.bitDepth,
+                Av1RateDistortion.GetMotionSearchSadPerBit(this.qIndex, this.bitDepth),
+                this.rateMultiplier,
+                [],
+                []);
+
+            // These five costs describe the integer winner and its cardinal neighbors. Fractional
+            // pruning uses the same neighborhood, so retain it across both search stages.
+            Span<int> costs = stackalloc int[5];
+            FullPixelResult integerResult = fullSearch.Search(
+                start,
+                frameStepParameter,
+                method,
+                this.workspace.GetMotionSearchSites(method, this.referenceStride),
+                settings,
+                false,
+                false,
+                false,
+                costs,
+                out _);
+
+            Av1MotionVector vector = new(integerResult.Vector.Y * 8, integerResult.Vector.X * 8);
+            motionRate = ((this.motionCosts.GetCost(vector, referenceVector) * 108) + 64) >> 7;
+            result = new FractionalResult(vector, integerResult.Variance, integerResult.SquaredError, integerResult.MotionCost);
+            if (!forceInteger && Av1RateDistortion.GetCost(this.rateMultiplier, motionRate, 0) <= bestCost)
+            {
+                bool fullPixelPerformedWell = (this.blockSize == Av1BlockSize.Block64x64 && unchecked((uint)integerResult.Cost * 40U) < 62267 * 7)
+                    || (this.blockSize == Av1BlockSize.Block32x32 && unchecked((uint)integerResult.Cost * 8U) < 42380)
+                    || (this.blockSize == Av1BlockSize.Block16x16 && unchecked((uint)integerResult.Cost * 8U) < 10127);
+
+                SearchPrecision precision = settings.GetEstimatedFractionalPrecision(
+                    this.blockSize,
+                    integerResult.Vector,
+                    referenceVector,
+                    start,
+                    frameLowMotion,
+                    sourceSad,
+                    sourceVariance,
+                    fullPixelPerformedWell);
+
+                FractionalSearch<TSample, TOperator> fractionalSearch = new(
+                    this.source,
+                    this.sourceStride,
+                    this.reference,
+                    this.referenceStride,
+                    this.referenceOrigin,
+                    this.prediction,
+                    size,
+                    referenceVector.GetSubpixelSearchBounds(this.frameBounds),
+                    referenceVector,
+                    this.motionCosts,
+                    this.bitDepth,
+                    this.rateMultiplier,
+                    [],
+                    []);
+
+                fractionalSearch.Search(
+                    vector,
+                    integerResult,
+                    settings.GetEstimatedFractionalMethod(sourceSad, sourceVariance, fullPixelPerformedWell),
+                    precision,
+                    allowHighPrecision,
+                    settings.FractionalIterationsPerStep,
+                    settings.FractionalInterpolationTaps,
+                    costs,
+                    [],
+                    out result);
+
+                motionRate = ((this.motionCosts.GetCost(result.Vector, referenceVector) * 108) + 64) >> 7;
+            }
+
+            return result.Vector != referenceVector;
+        }
+
+        /// <summary>
         /// Searches one differential-reference choice while retaining state for subsequent choices.
         /// </summary>
         /// <param name="settings">The resolved frame search policy.</param>
@@ -408,7 +523,9 @@ internal static partial class Av1MotionSearchBase
                 this.motionCosts,
                 this.bitDepth,
                 Av1RateDistortion.GetMotionSearchSadPerBit(this.qIndex, this.bitDepth),
-                this.rateMultiplier);
+                this.rateMultiplier,
+                [],
+                []);
 
             FullPixelResult best = default;
             Point? second = null;
@@ -431,6 +548,7 @@ internal static partial class Av1MotionSearchBase
                     settings,
                     keyFrame: false,
                     fineMeshInterval,
+                    intraBlockCopy: false,
                     Span<int>.Empty,
                     out Point? candidateSecond);
 
@@ -502,7 +620,9 @@ internal static partial class Av1MotionSearchBase
                     referenceVector,
                     this.motionCosts,
                     this.bitDepth,
-                    this.rateMultiplier);
+                    this.rateMultiplier,
+                    [],
+                    []);
 
                 Span<Av1MotionVector> centers = stackalloc Av1MotionVector[3];
                 centers.Fill(new Av1MotionVector(short.MinValue, short.MinValue));
@@ -510,7 +630,7 @@ internal static partial class Av1MotionSearchBase
                     integerVector,
                     best,
                     settings.FractionalMethod,
-                    SearchPrecision.EighthSample,
+                    settings.FractionalPrecision,
                     allowHighPrecision,
                     settings.FractionalIterationsPerStep,
                     settings.FractionalInterpolationTaps,
@@ -528,7 +648,7 @@ internal static partial class Av1MotionSearchBase
                             secondStart,
                             null,
                             settings.FractionalMethod,
-                            SearchPrecision.EighthSample,
+                            settings.FractionalPrecision,
                             allowHighPrecision,
                             settings.FractionalIterationsPerStep,
                             settings.FractionalInterpolationTaps,

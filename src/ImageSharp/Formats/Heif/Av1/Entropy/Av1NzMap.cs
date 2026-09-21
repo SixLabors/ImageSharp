@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -9,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// <summary>
 /// Derives the AV1 nonzero-coefficient probability context from neighboring coefficient levels and transform geometry.
 /// </summary>
-internal static class Av1NzMap
+internal static partial class Av1NzMap
 {
     /// <summary>
     /// The first one-dimensional nonzero-map context, immediately after the 26 two-dimensional contexts.
@@ -401,34 +403,46 @@ internal static class Av1NzMap
     /// <returns>The summed neighbor magnitude used to select a nonzero-map context.</returns>
     public static int GetNzMagnitude(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
-        int mag;
-        Span<byte> row0 = levels.GetRow(position.Y)[position.X..];
-        Span<byte> row1 = levels.GetRow(position.Y + 1)[position.X..];
-        Span<byte> row2 = levels.GetRow(position.Y + 2)[position.X..];
+        Span<byte> active = levels.GetActiveLevels();
+        return GetNzMagnitude(ref active[(position.Y * levels.Stride) + position.X], levels.Stride, transformClass);
+    }
 
+    /// <summary>
+    /// Sums the clipped magnitudes of the transform-class-specific forward coefficient neighbors.
+    /// </summary>
+    /// <remarks>
+    /// The level plane pads every row with four bytes and adds four rows below the transform, so each neighbor
+    /// offset stays inside the active plane for every coefficient. One reference plus fixed offsets replaces
+    /// a row lookup per neighbor.
+    /// </remarks>
+    /// <param name="level">The coefficient's own entry in the padded level plane.</param>
+    /// <param name="stride">The padded row stride.</param>
+    /// <param name="transformClass">The transform direction class selecting the neighbor pattern.</param>
+    /// <returns>The summed neighbor magnitude used to select a nonzero-map context.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetNzMagnitude(ref byte level, int stride, Av1TransformClass transformClass)
+    {
         // Large levels must not dominate probability selection; AV1 contributes at most three from each neighbor.
-        mag = ClipMax3(row0[1]); // { 0, 1 }
-        mag += ClipMax3(row1[0]); // { 1, 0 }
+        int mag = ClipMax3(Unsafe.Add(ref level, 1)); // { 0, 1 }
+        mag += ClipMax3(Unsafe.Add(ref level, stride)); // { 1, 0 }
 
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                mag += ClipMax3(row1[1]); // { 1, 1 }
-                mag += ClipMax3(row0[2]); // { 0, 2 }
-                mag += ClipMax3(row2[0]); // { 2, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, stride + 1)); // { 1, 1 }
+                mag += ClipMax3(Unsafe.Add(ref level, 2)); // { 0, 2 }
+                mag += ClipMax3(Unsafe.Add(ref level, 2 * stride)); // { 2, 0 }
                 break;
 
             case Av1TransformClass.ClassVertical:
-                Span<byte> row3 = levels.GetRow(position.Y + 3)[position.X..];
-                Span<byte> row4 = levels.GetRow(position.Y + 4)[position.X..];
-                mag += ClipMax3(row2[0]); // { 2, 0 }
-                mag += ClipMax3(row3[0]); // { 3, 0 }
-                mag += ClipMax3(row4[0]); // { 4, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, 2 * stride)); // { 2, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, 3 * stride)); // { 3, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, 4 * stride)); // { 4, 0 }
                 break;
             case Av1TransformClass.ClassHorizontal:
-                mag += ClipMax3(row0[2]); // { 0, 2 }
-                mag += ClipMax3(row0[3]); // { 0, 3 }
-                mag += ClipMax3(row0[4]); // { 0, 4 }
+                mag += ClipMax3(Unsafe.Add(ref level, 2)); // { 0, 2 }
+                mag += ClipMax3(Unsafe.Add(ref level, 3)); // { 0, 3 }
+                mag += ClipMax3(Unsafe.Add(ref level, 4)); // { 0, 4 }
                 break;
         }
 
@@ -445,24 +459,45 @@ internal static class Av1NzMap
     /// <returns>The nonzero-map probability context.</returns>
     public static int GetNzMapContextFromStats(int stats, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
+        int widthLog2 = BitOperations.Log2((uint)transformSize.GetAdjusted().GetWidth());
+        return GetNzMapContextFromStats(stats, (position.Y << widthLog2) + position.X, widthLog2, transformSize, transformClass);
+    }
+
+    /// <summary>
+    /// Combines a neighboring-level statistic with the coefficient's transform-class-specific position band.
+    /// </summary>
+    /// <param name="stats">The clipped sum of the applicable forward-neighbor magnitudes.</param>
+    /// <param name="coefficientIndex">The row-major coefficient index in the coded transform region.</param>
+    /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
+    /// <param name="transformSize">The coded transform size selecting the positional table.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The nonzero-map probability context.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetNzMapContextFromStats(
+        int stats,
+        int coefficientIndex,
+        int widthLog2,
+        Av1TransformSize transformSize,
+        Av1TransformClass transformClass)
+    {
         // The DC coefficient has a dedicated 2D context independent of neighboring levels.
-        if (transformClass == Av1TransformClass.Class2D && position.X == 0 && position.Y == 0)
+        if (((int)transformClass | coefficientIndex) == 0)
         {
             return 0;
         }
 
         // Rounding the neighbor sum before clipping produces the five AV1 magnitude bands 0 through 4.
-        int ctx = (stats + 1) >> 1;
-        ctx = Math.Min(ctx, 4);
+        int ctx = Math.Min((stats + 1) >> 1, 4);
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
                 // The tables preserve AV1's distinct early-row and early-column bands for rectangular transforms.
-                return ctx + GetNzMapContext(transformSize, position);
+                // They are row-major at the coded width, so the coefficient index addresses them directly.
+                return ctx + NzMapContextOffset[(int)transformSize][coefficientIndex];
             case Av1TransformClass.ClassHorizontal:
-                return ctx + NzMapContextOffset1d[position.X];
+                return ctx + NzMapContextOffset1d[coefficientIndex & ((1 << widthLog2) - 1)];
             case Av1TransformClass.ClassVertical:
-                return ctx + NzMapContextOffset1d[position.Y];
+                return ctx + NzMapContextOffset1d[coefficientIndex >> widthLog2];
             default:
                 break;
         }
@@ -497,5 +532,12 @@ internal static class Av1NzMap
     /// </summary>
     /// <param name="value">The coefficient magnitude.</param>
     /// <returns>The magnitude limited to three.</returns>
-    private static int ClipMax3(int value) => Math.Min(value, 3);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ClipMax3(int value)
+    {
+        // Levels are never negative, so the sign of (value - 3) selects the clip without a branch, as the
+        // clip_max3 table of libaom's get_nz_mag does.
+        int excess = value - 3;
+        return 3 + (excess & (excess >> 31));
+    }
 }

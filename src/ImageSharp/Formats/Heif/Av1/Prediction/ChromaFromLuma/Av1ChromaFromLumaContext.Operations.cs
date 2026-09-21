@@ -25,6 +25,7 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="inputStride">The distance, in samples, between input rows.</param>
     /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
     /// <param name="transformSize">The chroma transform dimensions.</param>
+    /// <param name="lumaExtent">The luma samples the encoder coded for this block.</param>
     /// <param name="subsamplingX">Whether two horizontal luma samples map to each chroma sample.</param>
     /// <param name="subsamplingY">Whether two vertical luma samples map to each chroma sample.</param>
     public static void PrepareBlock(
@@ -32,12 +33,19 @@ internal partial class Av1ChromaFromLumaContext
         int inputStride,
         Span<short> output,
         Av1TransformSize transformSize,
+        Size lumaExtent,
         bool subsamplingX,
         bool subsamplingY)
     {
-        int lumaWidth = transformSize.GetWidth() << (subsamplingX ? 1 : 0);
-        int lumaHeight = transformSize.GetHeight() << (subsamplingY ? 1 : 0);
+        int subX = subsamplingX ? 1 : 0;
+        int subY = subsamplingY ? 1 : 0;
+
+        // cfl_store_tx (cfl.c L390-403) stores each coded luma transform. Beyond the coded extent the
+        // reference has nothing stored, so cfl_pad repeats the last stored column and row instead.
+        int lumaWidth = Math.Min(lumaExtent.Width, transformSize.GetWidth() << subX);
+        int lumaHeight = Math.Min(lumaExtent.Height, transformSize.GetHeight() << subY);
         StoreSamples(input, inputStride, 0, lumaWidth, lumaHeight, output, subsamplingX, subsamplingY);
+        Pad(output, lumaWidth >> subX, lumaHeight >> subY, transformSize.GetWidth(), transformSize.GetHeight());
         SubtractAverage(output, transformSize);
     }
 
@@ -48,6 +56,7 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="inputStride">The distance, in samples, between input rows.</param>
     /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
     /// <param name="transformSize">The chroma transform dimensions.</param>
+    /// <param name="lumaExtent">The luma samples the encoder coded for this block.</param>
     /// <param name="subsamplingX">Whether two horizontal luma samples map to each chroma sample.</param>
     /// <param name="subsamplingY">Whether two vertical luma samples map to each chroma sample.</param>
     public static void PrepareBlock(
@@ -55,12 +64,19 @@ internal partial class Av1ChromaFromLumaContext
         int inputStride,
         Span<short> output,
         Av1TransformSize transformSize,
+        Size lumaExtent,
         bool subsamplingX,
         bool subsamplingY)
     {
-        int lumaWidth = transformSize.GetWidth() << (subsamplingX ? 1 : 0);
-        int lumaHeight = transformSize.GetHeight() << (subsamplingY ? 1 : 0);
+        int subX = subsamplingX ? 1 : 0;
+        int subY = subsamplingY ? 1 : 0;
+
+        // cfl_store_tx (cfl.c L390-403) stores each coded luma transform. Beyond the coded extent the
+        // reference has nothing stored, so cfl_pad repeats the last stored column and row instead.
+        int lumaWidth = Math.Min(lumaExtent.Width, transformSize.GetWidth() << subX);
+        int lumaHeight = Math.Min(lumaExtent.Height, transformSize.GetHeight() << subY);
         StoreSamples(input, inputStride, 0, lumaWidth, lumaHeight, output, subsamplingX, subsamplingY);
+        Pad(output, lumaWidth >> subX, lumaHeight >> subY, transformSize.GetWidth(), transformSize.GetHeight());
         SubtractAverage(output, transformSize);
     }
 

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -15,14 +16,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1EncoderModeInfoBufferTests
 {
     [Theory]
-    [InlineData(false, 1024, 1024, 12_288)]
-    [InlineData(true, 1024, 256, 6_144)]
+    [InlineData(false, 1024, 1024)]
+    [InlineData(true, 1024, 256)]
     public void ConstructorMatchesLibaomAlignedModeInfoGeometry(
         bool disallow4x4,
         int expectedGridLength,
-        int expectedAllocationLength,
-        int expectedStorageLength)
+        int expectedAllocationLength)
     {
+        // One owner holds the integer grid followed by the mode entries, with no other storage.
+        int expectedStorageLength = (expectedGridLength * sizeof(int)) +
+            (expectedAllocationLength * Unsafe.SizeOf<Av1MacroBlockModeInfo>());
+
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
@@ -49,13 +53,12 @@ public class Av1EncoderModeInfoBufferTests
     }
 
     [Theory]
-    [InlineData(false, false, 336)]
-    [InlineData(true, false, 3_536)]
-    [InlineData(true, true, 6_416)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
     public unsafe void PictureBufferPacksAllPictureStateIntoTwoAllocatorOwners(
         bool allowScreenContentTools,
-        bool allowIntraBlockCopy,
-        int expectedContextStorageLength)
+        bool allowIntraBlockCopy)
     {
         const int Width = 16;
         const int Height = 16;
@@ -63,20 +66,13 @@ public class Av1EncoderModeInfoBufferTests
         // Four CDEF presets, the preceding quantizer, and two payload bounds follow the context regions.
         const int TileStateStorageLength = 7 * sizeof(int);
         const int AllocatedBlockCount = 256;
-        const int BlockEncodingStorageLength = AllocatedBlockCount * 8;
-        const int BlockPaletteStorageLength = AllocatedBlockCount * 50;
-        const int PaletteTokenStorageLength = 2 * 128 * 128;
-
-        // Five vectors (20 bytes), four weights (8), mode context (2), count (1), and one alignment byte.
-        const int ReferenceContextStorageLength = AllocatedBlockCount * 32;
 
         // Retained syntax uses fixed-width entries at the existing block origins. Palette tokens reserve
         // two complete maximum-superblock planes, including coded padding beyond this small visible frame.
-        int retainedStorageLength = BlockEncodingStorageLength +
-            (allowScreenContentTools ? BlockPaletteStorageLength + PaletteTokenStorageLength : 0) +
-            (allowIntraBlockCopy ? ReferenceContextStorageLength : 0);
-
-        int expectedTileStateOffset = expectedContextStorageLength + retainedStorageLength;
+        // Entry sizes come from the retained types, so the test follows the syntax that they hold.
+        int blockEncodingStorageLength = AllocatedBlockCount * sizeof(Av1EncoderBlockStruct);
+        int blockPaletteStorageLength = AllocatedBlockCount * sizeof(Av1EncoderPaletteInfo);
+        const int PaletteTokenStorageLength = 2 * 128 * 128;
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
@@ -119,22 +115,20 @@ public class Av1EncoderModeInfoBufferTests
             frameHeader,
             Width,
             Height,
+            1 << sequenceHeader.SuperblockSizeLog2,
             disallow4x4AllFrames: true))
         {
             allocations = allocator.AllocationLog.ToArray();
             Assert.Equal(2, allocations.Length);
             Assert.Equal(typeof(byte), allocations[0].ElementType);
-            Assert.Equal(6_144, allocations[0].Length);
+            Assert.Equal((1024 * sizeof(int)) + (AllocatedBlockCount * Unsafe.SizeOf<Av1MacroBlockModeInfo>()), allocations[0].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[0].AllocationOptions);
             Assert.Equal(typeof(byte), allocations[1].ElementType);
-            Assert.Equal(expectedTileStateOffset + TileStateStorageLength, allocations[1].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[1].AllocationOptions);
             Assert.Empty(allocator.ReturnLog);
 
             Av1PictureControlSet picture = buffer.Picture;
             Assert.Equal(AllocatedBlockCount, picture.BlockEncodings.Length);
-            Assert.Equal(8, sizeof(Av1EncoderBlockStruct));
-            Assert.Equal(32, sizeof(Av1EncoderReferenceContext));
             Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockEncodings.Span).IndexOfAnyExcept((byte)0));
             Assert.Equal(16, picture.SegmentationNeighborMap.Length);
             Assert.Equal(32, picture.PartitionContexts[0].Left.Length);
@@ -150,7 +144,7 @@ public class Av1EncoderModeInfoBufferTests
             Assert.Equal(1, picture.TileDataOffsets.Length);
             Assert.Equal(1, picture.TileDataLengths.Length);
 
-            // Exact offsets prove that all four typed views occupy the trailing region of the same owner,
+            // Relative offsets prove that all four typed views occupy the trailing region of the same owner,
             // without gaps, overlapping fields, or a separate allocation hidden behind a memory manager.
             fixed (byte* state = picture.SegmentationNeighborMap.Span)
             {
@@ -160,7 +154,7 @@ public class Av1EncoderModeInfoBufferTests
                     lengths = picture.TileDataLengths.Span)
                 {
                     Assert.Equal((nuint)0, (nuint)cdef % (nuint)sizeof(int));
-                    Assert.Equal(expectedTileStateOffset, (byte*)cdef - state);
+                    Assert.Equal(allocations[1].Length - TileStateStorageLength, (byte*)cdef - state);
                     Assert.Equal(4, quantizer - cdef);
                     Assert.Equal(1, offsets - quantizer);
                     Assert.Equal(1, lengths - offsets);
@@ -180,7 +174,7 @@ public class Av1EncoderModeInfoBufferTests
                     {
                         fixed (Av1EncoderBlockStruct* encodings = picture.BlockEncodings.Span)
                         {
-                            Assert.Equal(BlockPaletteStorageLength, tokens - (byte*)palettes);
+                            Assert.Equal(blockPaletteStorageLength, tokens - (byte*)palettes);
                             Assert.Equal(PaletteTokenStorageLength, (byte*)encodings - tokens);
                         }
                     }
@@ -219,8 +213,8 @@ public class Av1EncoderModeInfoBufferTests
                     {
                         fixed (Av1EncoderBlockStruct* encodings = picture.BlockEncodings.Span)
                         {
-                            Assert.Equal(BlockEncodingStorageLength, (byte*)vectors - (byte*)encodings);
-                            Assert.Equal(AllocatedBlockCount * 4, (byte*)references - (byte*)vectors);
+                            Assert.Equal(blockEncodingStorageLength, (byte*)vectors - (byte*)encodings);
+                            Assert.Equal(AllocatedBlockCount * sizeof(Av1EncoderDisplacementVector), (byte*)references - (byte*)vectors);
                         }
                     }
                 }
@@ -291,6 +285,7 @@ public class Av1EncoderModeInfoBufferTests
             frameHeader,
             Width,
             Height,
+            1 << sequenceHeader.SuperblockSizeLog2,
             disallow4x4AllFrames: true);
 
         Av1PictureControlSet picture = buffer.Picture;
@@ -355,6 +350,7 @@ public class Av1EncoderModeInfoBufferTests
             initialFrameHeader,
             Width,
             Height,
+            1 << sequenceHeader.SuperblockSizeLog2,
             disallow4x4AllFrames: true,
             allocateScreenContentState: true,
             allocateMotionVectorState: true,

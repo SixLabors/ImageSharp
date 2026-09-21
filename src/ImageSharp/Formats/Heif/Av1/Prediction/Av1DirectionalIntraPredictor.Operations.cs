@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -60,11 +61,105 @@ internal static partial class Av1DirectionalIntraPredictor
             int fractionBits = 6 - upsampleShift;
             int projection = derivative;
 
+            // The register-resident kernel reads sixteen samples past every base position, which the padded edge
+            // buffer of the prepared references allows.
+            if (Avx2.IsSupported && width <= 16 && above.Length >= maximumBasis + 17)
+            {
+                PredictZone1Wide(destination, destinationStride, above, upsampleShift, derivative, width, height, maximumBasis);
+                return;
+            }
+
             for (int row = 0; row < height; row++, projection += derivative)
             {
                 int basis = projection >> fractionBits;
                 int weight = ((projection << upsampleShift) & 0x3F) >> 1;
                 InterpolateRow(destination.Slice(row * destinationStride, width), above, basis, weight, upsample, maximumBasis);
+            }
+        }
+
+        /// <summary>
+        /// Predicts one 8-bit zone 1 block of at most sixteen columns with one vector per row, as
+        /// <c>dr_prediction_z1_HxW_internal_avx2</c> does.
+        /// </summary>
+        /// <remarks>
+        /// Each row loads sixteen reference samples at its base and the sixteen that follow, forms
+        /// <c>a[x] * 32 + 16 + (a[x + 1] - a[x]) * shift</c> in sixteen-bit lanes, and blends the lanes past the final
+        /// reference sample with that sample. Once a row's base reaches the final sample every remaining row is that sample.
+        /// </remarks>
+        /// <param name="destination">The destination block origin.</param>
+        /// <param name="destinationStride">The destination row stride.</param>
+        /// <param name="above">The projected top reference with at least seventeen readable samples past the final one.</param>
+        /// <param name="upsampleShift">One when the reference contains half-sample positions.</param>
+        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="width">The block width, at most sixteen.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="maximumBasis">The final extended reference coordinate.</param>
+        private static void PredictZone1Wide(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, int upsampleShift, int derivative, int width, int height, int maximumBasis)
+        {
+            ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
+            ref byte referenceBase = ref MemoryMarshal.GetReference(above);
+            int fractionBits = 6 - upsampleShift;
+            Vector128<byte> finalSample = Vector128.Create(Unsafe.Add(ref referenceBase, maximumBasis));
+            Vector128<sbyte> laneIndices = Vector128.Create((sbyte)0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+            Vector256<short> sixteen = Vector256.Create((short)16);
+            int projection = derivative;
+            for (int row = 0; row < height; row++, projection += derivative)
+            {
+                int basis = projection >> fractionBits;
+                int validCount = (maximumBasis - basis) >> upsampleShift;
+                if (validCount <= 0)
+                {
+                    for (; row < height; row++)
+                    {
+                        StoreRow(finalSample, ref Unsafe.Add(ref destinationBase, row * destinationStride), width);
+                    }
+
+                    return;
+                }
+
+                Vector128<byte> a0;
+                Vector128<byte> a1;
+                Vector256<short> shift;
+                if (upsampleShift != 0)
+                {
+                    // The even half-samples are the left taps and the odd ones the right taps.
+                    a0 = Ssse3.Shuffle(Vector128.LoadUnsafe(ref referenceBase, (nuint)basis), Vector128.Create((byte)0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15));
+                    a1 = Sse2.ShiftRightLogical128BitLane(a0, 8);
+                    shift = Vector256.Create((short)(((projection << upsampleShift) & 0x3F) >> 1));
+                }
+                else
+                {
+                    a0 = Vector128.LoadUnsafe(ref referenceBase, (nuint)basis);
+                    a1 = Vector128.LoadUnsafe(ref referenceBase, (nuint)(basis + 1));
+                    shift = Vector256.Create((short)((projection & 0x3F) >> 1));
+                }
+
+                Vector256<short> left = Avx2.ConvertToVector256Int16(a0);
+                Vector256<short> right = Avx2.ConvertToVector256Int16(a1);
+                Vector256<short> result = Avx2.ShiftRightLogical(((left << 5) + sixteen) + Avx2.MultiplyLow(right - left, shift), 5);
+                Vector128<byte> samples = Sse2.PackUnsignedSaturate(result.GetLower(), result.GetUpper());
+                Vector128<byte> mask = Vector128.GreaterThan(Vector128.Create((sbyte)Math.Min(validCount, width)), laneIndices).AsByte();
+                StoreRow(Sse41.BlendVariable(finalSample, samples, mask), ref Unsafe.Add(ref destinationBase, row * destinationStride), width);
+            }
+        }
+
+        /// <summary>
+        /// Stores the first four, eight or sixteen bytes of one predicted row.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void StoreRow(Vector128<byte> row, ref byte destination, int width)
+        {
+            if (width == 16)
+            {
+                row.StoreUnsafe(ref destination);
+            }
+            else if (width == 8)
+            {
+                Unsafe.WriteUnaligned(ref destination, row.AsUInt64().ToScalar());
+            }
+            else
+            {
+                Unsafe.WriteUnaligned(ref destination, row.AsUInt32().ToScalar());
             }
         }
 

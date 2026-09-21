@@ -7,7 +7,10 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -43,9 +46,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
-            reconstruction,
-            reconstruction,
-            false,
+            default,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -58,9 +59,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// </summary>
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="goldenReference">The retained long-term reference frame.</param>
-    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -69,9 +68,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<byte> source,
-        Av1EncoderFrame<byte> reference,
-        Av1EncoderFrame<byte> goldenReference,
-        bool hasDistinctGoldenReference,
+        ReadOnlyMemory<Av1EncoderFrame<byte>> references,
         Av1EncoderFrame<byte> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -83,9 +80,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
-            reference,
-            goldenReference,
-            hasDistinctGoldenReference,
+            references,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -98,9 +93,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// </summary>
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="goldenReference">The retained long-term reference frame.</param>
-    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -109,9 +102,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<byte> source,
-        Av1EncoderFrame<byte> reference,
-        Av1EncoderFrame<byte> goldenReference,
-        bool hasDistinctGoldenReference,
+        ReadOnlyMemory<Av1EncoderFrame<byte>> references,
         Av1EncoderFrame<byte> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -123,9 +114,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
-            reference,
-            goldenReference,
-            hasDistinctGoldenReference,
+            references,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -157,9 +146,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
-            reconstruction,
-            reconstruction,
-            false,
+            default,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -172,9 +159,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// </summary>
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="goldenReference">The retained long-term reference frame.</param>
-    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -183,9 +168,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<ushort> source,
-        Av1EncoderFrame<ushort> reference,
-        Av1EncoderFrame<ushort> goldenReference,
-        bool hasDistinctGoldenReference,
+        ReadOnlyMemory<Av1EncoderFrame<ushort>> references,
         Av1EncoderFrame<ushort> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -197,9 +180,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
-            reference,
-            goldenReference,
-            hasDistinctGoldenReference,
+            references,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -212,9 +193,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// </summary>
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="goldenReference">The retained long-term reference frame.</param>
-    /// <param name="hasDistinctGoldenReference">Whether GOLDEN differs from LAST and is available for compound prediction.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -223,9 +202,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     public Av1TileEncoder(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<ushort> source,
-        Av1EncoderFrame<ushort> reference,
-        Av1EncoderFrame<ushort> goldenReference,
-        bool hasDistinctGoldenReference,
+        ReadOnlyMemory<Av1EncoderFrame<ushort>> references,
         Av1EncoderFrame<ushort> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -237,9 +214,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
-            reference,
-            goldenReference,
-            hasDistinctGoldenReference,
+            references,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -255,22 +230,74 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         return this.tileData.Span.Slice(offset, length);
     }
 
-    private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
-        Av1SymbolEncoder writer,
-        Av1EncoderFrame<TSample> source,
-        Av1EncoderFrame<TSample> reference,
-        Av1EncoderFrame<TSample> goldenReference,
-        bool hasDistinctGoldenReference,
-        Av1EncoderFrame<TSample> reconstruction,
-        Av1PictureControlSet picture,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        Av1EncoderTileWorkspace tileWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace)
-        where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
-        where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
-        where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
-        where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
+    /// <summary>
+    /// Determines whether any coded block uses a transform smaller than the largest its size permits, the
+    /// condition under which the reference increments <c>txb_split_count</c> while it encodes each block
+    /// (partition_search.c L258, L512-556).
+    /// </summary>
+    /// <param name="picture">The completed frame decisions.</param>
+    /// <returns><see langword="true"/> when at least one transform is split.</returns>
+    private static bool HasTransformSplit(Av1PictureControlSet picture)
+    {
+        ObuFrameHeader header = picture.Parent.FrameHeader;
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        bool selectable = header.TransformMode == Av1TransformMode.Select;
+
+        // An intra block has one transform size, and an inter block's transform tree has a size per 4x4 cell,
+        // so visiting every cell finds each split once or more.
+        for (int row = 0; row < header.ModeInfoRowCount; row++)
+        {
+            for (int column = 0; column < header.ModeInfoColumnCount; column++)
+            {
+                ref readonly Av1EncoderBlockModeInfo mode = ref allocation[grid[(row * picture.ModeInfoStride) + column]].Block;
+                Av1TransformSize largest = mode.BlockSize.GetMaximumTransformSize();
+                bool lossless = header.LosslessArray[mode.SegmentId];
+                bool inter = mode.ReferenceFrame > Av1ReferenceFrameType.Intra || mode.UseIntraBlockCopy;
+                Av1TransformSize size;
+                if (inter)
+                {
+                    // A skipped inter block uses the largest size, or 4x4 when lossless. Otherwise the
+                    // transform tree splits wherever the cell's size is below the largest.
+                    if (mode.Skip || !selectable || lossless || mode.BlockSize == Av1BlockSize.Block4x4)
+                    {
+                        size = lossless ? Av1TransformSize.Size4x4 : largest;
+                    }
+                    else
+                    {
+                        int blockRow = row & (mode.BlockSize.Get4x4HighCount() - 1);
+                        int blockColumn = column & (mode.BlockSize.Get4x4WideCount() - 1);
+                        size = mode.InterTransformSizes[mode.GetInterTransformSizeIndex(blockRow, blockColumn)];
+                    }
+                }
+                else
+                {
+                    size = mode.TransformSize;
+                }
+
+                if (size != largest)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Establishes the frame-level decision state that every block decision of one picture reads.
+    /// </summary>
+    /// <remarks>
+    /// Block decisions assume this state: speed settings, the frame update role, inter mode thresholds,
+    /// transform-type and interpolation statistics, nearest references, motion search settings, and cleared
+    /// restoration choices. The tile encoder calls it once before analysis. A caller that drives
+    /// <see cref="Av1IntraSuperblockEncoder.ModeDecision{TSample, TOperator}"/> directly must call it first.
+    /// </remarks>
+    /// <param name="picture">The picture whose parent state is prepared.</param>
+    /// <param name="sourceSize">The visible source dimensions.</param>
+    /// <param name="blockWorkspace">The workspace that owns the frame statistics and thresholds.</param>
+    internal static void PrepareFrame(Av1PictureControlSet picture, Size sourceSize, Av1EncoderBlockWorkspace blockWorkspace)
     {
         Av1PictureParentControlSet parent = picture.Parent;
         ObuFrameHeader frameHeader = parent.FrameHeader;
@@ -279,18 +306,83 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture.Sequence.SequenceHeader.IsStillPicture,
             frameHeader.IsIntra,
             frameHeader.QuantizationParameters.BaseQIndex,
-            new Size(source.Width, source.Height));
+            sourceSize);
+
+        parent.FrameUpdateType = frameHeader.FrameType == ObuFrameType.KeyFrame ? Av1FrameUpdateType.Key : Av1FrameUpdateType.Last;
+        if (!frameHeader.IsIntra)
+        {
+            // DC steps are represented at four times sample precision. Normalize high-bit-depth
+            // steps before applying the nonlinear quantizer scale; retain truncation before the floor.
+            Av1BitDepth bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
+            ObuQuantizationParameters quantization = frameHeader.QuantizationParameters;
+            double step = Av1QuantizationLookup.GetDcQuant(quantization.QIndex[0], quantization.DeltaQDc[0], bitDepth) /
+                (double)(1 << (2 + (2 * (int)bitDepth)));
+            blockWorkspace.ModeThresholdQuantizerFactor = Math.Max((int)(Math.Pow(step, 1.25) * 5.12), 8);
+
+            // Q12 spans 2.5 at quantizer zero to 1 at quantizer 255. Compute once for the frame,
+            // retaining the table's nearest-integer rounding before individual candidate comparisons.
+            blockWorkspace.ModeThresholdSkipMultiplier = parent.SpeedSettings.PruneSkippableInterModes
+                ? 10240 - (((quantization.QIndex[0] * 6144) + 127) / 255) : 4096;
+        }
+
+        parent.TransformTypeCounts = blockWorkspace.TransformTypeCounts;
+        parent.TransformTypeCounts.Span.Clear();
+        if (frameHeader.FrameType == ObuFrameType.KeyFrame && parent.SpeedSettings.TransformTypeProbabilityPruning != 0)
+        {
+            Av1TransformTypeProbabilities.Defaults.CopyTo(blockWorkspace.TransformTypeProbabilities);
+        }
+
+        parent.InterpolationCounts = blockWorkspace.InterpolationCounts;
+        parent.SelectedInterpolationCounts = blockWorkspace.SelectedInterpolationCounts;
+        parent.InterpolationCounts.Span.Clear();
+        parent.SelectedInterpolationCounts.Span.Clear();
+        if (frameHeader.FrameType == ObuFrameType.KeyFrame && parent.SpeedSettings.InterpolationPruningLevel == 2)
+        {
+            blockWorkspace.InterpolationProbabilities.Fill(512);
+        }
+
+        blockWorkspace.InterpolationSearchMask = blockWorkspace.PreviousFrameWasKey || parent.FrameUpdateType == Av1FrameUpdateType.Alternate
+            ? (1 << Av1InterpolationProbabilities.FilterCount) - 1
+            : Av1InterpolationProbabilities.GetSearchMask(blockWorkspace.ReferenceInterpolationUsage, frameHeader.GetReferenceFrameIndices());
+
+        parent.NearestPastReference = Av1ReferenceFrameType.None;
+        parent.NearestFutureReference = Av1ReferenceFrameType.None;
+        if (!frameHeader.IsIntra)
+        {
+            int nearestPastDistance = int.MaxValue;
+            int nearestFutureDistance = int.MaxValue;
+            for (Av1ReferenceFrameType referenceType = Av1ReferenceFrameType.Last; referenceType <= Av1ReferenceFrameType.Alternate; referenceType++)
+            {
+                if ((parent.AvailableReferenceMask & (1 << (int)referenceType)) == 0)
+                {
+                    continue;
+                }
+
+                int slot = (int)frameHeader.GetReferenceFrameIndices()[(int)referenceType - (int)Av1ReferenceFrameType.Last];
+                int distance = blockWorkspace.ReferenceFrameNumbers[slot] - blockWorkspace.EncodedFrameCount;
+                if (distance < 0 && -distance < nearestPastDistance)
+                {
+                    nearestPastDistance = -distance;
+                    parent.NearestPastReference = referenceType;
+                }
+                else if (distance > 0 && distance < nearestFutureDistance)
+                {
+                    nearestFutureDistance = distance;
+                    parent.NearestFutureReference = referenceType;
+                }
+            }
+        }
 
         Av1MotionSearchSettings motionSettings = new(
             parent.EncodingSpeed,
             picture.Sequence.SequenceHeader.IsStillPicture,
-            new Size(source.Width, source.Height),
+            sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
             parent.IsScreenContent);
 
         parent.MotionSearchSettings = motionSettings;
-        int maximumDimension = Math.Max(source.Width, source.Height);
+        int maximumDimension = Math.Max(sourceSize.Width, sourceSize.Height);
         int stepParameter = Av1MotionSearchBase.GetInitialStepParameter(maximumDimension);
         if (frameHeader.IsIntra)
         {
@@ -319,10 +411,54 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         frameHeader.LoopRestorationParameters.UsesLoopRestoration = false;
         frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration = false;
-        parent.MotionSearchStepParameter = stepParameter;
-        _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
-            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
+        // Deblocking levels are also chosen from the completed reconstruction. av1_encode_frame enables the
+        // reference and mode deltas from the encoder configuration, whose default is on, and keeps their
+        // default values (encodeframe.c L2380-2387, av1_cx_iface.c L401).
+        ObuLoopFilterParameters loopFilter = frameHeader.LoopFilterParameters;
+        loopFilter.FilterLevel.Clear();
+        loopFilter.FilterLevelU = 0;
+        loopFilter.FilterLevelV = 0;
+        loopFilter.ReferenceDeltaModeEnabled = true;
+        parent.MotionSearchStepParameter = stepParameter;
+    }
+
+    private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<TSample> source,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+        Av1EncoderFrame<TSample> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderTileWorkspace tileWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
+    {
+        Av1PictureParentControlSet parent = picture.Parent;
+        ObuFrameHeader frameHeader = parent.FrameHeader;
+        PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
+        _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
+            writer, source, references, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+
+        // When no coded block split its transform, av1_encode_frame signals the largest transforms instead of
+        // selecting them per block (encodeframe.c L2798-2840). The frame parameter update that holds this runs
+        // outside realtime mode, and in realtime mode while estimated compound prediction is enabled
+        // (use_comp_ref_nonrd).
+        Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
+        if (frameHeader.TransformMode == Av1TransformMode.Select &&
+            (!speedSettings.UseEstimatedInterModeDecision || speedSettings.UseEstimatedCompound) &&
+            !HasTransformSplit(picture))
+        {
+            frameHeader.TransformMode = Av1TransformMode.Largest;
+        }
+
+        // loopfilter_frame (encoder.c L2894-2912) picks the levels against the source, then filters the frame.
+        Av1LoopFilterEncoder.PickFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
+            blockWorkspace.MemoryAllocator, picture, source, reconstruction, blockWorkspace.PreviousLoopFilterLevels);
         Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);
         bool useRestoration = picture.Sequence.SequenceHeader.EnableRestoration && !frameHeader.AllLossless && !frameHeader.AllowIntraBlockCopy;
         if (useRestoration)
@@ -346,16 +482,54 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts
         // from the same entropy edges and probabilities while the completed frame decisions remain available.
         picture.ResetEntropyContexts();
-        return ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
-            writer, source, reference, goldenReference, hasDistinctGoldenReference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+        parent.LowMotionArea = 0;
+        ReadOnlyMemory<byte> encodedTiles = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
+            writer, source, references, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+
+        if (!frameHeader.IsIntra)
+        {
+            int percentage = (100 * parent.LowMotionArea) / (frameHeader.ModeInfoRowCount * frameHeader.ModeInfoColumnCount);
+            parent.AverageFrameLowMotion = parent.AverageFrameLowMotion == 0
+                ? percentage
+                : ((3 * parent.AverageFrameLowMotion) + percentage) / 4;
+        }
+
+        if (parent.SpeedSettings.TrackTransformTypeProbabilities)
+        {
+            Av1TransformTypeProbabilities.Update(
+                blockWorkspace.TransformTypeProbabilities.Slice(
+                    (int)parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength, Av1TransformTypeProbabilities.FrameLength),
+                parent.TransformTypeCounts.Span);
+        }
+
+        if (frameHeader.FrameType != ObuFrameType.KeyFrame && parent.SpeedSettings.InterpolationPruningLevel == 2 &&
+            frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable)
+        {
+            Av1InterpolationProbabilities.Update(
+                blockWorkspace.InterpolationProbabilities.Slice(
+                    (int)parent.FrameUpdateType * Av1InterpolationProbabilities.FrameLength, Av1InterpolationProbabilities.FrameLength),
+                parent.InterpolationCounts.Span);
+        }
+
+        for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
+        {
+            if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
+            {
+                blockWorkspace.ReferenceFrameNumbers[slot] = blockWorkspace.EncodedFrameCount;
+                parent.SelectedInterpolationCounts.Span.CopyTo(blockWorkspace.ReferenceInterpolationUsage.Slice(
+                    slot * Av1InterpolationProbabilities.FilterCount, Av1InterpolationProbabilities.FilterCount));
+            }
+        }
+
+        blockWorkspace.PreviousFrameWasKey = frameHeader.FrameType == ObuFrameType.KeyFrame;
+        blockWorkspace.EncodedFrameCount++;
+        return encodedTiles;
     }
 
     private static ReadOnlyMemory<byte> ProcessTiles<TSample, TOperator, TSymbolOperation>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
-        Av1EncoderFrame<TSample> reference,
-        Av1EncoderFrame<TSample> goldenReference,
-        bool hasDistinctGoldenReference,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
         Av1EncoderFrame<TSample> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -410,6 +584,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 // Each pass begins every tile from the same frame probabilities. Only the packing pass
                 // advances the output offset; the analysis operation does not touch range-coder state.
                 writer.Reset(tileDataEnd);
+                if (!TSymbolOperation.WritesOutput && !frameHeader.IsIntra)
+                {
+                    blockWorkspace.InterModeModels.Clear();
+                }
 
                 int motionCostRowInterval = 1;
                 if (motionCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRowSet)
@@ -428,6 +606,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                     modeInfoRow < tile.ModeInfoRowEnd;
                     modeInfoRow += superblockModeInfoSize)
                 {
+                    if (!TSymbolOperation.WritesOutput && !frameHeader.IsIntra)
+                    {
+                        // Evidence is shared across this row's block searches, including partition trials.
+                        // Every row starts at unity in Q5; packing does not alter search history.
+                        blockWorkspace.ModeThresholdFactors.Fill(32);
+                    }
+
                     for (int modeInfoColumn = tile.ModeInfoColumnStart;
                         modeInfoColumn < tile.ModeInfoColumnEnd;
                         modeInfoColumn += superblockModeInfoSize)
@@ -492,9 +677,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
                             Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> blockEncoder = new(
                                 source,
-                                reference,
-                                goldenReference,
-                                hasDistinctGoldenReference,
+                                references,
                                 reconstruction,
                                 picture,
                                 superblock,
@@ -511,6 +694,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 coefficientBuffer,
                                 (ushort)tileIndex,
                                 ref blockEncoder);
+
+                            if (!frameHeader.IsIntra && picture.Parent.SpeedSettings.InterModeEstimation == 1 &&
+                                tileLayout.TileColumnCount == 1 && tileLayout.TileRowCount == 1)
+                            {
+                                // Fit only after all partition trials for this superblock have finished.
+                                // Every candidate inside the superblock uses the preceding fit.
+                                foreach (ref Av1InterModeRateDistortionModel model in blockWorkspace.InterModeModels)
+                                {
+                                    model.Fit();
+                                }
+                            }
                         }
                     }
                 }

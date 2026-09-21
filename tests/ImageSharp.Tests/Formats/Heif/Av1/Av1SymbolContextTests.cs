@@ -13,6 +13,72 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1SymbolContextTests
 {
+    /// <summary>
+    /// Verifies that the vector context derivation equals the scalar derivation for every transform size and class.
+    /// </summary>
+    /// <param name="transformSizeValue">The transform size.</param>
+    /// <param name="transformClassValue">The transform class.</param>
+    [Theory]
+    [MemberData(nameof(GetTransformSizeAndClassData))]
+    public void VectorNzMapContextsMatchScalarDerivation(int transformSizeValue, int transformClassValue)
+    {
+        Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
+        Av1TransformClass transformClass = (Av1TransformClass)transformClassValue;
+        Av1TransformSize adjusted = transformSize.GetAdjusted();
+        int width = adjusted.GetWidth();
+        int height = adjusted.GetHeight();
+        int[] coefficients = new int[width * height];
+        Random random = new(transformSizeValue + (17 * transformClassValue));
+        for (int seed = 0; seed < 8; seed++)
+        {
+            for (int i = 0; i < coefficients.Length; i++)
+            {
+                // Mostly small levels with a few large ones, like quantized photo residuals.
+                int roll = random.Next(16);
+                coefficients[i] = roll < 6 ? 0 : roll < 12 ? random.Next(-3, 4) : random.Next(-200, 201);
+            }
+
+            using Av1LevelBuffer levels = new(Configuration.Default, new Size(width, height));
+            levels.Initialize(coefficients);
+            Span<byte> active = levels.GetActiveLevels();
+            sbyte[] actual = new sbyte[width * height];
+            Av1NzMap.GetNzMapContextsVector(
+                ref active[0],
+                levels.Stride,
+                width,
+                height,
+                transformSize,
+                transformClass,
+                ref actual[0]);
+
+            for (int pos = 0; pos < actual.Length; pos++)
+            {
+                int expected = Av1SymbolContextHelper.GetLowerLevelsContext(
+                    ref active[Av1LevelBuffer.GetPaddedIndex(pos, levels.WidthLog2)],
+                    levels.Stride,
+                    pos,
+                    levels.WidthLog2,
+                    transformSize,
+                    transformClass);
+                Assert.True(expected == actual[pos], $"size={transformSize} class={transformClass} position={pos}: expected {expected}, actual {actual[pos]}");
+            }
+        }
+    }
+
+    public static TheoryData<int, int> GetTransformSizeAndClassData()
+    {
+        TheoryData<int, int> data = [];
+        for (int size = 0; size < (int)Av1TransformSize.AllSizes; size++)
+        {
+            for (int transformClass = 0; transformClass < 3; transformClass++)
+            {
+                data.Add(size, transformClass);
+            }
+        }
+
+        return data;
+    }
+
     [Theory]
     [MemberData(nameof(GetLowLevelContextEndOfBlockData))]
     public void TestLowLevelContextEndOfBlockAccuracy(int width, int height, int index)

@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -552,7 +553,97 @@ internal static partial class Av1ResidualBuilder
         int residualStride,
         int width,
         int height)
-        => Subtract<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
+    {
+        if (Sse2.IsSupported && width is 4 or 8 or 16 or 32 or 64 && source.Length >= ((height - 1) * sourceStride) + width && prediction.Length >= ((height - 1) * predictionStride) + width)
+        {
+            SubtractWide(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
+            return;
+        }
+
+        Subtract<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
+    }
+
+    /// <summary>
+    /// Subtracts an 8-bit prediction from its source one row at a time with a load sized to the row, as
+    /// <c>aom_subtract_block_sse2</c> and <c>aom_subtract_block_avx2</c> do.
+    /// </summary>
+    private static void SubtractWide(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        ReadOnlySpan<byte> prediction,
+        int predictionStride,
+        Span<short> residual,
+        int residualStride,
+        int width,
+        int height)
+    {
+        ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+        ref byte predictionBase = ref MemoryMarshal.GetReference(prediction);
+        ref short residualBase = ref MemoryMarshal.GetReference(residual);
+        Vector128<byte> zero = Vector128<byte>.Zero;
+        switch (width)
+        {
+            case 4:
+                for (int y = 0; y < height; y++)
+                {
+                    Vector128<byte> s = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref sourceBase, y * sourceStride))).AsByte();
+                    Vector128<byte> p = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref predictionBase, y * predictionStride))).AsByte();
+                    Vector128<short> difference = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
+                    Unsafe.WriteUnaligned(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residualBase, y * residualStride)), difference.AsUInt64().ToScalar());
+                }
+
+                break;
+            case 8:
+                for (int y = 0; y < height; y++)
+                {
+                    Vector128<byte> s = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref sourceBase, y * sourceStride))).AsByte();
+                    Vector128<byte> p = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref predictionBase, y * predictionStride))).AsByte();
+                    Vector128<short> difference = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
+                    difference.StoreUnsafe(ref Unsafe.Add(ref residualBase, y * residualStride));
+                }
+
+                break;
+            case 16:
+                for (int y = 0; y < height; y++)
+                {
+                    Subtract16(ref Unsafe.Add(ref sourceBase, y * sourceStride), ref Unsafe.Add(ref predictionBase, y * predictionStride), ref Unsafe.Add(ref residualBase, y * residualStride));
+                }
+
+                break;
+            default:
+                for (int y = 0; y < height; y++)
+                {
+                    ref byte sourceRow = ref Unsafe.Add(ref sourceBase, y * sourceStride);
+                    ref byte predictionRow = ref Unsafe.Add(ref predictionBase, y * predictionStride);
+                    ref short residualRow = ref Unsafe.Add(ref residualBase, y * residualStride);
+                    for (int x = 0; x < width; x += 16)
+                    {
+                        Subtract16(ref Unsafe.Add(ref sourceRow, x), ref Unsafe.Add(ref predictionRow, x), ref Unsafe.Add(ref residualRow, x));
+                    }
+                }
+
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Subtracts sixteen predicted samples from sixteen source samples.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Subtract16(ref byte source, ref byte prediction, ref short residual)
+    {
+        Vector128<byte> s = Vector128.LoadUnsafe(ref source);
+        Vector128<byte> p = Vector128.LoadUnsafe(ref prediction);
+        if (Avx2.IsSupported)
+        {
+            (Avx2.ConvertToVector256Int16(s) - Avx2.ConvertToVector256Int16(p)).StoreUnsafe(ref residual);
+            return;
+        }
+
+        Vector128<byte> zero = Vector128<byte>.Zero;
+        (Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16()).StoreUnsafe(ref residual);
+        (Sse2.UnpackHigh(s, zero).AsInt16() - Sse2.UnpackHigh(p, zero).AsInt16()).StoreUnsafe(ref residual, 8);
+    }
 
     /// <summary>
     /// Subtracts a high-bit-depth prediction plane from its source plane.
@@ -593,7 +684,87 @@ internal static partial class Av1ResidualBuilder
         int predictionStride,
         int width,
         int height)
-        => SumSquaredError<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, width, height);
+    {
+        if (Sse2.IsSupported && width is 4 or 8 or 16 or 32 or 64 && (height & 1) == 0 &&
+            source.Length >= ((height - 1) * sourceStride) + width && prediction.Length >= ((height - 1) * predictionStride) + width)
+        {
+            return SumSquaredErrorWide(source, sourceStride, prediction, predictionStride, width, height);
+        }
+
+        return SumSquaredError<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, width, height);
+    }
+
+    /// <summary>
+    /// Sums the squared differences of two 8-bit planes with a load sized to the row and one vector accumulator,
+    /// as <c>aom_sse_sse4_1</c> does.
+    /// </summary>
+    /// <remarks>
+    /// Each multiply-add lane holds two squared differences of at most 255 each, so the 32-bit accumulator covers
+    /// every AV1 block up to 64 by 64 without widening inside the loop.
+    /// </remarks>
+    private static long SumSquaredErrorWide(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        ReadOnlySpan<byte> prediction,
+        int predictionStride,
+        int width,
+        int height)
+    {
+        ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+        ref byte predictionBase = ref MemoryMarshal.GetReference(prediction);
+        Vector128<byte> zero = Vector128<byte>.Zero;
+        Vector128<int> sum = Vector128<int>.Zero;
+        switch (width)
+        {
+            case 4:
+                for (int y = 0; y < height; y += 2)
+                {
+                    // Two rows of four samples fill one eight-lane vector.
+                    Vector128<byte> s = Vector128.Create(
+                        Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref sourceBase, y * sourceStride)),
+                        Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref sourceBase, (y + 1) * sourceStride)),
+                        0,
+                        0).AsByte();
+                    Vector128<byte> p = Vector128.Create(
+                        Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref predictionBase, y * predictionStride)),
+                        Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref predictionBase, (y + 1) * predictionStride)),
+                        0,
+                        0).AsByte();
+                    Vector128<short> difference = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
+                    sum += Sse2.MultiplyAddAdjacent(difference, difference);
+                }
+
+                break;
+            case 8:
+                for (int y = 0; y < height; y++)
+                {
+                    Vector128<byte> s = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref sourceBase, y * sourceStride))).AsByte();
+                    Vector128<byte> p = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref predictionBase, y * predictionStride))).AsByte();
+                    Vector128<short> difference = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
+                    sum += Sse2.MultiplyAddAdjacent(difference, difference);
+                }
+
+                break;
+            default:
+                for (int y = 0; y < height; y++)
+                {
+                    ref byte sourceRow = ref Unsafe.Add(ref sourceBase, y * sourceStride);
+                    ref byte predictionRow = ref Unsafe.Add(ref predictionBase, y * predictionStride);
+                    for (int x = 0; x < width; x += 16)
+                    {
+                        Vector128<byte> s = Vector128.LoadUnsafe(ref Unsafe.Add(ref sourceRow, x));
+                        Vector128<byte> p = Vector128.LoadUnsafe(ref Unsafe.Add(ref predictionRow, x));
+                        Vector128<short> lower = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
+                        Vector128<short> upper = Sse2.UnpackHigh(s, zero).AsInt16() - Sse2.UnpackHigh(p, zero).AsInt16();
+                        sum += Sse2.MultiplyAddAdjacent(lower, lower) + Sse2.MultiplyAddAdjacent(upper, upper);
+                    }
+                }
+
+                break;
+        }
+
+        return (uint)Vector128.Sum(sum);
+    }
 
     /// <summary>
     /// Calculates the exact squared error between strided high-bit-depth sample planes.
@@ -667,6 +838,72 @@ internal static partial class Av1ResidualBuilder
         }
 
         return sum;
+    }
+
+    /// <summary>
+    /// Sums a contiguous signed residual block and the squares of its samples.
+    /// </summary>
+    /// <remarks>
+    /// This is <c>aom_sum_sse_2d_i16</c>, which <c>pixel_diff_stats</c> uses to derive the mean and the
+    /// variance of one transform block's residual without a second pass over it.
+    /// </remarks>
+    /// <param name="residual">The residual samples.</param>
+    /// <param name="sum">The exact sum of the samples.</param>
+    /// <returns>The exact sum of squared samples.</returns>
+    public static long SumAndSumSquares(ReadOnlySpan<short> residual, out long sum)
+    {
+        ref short residualBase = ref MemoryMarshal.GetReference(residual);
+        long sumOfSquares = 0;
+        long total = 0;
+        int offset = 0;
+
+        // Each short lane widens before multiplication, preserving the full 12-bit residual square.
+        // The accumulated scalars are 64-bit because a complete encoder block can exceed 32-bit range.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint vectorCount = residual.Vector512Count<short>();
+
+            for (; vectorCount > 0; vectorCount--, offset += Vector512<short>.Count)
+            {
+                Vector512<short> values = Unsafe.As<short, Vector512<short>>(ref Unsafe.Add(ref residualBase, offset));
+                total += Vector512.Sum(Vector512.WidenLower(values)) + Vector512.Sum(Vector512.WidenUpper(values));
+                sumOfSquares += SumSquares(values);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint vectorCount = residual[offset..].Vector256Count<short>();
+
+            for (; vectorCount > 0; vectorCount--, offset += Vector256<short>.Count)
+            {
+                Vector256<short> values = Unsafe.As<short, Vector256<short>>(ref Unsafe.Add(ref residualBase, offset));
+                total += Vector256.Sum(Vector256.WidenLower(values)) + Vector256.Sum(Vector256.WidenUpper(values));
+                sumOfSquares += SumSquares(values);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint vectorCount = residual[offset..].Vector128Count<short>();
+
+            for (; vectorCount > 0; vectorCount--, offset += Vector128<short>.Count)
+            {
+                Vector128<short> values = Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref residualBase, offset));
+                total += Vector128.Sum(Vector128.WidenLower(values)) + Vector128.Sum(Vector128.WidenUpper(values));
+                sumOfSquares += SumSquares(values);
+            }
+        }
+
+        for (; offset < residual.Length; offset++)
+        {
+            int value = Unsafe.Add(ref residualBase, offset);
+            total += value;
+            sumOfSquares += value * value;
+        }
+
+        sum = total;
+        return sumOfSquares;
     }
 
     private static long SumSquaredError<TSample, TOperator>(

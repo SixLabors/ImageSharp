@@ -1094,26 +1094,52 @@ internal sealed class ObuWriter : IDisposable
         }
 
         writer.WriteLiteral((uint)frameHeader.LoopFilterParameters.SharpnessLevel, 3);
-        writer.WriteBoolean(frameHeader.LoopFilterParameters.ReferenceDeltaModeEnabled);
-        if (frameHeader.LoopFilterParameters.ReferenceDeltaModeEnabled)
+        ObuLoopFilterParameters parameters = frameHeader.LoopFilterParameters;
+        writer.WriteBoolean(parameters.ReferenceDeltaModeEnabled);
+        if (!parameters.ReferenceDeltaModeEnabled)
         {
-            writer.WriteBoolean(frameHeader.LoopFilterParameters.ReferenceDeltaModeUpdate);
-            if (frameHeader.LoopFilterParameters.ReferenceDeltaModeUpdate)
-            {
-                // An independent still frame can emit every current delta as an update. This is
-                // slightly larger than comparing against retained state but requires no video
-                // reference-frame state and produces the same observable filter parameters.
-                for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
-                {
-                    writer.WriteBoolean(true);
-                    writer.WriteSignedFromUnsigned(frameHeader.LoopFilterParameters.ReferenceDeltas[i], 7);
-                }
+            return;
+        }
 
-                for (int i = 0; i < 2; i++)
-                {
-                    writer.WriteBoolean(true);
-                    writer.WriteSignedFromUnsigned(frameHeader.LoopFilterParameters.ModeDeltas[i], 7);
-                }
+        // encode_loopfilter signals an update only when a delta differs from the primary reference
+        // frame's, or from the defaults when the frame has none (is_mode_ref_delta_meaningful,
+        // bitstream.c L2002-2028), and then marks each delta that changed (L2066-2081). The encoder
+        // keeps the default deltas, so every reference it writes carries them and they are the
+        // comparison for every frame.
+        bool update = false;
+        for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
+        {
+            update |= parameters.ReferenceDeltas[i] != ObuLoopFilterParameters.GetDefaultReferenceDelta(i);
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            update |= parameters.ModeDeltas[i] != 0;
+        }
+
+        writer.WriteBoolean(update);
+        if (!update)
+        {
+            return;
+        }
+
+        for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
+        {
+            bool changed = parameters.ReferenceDeltas[i] != ObuLoopFilterParameters.GetDefaultReferenceDelta(i);
+            writer.WriteBoolean(changed);
+            if (changed)
+            {
+                writer.WriteSignedFromUnsigned(parameters.ReferenceDeltas[i], 7);
+            }
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            bool changed = parameters.ModeDeltas[i] != 0;
+            writer.WriteBoolean(changed);
+            if (changed)
+            {
+                writer.WriteSignedFromUnsigned(parameters.ModeDeltas[i], 7);
             }
         }
     }

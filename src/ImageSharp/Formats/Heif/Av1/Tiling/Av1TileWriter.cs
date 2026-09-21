@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -894,6 +895,11 @@ internal partial class Av1TileWriter
         ref Av1MacroBlockModeInfo macroBlockModeInfo = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
         Av1BlockSize blockSize = macroBlockModeInfo.Block.BlockSize;
         pcs.MapModeInfoBlock(modeInfoPosition, blockSize);
+        if (TOperation.WritesOutput)
+        {
+            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add($"BLK {mi_col * 4},{mi_row * 4}");
+        }
+
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
 
         Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
@@ -1216,6 +1222,18 @@ internal partial class Av1TileWriter
                     }
                 }
 
+                if (TOperation.WritesOutput && macroBlockModeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Last)
+                {
+                    Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoPosition);
+                    if (Math.Abs(vector.Row) < 8 && Math.Abs(vector.Column) < 8)
+                    {
+                        // Count the retained block once, during packing. Two-row units include a
+                        // partial bottom row, while the block width retains its coded geometry.
+                        int rows = Math.Min(frm_hdr.ModeInfoRowCount - modeInfoPosition.Y, blockSize.Get4x4HighCount());
+                        pcs.Parent.LowMotionArea += ((rows + 1) & ~1) * blockSize.Get4x4WideCount();
+                    }
+                }
+
                 if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
                     !macroBlockModeInfo.Block.SkipMode)
                 {
@@ -1264,6 +1282,16 @@ internal partial class Av1TileWriter
                         direction: 0);
 
                     writer.WriteSwitchableInterpolationFilter<TOperation>(macroBlockModeInfo.Block.VerticalInterpolationFilter, verticalContext);
+                    if (TOperation.WritesOutput)
+                    {
+                        pcs.Parent.SelectedInterpolationCounts.Span[(int)macroBlockModeInfo.Block.VerticalInterpolationFilter]++;
+                    }
+                    else
+                    {
+                        pcs.Parent.InterpolationCounts.Span[
+                            (verticalContext * Av1InterpolationProbabilities.FilterCount) + (int)macroBlockModeInfo.Block.VerticalInterpolationFilter]++;
+                    }
+
                     if (scs.SequenceHeader.EnableDualFilter)
                     {
                         int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
@@ -1272,6 +1300,15 @@ internal partial class Av1TileWriter
                             direction: 1);
 
                         writer.WriteSwitchableInterpolationFilter<TOperation>(macroBlockModeInfo.Block.HorizontalInterpolationFilter, horizontalContext);
+                        if (TOperation.WritesOutput)
+                        {
+                            pcs.Parent.SelectedInterpolationCounts.Span[(int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
+                        }
+                        else
+                        {
+                            pcs.Parent.InterpolationCounts.Span[
+                                (horizontalContext * Av1InterpolationProbabilities.FilterCount) + (int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
+                        }
                     }
                 }
             }
@@ -1555,7 +1592,11 @@ internal partial class Av1TileWriter
                 ? macroBlockModeInfo.Block.TransformSize
                 : blockSize.GetMaximumTransformSize();
 
-        macroBlockModeInfo.Block.TransformSize = transformSize;
+        if (!writesVariableTransformSize)
+        {
+            macroBlockModeInfo.Block.TransformSize = transformSize;
+        }
+
         Av1NeighborArrayUnit<byte> transformContexts = pcs.TransformFunctionContexts[tileIndex];
         if (writesUniformTransformSize)
         {
@@ -1566,18 +1607,29 @@ internal partial class Av1TileWriter
         {
             int maximumBlocksWide = blockSize.Get4x4WideCount() + (Math.Min(0, macroBlock.ToRightEdge) >> 5);
             int maximumBlocksHigh = blockSize.Get4x4HighCount() + (Math.Min(0, macroBlock.ToBottomEdge) >> 5);
-            WriteVariableTransformTree<TOperation>(
-                writer,
-                transformContexts,
-                blockOrigin,
-                blockSize,
-                blockSize.GetMaximumTransformSize(),
-                transformSize,
-                depth: 0,
-                blockRow: 0,
-                blockColumn: 0,
-                maximumBlocksWide,
-                maximumBlocksHigh);
+            Av1TransformSize rootSize = blockSize.GetMaximumTransformSize();
+            for (int row = 0; row < maximumBlocksHigh; row += rootSize.Get4x4HighCount())
+            {
+                for (int column = 0; column < maximumBlocksWide; column += rootSize.Get4x4WideCount())
+                {
+                    WriteVariableTransformTree<TOperation>(
+                        writer,
+                        transformContexts,
+                        blockOrigin,
+                        blockSize,
+                        rootSize,
+                        ref macroBlockModeInfo.Block,
+                        depth: 0,
+                        blockRow: row,
+                        blockColumn: column,
+                        maximumBlocksWide,
+                        maximumBlocksHigh);
+                }
+            }
+
+            // Each coded leaf has already published its own edge dimensions. Replacing those
+            // edges with the root size would change the next block's transform partition contexts.
+            return;
         }
 
         Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
@@ -1602,7 +1654,7 @@ internal partial class Av1TileWriter
         Point blockOrigin,
         Av1BlockSize blockSize,
         Av1TransformSize transformSize,
-        Av1TransformSize selectedTransformSize,
+        ref Av1EncoderBlockModeInfo modeInfo,
         int depth,
         int blockRow,
         int blockColumn,
@@ -1614,6 +1666,9 @@ internal partial class Av1TileWriter
         {
             return;
         }
+
+        Av1TransformSize selectedTransformSize =
+            modeInfo.InterTransformSizes[modeInfo.GetInterTransformSizeIndex(blockRow, blockColumn)];
 
         bool split = transformSize != selectedTransformSize &&
             transformSize > Av1TransformSize.Size4x4 &&
@@ -1652,7 +1707,7 @@ internal partial class Av1TileWriter
                         blockOrigin,
                         blockSize,
                         subTransformSize,
-                        selectedTransformSize,
+                        ref modeInfo,
                         depth + 1,
                         blockRow + row,
                         blockColumn + column,
@@ -2325,6 +2380,29 @@ internal partial class Av1TileWriter
         Size size = new(blockSize.GetWidth(), blockSize.GetHeight());
         if (skip_coeff)
         {
+            // The coefficient positions of a block belong to the transforms it codes, so a block that crosses
+            // the frame edge owns fewer positions than its size. A skipped block reads no transform unit, and
+            // therefore repeats the same count here that EncodeTransformCoefficientRegion would advance.
+            Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
+            int maximumBlocksWide = size.Width;
+            int maximumBlocksHigh = size.Height;
+            if (macroBlock.ToRightEdge < 0)
+            {
+                maximumBlocksWide += macroBlock.ToRightEdge >> 3;
+            }
+
+            if (macroBlock.ToBottomEdge < 0)
+            {
+                maximumBlocksHigh += macroBlock.ToBottomEdge >> 3;
+            }
+
+            maximumBlocksWide >>= Av1Constants.ModeInfoSizeLog2;
+            maximumBlocksHigh >>= Av1Constants.ModeInfoSizeLog2;
+
+            // A skipped block keeps one transform size over its whole area, in both the luma tree and chroma.
+            bool lossless = pcs.Parent.FrameHeader.LosslessArray[mbmi.Block.SegmentId];
+            Av1TransformSize lumaTransformSize = lossless ? Av1TransformSize.Size4x4 : mbmi.Block.TransformSize;
+
             // A skipped block has an all-zero residual, so publish a zero sign/level context over its edges
             // and advance coefficient positions without reading transform units.
             luma_dc_sign_level_coeff_na.UnitModeWrite(
@@ -2352,11 +2430,49 @@ internal partial class Av1TileWriter
                     chromaOrigin,
                     chromaSize,
                     Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
-                entropyCodingContext.CodedAreaSuperblockUv += chromaSize.Width * chromaSize.Height;
+                Av1TransformSize chromaTransformSize = lossless
+                    ? Av1TransformSize.Size4x4
+                    : blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+
+                entropyCodingContext.CodedAreaSuperblockUv += GetCodedCoefficientArea(
+                    maximumBlocksWide, maximumBlocksHigh, chromaTransformSize, subsamplingX, subsamplingY);
             }
 
-            entropyCodingContext.CodedAreaSuperblock += size.Width * size.Height;
+            entropyCodingContext.CodedAreaSuperblock += GetCodedCoefficientArea(
+                maximumBlocksWide, maximumBlocksHigh, lumaTransformSize, 0, 0);
         }
+    }
+
+    /// <summary>
+    /// Calculates the coefficient positions that one plane of a block owns in the superblock buffer.
+    /// </summary>
+    /// <remarks>
+    /// Only transforms whose origin lies inside the coded block extent are coded, and each one owns its
+    /// complete sample count. This repeats the traversal bounds of
+    /// <see cref="EncodeTransformCoefficientRegion{TOperation}"/> for one uniform transform size.
+    /// </remarks>
+    /// <param name="maximumBlocksWide">The coded luma block width in four-sample units.</param>
+    /// <param name="maximumBlocksHigh">The coded luma block height in four-sample units.</param>
+    /// <param name="transformSize">The transform size of the plane.</param>
+    /// <param name="subsamplingX">The horizontal chroma subsampling shift, or zero for luma.</param>
+    /// <param name="subsamplingY">The vertical chroma subsampling shift, or zero for luma.</param>
+    /// <returns>The number of coefficient positions.</returns>
+    private static int GetCodedCoefficientArea(
+        int maximumBlocksWide,
+        int maximumBlocksHigh,
+        Av1TransformSize transformSize,
+        int subsamplingX,
+        int subsamplingY)
+    {
+        // A chroma-owning block that is narrower or shorter than its luma pair still codes its shared
+        // transform, so the subsampled extent rounds upward.
+        int planeBlocksWide = Av1Math.RoundPowerOf2(maximumBlocksWide, subsamplingX);
+        int planeBlocksHigh = Av1Math.RoundPowerOf2(maximumBlocksHigh, subsamplingY);
+        int transformBlocksWide = transformSize.Get4x4WideCount();
+        int transformBlocksHigh = transformSize.Get4x4HighCount();
+        int columns = (planeBlocksWide + transformBlocksWide - 1) / transformBlocksWide;
+        int rows = (planeBlocksHigh + transformBlocksHigh - 1) / transformBlocksHigh;
+        return columns * rows * transformSize.GetSize2d();
     }
 
     /// <summary>
@@ -2893,8 +3009,6 @@ internal partial class Av1TileWriter
                 ? Av1TransformSize.Size4x4
                 : lumaBlockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
 
-        int transformWidth = transformSize.GetWidth();
-        int transformHeight = transformSize.GetHeight();
         Size frameContextSize = new(
             frameHeader.ModeInfoColumnCount >> (!isLuma && colorConfig.SubSamplingX ? 1 : 0),
             frameHeader.ModeInfoRowCount >> (!isLuma && colorConfig.SubSamplingY ? 1 : 0));
@@ -2918,7 +3032,11 @@ internal partial class Av1TileWriter
             entropyCodingContext.MacroBlockModeInfo.Block.SegmentId]
             ? lumaBlockSize.GetMaximumTransformSize()
             : transformSize;
-        int leafCount = rootSize.GetSize2d() / transformSize.GetSize2d();
+        Av1EncoderBlockModeInfo retainedModeInfo = entropyCodingContext.MacroBlockModeInfo.Block;
+        bool variableLuma = isLuma && usesInterTransformSet && !frameHeader.LosslessArray[
+            entropyCodingContext.MacroBlockModeInfo.Block.SegmentId];
+        Av1TransformSize traversalSize = variableLuma ? rootSize.GetSubSize().GetSubSize() : transformSize;
+        int leafCount = rootSize.GetSize2d() / traversalSize.GetSize2d();
 
         // Split inter transforms follow their syntax tree. Intra and chroma roots each have one leaf,
         // preserving their raster traversal while all paths share coefficient and context ownership.
@@ -2928,12 +3046,21 @@ internal partial class Av1TileWriter
             {
                 for (int leaf = 0; leaf < leafCount; leaf++)
                 {
-                    Point offset = rootSize.GetPartitionOrigin(transformSize, leaf);
+                    Point offset = rootSize.GetPartitionOrigin(traversalSize, leaf);
                     int blockRow = rootRow + (offset.Y >> Av1Constants.ModeInfoSizeLog2);
                     int blockColumn = rootColumn + (offset.X >> Av1Constants.ModeInfoSizeLog2);
                     if (blockRow >= unitBottom || blockColumn >= unitRight)
                     {
                         continue;
+                    }
+
+                    if (variableLuma)
+                    {
+                        transformSize = retainedModeInfo.InterTransformSizes[retainedModeInfo.GetInterTransformSizeIndex(blockRow, blockColumn)];
+                        if ((offset.X % transformSize.GetWidth()) != 0 || (offset.Y % transformSize.GetHeight()) != 0)
+                        {
+                            continue;
+                        }
                     }
 
                     int transformStateIndex =
@@ -2978,6 +3105,15 @@ internal partial class Av1TileWriter
                         transformType = transformBlock.TransformType = Av1TransformType.DctDct;
                     }
 
+                    if (TOperation.WritesOutput && transformBlock.EndOfBlock != 0 &&
+                        pcs.Parent.SpeedSettings.TrackTransformTypeProbabilities)
+                    {
+                        // Only the final packing traversal counts selected transforms. Partition trials and
+                        // coefficient analysis revisit the same samples and must not change frame history.
+                        pcs.Parent.TransformTypeCounts.Span[
+                            ((int)transformSize * Av1TransformTypeProbabilities.TypeCount) + (int)transformType]++;
+                    }
+
                     int culLevel = writer.WriteCoefficients<TOperation>(
                         transformSize,
                         transformType,
@@ -2997,7 +3133,7 @@ internal partial class Av1TileWriter
                         transformOrigin,
                         frameContextSize);
 
-                    codedArea += transformWidth * transformHeight;
+                    codedArea += transformSize.GetSize2d();
                 }
             }
         }

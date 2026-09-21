@@ -60,6 +60,14 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract int GetAverage4x4(Buffer2DRegion<TSample> source, Point origin);
 
         /// <summary>
+        /// Computes the rounded mean of an eight-by-eight sample block.
+        /// </summary>
+        /// <param name="source">The samples beginning at the block origin.</param>
+        /// <param name="stride">The source row stride.</param>
+        /// <returns>The mean in the source sample precision.</returns>
+        public static abstract int GetAverage8x8(ReadOnlySpan<TSample> source, int stride);
+
+        /// <summary>
         /// Copies active palette-search samples into contiguous signed storage.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
@@ -100,6 +108,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The luma block origin in plane samples.</param>
         /// <param name="lumaQ3">The fixed-stride Q3 predictor workspace.</param>
         /// <param name="transformSize">The chroma transform dimensions.</param>
+        /// <param name="lumaExtent">The luma samples the encoder coded for this block.</param>
         /// <param name="subsamplingX">Whether luma is subsampled horizontally for chroma.</param>
         /// <param name="subsamplingY">Whether luma is subsampled vertically for chroma.</param>
         public static abstract void PrepareChromaFromLuma(
@@ -107,6 +116,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Span<short> lumaQ3,
             Av1TransformSize transformSize,
+            Size lumaExtent,
             bool subsamplingX,
             bool subsamplingY);
 
@@ -150,7 +160,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="secondIntermediate">The reusable secondary unsigned compound intermediate.</param>
         /// <param name="compoundMask">The reusable luma-resolution blend mask.</param>
         /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
-        /// <param name="transformSize">The prediction dimensions.</param>
+        /// <param name="predictionSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         /// <param name="plane">The component plane. Only luma constructs the difference-weighted mask.</param>
         /// <param name="lumaBlockSize">The luma block dimensions used to construct the blend mask.</param>
@@ -181,7 +191,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
             Span<short> predictionScratch,
-            Av1TransformSize transformSize,
+            Av1BlockSize predictionSize,
             Av1BitDepth bitDepth,
             Av1Plane plane,
             Av1BlockSize lumaBlockSize,
@@ -193,6 +203,23 @@ internal static partial class Av1IntraSuperblockEncoder
             int wedgeIndex,
             bool wedgeSign,
             Av1DifferenceWeightedMaskType differenceWeightedMaskType);
+
+        /// <summary>
+        /// Builds a difference-weighted mask from two rounded single-reference predictors.
+        /// </summary>
+        /// <param name="mask">The contiguous destination weights for the first predictor.</param>
+        /// <param name="first">The first contiguous predictor.</param>
+        /// <param name="second">The second contiguous predictor.</param>
+        /// <param name="size">The prediction dimensions.</param>
+        /// <param name="bitDepth">The sample precision.</param>
+        /// <param name="maskType">The orientation of the difference weights.</param>
+        public static abstract void BuildCompoundDifferenceMask(
+            Span<byte> mask,
+            ReadOnlySpan<TSample> first,
+            ReadOnlySpan<TSample> second,
+            Size size,
+            Av1BitDepth bitDepth,
+            Av1DifferenceWeightedMaskType maskType);
 
         /// <summary>
         /// Blends a spatial intra predictor into a completed inter predictor through an AV1 alpha mask.
@@ -273,8 +300,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
         /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
         /// <param name="state">The candidate transform state.</param>
-        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+        /// <returns>The normalized distortion in AV1 transform units.</returns>
         public static abstract long EncodeCandidate(
             Av1EncoderBlockWorkspace workspace,
             Av1SymbolEncoder writer,
@@ -300,6 +328,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int dcDeltaQ,
             int acDeltaQ,
             Av1BitDepth bitDepth,
+            (int Type, uint Threshold) distortionPolicy,
             ref Av1EncoderTransformBlockState state);
 
         /// <summary>
@@ -375,7 +404,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="halfY">Indicates whether the vertical source phase is one half-sample.</param>
         /// <param name="prediction">The contiguous prediction destination.</param>
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
-        /// <param name="transformSize">The prediction dimensions.</param>
+        /// <param name="predictionSize">The prediction dimensions.</param>
         public static abstract void PrepareIntraBlockCopyPrediction(
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
@@ -385,7 +414,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool halfY,
             Span<TSample> prediction,
             Span<short> residual,
-            Av1TransformSize transformSize);
+            Av1BlockSize predictionSize);
 
         /// <summary>
         /// Subtracts a retained prediction from its source without rebuilding the inter predictor.
@@ -394,13 +423,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The block origin in plane samples.</param>
         /// <param name="prediction">The tightly packed prediction samples.</param>
         /// <param name="residual">The destination signed residual samples.</param>
-        /// <param name="transformSize">The plane block geometry.</param>
+        /// <param name="width">The plane block width.</param>
+        /// <param name="height">The plane block height.</param>
         public static abstract void SubtractPrediction(
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
             ReadOnlySpan<TSample> prediction,
             Span<short> residual,
-            Av1TransformSize transformSize);
+            int width,
+            int height);
 
         /// <summary>
         /// Builds a translational prediction from a retained reference frame and the matching source residual.
@@ -416,7 +447,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="prediction">The contiguous prediction destination.</param>
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
         /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
-        /// <param name="transformSize">The prediction dimensions.</param>
+        /// <param name="predictionSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareTranslationalInterPrediction(
             Buffer2DRegion<TSample> source,
@@ -430,7 +461,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> prediction,
             Span<short> residual,
             Span<short> predictionScratch,
-            Av1TransformSize transformSize,
+            Av1BlockSize predictionSize,
             Av1BitDepth bitDepth);
 
         /// <summary>
@@ -468,6 +499,38 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth,
             bool lossless,
             Av1EncoderTransformBlockState state);
+
+        /// <summary>
+        /// Reconstructs a quantized candidate from its dequantized coefficients and measures its distortion.
+        /// </summary>
+        /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+        /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
+        /// <param name="prediction">The prediction samples at the transform origin.</param>
+        /// <param name="inputStride">The number of prediction samples between rows.</param>
+        /// <param name="reconstruction">The candidate reconstruction.</param>
+        /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
+        /// <param name="transformSize">The transform dimensions.</param>
+        /// <param name="plane">The component plane containing the block.</param>
+        /// <param name="qIndex">The effective segment quantizer index.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="state">The candidate transform state.</param>
+        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+        public static abstract long ReconstructPredictionCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            ReadOnlySpan<int> dequantized,
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            ReadOnlySpan<TSample> prediction,
+            int inputStride,
+            Span<TSample> reconstruction,
+            int reconstructionStride,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            int qIndex,
+            Av1BitDepth bitDepth,
+            in Av1EncoderTransformBlockState state);
 
         /// <summary>
         /// Encodes one prepared prediction with the selected transform into decision scratch.
@@ -586,6 +649,34 @@ internal static partial class Av1IntraSuperblockEncoder
     internal readonly struct ByteOperator : IBlockEncodingOperator<byte>
     {
         /// <inheritdoc/>
+        public static void BuildPrediction(
+            ReadOnlySpan<byte> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<byte> prediction,
+            Span<short> scratch,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            int bitDepth)
+            => Av1MotionSearchBase.ByteOperator.BuildPrediction(
+                reference,
+                referenceStride,
+                referenceOrigin,
+                prediction,
+                scratch,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                bitDepth);
+
+        /// <inheritdoc/>
         public static void PreparePrediction(
             ReadOnlySpan<byte> source,
             int sourceStride,
@@ -647,6 +738,35 @@ internal static partial class Av1IntraSuperblockEncoder
                 source, sourceStride, prediction, predictionStride, width, height, rowStep);
 
         /// <inheritdoc/>
+        public static int SumCompoundAbsoluteDifferences(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            ReadOnlySpan<byte> secondPrediction,
+            ReadOnlySpan<byte> mask,
+            int width,
+            int height,
+            int rowStep)
+            => Av1MotionSearchBase.ByteOperator.SumCompoundAbsoluteDifferences(
+                source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
+
+        /// <inheritdoc/>
+        public static void GetCompoundMoments(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            ReadOnlySpan<byte> secondPrediction,
+            ReadOnlySpan<byte> mask,
+            int width,
+            int height,
+            out int sum,
+            out long squares)
+            => Av1MotionSearchBase.ByteOperator.GetCompoundMoments(
+                source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
         public static void GetMoments(
             ReadOnlySpan<byte> source,
             int sourceStride,
@@ -681,6 +801,21 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int sum = Vector128.Sum(Vector128.WidenLower(samples)) + Vector128.Sum(Vector128.WidenUpper(samples));
             return (sum + 8) >> 4;
+        }
+
+        /// <inheritdoc/>
+        public static int GetAverage8x8(ReadOnlySpan<byte> source, int stride)
+        {
+            // Each widened lane accumulates one column from eight rows. Column sums fit in
+            // eleven bits, and their total fits in ushort; round once after the complete sum.
+            Vector128<ushort> columns = Vector128<ushort>.Zero;
+            for (int row = 0; row < 8; row++)
+            {
+                Vector64<byte> samples = Vector64.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)(row * stride));
+                columns += Vector128.WidenLower(Vector128.Create(samples, Vector64<byte>.Zero));
+            }
+
+            return (Vector128.Sum(columns) + 32) >> 6;
         }
 
         /// <inheritdoc/>
@@ -817,6 +952,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Span<short> lumaQ3,
             Av1TransformSize transformSize,
+            Size lumaExtent,
             bool subsamplingX,
             bool subsamplingY)
             => Av1ChromaFromLumaContext.PrepareBlock(
@@ -824,6 +960,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 reconstruction.Stride,
                 lumaQ3,
                 transformSize,
+                lumaExtent,
                 subsamplingX,
                 subsamplingY);
 
@@ -911,6 +1048,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int dcDeltaQ,
             int acDeltaQ,
             Av1BitDepth bitDepth,
+            (int Type, uint Threshold) distortionPolicy,
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
                 workspace,
@@ -936,6 +1074,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 dcDeltaQ,
                 acDeltaQ,
                 plane,
+                distortionPolicy,
                 ref state);
 
         /// <inheritdoc/>
@@ -1018,10 +1157,10 @@ internal static partial class Av1IntraSuperblockEncoder
             bool halfY,
             Span<byte> prediction,
             Span<short> residual,
-            Av1TransformSize transformSize)
+            Av1BlockSize predictionSize)
         {
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
             Av1IntraBlockCopyPredictor.Predict(
                 Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin),
                 reconstruction.Stride,
@@ -1049,16 +1188,17 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ReadOnlySpan<byte> prediction,
             Span<short> residual,
-            Av1TransformSize transformSize)
+            int width,
+            int height)
             => Av1ResidualBuilder.Subtract(
                 Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
                 source.Stride,
                 prediction,
-                transformSize.GetWidth(),
+                width,
                 residual,
-                transformSize.GetWidth(),
-                transformSize.GetWidth(),
-                transformSize.GetHeight());
+                width,
+                width,
+                height);
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
@@ -1073,11 +1213,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> prediction,
             Span<short> residual,
             Span<short> predictionScratch,
-            Av1TransformSize transformSize,
+            Av1BlockSize predictionSize,
             Av1BitDepth bitDepth)
         {
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
             Rectangle referenceBounds = reference.Bounds;
             int referenceOrigin =
                 ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
@@ -1098,7 +1238,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 verticalPhase,
                 predictionScratch);
 
-            SubtractPrediction(source, blockOrigin, prediction, residual, transformSize);
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
         }
 
         /// <inheritdoc/>
@@ -1121,7 +1269,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
             Span<short> predictionScratch,
-            Av1TransformSize transformSize,
+            Av1BlockSize predictionSize,
             Av1BitDepth bitDepth,
             Av1Plane plane,
             Av1BlockSize lumaBlockSize,
@@ -1134,8 +1282,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool wedgeSign,
             Av1DifferenceWeightedMaskType differenceWeightedMaskType)
         {
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
             Rectangle primaryBounds = primaryReference.Bounds;
             int primaryOrigin = ((primaryBounds.Y + primaryPredictionOrigin.Y) * primaryReference.Stride) +
                 primaryBounds.X + primaryPredictionOrigin.X;
@@ -1243,8 +1391,35 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
             }
 
-            SubtractPrediction(source, blockOrigin, prediction, residual, transformSize);
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
         }
+
+        /// <inheritdoc/>
+        public static void BuildCompoundDifferenceMask(
+            Span<byte> mask,
+            ReadOnlySpan<byte> first,
+            ReadOnlySpan<byte> second,
+            Size size,
+            Av1BitDepth bitDepth,
+            Av1DifferenceWeightedMaskType maskType)
+            => Av1DifferenceWeightedMaskBuilder.FillDifferenceWeightedMask(
+                mask,
+                size.Width,
+                first,
+                size.Width,
+                second,
+                size.Width,
+                size.Width,
+                size.Height,
+                maskType);
 
         /// <inheritdoc/>
         public static void BlendInterIntraPrediction(
@@ -1342,6 +1517,35 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref state);
 
         /// <inheritdoc/>
+        public static long ReconstructPredictionCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            ReadOnlySpan<int> dequantized,
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            ReadOnlySpan<byte> prediction,
+            int inputStride,
+            Span<byte> reconstruction,
+            int reconstructionStride,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            int qIndex,
+            Av1BitDepth bitDepth,
+            in Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
+                workspace,
+                dequantized,
+                source,
+                blockOrigin,
+                prediction,
+                inputStride,
+                reconstruction,
+                reconstructionStride,
+                transformSize,
+                qIndex,
+                plane,
+                in state);
+
+        /// <inheritdoc/>
         public static long EncodeChromaFromLumaCandidate(
             Av1EncoderBlockWorkspace workspace,
             Av1SymbolEncoder writer,
@@ -1388,6 +1592,34 @@ internal static partial class Av1IntraSuperblockEncoder
     /// </summary>
     internal readonly struct UInt16Operator : IBlockEncodingOperator<ushort>
     {
+        /// <inheritdoc/>
+        public static void BuildPrediction(
+            ReadOnlySpan<ushort> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> prediction,
+            Span<short> scratch,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            int bitDepth)
+            => Av1MotionSearchBase.UInt16Operator.BuildPrediction(
+                reference,
+                referenceStride,
+                referenceOrigin,
+                prediction,
+                scratch,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                bitDepth);
+
         /// <inheritdoc/>
         public static void PreparePrediction(
             ReadOnlySpan<ushort> source,
@@ -1450,6 +1682,35 @@ internal static partial class Av1IntraSuperblockEncoder
                 source, sourceStride, prediction, predictionStride, width, height, rowStep);
 
         /// <inheritdoc/>
+        public static int SumCompoundAbsoluteDifferences(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            ReadOnlySpan<ushort> secondPrediction,
+            ReadOnlySpan<byte> mask,
+            int width,
+            int height,
+            int rowStep)
+            => Av1MotionSearchBase.UInt16Operator.SumCompoundAbsoluteDifferences(
+                source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
+
+        /// <inheritdoc/>
+        public static void GetCompoundMoments(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            ReadOnlySpan<ushort> secondPrediction,
+            ReadOnlySpan<byte> mask,
+            int width,
+            int height,
+            out int sum,
+            out long squares)
+            => Av1MotionSearchBase.UInt16Operator.GetCompoundMoments(
+                source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
         public static void GetMoments(
             ReadOnlySpan<ushort> source,
             int sourceStride,
@@ -1482,6 +1743,21 @@ internal static partial class Av1IntraSuperblockEncoder
                 Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y + 3)[origin.X]);
 
             return (Vector64.Sum(columns) + 8) >> 4;
+        }
+
+        /// <inheritdoc/>
+        public static int GetAverage8x8(ReadOnlySpan<ushort> source, int stride)
+        {
+            // Eight twelve-bit samples fit in each ushort column lane. Widen before the
+            // horizontal reduction because all sixty-four samples require eighteen bits.
+            Vector128<ushort> columns = Vector128<ushort>.Zero;
+            for (int row = 0; row < 8; row++)
+            {
+                columns += Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)(row * stride));
+            }
+
+            uint sum = Vector128.Sum(Vector128.WidenLower(columns)) + Vector128.Sum(Vector128.WidenUpper(columns));
+            return (int)((sum + 32) >> 6);
         }
 
         /// <inheritdoc/>
@@ -1614,6 +1890,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Span<short> lumaQ3,
             Av1TransformSize transformSize,
+            Size lumaExtent,
             bool subsamplingX,
             bool subsamplingY)
             => Av1ChromaFromLumaContext.PrepareBlock(
@@ -1621,6 +1898,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 reconstruction.Stride,
                 lumaQ3,
                 transformSize,
+                lumaExtent,
                 subsamplingX,
                 subsamplingY);
 
@@ -1710,6 +1988,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int dcDeltaQ,
             int acDeltaQ,
             Av1BitDepth bitDepth,
+            (int Type, uint Threshold) distortionPolicy,
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
                 workspace,
@@ -1736,6 +2015,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 acDeltaQ,
                 plane,
                 bitDepth,
+                distortionPolicy,
                 ref state);
 
         /// <inheritdoc/>
@@ -1827,10 +2107,10 @@ internal static partial class Av1IntraSuperblockEncoder
             bool halfY,
             Span<ushort> prediction,
             Span<short> residual,
-            Av1TransformSize transformSize)
+            Av1BlockSize predictionSize)
         {
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
             Av1IntraBlockCopyPredictor.Predict(
                 MemoryMarshal.Cast<ushort, short>(Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin)),
                 reconstruction.Stride,
@@ -1858,16 +2138,17 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ReadOnlySpan<ushort> prediction,
             Span<short> residual,
-            Av1TransformSize transformSize)
+            int width,
+            int height)
             => Av1ResidualBuilder.Subtract(
                 Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
                 source.Stride,
                 prediction,
-                transformSize.GetWidth(),
+                width,
                 residual,
-                transformSize.GetWidth(),
-                transformSize.GetWidth(),
-                transformSize.GetHeight());
+                width,
+                width,
+                height);
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
@@ -1882,11 +2163,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> prediction,
             Span<short> residual,
             Span<short> predictionScratch,
-            Av1TransformSize transformSize,
+            Av1BlockSize predictionSize,
             Av1BitDepth bitDepth)
         {
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
             Rectangle referenceBounds = reference.Bounds;
             int referenceOrigin =
                 ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
@@ -1908,7 +2189,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 bitDepth.GetBitCount(),
                 predictionScratch);
 
-            SubtractPrediction(source, blockOrigin, prediction, residual, transformSize);
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
         }
 
         /// <inheritdoc/>
@@ -1931,7 +2220,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
             Span<short> predictionScratch,
-            Av1TransformSize transformSize,
+            Av1BlockSize predictionSize,
             Av1BitDepth bitDepth,
             Av1Plane plane,
             Av1BlockSize lumaBlockSize,
@@ -1944,8 +2233,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool wedgeSign,
             Av1DifferenceWeightedMaskType differenceWeightedMaskType)
         {
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
             Rectangle primaryBounds = primaryReference.Bounds;
             int primaryOrigin = ((primaryBounds.Y + primaryPredictionOrigin.Y) * primaryReference.Stride) +
                 primaryBounds.X + primaryPredictionOrigin.X;
@@ -2055,8 +2344,36 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
             }
 
-            SubtractPrediction(source, blockOrigin, prediction, residual, transformSize);
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
         }
+
+        /// <inheritdoc/>
+        public static void BuildCompoundDifferenceMask(
+            Span<byte> mask,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            Size size,
+            Av1BitDepth bitDepth,
+            Av1DifferenceWeightedMaskType maskType)
+            => Av1DifferenceWeightedMaskBuilder.FillDifferenceWeightedMask(
+                mask,
+                size.Width,
+                first,
+                size.Width,
+                second,
+                size.Width,
+                size.Width,
+                size.Height,
+                bitDepth.GetBitCount(),
+                maskType);
 
         /// <inheritdoc/>
         public static void BlendInterIntraPrediction(
@@ -2160,6 +2477,36 @@ internal static partial class Av1IntraSuperblockEncoder
                 plane,
                 bitDepth,
                 ref state);
+
+        /// <inheritdoc/>
+        public static long ReconstructPredictionCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            ReadOnlySpan<int> dequantized,
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            ReadOnlySpan<ushort> prediction,
+            int inputStride,
+            Span<ushort> reconstruction,
+            int reconstructionStride,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            int qIndex,
+            Av1BitDepth bitDepth,
+            in Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
+                workspace,
+                dequantized,
+                source,
+                blockOrigin,
+                prediction,
+                inputStride,
+                reconstruction,
+                reconstructionStride,
+                transformSize,
+                qIndex,
+                plane,
+                bitDepth,
+                in state);
 
         /// <inheritdoc/>
         public static long EncodeChromaFromLumaCandidate(

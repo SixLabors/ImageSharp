@@ -28,12 +28,21 @@ internal sealed class ObuLoopFilterParameters
     /// </summary>
     public ObuLoopFilterParameters()
     {
-        // AV1 indexes this table from Intra through Alternate. Golden is -1; Backward remains 0.
-        this.referenceDeltas[0] = 1;
-        this.referenceDeltas[4] = -1;
-        this.referenceDeltas[6] = -1;
-        this.referenceDeltas[7] = -1;
+        for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
+        {
+            this.referenceDeltas[i] = GetDefaultReferenceDelta(i);
+        }
     }
+
+    /// <summary>
+    /// Gets the default reference deltas, indexed from Intra through Alternate.
+    /// </summary>
+    /// <remarks>
+    /// This is <c>av1_set_default_ref_deltas</c> (entropymode.c L1027-1038): intra blocks filter one level
+    /// stronger, Golden, Alternate-2 and Alternate one level weaker, and the remaining references unchanged.
+    /// The default mode deltas are zero.
+    /// </remarks>
+    private static ReadOnlySpan<sbyte> DefaultReferenceDeltas => [1, 0, 0, 0, -1, 0, -1, -1];
 
     /// <summary>
     /// Gets the horizontal and vertical luma filter levels.
@@ -74,4 +83,11 @@ internal sealed class ObuLoopFilterParameters
     /// Gets the filter-level deltas for the AV1 prediction modes.
     /// </summary>
     public Span<int> ModeDeltas => this.modeDeltas[..2];
+
+    /// <summary>
+    /// Gets the default delta of one reference frame type.
+    /// </summary>
+    /// <param name="reference">The reference index, from Intra through Alternate.</param>
+    /// <returns>The default delta.</returns>
+    public static int GetDefaultReferenceDelta(int reference) => DefaultReferenceDeltas[reference];
 }

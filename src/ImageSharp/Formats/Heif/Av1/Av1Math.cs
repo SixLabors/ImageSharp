@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <summary>
@@ -55,23 +58,9 @@ internal static class Av1Math
     /// </summary>
     /// <param name="x">The value.</param>
     /// <returns>The zero-based position of the most significant set bit.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint Log2_32(uint x)
-    {
-        uint log = 0;
-        int i;
-        for (i = 4; i >= 0; --i)
-        {
-            uint shift = 1u << i;
-            uint n = x >> (int)shift;
-            if (n != 0)
-            {
-                x = n;
-                log += shift;
-            }
-        }
-
-        return log;
-    }
+        => (uint)BitOperations.Log2(x);
 
     /// <summary>
     /// Gets the greatest integer less than or equal to the base-two logarithm of a nonzero value.

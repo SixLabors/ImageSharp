@@ -115,11 +115,12 @@ public class Av1InterpolationFilterEntropyTests
     }
 
     /// <summary>
-    /// Verifies the encoder's context selection, read-only costing, and adaptive output against independently seeded distributions.
+    /// Verifies the encoder's context selection, read-only costing, cost refresh, and adaptive output against
+    /// independently seeded distributions.
     /// </summary>
     [Theory]
     [MemberData(nameof(GetContexts))]
-    public void EncoderUsesRequestedContextAndLiveCosts(int context)
+    public void EncoderUsesRequestedContextAndRefreshedCosts(int context)
     {
         ReadOnlySpan<Av1InterpolationFilter> filters =
         [
@@ -141,6 +142,9 @@ public class Av1InterpolationFilterEntropyTests
         using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex: 0, updateCdf: true);
         foreach (Av1InterpolationFilter filter in filters)
         {
+            // Costs are a snapshot of the tile distributions. The encoder publishes adapted probabilities when
+            // its owner refreshes them, not after each written symbol.
+            encoder.RefreshCosts();
             int expectedCost = Av1ProbabilityCost.GetSymbolCost(distribution, (int)filter);
             Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));
             Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));

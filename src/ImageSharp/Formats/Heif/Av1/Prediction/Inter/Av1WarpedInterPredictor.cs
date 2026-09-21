@@ -21,6 +21,17 @@ internal static partial class Av1WarpedInterPredictor
     private const int WarpedIntermediateRows = 15;
 
     /// <summary>
+    /// The number of source samples one tile's clamped horizontal window holds.
+    /// </summary>
+    /// <remarks>
+    /// The eight-tap windows of a tile contribute samples <c>integerX - 7</c> through
+    /// <c>integerX + 7</c>, but the vector loads read sixteen samples from the start of each
+    /// window, so the last window of a tile touches <c>integerX + 15</c>. The clamped copy
+    /// covers every touched sample; only the first fifteen change the result.
+    /// </remarks>
+    private const int WarpedWindowLength = 24;
+
+    /// <summary>
     /// The number of columns in one warped filter tile.
     /// </summary>
     private const int WarpedTileSize = 8;
@@ -375,6 +386,7 @@ internal static partial class Av1WarpedInterPredictor
                     ref sourceBase,
                     sourceStride,
                     sourceOrigin,
+                    sourceWidth,
                     sourceHeight,
                     integerX,
                     integerY,
@@ -417,6 +429,7 @@ internal static partial class Av1WarpedInterPredictor
         ref byte sourceBase,
         int sourceStride,
         Point sourceOrigin,
+        int sourceWidth,
         int sourceHeight,
         int integerX,
         int integerY,
@@ -428,11 +441,48 @@ internal static partial class Av1WarpedInterPredictor
         bool useHardwareIntrinsics)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
+        // Every horizontal tap is clamped to the frame: av1_warp_affine_c uses
+        // sample_x = clamp(ix + m, 0, width - 1) (warped_motion.c L582-587). A tile whose
+        // window lies inside the frame needs no clamping, which keeps the common case at one
+        // load per window. The three edge cases follow av1_warp_affine_sse4_1
+        // (warp_plane_sse4.c L847-895).
+        if (integerX <= -7 || integerX >= sourceWidth + 6)
+        {
+            // Every clamped tap is the same edge column. The eight taps of any phase sum to
+            // 1 << FilterBits, so the whole intermediate row holds one value.
+            int edgeColumn = integerX <= -7 ? 0 : sourceWidth - 1;
+            for (int row = -7; row < 8; row++)
+            {
+                int edgeY = Math.Clamp(integerY + row, 0, sourceHeight - 1);
+                int sample = Unsafe.Add(ref sourceBase, ((sourceOrigin.Y + edgeY) * sourceStride) + sourceOrigin.X + edgeColumn);
+                intermediate.Slice((row + 7) * WarpedTileSize, WarpedTileSize)
+                    .Fill((ushort)RoundPowerOfTwoScalar(bias + (sample << FilterBits), round));
+            }
+
+            return;
+        }
+
+        // A tile that straddles a vertical frame edge copies its window with the taps clamped.
+        // This replaces the warp_pad_left and warp_pad_right shuffles of the reference SIMD
+        // path; both produce the sample the normative per-tap clamp selects.
+        bool clampHorizontally = integerX - 7 < 0 || integerX + 9 > sourceWidth;
+        Span<byte> window = stackalloc byte[clampHorizontally ? WarpedWindowLength : 0];
         for (int row = -7; row < 8; row++)
         {
             int sourceY = Math.Clamp(integerY + row, 0, sourceHeight - 1);
-            int sourceIndex = ((sourceOrigin.Y + sourceY) * sourceStride) + sourceOrigin.X + integerX - 7;
-            ref byte sourceRow = ref Unsafe.Add(ref sourceBase, sourceIndex);
+            int rowIndex = ((sourceOrigin.Y + sourceY) * sourceStride) + sourceOrigin.X;
+            if (clampHorizontally)
+            {
+                ref byte clampedRow = ref Unsafe.Add(ref sourceBase, rowIndex);
+                for (int tap = 0; tap < WarpedWindowLength; tap++)
+                {
+                    window[tap] = Unsafe.Add(ref clampedRow, Math.Clamp(integerX - 7 + tap, 0, sourceWidth - 1));
+                }
+            }
+
+            ref byte sourceRow = ref clampHorizontally
+                ? ref MemoryMarshal.GetReference(window)
+                : ref Unsafe.Add(ref sourceBase, rowIndex + integerX - 7);
             ref ushort intermediateRow = ref intermediate[(row + 7) * WarpedTileSize];
             int phase = phaseX + (parameters.Beta * (row + 4));
             int column = 0;
@@ -500,6 +550,7 @@ internal static partial class Av1WarpedInterPredictor
         ref ushort sourceBase,
         int sourceStride,
         Point sourceOrigin,
+        int sourceWidth,
         int sourceHeight,
         int integerX,
         int integerY,
@@ -511,11 +562,48 @@ internal static partial class Av1WarpedInterPredictor
         bool useHardwareIntrinsics)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
+        // Every horizontal tap is clamped to the frame: av1_warp_affine_c uses
+        // sample_x = clamp(ix + m, 0, width - 1) (warped_motion.c L582-587). A tile whose
+        // window lies inside the frame needs no clamping, which keeps the common case at one
+        // load per window. The three edge cases follow av1_warp_affine_sse4_1
+        // (warp_plane_sse4.c L847-895).
+        if (integerX <= -7 || integerX >= sourceWidth + 6)
+        {
+            // Every clamped tap is the same edge column. The eight taps of any phase sum to
+            // 1 << FilterBits, so the whole intermediate row holds one value.
+            int edgeColumn = integerX <= -7 ? 0 : sourceWidth - 1;
+            for (int row = -7; row < 8; row++)
+            {
+                int edgeY = Math.Clamp(integerY + row, 0, sourceHeight - 1);
+                int sample = Unsafe.Add(ref sourceBase, ((sourceOrigin.Y + edgeY) * sourceStride) + sourceOrigin.X + edgeColumn);
+                intermediate.Slice((row + 7) * WarpedTileSize, WarpedTileSize)
+                    .Fill((ushort)RoundPowerOfTwoScalar(bias + (sample << FilterBits), round));
+            }
+
+            return;
+        }
+
+        // A tile that straddles a vertical frame edge copies its window with the taps clamped.
+        // This replaces the warp_pad_left and warp_pad_right shuffles of the reference SIMD
+        // path; both produce the sample the normative per-tap clamp selects.
+        bool clampHorizontally = integerX - 7 < 0 || integerX + 9 > sourceWidth;
+        Span<ushort> window = stackalloc ushort[clampHorizontally ? WarpedWindowLength : 0];
         for (int row = -7; row < 8; row++)
         {
             int sourceY = Math.Clamp(integerY + row, 0, sourceHeight - 1);
-            int sourceIndex = ((sourceOrigin.Y + sourceY) * sourceStride) + sourceOrigin.X + integerX - 7;
-            ref ushort sourceRow = ref Unsafe.Add(ref sourceBase, sourceIndex);
+            int rowIndex = ((sourceOrigin.Y + sourceY) * sourceStride) + sourceOrigin.X;
+            if (clampHorizontally)
+            {
+                ref ushort clampedRow = ref Unsafe.Add(ref sourceBase, rowIndex);
+                for (int tap = 0; tap < WarpedWindowLength; tap++)
+                {
+                    window[tap] = Unsafe.Add(ref clampedRow, Math.Clamp(integerX - 7 + tap, 0, sourceWidth - 1));
+                }
+            }
+
+            ref ushort sourceRow = ref clampHorizontally
+                ? ref MemoryMarshal.GetReference(window)
+                : ref Unsafe.Add(ref sourceBase, rowIndex + integerX - 7);
             ref ushort intermediateRow = ref intermediate[(row + 7) * WarpedTileSize];
             int phase = phaseX + (parameters.Beta * (row + 4));
             int column = 0;
@@ -952,6 +1040,7 @@ internal static partial class Av1WarpedInterPredictor
                     ref sourceBase,
                     sourceStride,
                     sourceOrigin,
+                    sourceWidth,
                     sourceHeight,
                     integerX,
                     integerY,
@@ -1038,6 +1127,7 @@ internal static partial class Av1WarpedInterPredictor
                     ref sourceBase,
                     sourceStride,
                     sourceOrigin,
+                    sourceWidth,
                     sourceHeight,
                     integerX,
                     integerY,
@@ -1126,6 +1216,7 @@ internal static partial class Av1WarpedInterPredictor
                     ref sourceBase,
                     sourceStride,
                     sourceOrigin,
+                    sourceWidth,
                     sourceHeight,
                     integerX,
                     integerY,

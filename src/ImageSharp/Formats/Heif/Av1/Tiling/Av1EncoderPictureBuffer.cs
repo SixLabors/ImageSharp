@@ -38,6 +38,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     /// <param name="frameHeader">The frame header defining dimensions and tiles.</param>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
+    /// <param name="maximumHashBlockSize">The largest square block eligible for hash search.</param>
     /// <param name="disallow4x4AllFrames">Whether each allocated mode-information value represents an 8x8 region.</param>
     public Av1EncoderPictureBuffer(
         Configuration configuration,
@@ -45,6 +46,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         ObuFrameHeader frameHeader,
         int width,
         int height,
+        int maximumHashBlockSize,
         bool disallow4x4AllFrames)
         : this(
             configuration,
@@ -52,6 +54,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             frameHeader,
             width,
             height,
+            maximumHashBlockSize,
             disallow4x4AllFrames,
             frameHeader.AllowScreenContentTools,
             frameHeader.AllowIntraBlockCopy || !frameHeader.IsIntra,
@@ -68,6 +71,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     /// <param name="frameHeader">The initial frame header defining dimensions and tiles.</param>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
+    /// <param name="maximumHashBlockSize">The largest square block eligible for hash search.</param>
     /// <param name="disallow4x4AllFrames">Whether each allocated mode-information value represents an 8x8 region.</param>
     /// <param name="allocateScreenContentState">Whether palette neighbor state can be required by any frame.</param>
     /// <param name="allocateMotionVectorState">Whether inter or intra-block-copy vectors can be required by any frame.</param>
@@ -78,6 +82,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         ObuFrameHeader frameHeader,
         int width,
         int height,
+        int maximumHashBlockSize,
         bool disallow4x4AllFrames,
         bool allocateScreenContentState,
         bool allocateMotionVectorState,
@@ -168,7 +173,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 : referenceContextStorageEnd;
 
             int intraBlockCopySearchStorageLength = allocateIntraBlockCopySearch
-                ? Av1IntraBlockCopySearchIndex.GetStorageLength(width, height)
+                ? Av1IntraBlockCopySearchIndex.GetStorageLength(width, height, maximumHashBlockSize)
                 : 0;
 
             int intraBlockCopySearchStorageEnd = checked(
@@ -272,7 +277,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 intraBlockCopySearch = new Av1IntraBlockCopySearchIndex(
                     stateStorage.Slice(intraBlockCopySearchStorageOffset, intraBlockCopySearchStorageLength),
                     width,
-                    height);
+                    height,
+                    maximumHashBlockSize);
             }
 
             ByteMemoryManager<int> tileStateMemory = new(

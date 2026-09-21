@@ -1,6 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -11,6 +15,70 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// </content>
 internal sealed partial class Av1SymbolEncoder
 {
+    /// <summary>
+    /// Carries a transform class as a type so that the class-specific context arithmetic folds at compile time.
+    /// </summary>
+    private interface ITransformClass
+    {
+        /// <summary>
+        /// Gets the transform class.
+        /// </summary>
+        public static abstract Av1TransformClass Class { get; }
+    }
+
+    /// <summary>
+    /// Estimates luma coefficient rates from quantized magnitudes and the transform's entropy context.
+    /// </summary>
+    /// <param name="coefficients">The quantized coefficients in raster order.</param>
+    /// <param name="endOfBlock">The one-based last nonzero scan position.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The transform basis and scan order.</param>
+    /// <param name="context">The neighboring coefficient context.</param>
+    /// <param name="useReducedTransformSet">Whether the frame restricts transform types.</param>
+    /// <param name="filterMode">The selected filter-intra mode.</param>
+    /// <param name="intraMode">The selected spatial prediction mode.</param>
+    /// <param name="isInter">Whether inter transform syntax applies.</param>
+    /// <returns>The estimated rate in 1/512-bit units.</returns>
+    public int EstimateLumaCoefficientRate(
+        ReadOnlySpan<int> coefficients,
+        ushort endOfBlock,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1TransformBlockContext context,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterMode,
+        Av1PredictionMode intraMode,
+        bool isInter)
+    {
+        Av1TransformSize sizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+        Av1CoefficientCosts allCosts = this.CoefficientCosts;
+        ReadOnlySpan<int> costs = allCosts.GetPlane((int)sizeContext, (int)Av1ComponentType.Luminance);
+        int rate = Av1CoefficientCosts.GetSkip(costs, context.SkipContext, endOfBlock == 0 ? 1 : 0);
+        if (endOfBlock == 0)
+        {
+            return rate;
+        }
+
+        rate += this.GetTransformTypeCost(
+            transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterMode, intraMode, isInter);
+        rate += GetOptimizationEndOfBlockRate(
+            allCosts, endOfBlock, transformSize, Av1ComponentType.Luminance, transformType.ToClass(), costs);
+
+        // Model each magnitude with its observed Laplacian entropy. The last coefficient is known
+        // nonzero, while preceding scan positions include zeros; its cost therefore uses a separate term.
+        ReadOnlySpan<int> magnitudeCosts = [-1143, 53, 545, 825, 1031, 1209, 1393, 1577, 1763, 1947, 2132, 2317, 2501, 2686, 2871];
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        rate += (Math.Abs(coefficients[scan[endOfBlock - 1]]) - 1) << 11;
+        for (int index = endOfBlock - 2; index >= 0; index--)
+        {
+            rate += magnitudeCosts[Math.Min(Math.Abs(coefficients[scan[index]]), magnitudeCosts.Length - 1)];
+        }
+
+        const int coefficientConstant = 512;
+        const int log2E = ((14427 * 512) + 5000) / 10000;
+        return rate + ((coefficientConstant + log2E) * (endOfBlock - 1));
+    }
+
     /// <summary>
     /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease.
     /// </summary>
@@ -28,6 +96,10 @@ internal sealed partial class Av1SymbolEncoder
     /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
     /// <param name="useChromaWeights">Whether to use the chroma-specific optimization weights.</param>
     /// <param name="endOfBlock">The nonzero input end position.</param>
+    /// <param name="coefficientRate">
+    /// The rate of the refined coefficients and end position, excluding the skip flag and the transform type.
+    /// It is the rate that <c>av1_optimize_txb</c> accumulates, so the caller needs no second cost pass.
+    /// </param>
     /// <returns>The refined end position.</returns>
     public ushort OptimizeCoefficients(
         ReadOnlySpan<int> original,
@@ -43,20 +115,54 @@ internal sealed partial class Av1SymbolEncoder
         Av1BitDepth bitDepth,
         bool isInter,
         bool useChromaWeights,
-        ushort endOfBlock)
+        ushort endOfBlock,
+        out int coefficientRate)
+    {
+        long workStart = Av1WorkCounters.Start();
+        ushort workResult = this.OptimizeCoefficientsCore(original, quantized, dequantized, transformSize, transformType, componentType, context, dcDequantizer, acDequantizer, rateMultiplier, bitDepth, isInter, useChromaWeights, endOfBlock, out coefficientRate);
+        Av1WorkCounters.Stop(Av1WorkCounters.OptimizeB, workStart);
+        return workResult;
+    }
+
+    public ushort OptimizeCoefficientsCore(
+        ReadOnlySpan<int> original,
+        Span<int> quantized,
+        Span<int> dequantized,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext context,
+        int dcDequantizer,
+        int acDequantizer,
+        int rateMultiplier,
+        Av1BitDepth bitDepth,
+        bool isInter,
+        bool useChromaWeights,
+        ushort endOfBlock,
+        out int coefficientRate)
     {
         Av1TransformSize adjusted = transformSize.GetAdjusted();
         int width = adjusted.GetWidth();
         int height = adjusted.GetHeight();
-        Av1LevelBuffer levels = this.PrepareCoefficientScratch(width, height, endOfBlock > 1, out _);
+        Av1LevelBuffer levels = this.PrepareCoefficientScratch(width, height, out _);
         if (endOfBlock > 1)
         {
             levels.Initialize(quantized);
         }
 
+        // Resolve the level plane once. Each context below reads fixed offsets from one padded index,
+        // and each accepted reduction writes its new level back through the same index.
+        Span<byte> levelPlane = levels.GetActiveLevels();
+        int widthLog2 = levels.WidthLog2;
+        int levelStride = levels.Stride;
+        int coefficientCount = width * height;
+
         Av1TransformClass transformClass = transformType.ToClass();
         Av1TransformSize sizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
-        ReadOnlySpan<int> costs = this.CoefficientCosts.GetPlane((int)sizeContext, (int)componentType);
+
+        // The cost workspace resolves its memory once for the block; the loops below read it many times.
+        Av1CoefficientCosts allCosts = this.CoefficientCosts;
+        ReadOnlySpan<int> costs = allCosts.GetPlane((int)sizeContext, (int)componentType);
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         int shift = transformSize.GetScale();
         int planeWeight = componentType == Av1ComponentType.Luminance ? isInter ? 16 : 17 : useChromaWeights ? isInter ? 10 : 13 : 20;
@@ -65,7 +171,7 @@ internal sealed partial class Av1SymbolEncoder
         // domain once; each comparison retains the signed error change relative to a zero coefficient.
         long multiplier = ((long)rateMultiplier * 8 * planeWeight) << (2 * (bitDepth.GetBitCount() - 8));
         multiplier = (multiplier + 16) >> 5;
-        int accumulatedRate = this.GetOptimizationEndOfBlockRate(endOfBlock, transformSize, componentType, transformClass, costs);
+        int accumulatedRate = GetOptimizationEndOfBlockRate(allCosts, endOfBlock, transformSize, componentType, transformClass, costs);
         long accumulatedDistortion = 0;
         int scanIndex = endOfBlock - 1;
         int coefficientIndex = scan[scanIndex];
@@ -82,7 +188,9 @@ internal sealed partial class Av1SymbolEncoder
                 original,
                 quantized,
                 dequantized,
-                levels,
+                levelPlane,
+                widthLog2,
+                coefficientCount,
                 scan,
                 scanIndex,
                 endOfBlock,
@@ -99,7 +207,7 @@ internal sealed partial class Av1SymbolEncoder
         }
         else
         {
-            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, scanIndex);
+            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(scanIndex, coefficientCount);
             accumulatedRate += GetOptimizationCoefficientRate(
                 true,
                 coefficientIndex,
@@ -108,7 +216,8 @@ internal sealed partial class Av1SymbolEncoder
                 coefficientContext,
                 context.DcSignContext,
                 costs,
-                levels,
+                levelPlane,
+                widthLog2,
                 transformClass);
 
             long reconstructed = dequantized[coefficientIndex];
@@ -116,15 +225,21 @@ internal sealed partial class Av1SymbolEncoder
         }
 
         scanIndex--;
+        ref byte offsets = ref MemoryMarshal.GetReference(Av1NzMap.GetContextOffsets(transformSize));
+        ref short scanBase = ref MemoryMarshal.GetReference(scan);
+        ref byte levelPlaneBase = ref MemoryMarshal.GetReference(levelPlane);
+        ref int costBase = ref MemoryMarshal.GetReference(costs);
         for (; scanIndex >= 0 && nonzeroCount <= 2; scanIndex--)
         {
-            coefficientIndex = scan[scanIndex];
-            Point position = levels.GetPosition(coefficientIndex);
-            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(levels, position, transformSize, transformClass);
+            coefficientIndex = Unsafe.Add(ref scanBase, scanIndex);
+            ref byte level = ref Unsafe.Add(ref levelPlaneBase, Av1LevelBuffer.GetPaddedIndex(coefficientIndex, widthLog2));
+            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(
+                ref level, levelStride, coefficientIndex, widthLog2, ref offsets, transformClass);
+
             int coefficient = quantized[coefficientIndex];
             if (coefficient == 0)
             {
-                accumulatedRate += Av1CoefficientCosts.GetBase(costs, coefficientContext, 0);
+                accumulatedRate += Unsafe.Add(ref costBase, Av1CoefficientCosts.BaseOffset + (coefficientContext * 8));
                 continue;
             }
 
@@ -145,7 +260,8 @@ internal sealed partial class Av1SymbolEncoder
                 coefficientContext,
                 context.DcSignContext,
                 costs,
-                levels,
+                levelPlane,
+                widthLog2,
                 transformClass);
 
             int lowerRate = lowerMagnitude == 0
@@ -158,7 +274,8 @@ internal sealed partial class Av1SymbolEncoder
                     coefficientContext,
                     context.DcSignContext,
                     costs,
-                    levels,
+                    levelPlane,
+                    widthLog2,
                     transformClass);
 
             long cost = Av1RateDistortion.GetCost(multiplier, accumulatedRate + rate, accumulatedDistortion + distortion);
@@ -172,8 +289,8 @@ internal sealed partial class Av1SymbolEncoder
             }
 
             ushort newEnd = (ushort)(scanIndex + 1);
-            int endContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, scanIndex);
-            int endRate = this.GetOptimizationEndOfBlockRate(newEnd, transformSize, componentType, transformClass, costs);
+            int endContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(scanIndex, coefficientCount);
+            int endRate = GetOptimizationEndOfBlockRate(allCosts, newEnd, transformSize, componentType, transformClass, costs);
             int newRate = endRate + GetOptimizationCoefficientRate(
                 true,
                 coefficientIndex,
@@ -182,7 +299,8 @@ internal sealed partial class Av1SymbolEncoder
                 endContext,
                 context.DcSignContext,
                 costs,
-                levels,
+                levelPlane,
+                widthLog2,
                 transformClass);
 
             long newDistortion = (reconstruction * (reconstruction - twiceOriginal)) << (2 * shift);
@@ -198,7 +316,8 @@ internal sealed partial class Av1SymbolEncoder
                     endContext,
                     context.DcSignContext,
                     costs,
-                    levels,
+                    levelPlane,
+                    widthLog2,
                     transformClass);
 
                 long newLowerCost = Av1RateDistortion.GetCost(multiplier, newLowerRate, lowerDistortion);
@@ -218,10 +337,9 @@ internal sealed partial class Av1SymbolEncoder
                 for (int i = 0; i < nonzeroCount; i++)
                 {
                     int removed = nonzeroIndices[i];
-                    Point removedPosition = levels.GetPosition(removed);
                     quantized[removed] = 0;
                     dequantized[removed] = 0;
-                    levels.GetRow(removedPosition.Y)[removedPosition.X] = 0;
+                    levelPlane[Av1LevelBuffer.GetPaddedIndex(removed, widthLog2)] = 0;
                 }
 
                 endOfBlock = newEnd;
@@ -240,7 +358,7 @@ internal sealed partial class Av1SymbolEncoder
             {
                 quantized[coefficientIndex] = sign * lowerMagnitude;
                 dequantized[coefficientIndex] = lowerReconstruction;
-                levels.GetRow(position.Y)[position.X] = (byte)Math.Min(lowerMagnitude, sbyte.MaxValue);
+                level = (byte)Math.Min(lowerMagnitude, sbyte.MaxValue);
             }
 
             if (quantized[coefficientIndex] != 0)
@@ -266,34 +384,129 @@ internal sealed partial class Av1SymbolEncoder
             }
         }
 
-        // Once three nonzero coefficients remain, only individual level reductions are considered.
-        // A coefficient reconstructed below its original magnitude cannot benefit from a further reduction.
-        for (; scanIndex >= 1; scanIndex--)
+        // Once three nonzero coefficients remain, only individual level reductions are considered. The class
+        // is a type parameter so that each specialization folds its neighbor and position selection.
+        switch (transformClass)
         {
-            coefficientIndex = scan[scanIndex];
-            int coefficient = quantized[coefficientIndex];
-            Point position = levels.GetPosition(coefficientIndex);
-            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(levels, position, transformSize, transformClass);
+            case Av1TransformClass.Class2D:
+                ReduceSimpleCoefficients<TwoDimensionalClass>(
+                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, ref accumulatedRate);
+                break;
+            case Av1TransformClass.ClassHorizontal:
+                ReduceSimpleCoefficients<HorizontalClass>(
+                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, ref accumulatedRate);
+                break;
+            default:
+                ReduceSimpleCoefficients<VerticalClass>(
+                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, ref accumulatedRate);
+                break;
+        }
+
+        if (scanIndex == 0)
+        {
+            ReduceGeneralCoefficient(
+                original,
+                quantized,
+                dequantized,
+                levelPlane,
+                widthLog2,
+                coefficientCount,
+                scan,
+                scanIndex,
+                endOfBlock,
+                transformSize,
+                transformClass,
+                costs,
+                context.DcSignContext,
+                dcDequantizer,
+                acDequantizer,
+                multiplier,
+                shift,
+                ref accumulatedRate,
+                ref accumulatedDistortion);
+        }
+
+        coefficientRate = endOfBlock == 0 ? 0 : accumulatedRate;
+        return endOfBlock;
+    }
+
+    /// <summary>
+    /// Reduces individual coefficient levels from the current scan position down to the second coefficient.
+    /// </summary>
+    /// <remarks>
+    /// This is <c>update_coeff_simple</c>. A coefficient reconstructed below its original magnitude cannot
+    /// benefit from a further reduction. The loop lives in its own method so that its locals stay in registers.
+    /// </remarks>
+    private static void ReduceSimpleCoefficients<TClass>(
+        ReadOnlySpan<int> original,
+        Span<int> quantized,
+        Span<int> dequantized,
+        Span<byte> levelPlane,
+        int widthLog2,
+        int levelStride,
+        ReadOnlySpan<short> scan,
+        ref int scanIndex,
+        Av1TransformSize transformSize,
+        ReadOnlySpan<int> costs,
+        int acDequantizer,
+        long multiplier,
+        int shift,
+        ref int accumulatedRate)
+        where TClass : struct, ITransformClass
+    {
+        Av1TransformClass transformClass = TClass.Class;
+        ref byte offsets = ref MemoryMarshal.GetReference(Av1NzMap.GetContextOffsets(transformSize));
+
+        // A coefficient reconstructed below its original magnitude cannot benefit from a further reduction.
+        // The scan, coefficient, and level spans are sized for this block; reference arithmetic keeps the
+        // per-coefficient loop free of range checks, as update_coeff_simple is. The loop state lives in
+        // locals so that it stays in registers; the by-reference arguments update once at the end.
+        ref short scanBase = ref MemoryMarshal.GetReference(scan);
+        ref int originalBase = ref MemoryMarshal.GetReference(original);
+        ref int quantizedBase = ref MemoryMarshal.GetReference(quantized);
+        ref int dequantizedBase = ref MemoryMarshal.GetReference(dequantized);
+        ref byte levelPlaneBase = ref MemoryMarshal.GetReference(levelPlane);
+        ref int costBase = ref MemoryMarshal.GetReference(costs);
+        int index = scanIndex;
+        int rateSum = accumulatedRate;
+        int distortionShift = 2 * shift;
+        for (; index >= 1; index--)
+        {
+            int coefficientIndex = Unsafe.Add(ref scanBase, index);
+            int coefficient = Unsafe.Add(ref quantizedBase, coefficientIndex);
+            ref byte level = ref Unsafe.Add(ref levelPlaneBase, Av1LevelBuffer.GetPaddedIndex(coefficientIndex, widthLog2));
+            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(
+                ref level, levelStride, coefficientIndex, widthLog2, ref offsets, transformClass);
+            ref int baseCosts = ref Unsafe.Add(ref costBase, Av1CoefficientCosts.BaseOffset + (coefficientContext * 8));
+
             if (coefficient == 0)
             {
-                accumulatedRate += Av1CoefficientCosts.GetBase(costs, coefficientContext, 0);
+                rateSum += baseCosts;
                 continue;
             }
 
-            magnitude = Math.Abs(coefficient);
-            long originalMagnitude = Math.Abs(original[coefficientIndex]);
-            long reconstructionMagnitude = Math.Abs(dequantized[coefficientIndex]);
-            int rate = Av1CoefficientCosts.GetBase(costs, coefficientContext, Math.Min(magnitude, 3)) +
-                Av1ProbabilityCost.GetLiteralCost(1);
-            int rateDifference = magnitude <= 3 ? Av1CoefficientCosts.GetBase(costs, coefficientContext, magnitude + 4) : 0;
+            // Signs are unpredictable, so the magnitudes form without branches, as the compiled abs() of the reference does.
+            int signMask = coefficient >> 31;
+            int magnitude = (coefficient ^ signMask) - signMask;
+            int originalValue = Unsafe.Add(ref originalBase, coefficientIndex);
+            int originalSign = originalValue >> 31;
+            long originalMagnitude = (originalValue ^ originalSign) - originalSign;
+            int reconstructionValue = Unsafe.Add(ref dequantizedBase, coefficientIndex);
+            int reconstructionSign = reconstructionValue >> 31;
+            long reconstructionMagnitude = (reconstructionValue ^ reconstructionSign) - reconstructionSign;
+            int rate = Unsafe.Add(ref baseCosts, Math.Min(magnitude, 3)) + Av1ProbabilityCost.GetLiteralCost(1);
+            int rateDifference = magnitude <= 3 ? Unsafe.Add(ref baseCosts, magnitude + 4) : 0;
             if (magnitude > Av1Constants.BaseLevelsCount)
             {
-                int rangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
+                int rangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+                    ref level, levelStride, coefficientIndex, widthLog2, transformClass);
+
                 int range = Math.Min(magnitude - 3, 12);
-                rate += Av1CoefficientCosts.GetRange(costs, rangeContext, range);
+                ref int rangeCosts = ref Unsafe.Add(ref costBase, Av1CoefficientCosts.RangeOffset + (rangeContext * 26) + range);
+                rate += rangeCosts;
                 if (magnitude <= 15)
                 {
-                    rateDifference += Av1CoefficientCosts.GetRange(costs, rangeContext, range + 13);
+                    rateDifference += Unsafe.Add(ref rangeCosts, 13);
                 }
 
                 // The second half of each cost row stores adjacent-level differences. Beyond the
@@ -311,59 +524,39 @@ internal sealed partial class Av1SymbolEncoder
 
             if (reconstructionMagnitude < originalMagnitude)
             {
-                accumulatedRate += rate;
+                rateSum += rate;
                 continue;
             }
 
             int lowerMagnitude = magnitude - 1;
             int lowerRate = rate - rateDifference;
             long lowerReconstruction = ((long)lowerMagnitude * acDequantizer) >> shift;
-            long distortion = (reconstructionMagnitude * (reconstructionMagnitude - (2 * originalMagnitude))) << (2 * shift);
-            long lowerDistortion = (lowerReconstruction * (lowerReconstruction - (2 * originalMagnitude))) << (2 * shift);
+            long distortion = (reconstructionMagnitude * (reconstructionMagnitude - (2 * originalMagnitude))) << distortionShift;
+            long lowerDistortion = (lowerReconstruction * (lowerReconstruction - (2 * originalMagnitude))) << distortionShift;
             if (Av1RateDistortion.GetCost(multiplier, lowerRate, lowerDistortion) < Av1RateDistortion.GetCost(multiplier, rate, distortion))
             {
-                int sign = coefficient < 0 ? -1 : 1;
-                quantized[coefficientIndex] = sign * lowerMagnitude;
-                dequantized[coefficientIndex] = (int)(sign * lowerReconstruction);
-                levels.GetRow(position.Y)[position.X] = (byte)Math.Min(lowerMagnitude, sbyte.MaxValue);
-                accumulatedRate += lowerRate;
+                Unsafe.Add(ref quantizedBase, coefficientIndex) = (lowerMagnitude ^ signMask) - signMask;
+                Unsafe.Add(ref dequantizedBase, coefficientIndex) = ((int)lowerReconstruction ^ signMask) - signMask;
+                level = (byte)Math.Min(lowerMagnitude, sbyte.MaxValue);
+                rateSum += lowerRate;
             }
             else
             {
-                accumulatedRate += rate;
+                rateSum += rate;
             }
         }
 
-        if (scanIndex == 0)
-        {
-            ReduceGeneralCoefficient(
-                original,
-                quantized,
-                dequantized,
-                levels,
-                scan,
-                scanIndex,
-                endOfBlock,
-                transformSize,
-                transformClass,
-                costs,
-                context.DcSignContext,
-                dcDequantizer,
-                acDequantizer,
-                multiplier,
-                shift,
-                ref accumulatedRate,
-                ref accumulatedDistortion);
-        }
-
-        return endOfBlock;
+        scanIndex = index;
+        accumulatedRate = rateSum;
     }
 
     private static void ReduceGeneralCoefficient(
         ReadOnlySpan<int> original,
         Span<int> quantized,
         Span<int> dequantized,
-        Av1LevelBuffer levels,
+        Span<byte> levelPlane,
+        int widthLog2,
+        int coefficientCount,
         ReadOnlySpan<short> scan,
         int scanIndex,
         ushort endOfBlock,
@@ -380,11 +573,17 @@ internal sealed partial class Av1SymbolEncoder
     {
         int coefficientIndex = scan[scanIndex];
         int coefficient = quantized[coefficientIndex];
-        Point position = levels.GetPosition(coefficientIndex);
+        ref byte level = ref levelPlane[Av1LevelBuffer.GetPaddedIndex(coefficientIndex, widthLog2)];
         bool last = scanIndex == endOfBlock - 1;
         int coefficientContext = last
-            ? Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, scanIndex)
-            : Av1SymbolContextHelper.GetLowerLevelsContext(levels, position, transformSize, transformClass);
+            ? Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(scanIndex, coefficientCount)
+            : Av1SymbolContextHelper.GetLowerLevelsContext(
+                ref level,
+                (1 << widthLog2) + Av1Constants.TransformPadHorizontal,
+                coefficientIndex,
+                widthLog2,
+                transformSize,
+                transformClass);
 
         if (coefficient == 0)
         {
@@ -405,7 +604,8 @@ internal sealed partial class Av1SymbolEncoder
             coefficientContext,
             dcSignContext,
             costs,
-            levels,
+            levelPlane,
+            widthLog2,
             transformClass);
 
         int lowerRate = lowerMagnitude == 0
@@ -418,7 +618,8 @@ internal sealed partial class Av1SymbolEncoder
                 coefficientContext,
                 dcSignContext,
                 costs,
-                levels,
+                levelPlane,
+                widthLog2,
                 transformClass);
 
         long reconstruction = dequantized[coefficientIndex];
@@ -429,7 +630,7 @@ internal sealed partial class Av1SymbolEncoder
         {
             quantized[coefficientIndex] = sign * lowerMagnitude;
             dequantized[coefficientIndex] = lowerReconstruction;
-            levels.GetRow(position.Y)[position.X] = (byte)Math.Min(lowerMagnitude, sbyte.MaxValue);
+            level = (byte)Math.Min(lowerMagnitude, sbyte.MaxValue);
             accumulatedRate += lowerRate;
             accumulatedDistortion += lowerDistortion;
         }
@@ -440,7 +641,9 @@ internal sealed partial class Av1SymbolEncoder
         }
     }
 
-    private int GetOptimizationEndOfBlockRate(
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetOptimizationEndOfBlockRate(
+        Av1CoefficientCosts allCosts,
         ushort endOfBlock,
         Av1TransformSize transformSize,
         Av1ComponentType componentType,
@@ -448,7 +651,7 @@ internal sealed partial class Av1SymbolEncoder
         ReadOnlySpan<int> costs)
     {
         int token = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int extra);
-        int rate = this.CoefficientCosts.GetEndOfBlock(
+        int rate = allCosts.GetEndOfBlock(
             transformSize.GetLog2Minus4(),
             (int)componentType,
             transformClass == Av1TransformClass.Class2D ? 0 : 1,
@@ -464,6 +667,7 @@ internal sealed partial class Av1SymbolEncoder
         return rate;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetOptimizationCoefficientRate(
         bool last,
         int coefficientIndex,
@@ -472,7 +676,8 @@ internal sealed partial class Av1SymbolEncoder
         int coefficientContext,
         int dcSignContext,
         ReadOnlySpan<int> costs,
-        Av1LevelBuffer levels,
+        Span<byte> levelPlane,
+        int widthLog2,
         Av1TransformClass transformClass)
     {
         int rate = last
@@ -487,15 +692,37 @@ internal sealed partial class Av1SymbolEncoder
 
             if (magnitude > Av1Constants.BaseLevelsCount)
             {
-                Point position = levels.GetPosition(coefficientIndex);
                 int rangeContext = last
-                    ? Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(position, transformClass)
-                    : Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
+                    ? Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(coefficientIndex, widthLog2, transformClass)
+                    : Av1SymbolContextHelper.GetBaseRangeContext(
+                        ref levelPlane[Av1LevelBuffer.GetPaddedIndex(coefficientIndex, widthLog2)],
+                        (1 << widthLog2) + Av1Constants.TransformPadHorizontal,
+                        coefficientIndex,
+                        widthLog2,
+                        transformClass);
 
                 rate += GetBaseRangeCost(magnitude, costs, rangeContext);
             }
         }
 
         return rate;
+    }
+
+    private readonly struct TwoDimensionalClass : ITransformClass
+    {
+        /// <inheritdoc/>
+        public static Av1TransformClass Class => Av1TransformClass.Class2D;
+    }
+
+    private readonly struct HorizontalClass : ITransformClass
+    {
+        /// <inheritdoc/>
+        public static Av1TransformClass Class => Av1TransformClass.ClassHorizontal;
+    }
+
+    private readonly struct VerticalClass : ITransformClass
+    {
+        /// <inheritdoc/>
+        public static Av1TransformClass Class => Av1TransformClass.ClassVertical;
     }
 }

@@ -509,7 +509,7 @@ internal sealed class Av1PredictionDecoder
         Av1PartitionType partition = modeInfo.PartitionType;
 
         // Chroma prediction geometry cannot be smaller than 4 by 4 after subsampling.
-        blockSize = ScaleChromaBlockSize(blockSize, subX == 1, subY == 1);
+        blockSize = Av1IntraReferenceAvailability.ScaleChromaBlockSize(blockSize, subX == 1, subY == 1);
 
         bool haveTopRight = Av1IntraReferenceAvailability.HasTopRight(
             this.sequenceHeader.SuperblockSize,
@@ -559,100 +559,6 @@ internal sealed class Av1PredictionDecoder
             haveBottomLeft ? Math.Min(transformHeight, yd) : 0,
             plane,
             bitDepth.GetBitCount());
-    }
-
-    /// <summary>
-    /// Adjusts sub-8-by-8 luma block geometry to the minimum chroma prediction block size.
-    /// </summary>
-    /// <param name="blockSize">The luma block size.</param>
-    /// <param name="subX">A value indicating whether chroma is horizontally subsampled.</param>
-    /// <param name="subY">A value indicating whether chroma is vertically subsampled.</param>
-    /// <returns>The block size used to evaluate chroma reference availability.</returns>
-    private static Av1BlockSize ScaleChromaBlockSize(Av1BlockSize blockSize, bool subX, bool subY)
-    {
-        Av1BlockSize bs = blockSize;
-        switch (blockSize)
-        {
-            case Av1BlockSize.Block4x4:
-                if (subX && subY)
-                {
-                    bs = Av1BlockSize.Block8x8;
-                }
-                else if (subX)
-                {
-                    bs = Av1BlockSize.Block8x4;
-                }
-                else if (subY)
-                {
-                    bs = Av1BlockSize.Block4x8;
-                }
-
-                break;
-            case Av1BlockSize.Block4x8:
-                if (subX && subY)
-                {
-                    bs = Av1BlockSize.Block8x8;
-                }
-                else if (subX)
-                {
-                    bs = Av1BlockSize.Block8x8;
-                }
-                else if (subY)
-                {
-                    bs = Av1BlockSize.Block4x8;
-                }
-
-                break;
-            case Av1BlockSize.Block8x4:
-                if (subX && subY)
-                {
-                    bs = Av1BlockSize.Block8x8;
-                }
-                else if (subX)
-                {
-                    bs = Av1BlockSize.Block8x4;
-                }
-                else if (subY)
-                {
-                    bs = Av1BlockSize.Block8x8;
-                }
-
-                break;
-            case Av1BlockSize.Block4x16:
-                if (subX && subY)
-                {
-                    bs = Av1BlockSize.Block8x16;
-                }
-                else if (subX)
-                {
-                    bs = Av1BlockSize.Block8x16;
-                }
-                else if (subY)
-                {
-                    bs = Av1BlockSize.Block4x16;
-                }
-
-                break;
-            case Av1BlockSize.Block16x4:
-                if (subX && subY)
-                {
-                    bs = Av1BlockSize.Block16x8;
-                }
-                else if (subX)
-                {
-                    bs = Av1BlockSize.Block16x4;
-                }
-                else if (subY)
-                {
-                    bs = Av1BlockSize.Block16x8;
-                }
-
-                break;
-            default:
-                break;
-        }
-
-        return bs;
     }
 
     /// <summary>

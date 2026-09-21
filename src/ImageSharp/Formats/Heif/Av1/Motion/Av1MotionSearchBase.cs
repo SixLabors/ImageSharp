@@ -68,6 +68,8 @@ internal static partial class Av1MotionSearchBase
         where TOperator : struct, IMotionSearchOperator<TSample>
     {
         private readonly ReadOnlySpan<TSample> source;
+        private readonly ReadOnlySpan<TSample> secondPrediction;
+        private readonly ReadOnlySpan<byte> mask;
         private readonly ReadOnlySpan<TSample> reference;
         private readonly int sourceStride;
         private readonly int referenceStride;
@@ -96,6 +98,8 @@ internal static partial class Av1MotionSearchBase
         /// <param name="bitDepth">The coded component precision.</param>
         /// <param name="sadPerBit">The quantizer-derived rate scale for absolute differences.</param>
         /// <param name="rateMultiplier">The block rate multiplier for variance costs.</param>
+        /// <param name="secondPrediction">The fixed packed predictor, or empty for a single-reference search.</param>
+        /// <param name="mask">The packed six-bit blend mask, or empty for a single-reference search.</param>
         public FullPixelSearch(
             ReadOnlySpan<TSample> source,
             int sourceStride,
@@ -108,9 +112,13 @@ internal static partial class Av1MotionSearchBase
             Av1MotionVectorCosts costs,
             Av1BitDepth bitDepth,
             int sadPerBit,
-            int rateMultiplier)
+            int rateMultiplier,
+            ReadOnlySpan<TSample> secondPrediction,
+            ReadOnlySpan<byte> mask)
         {
             this.source = source;
+            this.secondPrediction = secondPrediction;
+            this.mask = mask;
             this.sourceStride = sourceStride;
             this.reference = reference;
             this.referenceStride = referenceStride;
@@ -140,6 +148,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="settings">The resolved frame motion policy.</param>
         /// <param name="keyFrame">Whether key-frame policy prevents adaptive alternate-row SAD.</param>
         /// <param name="fineMeshInterval">Whether content classification caps the initial mesh interval at four.</param>
+        /// <param name="intraBlockCopy">Whether the search uses same-frame displacement and its mesh policy.</param>
         /// <param name="costList">Five costs: center, left, down, right, and up; empty when neighborhood publication is disabled.</param>
         /// <param name="secondBest">The preceding integer winner, when the selected traversal supplies one.</param>
         /// <returns>The integer winner with its retained variance, squared error, and motion cost.</returns>
@@ -151,12 +160,13 @@ internal static partial class Av1MotionSearchBase
             Av1MotionSearchSettings settings,
             bool keyFrame,
             bool fineMeshInterval,
+            bool intraBlockCopy,
             Span<int> costList,
             out Point? secondBest)
         {
             Point clampedStart = this.Clamp(start);
             int rowStep = 1;
-            if (this.blockSize.Height >= 16)
+            if (this.secondPrediction.IsEmpty && this.blockSize.Height >= 16)
             {
                 if (settings.DownsampledSadLevel == 2)
                 {
@@ -202,11 +212,12 @@ internal static partial class Av1MotionSearchBase
                 }
 
                 int areaLog2 = BitOperations.Log2((uint)(this.blockSize.Width * this.blockSize.Height));
-                bool runMesh = method is FullPixelSearchMethod.NStep or FullPixelSearchMethod.EightPointNStep
-                    && best.Cost > (settings.MeshErrorThreshold >> (14 - areaLog2));
+                bool runMesh = this.secondPrediction.IsEmpty &&
+                    method is FullPixelSearchMethod.NStep or FullPixelSearchMethod.EightPointNStep &&
+                    best.Cost > (settings.MeshErrorThreshold >> (14 - areaLog2));
 
                 // Distance is measured from the caller's original start, before range clamping.
-                if (settings.MeshPruningLevel == 2 &&
+                if (!intraBlockCopy && settings.MeshPruningLevel == 2 &&
                     Math.Max(Math.Abs(start.X - best.Vector.X), Math.Abs(start.Y - best.Vector.Y)) <= 4)
                 {
                     runMesh = false;
@@ -227,7 +238,7 @@ internal static partial class Av1MotionSearchBase
                 if (runMesh)
                 {
                     FullPixelResult mesh = this.SearchMesh(
-                        best.Vector, settings.GetMeshPattern(intraBlockCopy: false), fineMeshInterval, rowStep, ref secondBest);
+                        best.Vector, settings.GetMeshPattern(intraBlockCopy), fineMeshInterval, rowStep, ref secondBest);
 
                     // The mesh publishes its neighborhood and preceding winner before its final variance comparison.
                     // Keep that publication order so later fractional selection sees the same retained search state.
@@ -244,6 +255,59 @@ internal static partial class Av1MotionSearchBase
 
                 return best;
             }
+        }
+
+        /// <summary>
+        /// Refines a compound displacement through three adjacent eight-point searches.
+        /// </summary>
+        /// <param name="start">The initial integer-pixel displacement.</param>
+        /// <param name="sadCost">The selected absolute-difference and motion-rate cost.</param>
+        /// <returns>The selected integer displacement.</returns>
+        public Point RefineCompound(Point start, out int sadCost)
+        {
+            const int searchRange = 3;
+            const int gridStride = (2 * searchRange) + 1;
+            Span<byte> visited = stackalloc byte[gridStride * gridStride];
+            visited.Clear();
+            ReadOnlySpan<sbyte> columns = [0, -1, 1, 0, -1, -1, 1, 1];
+            ReadOnlySpan<sbyte> rows = [-1, 0, 0, 1, -1, 1, -1, 1];
+            Point best = this.Clamp(start);
+            sadCost = this.GetSadCost(best, 1);
+            int center = (searchRange * gridStride) + searchRange;
+            visited[center] = 1;
+
+            // The visited grid is relative to the clamped start. Three one-pixel moves fit in
+            // seven rows and columns; marking even rejected sites prevents duplicate evaluations.
+            for (int iteration = 0; iteration < searchRange; iteration++)
+            {
+                int bestSite = -1;
+                for (int site = 0; site < columns.Length; site++)
+                {
+                    int gridIndex = center + (rows[site] * gridStride) + columns[site];
+                    if (visited[gridIndex] != 0)
+                    {
+                        continue;
+                    }
+
+                    visited[gridIndex] = 1;
+                    Point candidate = new(best.X + columns[site], best.Y + rows[site]);
+                    int offset = this.referenceOrigin + (candidate.Y * this.referenceStride) + candidate.X;
+                    if (this.bounds.Contains(candidate) && this.TryImproveSad(candidate, offset, 1, ref sadCost))
+                    {
+                        bestSite = site;
+                    }
+                }
+
+                if (bestSite < 0)
+                {
+                    break;
+                }
+
+                best = new Point(best.X + columns[bestSite], best.Y + rows[bestSite]);
+                center += (rows[bestSite] * gridStride) + columns[bestSite];
+            }
+
+            return best;
         }
 
         /// <summary>
@@ -628,14 +692,23 @@ internal static partial class Av1MotionSearchBase
         private int GetSad(int referenceIndex, int rowStep, int firstRow)
         {
             referenceIndex += firstRow * this.referenceStride;
-            int sad = TOperator.SumAbsoluteDifferences(
+            int sad = this.secondPrediction.IsEmpty ? TOperator.SumAbsoluteDifferences(
                 this.source[(firstRow * this.sourceStride)..],
                 this.sourceStride,
                 this.reference[referenceIndex..],
                 this.referenceStride,
                 this.blockSize.Width,
                 this.blockSize.Height - firstRow,
-                rowStep);
+                rowStep) : TOperator.SumCompoundAbsoluteDifferences(
+                    this.source[(firstRow * this.sourceStride)..],
+                    this.sourceStride,
+                    this.reference[referenceIndex..],
+                    this.referenceStride,
+                    this.secondPrediction[(firstRow * this.blockSize.Width)..],
+                    this.mask.IsEmpty ? this.mask : this.mask[(firstRow * this.blockSize.Width)..],
+                    this.blockSize.Width,
+                    this.blockSize.Height - firstRow,
+                    rowStep);
 
             return sad >> this.precisionShift;
         }
@@ -643,18 +716,41 @@ internal static partial class Av1MotionSearchBase
         /// <summary>
         /// Retains normalized moments and subpixel-reference motion rate for a completed integer winner.
         /// </summary>
-        private FullPixelResult GetVarianceResult(Point vector)
+        /// <param name="vector">The integer-pixel displacement relative to the source block.</param>
+        /// <returns>The normalized variance, squared error, and motion cost.</returns>
+        public FullPixelResult GetVarianceResult(Point vector)
         {
             int referenceIndex = this.referenceOrigin + (vector.Y * this.referenceStride) + vector.X;
-            TOperator.GetMoments(
-                this.source,
-                this.sourceStride,
-                this.reference[referenceIndex..],
-                this.referenceStride,
-                this.blockSize.Width,
-                this.blockSize.Height,
-                out int sum,
-                out long squares);
+            int sum;
+            long squares;
+            if (this.secondPrediction.IsEmpty)
+            {
+                TOperator.GetMoments(
+                    this.source,
+                    this.sourceStride,
+                    this.reference[referenceIndex..],
+                    this.referenceStride,
+                    this.blockSize.Width,
+                    this.blockSize.Height,
+                    out sum,
+                    out squares);
+            }
+            else
+            {
+                TOperator.GetCompoundMoments(
+                    this.source,
+                    this.sourceStride,
+                    this.reference[referenceIndex..],
+                    this.referenceStride,
+                    this.secondPrediction,
+                    this.mask,
+                    this.blockSize.Width,
+                    this.blockSize.Height,
+                    out sum,
+                    out squares);
+
+                sum = -sum;
+            }
 
             if (this.precisionShift != 0)
             {

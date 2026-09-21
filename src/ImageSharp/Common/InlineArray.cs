@@ -36,6 +36,15 @@ internal struct InlineArray4<T>
 }
 
 /// <summary>
+/// Represents a safe, fixed sized buffer of 5 elements.
+/// </summary>
+[InlineArray(5)]
+internal struct InlineArray5<T>
+{
+    private T t;
+}
+
+/// <summary>
 /// Represents a safe, fixed sized buffer of 6 elements.
 /// </summary>
 [InlineArray(6)]
@@ -144,6 +153,15 @@ internal struct InlineArray26<T>
 }
 
 /// <summary>
+/// Represents a safe, fixed sized buffer of 32 elements.
+/// </summary>
+[InlineArray(32)]
+internal struct InlineArray32<T>
+{
+    private T t;
+}
+
+/// <summary>
 /// Represents a safe, fixed sized buffer of 36 elements.
 /// </summary>
 [InlineArray(36)]
@@ -153,10 +171,28 @@ internal struct InlineArray36<T>
 }
 
 /// <summary>
+/// Represents a safe, fixed sized buffer of 64 elements.
+/// </summary>
+[InlineArray(64)]
+internal struct InlineArray64<T>
+{
+    private T t;
+}
+
+/// <summary>
 /// Represents a safe, fixed sized buffer of 65 elements.
 /// </summary>
 [InlineArray(65)]
 internal struct InlineArray65<T>
+{
+    private T t;
+}
+
+/// <summary>
+/// Represents a safe, fixed sized buffer of 128 elements.
+/// </summary>
+[InlineArray(128)]
+internal struct InlineArray128<T>
 {
     private T t;
 }

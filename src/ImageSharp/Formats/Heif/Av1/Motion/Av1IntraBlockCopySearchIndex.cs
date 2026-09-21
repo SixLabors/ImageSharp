@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -10,7 +11,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <summary>
-/// Indexes visible 8x8 luma blocks for intra-block-copy motion search.
+/// Indexes visible square luma blocks for intra-block-copy motion search.
 /// </summary>
 internal readonly struct Av1IntraBlockCopySearchIndex
 {
@@ -20,38 +21,25 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     private const int MaximumFullPixelSearchOffset = (1 << 10) - 1;
     private const int MinimumFullPixelMotionVector = -(1 << 11) + 1;
     private const int MaximumFullPixelMotionVector = (1 << 11) - 1;
-    private const int ExhaustiveSearchRange = 256;
-    private const int ExhaustiveSearchThreshold = 1 << 12;
-    private const int ExhaustiveSearchBatchSize = 4;
-    private const uint HorizontalHashMultiplier = 257;
-    private const uint VerticalHashMultiplier = 65599;
-    private static readonly uint HorizontalLeadingWeight = GetLeadingWeight(HorizontalHashMultiplier);
-    private static readonly uint VerticalLeadingWeight = GetLeadingWeight(VerticalHashMultiplier);
+    private readonly int maximumHashBlockSize;
     private readonly Memory<byte> storage;
-    private readonly int hashLinkLength;
-    private readonly int bucketCount;
-    private readonly int headOffset;
-    private readonly int tailOffset;
-    private readonly int countOffset;
+    private readonly int width;
+    private readonly int height;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1IntraBlockCopySearchIndex"/> struct over picture-lifetime storage.
     /// </summary>
-    /// <param name="storage">The packed hash-link and bucket storage.</param>
+    /// <param name="storage">The packed per-size hashes, links, and bucket storage.</param>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
-    public Av1IntraBlockCopySearchIndex(Memory<byte> storage, int width, int height)
+    /// <param name="maximumHashBlockSize">The largest square block represented by the index.</param>
+    public Av1IntraBlockCopySearchIndex(Memory<byte> storage, int width, int height, int maximumHashBlockSize)
     {
+        this.maximumHashBlockSize = maximumHashBlockSize;
+        this.width = width;
+        this.height = height;
         this.OriginWidth = Math.Max(0, width - BlockSize + 1);
         this.OriginHeight = Math.Max(0, height - BlockSize + 1);
-        this.hashLinkLength = this.OriginWidth == 0 || this.OriginHeight == 0
-            ? 0
-            : checked(this.OriginWidth * height);
-
-        this.bucketCount = GetBucketCount(this.OriginWidth, this.OriginHeight);
-        this.headOffset = checked(this.hashLinkLength * sizeof(int));
-        this.tailOffset = checked(this.headOffset + (this.bucketCount * sizeof(int)));
-        this.countOffset = checked(this.tailOffset + (this.bucketCount * sizeof(int)));
         this.storage = storage;
     }
 
@@ -135,36 +123,26 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     public int OriginHeight { get; }
 
     /// <summary>
-    /// Gets the expanding NSTEP radii from the final one-pixel refinement through the largest search step.
-    /// </summary>
-    private static ReadOnlySpan<short> SearchRadii => [1, 2, 3, 5, 8, 12, 18, 27, 41, 62, 93, 140, 210, 210, 210];
-
-    /// <summary>
-    /// Gets the tangential radius paired with each NSTEP primary radius.
-    /// </summary>
-    private static ReadOnlySpan<short> SearchTangentialRadii => [1, 2, 3, 5, 3, 4, 7, 11, 16, 25, 38, 57, 86, 86, 86];
-
-    /// <summary>
     /// Gets the packed storage length required for a visible frame.
     /// </summary>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
+    /// <param name="maximumHashBlockSize">The largest square block represented by the index.</param>
     /// <returns>The required byte length.</returns>
-    public static int GetStorageLength(int width, int height)
+    public static int GetStorageLength(int width, int height, int maximumHashBlockSize)
     {
-        int originWidth = Math.Max(0, width - BlockSize + 1);
-        int originHeight = Math.Max(0, height - BlockSize + 1);
-        if (originWidth == 0 || originHeight == 0)
+        int length = 0;
+        int maximumSize = Math.Min(maximumHashBlockSize, Math.Min(width, height));
+        for (int size = 4; size <= maximumSize; size <<= 1)
         {
-            return 0;
+            int origins = checked((width - size + 1) * (height - size + 1));
+            length = checked(length + (2 * origins * sizeof(uint)) +
+                (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort))));
         }
 
-        int hashLinkLength = checked(originWidth * height);
-        int bucketCount = GetBucketCount(originWidth, originHeight);
-        return checked(
-            (hashLinkLength * sizeof(int)) +
-            (bucketCount * sizeof(int) * 2) +
-            (bucketCount * sizeof(ushort)));
+        // The first reduction borrows the not-yet-populated index for its 2x2 seeds. Very narrow
+        // pictures can need more seed storage than retained entries, so reserve the larger live extent.
+        return maximumSize < 4 ? 0 : Math.Max(length, checked((width - 1) * (height - 1) * sizeof(uint)));
     }
 
     /// <summary>
@@ -177,111 +155,121 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
-        if (this.hashLinkLength == 0)
+        int maximumSize = Math.Min(this.maximumHashBlockSize, Math.Min(this.width, this.height));
+        if (maximumSize < 4)
         {
             return;
         }
 
-        Span<int> hashesAndLinks = this.GetHashesAndLinks();
-        Span<int> heads = this.GetHeads();
-        Span<int> tails = this.GetTails();
-        Span<ushort> counts = this.GetCounts();
-        heads.Clear();
-        tails.Clear();
-        counts.Clear();
-
-        for (int row = 0; row < source.Height; row++)
+        int sourceWidth = this.width - 1;
+        Span<uint> previous = MemoryMarshal.Cast<byte, uint>(this.storage.Span)[..(sourceWidth * (this.height - 1))];
+        for (int y = 0; y < this.height - 1; y++)
         {
-            ReadOnlySpan<TSample> sourceRow = source.DangerousGetRowSpan(row);
-            int hashRowOffset = row * this.OriginWidth;
-            uint hash = 0;
-            for (int column = 0; column < BlockSize; column++)
+            ReadOnlySpan<TSample> top = source.DangerousGetRowSpan(y);
+            ReadOnlySpan<TSample> bottom = source.DangerousGetRowSpan(y + 1);
+            for (int x = 0; x < sourceWidth; x++)
             {
-                hash = unchecked((hash * HorizontalHashMultiplier) + TOperation.GetHashSample(sourceRow[column]));
-            }
-
-            hashesAndLinks[hashRowOffset] = (int)hash;
-            for (int column = 1; column < this.OriginWidth; column++)
-            {
-                uint previous = TOperation.GetHashSample(sourceRow[column - 1]);
-                uint next = TOperation.GetHashSample(sourceRow[column + BlockSize - 1]);
-                hash = unchecked(((hash - (previous * HorizontalLeadingWeight)) * HorizontalHashMultiplier) + next);
-                hashesAndLinks[hashRowOffset + column] = (int)hash;
+                // Fold each sample's upper byte into its lower byte before packing the four
+                // positions. Every source bit contributes, including ten- and twelve-bit samples.
+                uint p0 = TOperation.GetHashSample(top[x]);
+                uint p1 = TOperation.GetHashSample(top[x + 1]);
+                uint p2 = TOperation.GetHashSample(bottom[x]);
+                uint p3 = TOperation.GetHashSample(bottom[x + 1]);
+                previous[(y * sourceWidth) + x] =
+                    (((p0 ^ (p0 >> 8)) & 255) << 24) |
+                    (((p1 ^ (p1 >> 8)) & 255) << 16) |
+                    (((p2 ^ (p2 >> 8)) & 255) << 8) |
+                    ((p3 ^ (p3 >> 8)) & 255);
             }
         }
 
-        for (int column = 0; column < this.OriginWidth; column++)
+        for (int size = 4; size <= maximumSize; size <<= 1)
         {
-            uint hash = 0;
-            for (int row = 0; row < BlockSize; row++)
-            {
-                hash = unchecked((hash * VerticalHashMultiplier) + (uint)hashesAndLinks[(row * this.OriginWidth) + column]);
-            }
+            this.GetLevel(
+                size,
+                out Span<uint> hashes,
+                out Span<int> links,
+                out Span<int> heads,
+                out Span<int> tails,
+                out Span<ushort> counts);
 
-            for (int row = 0; row < this.OriginHeight; row++)
+            int originWidth = this.width - size + 1;
+            int originHeight = this.height - size + 1;
+            int half = size >> 1;
+            for (int y = 0; y < originHeight; y++)
             {
-                int position = (row * this.OriginWidth) + column;
-                uint previous = (uint)hashesAndLinks[position];
-                hashesAndLinks[position] = (int)hash;
-                if (row + 1 < this.OriginHeight)
+                for (int x = 0; x < originWidth; x++)
                 {
-                    uint next = (uint)hashesAndLinks[((row + BlockSize) * this.OriginWidth) + column];
-                    hash = unchecked(((hash - (previous * VerticalLeadingWeight)) * VerticalHashMultiplier) + next);
+                    int top = (y * sourceWidth) + x;
+                    int bottom = top + (half * sourceWidth);
+                    hashes[(y * originWidth) + x] = CombineHashes(
+                        previous[top], previous[top + half], previous[bottom], previous[bottom + half]);
                 }
             }
-        }
 
-        // Coarse-to-fine insertion disperses the first 256 identical blocks across the image instead of
-        // retaining one dense cluster. Links occupy the hash workspace after every hash has been derived.
-        int step = BlockSize;
-        int columnOffset = 0;
-        int rowOffset = 0;
-        while (step > 1)
-        {
-            for (int column = columnOffset; column < this.OriginWidth; column += step)
+            // During the first reduction, compacted writes stay behind every unread seed. The
+            // seed suffix can now become bucket storage; later levels read retained parent hashes.
+            links.Clear();
+            heads.Clear();
+            tails.Clear();
+            counts.Clear();
+            int step = size;
+            int offsetX = 0;
+            int offsetY = 0;
+            while (step > 1)
             {
-                for (int row = rowOffset; row < this.OriginHeight; row += step)
+                for (int x = offsetX; x < originWidth; x += step)
                 {
-                    int position = (row * this.OriginWidth) + column;
-                    int bucket = hashesAndLinks[position] & (this.bucketCount - 1);
-                    if (counts[bucket] < MaximumCandidatesPerBucket)
+                    for (int y = offsetY; y < originHeight; y += step)
                     {
+                        int position = (y * originWidth) + x;
+                        int bucket = (int)(hashes[position] & (MaximumBucketCount - 1));
+                        if (counts[bucket] == MaximumCandidatesPerBucket)
+                        {
+                            continue;
+                        }
+
+                        // Preserve coarse-to-fine insertion order. Capping the bucket before later
+                        // offsets keeps the retained candidates spread across the complete picture.
                         int encodedPosition = position + 1;
-                        hashesAndLinks[position] = 0;
-                        if (heads[bucket] == 0)
+                        int tail = tails[bucket];
+                        if (tail == 0)
                         {
                             heads[bucket] = encodedPosition;
                         }
                         else
                         {
-                            hashesAndLinks[tails[bucket] - 1] = encodedPosition;
+                            links[tail - 1] = encodedPosition;
                         }
 
                         tails[bucket] = encodedPosition;
                         counts[bucket]++;
                     }
                 }
+
+                if (offsetX == 0 && offsetY == 0)
+                {
+                    offsetX = step >> 1;
+                }
+                else if (offsetX == step >> 1 && offsetY == 0)
+                {
+                    offsetX = 0;
+                    offsetY = step >> 1;
+                }
+                else if (offsetX == 0 && offsetY == step >> 1)
+                {
+                    offsetX = step >> 1;
+                }
+                else
+                {
+                    step >>= 1;
+                    offsetX = step >> 1;
+                    offsetY = 0;
+                }
             }
 
-            if (columnOffset == 0 && rowOffset == 0)
-            {
-                columnOffset = step / 2;
-            }
-            else if (columnOffset == step / 2 && rowOffset == 0)
-            {
-                columnOffset = 0;
-                rowOffset = step / 2;
-            }
-            else if (columnOffset == 0 && rowOffset == step / 2)
-            {
-                columnOffset = step / 2;
-            }
-            else
-            {
-                step /= 2;
-                columnOffset = step / 2;
-                rowOffset = 0;
-            }
+            previous = hashes;
+            sourceWidth = originWidth;
         }
     }
 
@@ -292,120 +280,141 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <typeparam name="TOperation">The closed sample operation.</typeparam>
     /// <param name="source">The coded source luma plane.</param>
     /// <param name="reconstruction">The coded reconstructed luma plane.</param>
-    /// <param name="blockOrigin">The current 8x8 block origin.</param>
+    /// <param name="blockOrigin">The current coding-block origin.</param>
+    /// <param name="blockSize">The coding-block dimensions.</param>
     /// <param name="tile">The active tile boundaries.</param>
     /// <param name="sequenceHeader">The sequence geometry and sample precision.</param>
     /// <param name="costs">The retained integer displacement rates.</param>
     /// <param name="reference">The spatial displacement-vector reference.</param>
     /// <param name="qIndex">The effective segment quantizer index.</param>
     /// <param name="rateMultiplier">The active rate-distortion multiplier.</param>
+    /// <param name="searchStepParameter">The initial search scale selected for the current frame.</param>
     /// <param name="settings">The frame's resolved motion-search policy.</param>
+    /// <param name="sites">The retained full-pixel search geometry.</param>
     /// <param name="candidates">Storage receiving the above winner followed by the left winner.</param>
     /// <returns>The number of candidates written.</returns>
     public int FindCandidates<TSample, TOperation>(
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
+        Av1BlockSize blockSize,
         Av1TileInfo tile,
         ObuSequenceHeader sequenceHeader,
         Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         int qIndex,
         int rateMultiplier,
+        int searchStepParameter,
         Av1MotionSearchSettings settings,
+        Av1MotionSearchSites sites,
         Span<Av1MotionVector> candidates)
         where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
+        where TOperation : struct, ISearchOperation<TSample>, Av1MotionSearchBase.IMotionSearchOperator<TSample>
     {
         const int ModeInfoSampleSize = 1 << Av1Constants.ModeInfoSizeLog2;
+        int width = blockSize.GetWidth();
+        int height = blockSize.GetHeight();
         int tileLeft = tile.ModeInfoColumnStart * ModeInfoSampleSize;
         int tileTop = tile.ModeInfoRowStart * ModeInfoSampleSize;
-        int tileRight = Math.Min((tile.ModeInfoColumnEnd * ModeInfoSampleSize) - BlockSize, this.OriginWidth - 1);
-        int tileBottom = Math.Min((tile.ModeInfoRowEnd * ModeInfoSampleSize) - BlockSize, this.OriginHeight - 1);
+        int tileRight = (tile.ModeInfoColumnEnd * ModeInfoSampleSize) - width;
+        int tileBottom = (tile.ModeInfoRowEnd * ModeInfoSampleSize) - height;
         int superblockSize = sequenceHeader.SuperblockSize.GetWidth();
         int superblockLeft = (blockOrigin.X / superblockSize) * superblockSize;
         int superblockTop = (blockOrigin.Y / superblockSize) * superblockSize;
-        int searchStepParameter = GetSearchStepParameter(Math.Max(this.OriginWidth + BlockSize - 1, this.OriginHeight + BlockSize - 1));
+
         int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(qIndex, sequenceHeader.ColorConfig.BitDepth);
         int candidateCount = 0;
+        Rectangle sourceBounds = source.Bounds;
+        int sourceOffset = ((sourceBounds.Y + blockOrigin.Y) * source.Stride) + sourceBounds.X + blockOrigin.X;
+        Rectangle reconstructionBounds = reconstruction.Bounds;
+        int reconstructionOffset = ((reconstructionBounds.Y + blockOrigin.Y) * reconstruction.Stride) +
+            reconstructionBounds.X + blockOrigin.X;
+        Point start = new(reference.Column >> 3, reference.Row >> 3);
+        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
         int directionCount = settings.UseFastIntraBlockCopySearch ? 1 : 2;
         for (int direction = 0; direction < directionCount; direction++)
         {
-            // Both searches use the same legal displacement window. Above ends before this superblock row;
-            // left ends before this superblock column and may extend to the bottom of its row.
-            int maximumColumn = direction == 0 ? tileRight : Math.Min(superblockLeft - BlockSize, tileRight);
+            // Above excludes this superblock row. Left excludes this superblock column and can
+            // extend to the bottom of its row; both windows are then intersected with the DV range.
+            int maximumColumn = direction == 0 ? tileRight : Math.Min(superblockLeft - width, tileRight);
             int maximumRow = direction == 0
-                ? Math.Min(superblockTop - BlockSize, tileBottom)
-                : Math.Min(superblockTop + superblockSize - BlockSize, tileBottom);
-
+                ? Math.Min(superblockTop - height, tileBottom)
+                : Math.Min(superblockTop + superblockSize - height, tileBottom);
             int minimumColumn = Math.Max(
-                tileLeft,
-                blockOrigin.X + Math.Max((reference.Column >> 3) - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
-
+                tileLeft - blockOrigin.X,
+                Math.Max(start.X - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
             int minimumRow = Math.Max(
-                tileTop,
-                blockOrigin.Y + Math.Max((reference.Row >> 3) - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
-
+                tileTop - blockOrigin.Y,
+                Math.Max(start.Y - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
             maximumColumn = Math.Min(
-                maximumColumn,
-                blockOrigin.X + Math.Min((reference.Column >> 3) + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
-
+                maximumColumn - blockOrigin.X,
+                Math.Min(start.X + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
             maximumRow = Math.Min(
-                maximumRow,
-                blockOrigin.Y + Math.Min((reference.Row >> 3) + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
-
-            bool found = this.TryFindCandidate<TSample, TOperation>(
-                source,
-                reconstruction,
-                blockOrigin,
-                tile,
-                sequenceHeader,
-                costs,
-                reference,
-                rateMultiplier,
-                minimumColumn,
-                minimumRow,
-                maximumColumn,
-                maximumRow,
-                out Av1MotionVector bestVector,
-                out int bestCost);
-
-            // Compare completed motion searches before paying for residual transforms. The fast policy accepts
-            // an exact-source hash match immediately; otherwise the lower variance-plus-rate cost wins.
-            if ((!found || !settings.UseFastIntraBlockCopySearch) &&
-                TryFindPixelCandidate<TSample, TOperation>(
-                    source,
-                    reconstruction,
-                    blockOrigin,
-                    sequenceHeader,
-                    costs,
-                    reference,
-                    rateMultiplier,
-                    sadPerBit,
-                    searchStepParameter,
-                    minimumColumn,
-                    minimumRow,
-                    maximumColumn,
-                    maximumRow,
-                    out Av1MotionVector pixelVector,
-                    out int pixelCost) &&
-                pixelCost < bestCost)
+                maximumRow - blockOrigin.Y,
+                Math.Min(start.Y + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
+            if (minimumColumn > maximumColumn || minimumRow > maximumRow)
             {
-                bestVector = pixelVector;
-                found = true;
+                continue;
             }
 
-            Point modeInfoPosition = new(
-                blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
-                blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+            Rectangle bounds = Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1);
+            Av1MotionSearchBase.FullPixelSearch<TSample, TOperation> search = new(
+                source.Buffer.DangerousGetSingleSpan()[sourceOffset..],
+                source.Stride,
+                reconstruction.Buffer.DangerousGetSingleSpan(),
+                reconstruction.Stride,
+                reconstructionOffset,
+                new Size(width, height),
+                bounds,
+                reference,
+                costs,
+                sequenceHeader.ColorConfig.BitDepth,
+                sadPerBit,
+                rateMultiplier,
+                [],
+                []);
+
+            Av1MotionVector bestVector = default;
+            int bestCost = int.MaxValue;
+            bool found = width == height && width <= this.width && height <= this.height &&
+                (!settings.LimitIntraBlockCopyHashBlockSize || width <= 8) &&
+                this.TryFindCandidate<TSample, TOperation>(
+                    source,
+                    blockOrigin,
+                    blockSize,
+                    tile,
+                    sequenceHeader,
+                    search,
+                    bounds,
+                    settings.PruneIntraBlockCopyHashCandidates,
+                    out bestVector,
+                    out bestCost);
+
+            // Hash and pixel candidates share the same reconstructed-plane variance and DV rate.
+            // Only the fast policy can accept a successful hash search without the pixel search.
+            if (!found || !settings.UseFastIntraBlockCopySearch)
+            {
+                Av1MotionSearchBase.FullPixelResult result = search.Search(
+                    start,
+                    searchStepParameter,
+                    settings.GetFullPixelMethod(blockSize),
+                    sites,
+                    settings,
+                    keyFrame: true,
+                    fineMeshInterval: false,
+                    intraBlockCopy: true,
+                    Span<int>.Empty,
+                    out _);
+
+                if (result.Cost < bestCost)
+                {
+                    bestVector = new Av1MotionVector(result.Vector.Y * 8, result.Vector.X * 8);
+                    found = true;
+                }
+            }
 
             if (found && Av1IntraBlockCopy.IsValid(
-                bestVector,
-                modeInfoPosition,
-                Av1BlockSize.Block8x8,
-                isChroma: false,
-                tile,
-                sequenceHeader))
+                bestVector, modeInfoPosition, blockSize, isChroma: false, tile, sequenceHeader))
             {
                 candidates[candidateCount++] = bestVector;
             }
@@ -414,125 +423,230 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         return candidateCount;
     }
 
-    private static uint GetLeadingWeight(uint multiplier)
-    {
-        uint result = 1;
-        for (int i = 1; i < BlockSize; i++)
-        {
-            result = unchecked(result * multiplier);
-        }
-
-        return result;
-    }
-
-    private static int GetBucketCount(int originWidth, int originHeight)
-    {
-        int originCount = checked(originWidth * originHeight);
-        if (originCount == 0)
-        {
-            return 0;
-        }
-
-        // One power-of-two bucket per possible origin avoids libaom's fixed multi-megabyte pointer table
-        // on small images while retaining its 16-bit upper bound and constant-time mask lookup.
-        return originCount >= MaximumBucketCount
-            ? MaximumBucketCount
-            : 1 << (int)Av1Math.CeilLog2((uint)originCount);
-    }
-
-    private static uint GetBlockHash<TSample, TOperation>(Buffer2DRegion<TSample> source, Point origin)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
-    {
-        uint blockHash = 0;
-        for (int row = 0; row < BlockSize; row++)
-        {
-            ReadOnlySpan<TSample> sourceRow = source.DangerousGetRowSpan(origin.Y + row);
-            uint rowHash = 0;
-            for (int column = 0; column < BlockSize; column++)
-            {
-                rowHash = unchecked(
-                    (rowHash * HorizontalHashMultiplier) +
-                    TOperation.GetHashSample(sourceRow[origin.X + column]));
-            }
-
-            blockHash = unchecked((blockHash * VerticalHashMultiplier) + rowHash);
-        }
-
-        return blockHash;
-    }
-
-    private bool TryFindCandidate<TSample, TOperation>(
+    /// <summary>
+    /// Selects a same-frame displacement using hash lookup and a fixed local probe.
+    /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperation">The closed sample operation.</typeparam>
+    /// <param name="source">The coded source luma plane.</param>
+    /// <param name="reconstruction">The coded reconstructed luma plane.</param>
+    /// <param name="blockOrigin">The current coding-block origin.</param>
+    /// <param name="blockSize">The coding-block dimensions.</param>
+    /// <param name="tile">The active tile boundaries.</param>
+    /// <param name="sequenceHeader">The sequence geometry and sample precision.</param>
+    /// <param name="costs">The retained integer displacement rates.</param>
+    /// <param name="reference">The spatial displacement-vector reference.</param>
+    /// <param name="qIndex">The effective segment quantizer index.</param>
+    /// <param name="rateMultiplier">The active rate-distortion multiplier.</param>
+    /// <param name="settings">The frame's resolved motion-search policy.</param>
+    /// <param name="bestVector">The selected legal displacement.</param>
+    /// <returns>Whether a legal candidate was found.</returns>
+    public bool TryFindEstimatedCandidate<TSample, TOperation>(
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
+        Av1BlockSize blockSize,
         Av1TileInfo tile,
         ObuSequenceHeader sequenceHeader,
         Av1MotionVectorCosts costs,
         Av1MotionVector reference,
+        int qIndex,
         int rateMultiplier,
-        int minimumColumn,
-        int minimumRow,
-        int maximumColumn,
-        int maximumRow,
-        out Av1MotionVector bestVector,
-        out int bestCost)
+        Av1MotionSearchSettings settings,
+        out Av1MotionVector bestVector)
+        where TSample : unmanaged
+        where TOperation : struct, ISearchOperation<TSample>, Av1MotionSearchBase.IMotionSearchOperator<TSample>
+    {
+        int width = blockSize.GetWidth();
+        int height = blockSize.GetHeight();
+        Rectangle bounds = Rectangle.FromLTRB(
+            (tile.ModeInfoColumnStart << Av1Constants.ModeInfoSizeLog2) - blockOrigin.X,
+            (tile.ModeInfoRowStart << Av1Constants.ModeInfoSizeLog2) - blockOrigin.Y,
+            (tile.ModeInfoColumnEnd << Av1Constants.ModeInfoSizeLog2) - blockOrigin.X - width + 1,
+            (tile.ModeInfoRowEnd << Av1Constants.ModeInfoSizeLog2) - blockOrigin.Y - height + 1);
+
+        Rectangle sourceBounds = source.Bounds;
+        int sourceOffset = ((sourceBounds.Y + blockOrigin.Y) * source.Stride) + sourceBounds.X + blockOrigin.X;
+        Rectangle reconstructionBounds = reconstruction.Bounds;
+        int reconstructionOffset = ((reconstructionBounds.Y + blockOrigin.Y) * reconstruction.Stride) +
+            reconstructionBounds.X + blockOrigin.X;
+        ReadOnlySpan<TSample> sourceSamples = source.Buffer.DangerousGetSingleSpan()[sourceOffset..];
+        ReadOnlySpan<TSample> reconstructedSamples = reconstruction.Buffer.DangerousGetSingleSpan();
+        int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(qIndex, sequenceHeader.ColorConfig.BitDepth);
+        Av1MotionSearchBase.FullPixelSearch<TSample, TOperation> search = new(
+            sourceSamples,
+            source.Stride,
+            reconstructedSamples,
+            reconstruction.Stride,
+            reconstructionOffset,
+            new Size(width, height),
+            bounds,
+            reference,
+            costs,
+            sequenceHeader.ColorConfig.BitDepth,
+            sadPerBit,
+            rateMultiplier,
+            [],
+            []);
+
+        bestVector = default;
+        if (width == height && width <= this.width && height <= this.height &&
+            (!settings.LimitIntraBlockCopyHashBlockSize || width <= 8) &&
+            this.TryFindCandidate<TSample, TOperation>(
+                source,
+                blockOrigin,
+                blockSize,
+                tile,
+                sequenceHeader,
+                search,
+                bounds,
+                settings.PruneIntraBlockCopyHashCandidates,
+                out bestVector,
+                out _))
+        {
+            return true;
+        }
+
+        ReadOnlySpan<sbyte> rowOffsets = [0, -1, 1, 0, 0, -2, 2, 0, 0, -1, -1, 1, 1];
+        ReadOnlySpan<sbyte> columnOffsets = [0, 0, 0, -1, 1, 0, 0, -2, 2, -1, 1, -1, 1];
+        Point start = new(reference.Column >> 3, reference.Row >> 3);
+        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+        int bestCost = int.MaxValue;
+
+        // Every probe is relative to the original spatial predictor. Moving the center after a
+        // successful probe would turn this bounded test into a different, iterative search.
+        for (int index = 0; index < rowOffsets.Length; index++)
+        {
+            Point displacement = new(start.X + columnOffsets[index], start.Y + rowOffsets[index]);
+            Av1MotionVector vector = new(displacement.Y * 8, displacement.X * 8);
+            if (!bounds.Contains(displacement) ||
+                !Av1IntraBlockCopy.IsValid(vector, modeInfoPosition, blockSize, isChroma: false, tile, sequenceHeader))
+            {
+                continue;
+            }
+
+            int offset = reconstructionOffset + (displacement.Y * reconstruction.Stride) + displacement.X;
+            int sad = TOperation.SumAbsoluteDifferences(
+                sourceSamples, source.Stride, reconstructedSamples[offset..], reconstruction.Stride, width, height, 1);
+            int rate = ((costs.GetCost(vector, reference) * 108) + 64) >> 7;
+            int cost = sad + rate;
+            if (cost < bestCost)
+            {
+                bestCost = cost;
+                bestVector = vector;
+            }
+        }
+
+        return bestCost != int.MaxValue;
+    }
+
+    /// <summary>
+    /// Combines four child hashes in top-left, top-right, bottom-left, bottom-right order.
+    /// </summary>
+    private static uint CombineHashes(uint topLeft, uint topRight, uint bottomLeft, uint bottomRight)
+    {
+        // Feed each 32-bit word least-significant byte first. The runtime selects the hardware
+        // CRC32C instruction where available and preserves the same arithmetic in its fallback.
+        uint crc = BitOperations.Crc32C(uint.MaxValue, topLeft | ((ulong)topRight << 32));
+        return ~BitOperations.Crc32C(crc, bottomLeft | ((ulong)bottomRight << 32));
+    }
+
+    /// <summary>
+    /// Computes a query hash when the source block extends into coded-frame padding.
+    /// </summary>
+    private static uint GetBlockHash<TSample, TOperation>(Buffer2DRegion<TSample> source, Point origin, int size)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
+        if (size == 2)
+        {
+            // The reference hashes its border-extended source, so samples past the plane repeat its last row
+            // and column. Clamping the coordinates reads the same values.
+            int lastRow = source.Height - 1;
+            int lastColumn = source.Width - 1;
+            ReadOnlySpan<TSample> top = source.DangerousGetRowSpan(Math.Min(origin.Y, lastRow));
+            ReadOnlySpan<TSample> bottom = source.DangerousGetRowSpan(Math.Min(origin.Y + 1, lastRow));
+            int left = Math.Min(origin.X, lastColumn);
+            int right = Math.Min(origin.X + 1, lastColumn);
+            uint p0 = TOperation.GetHashSample(top[left]);
+            uint p1 = TOperation.GetHashSample(top[right]);
+            uint p2 = TOperation.GetHashSample(bottom[left]);
+            uint p3 = TOperation.GetHashSample(bottom[right]);
+            return (((p0 ^ (p0 >> 8)) & 255) << 24) |
+                (((p1 ^ (p1 >> 8)) & 255) << 16) |
+                (((p2 ^ (p2 >> 8)) & 255) << 8) |
+                ((p3 ^ (p3 >> 8)) & 255);
+        }
+
+        int half = size >> 1;
+        return CombineHashes(
+            GetBlockHash<TSample, TOperation>(source, origin, half),
+            GetBlockHash<TSample, TOperation>(source, origin + new Size(half, 0), half),
+            GetBlockHash<TSample, TOperation>(source, origin + new Size(0, half), half),
+            GetBlockHash<TSample, TOperation>(source, origin + new Size(half, half), half));
+    }
+
+    /// <summary>
+    /// Selects a legal displacement from the ordered, size-specific CRC bucket.
+    /// </summary>
+    private bool TryFindCandidate<TSample, TOperation>(
+        Buffer2DRegion<TSample> source,
+        Point blockOrigin,
+        Av1BlockSize blockSize,
+        Av1TileInfo tile,
+        ObuSequenceHeader sequenceHeader,
+        Av1MotionSearchBase.FullPixelSearch<TSample, TOperation> search,
+        Rectangle bounds,
+        bool pruneCandidates,
+        out Av1MotionVector bestVector,
+        out int bestCost)
+        where TSample : unmanaged
+        where TOperation : struct, ISearchOperation<TSample>, Av1MotionSearchBase.IMotionSearchOperator<TSample>
+    {
+        int size = blockSize.GetWidth();
+        int originWidth = this.width - size + 1;
+        int originHeight = this.height - size + 1;
+        this.GetLevel(size, out Span<uint> hashes, out Span<int> links, out Span<int> heads, out _, out Span<ushort> counts);
+        uint blockHash = blockOrigin.X < originWidth && blockOrigin.Y < originHeight
+            ? hashes[(blockOrigin.Y * originWidth) + blockOrigin.X]
+            : GetBlockHash<TSample, TOperation>(source, blockOrigin, size);
+        int bucket = (int)(blockHash & (MaximumBucketCount - 1));
+        int count = counts[bucket];
         bestVector = default;
         bestCost = int.MaxValue;
-        if (maximumColumn < minimumColumn || maximumRow < minimumRow)
+        if (count <= 1)
         {
             return false;
         }
 
-        uint blockHash = GetBlockHash<TSample, TOperation>(source, blockOrigin);
-        int bucket = (int)(blockHash & (this.bucketCount - 1));
-        Span<int> hashesAndLinks = this.GetHashesAndLinks();
-        int encodedPosition = this.GetHeads()[bucket];
-        bool found = false;
-        Point modeInfoPosition = new(
-            blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
-            blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+        if (pruneCandidates)
+        {
+            count = Math.Min(count, 64);
+        }
 
-        while (encodedPosition != 0)
+        int encodedPosition = heads[bucket];
+        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+        bool found = false;
+        for (int candidate = 0; candidate < count; candidate++)
         {
             int position = encodedPosition - 1;
-            int row = position / this.OriginWidth;
-            int column = position - (row * this.OriginWidth);
-            Point candidateOrigin = new(column, row);
-            encodedPosition = hashesAndLinks[position];
-            if (column < minimumColumn || column > maximumColumn || row < minimumRow || row > maximumRow ||
-                !TOperation.BlocksEqual(source, blockOrigin, candidateOrigin))
+            encodedPosition = links[position];
+            if (hashes[position] != blockHash)
             {
                 continue;
             }
 
-            Av1MotionVector vector = new(
-                (row - blockOrigin.Y) * 8,
-                (column - blockOrigin.X) * 8);
-
-            if (!Av1IntraBlockCopy.IsValid(
-                vector,
-                modeInfoPosition,
-                Av1BlockSize.Block8x8,
-                isChroma: false,
-                tile,
-                sequenceHeader))
+            int row = position / originWidth;
+            int column = position - (row * originWidth);
+            Point displacement = new(column - blockOrigin.X, row - blockOrigin.Y);
+            Av1MotionVector vector = new(displacement.Y * 8, displacement.X * 8);
+            if (!bounds.Contains(displacement) ||
+                !Av1IntraBlockCopy.IsValid(vector, modeInfoPosition, blockSize, isChroma: false, tile, sequenceHeader))
             {
                 continue;
             }
 
-            int variance = TOperation.GetVariance(
-                source,
-                blockOrigin,
-                reconstruction,
-                candidateOrigin,
-                sequenceHeader.ColorConfig.BitDepth);
-
-            int rate = costs.GetCost(vector, reference);
-            int cost = Av1RateDistortion.GetMotionSearchCost(rateMultiplier, rate, variance);
+            int cost = search.GetVarianceResult(displacement).Cost;
             if (cost < bestCost)
             {
                 bestCost = cost;
@@ -544,503 +658,33 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         return found;
     }
 
-    private static bool TryFindPixelCandidate<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
-        Point blockOrigin,
-        ObuSequenceHeader sequenceHeader,
-        Av1MotionVectorCosts costs,
-        Av1MotionVector reference,
-        int rateMultiplier,
-        int sadPerBit,
-        int searchStepParameter,
-        int minimumColumn,
-        int minimumRow,
-        int maximumColumn,
-        int maximumRow,
-        out Av1MotionVector bestVector,
-        out int bestCost)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
+    /// <summary>
+    /// Borrows the retained hashes and ordered bucket lists for one square block size.
+    /// </summary>
+    private void GetLevel(
+        int size,
+        out Span<uint> hashes,
+        out Span<int> links,
+        out Span<int> heads,
+        out Span<int> tails,
+        out Span<ushort> counts)
     {
-        bestVector = default;
-        bestCost = int.MaxValue;
-        if (maximumColumn < minimumColumn || maximumRow < minimumRow)
+        int offset = 0;
+        for (int previousSize = 4; previousSize < size; previousSize <<= 1)
         {
-            return false;
+            int previousCount = (this.width - previousSize + 1) * (this.height - previousSize + 1);
+            offset += (2 * previousCount * sizeof(uint)) +
+                (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort)));
         }
 
-        int referenceColumn = reference.Column >> 3;
-        int referenceRow = reference.Row >> 3;
-        int minimumColumnOffset = Math.Max(
-            Math.Max(minimumColumn - blockOrigin.X, referenceColumn - MaximumFullPixelSearchOffset),
-            MinimumFullPixelMotionVector);
-
-        int maximumColumnOffset = Math.Min(
-            Math.Min(maximumColumn - blockOrigin.X, referenceColumn + MaximumFullPixelSearchOffset),
-            MaximumFullPixelMotionVector);
-
-        int minimumRowOffset = Math.Max(
-            Math.Max(minimumRow - blockOrigin.Y, referenceRow - MaximumFullPixelSearchOffset),
-            MinimumFullPixelMotionVector);
-
-        int maximumRowOffset = Math.Min(
-            Math.Min(maximumRow - blockOrigin.Y, referenceRow + MaximumFullPixelSearchOffset),
-            MaximumFullPixelMotionVector);
-
-        if (maximumColumnOffset < minimumColumnOffset || maximumRowOffset < minimumRowOffset)
-        {
-            return false;
-        }
-
-        Point start = new(
-            Av1Math.Clamp(referenceColumn, minimumColumnOffset, maximumColumnOffset),
-            Av1Math.Clamp(referenceRow, minimumRowOffset, maximumRowOffset));
-
-        Point best = FindBestPixelCandidate<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            costs,
-            reference,
-            sequenceHeader.ColorConfig.BitDepth,
-            rateMultiplier,
-            sadPerBit,
-            searchStepParameter,
-            minimumColumnOffset,
-            minimumRowOffset,
-            maximumColumnOffset,
-            maximumRowOffset,
-            start,
-            out bestCost);
-
-        bestVector = new(best.Y * 8, best.X * 8);
-        return true;
+        int originCount = (this.width - size + 1) * (this.height - size + 1);
+        Span<byte> data = this.storage.Span[offset..];
+        int hashLength = originCount * sizeof(uint);
+        int bucketLength = MaximumBucketCount * sizeof(int);
+        hashes = MemoryMarshal.Cast<byte, uint>(data[..hashLength]);
+        links = MemoryMarshal.Cast<byte, int>(data.Slice(hashLength, hashLength));
+        heads = MemoryMarshal.Cast<byte, int>(data.Slice(2 * hashLength, bucketLength));
+        tails = MemoryMarshal.Cast<byte, int>(data.Slice((2 * hashLength) + bucketLength, bucketLength));
+        counts = MemoryMarshal.Cast<byte, ushort>(data.Slice((2 * hashLength) + (2 * bucketLength), MaximumBucketCount * sizeof(ushort)));
     }
-
-    private static Point FindBestPixelCandidate<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
-        Point blockOrigin,
-        Av1MotionVectorCosts costs,
-        Av1MotionVector reference,
-        Av1BitDepth bitDepth,
-        int rateMultiplier,
-        int sadPerBit,
-        int searchStepParameter,
-        int minimumColumnOffset,
-        int minimumRowOffset,
-        int maximumColumnOffset,
-        int maximumRowOffset,
-        Point start,
-        out int bestCost)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
-    {
-        // Sample operators retain native precision. Truncate the complete SAD into the eight-bit domain before
-        // adding motion rate; scaling only the rate would change integer rounding and candidate ties.
-        int sadShift = bitDepth.GetBitCount() - 8;
-        SearchDiamond<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            costs,
-            reference,
-            sadPerBit,
-            sadShift,
-            searchStepParameter,
-            minimumColumnOffset,
-            minimumRowOffset,
-            maximumColumnOffset,
-            maximumRowOffset,
-            start,
-            out Point best,
-            out int centerSteps);
-
-        bestCost = GetVarianceCost<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            costs,
-            reference,
-            bitDepth,
-            rateMultiplier,
-            best);
-
-        int furtherSteps = SearchRadii.Length - 1 - searchStepParameter;
-        int shortenedBy = centerSteps;
-        while (shortenedBy < furtherSteps)
-        {
-            shortenedBy++;
-            SearchDiamond<TSample, TOperation>(
-                source,
-                reconstruction,
-                blockOrigin,
-                costs,
-                reference,
-                sadPerBit,
-                sadShift,
-                searchStepParameter + shortenedBy,
-                minimumColumnOffset,
-                minimumRowOffset,
-                maximumColumnOffset,
-                maximumRowOffset,
-                start,
-                out Point candidate,
-                out int additionalCenterSteps);
-
-            int candidateCost = GetVarianceCost<TSample, TOperation>(
-                source,
-                reconstruction,
-                blockOrigin,
-                costs,
-                reference,
-                bitDepth,
-                rateMultiplier,
-                candidate);
-
-            if (candidateCost < bestCost)
-            {
-                bestCost = candidateCost;
-                best = candidate;
-            }
-
-            shortenedBy += additionalCenterSteps;
-        }
-
-        // Intra-block copy is a screen-content tool. Scaling the encoder's 1 << 20 full-search threshold
-        // by the 8x8 block area yields this normalized variance-domain trigger.
-        if (bestCost > ExhaustiveSearchThreshold)
-        {
-            Point candidate = SearchExhaustiveMesh<TSample, TOperation>(
-                source,
-                reconstruction,
-                blockOrigin,
-                costs,
-                reference,
-                sadPerBit,
-                sadShift,
-                minimumColumnOffset,
-                minimumRowOffset,
-                maximumColumnOffset,
-                maximumRowOffset,
-                best);
-
-            int candidateCost = GetVarianceCost<TSample, TOperation>(
-                source,
-                reconstruction,
-                blockOrigin,
-                costs,
-                reference,
-                bitDepth,
-                rateMultiplier,
-                candidate);
-
-            if (candidateCost < bestCost)
-            {
-                bestCost = candidateCost;
-                best = candidate;
-            }
-        }
-
-        return best;
-    }
-
-    private static void SearchDiamond<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
-        Point blockOrigin,
-        Av1MotionVectorCosts costs,
-        Av1MotionVector reference,
-        int sadPerBit,
-        int sadShift,
-        int searchStepParameter,
-        int minimumColumnOffset,
-        int minimumRowOffset,
-        int maximumColumnOffset,
-        int maximumRowOffset,
-        Point start,
-        out Point best,
-        out int centerSteps)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
-    {
-        best = start;
-        centerSteps = 0;
-        bool movedFromStart = false;
-        int bestCost = GetSadCost<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            costs,
-            reference,
-            sadPerBit,
-            sadShift,
-            best);
-
-        for (int stage = SearchRadii.Length - 1 - searchStepParameter; stage >= 0; stage--)
-        {
-            int radius = SearchRadii[stage];
-            int tangentialRadius = SearchTangentialRadii[stage];
-            int searchSiteCount = radius <= 5 ? 8 : 12;
-            int bestSite = 0;
-            for (int site = 1; site <= searchSiteCount; site++)
-            {
-                Point delta = GetSearchOffset(site, radius, tangentialRadius);
-                Point candidate = new(best.X + delta.X, best.Y + delta.Y);
-                if (candidate.X < minimumColumnOffset || candidate.X > maximumColumnOffset ||
-                    candidate.Y < minimumRowOffset || candidate.Y > maximumRowOffset)
-                {
-                    continue;
-                }
-
-                Point predictionOrigin = new(blockOrigin.X + candidate.X, blockOrigin.Y + candidate.Y);
-                int sumOfAbsoluteDifferences = TOperation.GetSumOfAbsoluteDifferences(
-                    source,
-                    blockOrigin,
-                    reconstruction,
-                    predictionOrigin) >> sadShift;
-
-                // Motion-vector cost is nonnegative, so a raw absolute difference that already reaches the
-                // best combined cost cannot win and does not need an entropy-rate lookup.
-                if (sumOfAbsoluteDifferences >= bestCost)
-                {
-                    continue;
-                }
-
-                Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-                int rate = costs.GetCost(vector, reference);
-                int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
-                    sadPerBit,
-                    rate,
-                    sumOfAbsoluteDifferences);
-
-                if (candidateCost < bestCost)
-                {
-                    bestCost = candidateCost;
-                    bestSite = site;
-                }
-            }
-
-            if (bestSite != 0)
-            {
-                Point delta = GetSearchOffset(bestSite, radius, tangentialRadius);
-                best = new(best.X + delta.X, best.Y + delta.Y);
-                movedFromStart = true;
-            }
-
-            if (!movedFromStart)
-            {
-                centerSteps++;
-            }
-
-            // The three largest NSTEP stages intentionally share one radius. When a stage remains centered,
-            // consume the equivalent duplicates exactly once instead of repeating the same candidate positions.
-            while (bestSite == 0 && stage > 2 && SearchRadii[stage - 1] == SearchRadii[stage])
-            {
-                centerSteps++;
-                stage--;
-            }
-        }
-    }
-
-    private static Point SearchExhaustiveMesh<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
-        Point blockOrigin,
-        Av1MotionVectorCosts costs,
-        Av1MotionVector reference,
-        int sadPerBit,
-        int sadShift,
-        int minimumColumnOffset,
-        int minimumRowOffset,
-        int maximumColumnOffset,
-        int maximumRowOffset,
-        Point start)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
-    {
-        Point best = start;
-        int bestCost = GetSadCost<TSample, TOperation>(
-            source,
-            reconstruction,
-            blockOrigin,
-            costs,
-            reference,
-            sadPerBit,
-            sadShift,
-            start);
-
-        int startColumn = Math.Max(-ExhaustiveSearchRange, minimumColumnOffset - start.X);
-        int endColumn = Math.Min(ExhaustiveSearchRange, maximumColumnOffset - start.X);
-        int startRow = Math.Max(-ExhaustiveSearchRange, minimumRowOffset - start.Y);
-        int endRow = Math.Min(ExhaustiveSearchRange, maximumRowOffset - start.Y);
-        Span<int> sumsOfAbsoluteDifferences = stackalloc int[ExhaustiveSearchBatchSize];
-        for (int row = startRow; row <= endRow; row++)
-        {
-            int column = startColumn;
-            for (; column <= endColumn - (ExhaustiveSearchBatchSize - 1); column += ExhaustiveSearchBatchSize)
-            {
-                Point firstCandidate = new(start.X + column, start.Y + row);
-                Point firstPredictionOrigin = new(
-                    blockOrigin.X + firstCandidate.X,
-                    blockOrigin.Y + firstCandidate.Y);
-
-                // Four adjacent candidates share the source load and row traversal. Normalize each complete sum
-                // independently so batching preserves individual candidate costs and their tie order.
-                TOperation.GetFourSumsOfAbsoluteDifferences(
-                    source,
-                    blockOrigin,
-                    reconstruction,
-                    firstPredictionOrigin,
-                    sumsOfAbsoluteDifferences);
-
-                for (int i = 0; i < ExhaustiveSearchBatchSize; i++)
-                {
-                    int sumOfAbsoluteDifferences = sumsOfAbsoluteDifferences[i] >> sadShift;
-                    if (sumOfAbsoluteDifferences >= bestCost)
-                    {
-                        continue;
-                    }
-
-                    Point candidate = new(firstCandidate.X + i, firstCandidate.Y);
-                    Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-                    int rate = costs.GetCost(vector, reference);
-                    int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
-                        sadPerBit,
-                        rate,
-                        sumOfAbsoluteDifferences);
-
-                    // Strict replacement preserves the first row-major candidate when costs tie.
-                    if (candidateCost < bestCost)
-                    {
-                        bestCost = candidateCost;
-                        best = candidate;
-                    }
-                }
-            }
-
-            // The SIMD batch width is only a traversal optimization; every legal tail column remains searchable.
-            for (; column <= endColumn; column++)
-            {
-                Point candidate = new(start.X + column, start.Y + row);
-                Point predictionOrigin = new(blockOrigin.X + candidate.X, blockOrigin.Y + candidate.Y);
-                int sumOfAbsoluteDifferences = TOperation.GetSumOfAbsoluteDifferences(
-                    source,
-                    blockOrigin,
-                    reconstruction,
-                    predictionOrigin) >> sadShift;
-
-                if (sumOfAbsoluteDifferences >= bestCost)
-                {
-                    continue;
-                }
-
-                Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-                int rate = costs.GetCost(vector, reference);
-                int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
-                    sadPerBit,
-                    rate,
-                    sumOfAbsoluteDifferences);
-
-                if (candidateCost < bestCost)
-                {
-                    bestCost = candidateCost;
-                    best = candidate;
-                }
-            }
-        }
-
-        return best;
-    }
-
-    private static int GetSadCost<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
-        Point blockOrigin,
-        Av1MotionVectorCosts costs,
-        Av1MotionVector reference,
-        int sadPerBit,
-        int sadShift,
-        Point candidate)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
-    {
-        Point predictionOrigin = new(blockOrigin.X + candidate.X, blockOrigin.Y + candidate.Y);
-        int sumOfAbsoluteDifferences = TOperation.GetSumOfAbsoluteDifferences(
-            source,
-            blockOrigin,
-            reconstruction,
-            predictionOrigin) >> sadShift;
-
-        Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-        int rate = costs.GetCost(vector, reference);
-        return Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, rate, sumOfAbsoluteDifferences);
-    }
-
-    private static int GetVarianceCost<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
-        Point blockOrigin,
-        Av1MotionVectorCosts costs,
-        Av1MotionVector reference,
-        Av1BitDepth bitDepth,
-        int rateMultiplier,
-        Point candidate)
-        where TSample : unmanaged
-        where TOperation : struct, ISearchOperation<TSample>
-    {
-        Point predictionOrigin = new(blockOrigin.X + candidate.X, blockOrigin.Y + candidate.Y);
-        int variance = TOperation.GetVariance(
-            source,
-            blockOrigin,
-            reconstruction,
-            predictionOrigin,
-            bitDepth);
-
-        Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-        int rate = costs.GetCost(vector, reference);
-        return Av1RateDistortion.GetMotionSearchCost(rateMultiplier, rate, variance);
-    }
-
-    private static int GetSearchStepParameter(int frameSize)
-    {
-        int size = Math.Max(frameSize, 16);
-        int searchStepParameter = 0;
-        while (((long)size << searchStepParameter) < MaximumFullPixelSearchOffset)
-        {
-            searchStepParameter++;
-        }
-
-        return Math.Min(searchStepParameter, 9);
-    }
-
-    private static Point GetSearchOffset(int site, int radius, int tangentialRadius)
-        => site switch
-        {
-            1 => new Point(0, -radius),
-            2 => new Point(0, radius),
-            3 => new Point(-radius, 0),
-            4 => new Point(radius, 0),
-            5 => new Point(-tangentialRadius, -radius),
-            6 => new Point(tangentialRadius, radius),
-            7 => new Point(radius, -tangentialRadius),
-            8 => new Point(-radius, tangentialRadius),
-            9 => new Point(tangentialRadius, -radius),
-            10 => new Point(-tangentialRadius, radius),
-            11 => new Point(radius, tangentialRadius),
-            _ => new Point(-radius, -tangentialRadius)
-        };
-
-    private Span<int> GetHashesAndLinks()
-        => MemoryMarshal.Cast<byte, int>(this.storage.Span[..this.headOffset]);
-
-    private Span<int> GetHeads()
-        => MemoryMarshal.Cast<byte, int>(this.storage.Span.Slice(this.headOffset, this.bucketCount * sizeof(int)));
-
-    private Span<int> GetTails()
-        => MemoryMarshal.Cast<byte, int>(this.storage.Span.Slice(this.tailOffset, this.bucketCount * sizeof(int)));
-
-    private Span<ushort> GetCounts()
-        => MemoryMarshal.Cast<byte, ushort>(this.storage.Span.Slice(this.countOffset, this.bucketCount * sizeof(ushort)));
 }

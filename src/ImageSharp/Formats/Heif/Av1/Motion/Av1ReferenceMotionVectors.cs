@@ -21,7 +21,7 @@ internal struct Av1ReferenceMotionVectors
     /// <summary>
     /// The weight separating immediately adjacent candidates from temporal and outer spatial candidates.
     /// </summary>
-    private const int NearestCandidateWeight = 640;
+    public const int NearestCandidateWeight = 640;
 
     /// <summary>
     /// The maximum number of distinct candidates retained by AV1.

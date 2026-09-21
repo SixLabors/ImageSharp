@@ -11,6 +11,9 @@ internal readonly struct Av1MotionSearchSettings
     private readonly HeifEncodingSpeed speed;
     private readonly FullPixelSearchMethod fullPixelMethod;
     private readonly int fasterSearchMinimumDimension;
+    private readonly int qIndex;
+    private readonly int minimumDimension;
+    private readonly bool screenContent;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1MotionSearchSettings"/> struct.
@@ -30,6 +33,10 @@ internal readonly struct Av1MotionSearchSettings
         bool screenContent)
     {
         this.speed = speed;
+        this.qIndex = qIndex;
+        this.minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
+        this.screenContent = screenContent;
+        this.FractionalPrecision = SearchPrecision.EighthSample;
         this.fullPixelMethod = FullPixelSearchMethod.NStep;
         this.FractionalMethod = FractionalSearchMethod.TwoLevelTree;
         this.FractionalIterationsPerStep = 2;
@@ -69,6 +76,28 @@ internal readonly struct Av1MotionSearchSettings
             {
                 this.fasterSearchMinimumDimension = 32;
                 this.UseFastIntraBlockCopySearch = true;
+            }
+        }
+        else if (speed >= HeifEncodingSpeed.Level7)
+        {
+            // Real-time motion search has its own baseline. It must not inherit progressively
+            // reduced search ranges or four-tap interpolation from the lower speed levels.
+            this.fullPixelMethod = FullPixelSearchMethod.FastDiamond;
+            this.FractionalMethod = FractionalSearchMethod.PrunedTree;
+            this.FractionalIterationsPerStep = 1;
+            this.FractionalInterpolationTaps = 2;
+            this.FractionalPrecision = SearchPrecision.QuarterSample;
+            this.AutomaticStepSizeLevel = 1;
+            this.MeshErrorThreshold = int.MaxValue;
+            this.MotionCostUpdate = CostUpdateFrequency.SuperblockRow;
+            this.UseRefiningObmcSearch = true;
+            this.AllowIntraBlockCopy = screenContent;
+            this.PruneIntraBlockCopyHashCandidates = screenContent;
+            this.LimitIntraBlockCopyHashBlockSize = screenContent;
+            this.UseFastIntraBlockCopySearch = screenContent;
+            if (screenContent && speed >= HeifEncodingSpeed.Level9)
+            {
+                this.FractionalMethod = FractionalSearchMethod.MorePrunedTree;
             }
         }
         else
@@ -114,8 +143,8 @@ internal readonly struct Av1MotionSearchSettings
         // Resolution classes use the shorter dimension, so rotating a frame does not change its class.
         int minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
         bool is720pOrLarger = minimumDimension >= 720;
-        this.DownsampledSadLevel = is720pOrLarger ? 2 : 0;
-        if (!intraOnly)
+        this.DownsampledSadLevel = is720pOrLarger && (intraOnly || speed < HeifEncodingSpeed.Level7) ? 2 : 0;
+        if (!intraOnly && speed < HeifEncodingSpeed.Level7)
         {
             this.ReferenceCandidatePruningLevel = speed >= HeifEncodingSpeed.Level5 ? 4
                 : speed >= HeifEncodingSpeed.Level4 && minimumDimension <= 480 ? 3
@@ -348,6 +377,11 @@ internal readonly struct Av1MotionSearchSettings
     public FractionalSearchMethod FractionalMethod { get; }
 
     /// <summary>
+    /// Gets the finest displacement examined by the fractional search.
+    /// </summary>
+    public SearchPrecision FractionalPrecision { get; }
+
+    /// <summary>
     /// Gets the refinement iterations at each fractional precision.
     /// </summary>
     public int FractionalIterationsPerStep { get; }
@@ -459,6 +493,116 @@ internal readonly struct Av1MotionSearchSettings
             FullPixelSearchMethod.FastDiamond => FullPixelSearchMethod.VeryFastDiamond,
             _ => this.fullPixelMethod
         };
+    }
+
+    /// <summary>
+    /// Gets the full-pixel search pattern for an estimated inter candidate.
+    /// </summary>
+    /// <param name="blockSize">The prediction block size.</param>
+    /// <param name="sourceSad">The source-change classification.</param>
+    /// <returns>The full-pixel search pattern.</returns>
+    public FullPixelSearchMethod GetEstimatedFullPixelMethod(Av1BlockSize blockSize, Av1SourceSadLevel sourceSad)
+    {
+        bool useFasterSearch = this.speed == HeifEncodingSpeed.Level8
+            && !this.screenContent
+            && this.qIndex < 192
+            && sourceSad <= Av1SourceSadLevel.Medium
+            && Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 16;
+
+        return useFasterSearch ? FullPixelSearchMethod.VeryFastDiamond : this.fullPixelMethod;
+    }
+
+    /// <summary>
+    /// Selects the fractional precision from motion and source activity.
+    /// </summary>
+    /// <param name="blockSize">The prediction block size.</param>
+    /// <param name="integerVector">The full-pixel search winner in whole samples.</param>
+    /// <param name="referenceVector">The coding predictor in eighth samples.</param>
+    /// <param name="startVector">The full-pixel search start in whole samples.</param>
+    /// <param name="frameLowMotion">The percentage of low-motion blocks in the preceding frame.</param>
+    /// <param name="sourceSad">The source-change classification.</param>
+    /// <param name="sourceVariance">The normalized source variance.</param>
+    /// <param name="fullPixelPerformedWell">Whether the full-pixel result meets the block's cost threshold.</param>
+    /// <returns>The finest displacement to examine.</returns>
+    public SearchPrecision GetEstimatedFractionalPrecision(
+        Av1BlockSize blockSize,
+        Point integerVector,
+        Av1MotionVector referenceVector,
+        Point startVector,
+        int frameLowMotion,
+        Av1SourceSadLevel sourceSad,
+        uint sourceVariance,
+        bool fullPixelPerformedWell)
+    {
+        int highMotionLevel = this.minimumDimension >= 1080 || this.screenContent ? 0
+            : this.speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360 ? 2
+            : this.minimumDimension >= 720 ? 1 : 0;
+
+        int lowComplexityLevel = this.screenContent && this.speed >= HeifEncodingSpeed.Level9 ? 1
+            : this.minimumDimension >= 720 && this.speed < HeifEncodingSpeed.Level9 ? 2 : 0;
+
+        if (highMotionLevel != 0)
+        {
+            int threshold = frameLowMotion > 0 && frameLowMotion < 40 ? 12
+                : blockSize >= Av1BlockSize.Block32x32 ? 4
+                : blockSize >= Av1BlockSize.Block16x16 ? highMotionLevel == 1 ? 8 : 6
+                : highMotionLevel == 1 ? 10 : 8;
+
+            int displacement = Math.Max(Math.Abs(integerVector.X), Math.Abs(integerVector.Y));
+            if (displacement >= 2 * threshold)
+            {
+                return SearchPrecision.Integer;
+            }
+
+            if (displacement >= threshold)
+            {
+                return SearchPrecision.HalfSample;
+            }
+        }
+
+        // Source activity controls precision only after displacement has had its first opportunity
+        // to stop the search. Reversing these decisions can retain expensive small-step searches.
+        if (lowComplexityLevel == 2)
+        {
+            if (sourceSad <= Av1SourceSadLevel.VeryLow && blockSize > Av1BlockSize.Block16x16 && this.qIndex >= 64)
+            {
+                if (sourceVariance < 500)
+                {
+                    return SearchPrecision.Integer;
+                }
+
+                if (sourceVariance < 5000)
+                {
+                    return SearchPrecision.HalfSample;
+                }
+            }
+        }
+        else if (lowComplexityLevel == 1 && fullPixelPerformedWell && referenceVector.IsZero && startVector == Point.Empty)
+        {
+            return SearchPrecision.HalfSample;
+        }
+
+        return this.FractionalPrecision;
+    }
+
+    /// <summary>
+    /// Selects the fractional traversal from the full-pixel result and source activity.
+    /// </summary>
+    /// <param name="sourceSad">The source-change classification.</param>
+    /// <param name="sourceVariance">The normalized source variance.</param>
+    /// <param name="fullPixelPerformedWell">Whether the full-pixel result meets the block's cost threshold.</param>
+    /// <returns>The fractional search traversal.</returns>
+    public FractionalSearchMethod GetEstimatedFractionalMethod(
+        Av1SourceSadLevel sourceSad,
+        uint sourceVariance,
+        bool fullPixelPerformedWell)
+    {
+        bool adaptive = this.minimumDimension < 1080
+            && (this.speed < HeifEncodingSpeed.Level9 || this.minimumDimension >= 360);
+
+        return adaptive && this.qIndex >= 64 && (fullPixelPerformedWell || sourceSad <= Av1SourceSadLevel.Low || sourceVariance < 100)
+            ? FractionalSearchMethod.MorePrunedTree
+            : this.FractionalMethod;
     }
 
     /// <summary>

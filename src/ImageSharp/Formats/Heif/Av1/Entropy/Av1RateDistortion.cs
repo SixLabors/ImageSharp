@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -15,6 +17,54 @@ internal static class Av1RateDistortion
     /// Each fitted curve contains 65 equally spaced samples, including the cubic interpolation endpoints.
     /// </summary>
     private const int ModelCurveLength = 65;
+
+    /// <summary>
+    /// Gets normalized Laplacian entropy in Q10 units.
+    /// </summary>
+    private static ReadOnlySpan<int> LaplacianRates =>
+    [
+        65536, 6086, 5574, 5275, 5063, 4899, 4764, 4651, 4553, 4389, 4255, 4142,
+        4044, 3958, 3881, 3811, 3748, 3635, 3538, 3453, 3376, 3307, 3244, 3186,
+        3133, 3037, 2952, 2877, 2809, 2747, 2690, 2638, 2589, 2501, 2423, 2353,
+        2290, 2232, 2179, 2130, 2084, 2001, 1928, 1862, 1802, 1748, 1698, 1651,
+        1608, 1530, 1460, 1398, 1342, 1290, 1243, 1199, 1159, 1086, 1021, 963,
+        911, 864, 821, 781, 745, 680, 623, 574, 530, 490, 455, 424,
+        395, 345, 304, 269, 239, 213, 190, 171, 154, 126, 104, 87,
+        73, 61, 52, 44, 38, 28, 21, 16, 12, 10, 8, 6,
+        5, 3, 2, 1, 1, 1, 0, 0,
+    ];
+
+    /// <summary>
+    /// Gets normalized Laplacian distortion in Q10 units.
+    /// </summary>
+    private static ReadOnlySpan<int> LaplacianDistortions =>
+    [
+        0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5,
+        5, 6, 7, 7, 8, 9, 11, 12, 13, 15, 16, 17,
+        18, 21, 24, 26, 29, 31, 34, 36, 39, 44, 49, 54,
+        59, 64, 69, 73, 78, 88, 97, 106, 115, 124, 133, 142,
+        151, 167, 184, 200, 215, 231, 245, 260, 274, 301, 327, 351,
+        375, 397, 418, 439, 458, 495, 528, 559, 587, 613, 637, 659,
+        680, 717, 749, 777, 801, 823, 842, 859, 874, 899, 919, 936,
+        949, 960, 969, 977, 983, 994, 1001, 1006, 1010, 1013, 1015, 1017,
+        1018, 1020, 1022, 1022, 1023, 1023, 1023, 1024,
+    ];
+
+    /// <summary>
+    /// Gets squared quantizer-to-variance ratios for the logarithmically spaced model samples.
+    /// </summary>
+    private static ReadOnlySpan<int> LaplacianSamplePoints =>
+    [
+        0, 4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 56,
+        64, 72, 80, 88, 96, 112, 128, 144, 160, 176, 192, 208,
+        224, 256, 288, 320, 352, 384, 416, 448, 480, 544, 608, 672,
+        736, 800, 864, 928, 992, 1120, 1248, 1376, 1504, 1632, 1760, 1888,
+        2016, 2272, 2528, 2784, 3040, 3296, 3552, 3808, 4064, 4576, 5088, 5600,
+        6112, 6624, 7136, 7648, 8160, 9184, 10208, 11232, 12256, 13280, 14304, 15328,
+        16352, 18400, 20448, 22496, 24544, 26592, 28640, 30688, 32736, 36832, 40928, 45024,
+        49120, 53216, 57312, 61408, 65504, 73696, 81888, 90080, 98272, 106464, 114656, 122848,
+        131040, 147424, 163808, 180192, 196576, 212960, 229344, 245728,
+    ];
 
     /// <summary>
     /// Gets the rate-curve category for each AV1 block geometry.
@@ -114,47 +164,73 @@ internal static class Av1RateDistortion
     ];
 
     /// <summary>
-    /// Gets the key-frame rate multiplier for an AV1 quantizer and sample precision.
+    /// Estimates quantized residual rate and distortion with a Laplacian source model.
     /// </summary>
-    /// <param name="qIndex">The segment quantizer index.</param>
-    /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <returns>The rate multiplier.</returns>
-    public static int GetKeyFrameRateMultiplier(int qIndex, Av1BitDepth bitDepth)
+    /// <param name="variance">The summed residual energy in the normalized sample domain.</param>
+    /// <param name="sampleCountLog2">The base-two logarithm of the sample count.</param>
+    /// <param name="quantizerStep">The quantizer step after removing transform scaling.</param>
+    /// <param name="rate">The modeled rate in 1/512-bit units.</param>
+    /// <param name="distortion">The modeled sample-domain distortion.</param>
+    public static void EstimateLaplacian(long variance, int sampleCountLog2, int quantizerStep, out int rate, out long distortion)
     {
-        int quantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, bitDepth);
-
-        // Key frames use a quantizer-dependent weight over the squared DC step. High-bit-depth
-        // distortion is normalized back to the eight-bit domain, so its rate multiplier follows it.
-        long multiplier = (long)((quantizer * (long)quantizer) * (3.3 + (0.0015 * quantizer)));
-        int shift = (bitDepth.GetBitCount() - 8) * 2;
-        if (shift > 0)
+        if (variance == 0)
         {
-            multiplier = (multiplier + (1L << (shift - 1))) >> shift;
+            rate = 0;
+            distortion = 0;
+            return;
         }
 
-        return (int)Math.Max(multiplier, 1);
+        // Normalize the squared quantizer step by mean residual energy. Saturating at the last
+        // interpolation interval represents complete coefficient suppression without indexing past it.
+        ulong squaredRatio = ((((ulong)quantizerStep * (uint)quantizerStep) << (sampleCountLog2 + 10)) + (ulong)(variance >> 1)) /
+            (ulong)variance;
+
+        int ratio = (int)Math.Min(squaredRatio, 245727UL);
+        int position = (ratio >> 2) + 8;
+        int exponent = System.Numerics.BitOperations.Log2((uint)position) - 3;
+        int index = (exponent << 3) + ((position >> exponent) & 7);
+
+        // Each octave has eight linear intervals. Both weights are Q10, so interpolation retains
+        // ten fractional bits before rate scaling and the final rounded energy multiplication.
+        int upperWeight = ((ratio - LaplacianSamplePoints[index]) << 10) >> (2 + exponent);
+        int lowerWeight = 1024 - upperWeight;
+        int normalizedRate = ((LaplacianRates[index] * lowerWeight) + (LaplacianRates[index + 1] * upperWeight)) >> 10;
+        int normalizedDistortion = ((LaplacianDistortions[index] * lowerWeight) +
+            (LaplacianDistortions[index + 1] * upperWeight)) >> 10;
+
+        int rateShift = 10 - Av1ProbabilityCost.CostShift;
+        rate = ((normalizedRate << sampleCountLog2) + (1 << (rateShift - 1))) >> rateShift;
+        distortion = ((variance * normalizedDistortion) + 512) >> 10;
     }
 
     /// <summary>
-    /// Gets the inter-frame rate multiplier for an AV1 quantizer and sample precision.
+    /// Gets the rate multiplier for a quantizer, sample precision, and frame update role.
     /// </summary>
-    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="qIndex">The segment quantizer index including its luma DC delta.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="updateType">The frame's role in the reference update schedule.</param>
     /// <returns>The rate multiplier.</returns>
-    public static int GetInterFrameRateMultiplier(int qIndex, Av1BitDepth bitDepth)
+    public static int GetRateMultiplier(int qIndex, Av1BitDepth bitDepth, Av1FrameUpdateType updateType)
     {
         int quantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, bitDepth);
+        double baseWeight = updateType switch
+        {
+            Av1FrameUpdateType.Key => 3.3,
+            Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate => 3.25,
+            _ => 3.2
+        };
 
-        // Ordinary inter frames use a slightly lower rate weight than key frames, preserving more residual detail.
-        // Distortion remains normalized to the eight-bit domain before it is combined with this value.
-        long multiplier = (long)((quantizer * (long)quantizer) * (3.2 + (0.0015 * quantizer)));
+        // The squared DC step sets the distortion scale. Reference-producing golden/alternate pictures
+        // use the intermediate weight; overlay and intermediate-alternate roles retain the ordinary weight.
+        // Truncate the weighted product before rounding high-bit-depth distortion into the eight-bit domain.
+        long multiplier = (long)((quantizer * (long)quantizer) * (baseWeight + (0.0015 * quantizer)));
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         if (shift > 0)
         {
             multiplier = (multiplier + (1L << (shift - 1))) >> shift;
         }
 
-        return (int)Math.Max(multiplier, 1);
+        return (int)Math.Clamp(multiplier, 1, int.MaxValue);
     }
 
     /// <summary>
@@ -164,6 +240,7 @@ internal static class Av1RateDistortion
     /// <param name="rate">The syntax rate in 1/512-bit units.</param>
     /// <param name="distortion">The sample-domain distortion.</param>
     /// <returns>The rounded weighted rate plus distortion.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long GetCost(long rateMultiplier, int rate, long distortion)
     {
         long weightedRate = (long)rate * rateMultiplier;

@@ -220,9 +220,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
         {
             for (int y = 0; y < sourceHeight; y++)
             {
-                ScaleRowUp2Linear(
-                    GetSourceRow(source, plane, y)[..sourceWidth],
-                    destination.DangerousGetRowSpan(y));
+                ScaleRowUp2Linear(GetSourceRow(source, plane, y)[..sourceWidth], destination.DangerousGetRowSpan(y));
             }
 
             return;
@@ -236,10 +234,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
 
             for (int y = 0; y < sourceHeight; y++)
             {
-                ScaleHorizontal(
-                    GetSourceRow(source, plane, y)[..sourceWidth],
-                    destination.DangerousGetRowSpan(y),
-                    rowHorizontalStep);
+                ScaleHorizontal(GetSourceRow(source, plane, y)[..sourceWidth], destination.DangerousGetRowSpan(y), rowHorizontalStep);
             }
 
             return;
@@ -559,16 +554,12 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     {
         if (typeof(TSample) == typeof(byte))
         {
-            ScaleRowUp2LinearByte(
-                MemoryMarshal.Cast<TSample, byte>(source),
-                MemoryMarshal.Cast<TSample, byte>(destination));
+            ScaleRowUp2LinearByte(MemoryMarshal.Cast<TSample, byte>(source), MemoryMarshal.Cast<TSample, byte>(destination));
 
             return;
         }
 
-        ScaleRowUp2LinearUInt16(
-            MemoryMarshal.Cast<TSample, ushort>(source),
-            MemoryMarshal.Cast<TSample, ushort>(destination));
+        ScaleRowUp2LinearUInt16(MemoryMarshal.Cast<TSample, ushort>(source), MemoryMarshal.Cast<TSample, ushort>(destination));
     }
 
     /// <summary>

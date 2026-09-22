@@ -46,6 +46,42 @@ internal static partial class Av1ResidualBuilder
         public static abstract Vector512<short> Subtract(Vector512<TSample> source, Vector512<TSample> prediction, out Vector512<short> upper);
 
         /// <summary>
+        /// Loads eight source and prediction samples and subtracts them.
+        /// </summary>
+        /// <param name="source">The first sample of the source row.</param>
+        /// <param name="prediction">The first sample of the prediction row.</param>
+        /// <param name="offset">The column offset shared by both rows.</param>
+        /// <param name="width">The overload-selection value.</param>
+        /// <returns>The eight residuals in increasing column order.</returns>
+        /// <remarks>
+        /// The residual of either sample depth is a signed sixteen-bit value, so one vector of
+        /// sixteen-bit lanes is eight samples whatever the depth. Loading at that width is what lets
+        /// a transform row of eight samples fill a vector: loading at the width of the sample type
+        /// would need sixteen eight-bit samples and would leave every narrow row to the scalar loop.
+        /// </remarks>
+        public static abstract Vector128<short> LoadDifference(ref TSample source, ref TSample prediction, int offset, Vector128<short> width);
+
+        /// <summary>
+        /// Loads sixteen source and prediction samples and subtracts them.
+        /// </summary>
+        /// <param name="source">The first sample of the source row.</param>
+        /// <param name="prediction">The first sample of the prediction row.</param>
+        /// <param name="offset">The column offset shared by both rows.</param>
+        /// <param name="width">The overload-selection value.</param>
+        /// <returns>The sixteen residuals in increasing column order.</returns>
+        public static abstract Vector256<short> LoadDifference(ref TSample source, ref TSample prediction, int offset, Vector256<short> width);
+
+        /// <summary>
+        /// Loads thirty-two source and prediction samples and subtracts them.
+        /// </summary>
+        /// <param name="source">The first sample of the source row.</param>
+        /// <param name="prediction">The first sample of the prediction row.</param>
+        /// <param name="offset">The column offset shared by both rows.</param>
+        /// <param name="width">The overload-selection value.</param>
+        /// <returns>The thirty-two residuals in increasing column order.</returns>
+        public static abstract Vector512<short> LoadDifference(ref TSample source, ref TSample prediction, int offset, Vector512<short> width);
+
+        /// <summary>
         /// Subtracts one source and prediction sample.
         /// </summary>
         /// <param name="source">The source sample.</param>
@@ -110,6 +146,49 @@ internal static partial class Av1ResidualBuilder
     /// </summary>
     internal readonly struct ByteOperator : IResidualOperator<byte>
     {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<short> LoadDifference(ref byte source, ref byte prediction, int offset, Vector128<short> width)
+        {
+            // Exactly eight bytes are read from each row, so a row of eight samples is covered
+            // without touching the row that follows it.
+            Vector128<ushort> s = Vector128.WidenLower(
+                Vector128.Create(Vector64.LoadUnsafe(ref source, (nuint)offset), Vector64<byte>.Zero));
+
+            Vector128<ushort> p = Vector128.WidenLower(
+                Vector128.Create(Vector64.LoadUnsafe(ref prediction, (nuint)offset), Vector64<byte>.Zero));
+
+            // Both operands are below 256, so the wrapped unsigned subtraction reinterprets as the
+            // signed difference the residual is defined to be.
+            return (s - p).AsInt16();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<short> LoadDifference(ref byte source, ref byte prediction, int offset, Vector256<short> width)
+        {
+            Vector256<ushort> s = Vector256.WidenLower(
+                Vector256.Create(Vector128.LoadUnsafe(ref source, (nuint)offset), Vector128<byte>.Zero));
+
+            Vector256<ushort> p = Vector256.WidenLower(
+                Vector256.Create(Vector128.LoadUnsafe(ref prediction, (nuint)offset), Vector128<byte>.Zero));
+
+            return (s - p).AsInt16();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<short> LoadDifference(ref byte source, ref byte prediction, int offset, Vector512<short> width)
+        {
+            Vector512<ushort> s = Vector512.WidenLower(
+                Vector512.Create(Vector256.LoadUnsafe(ref source, (nuint)offset), Vector256<byte>.Zero));
+
+            Vector512<ushort> p = Vector512.WidenLower(
+                Vector512.Create(Vector256.LoadUnsafe(ref prediction, (nuint)offset), Vector256<byte>.Zero));
+
+            return (s - p).AsInt16();
+        }
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int SumAbsoluteDifferences(byte source, byte prediction) => Math.Abs(Subtract(source, prediction));
@@ -196,6 +275,21 @@ internal static partial class Av1ResidualBuilder
     /// </summary>
     internal readonly struct UInt16Operator : IResidualOperator<ushort>
     {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<short> LoadDifference(ref ushort source, ref ushort prediction, int offset, Vector128<short> width)
+            => (Vector128.LoadUnsafe(ref source, (nuint)offset) - Vector128.LoadUnsafe(ref prediction, (nuint)offset)).AsInt16();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<short> LoadDifference(ref ushort source, ref ushort prediction, int offset, Vector256<short> width)
+            => (Vector256.LoadUnsafe(ref source, (nuint)offset) - Vector256.LoadUnsafe(ref prediction, (nuint)offset)).AsInt16();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<short> LoadDifference(ref ushort source, ref ushort prediction, int offset, Vector512<short> width)
+            => (Vector512.LoadUnsafe(ref source, (nuint)offset) - Vector512.LoadUnsafe(ref prediction, (nuint)offset)).AsInt16();
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int SumAbsoluteDifferences(ushort source, ushort prediction) => Math.Abs(Subtract(source, prediction));

@@ -134,8 +134,7 @@ internal partial class Av1ChromaFromLumaContext
         }
 
         ref short samples = ref Unsafe.As<TSample, short>(ref source);
-        Vector128<int> lower = Vector128_.MultiplyAddAdjacent(
-            Vector128.LoadUnsafe(ref samples), Vector128.Create((short)1));
+        Vector128<int> lower = Vector128_.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref samples), Vector128.Create((short)1));
 
         Vector128<int> upper = Vector128_.MultiplyAddAdjacent(
             Vector128.LoadUnsafe(ref samples, (nuint)Vector128<short>.Count), Vector128.Create((short)1));
@@ -161,8 +160,7 @@ internal partial class Av1ChromaFromLumaContext
         }
 
         ref short samples = ref Unsafe.As<TSample, short>(ref source);
-        Vector256<int> lower = Vector256_.MultiplyAddAdjacent(
-            Vector256.LoadUnsafe(ref samples), Vector256.Create((short)1));
+        Vector256<int> lower = Vector256_.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref samples), Vector256.Create((short)1));
 
         Vector256<int> upper = Vector256_.MultiplyAddAdjacent(
             Vector256.LoadUnsafe(ref samples, (nuint)Vector256<short>.Count), Vector256.Create((short)1));
@@ -188,8 +186,7 @@ internal partial class Av1ChromaFromLumaContext
         }
 
         ref short samples = ref Unsafe.As<TSample, short>(ref source);
-        Vector512<int> lower = Vector512_.MultiplyAddAdjacent(
-            Vector512.LoadUnsafe(ref samples), Vector512.Create((short)1));
+        Vector512<int> lower = Vector512_.MultiplyAddAdjacent(Vector512.LoadUnsafe(ref samples), Vector512.Create((short)1));
 
         Vector512<int> upper = Vector512_.MultiplyAddAdjacent(
             Vector512.LoadUnsafe(ref samples, (nuint)Vector512<short>.Count), Vector512.Create((short)1));

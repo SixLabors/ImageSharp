@@ -52,11 +52,9 @@ internal static partial class Av1DenseFlowSolver
                 // One patch row is eight gradients, which is one vector of sixteen-bit lanes. Both
                 // halves of the widened row accumulate into the same vectors. The total is taken at
                 // the end and integer addition is associative, so the lane order cannot change it.
-                (Vector128<int> lowX, Vector128<int> highX) = Vector128.Widen(
-                    Vector128.LoadUnsafe(ref dxBase, (nuint)(row * PatchSize)));
+                (Vector128<int> lowX, Vector128<int> highX) = Vector128.Widen(Vector128.LoadUnsafe(ref dxBase, (nuint)(row * PatchSize)));
 
-                (Vector128<int> lowY, Vector128<int> highY) = Vector128.Widen(
-                    Vector128.LoadUnsafe(ref dyBase, (nuint)(row * PatchSize)));
+                (Vector128<int> lowY, Vector128<int> highY) = Vector128.Widen(Vector128.LoadUnsafe(ref dyBase, (nuint)(row * PatchSize)));
 
                 sum0 += (lowX * lowX) + (highX * highX);
                 sum1 += (lowX * lowY) + (highX * highY);

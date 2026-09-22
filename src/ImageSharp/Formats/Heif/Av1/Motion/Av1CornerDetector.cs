@@ -186,8 +186,7 @@ internal static partial class Av1CornerDetector
         Span<int> scores = candidates.Scores;
         for (int index = 0; index < candidates.Count; index++)
         {
-            ref byte centre = ref Unsafe.Add(
-                ref planeBase, origin + (positions[(2 * index) + 1] * stride) + positions[2 * index]);
+            ref byte centre = ref Unsafe.Add(ref planeBase, origin + (positions[(2 * index) + 1] * stride) + positions[2 * index]);
 
             int lower = Barrier;
             int upper = MaximumBarrier;

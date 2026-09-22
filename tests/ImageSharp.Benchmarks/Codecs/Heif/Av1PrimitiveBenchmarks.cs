@@ -88,6 +88,14 @@ public class Av1PrimitiveBenchmarks
     private Av1TransformSize TransformSize => this.Size == 8 ? Av1TransformSize.Size8x8 : Av1TransformSize.Size16x16;
 
     /// <summary>
+    /// Measures the squared error between a source block and its prediction.
+    /// </summary>
+    /// <returns>The sum of squared differences.</returns>
+    [Benchmark]
+    public long SumSquaredError()
+        => Av1ResidualBuilder.SumSquaredError(this.source, this.Size, this.prediction, this.Size, this.Size, this.Size);
+
+    /// <summary>
     /// Measures the forward DCT.
     /// </summary>
     /// <returns>The DC coefficient.</returns>

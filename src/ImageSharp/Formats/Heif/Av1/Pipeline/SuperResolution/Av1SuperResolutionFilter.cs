@@ -206,8 +206,7 @@ internal static class Av1SuperResolutionFilter
                 // The saturating pack holds the results at zero and below 65536. The clip that
                 // follows is what brings them inside the coded depth, and it is the same clip the
                 // scalar tail applies.
-                Vector128<ushort> samples = Vector128.Min(
-                    Vector128_.PackUnsignedSaturate(filtered, Vector128<int>.Zero), maximumVector);
+                Vector128<ushort> samples = Vector128.Min(Vector128_.PackUnsignedSaturate(filtered, Vector128<int>.Zero), maximumVector);
 
                 StoreFour(samples, ref destinationBase, column);
                 sourcePosition += step * OutputGroupSize;

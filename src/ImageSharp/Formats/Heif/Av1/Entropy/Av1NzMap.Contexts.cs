@@ -49,8 +49,7 @@ internal static partial class Av1NzMap
         Av1TransformSize transformSize,
         Av1TransformClass transformClass,
         ref sbyte contextBase)
-        => Contexts<CountOperator>.Apply(
-            ref levelBase, stride, width, height, transformSize, transformClass, ref contextBase);
+        => Contexts<CountOperator>.Apply(ref levelBase, stride, width, height, transformSize, transformClass, ref contextBase);
 
     /// <summary>
     /// Combines a neighboring-level statistic with the position band of one coefficient, reading

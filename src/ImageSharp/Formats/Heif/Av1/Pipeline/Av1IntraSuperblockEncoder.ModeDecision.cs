@@ -4535,11 +4535,16 @@ internal static partial class Av1IntraSuperblockEncoder
             // contributes its own coefficient cost; lossless and fixed-size modes do not signal a size choice.
             bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
 
-            // The size is charged whenever the frame selects its transform sizes and the block is
-            // large enough to code one. How many sizes this stage searches does not enter the
-            // condition: a block that codes one size pays for it even when only one was tried.
-            // Reference: the tx_select test of uniform_txfm_yrd() and tx_size_cost().
-            int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 &&
+            // The size costs nothing while a stage searches the largest transform only. That is not a
+            // rule of its own: such a stage runs with the largest transform mode rather than the
+            // selecting one, and the size is coded only by the selecting mode. From all-intra speed 4
+            // the reference gives mode evaluation the largest-transform method and keeps the
+            // selecting one for winner evaluation, which is what this flag stands for. The frame
+            // still signals the size it settled on.
+            // Reference: tx_size_cost() against select_tx_mode() and tx_size_search_methods.
+            bool selectsTransformSize = !this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
+                this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate;
+            int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 && selectsTransformSize &&
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
                 ? writer.GetTransformSizeCost(blockSize, transformSize, transformSizeContext)
                 : 0;

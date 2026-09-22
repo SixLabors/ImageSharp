@@ -2920,7 +2920,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int transformHeight = transformSize.GetHeight();
                 int sampleCount = transformSize.GetSize2d();
                 int coefficientOffset = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
-                ReadOnlySpan<Av1EncoderTransformBlockState> states = context.GetTransformStates(plane);
+                Span<Av1EncoderTransformBlockState> states = context.GetTransformStates(plane);
                 Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                 Buffer2DRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
                 ReadOnlySpan<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
@@ -3110,6 +3110,14 @@ internal static partial class Av1IntraSuperblockEncoder
                                 int outputOffset = coefficientOffset + (transformIndex * sampleCount);
                                 Av1EncoderTransformBlockState outputState = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
                                     outputOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
+
+                                // encode_block_intra returns a luma transform block that quantized to nothing
+                                // to DCT_DCT, so a later pass over the same block transforms it with the
+                                // default type instead of the one the search happened to pick.
+                                if (plane == Av1Plane.Y && outputState.EndOfBlock == 0)
+                                {
+                                    states[stateIndex].TransformType = Av1TransformType.DctDct;
+                                }
 
                                 byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                                     this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane).Slice(outputOffset, sampleCount),

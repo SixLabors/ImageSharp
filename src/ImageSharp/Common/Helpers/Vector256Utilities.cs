@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -416,13 +417,26 @@ internal static class Vector256_
             }
         }
 
-        Vector256<int> result = Vector256<int>.Zero;
-        for (int lane = 0; lane < Vector256<int>.Count; lane++)
-        {
-            result = result.WithElement(lane, Unsafe.Add(ref table, indices.GetElement(lane)));
-        }
-
-        return result;
+        // A variable lane index defeats both vector accessors: each GetElement spills the index
+        // vector to the stack and reloads one value, and each WithElement spills and reloads the
+        // result. The indices are therefore stored once and the result is built once, which costs
+        // one store, eight loads and one construct.
+        //
+        // The scratch is an inline array rather than a stackalloc. This method is small enough to
+        // inline into a caller loop, and a stackalloc inside a loop body is not released per
+        // iteration, so it would grow the frame of the caller for as long as that method runs.
+        InlineArray8<int> lanes = default;
+        ref int first = ref Unsafe.As<InlineArray8<int>, int>(ref lanes);
+        indices.StoreUnsafe(ref first);
+        return Vector256.Create(
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 0)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 1)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 2)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 3)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 4)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 5)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 6)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 7)));
     }
 
     /// <summary>

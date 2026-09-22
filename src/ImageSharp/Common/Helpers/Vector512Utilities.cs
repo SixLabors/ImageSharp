@@ -218,21 +218,29 @@ internal static class Vector512_
             return Avx512F.Shuffle4x128(lower, upper, control);
         }
 
-        Span<int> indices = stackalloc int[Vector512<int>.Count];
-        for (int lane = 0; lane < 4; lane++)
-        {
-            // A destination lane holds four elements. The first two lanes index the lower vector and
-            // the last two index the upper one, which the offset of sixteen expresses.
-            int source = (control >> (lane * 2)) & 3;
-            int origin = (source * 4) + (lane >= 2 ? 16 : 0);
-            for (int element = 0; element < 4; element++)
-            {
-                indices[(lane * 4) + element] = origin + element;
-            }
-        }
-
-        return PermuteVar16x32x2(lower, Vector512.Create<int>(indices), upper);
+        // The control is a constant, so selecting whole 128-bit lanes lets the JIT fold each choice
+        // away. Building an index vector instead would put a loop and a stack buffer in the path of
+        // what is otherwise four register moves.
+        return Vector512.Create(
+            Vector256.Create(SelectLane(lower, control & 3), SelectLane(lower, (control >> 2) & 3)),
+            Vector256.Create(SelectLane(upper, (control >> 4) & 3), SelectLane(upper, (control >> 6) & 3)));
     }
+
+    /// <summary>
+    /// Returns one 128-bit lane of a vector.
+    /// </summary>
+    /// <param name="value">The vector to read.</param>
+    /// <param name="lane">The lane index, from zero through three.</param>
+    /// <returns>The <see cref="Vector128{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> SelectLane(Vector512<int> value, int lane)
+        => lane switch
+        {
+            0 => value.GetLower().GetLower(),
+            1 => value.GetLower().GetUpper(),
+            2 => value.GetUpper().GetLower(),
+            _ => value.GetUpper().GetUpper(),
+        };
 
     /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing

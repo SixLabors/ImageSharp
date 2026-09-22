@@ -185,36 +185,54 @@ internal sealed class Av1ReferenceFrame : IDisposable
     /// <summary>
     /// Carries the complete state retained only by frames that can be selected as references.
     /// </summary>
-    private readonly struct ReferenceOwnership(
-        Av1FrameInfo.ReferenceState referenceState,
-        EntropyOwnership? entropy)
+    private readonly struct ReferenceOwnership
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceOwnership"/> struct.
+        /// </summary>
+        /// <param name="referenceState">The retained segment and motion state.</param>
+        /// <param name="entropy">The retained entropy snapshot and its return owner when one was published.</param>
+        public ReferenceOwnership(Av1FrameInfo.ReferenceState referenceState, EntropyOwnership? entropy)
+        {
+            this.ReferenceState = referenceState;
+            this.Entropy = entropy;
+        }
+
         /// <summary>
         /// Gets the retained segment and motion state.
         /// </summary>
-        public Av1FrameInfo.ReferenceState ReferenceState { get; } = referenceState;
+        public Av1FrameInfo.ReferenceState ReferenceState { get; }
 
         /// <summary>
         /// Gets the retained entropy snapshot and its return owner when one was published.
         /// </summary>
-        public EntropyOwnership? Entropy { get; } = entropy;
+        public EntropyOwnership? Entropy { get; }
     }
 
     /// <summary>
     /// Pairs a retained entropy snapshot with the decoder-session owner that must receive it on release.
     /// </summary>
-    private readonly struct EntropyOwnership(
-        Av1FrameEntropyContext context,
-        Av1FrameEntropyContexts owner)
+    private readonly struct EntropyOwnership
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EntropyOwnership"/> struct.
+        /// </summary>
+        /// <param name="context">The retained entropy snapshot.</param>
+        /// <param name="owner">The decoder-session owner that receives the snapshot.</param>
+        public EntropyOwnership(Av1FrameEntropyContext context, Av1FrameEntropyContexts owner)
+        {
+            this.Context = context;
+            this.Owner = owner;
+        }
+
         /// <summary>
         /// Gets the retained entropy snapshot.
         /// </summary>
-        public Av1FrameEntropyContext Context { get; } = context;
+        public Av1FrameEntropyContext Context { get; }
 
         /// <summary>
         /// Gets the decoder-session owner that receives the snapshot.
         /// </summary>
-        public Av1FrameEntropyContexts Owner { get; } = owner;
+        public Av1FrameEntropyContexts Owner { get; }
     }
 }

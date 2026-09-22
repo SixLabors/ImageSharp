@@ -6,31 +6,42 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Describes one contiguous extent of an item's encoded data.
 /// </summary>
-/// <param name="origin">The origin from which the base and extent offsets are measured.</param>
-/// <param name="baseOffset">The item-location base offset.</param>
-/// <param name="offset">The extent offset relative to the base offset.</param>
-/// <param name="length">The length of the extent in bytes.</param>
-internal sealed class HeifLocation(HeifLocationOffsetOrigin origin, long baseOffset, long offset, long length)
+internal sealed class HeifLocation
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HeifLocation"/> class.
+    /// </summary>
+    /// <param name="origin">The origin from which the base and extent offsets are measured.</param>
+    /// <param name="baseOffset">The item-location base offset.</param>
+    /// <param name="offset">The extent offset relative to the base offset.</param>
+    /// <param name="length">The length of the extent in bytes.</param>
+    public HeifLocation(HeifLocationOffsetOrigin origin, long baseOffset, long offset, long length)
+    {
+        this.Origin = origin;
+        this.BaseOffset = baseOffset;
+        this.Offset = offset;
+        this.Length = length;
+    }
+
     /// <summary>
     /// Gets the origin of the offsets in this location.
     /// </summary>
-    public HeifLocationOffsetOrigin Origin { get; } = origin;
+    public HeifLocationOffsetOrigin Origin { get; }
 
     /// <summary>
     /// Gets the item-location base offset in bytes.
     /// </summary>
-    public long BaseOffset { get; } = baseOffset;
+    public long BaseOffset { get; }
 
     /// <summary>
     /// Gets the extent offset relative to <see cref="BaseOffset"/> in bytes.
     /// </summary>
-    public long Offset { get; } = offset;
+    public long Offset { get; }
 
     /// <summary>
     /// Gets the extent length in bytes.
     /// </summary>
-    public long Length { get; } = length;
+    public long Length { get; }
 
     /// <summary>
     /// Resolves the absolute stream position of this extent.

@@ -515,12 +515,18 @@ internal static class Av1Ransac
     /// Holds what one fitted model achieved, and where its agreeing points are stored.
     /// </summary>
     /// <remarks>Reference: RANSAC_MOTION.</remarks>
-    private struct Trial(int offset)
+    private struct Trial
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Trial"/> struct.
+        /// </summary>
+        /// <param name="offset">The index at which this trial's agreeing points begin.</param>
+        public Trial(int offset) => this.Offset = offset;
+
         /// <summary>
         /// Gets the index at which this trial's agreeing points begin.
         /// </summary>
-        public int Offset { get; } = offset;
+        public int Offset { get; }
 
         /// <summary>
         /// Gets or sets the correspondences that agree with the model.

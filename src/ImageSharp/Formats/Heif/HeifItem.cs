@@ -10,23 +10,32 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Describes a metadata or image item in a HEIF still-image container.
 /// </summary>
-/// <param name="type">The four-character item type.</param>
-/// <param name="id">The item identifier used by locations, properties, and references.</param>
-internal sealed class HeifItem(Heif4CharCode type, uint id)
+internal sealed class HeifItem
 {
     private IccProfile? iccProfile;
 
     private ReadOnlyMemory<byte> serializedIccProfile;
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="HeifItem"/> class.
+    /// </summary>
+    /// <param name="type">The four-character item type.</param>
+    /// <param name="id">The item identifier used by locations, properties, and references.</param>
+    public HeifItem(Heif4CharCode type, uint id)
+    {
+        this.Type = type;
+        this.Id = id;
+    }
+
+    /// <summary>
     /// Gets the ID of this Item.
     /// </summary>
-    public uint Id { get; } = id;
+    public uint Id { get; }
 
     /// <summary>
     /// Gets the type of this Item.
     /// </summary>
-    public Heif4CharCode Type { get; } = type;
+    public Heif4CharCode Type { get; }
 
     /// <summary>
     /// Gets or sets a value indicating whether this item is excluded from primary-item discovery.

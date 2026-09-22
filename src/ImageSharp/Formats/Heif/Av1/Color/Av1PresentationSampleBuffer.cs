@@ -708,17 +708,39 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// <returns>The ceiling-rounded quotient.</returns>
     private static int DivideCeiling(int value, int divisor) => (value + divisor - 1) / divisor;
 
-    private readonly struct ChromaPlanes(Buffer2D<TSample> blue, Buffer2D<TSample> red)
+    private readonly struct ChromaPlanes
     {
-        public Buffer2D<TSample> Blue { get; } = blue;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ChromaPlanes"/> struct.
+        /// </summary>
+        /// <param name="blue">The blue.</param>
+        /// <param name="red">The red.</param>
+        public ChromaPlanes(Buffer2D<TSample> blue, Buffer2D<TSample> red)
+        {
+            this.Blue = blue;
+            this.Red = red;
+        }
 
-        public Buffer2D<TSample> Red { get; } = red;
+        public Buffer2D<TSample> Blue { get; }
+
+        public Buffer2D<TSample> Red { get; }
     }
 
-    private readonly struct PresentationPlanes(Buffer2D<TSample> luma, ChromaPlanes? chroma)
+    private readonly struct PresentationPlanes
     {
-        public Buffer2D<TSample> Luma { get; } = luma;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PresentationPlanes"/> struct.
+        /// </summary>
+        /// <param name="luma">The luma.</param>
+        /// <param name="chroma">The chroma.</param>
+        public PresentationPlanes(Buffer2D<TSample> luma, ChromaPlanes? chroma)
+        {
+            this.Luma = luma;
+            this.Chroma = chroma;
+        }
 
-        public ChromaPlanes? Chroma { get; } = chroma;
+        public Buffer2D<TSample> Luma { get; }
+
+        public ChromaPlanes? Chroma { get; }
     }
 }

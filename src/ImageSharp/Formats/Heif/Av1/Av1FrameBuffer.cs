@@ -737,22 +737,35 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// Carries the one frame owner, mandatory luma view, and optional complete chroma pair as one state.
     /// </summary>
-    private readonly struct FramePlanes(IMemoryOwner<T> owner, Buffer2D<T> luma, ChromaPlanes? chroma)
+    private readonly struct FramePlanes
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FramePlanes"/> struct.
+        /// </summary>
+        /// <param name="owner">The owner.</param>
+        /// <param name="luma">The luma.</param>
+        /// <param name="chroma">The chroma.</param>
+        public FramePlanes(IMemoryOwner<T> owner, Buffer2D<T> luma, ChromaPlanes? chroma)
+        {
+            this.Owner = owner;
+            this.Luma = luma;
+            this.Chroma = chroma;
+        }
+
         /// <summary>
         /// Gets the complete frame allocation.
         /// </summary>
-        public IMemoryOwner<T> Owner { get; } = owner;
+        public IMemoryOwner<T> Owner { get; }
 
         /// <summary>
         /// Gets the padded luma plane.
         /// </summary>
-        public Buffer2D<T> Luma { get; } = luma;
+        public Buffer2D<T> Luma { get; }
 
         /// <summary>
         /// Gets the padded chroma planes when the frame contains chroma.
         /// </summary>
-        public ChromaPlanes? Chroma { get; } = chroma;
+        public ChromaPlanes? Chroma { get; }
 
         /// <summary>
         /// Releases row views while leaving the complete allocation with its current owner.
@@ -772,46 +785,70 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// Describes the physical storage slices used by the component-plane views.
     /// </summary>
-    private readonly struct FrameBufferLayout(
-        int lumaStorageWidth,
-        int lumaHeight,
-        int lumaElementCount,
-        int chromaStorageWidth,
-        int chromaHeight,
-        int chromaElementCount,
-        int chromaBlueOffset,
-        int chromaRedOffset,
-        int storageLength)
+    private readonly struct FrameBufferLayout
     {
-        public int LumaStorageWidth { get; } = lumaStorageWidth;
+        public FrameBufferLayout(
+            int lumaStorageWidth,
+            int lumaHeight,
+            int lumaElementCount,
+            int chromaStorageWidth,
+            int chromaHeight,
+            int chromaElementCount,
+            int chromaBlueOffset,
+            int chromaRedOffset,
+            int storageLength)
+        {
+            this.LumaStorageWidth = lumaStorageWidth;
+            this.LumaHeight = lumaHeight;
+            this.LumaElementCount = lumaElementCount;
+            this.ChromaStorageWidth = chromaStorageWidth;
+            this.ChromaHeight = chromaHeight;
+            this.ChromaElementCount = chromaElementCount;
+            this.ChromaBlueOffset = chromaBlueOffset;
+            this.ChromaRedOffset = chromaRedOffset;
+            this.StorageLength = storageLength;
+        }
 
-        public int LumaHeight { get; } = lumaHeight;
+        public int LumaStorageWidth { get; }
 
-        public int LumaElementCount { get; } = lumaElementCount;
+        public int LumaHeight { get; }
 
-        public int ChromaStorageWidth { get; } = chromaStorageWidth;
+        public int LumaElementCount { get; }
 
-        public int ChromaHeight { get; } = chromaHeight;
+        public int ChromaStorageWidth { get; }
 
-        public int ChromaElementCount { get; } = chromaElementCount;
+        public int ChromaHeight { get; }
 
-        public int ChromaBlueOffset { get; } = chromaBlueOffset;
+        public int ChromaElementCount { get; }
 
-        public int ChromaRedOffset { get; } = chromaRedOffset;
+        public int ChromaBlueOffset { get; }
 
-        public int StorageLength { get; } = storageLength;
+        public int ChromaRedOffset { get; }
+
+        public int StorageLength { get; }
     }
 
-    private readonly struct ChromaPlanes(Buffer2D<T> blue, Buffer2D<T> red)
+    private readonly struct ChromaPlanes
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ChromaPlanes"/> struct.
+        /// </summary>
+        /// <param name="blue">The blue.</param>
+        /// <param name="red">The red.</param>
+        public ChromaPlanes(Buffer2D<T> blue, Buffer2D<T> red)
+        {
+            this.Blue = blue;
+            this.Red = red;
+        }
+
         /// <summary>
         /// Gets the padded blue-difference plane.
         /// </summary>
-        public Buffer2D<T> Blue { get; } = blue;
+        public Buffer2D<T> Blue { get; }
 
         /// <summary>
         /// Gets the padded red-difference plane.
         /// </summary>
-        public Buffer2D<T> Red { get; } = red;
+        public Buffer2D<T> Red { get; }
     }
 }

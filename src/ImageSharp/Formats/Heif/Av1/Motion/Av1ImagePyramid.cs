@@ -311,31 +311,43 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <summary>
     /// Describes the geometry of one pyramid level.
     /// </summary>
-    /// <param name="width">The coded width.</param>
-    /// <param name="height">The coded height.</param>
-    /// <param name="stride">The row stride, including both borders.</param>
-    /// <param name="offset">The index of the level's storage within the pyramid storage.</param>
-    internal readonly struct Level(int width, int height, int stride, int offset)
+    internal readonly struct Level
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Level"/> struct.
+        /// </summary>
+        /// <param name="width">The coded width.</param>
+        /// <param name="height">The coded height.</param>
+        /// <param name="stride">The row stride, including both borders.</param>
+        /// <param name="offset">The index of the level's storage within the pyramid storage.</param>
+        public Level(int width, int height, int stride, int offset)
+        {
+            this.Width = width;
+            this.Height = height;
+            this.Stride = stride;
+            this.Offset = offset;
+            this.Origin = (Padding * stride) + Padding;
+        }
+
         /// <summary>
         /// Gets the coded width.
         /// </summary>
-        public int Width { get; } = width;
+        public int Width { get; }
 
         /// <summary>
         /// Gets the coded height.
         /// </summary>
-        public int Height { get; } = height;
+        public int Height { get; }
 
         /// <summary>
         /// Gets the row stride, including both borders.
         /// </summary>
-        public int Stride { get; } = stride;
+        public int Stride { get; }
 
         /// <summary>
         /// Gets the index of the level's storage within the pyramid storage.
         /// </summary>
-        public int Offset { get; } = offset;
+        public int Offset { get; }
 
         /// <summary>
         /// Gets the index of the first coded sample within the level's storage.
@@ -344,6 +356,6 @@ internal sealed class Av1ImagePyramid : IDisposable
         /// The border occupies the rows and columns before this index, so a caller may subtract up
         /// to the padding from it on either axis.
         /// </remarks>
-        public int Origin { get; } = (Padding * stride) + Padding;
+        public int Origin { get; }
     }
 }

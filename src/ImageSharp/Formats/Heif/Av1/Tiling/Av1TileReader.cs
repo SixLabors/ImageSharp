@@ -3485,16 +3485,27 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Carries the two shared palette maps as one valid constructor state.
     /// </summary>
-    internal readonly struct PaletteColorIndexMaps(Buffer2D<byte> luma, Buffer2D<byte> chroma)
+    internal readonly struct PaletteColorIndexMaps
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PaletteColorIndexMaps"/> struct.
+        /// </summary>
+        /// <param name="luma">The luma.</param>
+        /// <param name="chroma">The chroma.</param>
+        public PaletteColorIndexMaps(Buffer2D<byte> luma, Buffer2D<byte> chroma)
+        {
+            this.Luma = luma;
+            this.Chroma = chroma;
+        }
+
         /// <summary>
         /// Gets the shared luma palette map.
         /// </summary>
-        public Buffer2D<byte> Luma { get; } = luma;
+        public Buffer2D<byte> Luma { get; }
 
         /// <summary>
         /// Gets the shared chroma palette map.
         /// </summary>
-        public Buffer2D<byte> Chroma { get; } = chroma;
+        public Buffer2D<byte> Chroma { get; }
     }
 }

@@ -3065,16 +3065,20 @@ internal sealed class ObuReader
 
     // The generic providers keep the fixed-reader and factory contracts distinct without allocating
     // a closure for fixed-reader payloads or admitting an invalid pair of nullable arguments.
-    private readonly struct TileReaderFactoryProvider(Func<IAv1TileReader> creator) : ITileReaderProvider
+    private readonly struct TileReaderFactoryProvider : ITileReaderProvider
     {
-        private readonly Func<IAv1TileReader> creator = creator;
+        private readonly Func<IAv1TileReader> creator;
+
+        public TileReaderFactoryProvider(Func<IAv1TileReader> creator) => this.creator = creator;
 
         public IAv1TileReader Get() => this.creator();
     }
 
-    private readonly struct FixedTileReaderProvider(IAv1TileReader tileReader) : ITileReaderProvider
+    private readonly struct FixedTileReaderProvider : ITileReaderProvider
     {
-        private readonly IAv1TileReader tileReader = tileReader;
+        private readonly IAv1TileReader tileReader;
+
+        public FixedTileReaderProvider(IAv1TileReader tileReader) => this.tileReader = tileReader;
 
         public IAv1TileReader Get() => this.tileReader;
     }

@@ -6,25 +6,35 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 /// <summary>
 /// Describes the explicit payload sizes that delimit the first three layers of a layered AV1 image item.
 /// </summary>
-/// <param name="firstLayerSize">The first layer size in bytes.</param>
-/// <param name="secondLayerSize">The second layer size in bytes.</param>
-/// <param name="thirdLayerSize">The third layer size in bytes.</param>
-internal readonly struct Av1LayeredImageIndex(uint firstLayerSize, uint secondLayerSize, uint thirdLayerSize)
+internal readonly struct Av1LayeredImageIndex
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1LayeredImageIndex"/> struct.
+    /// </summary>
+    /// <param name="firstLayerSize">The first layer size in bytes.</param>
+    /// <param name="secondLayerSize">The second layer size in bytes.</param>
+    /// <param name="thirdLayerSize">The third layer size in bytes.</param>
+    public Av1LayeredImageIndex(uint firstLayerSize, uint secondLayerSize, uint thirdLayerSize)
+    {
+        this.FirstLayerSize = firstLayerSize;
+        this.SecondLayerSize = secondLayerSize;
+        this.ThirdLayerSize = thirdLayerSize;
+    }
+
     /// <summary>
     /// Gets the first layer size in bytes.
     /// </summary>
-    public uint FirstLayerSize { get; } = firstLayerSize;
+    public uint FirstLayerSize { get; }
 
     /// <summary>
     /// Gets the second layer size in bytes.
     /// </summary>
-    public uint SecondLayerSize { get; } = secondLayerSize;
+    public uint SecondLayerSize { get; }
 
     /// <summary>
     /// Gets the third layer size in bytes.
     /// </summary>
-    public uint ThirdLayerSize { get; } = thirdLayerSize;
+    public uint ThirdLayerSize { get; }
 
     /// <summary>
     /// Gets the number of item bytes needed to decode the selected spatial layer.

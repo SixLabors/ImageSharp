@@ -937,25 +937,38 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <summary>
     /// Carries the active frame resources as one valid state so no partially initialized combination can be observed.
     /// </summary>
-    private readonly struct FrameDecodeState(
-        Av1TileReader tileReader,
-        Av1FrameBuffer<byte> frameBuffer,
-        Av1FrameDecoder frameDecoder) : IDisposable
+    private readonly struct FrameDecodeState : IDisposable
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FrameDecodeState"/> struct.
+        /// </summary>
+        /// <param name="tileReader">The tile parser shared by all tile groups in the frame.</param>
+        /// <param name="frameBuffer">The destination sample buffer reconstructed by the frame pipeline.</param>
+        /// <param name="frameDecoder">The reconstruction pipeline for the frame.</param>
+        public FrameDecodeState(
+            Av1TileReader tileReader,
+            Av1FrameBuffer<byte> frameBuffer,
+            Av1FrameDecoder frameDecoder)
+        {
+            this.TileReader = tileReader;
+            this.FrameBuffer = frameBuffer;
+            this.FrameDecoder = frameDecoder;
+        }
+
         /// <summary>
         /// Gets the tile parser shared by all tile groups in the frame.
         /// </summary>
-        public Av1TileReader TileReader { get; } = tileReader;
+        public Av1TileReader TileReader { get; }
 
         /// <summary>
         /// Gets the destination sample buffer reconstructed by the frame pipeline.
         /// </summary>
-        public Av1FrameBuffer<byte> FrameBuffer { get; } = frameBuffer;
+        public Av1FrameBuffer<byte> FrameBuffer { get; }
 
         /// <summary>
         /// Gets the reconstruction pipeline for the frame.
         /// </summary>
-        public Av1FrameDecoder FrameDecoder { get; } = frameDecoder;
+        public Av1FrameDecoder FrameDecoder { get; }
 
         /// <summary>
         /// Releases every resource when ownership has not transferred to a completed frame.

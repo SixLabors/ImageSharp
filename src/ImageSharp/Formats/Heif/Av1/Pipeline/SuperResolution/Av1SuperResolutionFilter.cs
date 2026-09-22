@@ -143,30 +143,7 @@ internal static class Av1SuperResolutionFilter
     /// <param name="step">The fixed-point source-position increment.</param>
     /// <param name="initialSubpixel">The initial fixed-point source position.</param>
     public static void UpscaleRow(ReadOnlySpan<byte> source, Span<byte> destination, int step, int initialSubpixel)
-    {
-        ref byte sourceBase = ref MemoryMarshal.GetReference(source);
-        ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
-        int sourcePosition = initialSubpixel;
-        int column = 0;
-        if (Vector128.IsHardwareAccelerated)
-        {
-            for (; column <= destination.Length - OutputGroupSize; column += OutputGroupSize)
-            {
-                Vector128<int> filtered = FilterFour(ref sourceBase, sourcePosition, step);
-                Vector128<ushort> samples16 = Vector128_.PackUnsignedSaturate(filtered, Vector128<int>.Zero);
-                Vector128<byte> samples8 = Vector128_.PackUnsignedSaturate(samples16.AsInt16(), Vector128<short>.Zero);
-
-                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destinationBase, column), samples8.AsUInt32().GetElement(0));
-                sourcePosition += step * OutputGroupSize;
-            }
-        }
-
-        for (; column < destination.Length; column++)
-        {
-            Unsafe.Add(ref destinationBase, column) = (byte)FilterOne(ref sourceBase, sourcePosition, byte.MaxValue);
-            sourcePosition += step;
-        }
-    }
+        => UpscaleRowCore(source, destination, step, initialSubpixel, byte.MaxValue);
 
     /// <summary>
     /// Upscales one replicated-edge eight-bit source row into 16-bit output storage.
@@ -176,29 +153,7 @@ internal static class Av1SuperResolutionFilter
     /// <param name="step">The fixed-point source-position increment.</param>
     /// <param name="initialSubpixel">The initial fixed-point source position.</param>
     public static void UpscaleRow(ReadOnlySpan<byte> source, Span<ushort> destination, int step, int initialSubpixel)
-    {
-        ref byte sourceBase = ref MemoryMarshal.GetReference(source);
-        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        int sourcePosition = initialSubpixel;
-        int column = 0;
-        if (Vector128.IsHardwareAccelerated)
-        {
-            for (; column <= destination.Length - OutputGroupSize; column += OutputGroupSize)
-            {
-                Vector128<int> filtered = FilterFour(ref sourceBase, sourcePosition, step);
-                Vector128<ushort> samples = Vector128_.PackUnsignedSaturate(filtered, Vector128<int>.Zero);
-
-                samples.GetLower().StoreUnsafe(ref destinationBase, (nuint)column);
-                sourcePosition += step * OutputGroupSize;
-            }
-        }
-
-        for (; column < destination.Length; column++)
-        {
-            Unsafe.Add(ref destinationBase, column) = (ushort)FilterOne(ref sourceBase, sourcePosition, byte.MaxValue);
-            sourcePosition += step;
-        }
-    }
+        => UpscaleRowCore(source, destination, step, initialSubpixel, byte.MaxValue);
 
     /// <summary>
     /// Upscales one replicated-edge high-bit-depth source row into 16-bit output storage.
@@ -209,41 +164,128 @@ internal static class Av1SuperResolutionFilter
     /// <param name="initialSubpixel">The initial fixed-point source position.</param>
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     public static void UpscaleRow(ReadOnlySpan<ushort> source, Span<ushort> destination, int step, int initialSubpixel, int bitDepth)
+        => UpscaleRowCore(source, destination, step, initialSubpixel, (1 << bitDepth) - 1);
+
+    /// <summary>
+    /// Upscales one replicated-edge source row of either depth.
+    /// </summary>
+    /// <typeparam name="TSource">Byte or ushort, selected by the coded depth.</typeparam>
+    /// <typeparam name="TDestination">Byte or ushort, selected by the destination plane.</typeparam>
+    /// <param name="source">The coded row with <see cref="SourceBorder"/> replicated samples on each edge.</param>
+    /// <param name="destination">The upscaled destination row.</param>
+    /// <param name="step">The fixed-point source-position increment.</param>
+    /// <param name="initialSubpixel">The initial fixed-point source position.</param>
+    /// <param name="maximum">The largest sample the coded depth permits.</param>
+    /// <remarks>
+    /// Every output position samples the source at its own fixed-point position with its own set of
+    /// taps, so four outputs are evaluated together and the position advances by four steps. The
+    /// eight-tap kernel overshoots on an edge, so both the vector stage and the scalar tail clip to
+    /// the coded depth. Reference: av1_upscale_normative_rows().
+    /// </remarks>
+    private static void UpscaleRowCore<TSource, TDestination>(
+        ReadOnlySpan<TSource> source,
+        Span<TDestination> destination,
+        int step,
+        int initialSubpixel,
+        int maximum)
+        where TSource : unmanaged
+        where TDestination : unmanaged
     {
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
-        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        int maximum = (1 << bitDepth) - 1;
+        ref TSource sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TDestination destinationBase = ref MemoryMarshal.GetReference(destination);
         int sourcePosition = initialSubpixel;
         int column = 0;
+
         if (Vector128.IsHardwareAccelerated)
         {
             Vector128<ushort> maximumVector = Vector128.Create((ushort)maximum);
             for (; column <= destination.Length - OutputGroupSize; column += OutputGroupSize)
             {
                 Vector128<int> filtered = FilterFour(ref sourceBase, sourcePosition, step);
-                Vector128<ushort> samples = Vector128.Min(Vector128_.PackUnsignedSaturate(filtered, Vector128<int>.Zero), maximumVector);
 
-                samples.GetLower().StoreUnsafe(ref destinationBase, (nuint)column);
+                // The saturating pack holds the results at zero and below 65536. The clip that
+                // follows is what brings them inside the coded depth, and it is the same clip the
+                // scalar tail applies.
+                Vector128<ushort> samples = Vector128.Min(
+                    Vector128_.PackUnsignedSaturate(filtered, Vector128<int>.Zero), maximumVector);
+
+                StoreFour(samples, ref destinationBase, column);
                 sourcePosition += step * OutputGroupSize;
             }
         }
 
         for (; column < destination.Length; column++)
         {
-            Unsafe.Add(ref destinationBase, column) = (ushort)FilterOne(ref sourceBase, sourcePosition, maximum);
+            WriteSample(ref destinationBase, column, FilterOne(ref sourceBase, sourcePosition, maximum));
             sourcePosition += step;
         }
     }
 
     /// <summary>
-    /// Evaluates four consecutive output positions from an eight-bit source row.
+    /// Stores four upscaled samples at the depth of the destination plane.
     /// </summary>
+    /// <typeparam name="TDestination">Byte or ushort, selected by the destination plane.</typeparam>
+    /// <param name="samples">The four clipped samples in the lowest lanes.</param>
+    /// <param name="destination">The first sample of the destination row.</param>
+    /// <param name="column">The destination column.</param>
+    /// <remarks>
+    /// The samples are already inside the range of the destination, so the narrowing an eight-bit
+    /// plane needs cannot lose a value.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreFour<TDestination>(Vector128<ushort> samples, ref TDestination destination, int column)
+        where TDestination : unmanaged
+    {
+        ref TDestination sample = ref Unsafe.Add(ref destination, column);
+        if (Unsafe.SizeOf<TDestination>() == 1)
+        {
+            Vector128<byte> packed = Vector128_.PackUnsignedSaturate(samples.AsInt16(), Vector128<short>.Zero);
+            Unsafe.WriteUnaligned(ref Unsafe.As<TDestination, byte>(ref sample), packed.AsUInt32().GetElement(0));
+            return;
+        }
+
+        samples.GetLower().StoreUnsafe(ref Unsafe.As<TDestination, ushort>(ref sample));
+    }
+
+    /// <summary>
+    /// Writes one upscaled sample at the depth of the destination plane.
+    /// </summary>
+    /// <typeparam name="TDestination">Byte or ushort, selected by the destination plane.</typeparam>
+    /// <param name="destination">The first sample of the destination row.</param>
+    /// <param name="column">The destination column.</param>
+    /// <param name="value">The clipped sample.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WriteSample<TDestination>(ref TDestination destination, int column, int value)
+        where TDestination : unmanaged
+    {
+        ref TDestination sample = ref Unsafe.Add(ref destination, column);
+        if (Unsafe.SizeOf<TDestination>() == 1)
+        {
+            Unsafe.As<TDestination, byte>(ref sample) = (byte)value;
+            return;
+        }
+
+        Unsafe.As<TDestination, ushort>(ref sample) = (ushort)value;
+    }
+
+    /// <summary>
+    /// Evaluates four consecutive output positions from a source row of either depth.
+    /// </summary>
+    /// <typeparam name="TSource">Byte or ushort, selected by the coded depth.</typeparam>
     /// <param name="source">The first sample in the replicated-edge source row.</param>
     /// <param name="sourcePosition">The first fixed-point source position.</param>
     /// <param name="step">The fixed-point increment between output samples.</param>
     /// <returns>The rounded filter results in output order.</returns>
+    /// <remarks>
+    /// The replicated edge guarantees that all eight taps of every output are contiguous, including
+    /// the first and the last, so each tap set is one load. An eight-bit row is read through a
+    /// packed integer and widened, which touches only the eight samples the output owns. A
+    /// high-bit-depth row is at most twelve bits, so its signed view stays positive and the same
+    /// pairwise multiply-add serves both depths.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<int> FilterFour(ref byte source, int sourcePosition, int step)
+    private static Vector128<int> FilterFour<TSource>(ref TSource source, int sourcePosition, int step)
+        where TSource : unmanaged
     {
         GetOffsets(sourcePosition, out int sourceOffset0, out int filterOffset0);
         GetOffsets(sourcePosition + step, out int sourceOffset1, out int filterOffset1);
@@ -251,18 +293,11 @@ internal static class Av1SuperResolutionFilter
         GetOffsets(sourcePosition + (step * 3), out int sourceOffset3, out int filterOffset3);
 
         ref short filter = ref MemoryMarshal.GetReference(Filters);
-
-        // Replicated edge storage guarantees all eight taps are contiguous even for the first and last output. Exact
-        // 64-bit reads avoid depending on additional row padding before widening each tap set to signed Int16 lanes.
-        Vector128<short> samples0 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, sourceOffset0))).AsByte()).AsInt16();
-        Vector128<short> samples1 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, sourceOffset1))).AsByte()).AsInt16();
-        Vector128<short> samples2 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, sourceOffset2))).AsByte()).AsInt16();
-        Vector128<short> samples3 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, sourceOffset3))).AsByte()).AsInt16();
         return FilterFour(
-            samples0,
-            samples1,
-            samples2,
-            samples3,
+            LoadTaps(ref source, sourceOffset0),
+            LoadTaps(ref source, sourceOffset1),
+            LoadTaps(ref source, sourceOffset2),
+            LoadTaps(ref source, sourceOffset3),
             Vector128.LoadUnsafe(ref filter, (nuint)filterOffset0),
             Vector128.LoadUnsafe(ref filter, (nuint)filterOffset1),
             Vector128.LoadUnsafe(ref filter, (nuint)filterOffset2),
@@ -270,33 +305,64 @@ internal static class Av1SuperResolutionFilter
     }
 
     /// <summary>
-    /// Evaluates four consecutive output positions from a high-bit-depth source row.
+    /// Loads the eight taps of one output position as signed sixteen-bit lanes.
     /// </summary>
+    /// <typeparam name="TSource">Byte or ushort, selected by the coded depth.</typeparam>
     /// <param name="source">The first sample in the replicated-edge source row.</param>
-    /// <param name="sourcePosition">The first fixed-point source position.</param>
-    /// <param name="step">The fixed-point increment between output samples.</param>
-    /// <returns>The rounded filter results in output order.</returns>
+    /// <param name="offset">The sample offset of the first tap.</param>
+    /// <returns>The eight taps in increasing column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<int> FilterFour(ref ushort source, int sourcePosition, int step)
+    private static Vector128<short> LoadTaps<TSource>(ref TSource source, int offset)
+        where TSource : unmanaged
     {
-        GetOffsets(sourcePosition, out int sourceOffset0, out int filterOffset0);
-        GetOffsets(sourcePosition + step, out int sourceOffset1, out int filterOffset1);
-        GetOffsets(sourcePosition + (step * 2), out int sourceOffset2, out int filterOffset2);
-        GetOffsets(sourcePosition + (step * 3), out int sourceOffset3, out int filterOffset3);
+        ref TSource sample = ref Unsafe.Add(ref source, offset);
+        if (Unsafe.SizeOf<TSource>() == 1)
+        {
+            ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<TSource, byte>(ref sample));
+            return Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte()).AsInt16();
+        }
+
+        return Vector128.LoadUnsafe(ref Unsafe.As<TSource, short>(ref sample));
+    }
+
+    /// <summary>
+    /// Evaluates one output position from a source row of either depth.
+    /// </summary>
+    /// <typeparam name="TSource">Byte or ushort, selected by the coded depth.</typeparam>
+    /// <param name="source">The first sample in the replicated-edge source row.</param>
+    /// <param name="sourcePosition">The fixed-point source position.</param>
+    /// <param name="maximum">The largest sample the coded depth permits.</param>
+    /// <returns>The rounded and clipped output sample.</returns>
+    private static int FilterOne<TSource>(ref TSource source, int sourcePosition, int maximum)
+        where TSource : unmanaged
+    {
+        GetOffsets(sourcePosition, out int sourceOffset, out int filterOffset);
 
         ref short filter = ref MemoryMarshal.GetReference(Filters);
+        int sum = 0;
+        for (int tap = 0; tap < TapCount; tap++)
+        {
+            sum += ReadSample(ref source, sourceOffset + tap) * Unsafe.Add(ref filter, filterOffset + tap);
+        }
 
-        // AV1 high-bit-depth samples are at most twelve bits, so their signed Int16 view remains positive. Keeping the
-        // tap and coefficient types equal enables the same pairwise multiply-add reduction as the eight-bit path.
-        return FilterFour(
-            Vector128.LoadUnsafe(ref source, (nuint)sourceOffset0).AsInt16(),
-            Vector128.LoadUnsafe(ref source, (nuint)sourceOffset1).AsInt16(),
-            Vector128.LoadUnsafe(ref source, (nuint)sourceOffset2).AsInt16(),
-            Vector128.LoadUnsafe(ref source, (nuint)sourceOffset3).AsInt16(),
-            Vector128.LoadUnsafe(ref filter, (nuint)filterOffset0),
-            Vector128.LoadUnsafe(ref filter, (nuint)filterOffset1),
-            Vector128.LoadUnsafe(ref filter, (nuint)filterOffset2),
-            Vector128.LoadUnsafe(ref filter, (nuint)filterOffset3));
+        return Av1Math.Clip3(0, maximum, (sum + FilterRounding) >> FilterBits);
+    }
+
+    /// <summary>
+    /// Reads one sample of either depth.
+    /// </summary>
+    /// <typeparam name="TSource">Byte or ushort, selected by the coded depth.</typeparam>
+    /// <param name="source">The first sample in the replicated-edge source row.</param>
+    /// <param name="offset">The sample offset.</param>
+    /// <returns>The sample value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ReadSample<TSource>(ref TSource source, int offset)
+        where TSource : unmanaged
+    {
+        ref TSource sample = ref Unsafe.Add(ref source, offset);
+        return Unsafe.SizeOf<TSource>() == 1
+            ? Unsafe.As<TSource, byte>(ref sample)
+            : Unsafe.As<TSource, ushort>(ref sample);
     }
 
     /// <summary>

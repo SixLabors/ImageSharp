@@ -3910,6 +3910,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             workspace.CandidateTransformBlocks,
                             out bool skipSmallerTransforms);
 
+                        Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                            $"TXWINNER {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)candidate.Mode} filter {(int)candidate.FilterMode} depth {depth} txsize {(int)size} rate {statistics.Rate} dist {statistics.Distortion} rd {statistics.Cost} best {selectedStatistics.Cost} var {sourceVariance}");
+
                         if (statistics.Cost < selectedStatistics.Cost)
                         {
                             CopyTiledCandidate(

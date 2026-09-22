@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
@@ -49,7 +48,7 @@ internal static partial class Av1CdefFilter
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             // AV1 plane dimensions are multiples of four, so the CDEF copy has an even row count. Processing two rows
             // together follows the reference decoder's AVX2 scheduling while each conversion widens sixteen unsigned samples exactly.
@@ -65,8 +64,8 @@ internal static partial class Av1CdefFilter
                 {
                     Vector128<byte> first = Vector128.LoadUnsafe(ref sourceBase, (nuint)(firstSourceRow + column));
                     Vector128<byte> second = Vector128.LoadUnsafe(ref sourceBase, (nuint)(secondSourceRow + column));
-                    Avx2.ConvertToVector256Int16(first).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(firstDestinationRow + column));
-                    Avx2.ConvertToVector256Int16(second).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(secondDestinationRow + column));
+                    Vector256_.Widen(first).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(firstDestinationRow + column));
+                    Vector256_.Widen(second).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(secondDestinationRow + column));
                 }
 
                 CopyRemainingSamples(ref sourceBase, firstSourceRow, ref destinationBase, firstDestinationRow, column, width);
@@ -160,7 +159,7 @@ internal static partial class Av1CdefFilter
         out int secondDirection,
         out int secondVariance)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             FindDirectionsVector(
                 source,
@@ -485,7 +484,7 @@ internal static partial class Av1CdefFilter
         where TOutputOperator : struct, IOutputOperator<TSample>
         where TFilterOperator : struct, IFilterOperator
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             FilterBlockWideVector<TSample, TOutputOperator, TFilterOperator>(
                 ref source,
@@ -877,47 +876,47 @@ internal static partial class Av1CdefFilter
         Vector256<int> diagonalWeights0,
         Vector256<int> diagonalWeights1)
     {
-        Vector256<short> partial4A = Avx2.ShiftLeftLogical128BitLane(lines[0].AsByte(), 14).AsInt16();
-        Vector256<short> partial4B = Avx2.ShiftRightLogical128BitLane(lines[0].AsByte(), 2).AsInt16();
-        partial4A += Avx2.ShiftLeftLogical128BitLane(lines[1].AsByte(), 12).AsInt16();
-        partial4B += Avx2.ShiftRightLogical128BitLane(lines[1].AsByte(), 4).AsInt16();
+        Vector256<short> partial4A = Vector256_.ShiftLeftBytesInLane(lines[0].AsByte(), 14).AsInt16();
+        Vector256<short> partial4B = Vector256_.ShiftRightBytesInLane(lines[0].AsByte(), 2).AsInt16();
+        partial4A += Vector256_.ShiftLeftBytesInLane(lines[1].AsByte(), 12).AsInt16();
+        partial4B += Vector256_.ShiftRightBytesInLane(lines[1].AsByte(), 4).AsInt16();
         Vector256<short> pair = lines[0] + lines[1];
-        Vector256<short> partial5A = Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 10).AsInt16();
-        Vector256<short> partial5B = Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 6).AsInt16();
-        Vector256<short> partial7A = Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 4).AsInt16();
-        Vector256<short> partial7B = Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 12).AsInt16();
+        Vector256<short> partial5A = Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 10).AsInt16();
+        Vector256<short> partial5B = Vector256_.ShiftRightBytesInLane(pair.AsByte(), 6).AsInt16();
+        Vector256<short> partial7A = Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 4).AsInt16();
+        Vector256<short> partial7B = Vector256_.ShiftRightBytesInLane(pair.AsByte(), 12).AsInt16();
         Vector256<short> partial6 = pair;
 
-        partial4A += Avx2.ShiftLeftLogical128BitLane(lines[2].AsByte(), 10).AsInt16();
-        partial4B += Avx2.ShiftRightLogical128BitLane(lines[2].AsByte(), 6).AsInt16();
-        partial4A += Avx2.ShiftLeftLogical128BitLane(lines[3].AsByte(), 8).AsInt16();
-        partial4B += Avx2.ShiftRightLogical128BitLane(lines[3].AsByte(), 8).AsInt16();
+        partial4A += Vector256_.ShiftLeftBytesInLane(lines[2].AsByte(), 10).AsInt16();
+        partial4B += Vector256_.ShiftRightBytesInLane(lines[2].AsByte(), 6).AsInt16();
+        partial4A += Vector256_.ShiftLeftBytesInLane(lines[3].AsByte(), 8).AsInt16();
+        partial4B += Vector256_.ShiftRightBytesInLane(lines[3].AsByte(), 8).AsInt16();
         pair = lines[2] + lines[3];
-        partial5A += Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 8).AsInt16();
-        partial5B += Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 8).AsInt16();
-        partial7A += Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 6).AsInt16();
-        partial7B += Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 10).AsInt16();
+        partial5A += Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 8).AsInt16();
+        partial5B += Vector256_.ShiftRightBytesInLane(pair.AsByte(), 8).AsInt16();
+        partial7A += Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 6).AsInt16();
+        partial7B += Vector256_.ShiftRightBytesInLane(pair.AsByte(), 10).AsInt16();
         partial6 += pair;
 
-        partial4A += Avx2.ShiftLeftLogical128BitLane(lines[4].AsByte(), 6).AsInt16();
-        partial4B += Avx2.ShiftRightLogical128BitLane(lines[4].AsByte(), 10).AsInt16();
-        partial4A += Avx2.ShiftLeftLogical128BitLane(lines[5].AsByte(), 4).AsInt16();
-        partial4B += Avx2.ShiftRightLogical128BitLane(lines[5].AsByte(), 12).AsInt16();
+        partial4A += Vector256_.ShiftLeftBytesInLane(lines[4].AsByte(), 6).AsInt16();
+        partial4B += Vector256_.ShiftRightBytesInLane(lines[4].AsByte(), 10).AsInt16();
+        partial4A += Vector256_.ShiftLeftBytesInLane(lines[5].AsByte(), 4).AsInt16();
+        partial4B += Vector256_.ShiftRightBytesInLane(lines[5].AsByte(), 12).AsInt16();
         pair = lines[4] + lines[5];
-        partial5A += Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 6).AsInt16();
-        partial5B += Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 10).AsInt16();
-        partial7A += Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 8).AsInt16();
-        partial7B += Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 8).AsInt16();
+        partial5A += Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 6).AsInt16();
+        partial5B += Vector256_.ShiftRightBytesInLane(pair.AsByte(), 10).AsInt16();
+        partial7A += Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 8).AsInt16();
+        partial7B += Vector256_.ShiftRightBytesInLane(pair.AsByte(), 8).AsInt16();
         partial6 += pair;
 
-        partial4A += Avx2.ShiftLeftLogical128BitLane(lines[6].AsByte(), 2).AsInt16();
-        partial4B += Avx2.ShiftRightLogical128BitLane(lines[6].AsByte(), 14).AsInt16();
+        partial4A += Vector256_.ShiftLeftBytesInLane(lines[6].AsByte(), 2).AsInt16();
+        partial4B += Vector256_.ShiftRightBytesInLane(lines[6].AsByte(), 14).AsInt16();
         partial4A += lines[7];
         pair = lines[6] + lines[7];
-        partial5A += Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 4).AsInt16();
-        partial5B += Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 12).AsInt16();
-        partial7A += Avx2.ShiftLeftLogical128BitLane(pair.AsByte(), 10).AsInt16();
-        partial7B += Avx2.ShiftRightLogical128BitLane(pair.AsByte(), 6).AsInt16();
+        partial5A += Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 4).AsInt16();
+        partial5B += Vector256_.ShiftRightBytesInLane(pair.AsByte(), 12).AsInt16();
+        partial7A += Vector256_.ShiftLeftBytesInLane(pair.AsByte(), 10).AsInt16();
+        partial7B += Vector256_.ShiftRightBytesInLane(pair.AsByte(), 6).AsInt16();
         partial6 += pair;
 
         Vector256<int> partial4Cost = FoldDirectionPartials(partial4A, partial4B, foldWeights0, foldWeights1);
@@ -967,10 +966,10 @@ internal static partial class Av1CdefFilter
         Vector256<int> weights1)
     {
         Vector128<byte> laneShuffle = Vector128.Create((byte)12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 14, 15);
-        partialB = Avx2.Shuffle(partialB.AsByte(), Vector256.Create(laneShuffle, laneShuffle)).AsInt16();
+        partialB = Vector256_.ShufflePerLane(partialB.AsByte(), Vector256.Create(laneShuffle, laneShuffle)).AsInt16();
         Vector256<short> originalA = partialA;
-        partialA = Avx2.UnpackLow(partialA, partialB);
-        partialB = Avx2.UnpackHigh(originalA, partialB);
+        partialA = Vector256_.UnpackLow(partialA, partialB);
+        partialB = Vector256_.UnpackHigh(originalA, partialB);
         Vector256<int> lower = Vector256_.MultiplyAddAdjacent(partialA, partialA) * weights0;
         Vector256<int> upper = Vector256_.MultiplyAddAdjacent(partialB, partialB) * weights1;
         return lower + upper;
@@ -1015,14 +1014,14 @@ internal static partial class Av1CdefFilter
         Vector256<int> cost2,
         Vector256<int> cost3)
     {
-        Vector256<int> pair01Lower = Avx2.UnpackLow(cost0, cost1);
-        Vector256<int> pair23Lower = Avx2.UnpackLow(cost2, cost3);
-        Vector256<int> pair01Upper = Avx2.UnpackHigh(cost0, cost1);
-        Vector256<int> pair23Upper = Avx2.UnpackHigh(cost2, cost3);
-        Vector256<int> quad0 = Avx2.UnpackLow(pair01Lower.AsInt64(), pair23Lower.AsInt64()).AsInt32();
-        Vector256<int> quad1 = Avx2.UnpackHigh(pair01Lower.AsInt64(), pair23Lower.AsInt64()).AsInt32();
-        Vector256<int> quad2 = Avx2.UnpackLow(pair01Upper.AsInt64(), pair23Upper.AsInt64()).AsInt32();
-        Vector256<int> quad3 = Avx2.UnpackHigh(pair01Upper.AsInt64(), pair23Upper.AsInt64()).AsInt32();
+        Vector256<int> pair01Lower = Vector256_.UnpackLow(cost0, cost1);
+        Vector256<int> pair23Lower = Vector256_.UnpackLow(cost2, cost3);
+        Vector256<int> pair01Upper = Vector256_.UnpackHigh(cost0, cost1);
+        Vector256<int> pair23Upper = Vector256_.UnpackHigh(cost2, cost3);
+        Vector256<int> quad0 = Vector256_.UnpackLow(pair01Lower.AsInt64(), pair23Lower.AsInt64()).AsInt32();
+        Vector256<int> quad1 = Vector256_.UnpackHigh(pair01Lower.AsInt64(), pair23Lower.AsInt64()).AsInt32();
+        Vector256<int> quad2 = Vector256_.UnpackLow(pair01Upper.AsInt64(), pair23Upper.AsInt64()).AsInt32();
+        Vector256<int> quad3 = Vector256_.UnpackHigh(pair01Upper.AsInt64(), pair23Upper.AsInt64()).AsInt32();
         return (quad0 + quad1) + (quad2 + quad3);
     }
 
@@ -1067,31 +1066,31 @@ internal static partial class Av1CdefFilter
     /// <param name="lines">The source rows for both blocks, replaced by the rotated rows.</param>
     private static void ReverseTranspose(ref InlineArray8<Vector256<short>> lines)
     {
-        Vector256<short> pair01Lower = Avx2.UnpackLow(lines[0], lines[1]);
-        Vector256<short> pair23Lower = Avx2.UnpackLow(lines[2], lines[3]);
-        Vector256<short> pair01Upper = Avx2.UnpackHigh(lines[0], lines[1]);
-        Vector256<short> pair23Upper = Avx2.UnpackHigh(lines[2], lines[3]);
-        Vector256<short> pair45Lower = Avx2.UnpackLow(lines[4], lines[5]);
-        Vector256<short> pair67Lower = Avx2.UnpackLow(lines[6], lines[7]);
-        Vector256<short> pair45Upper = Avx2.UnpackHigh(lines[4], lines[5]);
-        Vector256<short> pair67Upper = Avx2.UnpackHigh(lines[6], lines[7]);
-        Vector256<int> quad03Lower = Avx2.UnpackLow(pair01Lower.AsInt32(), pair23Lower.AsInt32());
-        Vector256<int> quad47Lower = Avx2.UnpackLow(pair45Lower.AsInt32(), pair67Lower.AsInt32());
-        Vector256<int> quad03Middle = Avx2.UnpackHigh(pair01Lower.AsInt32(), pair23Lower.AsInt32());
-        Vector256<int> quad47Middle = Avx2.UnpackHigh(pair45Lower.AsInt32(), pair67Lower.AsInt32());
-        Vector256<int> quad03Upper = Avx2.UnpackLow(pair01Upper.AsInt32(), pair23Upper.AsInt32());
-        Vector256<int> quad47Upper = Avx2.UnpackLow(pair45Upper.AsInt32(), pair67Upper.AsInt32());
-        Vector256<int> quad03Highest = Avx2.UnpackHigh(pair01Upper.AsInt32(), pair23Upper.AsInt32());
-        Vector256<int> quad47Highest = Avx2.UnpackHigh(pair45Upper.AsInt32(), pair67Upper.AsInt32());
+        Vector256<short> pair01Lower = Vector256_.UnpackLow(lines[0], lines[1]);
+        Vector256<short> pair23Lower = Vector256_.UnpackLow(lines[2], lines[3]);
+        Vector256<short> pair01Upper = Vector256_.UnpackHigh(lines[0], lines[1]);
+        Vector256<short> pair23Upper = Vector256_.UnpackHigh(lines[2], lines[3]);
+        Vector256<short> pair45Lower = Vector256_.UnpackLow(lines[4], lines[5]);
+        Vector256<short> pair67Lower = Vector256_.UnpackLow(lines[6], lines[7]);
+        Vector256<short> pair45Upper = Vector256_.UnpackHigh(lines[4], lines[5]);
+        Vector256<short> pair67Upper = Vector256_.UnpackHigh(lines[6], lines[7]);
+        Vector256<int> quad03Lower = Vector256_.UnpackLow(pair01Lower.AsInt32(), pair23Lower.AsInt32());
+        Vector256<int> quad47Lower = Vector256_.UnpackLow(pair45Lower.AsInt32(), pair67Lower.AsInt32());
+        Vector256<int> quad03Middle = Vector256_.UnpackHigh(pair01Lower.AsInt32(), pair23Lower.AsInt32());
+        Vector256<int> quad47Middle = Vector256_.UnpackHigh(pair45Lower.AsInt32(), pair67Lower.AsInt32());
+        Vector256<int> quad03Upper = Vector256_.UnpackLow(pair01Upper.AsInt32(), pair23Upper.AsInt32());
+        Vector256<int> quad47Upper = Vector256_.UnpackLow(pair45Upper.AsInt32(), pair67Upper.AsInt32());
+        Vector256<int> quad03Highest = Vector256_.UnpackHigh(pair01Upper.AsInt32(), pair23Upper.AsInt32());
+        Vector256<int> quad47Highest = Vector256_.UnpackHigh(pair45Upper.AsInt32(), pair67Upper.AsInt32());
 
-        lines[7] = Avx2.UnpackLow(quad03Lower.AsInt64(), quad47Lower.AsInt64()).AsInt16();
-        lines[6] = Avx2.UnpackHigh(quad03Lower.AsInt64(), quad47Lower.AsInt64()).AsInt16();
-        lines[5] = Avx2.UnpackLow(quad03Middle.AsInt64(), quad47Middle.AsInt64()).AsInt16();
-        lines[4] = Avx2.UnpackHigh(quad03Middle.AsInt64(), quad47Middle.AsInt64()).AsInt16();
-        lines[3] = Avx2.UnpackLow(quad03Upper.AsInt64(), quad47Upper.AsInt64()).AsInt16();
-        lines[2] = Avx2.UnpackHigh(quad03Upper.AsInt64(), quad47Upper.AsInt64()).AsInt16();
-        lines[1] = Avx2.UnpackLow(quad03Highest.AsInt64(), quad47Highest.AsInt64()).AsInt16();
-        lines[0] = Avx2.UnpackHigh(quad03Highest.AsInt64(), quad47Highest.AsInt64()).AsInt16();
+        lines[7] = Vector256_.UnpackLow(quad03Lower.AsInt64(), quad47Lower.AsInt64()).AsInt16();
+        lines[6] = Vector256_.UnpackHigh(quad03Lower.AsInt64(), quad47Lower.AsInt64()).AsInt16();
+        lines[5] = Vector256_.UnpackLow(quad03Middle.AsInt64(), quad47Middle.AsInt64()).AsInt16();
+        lines[4] = Vector256_.UnpackHigh(quad03Middle.AsInt64(), quad47Middle.AsInt64()).AsInt16();
+        lines[3] = Vector256_.UnpackLow(quad03Upper.AsInt64(), quad47Upper.AsInt64()).AsInt16();
+        lines[2] = Vector256_.UnpackHigh(quad03Upper.AsInt64(), quad47Upper.AsInt64()).AsInt16();
+        lines[1] = Vector256_.UnpackLow(quad03Highest.AsInt64(), quad47Highest.AsInt64()).AsInt16();
+        lines[0] = Vector256_.UnpackHigh(quad03Highest.AsInt64(), quad47Highest.AsInt64()).AsInt16();
     }
 
     /// <summary>

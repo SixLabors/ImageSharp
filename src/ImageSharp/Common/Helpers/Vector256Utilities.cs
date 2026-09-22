@@ -196,6 +196,163 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Shifts each 128-bit lane right by a number of bytes, shifting in zeros.
+    /// </summary>
+    /// <param name="value">The value to shift.</param>
+    /// <param name="numBytes">The number of bytes to shift by.</param>
+    /// <returns>The <see cref="Vector256{Byte}"/>.</returns>
+    /// <remarks>
+    /// The shift stays inside each 128-bit lane, which is what the x86 instruction does. Composing
+    /// the two halves of the narrower shim reaches the same result on every other path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> ShiftRightBytesInLane(Vector256<byte> value, [ConstantExpected(Max = (byte)15)] byte numBytes)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ShiftRightLogical128BitLane(value, numBytes);
+        }
+
+        return Vector256.Create(
+            Vector128_.ShiftRightBytesInVector(value.GetLower(), numBytes),
+            Vector128_.ShiftRightBytesInVector(value.GetUpper(), numBytes));
+    }
+
+    /// <summary>
+    /// Shifts each 128-bit lane left by a number of bytes, shifting in zeros.
+    /// </summary>
+    /// <param name="value">The value to shift.</param>
+    /// <param name="numBytes">The number of bytes to shift by.</param>
+    /// <returns>The <see cref="Vector256{Byte}"/>.</returns>
+    /// <remarks>
+    /// The shift stays inside each 128-bit lane, which is what the x86 instruction does. Composing
+    /// the two halves of the narrower shim reaches the same result on every other path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> ShiftLeftBytesInLane(Vector256<byte> value, [ConstantExpected(Max = (byte)15)] byte numBytes)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ShiftLeftLogical128BitLane(value, numBytes);
+        }
+
+        return Vector256.Create(
+            Vector128_.ShiftLeftBytesInVector(value.GetLower(), numBytes),
+            Vector128_.ShiftLeftBytesInVector(value.GetUpper(), numBytes));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 32-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> UnpackHigh(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackHigh(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the lower signed 64-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int64}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> UnpackLow(Vector256<long> left, Vector256<long> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackLow(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackLow(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 64-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int64}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> UnpackHigh(Vector256<long> left, Vector256<long> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackHigh(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the lower signed 16-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> UnpackLow(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackLow(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackLow(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 16-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> UnpackHigh(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackHigh(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Widens sixteen unsigned 8-bit integers to signed 16-bit integers.
+    /// </summary>
+    /// <param name="value">The vector to widen.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> Widen(Vector128<byte> value)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ConvertToVector256Int16(value);
+        }
+
+        return Vector256.WidenLower(Vector256.Create(value, Vector128<byte>.Zero)).AsInt16();
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

@@ -42,34 +42,8 @@ internal static partial class Av1ForwardQuantizer
                 coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness);
         }
 
-        if (!WideSupported)
-        {
-            return QuantizeRegular<RegularQuantizationOperator>(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness);
-        }
-
-        int count = transformSize.GetAdjusted().GetSize2d();
-        int logScale = transformSize.GetScale();
-        int zeroBinFactor = Av1InverseTransformMath.GetQzbinFactor(qIndex, bitDepth);
-        int roundingFactor = qIndex == 0 ? 64 : sharpness == 0 ? 48 : 64 - (16 * (7 - sharpness) / 7);
-        int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
-        int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
-        int dcQuantizer = Av1QuantizationLookup.GetDcRegularQuantizer(qIndex, dcDeltaQ, bitDepth, out int dcShift);
-        int acQuantizer = Av1QuantizationLookup.GetAcRegularQuantizer(qIndex, acDeltaQ, bitDepth, out int acShift);
-        int dcZeroBin = RoundPowerOfTwo(RoundPowerOfTwo(zeroBinFactor * dcDequantizer, 7), logScale);
-        int acZeroBin = RoundPowerOfTwo(RoundPowerOfTwo(zeroBinFactor * acDequantizer, 7), logScale);
-        int dcRounding = RoundPowerOfTwo((roundingFactor * dcDequantizer) >> 7, logScale);
-        int acRounding = RoundPowerOfTwo((roundingFactor * acDequantizer) >> 7, logScale);
-        ReadOnlySpan<short> inverseScan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan;
-        return logScale switch
-        {
-            0 => QuantizeRegularWide<Scale0>(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, count, dcZeroBin, acZeroBin, dcRounding, acRounding, dcQuantizer, acQuantizer, dcShift, acShift, dcDequantizer, acDequantizer, inverseScan),
-            1 => QuantizeRegularWide<Scale1>(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, count, dcZeroBin, acZeroBin, dcRounding, acRounding, dcQuantizer, acQuantizer, dcShift, acShift, dcDequantizer, acDequantizer, inverseScan),
-            _ => QuantizeRegularWide<Scale2>(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, count, dcZeroBin, acZeroBin, dcRounding, acRounding, dcQuantizer, acQuantizer, dcShift, acShift, dcDequantizer, acDequantizer, inverseScan),
-        };
+        return QuantizeRegular<RegularQuantizationOperator>(
+            coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness);
     }
 
     /// <summary>

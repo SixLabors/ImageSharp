@@ -92,7 +92,7 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
         }
 
         // Horizontal 4:2:x chroma uses the rounded mean of each adjacent luma pair.
-        return (Avx2.MultiplyAddAdjacent(lumaPairs, Vector256.Create((short)1)) + Vector256<int>.One) >> 1;
+        return (Vector256_.MultiplyAddAdjacent(lumaPairs, Vector256.Create((short)1)) + Vector256<int>.One) >> 1;
     }
 
     /// <summary>

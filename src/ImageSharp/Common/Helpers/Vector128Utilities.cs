@@ -404,6 +404,88 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Multiply packed unsigned 8-bit integers in <paramref name="left"/> by packed signed 8-bit integers in
+    /// <paramref name="right"/>, producing intermediate signed 16-bit integers. Horizontally add adjacent pairs of
+    /// intermediate integers and pack the saturated results.
+    /// </summary>
+    /// <param name="left">
+    /// The vector containing packed unsigned 8-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The vector containing packed signed 8-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the saturated results of multiplying and adding adjacent pairs of packed 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> MultiplyAddAdjacent(Vector128<byte> left, Vector128<sbyte> right)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.MultiplyAddAdjacent(left, right);
+        }
+
+        // One product cannot leave a signed 16-bit lane, because the largest magnitude is 255 * -128,
+        // so the widened multiply is exact. A pair sum can leave it, so the pairs are added in 32-bit
+        // lanes and clamped before they narrow, which is the saturation the x86 instruction applies.
+        (Vector128<ushort> leftLower, Vector128<ushort> leftUpper) = Vector128.Widen(left);
+        (Vector128<short> rightLower, Vector128<short> rightUpper) = Vector128.Widen(right);
+        (Vector128<int> lowerFirst, Vector128<int> lowerSecond) = Vector128.Widen(leftLower.AsInt16() * rightLower);
+        (Vector128<int> upperFirst, Vector128<int> upperSecond) = Vector128.Widen(leftUpper.AsInt16() * rightUpper);
+
+        Vector128<int> min = Vector128.Create((int)short.MinValue);
+        Vector128<int> max = Vector128.Create((int)short.MaxValue);
+        return Vector128.Narrow(
+            Vector128.Clamp(HorizontalAdd(lowerFirst, lowerSecond), min, max),
+            Vector128.Clamp(HorizontalAdd(upperFirst, upperSecond), min, max));
+    }
+
+    /// <summary>
+    /// Horizontally add adjacent pairs of 32-bit integers in <paramref name="left"/> and <paramref name="right"/>, and
+    /// pack the signed 32-bit results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 32-bit integers to add.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 32-bit integers to add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of horizontally adding adjacent pairs of packed signed 32-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> HorizontalAdd(Vector128<int> left, Vector128<int> right)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.HorizontalAdd(left, right);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.AddPairwise(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<int> leftPairs = AdvSimd.AddPairwise(left.GetLower(), left.GetUpper());
+            Vector64<int> rightPairs = AdvSimd.AddPairwise(right.GetLower(), right.GetUpper());
+            return Vector128.Create(leftPairs, rightPairs);
+        }
+
+        {
+            // Gather the even and the odd lanes of each source into the half of the result that
+            // source owns, then add. An out-of-range index zeroes the lanes the other source fills.
+            Vector128<int> v0 = Vector128.Shuffle(left, Vector128.Create(0, 2, 8, 8));
+            Vector128<int> v1 = Vector128.Shuffle(left, Vector128.Create(1, 3, 8, 8));
+            Vector128<int> v2 = Vector128.Shuffle(right, Vector128.Create(8, 8, 0, 2));
+            Vector128<int> v3 = Vector128.Shuffle(right, Vector128.Create(8, 8, 1, 3));
+
+            return v0 + v1 + v2 + v3;
+        }
+    }
+
+    /// <summary>
     /// Horizontally add adjacent pairs of 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, and
     /// pack the signed 16-bit results.
     /// </summary>

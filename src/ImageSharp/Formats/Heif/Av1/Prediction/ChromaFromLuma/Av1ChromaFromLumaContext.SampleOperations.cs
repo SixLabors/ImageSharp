@@ -3,8 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
@@ -121,9 +119,9 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="width">The overload-selection value.</param>
     /// <returns>The eight pair sums in increasing column order.</returns>
     /// <remarks>
-    /// An eight-bit frame has one instruction for this on every supported path. A high-bit-depth
-    /// frame has one on x86 alone, so the two halves are loaded and added instead, which reaches the
-    /// same lane order without a shuffle.
+    /// An eight-bit frame pairs sixteen samples in one call. A high-bit-depth frame produces
+    /// thirty-two bit sums, so it takes two calls and narrows them back, which is exact because a
+    /// pair sum of twelve-bit samples reaches only 8190.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> LoadPairSums<TSample>(ref TSample source, Vector128<short> width)
@@ -131,7 +129,8 @@ internal partial class Av1ChromaFromLumaContext
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            return PairSum(Vector128.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source)), Vector128.Create((sbyte)1));
+            return Vector128_.MultiplyAddAdjacent(
+                Vector128.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source)), Vector128.Create((sbyte)1));
         }
 
         ref short samples = ref Unsafe.As<TSample, short>(ref source);
@@ -157,26 +156,16 @@ internal partial class Av1ChromaFromLumaContext
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            ref byte samples = ref Unsafe.As<TSample, byte>(ref source);
-            if (Avx2.IsSupported)
-            {
-                return Avx2.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref samples), Vector256.Create((sbyte)1));
-            }
-
-            // Without a 256-bit adjacent multiply-add the two halves take the 128-bit form, which
-            // every supported path provides, and are then joined in column order.
-            Vector128<sbyte> ones = Vector128.Create((sbyte)1);
-            return Vector256.Create(
-                PairSum(Vector128.LoadUnsafe(ref samples), ones),
-                PairSum(Vector128.LoadUnsafe(ref samples, (nuint)Vector128<byte>.Count), ones));
+            return Vector256_.MultiplyAddAdjacent(
+                Vector256.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source)), Vector256.Create((sbyte)1));
         }
 
-        ref short wide = ref Unsafe.As<TSample, short>(ref source);
+        ref short samples = ref Unsafe.As<TSample, short>(ref source);
         Vector256<int> lower = Vector256_.MultiplyAddAdjacent(
-            Vector256.LoadUnsafe(ref wide), Vector256.Create((short)1));
+            Vector256.LoadUnsafe(ref samples), Vector256.Create((short)1));
 
         Vector256<int> upper = Vector256_.MultiplyAddAdjacent(
-            Vector256.LoadUnsafe(ref wide, (nuint)Vector256<short>.Count), Vector256.Create((short)1));
+            Vector256.LoadUnsafe(ref samples, (nuint)Vector256<short>.Count), Vector256.Create((short)1));
 
         return Vector256.Narrow(lower, upper);
     }
@@ -188,41 +177,23 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="source">The first of exactly sixty-four addressable samples.</param>
     /// <param name="width">The overload-selection value.</param>
     /// <returns>The thirty-two pair sums in increasing column order.</returns>
-    /// <remarks>
-    /// No instruction set offers an adjacent multiply-add of this width for both sample depths, so
-    /// the two halves take the 256-bit form and are joined in column order. The join is free, so
-    /// this still moves twice the samples of the narrower stage per iteration.
-    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<short> LoadPairSums<TSample>(ref TSample source, Vector512<short> width)
         where TSample : unmanaged
-        => Vector512.Create(
-            LoadPairSums(ref source, Vector256<short>.Zero),
-            LoadPairSums(ref Unsafe.Add(ref source, 2 * Vector256<short>.Count), Vector256<short>.Zero));
-
-    /// <summary>
-    /// Adds adjacent eight-bit samples into eight sixteen-bit lanes.
-    /// </summary>
-    /// <param name="samples">The packed source samples.</param>
-    /// <param name="ones">The multiplier used by the x86 adjacent multiply-add instruction.</param>
-    /// <returns>The adjacent pair sums.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<short> PairSum(Vector128<byte> samples, Vector128<sbyte> ones)
     {
-        if (Ssse3.IsSupported)
+        if (Unsafe.SizeOf<TSample>() == 1)
         {
-            return Ssse3.MultiplyAddAdjacent(samples, ones);
+            return Vector512_.MultiplyAddAdjacent(
+                Vector512.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source)), Vector512.Create((sbyte)1));
         }
 
-        if (AdvSimd.IsSupported)
-        {
-            return AdvSimd.AddPairwiseWidening(samples).AsInt16();
-        }
+        ref short samples = ref Unsafe.As<TSample, short>(ref source);
+        Vector512<int> lower = Vector512_.MultiplyAddAdjacent(
+            Vector512.LoadUnsafe(ref samples), Vector512.Create((short)1));
 
-        // WebAssembly has byte shuffles but no pairwise-widening instruction. Grouping the even and
-        // the odd bytes before widening keeps all eight additions in vectors.
-        Vector128<byte> even = Vector128.Shuffle(samples, Vector128.Create((byte)0, 2, 4, 6, 8, 10, 12, 14, 255, 255, 255, 255, 255, 255, 255, 255));
-        Vector128<byte> odd = Vector128.Shuffle(samples, Vector128.Create((byte)1, 3, 5, 7, 9, 11, 13, 15, 255, 255, 255, 255, 255, 255, 255, 255));
-        return (Vector128.WidenLower(even) + Vector128.WidenLower(odd)).AsInt16();
+        Vector512<int> upper = Vector512_.MultiplyAddAdjacent(
+            Vector512.LoadUnsafe(ref samples, (nuint)Vector512<short>.Count), Vector512.Create((short)1));
+
+        return Vector512.Narrow(lower, upper);
     }
 }

@@ -329,44 +329,9 @@ internal static class Av1SuperResolutionFilter
 
         // the reference decoder reduces four independent filters in two horizontal-add stages so the four complete sums occupy
         // consecutive lanes. Keeping that arrangement also allows both destination forms to use one packed store.
-        Vector128<int> pairs01 = HorizontalAdd(products0, products1);
-        Vector128<int> pairs23 = HorizontalAdd(products2, products3);
-        return (HorizontalAdd(pairs01, pairs23) + Vector128.Create(FilterRounding)) >> FilterBits;
-    }
-
-    /// <summary>
-    /// Horizontally adds adjacent 32-bit lanes from two filter-product vectors.
-    /// </summary>
-    /// <param name="left">The first filter-product vector.</param>
-    /// <param name="right">The second filter-product vector.</param>
-    /// <returns>The adjacent sums from <paramref name="left"/> followed by those from <paramref name="right"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<int> HorizontalAdd(Vector128<int> left, Vector128<int> right)
-    {
-        if (Ssse3.IsSupported)
-        {
-            return Ssse3.HorizontalAdd(left, right);
-        }
-
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            return AdvSimd.Arm64.AddPairwise(left, right);
-        }
-
-        if (AdvSimd.IsSupported)
-        {
-            Vector64<int> leftPairs = AdvSimd.AddPairwise(left.GetLower(), left.GetUpper());
-            Vector64<int> rightPairs = AdvSimd.AddPairwise(right.GetLower(), right.GetUpper());
-            return Vector128.Create(leftPairs, rightPairs);
-        }
-
-        // The portable fallback selects even and odd lanes separately. ShuffleNative is valid here because every index
-        // is in range; adding the two permutations forms [x0+x1, x2+x3] for each source vector.
-        Vector128<int> evenIndices = Vector128.Create(0, 2, 0, 2);
-        Vector128<int> oddIndices = Vector128.Create(1, 3, 1, 3);
-        Vector128<int> leftPairsFallback = Vector128.ShuffleNative(left, evenIndices) + Vector128.ShuffleNative(left, oddIndices);
-        Vector128<int> rightPairsFallback = Vector128.ShuffleNative(right, evenIndices) + Vector128.ShuffleNative(right, oddIndices);
-        return Vector128.Create(leftPairsFallback.GetLower(), rightPairsFallback.GetLower());
+        Vector128<int> pairs01 = Vector128_.HorizontalAdd(products0, products1);
+        Vector128<int> pairs23 = Vector128_.HorizontalAdd(products2, products3);
+        return (Vector128_.HorizontalAdd(pairs01, pairs23) + Vector128.Create(FilterRounding)) >> FilterBits;
     }
 
     /// <summary>

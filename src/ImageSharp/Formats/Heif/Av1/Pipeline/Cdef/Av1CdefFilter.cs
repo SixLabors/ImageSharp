@@ -923,7 +923,7 @@ internal static partial class Av1CdefFilter
         Vector256<int> partial4Cost = FoldDirectionPartials(partial4A, partial4B, foldWeights0, foldWeights1);
         Vector256<int> partial5Cost = FoldDirectionPartials(partial5A, partial5B, diagonalWeights0, diagonalWeights1);
         Vector256<int> partial7Cost = FoldDirectionPartials(partial7A, partial7B, diagonalWeights0, diagonalWeights1);
-        Vector256<int> partial6Cost = Avx2.MultiplyAddAdjacent(partial6, partial6) * Vector256.Create(105);
+        Vector256<int> partial6Cost = Vector256_.MultiplyAddAdjacent(partial6, partial6) * Vector256.Create(105);
         return HorizontalSumFour(partial4Cost, partial5Cost, partial6Cost, partial7Cost);
     }
 
@@ -971,8 +971,8 @@ internal static partial class Av1CdefFilter
         Vector256<short> originalA = partialA;
         partialA = Avx2.UnpackLow(partialA, partialB);
         partialB = Avx2.UnpackHigh(originalA, partialB);
-        Vector256<int> lower = Avx2.MultiplyAddAdjacent(partialA, partialA) * weights0;
-        Vector256<int> upper = Avx2.MultiplyAddAdjacent(partialB, partialB) * weights1;
+        Vector256<int> lower = Vector256_.MultiplyAddAdjacent(partialA, partialA) * weights0;
+        Vector256<int> upper = Vector256_.MultiplyAddAdjacent(partialB, partialB) * weights1;
         return lower + upper;
     }
 

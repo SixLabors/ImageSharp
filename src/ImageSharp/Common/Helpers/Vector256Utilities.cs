@@ -165,6 +165,37 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Multiply packed unsigned 8-bit integers in <paramref name="left"/> by packed signed 8-bit integers in
+    /// <paramref name="right"/>, producing intermediate signed 16-bit integers. Horizontally add adjacent pairs of
+    /// intermediate integers and pack the saturated results.
+    /// </summary>
+    /// <param name="left">
+    /// The vector containing packed unsigned 8-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The vector containing packed signed 8-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the saturated results of multiplying and adding adjacent pairs of packed 8-bit integers
+    /// </returns>
+    /// <remarks>
+    /// The x86 instruction pairs within each 128-bit half, so composing the two halves of the
+    /// narrower form gives the same lane order on every path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyAddAdjacent(Vector256<byte> left, Vector256<sbyte> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyAddAdjacent(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.MultiplyAddAdjacent(left.GetLower(), right.GetLower()),
+            Vector128_.MultiplyAddAdjacent(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

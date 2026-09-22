@@ -21,6 +21,64 @@ internal static class Vector512_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
+    /// pack the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of multiplying and adding adjacent pairs of packed signed 16-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> MultiplyAddAdjacent(Vector512<short> left, Vector512<short> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.MultiplyAddAdjacent(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.MultiplyAddAdjacent(left.GetLower(), right.GetLower()),
+            Vector256_.MultiplyAddAdjacent(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Multiply packed unsigned 8-bit integers in <paramref name="left"/> by packed signed 8-bit integers in
+    /// <paramref name="right"/>, producing intermediate signed 16-bit integers. Horizontally add adjacent pairs of
+    /// intermediate integers and pack the saturated results.
+    /// </summary>
+    /// <param name="left">
+    /// The vector containing packed unsigned 8-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The vector containing packed signed 8-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the saturated results of multiplying and adding adjacent pairs of packed 8-bit integers
+    /// </returns>
+    /// <remarks>
+    /// The x86 instruction pairs within each 128-bit lane, so composing the two halves of the
+    /// narrower form gives the same lane order on every path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<short> MultiplyAddAdjacent(Vector512<byte> left, Vector512<sbyte> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.MultiplyAddAdjacent(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.MultiplyAddAdjacent(left.GetLower(), right.GetLower()),
+            Vector256_.MultiplyAddAdjacent(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Creates a new vector by selecting values from an input vector using the control.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>

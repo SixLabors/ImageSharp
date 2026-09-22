@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -731,7 +732,7 @@ internal static partial class Av1ResidualBuilder
                         0,
                         0).AsByte();
                     Vector128<short> difference = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
-                    sum += Sse2.MultiplyAddAdjacent(difference, difference);
+                    sum += Vector128_.MultiplyAddAdjacent(difference, difference);
                 }
 
                 break;
@@ -741,7 +742,7 @@ internal static partial class Av1ResidualBuilder
                     Vector128<byte> s = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref sourceBase, y * sourceStride))).AsByte();
                     Vector128<byte> p = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref predictionBase, y * predictionStride))).AsByte();
                     Vector128<short> difference = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
-                    sum += Sse2.MultiplyAddAdjacent(difference, difference);
+                    sum += Vector128_.MultiplyAddAdjacent(difference, difference);
                 }
 
                 break;
@@ -756,7 +757,7 @@ internal static partial class Av1ResidualBuilder
                         Vector128<byte> p = Vector128.LoadUnsafe(ref Unsafe.Add(ref predictionRow, x));
                         Vector128<short> lower = Sse2.UnpackLow(s, zero).AsInt16() - Sse2.UnpackLow(p, zero).AsInt16();
                         Vector128<short> upper = Sse2.UnpackHigh(s, zero).AsInt16() - Sse2.UnpackHigh(p, zero).AsInt16();
-                        sum += Sse2.MultiplyAddAdjacent(lower, lower) + Sse2.MultiplyAddAdjacent(upper, upper);
+                        sum += Vector128_.MultiplyAddAdjacent(lower, lower) + Vector128_.MultiplyAddAdjacent(upper, upper);
                     }
                 }
 

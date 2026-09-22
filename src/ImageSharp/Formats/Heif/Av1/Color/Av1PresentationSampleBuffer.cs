@@ -370,150 +370,152 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
         Span<TSample> topDestination,
         Span<TSample> bottomDestination)
     {
-        if (typeof(TSample) == typeof(byte))
-        {
-            ScaleRowUp2BilinearByte(
-                MemoryMarshal.Cast<TSample, byte>(topSource),
-                MemoryMarshal.Cast<TSample, byte>(bottomSource),
-                MemoryMarshal.Cast<TSample, byte>(topDestination),
-                MemoryMarshal.Cast<TSample, byte>(bottomDestination));
+        ref TSample topSourceBase = ref MemoryMarshal.GetReference(topSource);
+        ref TSample bottomSourceBase = ref MemoryMarshal.GetReference(bottomSource);
+        ref TSample topDestinationBase = ref MemoryMarshal.GetReference(topDestination);
+        ref TSample bottomDestinationBase = ref MemoryMarshal.GetReference(bottomDestination);
 
+        // The first and the last destination samples have only one source column to interpolate
+        // between, so they take the two-tap edge form rather than the four-tap interior form.
+        int firstTop = ReadSample(ref topSourceBase);
+        int firstBottom = ReadSample(ref bottomSourceBase);
+        WriteSample(ref topDestinationBase, 0, ((3 * firstTop) + firstBottom + 2) >> 2);
+        WriteSample(ref bottomDestinationBase, 0, (firstTop + (3 * firstBottom) + 2) >> 2);
+
+        int lastSource = topSource.Length - 1;
+        int x = 0;
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            // Eight source positions produce sixteen destination samples. The pair that each
+            // position produces is interleaved on the store, so one iteration covers sixteen
+            // destination columns of both rows.
+            for (; x + Vector128<ushort>.Count <= lastSource; x += Vector128<ushort>.Count)
+            {
+                CalculateBilinearPairs(
+                    LoadEight(ref topSourceBase, x),
+                    LoadEight(ref topSourceBase, x + 1),
+                    LoadEight(ref bottomSourceBase, x),
+                    LoadEight(ref bottomSourceBase, x + 1),
+                    out Vector128<ushort> upperEven,
+                    out Vector128<ushort> upperOdd,
+                    out Vector128<ushort> lowerEven,
+                    out Vector128<ushort> lowerOdd);
+
+                StoreInterleaved(upperEven, upperOdd, ref topDestinationBase, 1 + (2 * x));
+                StoreInterleaved(lowerEven, lowerOdd, ref bottomDestinationBase, 1 + (2 * x));
+            }
+        }
+
+        for (; x < lastSource; x++)
+        {
+            int top0 = ReadSample(ref topSourceBase, x);
+            int top1 = ReadSample(ref topSourceBase, x + 1);
+            int bottom0 = ReadSample(ref bottomSourceBase, x);
+            int bottom1 = ReadSample(ref bottomSourceBase, x + 1);
+            int destination = 1 + (2 * x);
+            WriteSample(ref topDestinationBase, destination, ((9 * top0) + (3 * top1) + (3 * bottom0) + bottom1 + 8) >> 4);
+            WriteSample(ref topDestinationBase, destination + 1, ((3 * top0) + (9 * top1) + bottom0 + (3 * bottom1) + 8) >> 4);
+            WriteSample(ref bottomDestinationBase, destination, ((3 * top0) + top1 + (9 * bottom0) + (3 * bottom1) + 8) >> 4);
+            WriteSample(ref bottomDestinationBase, destination + 1, (top0 + (3 * top1) + (3 * bottom0) + (9 * bottom1) + 8) >> 4);
+        }
+
+        int finalTop = ReadSample(ref topSourceBase, lastSource);
+        int finalBottom = ReadSample(ref bottomSourceBase, lastSource);
+        int lastDestination = topDestination.Length - 1;
+        WriteSample(ref topDestinationBase, lastDestination, ((3 * finalTop) + finalBottom + 2) >> 2);
+        WriteSample(ref bottomDestinationBase, lastDestination, (finalTop + (3 * finalBottom) + 2) >> 2);
+    }
+
+    /// <summary>
+    /// Reads one sample of either depth.
+    /// </summary>
+    /// <param name="source">The first sample of the row.</param>
+    /// <param name="offset">The sample offset.</param>
+    /// <returns>The sample value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ReadSample(ref TSample source, int offset = 0)
+    {
+        ref TSample sample = ref Unsafe.Add(ref source, offset);
+        return Unsafe.SizeOf<TSample>() == 1
+            ? Unsafe.As<TSample, byte>(ref sample)
+            : Unsafe.As<TSample, ushort>(ref sample);
+    }
+
+    /// <summary>
+    /// Writes one sample of either depth.
+    /// </summary>
+    /// <param name="destination">The first sample of the row.</param>
+    /// <param name="offset">The sample offset.</param>
+    /// <param name="value">The sample value, already inside the range of the depth.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WriteSample(ref TSample destination, int offset, int value)
+    {
+        ref TSample sample = ref Unsafe.Add(ref destination, offset);
+        if (Unsafe.SizeOf<TSample>() == 1)
+        {
+            Unsafe.As<TSample, byte>(ref sample) = (byte)value;
             return;
         }
 
-        ScaleRowUp2BilinearUInt16(
-            MemoryMarshal.Cast<TSample, ushort>(topSource),
-            MemoryMarshal.Cast<TSample, ushort>(bottomSource),
-            MemoryMarshal.Cast<TSample, ushort>(topDestination),
-            MemoryMarshal.Cast<TSample, ushort>(bottomDestination));
+        Unsafe.As<TSample, ushort>(ref sample) = (ushort)value;
     }
 
     /// <summary>
-    /// Applies the byte two-times bilinear row kernel through portable 128-bit lanes and a scalar tail.
+    /// Loads eight samples of either depth as unsigned sixteen-bit lanes.
     /// </summary>
-    /// <param name="topSource">The upper source row.</param>
-    /// <param name="bottomSource">The lower source row.</param>
-    /// <param name="topDestination">The upper destination row.</param>
-    /// <param name="bottomDestination">The lower destination row.</param>
-    private static void ScaleRowUp2BilinearByte(
-        ReadOnlySpan<byte> topSource,
-        ReadOnlySpan<byte> bottomSource,
-        Span<byte> topDestination,
-        Span<byte> bottomDestination)
+    /// <param name="source">The first sample of the row.</param>
+    /// <param name="offset">The sample offset.</param>
+    /// <returns>The samples in increasing column order.</returns>
+    /// <remarks>
+    /// An eight-bit row is read through a packed integer and widened, which touches only the eight
+    /// bytes that this iteration owns. A high-bit-depth row is already sixteen bits wide, so it
+    /// loads directly.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<ushort> LoadEight(ref TSample source, int offset)
     {
-        int lastSource = topSource.Length - 1;
-        topDestination[0] = (byte)(((3 * topSource[0]) + bottomSource[0] + 2) >> 2);
-        bottomDestination[0] = (byte)((topSource[0] + (3 * bottomSource[0]) + 2) >> 2);
-
-        int x = 0;
-        if (Vector128.IsHardwareAccelerated)
+        ref TSample sample = ref Unsafe.Add(ref source, offset);
+        if (Unsafe.SizeOf<TSample>() == 1)
         {
-            ref byte topSourceBase = ref MemoryMarshal.GetReference(topSource);
-            ref byte bottomSourceBase = ref MemoryMarshal.GetReference(bottomSource);
-            ref byte topDestinationBase = ref MemoryMarshal.GetReference(topDestination);
-            ref byte bottomDestinationBase = ref MemoryMarshal.GetReference(bottomDestination);
-            for (; x + 8 <= lastSource; x += 8)
-            {
-                Vector128<ushort> top0 = LoadEightBytes(ref topSourceBase, x);
-                Vector128<ushort> top1 = LoadEightBytes(ref topSourceBase, x + 1);
-                Vector128<ushort> bottom0 = LoadEightBytes(ref bottomSourceBase, x);
-                Vector128<ushort> bottom1 = LoadEightBytes(ref bottomSourceBase, x + 1);
-                CalculateBilinearPairs(
-                    top0,
-                    top1,
-                    bottom0,
-                    bottom1,
-                    out Vector128<ushort> upperEven,
-                    out Vector128<ushort> upperOdd,
-                    out Vector128<ushort> lowerEven,
-                    out Vector128<ushort> lowerOdd);
-
-                StoreInterleavedBytes(upperEven, upperOdd, ref topDestinationBase, 1 + (2 * x));
-                StoreInterleavedBytes(lowerEven, lowerOdd, ref bottomDestinationBase, 1 + (2 * x));
-            }
+            ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<TSample, byte>(ref sample));
+            return Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
         }
 
-        for (; x < lastSource; x++)
-        {
-            int top0 = topSource[x];
-            int top1 = topSource[x + 1];
-            int bottom0 = bottomSource[x];
-            int bottom1 = bottomSource[x + 1];
-            int destination = 1 + (2 * x);
-            topDestination[destination] = (byte)(((9 * top0) + (3 * top1) + (3 * bottom0) + bottom1 + 8) >> 4);
-            topDestination[destination + 1] = (byte)(((3 * top0) + (9 * top1) + bottom0 + (3 * bottom1) + 8) >> 4);
-            bottomDestination[destination] = (byte)(((3 * top0) + top1 + (9 * bottom0) + (3 * bottom1) + 8) >> 4);
-            bottomDestination[destination + 1] = (byte)((top0 + (3 * top1) + (3 * bottom0) + (9 * bottom1) + 8) >> 4);
-        }
-
-        int lastDestination = topDestination.Length - 1;
-        topDestination[lastDestination] = (byte)(((3 * topSource[lastSource]) + bottomSource[lastSource] + 2) >> 2);
-        bottomDestination[lastDestination] = (byte)((topSource[lastSource] + (3 * bottomSource[lastSource]) + 2) >> 2);
+        return Vector128.LoadUnsafe(ref Unsafe.As<TSample, ushort>(ref sample));
     }
 
     /// <summary>
-    /// Applies the unsigned 16-bit two-times bilinear row kernel through portable 128-bit lanes and a scalar tail.
+    /// Interleaves eight pairs of results and stores them at either depth.
     /// </summary>
-    /// <param name="topSource">The upper source row.</param>
-    /// <param name="bottomSource">The lower source row.</param>
-    /// <param name="topDestination">The upper destination row.</param>
-    /// <param name="bottomDestination">The lower destination row.</param>
-    private static void ScaleRowUp2BilinearUInt16(
-        ReadOnlySpan<ushort> topSource,
-        ReadOnlySpan<ushort> bottomSource,
-        Span<ushort> topDestination,
-        Span<ushort> bottomDestination)
+    /// <param name="even">The left-biased results.</param>
+    /// <param name="odd">The right-biased results.</param>
+    /// <param name="destination">The first sample of the row.</param>
+    /// <param name="offset">The destination sample offset.</param>
+    /// <remarks>
+    /// Each source position produces two adjacent destination samples, so the two result vectors
+    /// interleave. An eight-bit row then narrows the sixteen interleaved lanes into one vector of
+    /// bytes, which is exact because every result already sits inside the range of a byte.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreInterleaved(
+        Vector128<ushort> even,
+        Vector128<ushort> odd,
+        ref TSample destination,
+        int offset)
     {
-        int lastSource = topSource.Length - 1;
-        topDestination[0] = (ushort)(((3 * topSource[0]) + bottomSource[0] + 2) >> 2);
-        bottomDestination[0] = (ushort)((topSource[0] + (3 * bottomSource[0]) + 2) >> 2);
-
-        int x = 0;
-        if (Vector128.IsHardwareAccelerated)
+        Vector128<ushort> lower = Vector128_.UnpackLow(even.AsInt16(), odd.AsInt16()).AsUInt16();
+        Vector128<ushort> upper = Vector128_.UnpackHigh(even.AsInt16(), odd.AsInt16()).AsUInt16();
+        ref TSample sample = ref Unsafe.Add(ref destination, offset);
+        if (Unsafe.SizeOf<TSample>() == 1)
         {
-            ref ushort topSourceBase = ref MemoryMarshal.GetReference(topSource);
-            ref ushort bottomSourceBase = ref MemoryMarshal.GetReference(bottomSource);
-            ref ushort topDestinationBase = ref MemoryMarshal.GetReference(topDestination);
-            ref ushort bottomDestinationBase = ref MemoryMarshal.GetReference(bottomDestination);
-            nuint vectorCount = topSource[..lastSource].Vector128Count<ushort>();
-
-            for (; vectorCount > 0; vectorCount--, x += Vector128<ushort>.Count)
-            {
-                Vector128<ushort> top0 = Vector128.LoadUnsafe(ref topSourceBase, (nuint)x);
-                Vector128<ushort> top1 = Vector128.LoadUnsafe(ref topSourceBase, (nuint)(x + 1));
-                Vector128<ushort> bottom0 = Vector128.LoadUnsafe(ref bottomSourceBase, (nuint)x);
-                Vector128<ushort> bottom1 = Vector128.LoadUnsafe(ref bottomSourceBase, (nuint)(x + 1));
-                CalculateBilinearPairs(
-                    top0,
-                    top1,
-                    bottom0,
-                    bottom1,
-                    out Vector128<ushort> upperEven,
-                    out Vector128<ushort> upperOdd,
-                    out Vector128<ushort> lowerEven,
-                    out Vector128<ushort> lowerOdd);
-
-                StoreInterleavedUInt16(upperEven, upperOdd, ref topDestinationBase, 1 + (2 * x));
-                StoreInterleavedUInt16(lowerEven, lowerOdd, ref bottomDestinationBase, 1 + (2 * x));
-            }
+            Vector128.Narrow(lower, upper).StoreUnsafe(ref Unsafe.As<TSample, byte>(ref sample));
+            return;
         }
 
-        for (; x < lastSource; x++)
-        {
-            int top0 = topSource[x];
-            int top1 = topSource[x + 1];
-            int bottom0 = bottomSource[x];
-            int bottom1 = bottomSource[x + 1];
-            int destination = 1 + (2 * x);
-            topDestination[destination] = (ushort)(((9 * top0) + (3 * top1) + (3 * bottom0) + bottom1 + 8) >> 4);
-            topDestination[destination + 1] = (ushort)(((3 * top0) + (9 * top1) + bottom0 + (3 * bottom1) + 8) >> 4);
-            bottomDestination[destination] = (ushort)(((3 * top0) + top1 + (9 * bottom0) + (3 * bottom1) + 8) >> 4);
-            bottomDestination[destination + 1] = (ushort)((top0 + (3 * top1) + (3 * bottom0) + (9 * bottom1) + 8) >> 4);
-        }
-
-        int lastDestination = topDestination.Length - 1;
-        topDestination[lastDestination] = (ushort)(((3 * topSource[lastSource]) + bottomSource[lastSource] + 2) >> 2);
-        bottomDestination[lastDestination] = (ushort)((topSource[lastSource] + (3 * bottomSource[lastSource]) + 2) >> 2);
+        ref ushort wide = ref Unsafe.As<TSample, ushort>(ref sample);
+        lower.StoreUnsafe(ref wide);
+        upper.StoreUnsafe(ref wide, (nuint)Vector128<ushort>.Count);
     }
 
     /// <summary>
@@ -546,55 +548,6 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
         upperOdd = (((top0 << 1) + top0) + ((top1 << 3) + top1) + bottom0 + ((bottom1 << 1) + bottom1) + rounding) >> 4;
         lowerEven = (((top0 << 1) + top0) + top1 + ((bottom0 << 3) + bottom0) + ((bottom1 << 1) + bottom1) + rounding) >> 4;
         lowerOdd = (top0 + ((top1 << 1) + top1) + ((bottom0 << 1) + bottom0) + ((bottom1 << 3) + bottom1) + rounding) >> 4;
-    }
-
-    /// <summary>
-    /// Loads eight byte samples as unsigned 16-bit lanes.
-    /// </summary>
-    /// <param name="source">The first source byte.</param>
-    /// <param name="offset">The byte offset.</param>
-    /// <returns>The widened samples.</returns>
-    private static Vector128<ushort> LoadEightBytes(ref byte source, int offset)
-    {
-        ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, offset));
-        return Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
-    }
-
-    /// <summary>
-    /// Interleaves and stores eight pairs of byte results.
-    /// </summary>
-    /// <param name="even">The left-biased results.</param>
-    /// <param name="odd">The right-biased results.</param>
-    /// <param name="destination">The first destination byte.</param>
-    /// <param name="offset">The destination byte offset.</param>
-    private static void StoreInterleavedBytes(
-        Vector128<ushort> even,
-        Vector128<ushort> odd,
-        ref byte destination,
-        int offset)
-    {
-        Vector128<ushort> lower = Vector128_.UnpackLow(even.AsInt16(), odd.AsInt16()).AsUInt16();
-        Vector128<ushort> upper = Vector128_.UnpackHigh(even.AsInt16(), odd.AsInt16()).AsUInt16();
-        Vector128.Narrow(lower, upper).StoreUnsafe(ref destination, (nuint)offset);
-    }
-
-    /// <summary>
-    /// Interleaves and stores eight pairs of unsigned 16-bit results.
-    /// </summary>
-    /// <param name="even">The left-biased results.</param>
-    /// <param name="odd">The right-biased results.</param>
-    /// <param name="destination">The first destination sample.</param>
-    /// <param name="offset">The destination sample offset.</param>
-    private static void StoreInterleavedUInt16(
-        Vector128<ushort> even,
-        Vector128<ushort> odd,
-        ref ushort destination,
-        int offset)
-    {
-        Vector128_.UnpackLow(even.AsInt16(), odd.AsInt16()).AsUInt16().StoreUnsafe(ref destination, (nuint)offset);
-        Vector128_.UnpackHigh(even.AsInt16(), odd.AsInt16()).AsUInt16().StoreUnsafe(
-            ref destination,
-            (nuint)(offset + Vector128<ushort>.Count));
     }
 
     /// <summary>

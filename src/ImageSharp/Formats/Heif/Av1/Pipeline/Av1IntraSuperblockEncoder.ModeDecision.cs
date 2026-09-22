@@ -3884,8 +3884,21 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Av1TransformSize size = blockSize.GetMaximumTransformSize();
                     long previousCost = long.MaxValue;
+
+                    // The budget of a later depth is the smaller of the bound this block arrived with
+                    // and the best depth this block has already measured. The two are not on one scale:
+                    // the arriving bound is a whole candidate cost and carries the mode syntax, while
+                    // the running cost inside a depth carries only the non-skip flag, the size syntax
+                    // and the coefficients. The block's own best therefore has its mode syntax removed
+                    // before it becomes a budget. Reference: the rd_thresh of
+                    // choose_tx_size_type_from_rd() against the current_rd of block_rd_txfm().
+                    long blockBest = long.MaxValue;
                     for (int depth = 0; depth <= maximumDepth; depth++)
                     {
+                        long depthLimit = settings.UseIntraTransformRdBreakout
+                            ? Math.Min(selectedStatistics.Cost, blockBest)
+                            : long.MaxValue;
+
                         Av1RateDistortionStatistics statistics = this.GetUniformLumaCandidateCost(
                             writer,
                             macroBlock,
@@ -3904,7 +3917,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidate.PaletteHeaderRate,
                             paletteDisabledCost,
                             sizeContext,
-                            settings.UseIntraTransformRdBreakout ? selectedStatistics.Cost : long.MaxValue,
+                            depthLimit,
                             samples,
                             coefficients,
                             workspace.CandidateTransformBlocks,
@@ -3912,6 +3925,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
                             $"TXWINNER {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)candidate.Mode} filter {(int)candidate.FilterMode} depth {depth} txsize {(int)size} rate {statistics.Rate} dist {statistics.Distortion} rd {statistics.Cost} best {selectedStatistics.Cost} var {sourceVariance}");
+
+                        if (statistics.Cost != long.MaxValue)
+                        {
+                            long depthModeCost = Av1RateDistortion.GetCost(
+                                this.rateMultiplier, statistics.Rate - statistics.ResidualRate, 0);
+                            blockBest = Math.Min(blockBest, statistics.Cost - depthModeCost);
+                        }
 
                         if (statistics.Cost < selectedStatistics.Cost)
                         {
@@ -4287,7 +4307,17 @@ internal static partial class Av1IntraSuperblockEncoder
                         bestSize = size;
                         if (settings.UseIntraTransformRdBreakout)
                         {
-                            costLimit = Math.Min(costLimit, statistics.Cost);
+                            // The budget a later depth receives is the smaller of the bound this mode
+                            // arrived with and the best depth already measured. Those two are on
+                            // different scales, because a measured depth is a whole candidate cost and
+                            // carries the mode syntax, while the running cost inside a depth carries
+                            // only the non-skip flag, the size syntax and the coefficients. The mode
+                            // syntax therefore comes off before the measured depth becomes a budget.
+                            // Reference: the rd_thresh of choose_tx_size_type_from_rd() against the
+                            // current_rd of block_rd_txfm().
+                            long sizeModeCost = Av1RateDistortion.GetCost(
+                                this.rateMultiplier, statistics.Rate - statistics.ResidualRate, 0);
+                            costLimit = Math.Min(costLimit, statistics.Cost - sizeModeCost);
                         }
                     }
 

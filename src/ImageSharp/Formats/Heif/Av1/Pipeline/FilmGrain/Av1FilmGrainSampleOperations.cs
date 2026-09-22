@@ -34,11 +34,17 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
             // Reading exactly eight bytes avoids touching the following row when the visible width has no padding.
             ref byte sourceBytes = ref Unsafe.As<TSample, byte>(ref source);
             ulong packed = Unsafe.ReadUnaligned<ulong>(ref sourceBytes);
-            return Avx2.ConvertToVector256Int32(Vector128.CreateScalarUnsafe(packed).AsByte());
+
+            // Eight bytes widen to sixteen-bit lanes and then to the thirty-two bit lanes the
+            // scaling lookup indexes with.
+            Vector128<short> narrow = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte()).AsInt16();
+            return Vector256_.Widen(narrow);
         }
 
         ref ushort sourceValues = ref Unsafe.As<TSample, ushort>(ref source);
-        return Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sourceValues));
+
+        // A high-bit-depth sample is at most twelve bits, so its signed view stays positive.
+        return Vector256_.Widen(Vector128.LoadUnsafe(ref sourceValues).AsInt16());
     }
 
     /// <summary>

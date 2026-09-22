@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 
@@ -334,8 +335,8 @@ internal static partial class Av1SelfGuidedFilter
         {
             // AVX2 lane shifts provide the shortest x86 dependency chain. After scanning each 128-bit half, the lower
             // half total is broadcast into the upper half so the result remains one continuous eight-lane prefix.
-            Vector256<int> avx2Scan = values + Avx2.ShiftLeftLogical128BitLane(values.AsByte(), sizeof(int)).AsInt32();
-            avx2Scan += Avx2.ShiftLeftLogical128BitLane(avx2Scan.AsByte(), sizeof(int) * 2).AsInt32();
+            Vector256<int> avx2Scan = values + Vector256_.ShiftLeftBytesInLane(values.AsByte(), sizeof(int)).AsInt32();
+            avx2Scan += Vector256_.ShiftLeftBytesInLane(avx2Scan.AsByte(), sizeof(int) * 2).AsInt32();
             Vector256<int> lowerTotal = Vector256.Create(Vector128<int>.Zero, Vector128.Create(avx2Scan.GetElement(3)));
             return avx2Scan + lowerTotal;
         }
@@ -653,31 +654,12 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="indices">The table indices.</param>
     /// <returns>The gathered blend factors.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe Vector256<int> LookupBlendFactors(Vector256<uint> indices)
+    private static Vector256<int> LookupBlendFactors(Vector256<uint> indices)
     {
+        // Variance normalization bounds every index to the 256-entry table, so the gather needs no
+        // clamp of its own.
         ReadOnlySpan<int> table = XByXPlusOne;
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            // Variance normalization bounds every index to the 256-entry table. AVX2 gather keeps all eight independent
-            // column lookups in the vector pipeline instead of materializing an intermediate scalar scale buffer.
-            fixed (int* tablePointer = table)
-            {
-                return Avx2.GatherVector256(tablePointer, indices.AsInt32(), sizeof(int));
-            }
-        }
-
-        // Vector256 has no portable indexed-load operation. Constructing the result from eight bounded reads retains
-        // the 256-bit coefficient pipeline on other implementations without allocating or adding another row pass.
-        return Vector256.Create(
-            table[(int)indices.GetElement(0)],
-            table[(int)indices.GetElement(1)],
-            table[(int)indices.GetElement(2)],
-            table[(int)indices.GetElement(3)],
-            table[(int)indices.GetElement(4)],
-            table[(int)indices.GetElement(5)],
-            table[(int)indices.GetElement(6)],
-            table[(int)indices.GetElement(7)]);
+        return Vector256_.Gather(ref MemoryMarshal.GetReference(table), indices.AsInt32());
     }
 
     /// <summary>

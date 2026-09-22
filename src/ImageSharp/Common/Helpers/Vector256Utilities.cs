@@ -396,6 +396,36 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Reads eight 32-bit values from a table, one per lane, at the given element indices.
+    /// </summary>
+    /// <param name="table">The first element of the table.</param>
+    /// <param name="indices">The element index of each lane.</param>
+    /// <returns>The <see cref="Vector256{Int32}"/>.</returns>
+    /// <remarks>
+    /// A gather has no portable form, so every path other than AVX2 reads the eight elements one at
+    /// a time. The caller is responsible for keeping every index inside the table.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector256<int> Gather(ref int table, Vector256<int> indices)
+    {
+        if (Avx2.IsSupported)
+        {
+            fixed (int* pointer = &table)
+            {
+                return Avx2.GatherVector256(pointer, indices, sizeof(int));
+            }
+        }
+
+        Vector256<int> result = Vector256<int>.Zero;
+        for (int lane = 0; lane < Vector256<int>.Count; lane++)
+        {
+            result = result.WithElement(lane, Unsafe.Add(ref table, indices.GetElement(lane)));
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

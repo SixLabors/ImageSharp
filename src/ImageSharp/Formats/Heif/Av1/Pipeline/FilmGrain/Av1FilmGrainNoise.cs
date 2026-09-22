@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
@@ -957,24 +957,22 @@ internal static class Av1FilmGrainNoise
     /// Gathers eight scaling values and interpolates high-bit-depth coordinates.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe Vector256<int> ScaleLookup(ReadOnlySpan<int> scaling, Vector256<int> index, int bitDepth)
+    private static Vector256<int> ScaleLookup(ReadOnlySpan<int> scaling, Vector256<int> index, int bitDepth)
     {
         int depthShift = bitDepth - 8;
         Vector256<int> tableIndex = index >> depthShift;
-        fixed (int* table = scaling)
+        ref int table = ref MemoryMarshal.GetReference(scaling);
+        Vector256<int> current = Vector256_.Gather(ref table, tableIndex);
+        if (depthShift == 0)
         {
-            Vector256<int> current = Avx2.GatherVector256(table, tableIndex, sizeof(int));
-            if (depthShift == 0)
-            {
-                return current;
-            }
-
-            // Clamping the following index extends entry 255 across the final interpolation interval.
-            Vector256<int> nextIndex = Vector256.Min(tableIndex + Vector256<int>.One, Vector256.Create(255));
-            Vector256<int> next = Avx2.GatherVector256(table, nextIndex, sizeof(int));
-            Vector256<int> fraction = index & Vector256.Create((1 << depthShift) - 1);
-            return current + ((((next - current) * fraction) + Vector256.Create(1 << (depthShift - 1))) >> depthShift);
+            return current;
         }
+
+        // Clamping the following index extends entry 255 across the final interpolation interval.
+        Vector256<int> nextIndex = Vector256.Min(tableIndex + Vector256<int>.One, Vector256.Create(255));
+        Vector256<int> next = Vector256_.Gather(ref table, nextIndex);
+        Vector256<int> fraction = index & Vector256.Create((1 << depthShift) - 1);
+        return current + ((((next - current) * fraction) + Vector256.Create(1 << (depthShift - 1))) >> depthShift);
     }
 
     /// <summary>

@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -63,7 +63,7 @@ internal static partial class Av1DirectionalIntraPredictor
 
             // The register-resident kernel reads sixteen samples past every base position, which the padded edge
             // buffer of the prepared references allows.
-            if (Avx2.IsSupported && width <= 16 && above.Length >= maximumBasis + 17)
+            if (Vector256.IsHardwareAccelerated && width <= 16 && above.Length >= maximumBasis + 17)
             {
                 PredictZone1Wide(destination, destinationStride, above, upsampleShift, derivative, width, height, maximumBasis);
                 return;
@@ -123,8 +123,8 @@ internal static partial class Av1DirectionalIntraPredictor
                 if (upsampleShift != 0)
                 {
                     // The even half-samples are the left taps and the odd ones the right taps.
-                    a0 = Ssse3.Shuffle(Vector128.LoadUnsafe(ref referenceBase, (nuint)basis), Vector128.Create((byte)0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15));
-                    a1 = Sse2.ShiftRightLogical128BitLane(a0, 8);
+                    a0 = Vector128.Shuffle(Vector128.LoadUnsafe(ref referenceBase, (nuint)basis), Vector128.Create((byte)0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15));
+                    a1 = Vector128_.ShiftRightBytesInVector(a0, 8);
                     shift = Vector256.Create((short)(((projection << upsampleShift) & 0x3F) >> 1));
                 }
                 else
@@ -134,12 +134,12 @@ internal static partial class Av1DirectionalIntraPredictor
                     shift = Vector256.Create((short)((projection & 0x3F) >> 1));
                 }
 
-                Vector256<short> left = Avx2.ConvertToVector256Int16(a0);
-                Vector256<short> right = Avx2.ConvertToVector256Int16(a1);
-                Vector256<short> result = Avx2.ShiftRightLogical(((left << 5) + sixteen) + Avx2.MultiplyLow(right - left, shift), 5);
-                Vector128<byte> samples = Sse2.PackUnsignedSaturate(result.GetLower(), result.GetUpper());
+                Vector256<short> left = Vector256_.Widen(a0);
+                Vector256<short> right = Vector256_.Widen(a1);
+                Vector256<short> result = Vector256.ShiftRightLogical(((left << 5) + sixteen) + Vector256_.MultiplyLow(right - left, shift), 5);
+                Vector128<byte> samples = Vector128_.PackUnsignedSaturate(result.GetLower(), result.GetUpper());
                 Vector128<byte> mask = Vector128.GreaterThan(Vector128.Create((sbyte)Math.Min(validCount, width)), laneIndices).AsByte();
-                StoreRow(Sse41.BlendVariable(finalSample, samples, mask), ref Unsafe.Add(ref destinationBase, row * destinationStride), width);
+                StoreRow(Vector128.ConditionalSelect(mask, samples, finalSample), ref Unsafe.Add(ref destinationBase, row * destinationStride), width);
             }
         }
 

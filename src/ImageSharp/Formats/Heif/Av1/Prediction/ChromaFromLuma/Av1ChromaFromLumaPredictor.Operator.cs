@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 
@@ -111,11 +112,11 @@ internal static partial class Av1ChromaFromLumaPredictor
             Vector128<short> dcVector = Vector128.Create(dc);
             Vector128<short> scaledLumaQ0;
 
-            if (Ssse3.IsSupported)
+            if (Vector128.IsHardwareAccelerated)
             {
                 Vector128<short> alphaSign = Vector128.Create((short)alphaQ3);
                 Vector128<short> alphaQ12 = Vector128.Create((short)(Math.Abs(alphaQ3) << 9));
-                scaledLumaQ0 = Ssse3.MultiplyHighRoundScale(Ssse3.Abs(lumaQ3).AsInt16(), alphaQ12);
+                scaledLumaQ0 = Vector128_.MultiplyHighRoundScale(Vector128.Abs(lumaQ3), alphaQ12);
                 Vector128<short> signMask = (lumaQ3 ^ alphaSign) >> 15;
                 scaledLumaQ0 = (scaledLumaQ0 ^ signMask) - signMask;
             }
@@ -150,11 +151,11 @@ internal static partial class Av1ChromaFromLumaPredictor
             Vector256<short> dcVector = Vector256.Create(dc);
             Vector256<short> scaledLumaQ0;
 
-            if (Avx2.IsSupported)
+            if (Vector256.IsHardwareAccelerated)
             {
                 Vector256<short> alphaSign = Vector256.Create((short)alphaQ3);
                 Vector256<short> alphaQ12 = Vector256.Create((short)(Math.Abs(alphaQ3) << 9));
-                scaledLumaQ0 = Avx2.MultiplyHighRoundScale(Avx2.Abs(lumaQ3).AsInt16(), alphaQ12);
+                scaledLumaQ0 = Vector256_.MultiplyHighRoundScale(Vector256.Abs(lumaQ3), alphaQ12);
                 Vector256<short> signMask = (lumaQ3 ^ alphaSign) >> 15;
                 scaledLumaQ0 = (scaledLumaQ0 ^ signMask) - signMask;
             }

@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -119,6 +122,48 @@ internal sealed class Av1ImagePyramid : IDisposable
     public Span<byte> GetSamples(int level) => this.owner!.Memory.Span[this.levels[level].Offset..];
 
     /// <summary>
+    /// Fills the requested number of levels from one high-bit-depth frame.
+    /// </summary>
+    /// <param name="source">The frame samples.</param>
+    /// <param name="sourceStride">The frame row stride.</param>
+    /// <param name="bitDepth">The coded sample depth.</param>
+    /// <param name="requestedLevels">The number of levels to fill.</param>
+    /// <returns>The number of levels filled.</returns>
+    /// <remarks>
+    /// A pyramid is eight bits deep whatever the frame is, so the low bits of each sample are
+    /// dropped as it is copied. Reference: the high-bit-depth branch of fill_pyramid().
+    /// </remarks>
+    public int Fill(ReadOnlySpan<ushort> source, int sourceStride, int bitDepth, int requestedLevels)
+    {
+        int count = Math.Min(requestedLevels, this.LevelCount);
+        if (this.FilledLevelCount >= count)
+        {
+            return count;
+        }
+
+        if (this.FilledLevelCount == 0)
+        {
+            Span<byte> storage = this.owner!.Memory.Span;
+            Level first = this.levels[0];
+            int shift = bitDepth - 8;
+            for (int row = 0; row < first.Height; row++)
+            {
+                Narrow(
+                    source.Slice(row * sourceStride, first.Width),
+                    storage.Slice(first.Offset + first.Origin + (row * first.Stride), first.Width),
+                    shift);
+            }
+
+            FillBorder(storage, first);
+            this.FilledLevelCount = 1;
+        }
+
+        // Every level below the first is halved from the level above it, which is already eight bits
+        // deep, so the rest of the work is the same at either coded depth.
+        return this.Fill(ReadOnlySpan<byte>.Empty, 0, count);
+    }
+
+    /// <summary>
     /// Fills the requested number of levels from one eight-bit frame.
     /// </summary>
     /// <param name="source">The frame samples.</param>
@@ -173,6 +218,57 @@ internal sealed class Av1ImagePyramid : IDisposable
 
         this.FilledLevelCount = count;
         return count;
+    }
+
+    /// <summary>
+    /// Drops the low bits of one row of samples and stores the result as bytes.
+    /// </summary>
+    /// <param name="source">The row to read.</param>
+    /// <param name="destination">The row to write.</param>
+    /// <param name="shift">The low bits to drop.</param>
+    private static void Narrow(ReadOnlySpan<ushort> source, Span<byte> destination, int shift)
+    {
+        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
+        int length = source.Length;
+        int x = 0;
+
+        // Two source vectors make one destination vector, because a sample halves in width as it is
+        // narrowed. The widest stage that the hardware has and the row can fill is taken first.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= length - Vector512<byte>.Count; x += Vector512<byte>.Count)
+            {
+                Vector512<ushort> lower = Vector512.LoadUnsafe(ref sourceBase, (nuint)x) >>> shift;
+                Vector512<ushort> upper = Vector512.LoadUnsafe(ref sourceBase, (nuint)(x + Vector512<ushort>.Count)) >>> shift;
+                Vector512.Narrow(lower, upper).StoreUnsafe(ref destinationBase, (nuint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= length - Vector256<byte>.Count; x += Vector256<byte>.Count)
+            {
+                Vector256<ushort> lower = Vector256.LoadUnsafe(ref sourceBase, (nuint)x) >>> shift;
+                Vector256<ushort> upper = Vector256.LoadUnsafe(ref sourceBase, (nuint)(x + Vector256<ushort>.Count)) >>> shift;
+                Vector256.Narrow(lower, upper).StoreUnsafe(ref destinationBase, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= length - Vector128<byte>.Count; x += Vector128<byte>.Count)
+            {
+                Vector128<ushort> lower = Vector128.LoadUnsafe(ref sourceBase, (nuint)x) >>> shift;
+                Vector128<ushort> upper = Vector128.LoadUnsafe(ref sourceBase, (nuint)(x + Vector128<ushort>.Count)) >>> shift;
+                Vector128.Narrow(lower, upper).StoreUnsafe(ref destinationBase, (nuint)x);
+            }
+        }
+
+        for (; x < length; x++)
+        {
+            Unsafe.Add(ref destinationBase, x) = (byte)(Unsafe.Add(ref sourceBase, x) >> shift);
+        }
     }
 
     /// <inheritdoc/>

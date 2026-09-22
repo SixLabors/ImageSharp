@@ -30,8 +30,33 @@ internal static class Av1GlobalMotionEstimator
     public const int PyramidLevels = 12;
 
     /// <summary>
+    /// Defines how one frame of a given sample depth fills a pyramid.
+    /// </summary>
+    /// <typeparam name="TSample">The component sample type.</typeparam>
+    /// <remarks>
+    /// A pyramid is always eight bits deep, so a frame of greater depth loses its low bits as it is
+    /// copied into the first level. Reference: fill_pyramid().
+    /// </remarks>
+    internal interface IAv1PyramidFillOperator<TSample>
+        where TSample : unmanaged
+    {
+        /// <summary>
+        /// Fills the levels of one pyramid from one frame.
+        /// </summary>
+        /// <param name="pyramid">The pyramid to fill.</param>
+        /// <param name="source">The frame samples, beginning at the first coded sample.</param>
+        /// <param name="stride">The frame row stride.</param>
+        /// <param name="bitDepth">The coded sample depth.</param>
+        /// <param name="levels">The levels to fill.</param>
+        /// <returns>The levels filled.</returns>
+        public static abstract int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<TSample> source, int stride, int bitDepth, int levels);
+    }
+
+    /// <summary>
     /// Estimates the models that the most parts of a frame agree with.
     /// </summary>
+    /// <typeparam name="TSample">The component sample type.</typeparam>
+    /// <typeparam name="TFill">The way a frame of that depth fills a pyramid.</typeparam>
     /// <typeparam name="TModel">The family of models to fit.</typeparam>
     /// <param name="allocator">The allocator of every buffer this search uses.</param>
     /// <param name="source">The whole luma storage of the frame the model maps from.</param>
@@ -40,18 +65,22 @@ internal static class Av1GlobalMotionEstimator
     /// <param name="height">The coded height of both frames, in samples.</param>
     /// <param name="stride">The row stride of both storages, in samples.</param>
     /// <param name="origin">The index of the first coded sample of both storages.</param>
+    /// <param name="bitDepth">The coded sample depth of both frames.</param>
     /// <param name="models">The models to fill, best first.</param>
     /// <returns>Whether any model was fitted.</returns>
     /// <remarks>Reference: av1_compute_global_motion_disflow().</remarks>
-    public static bool Compute<TModel>(
+    public static bool Compute<TSample, TFill, TModel>(
         MemoryAllocator allocator,
-        ReadOnlySpan<byte> source,
-        ReadOnlySpan<byte> reference,
+        ReadOnlySpan<TSample> source,
+        ReadOnlySpan<TSample> reference,
         int width,
         int height,
         int stride,
         int origin,
+        int bitDepth,
         ReadOnlySpan<Av1MotionModel> models)
+        where TSample : unmanaged
+        where TFill : struct, IAv1PyramidFillOperator<TSample>
         where TModel : struct, Av1Ransac.IAv1RansacModel
     {
         // A frame smaller than one field entry has no field to solve.
@@ -62,8 +91,8 @@ internal static class Av1GlobalMotionEstimator
 
         using Av1ImagePyramid sourcePyramid = new(allocator, width, height);
         using Av1ImagePyramid referencePyramid = new(allocator, width, height);
-        int sourceLevels = sourcePyramid.Fill(source[origin..], stride, PyramidLevels);
-        int referenceLevels = referencePyramid.Fill(reference[origin..], stride, PyramidLevels);
+        int sourceLevels = TFill.Fill(sourcePyramid, source[origin..], stride, bitDepth, PyramidLevels);
+        int referenceLevels = TFill.Fill(referencePyramid, reference[origin..], stride, bitDepth, PyramidLevels);
         if (sourceLevels < 1 || sourceLevels != referenceLevels)
         {
             return false;
@@ -170,5 +199,25 @@ internal static class Av1GlobalMotionEstimator
         }
 
         return count;
+    }
+
+    /// <summary>
+    /// Fills a pyramid from an eight-bit frame, which needs no conversion.
+    /// </summary>
+    internal readonly struct ByteFillOperator : IAv1PyramidFillOperator<byte>
+    {
+        /// <inheritdoc/>
+        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<byte> source, int stride, int bitDepth, int levels)
+            => pyramid.Fill(source, stride, levels);
+    }
+
+    /// <summary>
+    /// Fills a pyramid from a high-bit-depth frame, dropping the low bits of every sample.
+    /// </summary>
+    internal readonly struct UInt16FillOperator : IAv1PyramidFillOperator<ushort>
+    {
+        /// <inheritdoc/>
+        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<ushort> source, int stride, int bitDepth, int levels)
+            => pyramid.Fill(source, stride, bitDepth, levels);
     }
 }

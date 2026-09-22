@@ -69,14 +69,10 @@ internal static class Av1FrameEncoder
     private const int CenteredChromaSamplePosition = 1;
 
     /// <summary>
-    /// The largest dimension of the central luma window used during candidate discovery.
+    /// The step sizes the warp refinement tries, each half of the one before.
     /// </summary>
-    private const int MaximumGlobalMotionAnalysisDimension = 512;
-
-    /// <summary>
-    /// The number of cardinal and diagonal candidates evaluated at each motion-search step.
-    /// </summary>
-    private const int GlobalMotionSearchDirectionCount = 8;
+    /// <remarks>Reference: GM_MAX_REFINEMENT_STEPS.</remarks>
+    private const int GlobalMotionRefinementCount = 5;
 
     private enum FrameEncodingKind
     {
@@ -88,7 +84,9 @@ internal static class Av1FrameEncoder
     /// Defines the sample-specific SIMD squared-error operation used by frame-level motion search.
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
-    private interface IGlobalMotionSearchOperator<TSample>
+    private interface IGlobalMotionSearchOperator<TSample> :
+        Av1GlobalMotionEstimator.IAv1PyramidFillOperator<TSample>,
+        Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>
@@ -887,6 +885,7 @@ internal static class Av1FrameEncoder
             encodeAlpha);
 
         return ConfigureFrameTools(
+            configuration,
             source,
             reference,
             sequenceHeader,
@@ -917,6 +916,7 @@ internal static class Av1FrameEncoder
             conversionWorkspace);
 
         return ConfigureFrameTools(
+            configuration,
             source,
             reference,
             sequenceHeader,
@@ -928,6 +928,7 @@ internal static class Av1FrameEncoder
     /// Resolves the eight-bit frame tools whose syntax depends on the converted source samples.
     /// </summary>
     private static bool ConfigureFrameTools(
+        Configuration configuration,
         Av1EncoderFrame<byte> source,
         Av1EncoderFrame<byte> reference,
         ObuSequenceHeader sequenceHeader,
@@ -935,6 +936,7 @@ internal static class Av1FrameEncoder
         HeifEncodingSpeed speed)
     {
         ConfigureGlobalMotion<byte, ByteGlobalMotionSearchOperator>(
+            configuration.MemoryAllocator,
             source,
             reference,
             frameHeader,
@@ -990,6 +992,7 @@ internal static class Av1FrameEncoder
             encodeAlpha);
 
         return ConfigureFrameTools(
+            configuration,
             source,
             reference,
             sequenceHeader,
@@ -1020,6 +1023,7 @@ internal static class Av1FrameEncoder
             conversionWorkspace);
 
         return ConfigureFrameTools(
+            configuration,
             source,
             reference,
             sequenceHeader,
@@ -1031,6 +1035,7 @@ internal static class Av1FrameEncoder
     /// Resolves the high-bit-depth frame tools whose syntax depends on the converted source samples.
     /// </summary>
     private static bool ConfigureFrameTools(
+        Configuration configuration,
         Av1EncoderFrame<ushort> source,
         Av1EncoderFrame<ushort> reference,
         ObuSequenceHeader sequenceHeader,
@@ -1038,6 +1043,7 @@ internal static class Av1FrameEncoder
         HeifEncodingSpeed speed)
     {
         ConfigureGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(
+            configuration.MemoryAllocator,
             source,
             reference,
             frameHeader,
@@ -1231,7 +1237,24 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Selects a bounded whole-frame translation model for an inter frame.
     /// </summary>
+    /// <summary>
+    /// Estimates the warp model of one reference frame and codes it when it earns its cost.
+    /// </summary>
+    /// <typeparam name="TSample">The component sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample-specific measures the search needs.</typeparam>
+    /// <param name="allocator">The allocator of every buffer the search uses.</param>
+    /// <param name="source">The frame being coded.</param>
+    /// <param name="reference">The frame the model maps onto.</param>
+    /// <param name="frameHeader">The header that receives the chosen model.</param>
+    /// <param name="bitDepth">The coded sample depth.</param>
+    /// <remarks>
+    /// Every model family is tried, and the one whose warped error is the smallest share of the
+    /// unwarped error wins, as long as that share also justifies what the model costs to code. A
+    /// model that reduces to a translation is never taken, because the vector such a model gives a
+    /// block has a published defect. Reference: compute_global_motion_for_ref_frame().
+    /// </remarks>
     private static void ConfigureGlobalMotion<TSample, TOperator>(
+        MemoryAllocator allocator,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reference,
         ObuFrameHeader frameHeader,
@@ -1249,228 +1272,107 @@ internal static class Av1FrameEncoder
         Buffer2DRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
 
-        // Integer translations must fit the model's signed fixed-point range before their coding cost
-        // is evaluated. Padding bounds the readable pixels independently of that syntax limit.
-        const int MaximumTranslation = 1 <<
-            (Av1GlobalMotionParameters.AbsoluteTranslationBits - Av1GlobalMotionParameters.TranslationPrecisionBits);
-
-        // Every compared sample has to be a coded sample. An offset that reaches past the frame compares
-        // against replicated padding, whose error can fall below the error of the real content and select
-        // a model that describes no motion at all. The analysis window keeps a margin on each side, and
-        // that margin bounds the search.
-        int searchRadius = Math.Min(
-            MaximumTranslation,
-            Math.Min(
-                Math.Min(source.CodedWidth, source.CodedHeight) >> 2,
-                Math.Min(referenceLuma.Bounds.X, referenceLuma.Bounds.Y)));
-
-        int analysisWidth = Math.Min(source.CodedWidth - (2 * searchRadius), MaximumGlobalMotionAnalysisDimension);
-        int analysisHeight = Math.Min(source.CodedHeight - (2 * searchRadius), MaximumGlobalMotionAnalysisDimension);
-        Point analysisOrigin = new(
-            (source.CodedWidth - analysisWidth) >> 1,
-            (source.CodedHeight - analysisHeight) >> 1);
-
-        Point bestOffset = default;
-        long bestAnalysisError = GetGlobalMotionSquaredError<TSample, TOperator>(
-            sourceLuma,
-            referenceLuma,
-            analysisOrigin,
-            analysisWidth,
-            analysisHeight,
-            bestOffset);
-
-        // The reference refines one model parameter at a time and keeps stepping in the winning
-        // direction until the error rises, rather than taking one step of a fixed direction set.
-        // Reference: av1_refine_integerized_param().
-        for (int step = searchRadius; step > 0; step >>= 1)
-        {
-            for (int parameter = 0; parameter < 2; parameter++)
-            {
-                Point stageOffset = bestOffset;
-                int stepDirection = 0;
-                for (int direction = -1; direction <= 1; direction += 2)
-                {
-                    Point candidateOffset = OffsetGlobalMotionParameter(stageOffset, parameter, step * direction);
-                    if (!IsGlobalMotionOffsetInRange(candidateOffset, searchRadius))
-                    {
-                        continue;
-                    }
-
-                    long stepError = GetGlobalMotionSquaredError<TSample, TOperator>(
-                        sourceLuma, referenceLuma, analysisOrigin, analysisWidth, analysisHeight, candidateOffset);
-
-                    // Strict replacement preserves identity and the earlier direction on ties.
-                    if (stepError < bestAnalysisError)
-                    {
-                        bestAnalysisError = stepError;
-                        bestOffset = candidateOffset;
-                        stepDirection = direction;
-                    }
-                }
-
-                while (stepDirection != 0)
-                {
-                    Point candidateOffset = OffsetGlobalMotionParameter(bestOffset, parameter, step * stepDirection);
-                    if (!IsGlobalMotionOffsetInRange(candidateOffset, searchRadius))
-                    {
-                        break;
-                    }
-
-                    long stepError = GetGlobalMotionSquaredError<TSample, TOperator>(
-                        sourceLuma, referenceLuma, analysisOrigin, analysisWidth, analysisHeight, candidateOffset);
-
-                    if (stepError >= bestAnalysisError)
-                    {
-                        break;
-                    }
-
-                    bestAnalysisError = stepError;
-                    bestOffset = candidateOffset;
-                }
-            }
-        }
-
-        if (bestOffset == default)
+        // The flow search walks both frames with one set of level sizes, so the two planes have to
+        // agree on their row stride.
+        if (sourceLuma.Stride != referenceLuma.Stride)
         {
             return;
         }
 
-        Point frameOrigin = default;
-        long identityError = GetGlobalMotionSquaredError<TSample, TOperator>(
-            sourceLuma,
-            referenceLuma,
-            frameOrigin,
-            source.CodedWidth,
-            source.CodedHeight,
-            frameOrigin);
+        int width = source.CodedWidth;
+        int height = source.CodedHeight;
+        int stride = sourceLuma.Stride;
+        int depth = bitDepth.GetBitCount();
+        ReadOnlySpan<TSample> sourcePlane = sourceLuma.Buffer.DangerousGetSingleSpan();
+        ReadOnlySpan<TSample> referencePlane = referenceLuma.Buffer.DangerousGetSingleSpan();
+        int sourceOrigin = (sourceLuma.Bounds.Y * stride) + sourceLuma.Bounds.X;
+        int referenceOrigin = (referenceLuma.Bounds.Y * stride) + referenceLuma.Bounds.X;
 
-        long candidateError = GetGlobalMotionSquaredError<TSample, TOperator>(
-            sourceLuma,
-            referenceLuma,
-            frameOrigin,
-            source.CodedWidth,
-            source.CodedHeight,
-            bestOffset);
+        // The map holds one mark per error block, and a frame that does not divide evenly still
+        // has a partial block at its right and bottom edges.
+        int mapWidth = (width + Av1GlobalMotionSearch.ErrorBlock - 1) >> Av1GlobalMotionSearch.ErrorBlockLog;
+        int mapHeight = (height + Av1GlobalMotionSearch.ErrorBlock - 1) >> Av1GlobalMotionSearch.ErrorBlockLog;
+        using IMemoryOwner<byte> mapOwner = allocator.Allocate<byte>(mapWidth * mapHeight);
+        Span<byte> map = mapOwner.Memory.Span;
 
-        Av1GlobalMotionParameters candidate = Av1GlobalMotionParameters.Identity;
-
-        // Pure translation is stored as identity-scale rotation/zoom because the translation-only AV1 model
-        // has a published row/column assignment defect. The resulting block vector remains exact.
-        candidate.Type = Av1GlobalMotionType.RotationZoom;
-        candidate[0] = bestOffset.X * Av1GlobalMotionParameters.ModelScale;
-        candidate[1] = bestOffset.Y * Av1GlobalMotionParameters.ModelScale;
-        candidate.UpdateShearParameters();
-
-        int rateMultiplier = Av1RateDistortion.GetRateMultiplier(
-            frameHeader.QuantizationParameters.BaseQIndex + frameHeader.QuantizationParameters.DeltaQDc[0],
-            bitDepth,
-            Av1FrameUpdateType.Last);
-
-        int identityRate =
-            ObuWriter.GetGlobalMotionModelBitCount(
-                Av1GlobalMotionParameters.Identity,
-                frameHeader.AllowHighPrecisionMotionVector) <<
-            Av1ProbabilityCost.CostShift;
-
-        int candidateRate =
-            ObuWriter.GetGlobalMotionModelBitCount(
-                candidate,
-                frameHeader.AllowHighPrecisionMotionVector) <<
-            Av1ProbabilityCost.CostShift;
-
-        long identityCost = Av1RateDistortion.GetCost(
-            rateMultiplier,
-            identityRate,
-            NormalizeGlobalMotionSquaredError(identityError, bitDepth));
-
-        long candidateCost = Av1RateDistortion.GetCost(
-            rateMultiplier,
-            candidateRate,
-            NormalizeGlobalMotionSquaredError(candidateError, bitDepth));
-
-        if (candidateCost < identityCost)
+        Av1MotionModel[] fitted = [new Av1MotionModel()];
+        double bestErrorAdvantage = double.MaxValue;
+        for (Av1GlobalMotionType family = Av1GlobalMotionType.RotationZoom; family <= Av1GlobalMotionType.Affine; family++)
         {
-            models[0] = candidate;
+            bool estimated = family == Av1GlobalMotionType.RotationZoom
+                ? Av1GlobalMotionEstimator.Compute<TSample, TOperator, Av1Ransac.RotationZoomModel>(
+                    allocator, sourcePlane, referencePlane, width, height, stride, sourceOrigin, depth, fitted)
+                : Av1GlobalMotionEstimator.Compute<TSample, TOperator, Av1Ransac.AffineModel>(
+                    allocator, sourcePlane, referencePlane, width, height, stride, sourceOrigin, depth, fitted);
+
+            if (!estimated || fitted[0].InlierCount == 0)
+            {
+                continue;
+            }
+
+            Av1GlobalMotionParameters candidate = Av1GlobalMotionSearch.ConvertModelToParameters(fitted[0].Parameters);
+            candidate.UpdateShearParameters();
+            if (candidate.IsInvalid || candidate.Type <= Av1GlobalMotionType.Translation)
+            {
+                continue;
+            }
+
+            // The error is measured only where the model was fitted, so the parts of the frame that
+            // move on their own do not decide whether the model is worth coding.
+            Av1GlobalMotionSearch.ComputeFeatureSegmentationMap(map, mapWidth, mapHeight, fitted[0].Inliers);
+            long referenceError = Av1GlobalMotionSearch.GetSegmentedFrameError<TSample, TOperator>(
+                referencePlane[referenceOrigin..],
+                stride,
+                sourcePlane[sourceOrigin..],
+                stride,
+                width,
+                height,
+                map,
+                mapWidth);
+
+            if (referenceError == 0)
+            {
+                continue;
+            }
+
+            long warpError = Av1GlobalMotionSearch.RefineIntegerizedParameters<TSample, TOperator>(
+                allocator,
+                ref candidate,
+                candidate.Type,
+                referencePlane[referenceOrigin..],
+                stride,
+                sourcePlane[sourceOrigin..],
+                stride,
+                width,
+                height,
+                GlobalMotionRefinementCount,
+                depth,
+                referenceError,
+                map,
+                mapWidth);
+
+            // Refinement can move a model down to a simpler family, so the family is read again.
+            if (warpError == long.MaxValue || candidate.Type <= Av1GlobalMotionType.Translation)
+            {
+                continue;
+            }
+
+            int parametersCost =
+                ObuWriter.GetGlobalMotionModelBitCount(candidate, frameHeader.AllowHighPrecisionMotionVector) <<
+                Av1ProbabilityCost.CostShift;
+
+            double errorAdvantage = (double)warpError / referenceError;
+            if (!Av1GlobalMotionSearch.IsEnoughErrorAdvantage(errorAdvantage, parametersCost))
+            {
+                continue;
+            }
+
+            if (errorAdvantage < bestErrorAdvantage)
+            {
+                bestErrorAdvantage = errorAdvantage;
+                models[0] = candidate;
+            }
         }
-    }
-
-    /// <summary>
-    /// Offsets one translation parameter of a global-motion candidate.
-    /// </summary>
-    /// <param name="offset">The current integer translation.</param>
-    /// <param name="parameter">Zero for the horizontal parameter, one for the vertical parameter.</param>
-    /// <param name="delta">The signed sample step.</param>
-    /// <returns>The offset candidate.</returns>
-    private static Point OffsetGlobalMotionParameter(Point offset, int parameter, int delta)
-        => parameter == 0 ? new Point(offset.X + delta, offset.Y) : new Point(offset.X, offset.Y + delta);
-
-    /// <summary>
-    /// Gets whether an integer translation stays inside the searched range.
-    /// </summary>
-    /// <param name="offset">The integer translation.</param>
-    /// <param name="searchRadius">The inclusive range on each axis.</param>
-    /// <returns>Whether both components are inside the range.</returns>
-    private static bool IsGlobalMotionOffsetInRange(Point offset, int searchRadius)
-        => Math.Abs(offset.X) <= searchRadius && Math.Abs(offset.Y) <= searchRadius;
-
-    /// <summary>
-    /// Calculates squared error for one translated luma candidate using the physical reference border.
-    /// </summary>
-    private static long GetGlobalMotionSquaredError<TSample, TOperator>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reference,
-        Point sourceOrigin,
-        int width,
-        int height,
-        Point referenceOffset)
-        where TSample : unmanaged
-        where TOperator : struct, IGlobalMotionSearchOperator<TSample>
-    {
-        Rectangle sourceBounds = source.Bounds;
-        Rectangle referenceBounds = reference.Bounds;
-        int sourceIndex =
-            ((sourceBounds.Y + sourceOrigin.Y) * source.Stride) +
-            sourceBounds.X +
-            sourceOrigin.X;
-
-        int referenceIndex =
-            ((referenceBounds.Y + sourceOrigin.Y + referenceOffset.Y) * reference.Stride) +
-            referenceBounds.X +
-            sourceOrigin.X +
-            referenceOffset.X;
-
-        return TOperator.SumSquaredError(
-            source.Buffer.DangerousGetSingleSpan()[sourceIndex..],
-            source.Stride,
-            reference.Buffer.DangerousGetSingleSpan()[referenceIndex..],
-            reference.Stride,
-            width,
-            height);
-    }
-
-    /// <summary>
-    /// Gets one cardinal or diagonal direction in the reference encoder's search order.
-    /// </summary>
-    private static Point GetGlobalMotionSearchDirection(int index)
-        => index switch
-        {
-            0 => new Point(0, -1),
-            1 => new Point(0, 1),
-            2 => new Point(-1, 0),
-            3 => new Point(1, 0),
-            4 => new Point(-1, -1),
-            5 => new Point(1, 1),
-            6 => new Point(1, -1),
-            _ => new Point(-1, 1)
-        };
-
-    /// <summary>
-    /// Normalizes high-bit-depth frame error to the eight-bit distortion domain.
-    /// </summary>
-    private static long NormalizeGlobalMotionSquaredError(long error, Av1BitDepth bitDepth)
-    {
-        int shift = (bitDepth.GetBitCount() - ByteSampleBitDepth) * 2;
-        return shift == 0 ? error : (error + (1L << (shift - 1))) >> shift;
     }
 
     /// <summary>
@@ -1544,6 +1446,44 @@ internal static class Av1FrameEncoder
     private readonly struct ByteGlobalMotionSearchOperator : IGlobalMotionSearchOperator<byte>
     {
         /// <inheritdoc/>
+        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<byte> source, int stride, int bitDepth, int levels)
+            => pyramid.Fill(source, stride, levels);
+
+        /// <inheritdoc/>
+        public static void PredictWarped(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            int sourceWidth,
+            int sourceHeight,
+            Span<byte> destination,
+            int destinationStride,
+            Point position,
+            int width,
+            int height,
+            int bitDepth,
+            Av1GlobalMotionParameters parameters,
+            Span<short> scratch)
+            => Av1GlobalMotionSearch.ByteOperator.PredictWarped(
+                source,
+                sourceStride,
+                sourceWidth,
+                sourceHeight,
+                destination,
+                destinationStride,
+                position,
+                width,
+                height,
+                bitDepth,
+                parameters,
+                scratch);
+
+        /// <inheritdoc/>
+        public static int SumAbsoluteDifferences(
+            ReadOnlySpan<byte> source, int sourceStride, ReadOnlySpan<byte> prediction, int predictionStride, int width, int height)
+            => Av1GlobalMotionSearch.ByteOperator.SumAbsoluteDifferences(
+                source, sourceStride, prediction, predictionStride, width, height);
+
+        /// <inheritdoc/>
         public static long SumSquaredError(
             ReadOnlySpan<byte> source,
             int sourceStride,
@@ -1565,6 +1505,44 @@ internal static class Av1FrameEncoder
     /// </summary>
     private readonly struct UInt16GlobalMotionSearchOperator : IGlobalMotionSearchOperator<ushort>
     {
+        /// <inheritdoc/>
+        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<ushort> source, int stride, int bitDepth, int levels)
+            => pyramid.Fill(source, stride, bitDepth, levels);
+
+        /// <inheritdoc/>
+        public static void PredictWarped(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            int sourceWidth,
+            int sourceHeight,
+            Span<ushort> destination,
+            int destinationStride,
+            Point position,
+            int width,
+            int height,
+            int bitDepth,
+            Av1GlobalMotionParameters parameters,
+            Span<short> scratch)
+            => Av1GlobalMotionSearch.UInt16Operator.PredictWarped(
+                source,
+                sourceStride,
+                sourceWidth,
+                sourceHeight,
+                destination,
+                destinationStride,
+                position,
+                width,
+                height,
+                bitDepth,
+                parameters,
+                scratch);
+
+        /// <inheritdoc/>
+        public static int SumAbsoluteDifferences(
+            ReadOnlySpan<ushort> source, int sourceStride, ReadOnlySpan<ushort> prediction, int predictionStride, int width, int height)
+            => Av1GlobalMotionSearch.UInt16Operator.SumAbsoluteDifferences(
+                source, sourceStride, prediction, predictionStride, width, height);
+
         /// <inheritdoc/>
         public static long SumSquaredError(
             ReadOnlySpan<ushort> source,

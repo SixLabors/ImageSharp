@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -153,7 +153,7 @@ internal static partial class Av1ForwardTransformer
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Store4(Vector128<short> values, ref int destination, int offset)
-        => Sse2.ShiftRightArithmetic(Sse2.UnpackLow(values, values).AsInt32(), 16).StoreUnsafe(ref destination, (nuint)offset);
+        => Vector128.ShiftRightArithmetic(Vector128_.UnpackLow(values, values).AsInt32(), 16).StoreUnsafe(ref destination, (nuint)offset);
 
     /// <summary>
     /// The four-point DCT of <c>fdct4x4_new_sse2</c>.
@@ -175,20 +175,20 @@ internal static partial class Av1ForwardTransformer
             short c16 = (short)cospi[16];
             short c48 = (short)cospi[48];
 
-            Vector128<short> u0 = Sse2.UnpackLow(in0, in1);
-            Vector128<short> u1 = Sse2.UnpackLow(in3, in2);
+            Vector128<short> u0 = Vector128_.UnpackLow(in0, in1);
+            Vector128<short> u1 = Vector128_.UnpackLow(in3, in2);
             Vector128<short> v0 = u0 + u1;
             Vector128<short> v1 = u0 - u1;
 
-            Vector128<int> o0 = (Sse2.MultiplyAddAdjacent(v0, Av1TransformKernels.Pair(c32, c32)) + rounding) >> cosBit;
-            Vector128<int> o2 = (Sse2.MultiplyAddAdjacent(v0, Av1TransformKernels.Pair(c32, (short)-c32)) + rounding) >> cosBit;
-            Vector128<int> o1 = (Sse2.MultiplyAddAdjacent(v1, Av1TransformKernels.Pair(c16, c48)) + rounding) >> cosBit;
-            Vector128<int> o3 = (Sse2.MultiplyAddAdjacent(v1, Av1TransformKernels.Pair(c48, (short)-c16)) + rounding) >> cosBit;
+            Vector128<int> o0 = (Vector128_.MultiplyAddAdjacent(v0, Av1TransformKernels.Pair(c32, c32)) + rounding) >> cosBit;
+            Vector128<int> o2 = (Vector128_.MultiplyAddAdjacent(v0, Av1TransformKernels.Pair(c32, (short)-c32)) + rounding) >> cosBit;
+            Vector128<int> o1 = (Vector128_.MultiplyAddAdjacent(v1, Av1TransformKernels.Pair(c16, c48)) + rounding) >> cosBit;
+            Vector128<int> o3 = (Vector128_.MultiplyAddAdjacent(v1, Av1TransformKernels.Pair(c48, (short)-c16)) + rounding) >> cosBit;
 
-            in0 = Sse2.PackSignedSaturate(o0, o2);
-            in1 = Sse2.PackSignedSaturate(o1, o3);
-            in2 = Sse2.ShiftRightLogical128BitLane(in0, 8);
-            in3 = Sse2.ShiftRightLogical128BitLane(in1, 8);
+            in0 = Vector128_.PackSignedSaturate(o0, o2);
+            in1 = Vector128_.PackSignedSaturate(o1, o3);
+            in2 = Vector128_.ShiftRightBytesInVector(in0.AsByte(), 8).AsInt16();
+            in3 = Vector128_.ShiftRightBytesInVector(in1.AsByte(), 8).AsInt16();
         }
     }
 
@@ -215,20 +215,20 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> zero = Vector128<short>.Zero;
             Vector128<short> in7 = in0 + in1;
 
-            Vector128<short> u0 = Sse2.UnpackLow(in0, in1);
-            Vector128<short> u1 = Sse2.UnpackLow(in2, in3);
-            Vector128<short> u2 = Sse2.UnpackLow(in7, zero);
-            Vector128<short> u3 = Sse2.UnpackLow(in2, zero);
-            Vector128<short> u4 = Sse2.UnpackLow(in3, zero);
+            Vector128<short> u0 = Vector128_.UnpackLow(in0, in1);
+            Vector128<short> u1 = Vector128_.UnpackLow(in2, in3);
+            Vector128<short> u2 = Vector128_.UnpackLow(in7, zero);
+            Vector128<short> u3 = Vector128_.UnpackLow(in2, zero);
+            Vector128<short> u4 = Vector128_.UnpackLow(in3, zero);
             Vector128<short> s3s3 = Vector128.Create(s3);
 
-            Vector128<int> v0 = Sse2.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s1, s2));
-            Vector128<int> v1 = Sse2.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(s3, s4));
-            Vector128<int> v2 = Sse2.MultiplyAddAdjacent(u2, s3s3);
-            Vector128<int> v3 = Sse2.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s4, (short)-s1));
-            Vector128<int> v4 = Sse2.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair((short)-s3, s2));
-            Vector128<int> v5 = Sse2.MultiplyAddAdjacent(u3, s3s3);
-            Vector128<int> v6 = Sse2.MultiplyAddAdjacent(u4, s3s3);
+            Vector128<int> v0 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s1, s2));
+            Vector128<int> v1 = Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(s3, s4));
+            Vector128<int> v2 = Vector128_.MultiplyAddAdjacent(u2, s3s3);
+            Vector128<int> v3 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s4, (short)-s1));
+            Vector128<int> v4 = Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair((short)-s3, s2));
+            Vector128<int> v5 = Vector128_.MultiplyAddAdjacent(u3, s3s3);
+            Vector128<int> v6 = Vector128_.MultiplyAddAdjacent(u4, s3s3);
 
             Vector128<int> w0 = v0 + v1;
             Vector128<int> w1 = v2 - v6;
@@ -243,10 +243,10 @@ internal static partial class Av1ForwardTransformer
             w2 = (w2 + rounding) >> cosBit;
             w6 = (w6 + rounding) >> cosBit;
 
-            in0 = Sse2.PackSignedSaturate(w0, w2);
-            in1 = Sse2.PackSignedSaturate(w1, w6);
-            in2 = Sse2.ShiftRightLogical128BitLane(in0, 8);
-            in3 = Sse2.ShiftRightLogical128BitLane(in1, 8);
+            in0 = Vector128_.PackSignedSaturate(w0, w2);
+            in1 = Vector128_.PackSignedSaturate(w1, w6);
+            in2 = Vector128_.ShiftRightBytesInVector(in0.AsByte(), 8).AsInt16();
+            in3 = Vector128_.ShiftRightBytesInVector(in1.AsByte(), 8).AsInt16();
         }
     }
 
@@ -275,8 +275,8 @@ internal static partial class Av1ForwardTransformer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<short> ScaleRound(Vector128<short> value, Vector128<short> one, Vector128<short> scale)
         {
-            Vector128<int> scaled = Sse2.MultiplyAddAdjacent(Sse2.UnpackLow(value, one), scale) >> Av1Transform1dMath.NewSqrt2Bits;
-            return Sse2.PackSignedSaturate(scaled, scaled);
+            Vector128<int> scaled = Vector128_.MultiplyAddAdjacent(Vector128_.UnpackLow(value, one), scale) >> Av1Transform1dMath.NewSqrt2Bits;
+            return Vector128_.PackSignedSaturate(scaled, scaled);
         }
     }
 }

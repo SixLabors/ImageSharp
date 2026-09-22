@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -16,12 +16,12 @@ internal static class Av1TransformKernels
     /// <summary>
     /// Gets a value indicating whether the register-resident kernels are available on this machine.
     /// </summary>
-    public static bool IsSupported => Sse2.IsSupported;
+    public static bool IsSupported => Vector128.IsHardwareAccelerated;
 
     /// <summary>
     /// Gets a value indicating whether the sixteen-lane register-resident kernels are available on this machine.
     /// </summary>
-    public static bool IsWideSupported => Avx2.IsSupported;
+    public static bool IsWideSupported => Vector256.IsHardwareAccelerated;
 
     /// <summary>
     /// Creates the interleaved weight pair of <c>pair_set_w16_epi16</c> with one broadcast.
@@ -51,14 +51,14 @@ internal static class Av1TransformKernels
         Vector256<int> rounding,
         int cosBit)
     {
-        Vector256<short> lower = Avx2.UnpackLow(in0, in1);
-        Vector256<short> upper = Avx2.UnpackHigh(in0, in1);
-        Vector256<int> u0 = (Avx2.MultiplyAddAdjacent(lower, weights0) + rounding) >> cosBit;
-        Vector256<int> u1 = (Avx2.MultiplyAddAdjacent(upper, weights0) + rounding) >> cosBit;
-        Vector256<int> v0 = (Avx2.MultiplyAddAdjacent(lower, weights1) + rounding) >> cosBit;
-        Vector256<int> v1 = (Avx2.MultiplyAddAdjacent(upper, weights1) + rounding) >> cosBit;
-        in0 = Avx2.PackSignedSaturate(u0, u1);
-        in1 = Avx2.PackSignedSaturate(v0, v1);
+        Vector256<short> lower = Vector256_.UnpackLow(in0, in1);
+        Vector256<short> upper = Vector256_.UnpackHigh(in0, in1);
+        Vector256<int> u0 = (Vector256_.MultiplyAddAdjacent(lower, weights0) + rounding) >> cosBit;
+        Vector256<int> u1 = (Vector256_.MultiplyAddAdjacent(upper, weights0) + rounding) >> cosBit;
+        Vector256<int> v0 = (Vector256_.MultiplyAddAdjacent(lower, weights1) + rounding) >> cosBit;
+        Vector256<int> v1 = (Vector256_.MultiplyAddAdjacent(upper, weights1) + rounding) >> cosBit;
+        in0 = Vector256_.PackSignedSaturate(u0, u1);
+        in1 = Vector256_.PackSignedSaturate(v0, v1);
     }
 
     /// <summary>
@@ -69,8 +69,8 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddSubtractWide(ref Vector256<short> in0, ref Vector256<short> in1)
     {
-        Vector256<short> sum = Avx2.AddSaturate(in0, in1);
-        in1 = Avx2.SubtractSaturate(in0, in1);
+        Vector256<short> sum = Vector256.AddSaturate(in0, in1);
+        in1 = Vector256.SubtractSaturate(in0, in1);
         in0 = sum;
     }
 
@@ -97,32 +97,32 @@ internal static class Av1TransformKernels
         ref Vector256<short> r6,
         ref Vector256<short> r7)
     {
-        Vector256<short> a0 = Avx2.UnpackLow(r0, r1);
-        Vector256<short> a1 = Avx2.UnpackLow(r2, r3);
-        Vector256<short> a2 = Avx2.UnpackLow(r4, r5);
-        Vector256<short> a3 = Avx2.UnpackLow(r6, r7);
-        Vector256<short> a4 = Avx2.UnpackHigh(r0, r1);
-        Vector256<short> a5 = Avx2.UnpackHigh(r2, r3);
-        Vector256<short> a6 = Avx2.UnpackHigh(r4, r5);
-        Vector256<short> a7 = Avx2.UnpackHigh(r6, r7);
+        Vector256<short> a0 = Vector256_.UnpackLow(r0, r1);
+        Vector256<short> a1 = Vector256_.UnpackLow(r2, r3);
+        Vector256<short> a2 = Vector256_.UnpackLow(r4, r5);
+        Vector256<short> a3 = Vector256_.UnpackLow(r6, r7);
+        Vector256<short> a4 = Vector256_.UnpackHigh(r0, r1);
+        Vector256<short> a5 = Vector256_.UnpackHigh(r2, r3);
+        Vector256<short> a6 = Vector256_.UnpackHigh(r4, r5);
+        Vector256<short> a7 = Vector256_.UnpackHigh(r6, r7);
 
-        Vector256<int> b0 = Avx2.UnpackLow(a0.AsInt32(), a1.AsInt32());
-        Vector256<int> b1 = Avx2.UnpackLow(a2.AsInt32(), a3.AsInt32());
-        Vector256<int> b2 = Avx2.UnpackLow(a4.AsInt32(), a5.AsInt32());
-        Vector256<int> b3 = Avx2.UnpackLow(a6.AsInt32(), a7.AsInt32());
-        Vector256<int> b4 = Avx2.UnpackHigh(a0.AsInt32(), a1.AsInt32());
-        Vector256<int> b5 = Avx2.UnpackHigh(a2.AsInt32(), a3.AsInt32());
-        Vector256<int> b6 = Avx2.UnpackHigh(a4.AsInt32(), a5.AsInt32());
-        Vector256<int> b7 = Avx2.UnpackHigh(a6.AsInt32(), a7.AsInt32());
+        Vector256<int> b0 = Vector256_.UnpackLow(a0.AsInt32(), a1.AsInt32());
+        Vector256<int> b1 = Vector256_.UnpackLow(a2.AsInt32(), a3.AsInt32());
+        Vector256<int> b2 = Vector256_.UnpackLow(a4.AsInt32(), a5.AsInt32());
+        Vector256<int> b3 = Vector256_.UnpackLow(a6.AsInt32(), a7.AsInt32());
+        Vector256<int> b4 = Vector256_.UnpackHigh(a0.AsInt32(), a1.AsInt32());
+        Vector256<int> b5 = Vector256_.UnpackHigh(a2.AsInt32(), a3.AsInt32());
+        Vector256<int> b6 = Vector256_.UnpackHigh(a4.AsInt32(), a5.AsInt32());
+        Vector256<int> b7 = Vector256_.UnpackHigh(a6.AsInt32(), a7.AsInt32());
 
-        r0 = Avx2.UnpackLow(b0.AsInt64(), b1.AsInt64()).AsInt16();
-        r1 = Avx2.UnpackHigh(b0.AsInt64(), b1.AsInt64()).AsInt16();
-        r2 = Avx2.UnpackLow(b4.AsInt64(), b5.AsInt64()).AsInt16();
-        r3 = Avx2.UnpackHigh(b4.AsInt64(), b5.AsInt64()).AsInt16();
-        r4 = Avx2.UnpackLow(b2.AsInt64(), b3.AsInt64()).AsInt16();
-        r5 = Avx2.UnpackHigh(b2.AsInt64(), b3.AsInt64()).AsInt16();
-        r6 = Avx2.UnpackLow(b6.AsInt64(), b7.AsInt64()).AsInt16();
-        r7 = Avx2.UnpackHigh(b6.AsInt64(), b7.AsInt64()).AsInt16();
+        r0 = Vector256_.UnpackLow(b0.AsInt64(), b1.AsInt64()).AsInt16();
+        r1 = Vector256_.UnpackHigh(b0.AsInt64(), b1.AsInt64()).AsInt16();
+        r2 = Vector256_.UnpackLow(b4.AsInt64(), b5.AsInt64()).AsInt16();
+        r3 = Vector256_.UnpackHigh(b4.AsInt64(), b5.AsInt64()).AsInt16();
+        r4 = Vector256_.UnpackLow(b2.AsInt64(), b3.AsInt64()).AsInt16();
+        r5 = Vector256_.UnpackHigh(b2.AsInt64(), b3.AsInt64()).AsInt16();
+        r6 = Vector256_.UnpackLow(b6.AsInt64(), b7.AsInt64()).AsInt16();
+        r7 = Vector256_.UnpackHigh(b6.AsInt64(), b7.AsInt64()).AsInt16();
     }
 
     /// <summary>
@@ -216,8 +216,8 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ScaleWide(short weight0, short weight1, Vector256<short> input, out Vector256<short> output0, out Vector256<short> output1)
     {
-        output0 = Avx2.MultiplyHighRoundScale(input, Vector256.Create((short)(weight0 * 8)));
-        output1 = Avx2.MultiplyHighRoundScale(input, Vector256.Create((short)(weight1 * 8)));
+        output0 = Vector256_.MultiplyHighRoundScale(input, Vector256.Create((short)(weight0 * 8)));
+        output1 = Vector256_.MultiplyHighRoundScale(input, Vector256.Create((short)(weight1 * 8)));
     }
 
     /// <summary>
@@ -229,7 +229,7 @@ internal static class Av1TransformKernels
     /// <returns>The rounded value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<short> RoundShiftRightWide(Vector256<short> value, int bits)
-        => Avx2.MultiplyHighRoundScale(value, Vector256.Create((short)(1 << (15 - bits))));
+        => Vector256_.MultiplyHighRoundScale(value, Vector256.Create((short)(1 << (15 - bits))));
 
     /// <summary>
     /// Loads sixteen thirty-two-bit coefficients and packs them to sixteen bits with saturation, as
@@ -241,10 +241,10 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<short> Load16(ref int source, int offset)
     {
-        Vector256<short> packed = Avx2.PackSignedSaturate(
+        Vector256<short> packed = Vector256_.PackSignedSaturate(
             Vector256.LoadUnsafe(ref source, (nuint)offset),
             Vector256.LoadUnsafe(ref source, (nuint)(offset + 8)));
-        return Avx2.Permute4x64(packed.AsInt64(), 0xD8).AsInt16();
+        return Vector256_.Permute4x64(packed.AsInt64(), 0xD8).AsInt16();
     }
 
     /// <summary>
@@ -256,8 +256,8 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddClip16(ref byte prediction, Vector256<short> residual, ref byte destination)
     {
-        Vector256<short> sum = Avx2.AddSaturate(Avx2.ConvertToVector256Int16(Vector128.LoadUnsafe(ref prediction)), residual);
-        Sse2.PackUnsignedSaturate(sum.GetLower(), sum.GetUpper()).StoreUnsafe(ref destination);
+        Vector256<short> sum = Vector256.AddSaturate(Vector256_.Widen(Vector128.LoadUnsafe(ref prediction)), residual);
+        Vector128_.PackUnsignedSaturate(sum.GetLower(), sum.GetUpper()).StoreUnsafe(ref destination);
     }
 
     /// <summary>
@@ -270,8 +270,8 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Store16(Vector256<short> values, ref int destination, int offset)
     {
-        Avx2.ConvertToVector256Int32(values.GetLower()).StoreUnsafe(ref destination, (nuint)offset);
-        Avx2.ConvertToVector256Int32(values.GetUpper()).StoreUnsafe(ref destination, (nuint)(offset + 8));
+        Vector256_.Widen(values.GetLower()).StoreUnsafe(ref destination, (nuint)offset);
+        Vector256_.Widen(values.GetUpper()).StoreUnsafe(ref destination, (nuint)(offset + 8));
     }
 
     /// <summary>
@@ -306,14 +306,14 @@ internal static class Av1TransformKernels
         int cosBit,
         Vector128<int> rounding)
     {
-        Vector128<short> lower = Sse2.UnpackLow(input0, input1);
-        Vector128<short> upper = Sse2.UnpackHigh(input0, input1);
-        Vector128<int> u0 = (Sse2.MultiplyAddAdjacent(lower, weights0) + rounding) >> cosBit;
-        Vector128<int> u1 = (Sse2.MultiplyAddAdjacent(upper, weights0) + rounding) >> cosBit;
-        Vector128<int> v0 = (Sse2.MultiplyAddAdjacent(lower, weights1) + rounding) >> cosBit;
-        Vector128<int> v1 = (Sse2.MultiplyAddAdjacent(upper, weights1) + rounding) >> cosBit;
-        output0 = Sse2.PackSignedSaturate(u0, u1);
-        output1 = Sse2.PackSignedSaturate(v0, v1);
+        Vector128<short> lower = Vector128_.UnpackLow(input0, input1);
+        Vector128<short> upper = Vector128_.UnpackHigh(input0, input1);
+        Vector128<int> u0 = (Vector128_.MultiplyAddAdjacent(lower, weights0) + rounding) >> cosBit;
+        Vector128<int> u1 = (Vector128_.MultiplyAddAdjacent(upper, weights0) + rounding) >> cosBit;
+        Vector128<int> v0 = (Vector128_.MultiplyAddAdjacent(lower, weights1) + rounding) >> cosBit;
+        Vector128<int> v1 = (Vector128_.MultiplyAddAdjacent(upper, weights1) + rounding) >> cosBit;
+        output0 = Vector128_.PackSignedSaturate(u0, u1);
+        output1 = Vector128_.PackSignedSaturate(v0, v1);
     }
 
     /// <summary>
@@ -327,8 +327,8 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Scale16(short weight0, short weight1, Vector128<short> input, out Vector128<short> output0, out Vector128<short> output1)
     {
-        output0 = Ssse3.MultiplyHighRoundScale(input, Vector128.Create((short)(weight0 * 8)));
-        output1 = Ssse3.MultiplyHighRoundScale(input, Vector128.Create((short)(weight1 * 8)));
+        output0 = Vector128_.MultiplyHighRoundScale(input, Vector128.Create((short)(weight0 * 8)));
+        output1 = Vector128_.MultiplyHighRoundScale(input, Vector128.Create((short)(weight1 * 8)));
     }
 
     /// <summary>
@@ -339,7 +339,7 @@ internal static class Av1TransformKernels
     /// <returns>The rounded value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<short> RoundShiftRight(Vector128<short> value, int bits)
-        => Ssse3.MultiplyHighRoundScale(value, Vector128.Create((short)(1 << (15 - bits))));
+        => Vector128_.MultiplyHighRoundScale(value, Vector128.Create((short)(1 << (15 - bits))));
 
     /// <summary>
     /// Transposes the low four lanes of four vectors in place, as <c>transpose_16bit_4x4</c> does.
@@ -355,14 +355,14 @@ internal static class Av1TransformKernels
         ref Vector128<short> r2,
         ref Vector128<short> r3)
     {
-        Vector128<short> a0 = Sse2.UnpackLow(r0, r1);
-        Vector128<short> a1 = Sse2.UnpackLow(r2, r3);
-        Vector128<int> b0 = Sse2.UnpackLow(a0.AsInt32(), a1.AsInt32());
-        Vector128<int> b2 = Sse2.UnpackHigh(a0.AsInt32(), a1.AsInt32());
+        Vector128<short> a0 = Vector128_.UnpackLow(r0, r1);
+        Vector128<short> a1 = Vector128_.UnpackLow(r2, r3);
+        Vector128<int> b0 = Vector128_.UnpackLow(a0.AsInt32(), a1.AsInt32());
+        Vector128<int> b2 = Vector128_.UnpackHigh(a0.AsInt32(), a1.AsInt32());
         r0 = b0.AsInt16();
-        r1 = Sse2.ShiftRightLogical128BitLane(b0, 8).AsInt16();
+        r1 = Vector128_.ShiftRightBytesInVector(b0.AsByte(), 8).AsInt32().AsInt16();
         r2 = b2.AsInt16();
-        r3 = Sse2.ShiftRightLogical128BitLane(b2, 8).AsInt16();
+        r3 = Vector128_.ShiftRightBytesInVector(b2.AsByte(), 8).AsInt32().AsInt16();
     }
 
     /// <summary>
@@ -387,32 +387,32 @@ internal static class Av1TransformKernels
         ref Vector128<short> r6,
         ref Vector128<short> r7)
     {
-        Vector128<short> a0 = Sse2.UnpackLow(r0, r1);
-        Vector128<short> a1 = Sse2.UnpackLow(r2, r3);
-        Vector128<short> a2 = Sse2.UnpackLow(r4, r5);
-        Vector128<short> a3 = Sse2.UnpackLow(r6, r7);
-        Vector128<short> a4 = Sse2.UnpackHigh(r0, r1);
-        Vector128<short> a5 = Sse2.UnpackHigh(r2, r3);
-        Vector128<short> a6 = Sse2.UnpackHigh(r4, r5);
-        Vector128<short> a7 = Sse2.UnpackHigh(r6, r7);
+        Vector128<short> a0 = Vector128_.UnpackLow(r0, r1);
+        Vector128<short> a1 = Vector128_.UnpackLow(r2, r3);
+        Vector128<short> a2 = Vector128_.UnpackLow(r4, r5);
+        Vector128<short> a3 = Vector128_.UnpackLow(r6, r7);
+        Vector128<short> a4 = Vector128_.UnpackHigh(r0, r1);
+        Vector128<short> a5 = Vector128_.UnpackHigh(r2, r3);
+        Vector128<short> a6 = Vector128_.UnpackHigh(r4, r5);
+        Vector128<short> a7 = Vector128_.UnpackHigh(r6, r7);
 
-        Vector128<int> b0 = Sse2.UnpackLow(a0.AsInt32(), a1.AsInt32());
-        Vector128<int> b1 = Sse2.UnpackLow(a2.AsInt32(), a3.AsInt32());
-        Vector128<int> b2 = Sse2.UnpackLow(a4.AsInt32(), a5.AsInt32());
-        Vector128<int> b3 = Sse2.UnpackLow(a6.AsInt32(), a7.AsInt32());
-        Vector128<int> b4 = Sse2.UnpackHigh(a0.AsInt32(), a1.AsInt32());
-        Vector128<int> b5 = Sse2.UnpackHigh(a2.AsInt32(), a3.AsInt32());
-        Vector128<int> b6 = Sse2.UnpackHigh(a4.AsInt32(), a5.AsInt32());
-        Vector128<int> b7 = Sse2.UnpackHigh(a6.AsInt32(), a7.AsInt32());
+        Vector128<int> b0 = Vector128_.UnpackLow(a0.AsInt32(), a1.AsInt32());
+        Vector128<int> b1 = Vector128_.UnpackLow(a2.AsInt32(), a3.AsInt32());
+        Vector128<int> b2 = Vector128_.UnpackLow(a4.AsInt32(), a5.AsInt32());
+        Vector128<int> b3 = Vector128_.UnpackLow(a6.AsInt32(), a7.AsInt32());
+        Vector128<int> b4 = Vector128_.UnpackHigh(a0.AsInt32(), a1.AsInt32());
+        Vector128<int> b5 = Vector128_.UnpackHigh(a2.AsInt32(), a3.AsInt32());
+        Vector128<int> b6 = Vector128_.UnpackHigh(a4.AsInt32(), a5.AsInt32());
+        Vector128<int> b7 = Vector128_.UnpackHigh(a6.AsInt32(), a7.AsInt32());
 
-        r0 = Sse2.UnpackLow(b0.AsInt64(), b1.AsInt64()).AsInt16();
-        r1 = Sse2.UnpackHigh(b0.AsInt64(), b1.AsInt64()).AsInt16();
-        r2 = Sse2.UnpackLow(b4.AsInt64(), b5.AsInt64()).AsInt16();
-        r3 = Sse2.UnpackHigh(b4.AsInt64(), b5.AsInt64()).AsInt16();
-        r4 = Sse2.UnpackLow(b2.AsInt64(), b3.AsInt64()).AsInt16();
-        r5 = Sse2.UnpackHigh(b2.AsInt64(), b3.AsInt64()).AsInt16();
-        r6 = Sse2.UnpackLow(b6.AsInt64(), b7.AsInt64()).AsInt16();
-        r7 = Sse2.UnpackHigh(b6.AsInt64(), b7.AsInt64()).AsInt16();
+        r0 = Vector128_.UnpackLow(b0.AsInt64(), b1.AsInt64()).AsInt16();
+        r1 = Vector128_.UnpackHigh(b0.AsInt64(), b1.AsInt64()).AsInt16();
+        r2 = Vector128_.UnpackLow(b4.AsInt64(), b5.AsInt64()).AsInt16();
+        r3 = Vector128_.UnpackHigh(b4.AsInt64(), b5.AsInt64()).AsInt16();
+        r4 = Vector128_.UnpackLow(b2.AsInt64(), b3.AsInt64()).AsInt16();
+        r5 = Vector128_.UnpackHigh(b2.AsInt64(), b3.AsInt64()).AsInt16();
+        r6 = Vector128_.UnpackLow(b6.AsInt64(), b7.AsInt64()).AsInt16();
+        r7 = Vector128_.UnpackHigh(b6.AsInt64(), b7.AsInt64()).AsInt16();
     }
 
     /// <summary>
@@ -424,8 +424,8 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Store8(Vector128<short> values, ref int destination, int offset)
     {
-        Vector128<int> lower = Sse2.ShiftRightArithmetic(Sse2.UnpackLow(values, values).AsInt32(), 16);
-        Vector128<int> upper = Sse2.ShiftRightArithmetic(Sse2.UnpackHigh(values, values).AsInt32(), 16);
+        Vector128<int> lower = Vector128.ShiftRightArithmetic(Vector128_.UnpackLow(values, values).AsInt32(), 16);
+        Vector128<int> upper = Vector128.ShiftRightArithmetic(Vector128_.UnpackHigh(values, values).AsInt32(), 16);
         lower.StoreUnsafe(ref destination, (nuint)offset);
         upper.StoreUnsafe(ref destination, (nuint)(offset + 4));
     }
@@ -439,7 +439,7 @@ internal static class Av1TransformKernels
     /// <returns>The packed coefficients.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<short> Load8(ref int source, int offset)
-        => Sse2.PackSignedSaturate(Vector128.LoadUnsafe(ref source, (nuint)offset), Vector128.LoadUnsafe(ref source, (nuint)(offset + 4)));
+        => Vector128_.PackSignedSaturate(Vector128.LoadUnsafe(ref source, (nuint)offset), Vector128.LoadUnsafe(ref source, (nuint)(offset + 4)));
 
     /// <summary>
     /// Adds eight residuals to eight predicted samples with clipping, as <c>lowbd_get_recon_8x8_sse2</c> does.
@@ -451,7 +451,7 @@ internal static class Av1TransformKernels
     public static void AddClip8(ref byte prediction, Vector128<short> residual, ref byte destination)
     {
         Vector128<byte> predicted = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref prediction)).AsByte();
-        Vector128<short> sum = Sse2.AddSaturate(residual, Sse2.UnpackLow(predicted, Vector128<byte>.Zero).AsInt16());
-        Unsafe.WriteUnaligned(ref destination, Sse2.PackUnsignedSaturate(sum, sum).AsUInt64().ToScalar());
+        Vector128<short> sum = Vector128.AddSaturate(residual, Vector128_.UnpackLow(predicted, Vector128<byte>.Zero).AsInt16());
+        Unsafe.WriteUnaligned(ref destination, Vector128_.PackUnsignedSaturate(sum, sum).AsUInt64().ToScalar());
     }
 }

@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
@@ -697,16 +697,16 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector128<int> rounding)
     {
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
             // btf_16_sse2: adjacent (input0, input1) pairs multiply-add into Int32 sums, and the saturating pack
             // restores the lane order. This is half the operations of the widening form below.
-            Vector128<short> lowerInputs = Sse2.UnpackLow(input0, input1);
-            Vector128<short> upperInputs = Sse2.UnpackHigh(input0, input1);
+            Vector128<short> lowerInputs = Vector128_.UnpackLow(input0, input1);
+            Vector128<short> upperInputs = Vector128_.UnpackHigh(input0, input1);
             Vector128<short> weights = Vector128.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
-            Vector128<int> lowerSum = (Sse2.MultiplyAddAdjacent(lowerInputs, weights) + rounding) >> cosBit;
-            Vector128<int> upperSum = (Sse2.MultiplyAddAdjacent(upperInputs, weights) + rounding) >> cosBit;
-            return Sse2.PackSignedSaturate(lowerSum, upperSum);
+            Vector128<int> lowerSum = (Vector128_.MultiplyAddAdjacent(lowerInputs, weights) + rounding) >> cosBit;
+            Vector128<int> upperSum = (Vector128_.MultiplyAddAdjacent(upperInputs, weights) + rounding) >> cosBit;
+            return Vector128_.PackSignedSaturate(lowerSum, upperSum);
         }
 
         // Widening preserves lane order on every Vector128 implementation. The explicit clamp gives Narrow the
@@ -740,12 +740,12 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     {
         // The AVX2 path mirrors Highway's WidenMulPairwiseAdd primitive: adjacent Int16 products become Int32
         // sums, then VPACKSSDW restores the original lane width with signed saturation.
-        Vector256<short> lowerInputs = Avx2.UnpackLow(input0, input1);
-        Vector256<short> upperInputs = Avx2.UnpackHigh(input0, input1);
+        Vector256<short> lowerInputs = Vector256_.UnpackLow(input0, input1);
+        Vector256<short> upperInputs = Vector256_.UnpackHigh(input0, input1);
         Vector256<short> weights = Vector256.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
-        Vector256<int> lower = (Avx2.MultiplyAddAdjacent(lowerInputs, weights) + rounding) >> cosBit;
-        Vector256<int> upper = (Avx2.MultiplyAddAdjacent(upperInputs, weights) + rounding) >> cosBit;
-        return Avx2.PackSignedSaturate(lower, upper);
+        Vector256<int> lower = (Vector256_.MultiplyAddAdjacent(lowerInputs, weights) + rounding) >> cosBit;
+        Vector256<int> upper = (Vector256_.MultiplyAddAdjacent(upperInputs, weights) + rounding) >> cosBit;
+        return Vector256_.PackSignedSaturate(lower, upper);
     }
 
     /// <summary>
@@ -762,12 +762,12 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     {
         // Unpacking forms adjacent (input0, input1) pairs independently inside each 128-bit lane. Pairwise multiply-add
         // widens those pairs to Int32 for rounding, and the final pack restores original lane order with saturation.
-        Vector512<short> lowerInputs = Avx512BW.UnpackLow(input0, input1);
-        Vector512<short> upperInputs = Avx512BW.UnpackHigh(input0, input1);
+        Vector512<short> lowerInputs = Vector512_.UnpackLow(input0, input1);
+        Vector512<short> upperInputs = Vector512_.UnpackHigh(input0, input1);
         Vector512<short> weights = Vector512.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
-        Vector512<int> lower = (Avx512BW.MultiplyAddAdjacent(lowerInputs, weights) + rounding) >> cosBit;
-        Vector512<int> upper = (Avx512BW.MultiplyAddAdjacent(upperInputs, weights) + rounding) >> cosBit;
-        return Avx512BW.PackSignedSaturate(lower, upper);
+        Vector512<int> lower = (Vector512_.MultiplyAddAdjacent(lowerInputs, weights) + rounding) >> cosBit;
+        Vector512<int> upper = (Vector512_.MultiplyAddAdjacent(upperInputs, weights) + rounding) >> cosBit;
+        return Vector512_.PackSignedSaturate(lower, upper);
     }
 
     /// <summary>
@@ -831,16 +831,16 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         // The two unpack streams contain alternating input pairs for the lower and upper lane groups. Adding the two
         // pairwise products completes each four-term dot product before the rounded saturating pack restores Int16.
         Vector256<short> weights01 = Vector256.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
-        Vector256<short> weights23 = Avx2.UnpackLow(Vector256.Create((short)weight2), Vector256.Create((short)weight3));
-        Vector256<int> lower = Avx2.MultiplyAddAdjacent(Avx2.UnpackLow(input0, input1), weights01)
-            + Avx2.MultiplyAddAdjacent(Avx2.UnpackLow(input2, input3), weights23);
+        Vector256<short> weights23 = Vector256_.UnpackLow(Vector256.Create((short)weight2), Vector256.Create((short)weight3));
+        Vector256<int> lower = Vector256_.MultiplyAddAdjacent(Vector256_.UnpackLow(input0, input1), weights01)
+            + Vector256_.MultiplyAddAdjacent(Vector256_.UnpackLow(input2, input3), weights23);
 
-        Vector256<int> upper = Avx2.MultiplyAddAdjacent(Avx2.UnpackHigh(input0, input1), weights01)
-            + Avx2.MultiplyAddAdjacent(Avx2.UnpackHigh(input2, input3), weights23);
+        Vector256<int> upper = Vector256_.MultiplyAddAdjacent(Vector256_.UnpackHigh(input0, input1), weights01)
+            + Vector256_.MultiplyAddAdjacent(Vector256_.UnpackHigh(input2, input3), weights23);
 
         lower = (lower + rounding) >> cosBit;
         upper = (upper + rounding) >> cosBit;
-        return Avx2.PackSignedSaturate(lower, upper);
+        return Vector256_.PackSignedSaturate(lower, upper);
     }
 
     /// <summary>
@@ -862,15 +862,15 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         // AVX-512BW preserves the same lane-local pair layout as the 256-bit path. Two pairwise dot products form each
         // four-term result in Int32, after which rounding and signed saturation return thirty-two independent axes.
         Vector512<short> weights01 = Vector512.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
-        Vector512<short> weights23 = Avx512BW.UnpackLow(Vector512.Create((short)weight2), Vector512.Create((short)weight3));
-        Vector512<int> lower = Avx512BW.MultiplyAddAdjacent(Avx512BW.UnpackLow(input0, input1), weights01)
-            + Avx512BW.MultiplyAddAdjacent(Avx512BW.UnpackLow(input2, input3), weights23);
+        Vector512<short> weights23 = Vector512_.UnpackLow(Vector512.Create((short)weight2), Vector512.Create((short)weight3));
+        Vector512<int> lower = Vector512_.MultiplyAddAdjacent(Vector512_.UnpackLow(input0, input1), weights01)
+            + Vector512_.MultiplyAddAdjacent(Vector512_.UnpackLow(input2, input3), weights23);
 
-        Vector512<int> upper = Avx512BW.MultiplyAddAdjacent(Avx512BW.UnpackHigh(input0, input1), weights01)
-            + Avx512BW.MultiplyAddAdjacent(Avx512BW.UnpackHigh(input2, input3), weights23);
+        Vector512<int> upper = Vector512_.MultiplyAddAdjacent(Vector512_.UnpackHigh(input0, input1), weights01)
+            + Vector512_.MultiplyAddAdjacent(Vector512_.UnpackHigh(input2, input3), weights23);
 
         lower = (lower + rounding) >> cosBit;
         upper = (upper + rounding) >> cosBit;
-        return Avx512BW.PackSignedSaturate(lower, upper);
+        return Vector512_.PackSignedSaturate(lower, upper);
     }
 }

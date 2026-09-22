@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -167,14 +167,14 @@ internal static class Av1Transform1dMath
         // inputs, matching the reference decoder's whole butterfly instead of loading and unpacking each input pair twice.
         Vector512<short> left = input0;
         Vector512<short> right = input1;
-        Vector512<short> interleavedLower = Avx512BW.UnpackLow(left, right);
-        Vector512<short> interleavedUpper = Avx512BW.UnpackHigh(left, right);
+        Vector512<short> interleavedLower = Vector512_.UnpackLow(left, right);
+        Vector512<short> interleavedUpper = Vector512_.UnpackHigh(left, right);
         Vector512<short> weights0 = Vector512.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
         Vector512<short> weights1 = Vector512.Create((ushort)weight1 | (-weight0 << 16)).AsInt16();
-        Vector512<int> output0Lower = Avx512BW.MultiplyAddAdjacent(interleavedLower, weights0);
-        Vector512<int> output0Upper = Avx512BW.MultiplyAddAdjacent(interleavedUpper, weights0);
-        Vector512<int> output1Lower = Avx512BW.MultiplyAddAdjacent(interleavedLower, weights1);
-        Vector512<int> output1Upper = Avx512BW.MultiplyAddAdjacent(interleavedUpper, weights1);
+        Vector512<int> output0Lower = Vector512_.MultiplyAddAdjacent(interleavedLower, weights0);
+        Vector512<int> output0Upper = Vector512_.MultiplyAddAdjacent(interleavedUpper, weights0);
+        Vector512<int> output1Lower = Vector512_.MultiplyAddAdjacent(interleavedLower, weights1);
+        Vector512<int> output1Upper = Vector512_.MultiplyAddAdjacent(interleavedUpper, weights1);
 
         output0Lower = (output0Lower + rounding) >> cosBit;
         output0Upper = (output0Upper + rounding) >> cosBit;
@@ -183,8 +183,8 @@ internal static class Av1Transform1dMath
 
         // VPACKSSDW restores the original lane order within each 128-bit block and narrows with the saturation
         // required by the low-bit-depth AV1 stage arithmetic.
-        output0 = Avx512BW.PackSignedSaturate(output0Lower, output0Upper);
-        output1 = Avx512BW.PackSignedSaturate(output1Lower, output1Upper);
+        output0 = Vector512_.PackSignedSaturate(output0Lower, output0Upper);
+        output1 = Vector512_.PackSignedSaturate(output1Lower, output1Upper);
     }
 
     /// <summary>
@@ -232,22 +232,22 @@ internal static class Av1Transform1dMath
     {
         Vector256<short> left = input0;
         Vector256<short> right = input1;
-        Vector256<short> interleavedLower = Avx2.UnpackLow(left, right);
-        Vector256<short> interleavedUpper = Avx2.UnpackHigh(left, right);
+        Vector256<short> interleavedLower = Vector256_.UnpackLow(left, right);
+        Vector256<short> interleavedUpper = Vector256_.UnpackHigh(left, right);
         Vector256<short> weights0 = Vector256.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
         Vector256<short> weights1 = Vector256.Create((ushort)weight1 | (-weight0 << 16)).AsInt16();
-        Vector256<int> output0Lower = Avx2.MultiplyAddAdjacent(interleavedLower, weights0);
-        Vector256<int> output0Upper = Avx2.MultiplyAddAdjacent(interleavedUpper, weights0);
-        Vector256<int> output1Lower = Avx2.MultiplyAddAdjacent(interleavedLower, weights1);
-        Vector256<int> output1Upper = Avx2.MultiplyAddAdjacent(interleavedUpper, weights1);
+        Vector256<int> output0Lower = Vector256_.MultiplyAddAdjacent(interleavedLower, weights0);
+        Vector256<int> output0Upper = Vector256_.MultiplyAddAdjacent(interleavedUpper, weights0);
+        Vector256<int> output1Lower = Vector256_.MultiplyAddAdjacent(interleavedLower, weights1);
+        Vector256<int> output1Upper = Vector256_.MultiplyAddAdjacent(interleavedUpper, weights1);
 
         output0Lower = (output0Lower + rounding) >> cosBit;
         output0Upper = (output0Upper + rounding) >> cosBit;
         output1Lower = (output1Lower + rounding) >> cosBit;
         output1Upper = (output1Upper + rounding) >> cosBit;
 
-        output0 = Avx2.PackSignedSaturate(output0Lower, output0Upper);
-        output1 = Avx2.PackSignedSaturate(output1Lower, output1Upper);
+        output0 = Vector256_.PackSignedSaturate(output0Lower, output0Upper);
+        output1 = Vector256_.PackSignedSaturate(output1Lower, output1Upper);
     }
 
     /// <summary>
@@ -275,26 +275,26 @@ internal static class Av1Transform1dMath
         Vector128<short> left = input0;
         Vector128<short> right = input1;
 
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
             // PMADDWD is the native x86 form of Highway's pairwise widening multiply-add. Interleaving once lets
             // both butterfly outputs reuse the same input arrangement before signed-saturating demotion.
-            Vector128<short> interleavedLower = Sse2.UnpackLow(left, right);
-            Vector128<short> interleavedUpper = Sse2.UnpackHigh(left, right);
+            Vector128<short> interleavedLower = Vector128_.UnpackLow(left, right);
+            Vector128<short> interleavedUpper = Vector128_.UnpackHigh(left, right);
             Vector128<short> weights0 = Vector128.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
             Vector128<short> weights1 = Vector128.Create((ushort)weight1 | (-weight0 << 16)).AsInt16();
-            Vector128<int> output0Lower = Sse2.MultiplyAddAdjacent(interleavedLower, weights0);
-            Vector128<int> output0Upper = Sse2.MultiplyAddAdjacent(interleavedUpper, weights0);
-            Vector128<int> output1Lower = Sse2.MultiplyAddAdjacent(interleavedLower, weights1);
-            Vector128<int> output1Upper = Sse2.MultiplyAddAdjacent(interleavedUpper, weights1);
+            Vector128<int> output0Lower = Vector128_.MultiplyAddAdjacent(interleavedLower, weights0);
+            Vector128<int> output0Upper = Vector128_.MultiplyAddAdjacent(interleavedUpper, weights0);
+            Vector128<int> output1Lower = Vector128_.MultiplyAddAdjacent(interleavedLower, weights1);
+            Vector128<int> output1Upper = Vector128_.MultiplyAddAdjacent(interleavedUpper, weights1);
 
             output0Lower = (output0Lower + rounding) >> cosBit;
             output0Upper = (output0Upper + rounding) >> cosBit;
             output1Lower = (output1Lower + rounding) >> cosBit;
             output1Upper = (output1Upper + rounding) >> cosBit;
 
-            output0 = Sse2.PackSignedSaturate(output0Lower, output0Upper);
-            output1 = Sse2.PackSignedSaturate(output1Lower, output1Upper);
+            output0 = Vector128_.PackSignedSaturate(output0Lower, output0Upper);
+            output1 = Vector128_.PackSignedSaturate(output1Lower, output1Upper);
             return;
         }
 

@@ -330,7 +330,7 @@ internal static partial class Av1SelfGuidedFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> Scan(Vector256<int> values)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             // AVX2 lane shifts provide the shortest x86 dependency chain. After scanning each 128-bit half, the lower
             // half total is broadcast into the upper half so the result remains one continuous eight-lane prefix.
@@ -657,7 +657,7 @@ internal static partial class Av1SelfGuidedFilter
     {
         ReadOnlySpan<int> table = XByXPlusOne;
 
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             // Variance normalization bounds every index to the 256-entry table. AVX2 gather keeps all eight independent
             // column lookups in the vector pipeline instead of materializing an intermediate scalar scale buffer.

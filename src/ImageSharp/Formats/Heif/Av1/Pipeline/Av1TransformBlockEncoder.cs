@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -482,7 +481,7 @@ internal static partial class Av1TransformBlockEncoder
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
         if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size8x8 &&
-            Av1TransformKernels.IsSupported && Ssse3.IsSupported)
+            Av1TransformKernels.IsSupported)
         {
             // The kernel adds the residual to the prediction directly, as lowbd_write_buffer does, so the
             // prediction needs no copy.
@@ -496,7 +495,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.EndOfBlock);
         }
         else if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size4x4 &&
-            Av1TransformKernels.IsSupported && Ssse3.IsSupported)
+            Av1TransformKernels.IsSupported)
         {
             Av1InverseTransformer.Inverse4x4(
                 dequantized,

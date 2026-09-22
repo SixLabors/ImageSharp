@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -303,22 +303,22 @@ internal static partial class Av1InverseTransformer
 
         // round_shift_16bit_w16_avx2 with shift -2: add one half and shift, with saturation on the addition.
         Vector256<short> half = Vector256.Create((short)2);
-        r0 = Avx2.AddSaturate(r0, half) >> 2;
-        r1 = Avx2.AddSaturate(r1, half) >> 2;
-        r2 = Avx2.AddSaturate(r2, half) >> 2;
-        r3 = Avx2.AddSaturate(r3, half) >> 2;
-        r4 = Avx2.AddSaturate(r4, half) >> 2;
-        r5 = Avx2.AddSaturate(r5, half) >> 2;
-        r6 = Avx2.AddSaturate(r6, half) >> 2;
-        r7 = Avx2.AddSaturate(r7, half) >> 2;
-        r8 = Avx2.AddSaturate(r8, half) >> 2;
-        r9 = Avx2.AddSaturate(r9, half) >> 2;
-        r10 = Avx2.AddSaturate(r10, half) >> 2;
-        r11 = Avx2.AddSaturate(r11, half) >> 2;
-        r12 = Avx2.AddSaturate(r12, half) >> 2;
-        r13 = Avx2.AddSaturate(r13, half) >> 2;
-        r14 = Avx2.AddSaturate(r14, half) >> 2;
-        r15 = Avx2.AddSaturate(r15, half) >> 2;
+        r0 = Vector256.AddSaturate(r0, half) >> 2;
+        r1 = Vector256.AddSaturate(r1, half) >> 2;
+        r2 = Vector256.AddSaturate(r2, half) >> 2;
+        r3 = Vector256.AddSaturate(r3, half) >> 2;
+        r4 = Vector256.AddSaturate(r4, half) >> 2;
+        r5 = Vector256.AddSaturate(r5, half) >> 2;
+        r6 = Vector256.AddSaturate(r6, half) >> 2;
+        r7 = Vector256.AddSaturate(r7, half) >> 2;
+        r8 = Vector256.AddSaturate(r8, half) >> 2;
+        r9 = Vector256.AddSaturate(r9, half) >> 2;
+        r10 = Vector256.AddSaturate(r10, half) >> 2;
+        r11 = Vector256.AddSaturate(r11, half) >> 2;
+        r12 = Vector256.AddSaturate(r12, half) >> 2;
+        r13 = Vector256.AddSaturate(r13, half) >> 2;
+        r14 = Vector256.AddSaturate(r14, half) >> 2;
+        r15 = Vector256.AddSaturate(r15, half) >> 2;
 
         if (flipLeftToRight)
         {
@@ -480,9 +480,9 @@ internal static partial class Av1InverseTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<short> ScaleIdentity(Vector256<short> value, Vector256<short> one, Vector256<short> scale, int shift)
     {
-        Vector256<int> lower = Avx2.MultiplyAddAdjacent(Avx2.UnpackLow(value, one), scale) >> shift;
-        Vector256<int> upper = Avx2.MultiplyAddAdjacent(Avx2.UnpackHigh(value, one), scale) >> shift;
-        return Avx2.PackSignedSaturate(lower, upper);
+        Vector256<int> lower = Vector256_.MultiplyAddAdjacent(Vector256_.UnpackLow(value, one), scale) >> shift;
+        Vector256<int> upper = Vector256_.MultiplyAddAdjacent(Vector256_.UnpackHigh(value, one), scale) >> shift;
+        return Vector256_.PackSignedSaturate(lower, upper);
     }
 
     /// <summary>
@@ -525,9 +525,9 @@ internal static partial class Av1InverseTransformer
     private static Vector256<short> ScaleIdentityColumn(Vector256<short> value, Vector256<short> one, Vector256<short> scale)
     {
         Vector256<int> rounding = Vector256.Create(1 << 3);
-        Vector256<int> lower = ((Avx2.MultiplyAddAdjacent(Avx2.UnpackLow(value, one), scale) >> Av1Transform1dMath.NewSqrt2Bits) + rounding) >> 4;
-        Vector256<int> upper = ((Avx2.MultiplyAddAdjacent(Avx2.UnpackHigh(value, one), scale) >> Av1Transform1dMath.NewSqrt2Bits) + rounding) >> 4;
-        return Avx2.PackSignedSaturate(lower, upper);
+        Vector256<int> lower = ((Vector256_.MultiplyAddAdjacent(Vector256_.UnpackLow(value, one), scale) >> Av1Transform1dMath.NewSqrt2Bits) + rounding) >> 4;
+        Vector256<int> upper = ((Vector256_.MultiplyAddAdjacent(Vector256_.UnpackHigh(value, one), scale) >> Av1Transform1dMath.NewSqrt2Bits) + rounding) >> 4;
+        return Vector256_.PackSignedSaturate(lower, upper);
     }
 
     /// <summary>
@@ -670,22 +670,22 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.ButterflyWide(m32p32, p32p32, ref x11, ref x12, rounding, cosBit);
 
         // stage 7
-        out0 = Avx2.AddSaturate(x0, x15);
-        out15 = Avx2.SubtractSaturate(x0, x15);
-        out1 = Avx2.AddSaturate(x1, x14);
-        out14 = Avx2.SubtractSaturate(x1, x14);
-        out2 = Avx2.AddSaturate(x2, x13);
-        out13 = Avx2.SubtractSaturate(x2, x13);
-        out3 = Avx2.AddSaturate(x3, x12);
-        out12 = Avx2.SubtractSaturate(x3, x12);
-        out4 = Avx2.AddSaturate(x4, x11);
-        out11 = Avx2.SubtractSaturate(x4, x11);
-        out5 = Avx2.AddSaturate(x5, x10);
-        out10 = Avx2.SubtractSaturate(x5, x10);
-        out6 = Avx2.AddSaturate(x6, x9);
-        out9 = Avx2.SubtractSaturate(x6, x9);
-        out7 = Avx2.AddSaturate(x7, x8);
-        out8 = Avx2.SubtractSaturate(x7, x8);
+        out0 = Vector256.AddSaturate(x0, x15);
+        out15 = Vector256.SubtractSaturate(x0, x15);
+        out1 = Vector256.AddSaturate(x1, x14);
+        out14 = Vector256.SubtractSaturate(x1, x14);
+        out2 = Vector256.AddSaturate(x2, x13);
+        out13 = Vector256.SubtractSaturate(x2, x13);
+        out3 = Vector256.AddSaturate(x3, x12);
+        out12 = Vector256.SubtractSaturate(x3, x12);
+        out4 = Vector256.AddSaturate(x4, x11);
+        out11 = Vector256.SubtractSaturate(x4, x11);
+        out5 = Vector256.AddSaturate(x5, x10);
+        out10 = Vector256.SubtractSaturate(x5, x10);
+        out6 = Vector256.AddSaturate(x6, x9);
+        out9 = Vector256.SubtractSaturate(x6, x9);
+        out7 = Vector256.AddSaturate(x7, x8);
+        out8 = Vector256.SubtractSaturate(x7, x8);
     }
 
     /// <summary>
@@ -839,21 +839,21 @@ internal static partial class Av1InverseTransformer
 
         // stage 9
         out0 = x0;
-        out1 = Avx2.SubtractSaturate(zero, x8);
+        out1 = Vector256.SubtractSaturate(zero, x8);
         out2 = x12;
-        out3 = Avx2.SubtractSaturate(zero, x4);
+        out3 = Vector256.SubtractSaturate(zero, x4);
         out4 = x6;
-        out5 = Avx2.SubtractSaturate(zero, x14);
+        out5 = Vector256.SubtractSaturate(zero, x14);
         out6 = x10;
-        out7 = Avx2.SubtractSaturate(zero, x2);
+        out7 = Vector256.SubtractSaturate(zero, x2);
         out8 = x3;
-        out9 = Avx2.SubtractSaturate(zero, x11);
+        out9 = Vector256.SubtractSaturate(zero, x11);
         out10 = x15;
-        out11 = Avx2.SubtractSaturate(zero, x7);
+        out11 = Vector256.SubtractSaturate(zero, x7);
         out12 = x5;
-        out13 = Avx2.SubtractSaturate(zero, x13);
+        out13 = Vector256.SubtractSaturate(zero, x13);
         out14 = x9;
-        out15 = Avx2.SubtractSaturate(zero, x1);
+        out15 = Vector256.SubtractSaturate(zero, x1);
     }
 
     /// <summary>

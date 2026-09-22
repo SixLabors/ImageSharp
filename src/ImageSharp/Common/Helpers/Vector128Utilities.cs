@@ -486,6 +486,84 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> PackSignedSaturate(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackSignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<short> lower = AdvSimd.ExtractNarrowingSaturateLower(left);
+            return AdvSimd.ExtractNarrowingSaturateUpper(lower, right);
+        }
+
+        Vector128<int> min = Vector128.Create((int)short.MinValue);
+        Vector128<int> max = Vector128.Create((int)short.MaxValue);
+        return Vector128.Narrow(Vector128.Clamp(left, min, max), Vector128.Clamp(right, min, max));
+    }
+
+    /// <summary>
+    /// Packs signed 16-bit integers to signed 8-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{SByte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<sbyte> PackSignedSaturate(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackSignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<sbyte> lower = AdvSimd.ExtractNarrowingSaturateLower(left);
+            return AdvSimd.ExtractNarrowingSaturateUpper(lower, right);
+        }
+
+        Vector128<short> min = Vector128.Create((short)sbyte.MinValue);
+        Vector128<short> max = Vector128.Create((short)sbyte.MaxValue);
+        return Vector128.Narrow(Vector128.Clamp(left, min, max), Vector128.Clamp(right, min, max));
+    }
+
+    /// <summary>
+    /// Multiplies packed signed 16-bit integers, keeping the high 17 bits, rounds, and packs the
+    /// high 16 bits of each result.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{Int16}"/>.</returns>
+    /// <remarks>
+    /// The rounding term is added at bit 14 and the sum shifts right by 15, which is what the x86
+    /// instruction does. The product of two signed 16-bit values fits a 32-bit lane, so the widened
+    /// form is exact and needs no saturation.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> MultiplyHighRoundScale(Vector128<short> left, Vector128<short> right)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.MultiplyHighRoundScale(left, right);
+        }
+
+        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
+        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+        Vector128<int> rounding = Vector128.Create(1 << 14);
+        Vector128<int> lower = ((leftLower * rightLower) + rounding) >> 15;
+        Vector128<int> upper = ((leftUpper * rightUpper) + rounding) >> 15;
+        return Vector128.Narrow(lower, upper);
+    }
+
+    /// <summary>
     /// Horizontally add adjacent pairs of 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, and
     /// pack the signed 16-bit results.
     /// </summary>

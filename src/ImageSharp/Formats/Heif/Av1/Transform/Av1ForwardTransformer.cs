@@ -5,7 +5,6 @@ using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -566,9 +565,9 @@ internal static partial class Av1ForwardTransformer
 
         // Packed short stages halve the arithmetic width and AVX-512BW doubles their lane count. Highway selects
         // this representation by ISA capability, independently of the runtime preference used for generic vectors.
-        int blockLaneCount = Avx512BW.IsSupported
+        int blockLaneCount = Vector512.IsHardwareAccelerated
             ? Vector512<short>.Count
-            : Avx2.IsSupported ? Vector256<short>.Count : Vector128<short>.Count;
+            : Vector256.IsHardwareAccelerated ? Vector256<short>.Count : Vector128<short>.Count;
 
         int blockWidth = Math.Max(width, blockLaneCount);
         int blockHeight = Math.Max(height, blockLaneCount);
@@ -756,7 +755,7 @@ internal static partial class Av1ForwardTransformer
             ref short source = ref Unsafe.Add(ref inputBase, sourceRow * (int)inputStride);
             ref short target = ref Unsafe.Add(ref destination, row * destinationStride);
 
-            if (Avx512BW.IsSupported && width >= Vector512<short>.Count)
+            if (Vector512.IsHardwareAccelerated && width >= Vector512<short>.Count)
             {
                 for (int column = 0; column < width; column += Vector512<short>.Count)
                 {
@@ -769,7 +768,7 @@ internal static partial class Av1ForwardTransformer
                 continue;
             }
 
-            if (Avx2.IsSupported && width >= Vector256<short>.Count)
+            if (Vector256.IsHardwareAccelerated && width >= Vector256<short>.Count)
             {
                 for (int column = 0; column < width; column += Vector256<short>.Count)
                 {
@@ -904,13 +903,13 @@ internal static partial class Av1ForwardTransformer
         Span<int> workspace)
         where TOperator : struct, IAv1ForwardTransform1dOperator
     {
-        if (Avx512BW.IsSupported && transformCount >= Vector512<short>.Count)
+        if (Vector512.IsHardwareAccelerated && transformCount >= Vector512<short>.Count)
         {
             TransformPackedVector512<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
-        if (Avx2.IsSupported && transformCount >= Vector256<short>.Count)
+        if (Vector256.IsHardwareAccelerated && transformCount >= Vector256<short>.Count)
         {
             TransformPackedVector256<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
@@ -1178,7 +1177,7 @@ internal static partial class Av1ForwardTransformer
         bool normalizeRectangle,
         Span<int> scratch)
     {
-        int tileSize = Avx2.IsSupported && Math.Min(sourceWidth, sourceHeight) >= 16 ? 16 : Math.Min(sourceWidth, sourceHeight) >= 8 ? 8 : 4;
+        int tileSize = Vector256.IsHardwareAccelerated && Math.Min(sourceWidth, sourceHeight) >= 16 ? 16 : Math.Min(sourceWidth, sourceHeight) >= 8 ? 8 : 4;
         Span<long> transposeScratch = MemoryMarshal.Cast<int, long>(scratch);
 
         for (int row = 0; row < sourceHeight; row += tileSize)
@@ -1244,7 +1243,7 @@ internal static partial class Av1ForwardTransformer
         int roundShift,
         Span<int> scratch)
     {
-        int tileSize = Avx512BW.IsSupported ? 16 : Vector256.IsHardwareAccelerated ? 8 : 4;
+        int tileSize = Vector512.IsHardwareAccelerated ? 16 : Vector256.IsHardwareAccelerated ? 8 : 4;
 
         for (int row = 0; row < sourceHeight; row += tileSize)
         {
@@ -1387,7 +1386,7 @@ internal static partial class Av1ForwardTransformer
             ref int destinationRow = ref Unsafe.Add(ref destinationBase, row * width);
             int column = 0;
 
-            if (Avx512BW.IsSupported)
+            if (Vector512.IsHardwareAccelerated)
             {
                 nuint vector512Count = Numerics.Vector512Count<short>(width - column);
                 for (; vector512Count > 0; vector512Count--, column += Vector512<short>.Count)
@@ -1399,7 +1398,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            if (Avx2.IsSupported)
+            if (Vector256.IsHardwareAccelerated)
             {
                 nuint vector256Count = Numerics.Vector256Count<short>(width - column);
                 for (; vector256Count > 0; vector256Count--, column += Vector256<short>.Count)

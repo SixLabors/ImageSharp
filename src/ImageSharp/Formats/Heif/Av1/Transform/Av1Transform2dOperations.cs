@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -305,8 +304,8 @@ internal static class Av1Transform2dOperations
                     Av1Transform1dMath.NewSqrt2Bits);
             }
 
-            Avx2.UnpackLow(even, odd).AsInt32().StoreUnsafe(ref scratch32, (nuint)(row * 8));
-            Avx2.UnpackHigh(even, odd).AsInt32().StoreUnsafe(ref scratch32, (nuint)((row + 1) * 8));
+            Vector256_.UnpackLow(even, odd).AsInt32().StoreUnsafe(ref scratch32, (nuint)(row * 8));
+            Vector256_.UnpackHigh(even, odd).AsInt32().StoreUnsafe(ref scratch32, (nuint)((row + 1) * 8));
         }
 
         // The Int32 and Int64 views exchange the next two index bits without allocating another temporary buffer.
@@ -317,8 +316,8 @@ internal static class Av1Transform2dOperations
             {
                 Vector256<int> lower = Vector256.LoadUnsafe(ref scratch32, (nuint)((row + offset) * 8));
                 Vector256<int> upper = Vector256.LoadUnsafe(ref scratch32, (nuint)((row + offset + 2) * 8));
-                Avx2.UnpackLow(lower, upper).AsInt64().StoreUnsafe(ref scratch64, (nuint)((row + offset) * 4));
-                Avx2.UnpackHigh(lower, upper).AsInt64().StoreUnsafe(ref scratch64, (nuint)((row + offset + 2) * 4));
+                Vector256_.UnpackLow(lower, upper).AsInt64().StoreUnsafe(ref scratch64, (nuint)((row + offset) * 4));
+                Vector256_.UnpackHigh(lower, upper).AsInt64().StoreUnsafe(ref scratch64, (nuint)((row + offset + 2) * 4));
             }
         }
 
@@ -328,8 +327,8 @@ internal static class Av1Transform2dOperations
             {
                 Vector256<long> lower = Vector256.LoadUnsafe(ref scratch64, (nuint)((row + offset) * 4));
                 Vector256<long> upper = Vector256.LoadUnsafe(ref scratch64, (nuint)((row + offset + 4) * 4));
-                Avx2.UnpackLow(lower, upper).StoreUnsafe(ref scratch64, (nuint)((row + offset) * 4));
-                Avx2.UnpackHigh(lower, upper).StoreUnsafe(ref scratch64, (nuint)((row + offset + 4) * 4));
+                Vector256_.UnpackLow(lower, upper).StoreUnsafe(ref scratch64, (nuint)((row + offset) * 4));
+                Vector256_.UnpackHigh(lower, upper).StoreUnsafe(ref scratch64, (nuint)((row + offset + 4) * 4));
             }
         }
 
@@ -699,8 +698,8 @@ internal static class Av1Transform2dOperations
                 odd = Av1Transform1dMath.MultiplyRound(odd, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
             }
 
-            Avx512F.UnpackLow(even, odd).AsInt64().StoreUnsafe(ref scratchBase, (nuint)(row * 8));
-            Avx512F.UnpackHigh(even, odd).AsInt64().StoreUnsafe(ref scratchBase, (nuint)((row + 1) * 8));
+            Vector512_.UnpackLow(even, odd).AsInt64().StoreUnsafe(ref scratchBase, (nuint)(row * 8));
+            Vector512_.UnpackHigh(even, odd).AsInt64().StoreUnsafe(ref scratchBase, (nuint)((row + 1) * 8));
         }
 
         // The second stage exchanges the next row and column bits with 64-bit unpack operations. Each iteration
@@ -711,8 +710,8 @@ internal static class Av1Transform2dOperations
             {
                 Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
                 Vector512<long> upper = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset + 2) * 8));
-                Avx512F.UnpackLow(lower, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
-                Avx512F.UnpackHigh(lower, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset + 2) * 8));
+                Vector512_.UnpackLow(lower, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
+                Vector512_.UnpackHigh(lower, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset + 2) * 8));
             }
         }
 
@@ -727,8 +726,8 @@ internal static class Av1Transform2dOperations
             {
                 Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
                 Vector512<long> upper = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset + 4) * 8));
-                Avx512F.PermuteVar8x64x2(lower, evenBlockIndices, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
-                Avx512F.PermuteVar8x64x2(lower, oddBlockIndices, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset + 4) * 8));
+                Vector512_.PermuteVar8x64x2(lower, evenBlockIndices, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
+                Vector512_.PermuteVar8x64x2(lower, oddBlockIndices, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset + 4) * 8));
             }
         }
 
@@ -738,8 +737,8 @@ internal static class Av1Transform2dOperations
         {
             Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)(row * 8));
             Vector512<long> upper = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + 8) * 8));
-            Vector512<int> lowerResult = Avx512F.Shuffle4x128(lower.AsInt32(), upper.AsInt32(), 0x44);
-            Vector512<int> upperResult = Avx512F.Shuffle4x128(lower.AsInt32(), upper.AsInt32(), 0xEE);
+            Vector512<int> lowerResult = Vector512_.Shuffle4x128(lower.AsInt32(), upper.AsInt32(), 0x44);
+            Vector512<int> upperResult = Vector512_.Shuffle4x128(lower.AsInt32(), upper.AsInt32(), 0xEE);
             int lowerDestinationRow = Vector512TransposeStoreOrder[row];
             int upperDestinationRow = Vector512TransposeStoreOrder[row + 8];
             lowerResult.StoreUnsafe(ref destination, (nuint)(lowerDestinationRow * destinationStride));
@@ -785,7 +784,7 @@ internal static class Av1Transform2dOperations
         ref Vector512<int> row14,
         ref Vector512<int> row15)
     {
-        if (Avx512F.IsSupported)
+        if (Vector512.IsHardwareAccelerated)
         {
             // Each permutation stage exchanges one row-index bit with the matching column-index bit. After four
             // stages the vector index identifies the source column and the lane index identifies the source row.
@@ -794,141 +793,141 @@ internal static class Av1Transform2dOperations
             Vector512<int> stage0Upper = Vector512.Create(1, 17, 3, 19, 5, 21, 7, 23, 9, 25, 11, 27, 13, 29, 15, 31);
             Vector512<int> lowerSource = row0;
             Vector512<int> upperSource = row1;
-            row0 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row1 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row0 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row1 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
             lowerSource = row2;
             upperSource = row3;
-            row2 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row3 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row2 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row3 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
             lowerSource = row4;
             upperSource = row5;
-            row4 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row5 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row4 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row5 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
             lowerSource = row6;
             upperSource = row7;
-            row6 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row7 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row6 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row7 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
             lowerSource = row8;
             upperSource = row9;
-            row8 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row9 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row8 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row9 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
             lowerSource = row10;
             upperSource = row11;
-            row10 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row11 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row10 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row11 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
             lowerSource = row12;
             upperSource = row13;
-            row12 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row13 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row12 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row13 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
             lowerSource = row14;
             upperSource = row15;
-            row14 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
-            row15 = Avx512F.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
+            row14 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Lower, upperSource);
+            row15 = Vector512_.PermuteVar16x32x2(lowerSource, stage0Upper, upperSource);
 
             Vector512<int> stage1Lower = Vector512.Create(0, 1, 16, 17, 4, 5, 20, 21, 8, 9, 24, 25, 12, 13, 28, 29);
             Vector512<int> stage1Upper = Vector512.Create(2, 3, 18, 19, 6, 7, 22, 23, 10, 11, 26, 27, 14, 15, 30, 31);
             lowerSource = row0;
             upperSource = row2;
-            row0 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row2 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row0 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row2 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
             lowerSource = row1;
             upperSource = row3;
-            row1 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row3 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row1 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row3 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
             lowerSource = row4;
             upperSource = row6;
-            row4 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row6 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row4 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row6 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
             lowerSource = row5;
             upperSource = row7;
-            row5 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row7 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row5 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row7 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
             lowerSource = row8;
             upperSource = row10;
-            row8 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row10 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row8 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row10 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
             lowerSource = row9;
             upperSource = row11;
-            row9 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row11 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row9 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row11 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
             lowerSource = row12;
             upperSource = row14;
-            row12 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row14 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row12 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row14 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
             lowerSource = row13;
             upperSource = row15;
-            row13 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
-            row15 = Avx512F.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
+            row13 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Lower, upperSource);
+            row15 = Vector512_.PermuteVar16x32x2(lowerSource, stage1Upper, upperSource);
 
             Vector512<int> stage2Lower = Vector512.Create(0, 1, 2, 3, 16, 17, 18, 19, 8, 9, 10, 11, 24, 25, 26, 27);
             Vector512<int> stage2Upper = Vector512.Create(4, 5, 6, 7, 20, 21, 22, 23, 12, 13, 14, 15, 28, 29, 30, 31);
             lowerSource = row0;
             upperSource = row4;
-            row0 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row4 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row0 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row4 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
             lowerSource = row1;
             upperSource = row5;
-            row1 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row5 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row1 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row5 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
             lowerSource = row2;
             upperSource = row6;
-            row2 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row6 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row2 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row6 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
             lowerSource = row3;
             upperSource = row7;
-            row3 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row7 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row3 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row7 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
             lowerSource = row8;
             upperSource = row12;
-            row8 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row12 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row8 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row12 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
             lowerSource = row9;
             upperSource = row13;
-            row9 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row13 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row9 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row13 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
             lowerSource = row10;
             upperSource = row14;
-            row10 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row14 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row10 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row14 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
             lowerSource = row11;
             upperSource = row15;
-            row11 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
-            row15 = Avx512F.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
+            row11 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Lower, upperSource);
+            row15 = Vector512_.PermuteVar16x32x2(lowerSource, stage2Upper, upperSource);
 
             Vector512<int> stage3Lower = Vector512.Create(0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 23);
             Vector512<int> stage3Upper = Vector512.Create(8, 9, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29, 30, 31);
             lowerSource = row0;
             upperSource = row8;
-            row0 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row8 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row0 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row8 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             lowerSource = row1;
             upperSource = row9;
-            row1 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row9 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row1 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row9 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             lowerSource = row2;
             upperSource = row10;
-            row2 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row10 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row2 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row10 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             lowerSource = row3;
             upperSource = row11;
-            row3 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row11 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row3 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row11 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             lowerSource = row4;
             upperSource = row12;
-            row4 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row12 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row4 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row12 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             lowerSource = row5;
             upperSource = row13;
-            row5 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row13 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row5 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row13 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             lowerSource = row6;
             upperSource = row14;
-            row6 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row14 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row6 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row14 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             lowerSource = row7;
             upperSource = row15;
-            row7 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
-            row15 = Avx512F.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
+            row7 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Lower, upperSource);
+            row15 = Vector512_.PermuteVar16x32x2(lowerSource, stage3Upper, upperSource);
             return;
         }
 

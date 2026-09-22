@@ -194,7 +194,7 @@ internal static class Av1FilmGrainNoise
     {
         // Scaling is an indexed lookup, so AVX2 is selected by gather support rather than generic preferred vector
         // width. The portable path is deliberately limited by CanVectorizeWithoutGather for the same reason.
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             ApplyLuma(
                 scaling,
@@ -418,7 +418,7 @@ internal static class Av1FilmGrainNoise
     {
         // Chroma shares luma's dispatch: AVX2 gathers scaling values, while the portable vector path is currently
         // enabled only for high-bit-depth interpolation. This policy does not establish which path is faster.
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             ApplyChroma(
                 scalingCb,

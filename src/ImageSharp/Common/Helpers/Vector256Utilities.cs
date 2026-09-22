@@ -353,6 +353,49 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Multiplies packed signed 16-bit integers, keeping the high 17 bits, rounds, and packs the
+    /// high 16 bits of each result.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyHighRoundScale(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyHighRoundScale(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.MultiplyHighRoundScale(left.GetLower(), right.GetLower()),
+            Vector128_.MultiplyHighRoundScale(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Permutes the four 64-bit elements of one vector.
+    /// </summary>
+    /// <param name="value">The vector to permute.</param>
+    /// <param name="control">Two bits per destination element, selecting its source element.</param>
+    /// <returns>The <see cref="Vector256{Int64}"/>.</returns>
+    /// <remarks>
+    /// This crosses the two 128-bit lanes, which the portable shuffle also does when its indices
+    /// say so, so the control simply expands into an index vector.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> Permute4x64(Vector256<long> value, [ConstantExpected] byte control)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Permute4x64(value, control);
+        }
+
+        return Vector256.Shuffle(
+            value,
+            Vector256.Create((long)(control & 3), (control >> 2) & 3, (control >> 4) & 3, (control >> 6) & 3));
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

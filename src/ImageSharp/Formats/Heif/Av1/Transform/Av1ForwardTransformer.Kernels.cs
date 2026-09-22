@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -141,14 +140,14 @@ internal static partial class Av1ForwardTransformer
 
         // round_shift_16bit with shift -1: add one half and shift, with saturation on the addition.
         Vector128<short> half = Vector128.Create((short)1);
-        r0 = Sse2.AddSaturate(r0, half) >> 1;
-        r1 = Sse2.AddSaturate(r1, half) >> 1;
-        r2 = Sse2.AddSaturate(r2, half) >> 1;
-        r3 = Sse2.AddSaturate(r3, half) >> 1;
-        r4 = Sse2.AddSaturate(r4, half) >> 1;
-        r5 = Sse2.AddSaturate(r5, half) >> 1;
-        r6 = Sse2.AddSaturate(r6, half) >> 1;
-        r7 = Sse2.AddSaturate(r7, half) >> 1;
+        r0 = Vector128.AddSaturate(r0, half) >> 1;
+        r1 = Vector128.AddSaturate(r1, half) >> 1;
+        r2 = Vector128.AddSaturate(r2, half) >> 1;
+        r3 = Vector128.AddSaturate(r3, half) >> 1;
+        r4 = Vector128.AddSaturate(r4, half) >> 1;
+        r5 = Vector128.AddSaturate(r5, half) >> 1;
+        r6 = Vector128.AddSaturate(r6, half) >> 1;
+        r7 = Vector128.AddSaturate(r7, half) >> 1;
 
         Av1TransformKernels.Transpose8x8(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7);
         if (flipLeftToRight)
@@ -220,29 +219,29 @@ internal static partial class Av1ForwardTransformer
             short c40 = (short)cospi[40];
 
             // stage 1
-            Vector128<short> x10 = Sse2.AddSaturate(in0, in7);
-            Vector128<short> x17 = Sse2.SubtractSaturate(in0, in7);
-            Vector128<short> x11 = Sse2.AddSaturate(in1, in6);
-            Vector128<short> x16 = Sse2.SubtractSaturate(in1, in6);
-            Vector128<short> x12 = Sse2.AddSaturate(in2, in5);
-            Vector128<short> x15 = Sse2.SubtractSaturate(in2, in5);
-            Vector128<short> x13 = Sse2.AddSaturate(in3, in4);
-            Vector128<short> x14 = Sse2.SubtractSaturate(in3, in4);
+            Vector128<short> x10 = Vector128.AddSaturate(in0, in7);
+            Vector128<short> x17 = Vector128.SubtractSaturate(in0, in7);
+            Vector128<short> x11 = Vector128.AddSaturate(in1, in6);
+            Vector128<short> x16 = Vector128.SubtractSaturate(in1, in6);
+            Vector128<short> x12 = Vector128.AddSaturate(in2, in5);
+            Vector128<short> x15 = Vector128.SubtractSaturate(in2, in5);
+            Vector128<short> x13 = Vector128.AddSaturate(in3, in4);
+            Vector128<short> x14 = Vector128.SubtractSaturate(in3, in4);
 
             // stage 2
-            Vector128<short> x20 = Sse2.AddSaturate(x10, x13);
-            Vector128<short> x23 = Sse2.SubtractSaturate(x10, x13);
-            Vector128<short> x21 = Sse2.AddSaturate(x11, x12);
-            Vector128<short> x22 = Sse2.SubtractSaturate(x11, x12);
+            Vector128<short> x20 = Vector128.AddSaturate(x10, x13);
+            Vector128<short> x23 = Vector128.SubtractSaturate(x10, x13);
+            Vector128<short> x21 = Vector128.AddSaturate(x11, x12);
+            Vector128<short> x22 = Vector128.SubtractSaturate(x11, x12);
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair((short)-c32, c32), Av1TransformKernels.Pair(c32, c32), x15, x16, out Vector128<short> x25, out Vector128<short> x26, cosBit, rounding);
 
             // stage 3
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x20, x21, out Vector128<short> x30, out Vector128<short> x31, cosBit, rounding);
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c48, c16), Av1TransformKernels.Pair((short)-c16, c48), x22, x23, out Vector128<short> x32, out Vector128<short> x33, cosBit, rounding);
-            Vector128<short> x34 = Sse2.AddSaturate(x14, x25);
-            Vector128<short> x35 = Sse2.SubtractSaturate(x14, x25);
-            Vector128<short> x36 = Sse2.SubtractSaturate(x17, x26);
-            Vector128<short> x37 = Sse2.AddSaturate(x17, x26);
+            Vector128<short> x34 = Vector128.AddSaturate(x14, x25);
+            Vector128<short> x35 = Vector128.SubtractSaturate(x14, x25);
+            Vector128<short> x36 = Vector128.SubtractSaturate(x17, x26);
+            Vector128<short> x37 = Vector128.AddSaturate(x17, x26);
 
             // stages 4 and 5
             in0 = x30;
@@ -289,41 +288,41 @@ internal static partial class Av1ForwardTransformer
 
             // stage 1
             Vector128<short> x10 = in0;
-            Vector128<short> x11 = Sse2.SubtractSaturate(zero, in7);
-            Vector128<short> x12 = Sse2.SubtractSaturate(zero, in3);
+            Vector128<short> x11 = Vector128.SubtractSaturate(zero, in7);
+            Vector128<short> x12 = Vector128.SubtractSaturate(zero, in3);
             Vector128<short> x13 = in4;
-            Vector128<short> x14 = Sse2.SubtractSaturate(zero, in1);
+            Vector128<short> x14 = Vector128.SubtractSaturate(zero, in1);
             Vector128<short> x15 = in6;
             Vector128<short> x16 = in2;
-            Vector128<short> x17 = Sse2.SubtractSaturate(zero, in5);
+            Vector128<short> x17 = Vector128.SubtractSaturate(zero, in5);
 
             // stage 2
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x12, x13, out Vector128<short> x22, out Vector128<short> x23, cosBit, rounding);
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x16, x17, out Vector128<short> x26, out Vector128<short> x27, cosBit, rounding);
 
             // stage 3
-            Vector128<short> x30 = Sse2.AddSaturate(x10, x22);
-            Vector128<short> x32 = Sse2.SubtractSaturate(x10, x22);
-            Vector128<short> x31 = Sse2.AddSaturate(x11, x23);
-            Vector128<short> x33 = Sse2.SubtractSaturate(x11, x23);
-            Vector128<short> x34 = Sse2.AddSaturate(x14, x26);
-            Vector128<short> x36 = Sse2.SubtractSaturate(x14, x26);
-            Vector128<short> x35 = Sse2.AddSaturate(x15, x27);
-            Vector128<short> x37 = Sse2.SubtractSaturate(x15, x27);
+            Vector128<short> x30 = Vector128.AddSaturate(x10, x22);
+            Vector128<short> x32 = Vector128.SubtractSaturate(x10, x22);
+            Vector128<short> x31 = Vector128.AddSaturate(x11, x23);
+            Vector128<short> x33 = Vector128.SubtractSaturate(x11, x23);
+            Vector128<short> x34 = Vector128.AddSaturate(x14, x26);
+            Vector128<short> x36 = Vector128.SubtractSaturate(x14, x26);
+            Vector128<short> x35 = Vector128.AddSaturate(x15, x27);
+            Vector128<short> x37 = Vector128.SubtractSaturate(x15, x27);
 
             // stage 4
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c16, c48), Av1TransformKernels.Pair(c48, (short)-c16), x34, x35, out Vector128<short> x44, out Vector128<short> x45, cosBit, rounding);
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair((short)-c48, c16), Av1TransformKernels.Pair(c16, c48), x36, x37, out Vector128<short> x46, out Vector128<short> x47, cosBit, rounding);
 
             // stages 5, 6 and 7
-            Vector128<short> out7 = Sse2.AddSaturate(x30, x44);
-            Vector128<short> out3 = Sse2.SubtractSaturate(x30, x44);
-            Vector128<short> out0 = Sse2.AddSaturate(x31, x45);
-            Vector128<short> out4 = Sse2.SubtractSaturate(x31, x45);
-            Vector128<short> out5 = Sse2.AddSaturate(x32, x46);
-            Vector128<short> out1 = Sse2.SubtractSaturate(x32, x46);
-            Vector128<short> out2 = Sse2.AddSaturate(x33, x47);
-            Vector128<short> out6 = Sse2.SubtractSaturate(x33, x47);
+            Vector128<short> out7 = Vector128.AddSaturate(x30, x44);
+            Vector128<short> out3 = Vector128.SubtractSaturate(x30, x44);
+            Vector128<short> out0 = Vector128.AddSaturate(x31, x45);
+            Vector128<short> out4 = Vector128.SubtractSaturate(x31, x45);
+            Vector128<short> out5 = Vector128.AddSaturate(x32, x46);
+            Vector128<short> out1 = Vector128.SubtractSaturate(x32, x46);
+            Vector128<short> out2 = Vector128.AddSaturate(x33, x47);
+            Vector128<short> out6 = Vector128.SubtractSaturate(x33, x47);
 
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c4, c60), Av1TransformKernels.Pair(c60, (short)-c4), out7, out0, out in7, out in0, cosBit, rounding);
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c20, c44), Av1TransformKernels.Pair(c44, (short)-c20), out5, out2, out in5, out in2, cosBit, rounding);
@@ -350,14 +349,14 @@ internal static partial class Av1ForwardTransformer
             ref Vector128<short> in7,
             int cosBit)
         {
-            in0 = Sse2.AddSaturate(in0, in0);
-            in1 = Sse2.AddSaturate(in1, in1);
-            in2 = Sse2.AddSaturate(in2, in2);
-            in3 = Sse2.AddSaturate(in3, in3);
-            in4 = Sse2.AddSaturate(in4, in4);
-            in5 = Sse2.AddSaturate(in5, in5);
-            in6 = Sse2.AddSaturate(in6, in6);
-            in7 = Sse2.AddSaturate(in7, in7);
+            in0 = Vector128.AddSaturate(in0, in0);
+            in1 = Vector128.AddSaturate(in1, in1);
+            in2 = Vector128.AddSaturate(in2, in2);
+            in3 = Vector128.AddSaturate(in3, in3);
+            in4 = Vector128.AddSaturate(in4, in4);
+            in5 = Vector128.AddSaturate(in5, in5);
+            in6 = Vector128.AddSaturate(in6, in6);
+            in7 = Vector128.AddSaturate(in7, in7);
         }
     }
 }

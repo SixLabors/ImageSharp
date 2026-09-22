@@ -21,6 +21,220 @@ internal static class Vector512_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector512{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<short> PackSignedSaturate(Vector512<int> left, Vector512<int> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.PackSignedSaturate(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.PackSignedSaturate(left.GetLower(), right.GetLower()),
+            Vector256_.PackSignedSaturate(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the lower signed 64-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector512{Int64}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<long> UnpackLow(Vector512<long> left, Vector512<long> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.UnpackLow(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.UnpackLow(left.GetLower(), right.GetLower()),
+            Vector256_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 64-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector512{Int64}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<long> UnpackHigh(Vector512<long> left, Vector512<long> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.UnpackHigh(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector256_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the lower signed 16-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector512{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<short> UnpackLow(Vector512<short> left, Vector512<short> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.UnpackLow(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.UnpackLow(left.GetLower(), right.GetLower()),
+            Vector256_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 16-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector512{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<short> UnpackHigh(Vector512<short> left, Vector512<short> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.UnpackHigh(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector256_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the lower signed 32-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector512{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> UnpackLow(Vector512<int> left, Vector512<int> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.UnpackLow(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.UnpackLow(left.GetLower(), right.GetLower()),
+            Vector256_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 32-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector512{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> UnpackHigh(Vector512<int> left, Vector512<int> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.UnpackHigh(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector256_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Selects each 32-bit element from one of two vectors by index.
+    /// </summary>
+    /// <param name="lower">The vector that supplies indices 0 through 15.</param>
+    /// <param name="indices">The source index of each destination element.</param>
+    /// <param name="upper">The vector that supplies indices 16 through 31.</param>
+    /// <returns>The <see cref="Vector512{Int32}"/>.</returns>
+    /// <remarks>
+    /// An index addresses the 32 elements of the two vectors together. The portable form shuffles
+    /// each vector by the low four bits and then selects between the two results on bit four, which
+    /// is what the instruction does in one step.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> PermuteVar16x32x2(Vector512<int> lower, Vector512<int> indices, Vector512<int> upper)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.PermuteVar16x32x2(lower, indices, upper);
+        }
+
+        Vector512<int> within = indices & Vector512.Create(15);
+        Vector512<int> selector = Vector512.Equals(indices & Vector512.Create(16), Vector512.Create(16));
+        return Vector512.ConditionalSelect(selector, Vector512.Shuffle(upper, within), Vector512.Shuffle(lower, within));
+    }
+
+    /// <summary>
+    /// Selects each 64-bit element from one of two vectors by index.
+    /// </summary>
+    /// <param name="lower">The vector that supplies indices 0 through 7.</param>
+    /// <param name="indices">The source index of each destination element.</param>
+    /// <param name="upper">The vector that supplies indices 8 through 15.</param>
+    /// <returns>The <see cref="Vector512{Int64}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<long> PermuteVar8x64x2(Vector512<long> lower, Vector512<long> indices, Vector512<long> upper)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.PermuteVar8x64x2(lower, indices, upper);
+        }
+
+        Vector512<long> within = indices & Vector512.Create(7L);
+        Vector512<long> selector = Vector512.Equals(indices & Vector512.Create(8L), Vector512.Create(8L));
+        return Vector512.ConditionalSelect(selector, Vector512.Shuffle(upper, within), Vector512.Shuffle(lower, within));
+    }
+
+    /// <summary>
+    /// Selects each 128-bit lane of the result from one of two vectors.
+    /// </summary>
+    /// <param name="lower">The vector that supplies the first two destination lanes.</param>
+    /// <param name="upper">The vector that supplies the last two destination lanes.</param>
+    /// <param name="control">Two bits per destination lane, selecting its source lane.</param>
+    /// <returns>The <see cref="Vector512{Int32}"/>.</returns>
+    /// <remarks>
+    /// The first two destination lanes come from <paramref name="lower"/> and the last two from
+    /// <paramref name="upper"/>, which is what the instruction does. The portable form expands the
+    /// control into element indices and defers to the two-source permute.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> Shuffle4x128(Vector512<int> lower, Vector512<int> upper, [ConstantExpected] byte control)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.Shuffle4x128(lower, upper, control);
+        }
+
+        Span<int> indices = stackalloc int[Vector512<int>.Count];
+        for (int lane = 0; lane < 4; lane++)
+        {
+            // A destination lane holds four elements. The first two lanes index the lower vector and
+            // the last two index the upper one, which the offset of sixteen expresses.
+            int source = (control >> (lane * 2)) & 3;
+            int origin = (source * 4) + (lane >= 2 ? 16 : 0);
+            for (int element = 0; element < 4; element++)
+            {
+                indices[(lane * 4) + element] = origin + element;
+            }
+        }
+
+        return PermuteVar16x32x2(lower, Vector512.Create<int>(indices), upper);
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.

@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -228,8 +227,8 @@ internal static partial class Av1InverseTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddSubtract(ref Vector128<short> left, ref Vector128<short> right)
     {
-        Vector128<short> sum = Sse2.AddSaturate(left, right);
-        right = Sse2.SubtractSaturate(left, right);
+        Vector128<short> sum = Vector128.AddSaturate(left, right);
+        right = Vector128.SubtractSaturate(left, right);
         left = sum;
     }
 
@@ -278,31 +277,31 @@ internal static partial class Av1InverseTransformer
             // stage 3
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x0, x1, out x0, out x1, cosBit, rounding);
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c48, (short)-c16), Av1TransformKernels.Pair(c16, c48), x2, x3, out x2, out x3, cosBit, rounding);
-            Vector128<short> t4 = Sse2.AddSaturate(x4, x5);
-            x5 = Sse2.SubtractSaturate(x4, x5);
+            Vector128<short> t4 = Vector128.AddSaturate(x4, x5);
+            x5 = Vector128.SubtractSaturate(x4, x5);
             x4 = t4;
-            Vector128<short> t6 = Sse2.SubtractSaturate(x7, x6);
-            x7 = Sse2.AddSaturate(x7, x6);
+            Vector128<short> t6 = Vector128.SubtractSaturate(x7, x6);
+            x7 = Vector128.AddSaturate(x7, x6);
             x6 = t6;
 
             // stage 4
-            Vector128<short> t0 = Sse2.AddSaturate(x0, x3);
-            x3 = Sse2.SubtractSaturate(x0, x3);
+            Vector128<short> t0 = Vector128.AddSaturate(x0, x3);
+            x3 = Vector128.SubtractSaturate(x0, x3);
             x0 = t0;
-            Vector128<short> t1 = Sse2.AddSaturate(x1, x2);
-            x2 = Sse2.SubtractSaturate(x1, x2);
+            Vector128<short> t1 = Vector128.AddSaturate(x1, x2);
+            x2 = Vector128.SubtractSaturate(x1, x2);
             x1 = t1;
             Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair((short)-c32, c32), Av1TransformKernels.Pair(c32, c32), x5, x6, out x5, out x6, cosBit, rounding);
 
             // stage 5
-            in0 = Sse2.AddSaturate(x0, x7);
-            in7 = Sse2.SubtractSaturate(x0, x7);
-            in1 = Sse2.AddSaturate(x1, x6);
-            in6 = Sse2.SubtractSaturate(x1, x6);
-            in2 = Sse2.AddSaturate(x2, x5);
-            in5 = Sse2.SubtractSaturate(x2, x5);
-            in3 = Sse2.AddSaturate(x3, x4);
-            in4 = Sse2.SubtractSaturate(x3, x4);
+            in0 = Vector128.AddSaturate(x0, x7);
+            in7 = Vector128.SubtractSaturate(x0, x7);
+            in1 = Vector128.AddSaturate(x1, x6);
+            in6 = Vector128.SubtractSaturate(x1, x6);
+            in2 = Vector128.AddSaturate(x2, x5);
+            in5 = Vector128.SubtractSaturate(x2, x5);
+            in3 = Vector128.AddSaturate(x3, x4);
+            in4 = Vector128.SubtractSaturate(x3, x4);
         }
     }
 
@@ -408,13 +407,13 @@ internal static partial class Av1InverseTransformer
 
             // stage 7
             in0 = x0;
-            in1 = Sse2.SubtractSaturate(zero, x4);
+            in1 = Vector128.SubtractSaturate(zero, x4);
             in2 = x6;
-            in3 = Sse2.SubtractSaturate(zero, x2);
+            in3 = Vector128.SubtractSaturate(zero, x2);
             in4 = x3;
-            in5 = Sse2.SubtractSaturate(zero, x7);
+            in5 = Vector128.SubtractSaturate(zero, x7);
             in6 = x5;
-            in7 = Sse2.SubtractSaturate(zero, x1);
+            in7 = Vector128.SubtractSaturate(zero, x1);
         }
     }
 
@@ -457,13 +456,13 @@ internal static partial class Av1InverseTransformer
 
             // stage 7
             in0 = x0;
-            in1 = Sse2.SubtractSaturate(zero, x4);
+            in1 = Vector128.SubtractSaturate(zero, x4);
             in2 = x6;
-            in3 = Sse2.SubtractSaturate(zero, x2);
+            in3 = Vector128.SubtractSaturate(zero, x2);
             in4 = x3;
-            in5 = Sse2.SubtractSaturate(zero, x7);
+            in5 = Vector128.SubtractSaturate(zero, x7);
             in6 = x5;
-            in7 = Sse2.SubtractSaturate(zero, x1);
+            in7 = Vector128.SubtractSaturate(zero, x1);
         }
     }
 
@@ -485,14 +484,14 @@ internal static partial class Av1InverseTransformer
             ref Vector128<short> in7,
             int cosBit)
         {
-            in0 = Sse2.AddSaturate(in0, in0);
-            in1 = Sse2.AddSaturate(in1, in1);
-            in2 = Sse2.AddSaturate(in2, in2);
-            in3 = Sse2.AddSaturate(in3, in3);
-            in4 = Sse2.AddSaturate(in4, in4);
-            in5 = Sse2.AddSaturate(in5, in5);
-            in6 = Sse2.AddSaturate(in6, in6);
-            in7 = Sse2.AddSaturate(in7, in7);
+            in0 = Vector128.AddSaturate(in0, in0);
+            in1 = Vector128.AddSaturate(in1, in1);
+            in2 = Vector128.AddSaturate(in2, in2);
+            in3 = Vector128.AddSaturate(in3, in3);
+            in4 = Vector128.AddSaturate(in4, in4);
+            in5 = Vector128.AddSaturate(in5, in5);
+            in6 = Vector128.AddSaturate(in6, in6);
+            in7 = Vector128.AddSaturate(in7, in7);
         }
     }
 }

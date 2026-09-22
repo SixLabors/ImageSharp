@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// <summary>
 /// Predicts, transforms, quantizes, and reconstructs finalized AV1 blocks.
 /// </summary>
-internal static class Av1TransformBlockEncoder
+internal static partial class Av1TransformBlockEncoder
 {
     /// <summary>
     /// Gets the Q12 terms that normalize a DC coefficient for the shape of its transform.
@@ -2718,75 +2718,7 @@ internal static class Av1TransformBlockEncoder
         out long sumOfSquares)
     {
         Av1WorkCounters.Count(Av1WorkCounters.DistTxDomain);
-        long error = 0;
-        long energy = 0;
-        int i = 0;
-        ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
-        ref int dequantizedBase = ref MemoryMarshal.GetReference(dequantized);
-
-        // Each Int32 lane holds one coefficient in raster order. Widen before squaring: twelve-bit
-        // transforms can exceed the signed Int32 square range even though each coefficient and difference fits.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            Vector512<long> errors = Vector512<long>.Zero;
-            Vector512<long> energies = Vector512<long>.Zero;
-            for (; i <= coefficients.Length - Vector512<int>.Count; i += Vector512<int>.Count)
-            {
-                Vector512<int> values = Vector512.LoadUnsafe(ref coefficientBase, (nuint)i);
-                Vector512<int> differences = values - Vector512.LoadUnsafe(ref dequantizedBase, (nuint)i);
-                (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(values);
-                (Vector512<long> lowerDifference, Vector512<long> upperDifference) = Vector512.Widen(differences);
-                energies += (lower * lower) + (upper * upper);
-                errors += (lowerDifference * lowerDifference) + (upperDifference * upperDifference);
-            }
-
-            energy += Vector512.Sum(energies);
-            error += Vector512.Sum(errors);
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<long> errors = Vector256<long>.Zero;
-            Vector256<long> energies = Vector256<long>.Zero;
-            for (; i <= coefficients.Length - Vector256<int>.Count; i += Vector256<int>.Count)
-            {
-                Vector256<int> values = Vector256.LoadUnsafe(ref coefficientBase, (nuint)i);
-                Vector256<int> differences = values - Vector256.LoadUnsafe(ref dequantizedBase, (nuint)i);
-                (Vector256<long> lower, Vector256<long> upper) = Vector256.Widen(values);
-                (Vector256<long> lowerDifference, Vector256<long> upperDifference) = Vector256.Widen(differences);
-                energies += (lower * lower) + (upper * upper);
-                errors += (lowerDifference * lowerDifference) + (upperDifference * upperDifference);
-            }
-
-            energy += Vector256.Sum(energies);
-            error += Vector256.Sum(errors);
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            Vector128<long> errors = Vector128<long>.Zero;
-            Vector128<long> energies = Vector128<long>.Zero;
-            for (; i <= coefficients.Length - Vector128<int>.Count; i += Vector128<int>.Count)
-            {
-                Vector128<int> values = Vector128.LoadUnsafe(ref coefficientBase, (nuint)i);
-                Vector128<int> differences = values - Vector128.LoadUnsafe(ref dequantizedBase, (nuint)i);
-                (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(values);
-                (Vector128<long> lowerDifference, Vector128<long> upperDifference) = Vector128.Widen(differences);
-                energies += (lower * lower) + (upper * upper);
-                errors += (lowerDifference * lowerDifference) + (upperDifference * upperDifference);
-            }
-
-            energy += Vector128.Sum(energies);
-            error += Vector128.Sum(errors);
-        }
-
-        for (; i < coefficients.Length; i++)
-        {
-            long value = coefficients[i];
-            long difference = value - dequantized[i];
-            energy += value * value;
-            error += difference * difference;
-        }
+        TransformError<TransformErrorOperator>.Accumulate(coefficients, dequantized, out long energy, out long error);
 
         // Normalize high-bit-depth squared values first, rounding once at the accumulated-block boundary.
         // Transform scale zero then divides by four, scale one is unchanged, and scale two multiplies by four.

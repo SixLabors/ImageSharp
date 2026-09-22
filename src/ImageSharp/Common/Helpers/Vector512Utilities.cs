@@ -243,6 +243,41 @@ internal static class Vector512_
         };
 
     /// <summary>
+    /// Adds the absolute differences of packed unsigned 8-bit integers in <paramref name="left"/> and
+    /// <paramref name="right"/> into <paramref name="accumulator"/>.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="accumulator">
+    /// The running total that the differences are added to.
+    /// </param>
+    /// <returns>
+    /// A vector whose lanes together hold <paramref name="accumulator"/> plus the sixty-four absolute differences
+    /// </returns>
+    /// <remarks>
+    /// The spread of the sums across the lanes is not defined, because each platform keeps the grouping
+    /// that its own instruction produces. Only the total across all lanes is defined, so the caller must
+    /// reduce the result with a horizontal sum and must not read one lane on its own. A lane holds a
+    /// 32-bit total, so it cannot overflow until more than sixteen million samples are added to it.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<uint> SumAbsoluteDifferences(Vector512<byte> left, Vector512<byte> right, Vector512<uint> accumulator)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return accumulator + Avx512BW.SumAbsoluteDifferences(left, right).AsUInt32();
+        }
+
+        return Vector512.Create(
+            Vector256_.SumAbsoluteDifferences(left.GetLower(), right.GetLower(), accumulator.GetLower()),
+            Vector256_.SumAbsoluteDifferences(left.GetUpper(), right.GetUpper(), accumulator.GetUpper()));
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.

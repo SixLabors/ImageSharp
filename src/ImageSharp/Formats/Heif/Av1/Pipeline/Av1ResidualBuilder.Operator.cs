@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -15,35 +16,83 @@ internal static partial class Av1ResidualBuilder
     /// Defines one AV1 source-minus-prediction operation across hardware widths.
     /// </summary>
     /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <remarks>
+    /// Every measure this interface declares returns a lane-shaped total rather than a scalar one. A
+    /// scalar return would put a horizontal sum inside the traversal loop, and a horizontal sum is a
+    /// chain of shuffles and adds that costs far more than the lane work it reduces. The traversal
+    /// therefore carries the total in lanes and reduces it once, which is what a hand-written
+    /// specialization of the same measure does.
+    /// </remarks>
     internal interface IResidualOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>
-        /// Subtracts eight or sixteen source and prediction samples.
+        /// Adds the absolute differences of sixteen bytes, or eight words, to a running total.
         /// </summary>
         /// <param name="source">The source samples.</param>
         /// <param name="prediction">The prediction samples.</param>
-        /// <param name="upper">The upper residual lanes when the inputs contain 8-bit samples.</param>
-        /// <returns>The lower residual lanes.</returns>
-        public static abstract Vector128<short> Subtract(Vector128<TSample> source, Vector128<TSample> prediction, out Vector128<short> upper);
+        /// <param name="total">The running total in 32-bit lanes.</param>
+        /// <returns>The updated running total.</returns>
+        /// <remarks>
+        /// The spread of the total across the lanes is not defined. Only the sum of all lanes is.
+        /// </remarks>
+        public static abstract Vector128<uint> AccumulateAbsoluteDifferences(Vector128<TSample> source, Vector128<TSample> prediction, Vector128<uint> total);
 
         /// <summary>
-        /// Subtracts sixteen or thirty-two source and prediction samples.
+        /// Adds the absolute differences of thirty-two bytes, or sixteen words, to a running total.
         /// </summary>
         /// <param name="source">The source samples.</param>
         /// <param name="prediction">The prediction samples.</param>
-        /// <param name="upper">The upper residual lanes when the inputs contain 8-bit samples.</param>
-        /// <returns>The lower residual lanes.</returns>
-        public static abstract Vector256<short> Subtract(Vector256<TSample> source, Vector256<TSample> prediction, out Vector256<short> upper);
+        /// <param name="total">The running total in 32-bit lanes.</param>
+        /// <returns>The updated running total.</returns>
+        public static abstract Vector256<uint> AccumulateAbsoluteDifferences(Vector256<TSample> source, Vector256<TSample> prediction, Vector256<uint> total);
 
         /// <summary>
-        /// Subtracts thirty-two or sixty-four source and prediction samples.
+        /// Adds the absolute differences of sixty-four bytes, or thirty-two words, to a running total.
         /// </summary>
         /// <param name="source">The source samples.</param>
         /// <param name="prediction">The prediction samples.</param>
-        /// <param name="upper">The upper residual lanes when the inputs contain 8-bit samples.</param>
-        /// <returns>The lower residual lanes.</returns>
-        public static abstract Vector512<short> Subtract(Vector512<TSample> source, Vector512<TSample> prediction, out Vector512<short> upper);
+        /// <param name="total">The running total in 32-bit lanes.</param>
+        /// <returns>The updated running total.</returns>
+        public static abstract Vector512<uint> AccumulateAbsoluteDifferences(Vector512<TSample> source, Vector512<TSample> prediction, Vector512<uint> total);
+
+        /// <summary>
+        /// Measures one scalar absolute sample difference.
+        /// </summary>
+        /// <param name="source">The source sample.</param>
+        /// <param name="prediction">The prediction sample.</param>
+        /// <returns>The absolute difference.</returns>
+        public static abstract int SumAbsoluteDifferences(TSample source, TSample prediction);
+
+        /// <summary>
+        /// Adds the signed differences of sixteen bytes, or eight words, and their squares, to two running totals.
+        /// </summary>
+        /// <param name="source">The source samples.</param>
+        /// <param name="prediction">The prediction samples.</param>
+        /// <param name="sum">The running signed total in 32-bit lanes.</param>
+        /// <param name="squares">The running squared total in 32-bit lanes.</param>
+        /// <remarks>
+        /// The spread of either total across the lanes is not defined. Only the sum of all lanes is.
+        /// </remarks>
+        public static abstract void AccumulateMoments(Vector128<TSample> source, Vector128<TSample> prediction, ref Vector128<int> sum, ref Vector128<int> squares);
+
+        /// <summary>
+        /// Adds the signed differences of thirty-two bytes, or sixteen words, and their squares, to two running totals.
+        /// </summary>
+        /// <param name="source">The source samples.</param>
+        /// <param name="prediction">The prediction samples.</param>
+        /// <param name="sum">The running signed total in 32-bit lanes.</param>
+        /// <param name="squares">The running squared total in 32-bit lanes.</param>
+        public static abstract void AccumulateMoments(Vector256<TSample> source, Vector256<TSample> prediction, ref Vector256<int> sum, ref Vector256<int> squares);
+
+        /// <summary>
+        /// Adds the signed differences of sixty-four bytes, or thirty-two words, and their squares, to two running totals.
+        /// </summary>
+        /// <param name="source">The source samples.</param>
+        /// <param name="prediction">The prediction samples.</param>
+        /// <param name="sum">The running signed total in 32-bit lanes.</param>
+        /// <param name="squares">The running squared total in 32-bit lanes.</param>
+        public static abstract void AccumulateMoments(Vector512<TSample> source, Vector512<TSample> prediction, ref Vector512<int> sum, ref Vector512<int> squares);
 
         /// <summary>
         /// Loads eight source and prediction samples and subtracts them.
@@ -90,22 +139,6 @@ internal static partial class Av1ResidualBuilder
         public static abstract short Subtract(TSample source, TSample prediction);
 
         /// <summary>
-        /// Measures one scalar absolute sample difference.
-        /// </summary>
-        /// <param name="source">The source sample.</param>
-        /// <param name="prediction">The prediction sample.</param>
-        /// <returns>The sum of absolute differences.</returns>
-        public static abstract int SumAbsoluteDifferences(TSample source, TSample prediction);
-
-        /// <summary>
-        /// Measures eight absolute sample differences; byte inputs occupy only the lower eight lanes.
-        /// </summary>
-        /// <param name="source">The eight source samples.</param>
-        /// <param name="prediction">The eight prediction samples.</param>
-        /// <returns>The sum of absolute differences.</returns>
-        public static abstract int SumAbsoluteDifferences(Vector128<TSample> source, Vector128<TSample> prediction);
-
-        /// <summary>
         /// Measures four eight-sample predictions, returning their costs in candidate order.
         /// Byte inputs occupy only the lower eight lanes.
         /// </summary>
@@ -127,18 +160,9 @@ internal static partial class Av1ResidualBuilder
         /// </summary>
         /// <param name="source">The source sample.</param>
         /// <param name="prediction">The prediction sample.</param>
-        /// <param name="sum">The signed sum of source-minus-prediction differences.</param>
-        /// <returns>The sum of squared differences.</returns>
+        /// <param name="sum">The signed source-minus-prediction difference.</param>
+        /// <returns>The squared difference.</returns>
         public static abstract int SumSquaredDifferences(TSample source, TSample prediction, out int sum);
-
-        /// <summary>
-        /// Calculates eight squared differences and their signed sum; byte inputs occupy only the lower eight lanes.
-        /// </summary>
-        /// <param name="source">The eight source samples.</param>
-        /// <param name="prediction">The eight prediction samples.</param>
-        /// <param name="sum">The signed sum of source-minus-prediction differences.</param>
-        /// <returns>The sum of squared differences.</returns>
-        public static abstract int SumSquaredDifferences(Vector128<TSample> source, Vector128<TSample> prediction, out int sum);
     }
 
     /// <summary>
@@ -148,15 +172,69 @@ internal static partial class Av1ResidualBuilder
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<uint> AccumulateAbsoluteDifferences(Vector128<byte> source, Vector128<byte> prediction, Vector128<uint> total)
+            => Vector128_.SumAbsoluteDifferences(source, prediction, total);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<uint> AccumulateAbsoluteDifferences(Vector256<byte> source, Vector256<byte> prediction, Vector256<uint> total)
+            => Vector256_.SumAbsoluteDifferences(source, prediction, total);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<uint> AccumulateAbsoluteDifferences(Vector512<byte> source, Vector512<byte> prediction, Vector512<uint> total)
+            => Vector512_.SumAbsoluteDifferences(source, prediction, total);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SumAbsoluteDifferences(byte source, byte prediction) => Math.Abs(Subtract(source, prediction));
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AccumulateMoments(Vector128<byte> source, Vector128<byte> prediction, ref Vector128<int> sum, ref Vector128<int> squares)
+        {
+            // A byte vector holds twice as many samples as a 16-bit lane can take, so both halves are
+            // widened and folded apart. Multiplying a difference by one, and by itself, gives the
+            // signed total and the squared total from the same pairwise instruction.
+            Vector128<short> lower = Vector128.WidenLower(source).AsInt16() - Vector128.WidenLower(prediction).AsInt16();
+            Vector128<short> upper = Vector128.WidenUpper(source).AsInt16() - Vector128.WidenUpper(prediction).AsInt16();
+            Vector128<short> ones = Vector128.Create((short)1);
+            sum += Vector128_.MultiplyAddAdjacent(lower, ones) + Vector128_.MultiplyAddAdjacent(upper, ones);
+            squares += Vector128_.MultiplyAddAdjacent(lower, lower) + Vector128_.MultiplyAddAdjacent(upper, upper);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AccumulateMoments(Vector256<byte> source, Vector256<byte> prediction, ref Vector256<int> sum, ref Vector256<int> squares)
+        {
+            Vector256<short> lower = Vector256.WidenLower(source).AsInt16() - Vector256.WidenLower(prediction).AsInt16();
+            Vector256<short> upper = Vector256.WidenUpper(source).AsInt16() - Vector256.WidenUpper(prediction).AsInt16();
+            Vector256<short> ones = Vector256.Create((short)1);
+            sum += Vector256_.MultiplyAddAdjacent(lower, ones) + Vector256_.MultiplyAddAdjacent(upper, ones);
+            squares += Vector256_.MultiplyAddAdjacent(lower, lower) + Vector256_.MultiplyAddAdjacent(upper, upper);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AccumulateMoments(Vector512<byte> source, Vector512<byte> prediction, ref Vector512<int> sum, ref Vector512<int> squares)
+        {
+            Vector512<short> lower = Vector512.WidenLower(source).AsInt16() - Vector512.WidenLower(prediction).AsInt16();
+            Vector512<short> upper = Vector512.WidenUpper(source).AsInt16() - Vector512.WidenUpper(prediction).AsInt16();
+            Vector512<short> ones = Vector512.Create((short)1);
+            sum += Vector512_.MultiplyAddAdjacent(lower, ones) + Vector512_.MultiplyAddAdjacent(upper, ones);
+            squares += Vector512_.MultiplyAddAdjacent(lower, lower) + Vector512_.MultiplyAddAdjacent(upper, upper);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> LoadDifference(ref byte source, ref byte prediction, int offset, Vector128<short> width)
         {
             // Exactly eight bytes are read from each row, so a row of eight samples is covered
-            // without touching the row that follows it.
-            Vector128<ushort> s = Vector128.WidenLower(
-                Vector128.Create(Vector64.LoadUnsafe(ref source, (nuint)offset), Vector64<byte>.Zero));
-
-            Vector128<ushort> p = Vector128.WidenLower(
-                Vector128.Create(Vector64.LoadUnsafe(ref prediction, (nuint)offset), Vector64<byte>.Zero));
+            // without touching the row that follows it. The half-width load zero-extends into the
+            // register, which the move already does, so the defined form costs nothing over the
+            // undefined one.
+            Vector128<ushort> s = Vector128.WidenLower(Vector64.LoadUnsafe(ref source, (nuint)offset).ToVector128());
+            Vector128<ushort> p = Vector128.WidenLower(Vector64.LoadUnsafe(ref prediction, (nuint)offset).ToVector128());
 
             // Both operands are below 256, so the wrapped unsigned subtraction reinterprets as the
             // signed difference the residual is defined to be.
@@ -167,11 +245,8 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<short> LoadDifference(ref byte source, ref byte prediction, int offset, Vector256<short> width)
         {
-            Vector256<ushort> s = Vector256.WidenLower(
-                Vector256.Create(Vector128.LoadUnsafe(ref source, (nuint)offset), Vector128<byte>.Zero));
-
-            Vector256<ushort> p = Vector256.WidenLower(
-                Vector256.Create(Vector128.LoadUnsafe(ref prediction, (nuint)offset), Vector128<byte>.Zero));
+            Vector256<ushort> s = Vector256.WidenLower(Vector128.LoadUnsafe(ref source, (nuint)offset).ToVector256());
+            Vector256<ushort> p = Vector256.WidenLower(Vector128.LoadUnsafe(ref prediction, (nuint)offset).ToVector256());
 
             return (s - p).AsInt16();
         }
@@ -180,27 +255,10 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<short> LoadDifference(ref byte source, ref byte prediction, int offset, Vector512<short> width)
         {
-            Vector512<ushort> s = Vector512.WidenLower(
-                Vector512.Create(Vector256.LoadUnsafe(ref source, (nuint)offset), Vector256<byte>.Zero));
-
-            Vector512<ushort> p = Vector512.WidenLower(
-                Vector512.Create(Vector256.LoadUnsafe(ref prediction, (nuint)offset), Vector256<byte>.Zero));
+            Vector512<ushort> s = Vector512.WidenLower(Vector256.LoadUnsafe(ref source, (nuint)offset).ToVector512());
+            Vector512<ushort> p = Vector512.WidenLower(Vector256.LoadUnsafe(ref prediction, (nuint)offset).ToVector512());
 
             return (s - p).AsInt16();
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SumAbsoluteDifferences(byte source, byte prediction) => Math.Abs(Subtract(source, prediction));
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SumAbsoluteDifferences(Vector128<byte> source, Vector128<byte> prediction)
-        {
-            // Widen byte samples before subtraction; twelve-bit word samples already fit signed-short lanes.
-            // Eight absolute residuals sum to at most 32760, so the signed-short horizontal sum remains exact.
-            Vector128<short> difference = Vector128.WidenLower(source).AsInt16() - Vector128.WidenLower(prediction).AsInt16();
-            return Vector128.Sum(Vector128.Abs(difference));
         }
 
         /// <inheritdoc/>
@@ -231,50 +289,75 @@ internal static partial class Av1ResidualBuilder
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SumSquaredDifferences(Vector128<byte> source, Vector128<byte> prediction, out int sum)
-        {
-            Vector128<short> difference = Vector128.WidenLower(source).AsInt16() - Vector128.WidenLower(prediction).AsInt16();
-            sum = Vector128.Sum(difference);
-
-            // The shared square reduction widens to int before multiplying. All eight twelve-bit squares
-            // fit in the returned int; no short multiplication or premature bit-depth rounding is permitted.
-            return (int)SumSquares(difference);
-        }
-
-        /// <inheritdoc/>
-        public static Vector128<short> Subtract(Vector128<byte> source, Vector128<byte> prediction, out Vector128<short> upper)
-        {
-            Vector128<short> lower = Vector128.WidenLower(source).AsInt16() - Vector128.WidenLower(prediction).AsInt16();
-            upper = Vector128.WidenUpper(source).AsInt16() - Vector128.WidenUpper(prediction).AsInt16();
-            return lower;
-        }
-
-        /// <inheritdoc/>
-        public static Vector256<short> Subtract(Vector256<byte> source, Vector256<byte> prediction, out Vector256<short> upper)
-        {
-            Vector256<short> lower = Vector256.WidenLower(source).AsInt16() - Vector256.WidenLower(prediction).AsInt16();
-            upper = Vector256.WidenUpper(source).AsInt16() - Vector256.WidenUpper(prediction).AsInt16();
-            return lower;
-        }
-
-        /// <inheritdoc/>
-        public static Vector512<short> Subtract(Vector512<byte> source, Vector512<byte> prediction, out Vector512<short> upper)
-        {
-            Vector512<short> lower = Vector512.WidenLower(source).AsInt16() - Vector512.WidenLower(prediction).AsInt16();
-            upper = Vector512.WidenUpper(source).AsInt16() - Vector512.WidenUpper(prediction).AsInt16();
-            return lower;
-        }
-
-        /// <inheritdoc/>
         public static short Subtract(byte source, byte prediction) => (short)(source - prediction);
     }
 
     /// <summary>
-    /// Subtracts high-bit-depth samples directly because AV1's 10-bit and 12-bit ranges fit signed-short lanes.
+    /// Subtracts high-bit-depth samples directly because the AV1 10-bit and 12-bit ranges fit signed-short lanes.
     /// </summary>
     internal readonly struct UInt16Operator : IResidualOperator<ushort>
     {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<uint> AccumulateAbsoluteDifferences(Vector128<ushort> source, Vector128<ushort> prediction, Vector128<uint> total)
+        {
+            // Unsigned lanes make the absolute difference the larger value minus the smaller one, which
+            // needs no sign handling. A twelve-bit difference reaches 4095, so the pairwise multiply-add
+            // by one folds eight lanes into four without leaving the signed range at any step.
+            Vector128<ushort> difference = Vector128.Max(source, prediction) - Vector128.Min(source, prediction);
+            return total + Vector128_.MultiplyAddAdjacent(difference.AsInt16(), Vector128.Create((short)1)).AsUInt32();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<uint> AccumulateAbsoluteDifferences(Vector256<ushort> source, Vector256<ushort> prediction, Vector256<uint> total)
+        {
+            Vector256<ushort> difference = Vector256.Max(source, prediction) - Vector256.Min(source, prediction);
+            return total + Vector256_.MultiplyAddAdjacent(difference.AsInt16(), Vector256.Create((short)1)).AsUInt32();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<uint> AccumulateAbsoluteDifferences(Vector512<ushort> source, Vector512<ushort> prediction, Vector512<uint> total)
+        {
+            Vector512<ushort> difference = Vector512.Max(source, prediction) - Vector512.Min(source, prediction);
+            return total + Vector512_.MultiplyAddAdjacent(difference.AsInt16(), Vector512.Create((short)1)).AsUInt32();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SumAbsoluteDifferences(ushort source, ushort prediction) => Math.Abs(Subtract(source, prediction));
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AccumulateMoments(Vector128<ushort> source, Vector128<ushort> prediction, ref Vector128<int> sum, ref Vector128<int> squares)
+        {
+            // A twelve-bit residual fits a signed 16-bit lane, so the difference needs no widening.
+            // Multiplying it by one, and by itself, gives the signed total and the squared total from
+            // the same pairwise instruction.
+            Vector128<short> difference = source.AsInt16() - prediction.AsInt16();
+            sum += Vector128_.MultiplyAddAdjacent(difference, Vector128.Create((short)1));
+            squares += Vector128_.MultiplyAddAdjacent(difference, difference);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AccumulateMoments(Vector256<ushort> source, Vector256<ushort> prediction, ref Vector256<int> sum, ref Vector256<int> squares)
+        {
+            Vector256<short> difference = source.AsInt16() - prediction.AsInt16();
+            sum += Vector256_.MultiplyAddAdjacent(difference, Vector256.Create((short)1));
+            squares += Vector256_.MultiplyAddAdjacent(difference, difference);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AccumulateMoments(Vector512<ushort> source, Vector512<ushort> prediction, ref Vector512<int> sum, ref Vector512<int> squares)
+        {
+            Vector512<short> difference = source.AsInt16() - prediction.AsInt16();
+            sum += Vector512_.MultiplyAddAdjacent(difference, Vector512.Create((short)1));
+            squares += Vector512_.MultiplyAddAdjacent(difference, difference);
+        }
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> LoadDifference(ref ushort source, ref ushort prediction, int offset, Vector128<short> width)
@@ -289,20 +372,6 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<short> LoadDifference(ref ushort source, ref ushort prediction, int offset, Vector512<short> width)
             => (Vector512.LoadUnsafe(ref source, (nuint)offset) - Vector512.LoadUnsafe(ref prediction, (nuint)offset)).AsInt16();
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SumAbsoluteDifferences(ushort source, ushort prediction) => Math.Abs(Subtract(source, prediction));
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SumAbsoluteDifferences(Vector128<ushort> source, Vector128<ushort> prediction)
-        {
-            // Widen byte samples before subtraction; twelve-bit word samples already fit signed-short lanes.
-            // Eight absolute residuals sum to at most 32760, so the signed-short horizontal sum remains exact.
-            Vector128<short> difference = source.AsInt16() - prediction.AsInt16();
-            return Vector128.Sum(Vector128.Abs(difference));
-        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -329,39 +398,6 @@ internal static partial class Av1ResidualBuilder
         {
             sum = Subtract(source, prediction);
             return sum * sum;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SumSquaredDifferences(Vector128<ushort> source, Vector128<ushort> prediction, out int sum)
-        {
-            Vector128<short> difference = source.AsInt16() - prediction.AsInt16();
-            sum = Vector128.Sum(difference);
-
-            // The shared square reduction widens to int before multiplying. All eight twelve-bit squares
-            // fit in the returned int; no short multiplication or premature bit-depth rounding is permitted.
-            return (int)SumSquares(difference);
-        }
-
-        /// <inheritdoc/>
-        public static Vector128<short> Subtract(Vector128<ushort> source, Vector128<ushort> prediction, out Vector128<short> upper)
-        {
-            upper = default;
-            return source.AsInt16() - prediction.AsInt16();
-        }
-
-        /// <inheritdoc/>
-        public static Vector256<short> Subtract(Vector256<ushort> source, Vector256<ushort> prediction, out Vector256<short> upper)
-        {
-            upper = default;
-            return source.AsInt16() - prediction.AsInt16();
-        }
-
-        /// <inheritdoc/>
-        public static Vector512<short> Subtract(Vector512<ushort> source, Vector512<ushort> prediction, out Vector512<short> upper)
-        {
-            upper = default;
-            return source.AsInt16() - prediction.AsInt16();
         }
 
         /// <inheritdoc/>

@@ -347,6 +347,54 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Adds the absolute differences of packed unsigned 8-bit integers in <paramref name="left"/> and
+    /// <paramref name="right"/> into <paramref name="accumulator"/>.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="accumulator">
+    /// The running total that the differences are added to.
+    /// </param>
+    /// <returns>
+    /// A vector whose lanes together hold <paramref name="accumulator"/> plus the sixteen absolute differences
+    /// </returns>
+    /// <remarks>
+    /// The spread of the sums across the lanes is not defined, because each platform keeps the grouping
+    /// that its own instruction produces. Only the total across all lanes is defined, so the caller must
+    /// reduce the result with a horizontal sum and must not read one lane on its own. A lane holds a
+    /// 32-bit total, so it cannot overflow until more than sixteen million samples are added to it.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<uint> SumAbsoluteDifferences(Vector128<byte> left, Vector128<byte> right, Vector128<uint> accumulator)
+    {
+        if (Sse2.IsSupported)
+        {
+            // The instruction puts the two eight-byte totals in 16-bit lanes 0 and 4, which are 32-bit
+            // lanes 0 and 2, and leaves the rest zero.
+            return accumulator + Sse2.SumAbsoluteDifferences(left, right).AsUInt32();
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            // Two widening pairwise adds fold the sixteen 8-bit differences into four 32-bit lanes.
+            Vector128<ushort> pairs = AdvSimd.AddPairwiseWidening(AdvSimd.AbsoluteDifference(left, right));
+            return accumulator + AdvSimd.AddPairwiseWidening(pairs);
+        }
+
+        // Unsigned lanes make the absolute difference the larger value minus the smaller one, so the
+        // subtraction needs no widening and cannot wrap.
+        Vector128<byte> difference = Vector128.Max(left, right) - Vector128.Min(left, right);
+        (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(difference);
+        (Vector128<uint> first, Vector128<uint> second) = Vector128.Widen(lower);
+        (Vector128<uint> third, Vector128<uint> fourth) = Vector128.Widen(upper);
+        return accumulator + first + second + third + fourth;
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.

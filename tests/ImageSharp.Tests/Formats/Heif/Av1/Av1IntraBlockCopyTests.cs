@@ -699,11 +699,14 @@ public class Av1IntraBlockCopyTests
 
         Buffer2DRegion<ushort> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
         Buffer2DRegion<ushort> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
+        // The four-candidate search reads three columns past the 8x8 block, so every column of the
+        // frame is written. Leaving the last three columns unwritten would compare two measures over
+        // samples that no test controls.
         for (int row = 0; row < 8; row++)
         {
             Span<ushort> sourceRow = sourceLuma.DangerousGetRowSpan(row);
             Span<ushort> reconstructionRow = reconstructionLuma.DangerousGetRowSpan(row);
-            for (int column = 0; column < 8; column++)
+            for (int column = 0; column < Width; column++)
             {
                 sourceRow[column] = 1000;
                 reconstructionRow[column] = (ushort)(1000 + (((row * 8) + column) % 2 == 0 ? 17 : 33));

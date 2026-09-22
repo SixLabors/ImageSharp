@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -169,32 +170,17 @@ public class Av1ResidualBuilderTests
 
         ref byte byteSourceBase = ref MemoryMarshal.GetArrayDataReference(byteSource);
         ref byte bytePredictionBase = ref MemoryMarshal.GetArrayDataReference(bytePrediction);
-        Vector128<short> byteLower128 = Av1ResidualBuilder.ByteOperator.Subtract(
-            Unsafe.As<byte, Vector128<byte>>(ref byteSourceBase),
-            Unsafe.As<byte, Vector128<byte>>(ref bytePredictionBase),
-            out Vector128<short> byteUpper128);
 
-        byteLower128.CopyTo(byteActual);
-        byteUpper128.CopyTo(byteActual.AsSpan(Vector128<short>.Count));
-        AssertEqual(byteExpected, byteActual, Vector128<byte>.Count);
+        // One vector of signed residuals is the same sample count at either depth, so the 128-bit
+        // load covers eight samples, the 256-bit load sixteen and the 512-bit load thirty-two.
+        Av1ResidualBuilder.ByteOperator.LoadDifference(ref byteSourceBase, ref bytePredictionBase, 0, Vector128<short>.Zero).CopyTo(byteActual);
+        AssertEqual(byteExpected, byteActual, Vector128<short>.Count);
 
-        Vector256<short> byteLower256 = Av1ResidualBuilder.ByteOperator.Subtract(
-            Unsafe.As<byte, Vector256<byte>>(ref byteSourceBase),
-            Unsafe.As<byte, Vector256<byte>>(ref bytePredictionBase),
-            out Vector256<short> byteUpper256);
+        Av1ResidualBuilder.ByteOperator.LoadDifference(ref byteSourceBase, ref bytePredictionBase, 0, Vector256<short>.Zero).CopyTo(byteActual);
+        AssertEqual(byteExpected, byteActual, Vector256<short>.Count);
 
-        byteLower256.CopyTo(byteActual);
-        byteUpper256.CopyTo(byteActual.AsSpan(Vector256<short>.Count));
-        AssertEqual(byteExpected, byteActual, Vector256<byte>.Count);
-
-        Vector512<short> byteLower512 = Av1ResidualBuilder.ByteOperator.Subtract(
-            Unsafe.As<byte, Vector512<byte>>(ref byteSourceBase),
-            Unsafe.As<byte, Vector512<byte>>(ref bytePredictionBase),
-            out Vector512<short> byteUpper512);
-
-        byteLower512.CopyTo(byteActual);
-        byteUpper512.CopyTo(byteActual.AsSpan(Vector512<short>.Count));
-        AssertEqual(byteExpected, byteActual, Vector512<byte>.Count);
+        Av1ResidualBuilder.ByteOperator.LoadDifference(ref byteSourceBase, ref bytePredictionBase, 0, Vector512<short>.Zero).CopyTo(byteActual);
+        AssertEqual(byteExpected, byteActual, Vector512<short>.Count);
 
         ushort[] uint16Source = new ushort[Vector512<ushort>.Count];
         ushort[] uint16Prediction = new ushort[Vector512<ushort>.Count];
@@ -205,26 +191,173 @@ public class Av1ResidualBuilderTests
 
         ref ushort uint16SourceBase = ref MemoryMarshal.GetArrayDataReference(uint16Source);
         ref ushort uint16PredictionBase = ref MemoryMarshal.GetArrayDataReference(uint16Prediction);
-        Av1ResidualBuilder.UInt16Operator.Subtract(
+        Av1ResidualBuilder.UInt16Operator.LoadDifference(ref uint16SourceBase, ref uint16PredictionBase, 0, Vector128<short>.Zero).CopyTo(uint16Actual);
+        AssertEqual(uint16Expected, uint16Actual, Vector128<short>.Count);
+
+        Av1ResidualBuilder.UInt16Operator.LoadDifference(ref uint16SourceBase, ref uint16PredictionBase, 0, Vector256<short>.Zero).CopyTo(uint16Actual);
+        AssertEqual(uint16Expected, uint16Actual, Vector256<short>.Count);
+
+        Av1ResidualBuilder.UInt16Operator.LoadDifference(ref uint16SourceBase, ref uint16PredictionBase, 0, Vector512<short>.Zero).CopyTo(uint16Actual);
+        AssertEqual(uint16Expected, uint16Actual, Vector512<short>.Count);
+    }
+
+    /// <summary>
+    /// Verifies every width-specific lane accumulator against the scalar totals it stands for.
+    /// </summary>
+    [Fact]
+    public void ResidualAccumulatorsMatchScalarTotalsAtEveryVectorWidth()
+    {
+        byte[] byteSource = new byte[Vector512<byte>.Count];
+        byte[] bytePrediction = new byte[Vector512<byte>.Count];
+        FillBytePlanes(byteSource, byteSource.Length, bytePrediction, bytePrediction.Length, byteSource.Length, 1);
+
+        ref byte byteSourceBase = ref MemoryMarshal.GetArrayDataReference(byteSource);
+        ref byte bytePredictionBase = ref MemoryMarshal.GetArrayDataReference(bytePrediction);
+
+        // An accumulator spreads its total over the lanes in whatever way the platform instruction
+        // produces, so only the lane sum is defined and only the lane sum is compared here.
+        Assert.Equal(
+            ExpectedAbsoluteTotal(byteSource, bytePrediction, Vector128<byte>.Count),
+            (int)Vector128.Sum(Av1ResidualBuilder.ByteOperator.AccumulateAbsoluteDifferences(
+                Unsafe.As<byte, Vector128<byte>>(ref byteSourceBase),
+                Unsafe.As<byte, Vector128<byte>>(ref bytePredictionBase),
+                Vector128<uint>.Zero)));
+
+        Assert.Equal(
+            ExpectedAbsoluteTotal(byteSource, bytePrediction, Vector256<byte>.Count),
+            (int)Vector256.Sum(Av1ResidualBuilder.ByteOperator.AccumulateAbsoluteDifferences(
+                Unsafe.As<byte, Vector256<byte>>(ref byteSourceBase),
+                Unsafe.As<byte, Vector256<byte>>(ref bytePredictionBase),
+                Vector256<uint>.Zero)));
+
+        Assert.Equal(
+            ExpectedAbsoluteTotal(byteSource, bytePrediction, Vector512<byte>.Count),
+            (int)Vector512.Sum(Av1ResidualBuilder.ByteOperator.AccumulateAbsoluteDifferences(
+                Unsafe.As<byte, Vector512<byte>>(ref byteSourceBase),
+                Unsafe.As<byte, Vector512<byte>>(ref bytePredictionBase),
+                Vector512<uint>.Zero)));
+
+        Vector128<int> byteSum128 = Vector128<int>.Zero;
+        Vector128<int> byteSquares128 = Vector128<int>.Zero;
+        Av1ResidualBuilder.ByteOperator.AccumulateMoments(
+            Unsafe.As<byte, Vector128<byte>>(ref byteSourceBase),
+            Unsafe.As<byte, Vector128<byte>>(ref bytePredictionBase),
+            ref byteSum128,
+            ref byteSquares128);
+
+        AssertMoments(byteSource, bytePrediction, Vector128<byte>.Count, Vector128.Sum(byteSum128), Vector128.Sum(byteSquares128));
+
+        Vector256<int> byteSum256 = Vector256<int>.Zero;
+        Vector256<int> byteSquares256 = Vector256<int>.Zero;
+        Av1ResidualBuilder.ByteOperator.AccumulateMoments(
+            Unsafe.As<byte, Vector256<byte>>(ref byteSourceBase),
+            Unsafe.As<byte, Vector256<byte>>(ref bytePredictionBase),
+            ref byteSum256,
+            ref byteSquares256);
+
+        AssertMoments(byteSource, bytePrediction, Vector256<byte>.Count, Vector256.Sum(byteSum256), Vector256.Sum(byteSquares256));
+
+        Vector512<int> byteSum512 = Vector512<int>.Zero;
+        Vector512<int> byteSquares512 = Vector512<int>.Zero;
+        Av1ResidualBuilder.ByteOperator.AccumulateMoments(
+            Unsafe.As<byte, Vector512<byte>>(ref byteSourceBase),
+            Unsafe.As<byte, Vector512<byte>>(ref bytePredictionBase),
+            ref byteSum512,
+            ref byteSquares512);
+
+        AssertMoments(byteSource, bytePrediction, Vector512<byte>.Count, Vector512.Sum(byteSum512), Vector512.Sum(byteSquares512));
+
+        ushort[] uint16Source = new ushort[Vector512<ushort>.Count];
+        ushort[] uint16Prediction = new ushort[Vector512<ushort>.Count];
+        FillUInt16Planes(uint16Source, uint16Source.Length, uint16Prediction, uint16Prediction.Length, uint16Source.Length, 1, 4095);
+
+        ref ushort uint16SourceBase = ref MemoryMarshal.GetArrayDataReference(uint16Source);
+        ref ushort uint16PredictionBase = ref MemoryMarshal.GetArrayDataReference(uint16Prediction);
+
+        Assert.Equal(
+            ExpectedAbsoluteTotal(uint16Source, uint16Prediction, Vector128<ushort>.Count),
+            (int)Vector128.Sum(Av1ResidualBuilder.UInt16Operator.AccumulateAbsoluteDifferences(
+                Unsafe.As<ushort, Vector128<ushort>>(ref uint16SourceBase),
+                Unsafe.As<ushort, Vector128<ushort>>(ref uint16PredictionBase),
+                Vector128<uint>.Zero)));
+
+        Assert.Equal(
+            ExpectedAbsoluteTotal(uint16Source, uint16Prediction, Vector256<ushort>.Count),
+            (int)Vector256.Sum(Av1ResidualBuilder.UInt16Operator.AccumulateAbsoluteDifferences(
+                Unsafe.As<ushort, Vector256<ushort>>(ref uint16SourceBase),
+                Unsafe.As<ushort, Vector256<ushort>>(ref uint16PredictionBase),
+                Vector256<uint>.Zero)));
+
+        Assert.Equal(
+            ExpectedAbsoluteTotal(uint16Source, uint16Prediction, Vector512<ushort>.Count),
+            (int)Vector512.Sum(Av1ResidualBuilder.UInt16Operator.AccumulateAbsoluteDifferences(
+                Unsafe.As<ushort, Vector512<ushort>>(ref uint16SourceBase),
+                Unsafe.As<ushort, Vector512<ushort>>(ref uint16PredictionBase),
+                Vector512<uint>.Zero)));
+
+        Vector128<int> uint16Sum128 = Vector128<int>.Zero;
+        Vector128<int> uint16Squares128 = Vector128<int>.Zero;
+        Av1ResidualBuilder.UInt16Operator.AccumulateMoments(
             Unsafe.As<ushort, Vector128<ushort>>(ref uint16SourceBase),
             Unsafe.As<ushort, Vector128<ushort>>(ref uint16PredictionBase),
-            out _).CopyTo(uint16Actual);
+            ref uint16Sum128,
+            ref uint16Squares128);
 
-        AssertEqual(uint16Expected, uint16Actual, Vector128<ushort>.Count);
+        AssertMoments(uint16Source, uint16Prediction, Vector128<ushort>.Count, Vector128.Sum(uint16Sum128), Vector128.Sum(uint16Squares128));
 
-        Av1ResidualBuilder.UInt16Operator.Subtract(
+        Vector256<int> uint16Sum256 = Vector256<int>.Zero;
+        Vector256<int> uint16Squares256 = Vector256<int>.Zero;
+        Av1ResidualBuilder.UInt16Operator.AccumulateMoments(
             Unsafe.As<ushort, Vector256<ushort>>(ref uint16SourceBase),
             Unsafe.As<ushort, Vector256<ushort>>(ref uint16PredictionBase),
-            out _).CopyTo(uint16Actual);
+            ref uint16Sum256,
+            ref uint16Squares256);
 
-        AssertEqual(uint16Expected, uint16Actual, Vector256<ushort>.Count);
+        AssertMoments(uint16Source, uint16Prediction, Vector256<ushort>.Count, Vector256.Sum(uint16Sum256), Vector256.Sum(uint16Squares256));
 
-        Av1ResidualBuilder.UInt16Operator.Subtract(
+        Vector512<int> uint16Sum512 = Vector512<int>.Zero;
+        Vector512<int> uint16Squares512 = Vector512<int>.Zero;
+        Av1ResidualBuilder.UInt16Operator.AccumulateMoments(
             Unsafe.As<ushort, Vector512<ushort>>(ref uint16SourceBase),
             Unsafe.As<ushort, Vector512<ushort>>(ref uint16PredictionBase),
-            out _).CopyTo(uint16Actual);
+            ref uint16Sum512,
+            ref uint16Squares512);
 
-        AssertEqual(uint16Expected, uint16Actual, Vector512<ushort>.Count);
+        AssertMoments(uint16Source, uint16Prediction, Vector512<ushort>.Count, Vector512.Sum(uint16Sum512), Vector512.Sum(uint16Squares512));
+    }
+
+    /// <summary>
+    /// Adds the absolute differences of the first <paramref name="count"/> samples one at a time.
+    /// </summary>
+    private static int ExpectedAbsoluteTotal<TSample>(TSample[] source, TSample[] prediction, int count)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        int total = 0;
+        for (int i = 0; i < count; i++)
+        {
+            total += Math.Abs(int.CreateChecked(source[i]) - int.CreateChecked(prediction[i]));
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    /// Compares both accumulated moments with the same moments taken one sample at a time.
+    /// </summary>
+    private static void AssertMoments<TSample>(TSample[] source, TSample[] prediction, int count, int sum, int squares)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        int expectedSum = 0;
+        int expectedSquares = 0;
+        for (int i = 0; i < count; i++)
+        {
+            int difference = int.CreateChecked(source[i]) - int.CreateChecked(prediction[i]);
+            expectedSum += difference;
+            expectedSquares += difference * difference;
+        }
+
+        Assert.Equal(expectedSum, sum);
+        Assert.Equal(expectedSquares, squares);
     }
 
     /// <summary>

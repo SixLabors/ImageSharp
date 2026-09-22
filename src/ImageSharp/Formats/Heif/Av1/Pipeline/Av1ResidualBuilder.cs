@@ -118,6 +118,12 @@ internal static partial class Av1ResidualBuilder
         where TSample : unmanaged
         where TOperator : struct, IResidualOperator<TSample>
     {
+        // The running total stays in lanes for the whole block and is reduced once at the end.
+        // One 32-bit lane takes a twelve-bit difference more than a million times, and the largest
+        // AV1 block holds 16384 samples, so the block needs no intermediate fold.
+        Vector512<uint> total512 = Vector512<uint>.Zero;
+        Vector256<uint> total256 = Vector256<uint>.Zero;
+        Vector128<uint> total128 = Vector128<uint>.Zero;
         int sum = 0;
 
         // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
@@ -134,19 +140,10 @@ internal static partial class Av1ResidualBuilder
             {
                 for (; x <= width - Vector512<TSample>.Count; x += Vector512<TSample>.Count)
                 {
-                    Vector512<TSample> sourceVector = Vector512.LoadUnsafe(ref sourceBase, (nuint)x);
-                    Vector512<TSample> predictionVector = Vector512.LoadUnsafe(ref predictionBase, (nuint)x);
-                    Vector512<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector512<short> upper);
-
-                    // Absolute residuals fit short, but their horizontal sum may not. Widen before reducing.
-                    Vector512<short> absolute = Vector512.Abs(lower);
-                    sum += Vector512.Sum(Vector512.WidenLower(absolute)) + Vector512.Sum(Vector512.WidenUpper(absolute));
-                    if (Vector512<TSample>.Count != Vector512<short>.Count)
-                    {
-                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
-                        absolute = Vector512.Abs(upper);
-                        sum += Vector512.Sum(Vector512.WidenLower(absolute)) + Vector512.Sum(Vector512.WidenUpper(absolute));
-                    }
+                    total512 = TOperator.AccumulateAbsoluteDifferences(
+                        Vector512.LoadUnsafe(ref sourceBase, (nuint)x),
+                        Vector512.LoadUnsafe(ref predictionBase, (nuint)x),
+                        total512);
                 }
             }
 
@@ -154,19 +151,10 @@ internal static partial class Av1ResidualBuilder
             {
                 for (; x <= width - Vector256<TSample>.Count; x += Vector256<TSample>.Count)
                 {
-                    Vector256<TSample> sourceVector = Vector256.LoadUnsafe(ref sourceBase, (nuint)x);
-                    Vector256<TSample> predictionVector = Vector256.LoadUnsafe(ref predictionBase, (nuint)x);
-                    Vector256<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector256<short> upper);
-
-                    // Absolute residuals fit short, but their horizontal sum may not. Widen before reducing.
-                    Vector256<short> absolute = Vector256.Abs(lower);
-                    sum += Vector256.Sum(Vector256.WidenLower(absolute)) + Vector256.Sum(Vector256.WidenUpper(absolute));
-                    if (Vector256<TSample>.Count != Vector256<short>.Count)
-                    {
-                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
-                        absolute = Vector256.Abs(upper);
-                        sum += Vector256.Sum(Vector256.WidenLower(absolute)) + Vector256.Sum(Vector256.WidenUpper(absolute));
-                    }
+                    total256 = TOperator.AccumulateAbsoluteDifferences(
+                        Vector256.LoadUnsafe(ref sourceBase, (nuint)x),
+                        Vector256.LoadUnsafe(ref predictionBase, (nuint)x),
+                        total256);
                 }
             }
 
@@ -174,27 +162,20 @@ internal static partial class Av1ResidualBuilder
             {
                 for (; x <= width - Vector128<TSample>.Count; x += Vector128<TSample>.Count)
                 {
-                    Vector128<TSample> sourceVector = Vector128.LoadUnsafe(ref sourceBase, (nuint)x);
-                    Vector128<TSample> predictionVector = Vector128.LoadUnsafe(ref predictionBase, (nuint)x);
-                    Vector128<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector128<short> upper);
-
-                    // Absolute residuals fit short, but their horizontal sum may not. Widen before reducing.
-                    Vector128<short> absolute = Vector128.Abs(lower);
-                    sum += Vector128.Sum(Vector128.WidenLower(absolute)) + Vector128.Sum(Vector128.WidenUpper(absolute));
-                    if (Vector128<TSample>.Count != Vector128<short>.Count)
-                    {
-                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
-                        absolute = Vector128.Abs(upper);
-                        sum += Vector128.Sum(Vector128.WidenLower(absolute)) + Vector128.Sum(Vector128.WidenUpper(absolute));
-                    }
+                    total128 = TOperator.AccumulateAbsoluteDifferences(
+                        Vector128.LoadUnsafe(ref sourceBase, (nuint)x),
+                        Vector128.LoadUnsafe(ref predictionBase, (nuint)x),
+                        total128);
                 }
             }
 
+            // A row of eight bytes fills half of a byte vector, so the compact load pads it with
+            // zeros. The padding is identical on both sides, so its difference is zero and it adds
+            // nothing to the total.
             if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
             {
-                Vector128<TSample> sourceVector = LoadSearchRow(sourceRow[x..]);
-                Vector128<TSample> predictionVector = LoadSearchRow(predictionRow[x..]);
-                sum += TOperator.SumAbsoluteDifferences(sourceVector, predictionVector);
+                total128 = TOperator.AccumulateAbsoluteDifferences(
+                    LoadSearchRow(sourceRow[x..]), LoadSearchRow(predictionRow[x..]), total128);
                 x += SearchBlockDimension;
             }
 
@@ -203,6 +184,12 @@ internal static partial class Av1ResidualBuilder
                 sum += TOperator.SumAbsoluteDifferences(sourceRow[x], predictionRow[x]);
             }
         }
+
+        // Folding the wide totals down costs four adds and no branch. A width the hardware does not
+        // have contributes a zero vector, so the unused stages drop out of the result on their own.
+        total256 += total512.GetLower() + total512.GetUpper();
+        total128 += total256.GetLower() + total256.GetUpper();
+        sum += (int)Vector128.Sum(total128);
 
         // Alternate-row search represents the complete even-height block by doubling the sampled row total.
         // Precision normalization follows this scaling so fractional error units are truncated only once.
@@ -227,6 +214,12 @@ internal static partial class Av1ResidualBuilder
         sum = 0;
         sumOfSquares = 0;
 
+        // The signed total stays in lanes for the whole block. One lane takes two differences per
+        // vector, so a lane holds at most 8190 per vector and cannot overflow inside any AV1 block.
+        Vector512<int> sum512 = Vector512<int>.Zero;
+        Vector256<int> sum256 = Vector256<int>.Zero;
+        Vector128<int> sum128 = Vector128<int>.Zero;
+
         // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
         // which reads eight bytes or eight words without crossing a short row's boundary.
         for (int y = 0; y < height; y++)
@@ -237,24 +230,22 @@ internal static partial class Av1ResidualBuilder
             ref TSample predictionBase = ref MemoryMarshal.GetReference(predictionRow);
             int x = 0;
 
+            // The squared total folds at the end of each row. A lane takes two squares per vector, so
+            // it holds at most 33538050 per vector and overflows after 64 of them. A row of the widest
+            // AV1 block is 16 vectors at the narrowest width, which keeps a wide margin.
+            Vector512<int> squares512 = Vector512<int>.Zero;
+            Vector256<int> squares256 = Vector256<int>.Zero;
+            Vector128<int> squares128 = Vector128<int>.Zero;
+
             if (Vector512.IsHardwareAccelerated)
             {
                 for (; x <= width - Vector512<TSample>.Count; x += Vector512<TSample>.Count)
                 {
-                    Vector512<TSample> sourceVector = Vector512.LoadUnsafe(ref sourceBase, (nuint)x);
-                    Vector512<TSample> predictionVector = Vector512.LoadUnsafe(ref predictionBase, (nuint)x);
-                    Vector512<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector512<short> upper);
-
-                    // Widen signed lanes before summing: a vector of twelve-bit residuals can exceed short.
-                    // Each vector's squared sum fits int; the block total needs long for large twelve-bit blocks.
-                    sum += Vector512.Sum(Vector512.WidenLower(lower)) + Vector512.Sum(Vector512.WidenUpper(lower));
-                    sumOfSquares += SumSquares(lower);
-                    if (Vector512<TSample>.Count != Vector512<short>.Count)
-                    {
-                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
-                        sum += Vector512.Sum(Vector512.WidenLower(upper)) + Vector512.Sum(Vector512.WidenUpper(upper));
-                        sumOfSquares += SumSquares(upper);
-                    }
+                    TOperator.AccumulateMoments(
+                        Vector512.LoadUnsafe(ref sourceBase, (nuint)x),
+                        Vector512.LoadUnsafe(ref predictionBase, (nuint)x),
+                        ref sum512,
+                        ref squares512);
                 }
             }
 
@@ -262,20 +253,11 @@ internal static partial class Av1ResidualBuilder
             {
                 for (; x <= width - Vector256<TSample>.Count; x += Vector256<TSample>.Count)
                 {
-                    Vector256<TSample> sourceVector = Vector256.LoadUnsafe(ref sourceBase, (nuint)x);
-                    Vector256<TSample> predictionVector = Vector256.LoadUnsafe(ref predictionBase, (nuint)x);
-                    Vector256<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector256<short> upper);
-
-                    // Widen signed lanes before summing: a vector of twelve-bit residuals can exceed short.
-                    // Each vector's squared sum fits int; the block total needs long for large twelve-bit blocks.
-                    sum += Vector256.Sum(Vector256.WidenLower(lower)) + Vector256.Sum(Vector256.WidenUpper(lower));
-                    sumOfSquares += SumSquares(lower);
-                    if (Vector256<TSample>.Count != Vector256<short>.Count)
-                    {
-                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
-                        sum += Vector256.Sum(Vector256.WidenLower(upper)) + Vector256.Sum(Vector256.WidenUpper(upper));
-                        sumOfSquares += SumSquares(upper);
-                    }
+                    TOperator.AccumulateMoments(
+                        Vector256.LoadUnsafe(ref sourceBase, (nuint)x),
+                        Vector256.LoadUnsafe(ref predictionBase, (nuint)x),
+                        ref sum256,
+                        ref squares256);
                 }
             }
 
@@ -283,31 +265,26 @@ internal static partial class Av1ResidualBuilder
             {
                 for (; x <= width - Vector128<TSample>.Count; x += Vector128<TSample>.Count)
                 {
-                    Vector128<TSample> sourceVector = Vector128.LoadUnsafe(ref sourceBase, (nuint)x);
-                    Vector128<TSample> predictionVector = Vector128.LoadUnsafe(ref predictionBase, (nuint)x);
-                    Vector128<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector128<short> upper);
-
-                    // Widen signed lanes before summing: a vector of twelve-bit residuals can exceed short.
-                    // Each vector's squared sum fits int; the block total needs long for large twelve-bit blocks.
-                    sum += Vector128.Sum(Vector128.WidenLower(lower)) + Vector128.Sum(Vector128.WidenUpper(lower));
-                    sumOfSquares += SumSquares(lower);
-                    if (Vector128<TSample>.Count != Vector128<short>.Count)
-                    {
-                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
-                        sum += Vector128.Sum(Vector128.WidenLower(upper)) + Vector128.Sum(Vector128.WidenUpper(upper));
-                        sumOfSquares += SumSquares(upper);
-                    }
+                    TOperator.AccumulateMoments(
+                        Vector128.LoadUnsafe(ref sourceBase, (nuint)x),
+                        Vector128.LoadUnsafe(ref predictionBase, (nuint)x),
+                        ref sum128,
+                        ref squares128);
                 }
             }
 
+            // The padding the compact load adds is identical on both sides, so it contributes a zero
+            // difference and a zero square.
             if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
             {
-                Vector128<TSample> sourceVector = LoadSearchRow(sourceRow[x..]);
-                Vector128<TSample> predictionVector = LoadSearchRow(predictionRow[x..]);
-                sumOfSquares += TOperator.SumSquaredDifferences(sourceVector, predictionVector, out int tailSum);
-                sum += tailSum;
+                TOperator.AccumulateMoments(
+                    LoadSearchRow(sourceRow[x..]), LoadSearchRow(predictionRow[x..]), ref sum128, ref squares128);
                 x += SearchBlockDimension;
             }
+
+            squares256 += squares512.GetLower() + squares512.GetUpper();
+            squares128 += squares256.GetLower() + squares256.GetUpper();
+            sumOfSquares += Vector128.Sum(squares128);
 
             for (; x < width; x++)
             {
@@ -316,6 +293,10 @@ internal static partial class Av1ResidualBuilder
                 sumOfSquares += difference * difference;
             }
         }
+
+        sum256 += sum512.GetLower() + sum512.GetUpper();
+        sum128 += sum256.GetLower() + sum256.GetUpper();
+        sum += Vector128.Sum(sum128);
     }
 
     /// <summary>
@@ -403,12 +384,18 @@ internal static partial class Av1ResidualBuilder
         {
             // Eight widened AV1 samples exactly fill 128 bits. Wider loads would cross the row boundary;
             // byte storage is loaded as eight bytes and ushort storage as eight native-order words.
+            // The total stays in lanes across all eight rows, so the block reduces once. Eight rows of
+            // eight bytes reach 16320 in one lane, which is far inside the 32-bit range.
+            Vector128<uint> total = Vector128<uint>.Zero;
             for (int row = 0; row < SearchBlockDimension; row++)
             {
-                Vector128<TSample> sourceRow = LoadSearchRow(source[(row * sourceStride)..]);
-                Vector128<TSample> predictionRow = LoadSearchRow(prediction[(row * predictionStride)..]);
-                sum += TOperator.SumAbsoluteDifferences(sourceRow, predictionRow);
+                total = TOperator.AccumulateAbsoluteDifferences(
+                    LoadSearchRow(source[(row * sourceStride)..]),
+                    LoadSearchRow(prediction[(row * predictionStride)..]),
+                    total);
             }
+
+            sum = (int)Vector128.Sum(total);
         }
         else
         {
@@ -496,13 +483,21 @@ internal static partial class Av1ResidualBuilder
         // moments here; the caller applies the frame's precision-dependent rounding before deriving variance.
         if (Vector128.IsHardwareAccelerated)
         {
+            // Sixty-four squared twelve-bit residuals reach 1073217600, so both totals stay in lanes
+            // for the whole block and reduce once rather than once per row.
+            Vector128<int> sums = Vector128<int>.Zero;
+            Vector128<int> squares = Vector128<int>.Zero;
             for (int row = 0; row < SearchBlockDimension; row++)
             {
-                Vector128<TSample> sourceRow = LoadSearchRow(source[(row * sourceStride)..]);
-                Vector128<TSample> predictionRow = LoadSearchRow(prediction[(row * predictionStride)..]);
-                sumOfSquares += TOperator.SumSquaredDifferences(sourceRow, predictionRow, out int rowSum);
-                sum += rowSum;
+                TOperator.AccumulateMoments(
+                    LoadSearchRow(source[(row * sourceStride)..]),
+                    LoadSearchRow(prediction[(row * predictionStride)..]),
+                    ref sums,
+                    ref squares);
             }
+
+            sum = Vector128.Sum(sums);
+            sumOfSquares = Vector128.Sum(squares);
         }
         else
         {
@@ -627,11 +622,16 @@ internal static partial class Av1ResidualBuilder
     public static long SumSquares(ReadOnlySpan<short> residual)
     {
         ref short residualBase = ref MemoryMarshal.GetReference(residual);
+
+        // The squares accumulate in 64-bit lanes and reduce once at the end. A horizontal sum inside
+        // the loop costs a chain of shuffles and adds, which is more than the lane work it reduces,
+        // and a 32-bit lane would overflow after 64 vectors of twelve-bit residuals.
+        Vector512<long> total512 = Vector512<long>.Zero;
+        Vector256<long> total256 = Vector256<long>.Zero;
+        Vector128<long> total128 = Vector128<long>.Zero;
         long sum = 0;
         int offset = 0;
 
-        // Each short lane widens before multiplication, preserving the full 12-bit residual square.
-        // The accumulated scalar is 64-bit because a complete encoder block can exceed 32-bit range.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint vectorCount = residual.Vector512Count<short>();
@@ -639,7 +639,7 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector512<short>.Count)
             {
                 Vector512<short> values = Unsafe.As<short, Vector512<short>>(ref Unsafe.Add(ref residualBase, offset));
-                sum += SumSquares(values);
+                total512 = AccumulateSquares(values, total512);
             }
         }
 
@@ -650,7 +650,7 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector256<short>.Count)
             {
                 Vector256<short> values = Unsafe.As<short, Vector256<short>>(ref Unsafe.Add(ref residualBase, offset));
-                sum += SumSquares(values);
+                total256 = AccumulateSquares(values, total256);
             }
         }
 
@@ -661,7 +661,7 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector128<short>.Count)
             {
                 Vector128<short> values = Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref residualBase, offset));
-                sum += SumSquares(values);
+                total128 = AccumulateSquares(values, total128);
             }
         }
 
@@ -671,7 +671,9 @@ internal static partial class Av1ResidualBuilder
             sum += value * value;
         }
 
-        return sum;
+        total256 += total512.GetLower() + total512.GetUpper();
+        total128 += total256.GetLower() + total256.GetUpper();
+        return sum + Vector128.Sum(total128);
     }
 
     /// <summary>
@@ -687,12 +689,20 @@ internal static partial class Av1ResidualBuilder
     public static long SumAndSumSquares(ReadOnlySpan<short> residual, out long sum)
     {
         ref short residualBase = ref MemoryMarshal.GetReference(residual);
+
+        // Both totals accumulate in 64-bit lanes and reduce once at the end, for the reason the
+        // square sum gives: a reduction belongs outside the loop, and a 32-bit lane is too narrow
+        // for a complete encoder block.
+        Vector512<long> squares512 = Vector512<long>.Zero;
+        Vector256<long> squares256 = Vector256<long>.Zero;
+        Vector128<long> squares128 = Vector128<long>.Zero;
+        Vector512<long> sum512 = Vector512<long>.Zero;
+        Vector256<long> sum256 = Vector256<long>.Zero;
+        Vector128<long> sum128 = Vector128<long>.Zero;
         long sumOfSquares = 0;
         long total = 0;
         int offset = 0;
 
-        // Each short lane widens before multiplication, preserving the full 12-bit residual square.
-        // The accumulated scalars are 64-bit because a complete encoder block can exceed 32-bit range.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint vectorCount = residual.Vector512Count<short>();
@@ -700,8 +710,8 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector512<short>.Count)
             {
                 Vector512<short> values = Unsafe.As<short, Vector512<short>>(ref Unsafe.Add(ref residualBase, offset));
-                total += Vector512.Sum(Vector512.WidenLower(values)) + Vector512.Sum(Vector512.WidenUpper(values));
-                sumOfSquares += SumSquares(values);
+                sum512 = AccumulateSum(values, sum512);
+                squares512 = AccumulateSquares(values, squares512);
             }
         }
 
@@ -712,8 +722,8 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector256<short>.Count)
             {
                 Vector256<short> values = Unsafe.As<short, Vector256<short>>(ref Unsafe.Add(ref residualBase, offset));
-                total += Vector256.Sum(Vector256.WidenLower(values)) + Vector256.Sum(Vector256.WidenUpper(values));
-                sumOfSquares += SumSquares(values);
+                sum256 = AccumulateSum(values, sum256);
+                squares256 = AccumulateSquares(values, squares256);
             }
         }
 
@@ -724,8 +734,8 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector128<short>.Count)
             {
                 Vector128<short> values = Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref residualBase, offset));
-                total += Vector128.Sum(Vector128.WidenLower(values)) + Vector128.Sum(Vector128.WidenUpper(values));
-                sumOfSquares += SumSquares(values);
+                sum128 = AccumulateSum(values, sum128);
+                squares128 = AccumulateSquares(values, squares128);
             }
         }
 
@@ -736,8 +746,12 @@ internal static partial class Av1ResidualBuilder
             sumOfSquares += value * value;
         }
 
-        sum = total;
-        return sumOfSquares;
+        sum256 += sum512.GetLower() + sum512.GetUpper();
+        sum128 += sum256.GetLower() + sum256.GetUpper();
+        squares256 += squares512.GetLower() + squares512.GetUpper();
+        squares128 += squares256.GetLower() + squares256.GetUpper();
+        sum = total + Vector128.Sum(sum128);
+        return sumOfSquares + Vector128.Sum(squares128);
     }
 
     private static long SumSquaredError<TSample, TOperator>(
@@ -781,10 +795,8 @@ internal static partial class Av1ResidualBuilder
                 Vector512<int> squares = Vector512<int>.Zero;
                 for (; x <= end512; x += Vector512<short>.Count)
                 {
-                    (Vector512<int> lower, Vector512<int> upper) = Vector512.Widen(
-                        TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector512<short>.Zero));
-
-                    squares += (lower * lower) + (upper * upper);
+                    Vector512<short> difference = TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector512<short>.Zero);
+                    squares += Vector512_.MultiplyAddAdjacent(difference, difference);
                 }
 
                 total += Vector512.Sum(squares);
@@ -795,10 +807,8 @@ internal static partial class Av1ResidualBuilder
                 Vector256<int> squares = Vector256<int>.Zero;
                 for (; x <= end256; x += Vector256<short>.Count)
                 {
-                    (Vector256<int> lower, Vector256<int> upper) = Vector256.Widen(
-                        TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector256<short>.Zero));
-
-                    squares += (lower * lower) + (upper * upper);
+                    Vector256<short> difference = TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector256<short>.Zero);
+                    squares += Vector256_.MultiplyAddAdjacent(difference, difference);
                 }
 
                 total += Vector256.Sum(squares);
@@ -809,10 +819,8 @@ internal static partial class Av1ResidualBuilder
                 Vector128<int> squares = Vector128<int>.Zero;
                 for (; x <= end128; x += Vector128<short>.Count)
                 {
-                    (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(
-                        TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector128<short>.Zero));
-
-                    squares += (lower * lower) + (upper * upper);
+                    Vector128<short> difference = TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector128<short>.Zero);
+                    squares += Vector128_.MultiplyAddAdjacent(difference, difference);
                 }
 
                 total += Vector128.Sum(squares);
@@ -844,6 +852,17 @@ internal static partial class Av1ResidualBuilder
         ref TSample predictionBase = ref MemoryMarshal.GetReference(prediction);
         ref short residualBase = ref MemoryMarshal.GetReference(residual);
 
+        // Every row of a block has the same width, so which stages run, and where each one stops,
+        // are settled once rather than per row. One vector of sixteen-bit lanes is one vector of
+        // residuals whatever the sample depth, so a row of eight samples fills a vector and no
+        // transform width falls to the scalar loop on its own.
+        int end512 = width - Vector512<short>.Count;
+        int end256 = width - Vector256<short>.Count;
+        int end128 = width - Vector128<short>.Count;
+        bool use512 = Vector512.IsHardwareAccelerated && end512 >= 0;
+        bool use256 = Vector256.IsHardwareAccelerated && end256 >= 0;
+        bool use128 = Vector128.IsHardwareAccelerated && end128 >= 0;
+
         for (int y = 0; y < height; y++)
         {
             // The rows are addressed by offset for the same reason the squared error addresses
@@ -853,30 +872,27 @@ internal static partial class Av1ResidualBuilder
             ref short residualRow = ref Unsafe.Add(ref residualBase, y * residualStride);
             int x = 0;
 
-            // One vector of sixteen-bit lanes is one vector of residuals whatever the sample depth,
-            // so a row of eight samples fills a vector and no transform width falls to the scalar
-            // loop on its own.
-            if (Vector512.IsHardwareAccelerated && width >= Vector512<short>.Count)
+            if (use512)
             {
-                for (; x <= width - Vector512<short>.Count; x += Vector512<short>.Count)
+                for (; x <= end512; x += Vector512<short>.Count)
                 {
                     TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector512<short>.Zero)
                         .StoreUnsafe(ref residualRow, (nuint)x);
                 }
             }
 
-            if (Vector256.IsHardwareAccelerated && width - x >= Vector256<short>.Count)
+            if (use256 && x <= end256)
             {
-                for (; x <= width - Vector256<short>.Count; x += Vector256<short>.Count)
+                for (; x <= end256; x += Vector256<short>.Count)
                 {
                     TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector256<short>.Zero)
                         .StoreUnsafe(ref residualRow, (nuint)x);
                 }
             }
 
-            if (Vector128.IsHardwareAccelerated && width - x >= Vector128<short>.Count)
+            if (use128 && x <= end128)
             {
-                for (; x <= width - Vector128<short>.Count; x += Vector128<short>.Count)
+                for (; x <= end128; x += Vector128<short>.Count)
                 {
                     TOperator.LoadDifference(ref sourceRow, ref predictionRow, x, Vector128<short>.Zero)
                         .StoreUnsafe(ref residualRow, (nuint)x);
@@ -890,27 +906,72 @@ internal static partial class Av1ResidualBuilder
         }
     }
 
+    /// <summary>
+    /// Adds the squares of eight signed residuals to a running total held in 64-bit lanes.
+    /// </summary>
+    /// <remarks>
+    /// The pairwise multiply-add squares every lane and adds the pairs in one instruction. Widening
+    /// its result keeps the total exact for a span of any length. The spread across the lanes is not
+    /// defined, so the caller must reduce the accumulator rather than read one lane.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long SumSquares(Vector128<short> values)
+    private static Vector128<long> AccumulateSquares(Vector128<short> values, Vector128<long> total)
     {
-        Vector128<int> lower = Vector128.WidenLower(values);
-        Vector128<int> upper = Vector128.WidenUpper(values);
-        return (long)Vector128.Sum(lower * lower) + Vector128.Sum(upper * upper);
+        (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(Vector128_.MultiplyAddAdjacent(values, values));
+        return total + lower + upper;
     }
 
+    /// <summary>
+    /// Adds the squares of sixteen signed residuals to a running total held in 64-bit lanes.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long SumSquares(Vector256<short> values)
+    private static Vector256<long> AccumulateSquares(Vector256<short> values, Vector256<long> total)
     {
-        Vector256<int> lower = Vector256.WidenLower(values);
-        Vector256<int> upper = Vector256.WidenUpper(values);
-        return (long)Vector256.Sum(lower * lower) + Vector256.Sum(upper * upper);
+        (Vector256<long> lower, Vector256<long> upper) = Vector256.Widen(Vector256_.MultiplyAddAdjacent(values, values));
+        return total + lower + upper;
     }
 
+    /// <summary>
+    /// Adds the squares of thirty-two signed residuals to a running total held in 64-bit lanes.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long SumSquares(Vector512<short> values)
+    private static Vector512<long> AccumulateSquares(Vector512<short> values, Vector512<long> total)
     {
-        Vector512<int> lower = Vector512.WidenLower(values);
-        Vector512<int> upper = Vector512.WidenUpper(values);
-        return (long)Vector512.Sum(lower * lower) + Vector512.Sum(upper * upper);
+        (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(Vector512_.MultiplyAddAdjacent(values, values));
+        return total + lower + upper;
+    }
+
+    /// <summary>
+    /// Adds eight signed residuals to a running total held in 64-bit lanes.
+    /// </summary>
+    /// <remarks>
+    /// Multiplying by one reuses the pairwise instruction that the square sum uses, which folds
+    /// eight lanes into four and widens them in the same step.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<long> AccumulateSum(Vector128<short> values, Vector128<long> total)
+    {
+        (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(Vector128_.MultiplyAddAdjacent(values, Vector128.Create((short)1)));
+        return total + lower + upper;
+    }
+
+    /// <summary>
+    /// Adds sixteen signed residuals to a running total held in 64-bit lanes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<long> AccumulateSum(Vector256<short> values, Vector256<long> total)
+    {
+        (Vector256<long> lower, Vector256<long> upper) = Vector256.Widen(Vector256_.MultiplyAddAdjacent(values, Vector256.Create((short)1)));
+        return total + lower + upper;
+    }
+
+    /// <summary>
+    /// Adds thirty-two signed residuals to a running total held in 64-bit lanes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<long> AccumulateSum(Vector512<short> values, Vector512<long> total)
+    {
+        (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(Vector512_.MultiplyAddAdjacent(values, Vector512.Create((short)1)));
+        return total + lower + upper;
     }
 }

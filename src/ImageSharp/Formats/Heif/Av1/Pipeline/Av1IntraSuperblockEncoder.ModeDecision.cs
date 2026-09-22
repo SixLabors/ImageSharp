@@ -3776,22 +3776,55 @@ internal static partial class Av1IntraSuperblockEncoder
                 out selectedTransformSize,
                 out selectedStatistics);
 
-            return this.picture.Parent.FrameHeader.IsIntra && selectedStatistics.Cost != long.MaxValue
-                ? this.RefineLumaMode(
-                    writer,
-                    macroBlock,
-                    blockOrigin,
-                    blockSize,
-                    tileIndex,
-                    retainedCoefficients,
-                    retainedStates,
-                    mode,
-                    ref paletteInfo,
-                    ref selectedAngleDelta,
-                    ref selectedFilterIntraMode,
-                    ref selectedTransformSize,
-                    ref selectedStatistics)
-                : mode;
+            if (!this.picture.Parent.FrameHeader.IsIntra || selectedStatistics.Cost == long.MaxValue)
+            {
+                return mode;
+            }
+
+            Av1PredictionMode refinedMode = this.RefineLumaMode(
+                writer,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                tileIndex,
+                retainedCoefficients,
+                retainedStates,
+                mode,
+                ref paletteInfo,
+                ref selectedAngleDelta,
+                ref selectedFilterIntraMode,
+                ref selectedTransformSize,
+                ref selectedStatistics);
+
+            // The chroma search encodes the luma plane again before it starts, so chroma predicts from
+            // the refined winner rather than the candidate the first search left behind, and every luma
+            // transform block that quantized away returns to DCT_DCT. Reference: the
+            // av1_encode_intra_block_plane() call of av1_rd_pick_intra_sbuv_mode().
+            if (selectedStatistics.Cost != long.MaxValue)
+            {
+                Av1EncoderPartitionTree.ModeContext refinedWinner = this.blockWorkspace.GetIntraWinnerContext(1);
+                Av1MacroBlockModeInfo refinedModeInfo = macroBlock.GetRelativeModeInfo(0);
+                refinedModeInfo.Block.Mode = refinedMode;
+                refinedModeInfo.Block.TransformSize = selectedTransformSize;
+                Av1EncoderBlockStruct refinedBlock = new() { FilterIntraMode = selectedFilterIntraMode };
+                refinedBlock.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = (sbyte)selectedAngleDelta;
+                refinedWinner.Snapshot = new Av1EncoderPartitionTree.ModeSnapshot
+                {
+                    ModeInfo = refinedModeInfo,
+                    Block = refinedBlock,
+                    Palette = paletteInfo,
+                    Statistics = selectedStatistics
+                };
+
+                Size refinedExtent = GetCodedTransformExtent(macroBlock, blockSize, selectedTransformSize, 0, 0);
+                this.RetainModeContext(
+                    refinedWinner, this.codedAreaLuma, this.codedAreaChroma, refinedExtent.Width * refinedExtent.Height, 0);
+                int retainedLumaArea = this.codedAreaLuma;
+                this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, refinedWinner);
+                this.codedAreaLuma = retainedLumaArea;
+            }
+
+            return refinedMode;
         }
 
         private Av1PredictionMode RefineLumaMode(
@@ -5788,6 +5821,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (skipTransform)
             {
                 coefficients.Clear();
+                state.TransformType = Av1TransformType.DctDct;
                 return;
             }
 
@@ -5825,6 +5859,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth,
                     this.quantization.QIndex[0] == 0,
                     state);
+            }
+            else if (plane == Av1Plane.Y)
+            {
+                // A luma transform block that quantized to nothing returns to DCT_DCT, so a later pass
+                // over the same block transforms it with the default type rather than the one this
+                // search picked. Reference: the update_txk_array() call of encode_block_intra().
+                state.TransformType = Av1TransformType.DctDct;
             }
         }
 

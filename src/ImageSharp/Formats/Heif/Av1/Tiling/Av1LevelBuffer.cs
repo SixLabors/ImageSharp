@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Owns the padded absolute-coefficient level plane used to derive AV1 coefficient entropy contexts.
 /// </summary>
-internal sealed class Av1LevelBuffer : IDisposable
+internal sealed partial class Av1LevelBuffer : IDisposable
 {
     /// <summary>
     /// Owns the padded level storage until the buffer is disposed.
@@ -90,73 +90,13 @@ internal sealed class Av1LevelBuffer : IDisposable
         ref byte destinationBase = ref MemoryMarshal.GetReference(levels);
         ref int sourceBase = ref MemoryMarshal.GetReference(coefficientBuffer);
 
-        if (Vector256.IsHardwareAccelerated && (width & 7) == 0)
+        for (int y = 0; y < height; y++)
         {
-            // Sixteen or eight coefficients narrow to bytes in one step, as av1_txb_init_levels_avx2 packs them.
-            // Narrowing keeps element order, so the low byte of each saturated magnitude lands in row order.
-            Vector256<int> maximum = Vector256.Create((int)sbyte.MaxValue);
-            for (int y = 0; y < height; y++)
-            {
-                ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
-                ref int source = ref Unsafe.Add(ref sourceBase, y * width);
-                int x = 0;
-                for (; x <= width - 16; x += 16)
-                {
-                    Vector256<int> first = Vector256.Min(Vector256.Abs(Vector256.LoadUnsafe(ref source, (nuint)x)), maximum);
-                    Vector256<int> second = Vector256.Min(Vector256.Abs(Vector256.LoadUnsafe(ref source, (nuint)(x + 8))), maximum);
-                    Vector256<short> packed = Vector256.Narrow(first, second);
-                    Vector128.Narrow(packed.GetLower(), packed.GetUpper()).AsByte().StoreUnsafe(ref destination, (nuint)x);
-                }
+            ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
+            Levels<LevelOperator>.FillRow(ref Unsafe.Add(ref sourceBase, y * width), ref destination, width);
 
-                if (x < width)
-                {
-                    Vector256<int> values = Vector256.Min(Vector256.Abs(Vector256.LoadUnsafe(ref source, (nuint)x)), maximum);
-                    Vector128<short> packed = Vector128.Narrow(values.GetLower(), values.GetUpper());
-                    Unsafe.WriteUnaligned(
-                        ref Unsafe.Add(ref destination, x),
-                        Vector128.Narrow(packed, Vector128<short>.Zero).AsUInt64().ToScalar());
-                }
-
-                // The four padding bytes after each row are the right-hand neighbors of its final columns.
-                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
-            }
-        }
-        else if (Vector128.IsHardwareAccelerated && (width & 3) == 0)
-        {
-            // Entropy contexts use the absolute level saturated to the signed-byte maximum. Each vector holds four
-            // 32-bit coefficients: take the magnitude, clamp it to 127 so it fits the low byte of its lane, then
-            // gather those four low bytes (byte offsets 0, 4, 8, 12) into the first lane with one byte shuffle.
-            // Coded transform widths are 4, 8, 16, or 32, so rows never need a scalar remainder.
-            Vector128<int> maximum = Vector128.Create((int)sbyte.MaxValue);
-            Vector128<byte> gather = Vector128.Create((byte)0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12);
-            for (int y = 0; y < height; y++)
-            {
-                ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
-                ref int source = ref Unsafe.Add(ref sourceBase, y * width);
-                for (int x = 0; x < width; x += 4)
-                {
-                    Vector128<int> magnitude = Vector128.Min(Vector128.Abs(Vector128.LoadUnsafe(ref source, (nuint)x)), maximum);
-                    uint packed = Vector128.Shuffle(magnitude.AsByte(), gather).AsUInt32().ToScalar();
-                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, x), packed);
-                }
-
-                // The four padding bytes after each row are the right-hand neighbors of its final columns.
-                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
-            }
-        }
-        else
-        {
-            for (int y = 0; y < height; y++)
-            {
-                ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
-                ref int source = ref Unsafe.Add(ref sourceBase, y * width);
-                for (int x = 0; x < width; x++)
-                {
-                    Unsafe.Add(ref destination, x) = (byte)Math.Min(Math.Abs(Unsafe.Add(ref source, x)), sbyte.MaxValue);
-                }
-
-                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
-            }
+            // The four padding bytes after each row are the right-hand neighbors of its final columns.
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
         }
 
         // Rows below the transform are the lower neighbors of its final rows.

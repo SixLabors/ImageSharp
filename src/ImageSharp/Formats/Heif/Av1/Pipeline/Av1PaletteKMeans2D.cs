@@ -1,15 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
 /// Assigns paired chroma samples to AV1 palette colors and refines two-dimensional palette centroids.
 /// </summary>
-internal static class Av1PaletteKMeans2D
+internal static partial class Av1PaletteKMeans2D
 {
     /// <summary>
     /// Assigns every chroma pair to its nearest palette color.
@@ -19,195 +16,14 @@ internal static class Av1PaletteKMeans2D
     /// <param name="firstCentroids">The first-plane palette colors.</param>
     /// <param name="secondCentroids">The second-plane palette colors.</param>
     /// <param name="indices">The destination palette indices.</param>
-    /// <returns>The sum of squared two-plane sample-to-centroid distances.</returns>
+    /// <returns>The sum of the squared two-plane sample-to-color distances.</returns>
     public static long AssignIndices(
         ReadOnlySpan<short> firstSamples,
         ReadOnlySpan<short> secondSamples,
         ReadOnlySpan<short> firstCentroids,
         ReadOnlySpan<short> secondCentroids,
         Span<byte> indices)
-    {
-        Span<int> distanceScratch = stackalloc int[Vector512<short>.Count];
-        Span<int> indexScratch = stackalloc int[Vector512<short>.Count];
-        ref short firstSampleBase = ref MemoryMarshal.GetReference(firstSamples);
-        ref short secondSampleBase = ref MemoryMarshal.GetReference(secondSamples);
-        int offset = 0;
-        long distortion = 0;
-
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = Numerics.Vector512Count(firstSamples);
-            for (; vectorCount > 0; vectorCount--, offset += Vector512<short>.Count)
-            {
-                Vector512<short> firstSample = Vector512.LoadUnsafe(ref firstSampleBase, (nuint)offset);
-                Vector512<short> secondSample = Vector512.LoadUnsafe(ref secondSampleBase, (nuint)offset);
-                Vector512<short> firstDifference = firstSample - Vector512.Create(firstCentroids[0]);
-                Vector512<short> secondDifference = secondSample - Vector512.Create(secondCentroids[0]);
-                (Vector512<int> firstLower, Vector512<int> firstUpper) = Vector512.Widen(firstDifference);
-                (Vector512<int> secondLower, Vector512<int> secondUpper) = Vector512.Widen(secondDifference);
-                Vector512<int> bestDistanceLower = (firstLower * firstLower) + (secondLower * secondLower);
-                Vector512<int> bestDistanceUpper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
-                Vector512<int> bestIndexLower = Vector512<int>.Zero;
-                Vector512<int> bestIndexUpper = Vector512<int>.Zero;
-                for (int centroidIndex = 1; centroidIndex < firstCentroids.Length; centroidIndex++)
-                {
-                    firstDifference = firstSample - Vector512.Create(firstCentroids[centroidIndex]);
-                    secondDifference = secondSample - Vector512.Create(secondCentroids[centroidIndex]);
-                    (firstLower, firstUpper) = Vector512.Widen(firstDifference);
-                    (secondLower, secondUpper) = Vector512.Widen(secondDifference);
-                    Vector512<int> distanceLower = (firstLower * firstLower) + (secondLower * secondLower);
-                    Vector512<int> distanceUpper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
-                    Vector512<int> replaceLower = Vector512.LessThan(distanceLower, bestDistanceLower);
-                    Vector512<int> replaceUpper = Vector512.LessThan(distanceUpper, bestDistanceUpper);
-                    bestDistanceLower = Vector512.ConditionalSelect(replaceLower, distanceLower, bestDistanceLower);
-                    bestDistanceUpper = Vector512.ConditionalSelect(replaceUpper, distanceUpper, bestDistanceUpper);
-                    bestIndexLower = Vector512.ConditionalSelect(
-                        replaceLower,
-                        Vector512.Create(centroidIndex),
-                        bestIndexLower);
-
-                    bestIndexUpper = Vector512.ConditionalSelect(
-                        replaceUpper,
-                        Vector512.Create(centroidIndex),
-                        bestIndexUpper);
-                }
-
-                bestDistanceLower.CopyTo(distanceScratch);
-                bestDistanceUpper.CopyTo(distanceScratch[Vector512<int>.Count..]);
-                bestIndexLower.CopyTo(indexScratch);
-                bestIndexUpper.CopyTo(indexScratch[Vector512<int>.Count..]);
-                for (int lane = 0; lane < Vector512<short>.Count; lane++)
-                {
-                    indices[offset + lane] = (byte)indexScratch[lane];
-                    distortion += distanceScratch[lane];
-                }
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = Numerics.Vector256Count(firstSamples[offset..]);
-            for (; vectorCount > 0; vectorCount--, offset += Vector256<short>.Count)
-            {
-                Vector256<short> firstSample = Vector256.LoadUnsafe(ref firstSampleBase, (nuint)offset);
-                Vector256<short> secondSample = Vector256.LoadUnsafe(ref secondSampleBase, (nuint)offset);
-                Vector256<short> firstDifference = firstSample - Vector256.Create(firstCentroids[0]);
-                Vector256<short> secondDifference = secondSample - Vector256.Create(secondCentroids[0]);
-                (Vector256<int> firstLower, Vector256<int> firstUpper) = Vector256.Widen(firstDifference);
-                (Vector256<int> secondLower, Vector256<int> secondUpper) = Vector256.Widen(secondDifference);
-                Vector256<int> bestDistanceLower = (firstLower * firstLower) + (secondLower * secondLower);
-                Vector256<int> bestDistanceUpper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
-                Vector256<int> bestIndexLower = Vector256<int>.Zero;
-                Vector256<int> bestIndexUpper = Vector256<int>.Zero;
-                for (int centroidIndex = 1; centroidIndex < firstCentroids.Length; centroidIndex++)
-                {
-                    firstDifference = firstSample - Vector256.Create(firstCentroids[centroidIndex]);
-                    secondDifference = secondSample - Vector256.Create(secondCentroids[centroidIndex]);
-                    (firstLower, firstUpper) = Vector256.Widen(firstDifference);
-                    (secondLower, secondUpper) = Vector256.Widen(secondDifference);
-                    Vector256<int> distanceLower = (firstLower * firstLower) + (secondLower * secondLower);
-                    Vector256<int> distanceUpper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
-                    Vector256<int> replaceLower = Vector256.LessThan(distanceLower, bestDistanceLower);
-                    Vector256<int> replaceUpper = Vector256.LessThan(distanceUpper, bestDistanceUpper);
-                    bestDistanceLower = Vector256.ConditionalSelect(replaceLower, distanceLower, bestDistanceLower);
-                    bestDistanceUpper = Vector256.ConditionalSelect(replaceUpper, distanceUpper, bestDistanceUpper);
-                    bestIndexLower = Vector256.ConditionalSelect(
-                        replaceLower,
-                        Vector256.Create(centroidIndex),
-                        bestIndexLower);
-
-                    bestIndexUpper = Vector256.ConditionalSelect(
-                        replaceUpper,
-                        Vector256.Create(centroidIndex),
-                        bestIndexUpper);
-                }
-
-                bestDistanceLower.CopyTo(distanceScratch);
-                bestDistanceUpper.CopyTo(distanceScratch[Vector256<int>.Count..]);
-                bestIndexLower.CopyTo(indexScratch);
-                bestIndexUpper.CopyTo(indexScratch[Vector256<int>.Count..]);
-                for (int lane = 0; lane < Vector256<short>.Count; lane++)
-                {
-                    indices[offset + lane] = (byte)indexScratch[lane];
-                    distortion += distanceScratch[lane];
-                }
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = Numerics.Vector128Count(firstSamples[offset..]);
-            for (; vectorCount > 0; vectorCount--, offset += Vector128<short>.Count)
-            {
-                Vector128<short> firstSample = Vector128.LoadUnsafe(ref firstSampleBase, (nuint)offset);
-                Vector128<short> secondSample = Vector128.LoadUnsafe(ref secondSampleBase, (nuint)offset);
-                Vector128<short> firstDifference = firstSample - Vector128.Create(firstCentroids[0]);
-                Vector128<short> secondDifference = secondSample - Vector128.Create(secondCentroids[0]);
-                (Vector128<int> firstLower, Vector128<int> firstUpper) = Vector128.Widen(firstDifference);
-                (Vector128<int> secondLower, Vector128<int> secondUpper) = Vector128.Widen(secondDifference);
-                Vector128<int> bestDistanceLower = (firstLower * firstLower) + (secondLower * secondLower);
-                Vector128<int> bestDistanceUpper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
-                Vector128<int> bestIndexLower = Vector128<int>.Zero;
-                Vector128<int> bestIndexUpper = Vector128<int>.Zero;
-                for (int centroidIndex = 1; centroidIndex < firstCentroids.Length; centroidIndex++)
-                {
-                    firstDifference = firstSample - Vector128.Create(firstCentroids[centroidIndex]);
-                    secondDifference = secondSample - Vector128.Create(secondCentroids[centroidIndex]);
-                    (firstLower, firstUpper) = Vector128.Widen(firstDifference);
-                    (secondLower, secondUpper) = Vector128.Widen(secondDifference);
-                    Vector128<int> distanceLower = (firstLower * firstLower) + (secondLower * secondLower);
-                    Vector128<int> distanceUpper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
-                    Vector128<int> replaceLower = Vector128.LessThan(distanceLower, bestDistanceLower);
-                    Vector128<int> replaceUpper = Vector128.LessThan(distanceUpper, bestDistanceUpper);
-                    bestDistanceLower = Vector128.ConditionalSelect(replaceLower, distanceLower, bestDistanceLower);
-                    bestDistanceUpper = Vector128.ConditionalSelect(replaceUpper, distanceUpper, bestDistanceUpper);
-                    bestIndexLower = Vector128.ConditionalSelect(
-                        replaceLower,
-                        Vector128.Create(centroidIndex),
-                        bestIndexLower);
-
-                    bestIndexUpper = Vector128.ConditionalSelect(
-                        replaceUpper,
-                        Vector128.Create(centroidIndex),
-                        bestIndexUpper);
-                }
-
-                bestDistanceLower.CopyTo(distanceScratch);
-                bestDistanceUpper.CopyTo(distanceScratch[Vector128<int>.Count..]);
-                bestIndexLower.CopyTo(indexScratch);
-                bestIndexUpper.CopyTo(indexScratch[Vector128<int>.Count..]);
-                for (int lane = 0; lane < Vector128<short>.Count; lane++)
-                {
-                    indices[offset + lane] = (byte)indexScratch[lane];
-                    distortion += distanceScratch[lane];
-                }
-            }
-        }
-
-        for (; offset < firstSamples.Length; offset++)
-        {
-            int firstDifference = firstSamples[offset] - firstCentroids[0];
-            int secondDifference = secondSamples[offset] - secondCentroids[0];
-            int bestDistance = (firstDifference * firstDifference) + (secondDifference * secondDifference);
-            int bestIndex = 0;
-            for (int centroidIndex = 1; centroidIndex < firstCentroids.Length; centroidIndex++)
-            {
-                firstDifference = firstSamples[offset] - firstCentroids[centroidIndex];
-                secondDifference = secondSamples[offset] - secondCentroids[centroidIndex];
-                int distance = (firstDifference * firstDifference) + (secondDifference * secondDifference);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestIndex = centroidIndex;
-                }
-            }
-
-            indices[offset] = (byte)bestIndex;
-            distortion += bestDistance;
-        }
-
-        return distortion;
-    }
+        => Assign<NearestOperator>.Apply(firstSamples, secondSamples, firstCentroids, secondCentroids, indices);
 
     /// <summary>
     /// Refines initialized paired colors through the reference encoder's deterministic clustering sequence.

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Stores the entropy syntax retained for one AV1 transform block.
 /// </summary>
-[StructLayout(LayoutKind.Sequential, Size = sizeof(int))]
+[StructLayout(LayoutKind.Sequential, Size = 2 * sizeof(int))]
 internal struct Av1EncoderTransformBlockState
 {
     /// <summary>
@@ -26,6 +26,14 @@ internal struct Av1EncoderTransformBlockState
     /// Stores the skip context in bits 0 through 3 and DC-sign context in bits 4 and 5.
     /// </summary>
     public byte EntropyContext;
+
+    /// <summary>
+    /// Stores the context this transform block hands to the blocks below it and to its right: the
+    /// clamped sum of the coded levels, with the DC sign above it. A search keeps this beside the
+    /// block it measured, so a later pass reads the winning value without coding the block again.
+    /// Reference: the txb_entropy_ctx member of PICK_MODE_CONTEXT.
+    /// </summary>
+    public byte CoefficientContext;
 
     /// <summary>
     /// Gets or sets the position after the final nonzero coefficient.

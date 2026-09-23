@@ -56,7 +56,11 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     private const int CandidateCoefficientStorageOffset = CandidateSampleStorageOffset + CandidateSampleStorageLength;
     private const int CandidateCoefficientStorageLength = 2 * MaximumSampleCount;
     private const int CandidateTransformBlockStorageOffset = CandidateCoefficientStorageOffset + CandidateCoefficientStorageLength;
-    private const int CandidateTransformBlockStorageLength = MaximumCandidateTransformBlockCount;
+
+    // One packed transform-block state occupies this many storage elements. It tracks the size of
+    // Av1EncoderTransformBlockState, which a constant expression cannot read.
+    private const int TransformBlockStorageElements = 2;
+    private const int CandidateTransformBlockStorageLength = MaximumCandidateTransformBlockCount * TransformBlockStorageElements;
     private const int TransformContextStorageOffset = CandidateTransformBlockStorageOffset + CandidateTransformBlockStorageLength;
     private const int TransformContextStorageLength =
         4 * (MaximumBlockDimension >> Av1Constants.ModeInfoSizeLog2) * sizeof(byte) / sizeof(int);

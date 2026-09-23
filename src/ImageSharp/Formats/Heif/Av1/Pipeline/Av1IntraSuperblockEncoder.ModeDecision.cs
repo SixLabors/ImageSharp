@@ -254,7 +254,13 @@ internal static partial class Av1IntraSuperblockEncoder
             this.coefficientBuffer = coefficientBuffer;
             this.blockWorkspace = blockWorkspace;
             blockWorkspace.SpeedSettings = picture.Parent.SpeedSettings;
-            this.maximumPartitionSize = picture.Parent.SpeedSettings.MaximumPartitionSize;
+
+            // A partition never exceeds the superblock it sits in, so the speed cap comes down to the
+            // superblock size before anything reads it. Reference: the second AOMMIN of
+            // set_max_min_partition_size(), against cm->seq_params->sb_size.
+            this.maximumPartitionSize = (Av1BlockSize)Math.Min(
+                (int)picture.Parent.SpeedSettings.MaximumPartitionSize,
+                (int)picture.Sequence.SequenceHeader.SuperblockSize);
             this.blockCostLimit = long.MaxValue;
             blockWorkspace.SourceLogVariances.Fill(-1D);
             blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
@@ -560,7 +566,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.blockWorkspace.PartitionTree.GetContext(firstChild + child, Av1PartitionType.None, 0);
                     Av1RateDistortionStatistics childStatistics = this.EvaluatePartitionLeaf(
                         writer, macroBlock, childOrigin, tileIndex, childSize, Av1PartitionType.None, childContext, long.MaxValue, child < 3);
-                    childContext.Snapshot.Ready = true;
+
+                    // A leaf that found no mode retained nothing, so nothing may read its decision back.
+                    // Reference: the rd_mode_is_ready flag of pick_sb_modes(), which a caller sets only
+                    // after av1_rd_pick_partition() reports a best partition.
+                    childContext.Snapshot.Ready = childStatistics.Cost != long.MaxValue;
                     this.superblock.Workspace.PartitionSearchTypes[firstChild + child] = (byte)Av1PartitionType.None;
                     split.Add(this.rateMultiplier, in childStatistics);
                     if (none.Cost < split.Cost)
@@ -639,14 +649,20 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+
+                // An intra picture has no motion to predict a partition size from, so it keeps the speed cap.
+                // Reference: the frame_is_intra_only() term of use_auto_max_partition().
                 if (settings.MaximumPartitionPredictionMode != Av1EncoderSpeedSettings.MaximumPartitionPrediction.Disabled &&
+                    !this.picture.Parent.FrameHeader.IsIntra &&
                     blockSize == Av1BlockSize.Block128x128 && !this.picture.Parent.FrameHeader.AllowScreenContentTools &&
                     this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay) &&
                     blockOrigin.X + 128 <= (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) &&
                     blockOrigin.Y + 128 <= (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2))
                 {
                     this.maximumPartitionSize = (Av1BlockSize)Math.Clamp(
-                        (int)this.PredictMaximumPartition(blockOrigin), (int)settings.MinimumPartitionSize, (int)settings.MaximumPartitionSize);
+                        (int)this.PredictMaximumPartition(blockOrigin),
+                        (int)settings.MinimumPartitionSize,
+                        Math.Min((int)settings.MaximumPartitionSize, (int)this.picture.Sequence.SequenceHeader.SuperblockSize));
                 }
             }
 
@@ -1388,6 +1404,68 @@ internal static partial class Av1IntraSuperblockEncoder
             return double.LogP1(variance / 16D);
         }
 
+        /// <summary>
+        /// Scales a predictor's cost by how far its reconstruction drifts from the source in log variance,
+        /// reading the reconstruction from the candidate the last transform grid produced.
+        /// </summary>
+        private double GetIntraVarianceFactor(
+            Point origin, Av1BlockSize blockSize, ReadOnlySpan<TSample> reconstruction, int reconstructionStride)
+        {
+            double threshold = 1D - (0.25D * (int)this.picture.Parent.EncodingSpeed);
+            if (threshold <= 0)
+            {
+                return 1D;
+            }
+
+            int right = Math.Min(origin.X + blockSize.GetWidth(), this.picture.Parent.Common.ModeInfoColumnCount << 2);
+            int bottom = Math.Min(origin.Y + blockSize.GetHeight(), this.picture.Parent.Common.ModeInfoRowCount << 2);
+            double sourceVariance = 0;
+            double reconstructionVariance = 0;
+            for (int y = origin.Y; y < bottom; y += 4)
+            {
+                for (int x = origin.X; x < right; x += 4)
+                {
+                    sourceVariance += this.GetSourceLogVariance(new Point(x, y));
+                    reconstructionVariance += GetLogVariance(
+                        reconstruction[(((y - origin.Y) * reconstructionStride) + (x - origin.X))..],
+                        reconstructionStride,
+                        this.bitDepth);
+                }
+            }
+
+            int cells = (right - origin.X) * (bottom - origin.Y) / 16;
+            sourceVariance = (sourceVariance / cells) + 0.000001D;
+            reconstructionVariance = (reconstructionVariance / cells) + 0.000001D;
+
+            double difference = sourceVariance - reconstructionVariance;
+            double factor = 1D;
+            if (difference > 0.5D && reconstructionVariance < threshold)
+            {
+                factor += 2D * difference / sourceVariance;
+            }
+            else if (difference < -0.5D && sourceVariance < threshold)
+            {
+                factor -= difference / (2D * sourceVariance);
+            }
+
+            return Math.Min(3D, factor);
+        }
+
+        /// <summary>
+        /// Computes log(1 + variance) of one 4x4 cell held in a flat candidate buffer.
+        /// </summary>
+        private static double GetLogVariance(ReadOnlySpan<TSample> cell, int stride, Av1BitDepth bitDepth)
+        {
+            InlineArray4<TSample> zero = default;
+            TOperator.GetMoments(cell, stride, zero, 0, 4, 4, out int sum, out long squares);
+            int sampleShift = bitDepth.GetBitCount() - 8;
+            int squareShift = sampleShift * 2;
+            sum = (sum + ((1 << sampleShift) >> 1)) >> sampleShift;
+            squares = (squares + ((1L << squareShift) >> 1)) >> squareShift;
+            long variance = Math.Max(0, squares - (((long)sum * sum) >> 4));
+            return double.LogP1(variance / 16D);
+        }
+
         private double GetIntraVarianceFactor(Point origin, Av1BlockSize blockSize)
         {
             double threshold = 1D - (0.25D * (int)this.picture.Parent.EncodingSpeed);
@@ -1645,7 +1723,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             leafOrigin,
                             tileIndex,
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
-                            publishContexts);
+                            publishContexts,
+                            searchChildren);
 
                 this.activeModeCache = default;
                 if (!childRectangleWins.IsEmpty)
@@ -1674,11 +1753,26 @@ internal static partial class Av1IntraSuperblockEncoder
                 // A sibling predicts from the reconstruction this leaf leaves behind, so encode the leaf
                 // across every plane before moving on. The mode search alone leaves the last chroma
                 // candidate in the plane, not the winner. A split child encodes itself when its own
-                // partition search ends. Reference: the encode_superblock() call that
-                // rectangular_partition_search() makes between its two sub-partitions, and the one that
-                // rd_try_subblock() makes for every sub-block but the last.
-                if (searchChildren && partitionType != Av1PartitionType.Split && leafIndex + 1 < leafCount &&
-                    this.picture.Parent.FrameHeader.IsIntra)
+                // partition search ends. A leaf that already spent the bound encodes nothing, because
+                // the search stops instead of measuring the sibling, and a rectangle whose second half
+                // falls outside the frame encodes nothing either. Reference: the encode_superblock()
+                // call that rectangular_partition_search() makes between its two sub-partitions, under
+                // its cost and has_rows / has_cols gates, and the one that rd_try_subblock() makes for
+                // every sub-block but the last, after its own cost gate.
+                // A split child normally reconstructs its own winning subtree when its partition
+                // search ends. A 4x4 child has no partition search of its own, so the parent leaves
+                // those samples behind instead, for every child but the last.
+                // Reference: the dry run encode_sb() that closes av1_rd_pick_partition(), under
+                // should_do_dry_run_encode_for_current_block().
+                bool reconstructSplitLeaf = partitionType == Av1PartitionType.Split &&
+                    blockSize <= Av1BlockSize.Block8x8 && leafIndex + 1 < leafCount;
+
+                bool reconstructSibling = partitionType != Av1PartitionType.Split && leafIndex + 1 < leafCount &&
+                    statistics.Cost < costLimit.Cost &&
+                    this.IsPartitionSiblingInsideFrame(blockOrigin, blockSize, partitionType, leafIndex);
+
+                if (searchChildren && this.picture.Parent.FrameHeader.IsIntra &&
+                    (reconstructSplitLeaf || reconstructSibling))
                 {
                     Av1EncoderPartitionTree.ModeContext sibling =
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
@@ -1709,6 +1803,28 @@ internal static partial class Av1IntraSuperblockEncoder
 
             stoppedAtLeaf = leafCount;
             return statistics.Cost < costLimit.Cost ? statistics : Av1RateDistortionStatistics.Invalid;
+        }
+
+        /// <summary>
+        /// Reports whether the sub-partition that follows this one starts inside the frame. A rectangle
+        /// whose second half falls outside the frame codes only its first half, so nothing predicts from
+        /// the reconstruction that half would leave behind. Every other shape measures its sibling either
+        /// way. Reference: the has_rows and has_cols entries of is_not_edge_block in
+        /// rectangular_partition_search().
+        /// </summary>
+        private bool IsPartitionSiblingInsideFrame(
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1PartitionType partitionType,
+            int leafIndex)
+        {
+            if (partitionType is not (Av1PartitionType.Horizontal or Av1PartitionType.Vertical))
+            {
+                return true;
+            }
+
+            GetPartitionLeafGeometry(blockOrigin, blockSize, partitionType, leafIndex + 1, out Point siblingOrigin, out _);
+            return this.IsBlockOriginInsideFrame(siblingOrigin);
         }
 
         private void ResetPartitionTrial(
@@ -1771,11 +1887,25 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasColumns = blockOrigin.X + halfWidth <
                 (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2);
 
-            // Reaching the configured minimum closes the ordinary split and rectangle searches.
-            // A partial frame-edge block must still split when its midpoint is outside the frame.
-            if (blockSize <= speedSettings.MinimumPartitionSize && partitionType != Av1PartitionType.None && hasRows && hasColumns)
+            // Reaching the configured minimum closes every rectangle, whether or not the frame reaches
+            // this block's midpoint. What remains is one candidate: the unsplit block when the frame does
+            // reach both midpoints, and the square split when it does not. A block below 8x8 has no square
+            // split to fall back on and keeps the unsplit candidate either way. Reference: the
+            // is_le_min_sq_part branch of av1_prune_partitions_by_max_min_bsize(), against the
+            // do_square_split of init_partition_search_state_params(). The retry that follows a search
+            // with no valid partition sets its own limits, so it keeps the alphabet it had.
+            if (!this.mustFindValidPartition && blockSize <= speedSettings.MinimumPartitionSize)
             {
-                return false;
+                if (partitionType is not (Av1PartitionType.None or Av1PartitionType.Split))
+                {
+                    return false;
+                }
+
+                bool squareSplitAllowed = blockSize >= Av1BlockSize.Block8x8 && !(hasRows && hasColumns);
+                if (partitionType == Av1PartitionType.Split ? !squareSplitAllowed : squareSplitAllowed)
+                {
+                    return false;
+                }
             }
 
             if (!this.mustFindValidPartition && partitionType is not (Av1PartitionType.None or Av1PartitionType.Split))
@@ -2053,11 +2183,15 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo)
         {
             long workStart = Av1WorkCounters.Start();
-            this.EncodeBlockCore(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo);
+            this.EncodeBlockCore(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo, true);
             Av1WorkCounters.Stop(Av1WorkCounters.PickSbModes, workStart);
         }
 
-        public void EncodeBlockCore(
+        /// <summary>
+        /// Selects the modes of one block without encoding the winner afterwards.
+        /// Reference: pick_sb_modes().
+        /// </summary>
+        private void SearchBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -2065,6 +2199,21 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
+        {
+            long workStart = Av1WorkCounters.Start();
+            this.EncodeBlockCore(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo, false);
+            Av1WorkCounters.Stop(Av1WorkCounters.PickSbModes, workStart);
+        }
+
+        private void EncodeBlockCore(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            bool encodeSelected)
         {
             Av1WorkCounters.Count(Av1WorkCounters.PickSbModes);
             this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Candidate;
@@ -2498,6 +2647,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 Size retainedExtent = GetCodedTransformExtent(macroBlock, blockSize, modeInfo.Block.TransformSize, 0, 0);
                 this.RetainModeContext(
                     winner, this.codedAreaLuma, this.codedAreaChroma, retainedExtent.Width * retainedExtent.Height, chromaArea);
+
+                // The winner keeps the transform grid its own luma search chose. The shared coefficient
+                // buffer belongs to whichever candidate wrote it last, and a grid taken from there can hand
+                // this block a transform type its size does not allow. Reference: the
+                // av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call of
+                // av1_rd_pick_intra_sby_mode().
+                CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
                 Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
                 if (!this.picture.Parent.FrameHeader.CodedLossless &&
                     (speedSettings.IntraTransformTypeSearchLevel != 0 ||
@@ -2554,6 +2710,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             Size refinedExtent = GetCodedTransformExtent(macroBlock, blockSize, refinedSize, 0, 0);
                             this.RetainModeContext(
                                 winner, this.codedAreaLuma, this.codedAreaChroma, refinedExtent.Width * refinedExtent.Height, chromaArea);
+                            CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
                         }
                     }
 
@@ -2608,6 +2765,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Size paletteExtent = GetCodedTransformExtent(macroBlock, blockSize, paletteTransformSize, 0, 0);
                         this.RetainModeContext(
                             winner, this.codedAreaLuma, this.codedAreaChroma, paletteExtent.Width * paletteExtent.Height, chromaArea);
+                        CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
                     }
 
                     // Rebuild the retained winner after palette trials. This also regenerates CfL chroma
@@ -2618,6 +2776,32 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.codedAreaLuma = savedLumaArea;
                     this.codedAreaChroma = savedChromaArea;
                 }
+            }
+            else if (encodeSelected && modeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra &&
+                !modeInfo.Block.UseIntraBlockCopy && this.SelectedBlockStatistics.Cost != long.MaxValue)
+            {
+                // The search leaves the last transform block of each plane as its prediction, so the
+                // winner is encoded again before the syntax is written and the next block predicts from it.
+                // Reference: the encode_superblock() that encode_sb() makes after pick_sb_modes(), which
+                // runs encode_block_intra() over every transform block.
+                Av1EncoderPartitionTree.ModeContext winner = this.blockWorkspace.GetIntraWinnerContext(block.HasChroma ? 3 : 1);
+                winner.Snapshot = new Av1EncoderPartitionTree.ModeSnapshot
+                {
+                    ModeInfo = modeInfo,
+                    Block = block,
+                    Palette = paletteInfo,
+                    Statistics = this.SelectedBlockStatistics
+                };
+
+                Size selectedExtent = GetCodedTransformExtent(macroBlock, blockSize, modeInfo.Block.TransformSize, 0, 0);
+                this.RetainModeContext(
+                    winner, this.codedAreaLuma, this.codedAreaChroma, selectedExtent.Width * selectedExtent.Height, chromaArea);
+                CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
+                int savedLumaArea = this.codedAreaLuma;
+                int savedChromaArea = this.codedAreaChroma;
+                this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, winner);
+                this.codedAreaLuma = savedLumaArea;
+                this.codedAreaChroma = savedChromaArea;
             }
 
             if (isInterFrame)
@@ -2733,7 +2917,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPaletteInfo paletteInfo = default;
             int lumaArea = this.codedAreaLuma;
             int chromaArea = this.codedAreaChroma;
-            this.EncodeBlock(
+            this.SearchBlock(
                 writer,
                 macroBlock,
                 blockOrigin,
@@ -2768,6 +2952,24 @@ internal static partial class Av1IntraSuperblockEncoder
 
             this.RetainModeContext(context, lumaArea, chromaArea, this.codedAreaLuma - lumaArea, this.codedAreaChroma - chromaArea);
 
+            // The leaf keeps the transform grid its own search produced. The shared coefficient buffer
+            // belongs to whichever block wrote it last, so a grid taken from there can name a transform
+            // type this block's size does not allow. Reference: the
+            // av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call of
+            // av1_rd_pick_intra_sby_mode(), against the per-block tx_type_map_ of pick_sb_modes().
+            if (modeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra && !modeInfo.Block.UseIntraBlockCopy)
+            {
+                // Only a luma search that ran for this block left its grid here. A winner that names
+                // another size belongs to a different block, so this leaf keeps what it retained.
+                Av1EncoderPartitionTree.ModeContext lumaWinner = this.blockWorkspace.GetIntraWinnerContext(1);
+                if (lumaWinner.Snapshot.ModeInfo.Block.BlockSize == blockSize)
+                {
+                    CopyWinnerTransformStates(
+                        lumaWinner.GetTransformStates(Av1Plane.Y),
+                        context.GetTransformStates(Av1Plane.Y));
+                }
+            }
+
             if (publishContexts)
             {
                 this.PublishPartitionLeafContexts(
@@ -2787,6 +2989,47 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Retains transform states and palette maps before the next candidate overwrites shared scratch.
         /// </summary>
+        /// <summary>
+        /// Copies the palette index map of a retained decision into its own storage, leaving every other
+        /// part of that decision as the search left it.
+        /// </summary>
+        private void RetainPaletteMap(Av1EncoderPartitionTree.ModeContext context)
+        {
+            Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
+            int planeCount = snapshot.Block.HasChroma ? 3 : 1;
+            for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                if (plane == Av1Plane.V || snapshot.Palette.PaletteSizes[plane == Av1Plane.Y ? 0 : 1] == 0)
+                {
+                    continue;
+                }
+
+                Av1BlockSize planeSize = plane == Av1Plane.Y
+                    ? snapshot.ModeInfo.Block.BlockSize
+                    : snapshot.ModeInfo.Block.BlockSize.GetSubsampled(
+                        this.source.ChromaSubsamplingX != 0, this.source.ChromaSubsamplingY != 0);
+
+                Av1PlaneType planeType = plane == Av1Plane.Y ? Av1PlaneType.Y : Av1PlaneType.Uv;
+                int width = planeSize.GetWidth();
+                int height = planeSize.GetHeight();
+                Buffer2DRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
+                Span<byte> retained = context.GetPaletteIndices(planeType);
+                for (int row = 0; row < height; row++)
+                {
+                    map.DangerousGetRowSpan(row).CopyTo(retained.Slice(row * width, width));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies the transform grid a luma search produced into a retained decision, covering every entry
+        /// the later pass over that decision can read.
+        /// </summary>
+        private static void CopyWinnerTransformStates(
+            ReadOnlySpan<Av1EncoderTransformBlockState> source, Span<Av1EncoderTransformBlockState> destination)
+            => source[..Math.Min(source.Length, destination.Length)].CopyTo(destination);
+
         private void RetainModeContext(
             Av1EncoderPartitionTree.ModeContext context,
             int lumaArea,
@@ -2805,11 +3048,32 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 int count = plane == Av1Plane.Y ? lumaCount : chromaCount;
                 int area = plane == Av1Plane.Y ? lumaArea : chromaArea;
-                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)
-                    .Slice(
-                        area / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount,
-                        count / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)
-                    .CopyTo(context.GetTransformStates(plane));
+
+                // Every entry of the retained grid is written, not just the part the coded area reached.
+                // An entry left behind by another block can name a transform type this block's size does not
+                // allow. Reference: av1_copy_array(ctx->tx_type_map, ..., ctx->num_4x4_blk), which covers the
+                // whole map.
+                // The luma grid comes from the block's own search, never from the shared coefficient
+                // buffer, so no entry can belong to another block. Chroma still reads that buffer.
+                // Reference: av1_update_state(), which points xd->tx_type_map at ctx->tx_type_map with
+                // stride mi_size_wide[bsize].
+                // An intra block's luma search hands its own grid over afterwards, so this clear is what
+                // that copy lands on. An inter block has no such grid, so its luma still comes from the
+                // shared buffer its own search wrote.
+                bool lumaFromOwnSearch = plane == Av1Plane.Y &&
+                    snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra &&
+                    !snapshot.ModeInfo.Block.UseIntraBlockCopy;
+
+                Span<Av1EncoderTransformBlockState> retainedGrid = context.GetTransformStates(plane);
+                retainedGrid.Clear();
+                if (!lumaFromOwnSearch)
+                {
+                    this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)
+                        .Slice(
+                            area / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount,
+                            count / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)
+                        .CopyTo(retainedGrid);
+                }
 
                 if (plane != Av1Plane.V && snapshot.Palette.PaletteSizes[plane == Av1Plane.Y ? 0 : 1] > 0)
                 {
@@ -2832,7 +3096,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ushort tileIndex,
             Av1EncoderPartitionTree.ModeContext context,
-            bool publishContexts)
+            bool publishContexts,
+            bool modeSearchReused)
         {
             Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
             Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
@@ -2928,6 +3193,32 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformSize chromaTransform = blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
                     Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaSize, chromaTransform, subX, subY);
                     this.codedAreaChroma += chromaExtent.Width * chromaExtent.Height;
+                }
+            }
+            else if (modeSearchReused)
+            {
+                // A reused decision hands back the cost it already measured and codes nothing. The sibling
+                // encode that follows this leaf leaves its samples behind for the next leaf to predict from.
+                // Reference: the rd_mode_is_ready branch of pick_sb_modes(), which returns the stored rate,
+                // distortion and cost and does no more.
+                Size reusedLumaExtent = GetCodedTransformExtent(
+                    macroBlock, blockSize, snapshot.ModeInfo.Block.TransformSize, 0, 0);
+                this.codedAreaLuma += reusedLumaExtent.Width * reusedLumaExtent.Height;
+                if (snapshot.Block.HasChroma)
+                {
+                    int subX = this.source.ChromaSubsamplingX;
+                    int subY = this.source.ChromaSubsamplingY;
+                    Av1TransformSize reusedChromaTransform = this.picture.Parent.FrameHeader.CodedLossless
+                        ? Av1TransformSize.Size4x4
+                        : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+                    Size reusedChromaExtent = GetCodedTransformExtent(
+                        macroBlock,
+                        blockSize.GetSubsampled(subX != 0, subY != 0),
+                        reusedChromaTransform,
+                        subX,
+                        subY);
+
+                    this.codedAreaChroma += reusedChromaExtent.Width * reusedChromaExtent.Height;
                 }
             }
             else
@@ -3288,10 +3579,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformContexts.UnitModeWrite(
                         (byte)height, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
-                    Av1EncoderTransformBlockState state = lumaStates[
-                        coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
-                    byte context = Av1SymbolContextHelper.GetCoefficientContext(
-                        lumaCoefficients[coefficientOffset..], leafSize, state.TransformType, state.EndOfBlock);
+                    byte context = lumaStates[
+                        coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount]
+                        .CoefficientContext;
                     Av1TileWriter.UpdateCoefficientContexts(
                         coefficientContexts.Top.Slice(coefficientContexts.GetTopIndex(origin), leafSize.Get4x4WideCount()),
                         coefficientContexts.Left.Slice(coefficientContexts.GetLeftIndex(origin), leafSize.Get4x4HighCount()),
@@ -3440,12 +3730,11 @@ internal static partial class Av1IntraSuperblockEncoder
                                     continue;
                                 }
 
-                                Av1EncoderTransformBlockState state = states[transformStateOffset];
-                                byte context = Av1SymbolContextHelper.GetCoefficientContext(
-                                    coefficients[coefficientOffset..],
-                                    transformSize,
-                                    state.TransformType,
-                                    state.EndOfBlock);
+                                // The context a transform block hands on is the one stored beside it when it
+                                // was coded, not a fresh reading of whatever coefficients the shared buffer
+                                // now holds. A search that ended on a losing candidate leaves those behind.
+                                // Reference: the txb_entropy_ctx read of av1_set_txb_context().
+                                byte context = states[transformStateOffset].CoefficientContext;
 
                                 Point transformOrigin = blockOrigin + new Size(column, row);
                                 Av1TileWriter.UpdateCoefficientContexts(
@@ -3869,9 +4158,20 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The chroma search encodes the luma plane again before it starts, so chroma predicts from
             // the refined winner rather than the candidate the first search left behind, and every luma
-            // transform block that quantized away returns to DCT_DCT. Reference: the
-            // av1_encode_intra_block_plane() call of av1_rd_pick_intra_sbuv_mode().
-            if (selectedStatistics.Cost != long.MaxValue)
+            // transform block that quantized away returns to DCT_DCT. It does so only for a block that
+            // may still choose chroma-from-luma, because only that mode reads the luma reconstruction.
+            // Reference: the store_cfl_required_rdo() gate on the av1_encode_intra_block_plane() call of
+            // av1_rd_pick_intra_sbuv_mode().
+            Point chromaReferencePosition = new(
+                blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+            bool storeLumaForChromaFromLuma = !this.source.IsMonochrome &&
+                Av1TileReader.HasChroma(this.picture.Sequence.SequenceHeader, chromaReferencePosition, blockSize) &&
+                blockSize.AllowsChromaFromLuma(
+                    this.picture.Parent.FrameHeader.LosslessArray[0],
+                    this.source.ChromaSubsamplingX != 0,
+                    this.source.ChromaSubsamplingY != 0);
+
+            if (selectedStatistics.Cost != long.MaxValue && storeLumaForChromaFromLuma)
             {
                 Av1EncoderPartitionTree.ModeContext refinedWinner = this.blockWorkspace.GetIntraWinnerContext(1);
                 Av1MacroBlockModeInfo refinedModeInfo = macroBlock.GetRelativeModeInfo(0);
@@ -3887,9 +4187,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     Statistics = selectedStatistics
                 };
 
-                Size refinedExtent = GetCodedTransformExtent(macroBlock, blockSize, selectedTransformSize, 0, 0);
-                this.RetainModeContext(
-                    refinedWinner, this.codedAreaLuma, this.codedAreaChroma, refinedExtent.Width * refinedExtent.Height, 0);
+                // The retained storage is laid out from the size the snapshot records, so it names the
+                // block that was searched before anything reads or writes its transform grid.
+                refinedWinner.Snapshot.ModeInfo.Block.BlockSize = blockSize;
+
+                // The winner context already carries the transform grid its own search chose, so only the
+                // palette map moves across here. Reading the shared coefficient buffer again would lend the
+                // block a grid that belongs to the last candidate tried.
+                this.RetainPaletteMap(refinedWinner);
                 int retainedLumaArea = this.codedAreaLuma;
                 this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, refinedWinner);
                 this.codedAreaLuma = retainedLumaArea;
@@ -4066,6 +4371,15 @@ internal static partial class Av1IntraSuperblockEncoder
                             selectedTransformSize = size;
                             selectedStatistics = statistics;
                             selectedMapIndex = paletteSize > 0 ? index : -1;
+
+                            // The winner keeps the transform grid this candidate produced, so a later
+                            // candidate that writes over the shared buffers cannot lend it a type its own
+                            // size does not allow. Reference: the
+                            // av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call inside
+                            // the this_rd < best_rd branch of intra_block_yrd().
+                            Size winnerExtent = GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0);
+                            CopyWinnerTransformStates(
+                                retainedStates, this.blockWorkspace.GetIntraWinnerContext(1).GetTransformStates(Av1Plane.Y));
                         }
 
                         if (skipSmallerTransforms || size == Av1TransformSize.Size4x4 ||
@@ -4136,6 +4450,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Av1EncoderPartitionTree.ModeContext winner = this.blockWorkspace.GetIntraWinnerContext(1);
+
+            // The winner's storage is laid out from the size it records, so it names this block before
+            // anything reads or writes its transform grid.
+            winner.Snapshot.ModeInfo.Block.BlockSize = blockSize;
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
             int width = blockSize.GetWidth();
@@ -4196,13 +4514,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     if (intraFrame && paletteAllowed)
                     {
-                        if (bestStatistics.Cost != long.MaxValue)
-                        {
-                            int lumaArea = this.codedAreaLuma;
-                            this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, winner);
-                            this.codedAreaLuma = lumaArea;
-                        }
-
                         if (this.SelectLumaPalette(
                             writer,
                             macroBlock,
@@ -4231,8 +4542,13 @@ internal static partial class Av1IntraSuperblockEncoder
                                 Statistics = bestStatistics
                             };
 
+                            // The retained storage is laid out from the size the snapshot records, so it
+                            // names the block that was searched before anything reads its transform grid.
+                            winner.Snapshot.ModeInfo.Block.BlockSize = blockSize;
+
                             Size extent = GetCodedTransformExtent(macroBlock, blockSize, selectedTransformSize, 0, 0);
                             this.RetainModeContext(winner, this.codedAreaLuma, this.codedAreaChroma, extent.Width * extent.Height, 0);
+                            CopyWinnerTransformStates(retainedStates, winner.GetTransformStates(Av1Plane.Y));
                         }
                     }
 
@@ -4369,6 +4685,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1RateDistortionStatistics modeStatistics = Av1RateDistortionStatistics.Invalid;
                 Av1TransformSize bestSize = maximumSize;
+                Av1TransformSize lastSize = maximumSize;
                 Av1TransformSize size = maximumSize;
                 long previousCost = long.MaxValue;
                 long costLimit = intraFrame ? Math.Min(bestStatistics.Cost, interCostLimit) : interCostLimit;
@@ -4433,6 +4750,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
                     }
 
+                    lastSize = size;
                     if (skipSmaller || size == Av1TransformSize.Size4x4 ||
                         (depth > 0 && depth < maximumDepth && sourceVariance < 256 && statistics.Cost > previousCost))
                     {
@@ -4446,7 +4764,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     // Adjust predictor ranking only after its transform grid has been selected. Raw rate
                     // and distortion remain unchanged for chroma and partition cost accumulation.
-                    modeStatistics.Cost = (long)(modeStatistics.Cost * this.GetIntraVarianceFactor(blockOrigin, blockSize));
+                    // The samples this reads are the ones the last grid tried left behind, not the winning
+                    // grid's: choosing a grid restores the transform type map and nothing else.
+                    // Reference: the tail of choose_tx_size_type_from_rd(), which copies best_txk_type_map
+                    // into xd->tx_type_map and leaves pd->dst as the final uniform_txfm_yrd() call left it.
+                    modeStatistics.Cost = (long)(modeStatistics.Cost * this.GetIntraVarianceFactor(
+                        blockOrigin, blockSize, samples, width));
                 }
 
                 if (!intraFrame && filter)
@@ -4507,8 +4830,20 @@ internal static partial class Av1IntraSuperblockEncoder
                         Statistics = bestStatistics
                     };
 
+                    // The retained storage is laid out from the size the snapshot records, so it names the
+                    // block that was searched before anything reads its transform grid.
+                    winner.Snapshot.ModeInfo.Block.BlockSize = blockSize;
+
                     Size extent = GetCodedTransformExtent(macroBlock, blockSize, bestSize, 0, 0);
                     this.RetainModeContext(winner, this.codedAreaLuma, this.codedAreaChroma, extent.Width * extent.Height, 0);
+
+                    // The winner keeps the transform grid its own search produced. A later mode writes over
+                    // the shared candidate buffers, so the states move across the moment the winner changes
+                    // rather than when the block is coded again. Reference: the
+                    // av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call inside the
+                    // this_rd < best_rd branch of av1_rd_pick_intra_sby_mode().
+                    CopyWinnerTransformStates(retainedStates, winner.GetTransformStates(Av1Plane.Y));
+
                     if (!intraFrame)
                     {
                         this.lumaCandidateCount = 0;
@@ -4522,13 +4857,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            if (bestStatistics.Cost != long.MaxValue)
-            {
-                int lumaArea = this.codedAreaLuma;
-                this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, winner);
-                this.codedAreaLuma = lumaArea;
-            }
-
+            // The luma search leaves whatever its last candidate wrote in the plane. It does not put the
+            // winner back: the chroma search codes luma again when chroma-from-luma is still open, and the
+            // block encode writes the winner in every case. Reference: the tail of
+            // av1_rd_pick_intra_sby_mode(), which restores best_mbmi and the transform type map only.
             selectedStatistics = bestStatistics;
             return bestMode;
         }
@@ -5202,9 +5534,19 @@ internal static partial class Av1IntraSuperblockEncoder
                             // Publish the winner once after transform search. Later transforms consume its pixels
                             // from the block mosaic and its coefficient context from the local edge arrays.
                             bestTransformCoefficients.CopyTo(retainedTransformCoefficients);
+
+                            // The last transform block of the block keeps its prediction here, and so does a
+                            // block that quantized to nothing. Nothing inside the block predicts from the last
+                            // one, so the search never adds its residual back; the block encode does that
+                            // later. Reference: the end of block and position gates of recon_intra().
+                            bool publishReconstruction = bestTransformState.EndOfBlock != 0 &&
+                                ((y + transformHeight) < blockHeight ||
+                                (x + transformWidth) < blockWidth);
+                            ReadOnlySpan<TSample> publishedSamples =
+                                publishReconstruction ? bestTransformReconstruction : prediction;
                             for (int row = 0; row < transformHeight; row++)
                             {
-                                bestTransformReconstruction.Slice(row * transformWidth, transformWidth)
+                                publishedSamples.Slice(row * transformWidth, transformWidth)
                                     .CopyTo(
                                         candidateReconstruction.Slice(
                                             reconstructionOffset + (row * blockWidth),
@@ -5916,11 +6258,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.rateMultiplier,
                 isInter,
                 this.picture.Sequence.SequenceHeader.IsStillPicture,
-
-                // The reference refines the coefficients of the block it finally codes: is_trellis_used()
-                // is true for the default optimize_coefficients of init_rd_sf(). Refinement stays off here
-                // until OptimizeCoefficients matches av1_optimize_b, because turning it on with the
-                // current refinement moves the first differing block of a speed 6 encode from 569 to 34.
                 true,
                 ref state);
 

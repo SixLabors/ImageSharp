@@ -205,6 +205,7 @@ internal static partial class Av1TransformBlockEncoder
             blockVariance))
         {
             state.EndOfBlock = 0;
+            state.CoefficientContext = 0;
 
             // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
             // the prediction mode, because no chroma transform type is signaled for a decoder to read.
@@ -352,6 +353,7 @@ internal static partial class Av1TransformBlockEncoder
             blockVariance))
         {
             state.EndOfBlock = 0;
+            state.CoefficientContext = 0;
 
             // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
             // the prediction mode, because no chroma transform type is signaled for a decoder to read.
@@ -638,6 +640,7 @@ internal static partial class Av1TransformBlockEncoder
             // Chroma keeps the type derived from the prediction mode, because no chroma transform type is
             // signaled for a decoder to read. The unchanged prediction is its own reconstruction.
             state.EndOfBlock = 0;
+            state.CoefficientContext = 0;
             state.TransformType = Av1TransformType.DctDct;
             quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
         }
@@ -890,6 +893,7 @@ internal static partial class Av1TransformBlockEncoder
             blockVariance))
         {
             state.EndOfBlock = 0;
+            state.CoefficientContext = 0;
 
             // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
             // the prediction mode, because no chroma transform type is signaled for a decoder to read.
@@ -1045,6 +1049,7 @@ internal static partial class Av1TransformBlockEncoder
             blockVariance))
         {
             state.EndOfBlock = 0;
+            state.CoefficientContext = 0;
 
             // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
             // the prediction mode, because no chroma transform type is signaled for a decoder to read.
@@ -1312,6 +1317,7 @@ internal static partial class Av1TransformBlockEncoder
             // Chroma keeps the type derived from the prediction mode, because no chroma transform type is
             // signaled for a decoder to read. The unchanged prediction is its own reconstruction.
             state.EndOfBlock = 0;
+            state.CoefficientContext = 0;
             state.TransformType = Av1TransformType.DctDct;
             quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
         }
@@ -1954,6 +1960,8 @@ internal static partial class Av1TransformBlockEncoder
             Av1ForwardTransformer.TransformLossless4x4(residual, transformed, (uint)transformSize.GetWidth());
             state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
             state.TransformType = Av1TransformType.DctDct;
+            state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                quantized, transformSize, state.TransformType, state.EndOfBlock);
             return;
         }
 
@@ -1980,6 +1988,8 @@ internal static partial class Av1TransformBlockEncoder
             bitDepth);
 
         state.TransformType = transformType;
+        state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+            quantized, transformSize, transformType, state.EndOfBlock);
     }
 
     /// <summary>
@@ -2018,6 +2028,8 @@ internal static partial class Av1TransformBlockEncoder
             Av1ForwardTransformer.TransformLossless4x4(residual, transformed, (uint)residualStride);
             state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
             state.TransformType = Av1TransformType.DctDct;
+            state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                quantized, transformSize, state.TransformType, state.EndOfBlock);
             return;
         }
 
@@ -2087,6 +2099,8 @@ internal static partial class Av1TransformBlockEncoder
         }
 
         state.TransformType = transformType;
+        state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+            quantized, transformSize, transformType, state.EndOfBlock);
     }
 
     /// <summary>
@@ -2161,6 +2175,8 @@ internal static partial class Av1TransformBlockEncoder
             Av1ForwardTransformer.TransformLossless4x4(residual, transformed, (uint)residualStride);
             state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
             state.TransformType = Av1TransformType.DctDct;
+            state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                quantized, transformSize, state.TransformType, state.EndOfBlock);
             optimize = false;
         }
         else
@@ -2219,6 +2235,8 @@ internal static partial class Av1TransformBlockEncoder
 
         if (!optimize || state.EndOfBlock == 0)
         {
+            state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                quantized, transformSize, state.TransformType, state.EndOfBlock);
             return writer.GetCoefficientCost(
                 transformSize,
                 state.TransformType,
@@ -2248,6 +2266,9 @@ internal static partial class Av1TransformBlockEncoder
             useChromaWeights,
             state.EndOfBlock,
             out int coefficientRate);
+
+        state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+            quantized, transformSize, transformType, state.EndOfBlock);
 
         return writer.GetOptimizedCoefficientCost(
             transformSize,

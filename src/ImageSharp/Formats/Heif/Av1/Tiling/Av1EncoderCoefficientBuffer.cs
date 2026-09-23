@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
@@ -20,6 +21,12 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
     /// <summary>
     /// Stores one complete superblock's coefficients and packed transform-block state in each row.
     /// </summary>
+    /// <summary>
+    /// The number of coefficient positions one packed transform-block state occupies.
+    /// </summary>
+    private static readonly int StorageElementsPerTransformBlock =
+        Unsafe.SizeOf<Av1EncoderTransformBlockState>() / sizeof(int);
+
     private readonly Buffer2D<int> storage;
 
     /// <summary>
@@ -49,13 +56,20 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
         this.LumaTransformBlockCount = this.LumaCoefficientCount / TransformBlockUnitCoefficientCount;
         this.ChromaTransformBlockCount = this.ChromaCoefficientCount / TransformBlockUnitCoefficientCount;
         this.TransformBlocksPerSuperblock = this.LumaTransformBlockCount + (2 * this.ChromaTransformBlockCount);
-        int storageElementsPerSuperblock = this.CoefficientsPerSuperblock + this.TransformBlocksPerSuperblock;
+
+        // One state occupies more than a single coefficient position, so the packed region reserves as many
+        // positions as the state needs.
+        int storageElementsPerSuperblock = this.CoefficientsPerSuperblock +
+            (this.TransformBlocksPerSuperblock * StorageElementsPerTransformBlock);
 
         // libaom stores finalized coefficients by raster-ordered superblock. A two-dimensional owner preserves that
         // layout, and packing the EOB/type state into the same row removes its two additional frame-sized allocations.
+        // A transform block the search never reached must read as DCT_DCT with no coefficients, the
+        // way a frame's transform type map does. Reference: the av1_zero() of xd->tx_type_map.
         this.storage = configuration.MemoryAllocator.Allocate2D<int>(
             storageElementsPerSuperblock,
-            this.SuperblockCount);
+            this.SuperblockCount,
+            AllocationOptions.Clean);
     }
 
     /// <summary>

@@ -214,7 +214,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Pack(Vector2 vector)
     {
-        vector = Vector2.Clamp(vector, Vector2.Zero, Vector2.One) * Max;
+        vector = Numerics.Clamp(vector, Vector2.Zero, Vector2.One) * Max;
         return (uint)(((int)Math.Round(vector.X) & 0xFFFF) | (((int)Math.Round(vector.Y) & 0xFFFF) << 16));
     }
 }

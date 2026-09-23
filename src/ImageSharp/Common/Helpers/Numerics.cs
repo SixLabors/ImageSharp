@@ -1067,6 +1067,36 @@ internal static class Numerics
         => (uint)length / (uint)Vector512<TVector>.Count;
 
     /// <summary>
+    /// Gets the count of vectors that safely fit into a span whose element type matches the vector lane type.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the span elements and vector lanes.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this ReadOnlySpan<TVector> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into a span whose element type matches the vector lane type.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the span elements and vector lanes.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this ReadOnlySpan<TVector> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into a span whose element type matches the vector lane type.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the span elements and vector lanes.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector512Count<TVector>(this ReadOnlySpan<TVector> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
     /// Clamps a floating-point component while mapping NaN to the lower bound.
     /// </summary>
     /// <typeparam name="T">The component type.</typeparam>

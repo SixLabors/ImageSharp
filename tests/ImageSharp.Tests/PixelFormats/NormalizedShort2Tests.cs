@@ -106,6 +106,7 @@ public class NormalizedShort2Tests
 
         // assert
         Assert.Equal(expected, actual);
+        Assert.Equal(0x7FFF8001U, NormalizedShort2.FromScaledVector4(new Vector4(float.NaN, float.PositiveInfinity, 0F, 1F)).PackedValue);
     }
 
     [Fact]

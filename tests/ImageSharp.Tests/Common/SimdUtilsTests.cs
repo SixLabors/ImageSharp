@@ -368,6 +368,14 @@ public partial class SimdUtilsTests
     {
         seed = seed > 0 ? seed : count;
         float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
+        ReadOnlySpan<float> specialValues = [float.NaN, float.NegativeInfinity, float.PositiveInfinity, 2F, -2F, -0F];
+
+        // Place exceptional values in successive SIMD blocks while retaining random values in the other lanes.
+        for (int i = 0; i < source.Length; i += 16)
+        {
+            source[i] = specialValues[(i / 16) % specialValues.Length];
+        }
+
         byte[] expected = [.. source.Select(NormalizedFloatToByte)];
         byte[] actual = new byte[count];
 
@@ -376,7 +384,7 @@ public partial class SimdUtilsTests
         Assert.Equal(expected, actual);
     }
 
-    private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
+    private static byte NormalizedFloatToByte(float f) => float.IsNaN(f) ? (byte)0 : (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
 
     private static void AssertEvenRoundIsCorrect(Vector<float> r, Vector<float> v)
     {

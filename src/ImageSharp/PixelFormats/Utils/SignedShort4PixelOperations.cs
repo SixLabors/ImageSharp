@@ -327,7 +327,7 @@ internal static class SignedShort4PixelOperations
             }
 
             source *= Vector512.Create(ShortMaximum);
-            source = Vector512.Min(Vector512.Max(source, Vector512.Create(-ShortMaximum)), Vector512.Create(ShortMaximum));
+            source = Numerics.Clamp(source, Vector512.Create(-ShortMaximum), Vector512.Create(ShortMaximum));
         }
         else
         {
@@ -337,7 +337,7 @@ internal static class SignedShort4PixelOperations
                 source += Vector512.Create(SignedIntegerMinimum);
             }
 
-            source = Vector512.Min(Vector512.Max(source, Vector512.Create((float)short.MinValue)), Vector512.Create((float)short.MaxValue));
+            source = Numerics.Clamp(source, Vector512.Create((float)short.MinValue), Vector512.Create((float)short.MaxValue));
         }
 
         return Vector512_.ConvertToInt32RoundToEven(source);
@@ -362,7 +362,7 @@ internal static class SignedShort4PixelOperations
             }
 
             source *= Vector256.Create(ShortMaximum);
-            source = Vector256.Min(Vector256.Max(source, Vector256.Create(-ShortMaximum)), Vector256.Create(ShortMaximum));
+            source = Numerics.Clamp(source, Vector256.Create(-ShortMaximum), Vector256.Create(ShortMaximum));
         }
         else
         {
@@ -372,7 +372,7 @@ internal static class SignedShort4PixelOperations
                 source += Vector256.Create(SignedIntegerMinimum);
             }
 
-            source = Vector256.Min(Vector256.Max(source, Vector256.Create((float)short.MinValue)), Vector256.Create((float)short.MaxValue));
+            source = Numerics.Clamp(source, Vector256.Create((float)short.MinValue), Vector256.Create((float)short.MaxValue));
         }
 
         return Vector256_.ConvertToInt32RoundToEven(source);
@@ -397,7 +397,7 @@ internal static class SignedShort4PixelOperations
             }
 
             source *= Vector128.Create(ShortMaximum);
-            source = Vector128.Min(Vector128.Max(source, Vector128.Create(-ShortMaximum)), Vector128.Create(ShortMaximum));
+            source = Numerics.Clamp(source, Vector128.Create(-ShortMaximum), Vector128.Create(ShortMaximum));
         }
         else
         {
@@ -407,7 +407,7 @@ internal static class SignedShort4PixelOperations
                 source += Vector128.Create(SignedIntegerMinimum);
             }
 
-            source = Vector128.Min(Vector128.Max(source, Vector128.Create((float)short.MinValue)), Vector128.Create((float)short.MaxValue));
+            source = Numerics.Clamp(source, Vector128.Create((float)short.MinValue), Vector128.Create((float)short.MaxValue));
         }
 
         return Vector128_.ConvertToInt32RoundToEven(source);

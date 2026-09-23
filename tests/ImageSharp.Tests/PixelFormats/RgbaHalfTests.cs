@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
 /// <summary>
-/// Tests the unit-range binary16 RGBA pixel formats.
+/// Tests the binary16 RGBA pixel formats.
 /// </summary>
 [Trait("Category", "PixelFormats")]
 public class RgbaHalfTests
@@ -46,14 +46,14 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that scaled input is clamped to the pixel format's unit color range.
+    /// Verifies that scaled input retains finite values outside the unit interval.
     /// </summary>
     [Fact]
-    public void RgbaHalfFromScaledVector4ClampsToUnitRange()
+    public void RgbaHalfFromScaledVector4PreservesHdrValues()
     {
         RgbaHalf pixel = RgbaHalf.FromScaledVector4(new Vector4(-1F, .5F, 2F, 1F));
 
-        Assert.Equal(new Vector4(0F, .5F, 1F, 1F), pixel.ToScaledVector4());
+        Assert.Equal(new Vector4(-1F, .5F, 2F, 1F), pixel.ToScaledVector4());
     }
 
     /// <summary>

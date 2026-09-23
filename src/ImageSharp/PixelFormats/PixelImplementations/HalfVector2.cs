@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Packed pixel type containing two IEEE 754 binary16 floating-point values.
 /// </summary>
 /// <remarks>
-/// <see cref="ToVector2"/> and <see cref="ToVector4"/> return the stored IEEE 754 binary16 values directly. Scaled
-/// vector conversions normalize the finite range <c>[-65504, 65504]</c> to <c>[0, 1]</c>. The packed representation is
+/// Native and scaled vector conversions return the stored IEEE 754 binary16 values directly.
+/// The packed representation is
 /// binary-compatible with <c>DXGI_FORMAT_R16G16_FLOAT</c>.
 /// </remarks>
 public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
@@ -60,11 +60,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4()
-    {
-        Vector2 scaled = HalfTypeHelper.ToScaled(this.ToVector2());
-        return new Vector4(scaled, 0F, 1F);
-    }
+    public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -121,20 +117,13 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector2 FromAssociatedVector4(Vector4 source)
     {
-        // This format has no native alpha component: XY use the binary16 finite range, while W remains the source opacity.
-        Vector2 scaled = HalfTypeHelper.ToScaled(new Vector2(source.X, source.Y));
-        source.X = scaled.X;
-        source.Y = scaled.Y;
-        return FromAssociatedScaledVector4(source);
+        Numerics.UnPremultiply(ref source);
+        return FromVector4(source);
     }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfVector2 FromScaledVector4(Vector4 source)
-    {
-        Vector2 native = HalfTypeHelper.FromScaled(new Vector2(source.X, source.Y));
-        return new HalfVector2 { PackedValue = Pack(native.X, native.Y) };
-    }
+    public static HalfVector2 FromScaledVector4(Vector4 source) => FromVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

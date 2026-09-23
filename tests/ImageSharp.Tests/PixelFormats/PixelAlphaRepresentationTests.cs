@@ -389,20 +389,20 @@ public class AffineNativeAlphaRepresentationTests
         => AssertSignedNormalizedNativeConversions<NormalizedShort4>(static vector => (vector * 2F) - Vector4.One);
 
     [Fact]
-    public void HalfVector4NativeConversionsUseScaledAlpha()
-        => AssertNativeConversions<HalfVector4>(static vector => (vector * 131008F) - new Vector4(65504F));
+    public void HalfVector4NativeConversionsUseStoredAlpha()
+        => AssertNativeConversions<HalfVector4>(static vector => vector);
 
     [Fact]
-    public void HalfVector4PNativeConversionsUseScaledAlpha()
-        => AssertNativeConversions<HalfVector4P>(static vector => (vector * 131008F) - new Vector4(65504F));
+    public void HalfVector4PNativeConversionsUseStoredAlpha()
+        => AssertNativeConversions<HalfVector4P>(static vector => vector);
 
     [Fact]
-    public void HalfSingleFromAssociatedNativeVectorUsesScaledAlpha()
-        => AssertAlphaLessNativeFrom<HalfSingle>(static vector => new Vector4((vector.X * 131008F) - 65504F, 0F, 0F, vector.W));
+    public void HalfSingleFromAssociatedNativeVectorUsesStoredAlpha()
+        => AssertAlphaLessNativeFrom<HalfSingle>(static vector => vector);
 
     [Fact]
-    public void HalfVector2FromAssociatedNativeVectorUsesScaledAlpha()
-        => AssertAlphaLessNativeFrom<HalfVector2>(static vector => new Vector4((vector.X * 131008F) - 65504F, (vector.Y * 131008F) - 65504F, 0F, vector.W));
+    public void HalfVector2FromAssociatedNativeVectorUsesStoredAlpha()
+        => AssertAlphaLessNativeFrom<HalfVector2>(static vector => vector);
 
     [Fact]
     public void NormalizedByte2FromAssociatedNativeVectorUsesScaledAlpha()

@@ -8,12 +8,12 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
+/// Packed pixel type containing four 16-bit floating-point values.
 /// The color components are stored in red, green, blue, and alpha order.
 /// </summary>
 /// <remarks>
-/// <see cref="ToVector4"/> and scaled vector conversions return the same component values in the nominal color range
-/// <c>[0, 1]</c>. The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
+/// Native and scaled vector conversions return the stored floating-point values.
+/// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
@@ -140,7 +140,12 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedVector4() => this.ToAssociatedScaledVector4();
+    public readonly Vector4 ToAssociatedVector4()
+    {
+        Vector4 vector = this.ToVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -160,7 +165,11 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalf FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
+    public static RgbaHalf FromAssociatedVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return FromVector4(source);
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -168,11 +177,7 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalf FromVector4(Vector4 source)
-    {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
-        return new RgbaHalf(source);
-    }
+    public static RgbaHalf FromVector4(Vector4 source) => new(source);
 
     /// <inheritdoc />
     public static RgbaHalf FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());

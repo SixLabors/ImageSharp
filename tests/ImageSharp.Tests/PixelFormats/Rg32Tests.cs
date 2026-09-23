@@ -80,6 +80,7 @@ public class Rg32Tests
     {
         Assert.Equal(Vector2.Zero, new Rg32(Vector2.One * -1234.0f).ToVector2());
         Assert.Equal(Vector2.One, new Rg32(Vector2.One * 1234.0f).ToVector2());
+        Assert.Equal(0xFFFF0000U, Rg32.FromScaledVector4(new Vector4(float.NaN, float.PositiveInfinity, 0F, 1F)).PackedValue);
     }
 
     [Fact]

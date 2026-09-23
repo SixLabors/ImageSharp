@@ -292,19 +292,42 @@ public partial class PixelOperations<TPixel>
         Span<TPixel> destination)
         where TSourcePixel : unmanaged, IPixel<TSourcePixel>
     {
-        const int sliceLength = 1024;
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        if (source.IsEmpty)
+        {
+            return;
+        }
+
+        int sliceLength = Math.Min(source.Length, 1024);
         int numberOfSlices = source.Length / sliceLength;
 
         using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sliceLength);
-        Span<Vector4> vectorSpan = tempVectors.GetSpan();
+        Span<Vector4> vectorSpan = tempVectors.GetSpan()[..sliceLength];
+        PixelConversionModifiers sourceModifiers = PixelConversionModifiers.Scale;
+        PixelConversionModifiers destinationModifiers = PixelConversionModifiers.Scale;
+        bool sourceAssociated = TSourcePixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
+        bool destinationAssociated = TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
+
+        // A straight destination needs an associated source unassociated before storage.
+        // An associated destination must round its own alpha before associating straight input.
+        if (sourceAssociated && !destinationAssociated)
+        {
+            sourceModifiers |= PixelConversionModifiers.UnPremultiply;
+        }
+        else if (!sourceAssociated && destinationAssociated)
+        {
+            destinationModifiers |= PixelConversionModifiers.UnPremultiply;
+        }
 
         for (int i = 0; i < numberOfSlices; i++)
         {
             int start = i * sliceLength;
             ReadOnlySpan<TSourcePixel> s = source.Slice(start, sliceLength);
             Span<TPixel> d = destination.Slice(start, sliceLength);
-            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, sourceModifiers);
+            this.FromVector4Destructive(configuration, vectorSpan, d, destinationModifiers);
         }
 
         int endOfCompleteSlices = numberOfSlices * sliceLength;
@@ -314,8 +337,8 @@ public partial class PixelOperations<TPixel>
             ReadOnlySpan<TSourcePixel> s = source[endOfCompleteSlices..];
             Span<TPixel> d = destination[endOfCompleteSlices..];
             vectorSpan = vectorSpan[..remainder];
-            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, sourceModifiers);
+            this.FromVector4Destructive(configuration, vectorSpan, d, destinationModifiers);
         }
     }
 

@@ -397,4 +397,210 @@ internal static class Vector256_
 
         return Vector256.Create(lo, hi);
     }
+
+    /// <summary>
+    /// Multiplies only the even indices of the two 256-bit vectors,
+    /// producing half as many elements of twice the element width.
+    /// </summary>
+    /// <param name="left">Left vector to multiply.</param>
+    /// <param name="right">Right vector to multiply</param>
+    /// <returns>
+    ///   <code>
+    ///     {
+    ///       A[0] * B[0],
+    ///       A[2] * B[2],
+    ///       A[4] * B[4],
+    ///       A[6] * B[6]
+    ///     }
+    ///   </code>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> MultiplyEven(Vector256<int> left, Vector256<int> right)
+        => Vector256.Create(
+            left[0] * right[0],
+            left[2] * right[2],
+            left[4] * right[4],
+            left[6] * right[6]);
+
+    /// <summary>
+    /// Multiplies only the odd indices of the two 256-bit vectors,
+    /// producing half as many elements of twice the element width.
+    /// </summary>
+    /// <param name="left">Left vector to multiply.</param>
+    /// <param name="right">Right vector to multiply</param>
+    /// <returns>
+    ///   <code>
+    ///     {
+    ///       A[1] * B[1],
+    ///       A[3] * B[3],
+    ///       A[5] * B[5],
+    ///       A[7] * B[7]
+    ///     }
+    ///   </code>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> MultiplyOdd(Vector256<int> left, Vector256<int> right)
+        => Vector256.Create(
+            left[1] * right[1],
+            left[3] * right[3],
+            left[5] * right[5],
+            left[7] * right[7]);
+
+    /// <summary>
+    /// Produces a vector by interleaving the even-indexed elements
+    /// of the left and right vectors.
+    /// </summary>
+    /// <param name="left">Left vector to interleave.</param>
+    /// <param name="right">Right vector to interleave.</param>
+    /// <returns>
+    ///  <code>
+    ///    {
+    ///      A[0], B[0],
+    ///      A[2], B[2],
+    ///      A[4], B[4],
+    ///      A[6], B[6]
+    ///    }
+    ///  </code>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> InterleaveEven(
+        Vector256<int> left,
+        Vector256<int> right)
+        => Vector256.Create(
+            left[0],
+            right[0],
+            left[2],
+            right[2],
+            left[4],
+            right[4],
+            left[6],
+            right[6]);
+
+    /// <summary>
+    /// Produces a vector by interleaving the odd-indexed elements
+    /// of the left and right vectors.
+    /// </summary>
+    /// <param name="left">Left vector to interleave.</param>
+    /// <param name="right">Right vector to interleave.</param>
+    /// <returns>
+    ///  <code>
+    ///    {
+    ///      A[1], B[1],
+    ///      A[3], B[3],
+    ///      A[5], B[5],
+    ///      A[7], B[7]
+    ///    }
+    ///  </code>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> InterleaveOdd(
+        Vector256<int> left,
+        Vector256<int> right)
+        => Vector256.Create(
+            left[1],
+            right[1],
+            left[3],
+            right[3],
+            left[5],
+            right[5],
+            left[7],
+            right[7]);
+
+    /// <summary>
+    /// Produces a vector with masks where 0xFFFFFFFF specifies
+    /// that the left value does not equal to the right value and
+    /// 0x00000000 specifies that the value equals to the
+    /// right value.
+    /// </summary>
+    /// <param name="left">Left vector to compare for inequality.</param>
+    /// <param name="right">Right vector to compare for inequality.</param>
+    /// <returns>
+    /// 0xFFFFFFFF for values that aren't equal, 0x00000000 for
+    /// values that are equal. This is essentially the inverse of
+    /// <see cref="Vector256.Equals{T}(Vector256{T}, Vector256{T})"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> NotEqual(
+        Vector256<int> left,
+        Vector256<int> right) => ~Vector256.Equals(left, right);
+
+    /// <summary>
+    /// Interleaves the lower half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[0], b[0], a[1], b[1], a[2], b[2], a[3], b[3] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> InterleaveLower(Vector256<int> a, Vector256<int> b)
+    {
+        Vector256<int> shuffledA = Vector256.Shuffle(a, Vector256.Create(0, 0, 1, 1, 2, 2, 3, 3));
+        Vector256<int> shuffledB = Vector256.Shuffle(b, Vector256.Create(0, 0, 1, 1, 2, 2, 3, 3));
+
+        Vector256<int> maskA = Vector256.Create(-1, 0, -1, 0, -1, 0, -1, 0);
+        Vector256<int> maskB = Vector256.Create(0, -1, 0, -1, 0, -1, 0, -1);
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
+
+    /// <summary>
+    /// Interleaves the upper half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[4], b[4], a[5], b[5], a[6], b[6], a[7], b[7] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> InterleaveUpper(Vector256<int> a, Vector256<int> b)
+    {
+        Vector256<int> shuffledA = Vector256.Shuffle(a, Vector256.Create(4, 4, 5, 5, 6, 6, 7, 7));
+        Vector256<int> shuffledB = Vector256.Shuffle(b, Vector256.Create(4, 4, 5, 5, 6, 6, 7, 7));
+
+        Vector256<int> maskA = Vector256.Create(-1, 0, -1, 0, -1, 0, -1, 0);
+        Vector256<int> maskB = Vector256.Create(0, -1, 0, -1, 0, -1, 0, -1);
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
+
+    /// <summary>
+    /// Interleaves the lower half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[0], b[0], a[1], b[1], a[2], b[2], a[3], b[3] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> InterleaveLower(Vector256<float> a, Vector256<float> b)
+    {
+        Vector256<float> shuffledA = Vector256.Shuffle(a, Vector256.Create(0, 0, 1, 1, 2, 2, 3, 3));
+        Vector256<float> shuffledB = Vector256.Shuffle(b, Vector256.Create(0, 0, 1, 1, 2, 2, 3, 3));
+
+        Vector256<float> maskA = Vector256.Create(-1, 0, -1, 0, -1, 0, -1, 0).AsSingle();
+        Vector256<float> maskB = Vector256.Create(0, -1, 0, -1, 0, -1, 0, -1).AsSingle();
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
+
+    /// <summary>
+    /// Interleaves the upper half of the vector.
+    /// </summary>
+    /// <param name="a">First vector</param>
+    /// <param name="b">Second vector</param>
+    /// <returns>
+    ///   <c>{ a[4], b[4], a[5], b[5], a[6], b[6], a[7], b[7] }</c>
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> InterleaveUpper(Vector256<float> a, Vector256<float> b)
+    {
+        Vector256<float> shuffledA = Vector256.Shuffle(a, Vector256.Create(4, 4, 5, 5, 6, 6, 7, 7));
+        Vector256<float> shuffledB = Vector256.Shuffle(b, Vector256.Create(4, 4, 5, 5, 6, 6, 7, 7));
+
+        Vector256<float> maskA = Vector256.Create(-1, 0, -1, 0, -1, 0, -1, 0).AsSingle();
+        Vector256<float> maskB = Vector256.Create(0, -1, 0, -1, 0, -1, 0, -1).AsSingle();
+
+        return (shuffledA & maskA) | (shuffledB & maskB);
+    }
 }

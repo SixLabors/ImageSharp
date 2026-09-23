@@ -51,6 +51,20 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
     /// </summary>
     private int Tiles { get; }
 
+    /// <summary>
+    /// Gets a histogram index from BT.709 luminance, saturating out-of-range values and mapping NaN to zero.
+    /// </summary>
+    /// <param name="vector">The source color.</param>
+    /// <param name="levels">The number of histogram bins.</param>
+    /// <returns>The bounded histogram index.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static int GetLuminanceIndex(Vector4 vector, int levels)
+    {
+        // Unbounded luminance can address outside the histogram; NaN maps to its first bin.
+        float luminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+        return (int)MathF.Round(luminance * (levels - 1));
+    }
+
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
@@ -145,7 +159,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
             {
                 ref TPixel pixel = ref rowSpan[dx];
                 Vector4 vector = pixel.ToUnassociatedScaledVector4();
-                int luminance = ColorNumerics.GetBT709Luminance(vector, luminanceLevels);
+                int luminance = GetLuminanceIndex(vector, luminanceLevels);
                 float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, luminance);
                 vector.X = vector.Y = vector.Z = luminanceEqualized;
                 pixel = TPixel.FromUnassociatedScaledVector4(vector);
@@ -292,7 +306,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int tileHeight,
         int luminanceLevels)
     {
-        int luminance = ColorNumerics.GetBT709Luminance(sourceVector, luminanceLevels);
+        int luminance = GetLuminanceIndex(sourceVector, luminanceLevels);
         float tx = tileX / (float)(tileWidth - 1);
         float ty = tileY / (float)(tileHeight - 1);
 
@@ -336,7 +350,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int tileWidth,
         int luminanceLevels)
     {
-        int luminance = ColorNumerics.GetBT709Luminance(sourceVector, luminanceLevels);
+        int luminance = GetLuminanceIndex(sourceVector, luminanceLevels);
         float tx = tilePos / (float)(tileWidth - 1);
 
         float cdfLuminance1 = cdfData.RemapGreyValue(tileX1, tileY1, luminance);

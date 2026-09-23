@@ -18,7 +18,7 @@ internal static class Av1ProbabilityCost
     /// <summary>
     /// Gets the probability costs for normalized eight-bit probabilities from 128 through 255.
     /// </summary>
-    private static ReadOnlySpan<ushort> ProbabilityCosts =>
+    private static readonly ushort[] ProbabilityCosts =
     [
         512, 506, 501, 495, 489, 484, 478, 473, 467, 462, 456, 451, 446, 441, 435,
         430, 425, 420, 415, 410, 405, 400, 395, 390, 385, 380, 375, 371, 366, 361,

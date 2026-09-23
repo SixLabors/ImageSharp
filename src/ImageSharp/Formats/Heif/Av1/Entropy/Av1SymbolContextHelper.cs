@@ -62,31 +62,14 @@ internal static class Av1SymbolContextHelper
     private const int TransformSetCount = 6;
 
     /// <summary>
-    /// Gets the mapping from each transform set and transform type to its coded symbol index.
+    /// The collection expression of a span property rebuilds its array on every read, so each table
+    /// that a cost query reaches lives in a field instead.
     /// </summary>
-    private static ReadOnlySpan<byte> ExtendedTransformIndices =>
-    [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // DCT only
-        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Inter set 3
-        1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Intra set 2
-        1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, // Intra set 1
-        3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0, // Inter set 2
-        7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6 // All 16, inter set 1
-    ];
+    private static readonly int[] EndOfBlockOffsetBitValues = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-    /// <summary>
-    /// Gets the mapping from transform-set types to their intra and inter transform-type distribution indices.
-    /// </summary>
-    private static ReadOnlySpan<sbyte> ExtendedTransformSetToIndex =>
-    [
-        0, -1, 2, 1, -1, -1,
-        0, 3, -1, -1, 2, 1
-    ];
+    private static readonly int[] EndOfBlockGroupStartValues = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
 
-    /// <summary>
-    /// Gets the mapping from coded transform-type symbols to transform types for each transform set.
-    /// </summary>
-    private static ReadOnlySpan<Av1TransformType> ExtendedTransformTypes =>
+    private static readonly Av1TransformType[] ExtendedTransformTypeValues =
     [
 
         // DCT only. Unused positions retain DCT-DCT so each set occupies one fixed 16-entry row.
@@ -127,6 +110,33 @@ internal static class Av1SymbolContextHelper
     ];
 
     /// <summary>
+    /// Gets the mapping from each transform set and transform type to its coded symbol index.
+    /// </summary>
+    private static ReadOnlySpan<byte> ExtendedTransformIndices =>
+    [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // DCT only
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Inter set 3
+        1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Intra set 2
+        1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, // Intra set 1
+        3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0, // Inter set 2
+        7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6 // All 16, inter set 1
+    ];
+
+    /// <summary>
+    /// Gets the mapping from transform-set types to their intra and inter transform-type distribution indices.
+    /// </summary>
+    private static ReadOnlySpan<sbyte> ExtendedTransformSetToIndex =>
+    [
+        0, -1, 2, 1, -1, -1,
+        0, 3, -1, -1, 2, 1
+    ];
+
+    /// <summary>
+    /// Gets the mapping from coded transform-type symbols to transform types for each transform set.
+    /// </summary>
+    private static ReadOnlySpan<Av1TransformType> ExtendedTransformTypes => ExtendedTransformTypeValues;
+
+    /// <summary>
     /// Gets the number of coded symbols in each transform set.
     /// </summary>
     private static ReadOnlySpan<byte> ExtendedTransformTypeCounts =>
@@ -137,12 +147,12 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Gets the number of extra offset bits associated with each end-of-block token.
     /// </summary>
-    public static ReadOnlySpan<int> EndOfBlockOffsetBits => [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    public static ReadOnlySpan<int> EndOfBlockOffsetBits => EndOfBlockOffsetBitValues;
 
     /// <summary>
     /// Gets the first coefficient position represented by each end-of-block token.
     /// </summary>
-    public static ReadOnlySpan<int> EndOfBlockGroupStart => [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
+    public static ReadOnlySpan<int> EndOfBlockGroupStart => EndOfBlockGroupStartValues;
 
     /// <summary>
     /// Gets the mapping from end-of-block positions below 33 directly to their token.

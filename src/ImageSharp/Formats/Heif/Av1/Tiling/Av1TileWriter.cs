@@ -1398,6 +1398,7 @@ internal partial class Av1TileWriter
                     int subY = planeType == Av1PlaneType.Uv && colorConfig.SubSamplingY ? 1 : 0;
                     int blockWidth = blockSize.GetWidth();
                     int blockHeight = blockSize.GetHeight();
+
                     // A chroma plane narrower or shorter than four samples belongs to a block that shares
                     // its chroma with the neighbour it pairs with, so its map covers the pair.
                     // Reference: av1_get_block_dimensions().

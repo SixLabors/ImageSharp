@@ -69,6 +69,26 @@ internal struct JxlMatrix3x3F
     }
 
     /// <summary>
+    /// Gets a reference to the matrix element at the specified coordinates.
+    /// </summary>
+    /// <param name="x">The zero-based column index.</param>
+    /// <param name="y">The zero-based row index.</param>
+    /// <returns>A reference to the matrix element.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="x"/> or <paramref name="y"/> is outside the range 0 through 2.
+    /// </exception>
+    public ref float this[int x, int y]
+    {
+        get
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)x, 3u, nameof(x));
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)y, 3u, nameof(y));
+
+            return ref this.AsSpan()[(y * 3) + x];
+        }
+    }
+
+    /// <summary>
     /// Wraps all these values into a Span.
     /// </summary>
     /// <returns>A Span with all matrix elements.</returns>
@@ -152,4 +172,15 @@ internal struct JxlMatrix3x3F
 
         return true;
     }
+
+    /// <summary>
+    /// Gets a reference to the matrix element at the specified coordinates without performing bounds checks.
+    /// </summary>
+    /// <param name="x">The zero-based column index.</param>
+    /// <param name="y">The zero-based row index.</param>
+    /// <returns>A reference to the matrix element.</returns>
+    /// <remarks>
+    /// The caller must ensure that <paramref name="x"/> and <paramref name="y"/> are both in the range 0 through 2.
+    /// </remarks>
+    public ref float DangerousGetReferenceTo(int x, int y) => ref this.AsSpan()[(y * 3) + x];
 }

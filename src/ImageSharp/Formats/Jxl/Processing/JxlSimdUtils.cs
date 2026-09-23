@@ -561,16 +561,17 @@ internal static partial class JxlSimdUtils
     /// <param name="vec">Vector to duplicate.</param>
     /// <returns>New vector that is duplicated across the width.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<T> LoadDuplicate128<T>(Vector128<T> vec)
+    public static unsafe Vector<T> LoadDuplicate128<T>(Vector128<T> vec)
         where T : unmanaged
     {
         Span<T> value = stackalloc T[Vector<T>.Count];
-        for (int i = 0; i < Vector<T>.Count; i += 4)
+
+        for (int i = 0; i < Vector<T>.Count; i += sizeof(T))
         {
             vec.CopyTo(value[i..]);
         }
 
-        return new(value);
+        return new Vector<T>(value);
     }
 
     /// <summary>

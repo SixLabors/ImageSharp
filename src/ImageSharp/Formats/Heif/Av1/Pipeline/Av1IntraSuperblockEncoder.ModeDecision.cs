@@ -54,6 +54,39 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Gets the partition candidate evaluation order.
     /// </summary>
+    /// <summary>
+    /// The position of the split candidate in <see cref="PartitionSearchOrder"/>.
+    /// </summary>
+    private const int SplitSearchOrderIndex = 1;
+
+    /// <summary>
+    /// Reports whether a plane position falls inside the window named by AV1_TRACE_XY, which reads
+    /// "plane,x,y[,width,height]". Diagnostic only.
+    /// </summary>
+    private static bool TraceWindowMatches(Av1Plane plane, Point planeOrigin)
+    {
+        string? spec = Environment.GetEnvironmentVariable("AV1_TRACE_XY");
+        if (spec is null)
+        {
+            return false;
+        }
+
+        string[] parts = spec.Split(',');
+        if (parts.Length < 3 ||
+            !int.TryParse(parts[0], System.Globalization.CultureInfo.InvariantCulture, out int tracePlane) ||
+            !int.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, out int traceX) ||
+            !int.TryParse(parts[2], System.Globalization.CultureInfo.InvariantCulture, out int traceY))
+        {
+            return false;
+        }
+
+        int traceWidth = parts.Length > 3 && int.TryParse(parts[3], System.Globalization.CultureInfo.InvariantCulture, out int w) ? w : 8;
+        int traceHeight = parts.Length > 4 && int.TryParse(parts[4], System.Globalization.CultureInfo.InvariantCulture, out int h) ? h : 8;
+        return (int)plane == tracePlane &&
+            planeOrigin.X >= traceX && planeOrigin.X < traceX + traceWidth &&
+            planeOrigin.Y >= traceY && planeOrigin.Y < traceY + traceHeight;
+    }
+
     private static ReadOnlySpan<Av1PartitionType> PartitionSearchOrder =>
     [
         Av1PartitionType.None,
@@ -626,6 +659,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1PartitionType> searchOrder = PartitionSearchOrder;
             int candidateCount = blockSize == Av1BlockSize.Block8x8 ? 4 : searchOrder.Length;
             bool noneInvalid = true;
+            bool splitInvalid = true;
             noneCost = 0;
             long nonePartitionCost = 0;
             InlineArray4<long> splitNoneCosts = default;
@@ -736,6 +770,19 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
                 Av1PartitionType partitionType = searchOrder[candidateIndex];
+
+                // Neither the unsplit candidate nor the split candidate produced a cost, so nothing
+                // remains that this block can code. A candidate the search skipped counts as one that
+                // produced no cost. Reference: the early_term_after_none_split check that
+                // av1_rd_pick_partition() makes after its split search.
+                if (candidateIndex > SplitSearchOrderIndex && noneInvalid && splitInvalid &&
+                    !this.mustFindValidPartition &&
+                    partitionSettings.TerminatePartitionSearchAfterInvalidNoneAndSplit &&
+                    blockSize != this.picture.Sequence.SequenceHeader.SuperblockSize)
+                {
+                    break;
+                }
+
                 if ((!allowMotionNone && partitionType == Av1PartitionType.None) ||
                     (!allowMotionSplit && partitionType == Av1PartitionType.Split) ||
                     (squarePartitionsOnly && partitionType is not (Av1PartitionType.None or Av1PartitionType.Split)))
@@ -1193,6 +1240,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     allowRectangularSplit = false;
                 }
 
+                if (partitionType == Av1PartitionType.Split)
+                {
+                    splitInvalid = accumulatedCost == long.MaxValue;
+                }
+
                 bool terminateAfterSplit = !this.mustFindValidPartition && partitionType == Av1PartitionType.Split &&
                     ShouldTerminatePartitionSearchAfterNoneAndSplit(
                         this.picture.Parent.SpeedSettings.TerminatePartitionSearchAfterInvalidNoneAndSplit,
@@ -1618,6 +1670,25 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 statistics.Add(this.rateMultiplier, in childStatistics);
                 accumulatedCost = statistics.Cost;
+
+                // A sibling predicts from the reconstruction this leaf leaves behind, so encode the leaf
+                // across every plane before moving on. The mode search alone leaves the last chroma
+                // candidate in the plane, not the winner. A split child encodes itself when its own
+                // partition search ends. Reference: the encode_superblock() call that
+                // rectangular_partition_search() makes between its two sub-partitions, and the one that
+                // rd_try_subblock() makes for every sub-block but the last.
+                if (searchChildren && partitionType != Av1PartitionType.Split && leafIndex + 1 < leafCount &&
+                    this.picture.Parent.FrameHeader.IsIntra)
+                {
+                    Av1EncoderPartitionTree.ModeContext sibling =
+                        this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
+                    int siblingLumaArea = this.codedAreaLuma;
+                    int siblingChromaArea = this.codedAreaChroma;
+                    this.ReconstructSelectedIntraBlock(writer, macroBlock, leafOrigin, tileIndex, sibling);
+                    this.codedAreaLuma = siblingLumaArea;
+                    this.codedAreaChroma = siblingChromaArea;
+                }
+
                 bool reusableSplit = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8 && leafIndex < 2;
                 bool reusableRectangle = partitionType is Av1PartitionType.Horizontal or Av1PartitionType.Vertical &&
                     leafIndex == 0 && statistics.Cost < costLimit.Cost;
@@ -5845,6 +5916,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.rateMultiplier,
                 isInter,
                 this.picture.Sequence.SequenceHeader.IsStillPicture,
+
+                // The reference refines the coefficients of the block it finally codes: is_trellis_used()
+                // is true for the default optimize_coefficients of init_rd_sf(). Refinement stays off here
+                // until OptimizeCoefficients matches av1_optimize_b, because turning it on with the
+                // current refinement moves the first differing block of a speed 6 encode from 569 to 34.
                 true,
                 ref state);
 
@@ -5866,6 +5942,42 @@ internal static partial class Av1IntraSuperblockEncoder
                 // over the same block transforms it with the default type rather than the one this
                 // search picked. Reference: the update_txk_array() call of encode_block_intra().
                 state.TransformType = Av1TransformType.DctDct;
+            }
+
+            if (Entropy.Av1SymbolWriter.DiagnosticSymbolTrace is not null && TraceWindowMatches(plane, planeOrigin))
+            {
+                System.Text.StringBuilder reconLine = new();
+                reconLine.Append(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} pred");
+                for (int i = 0; i < width && i < 8; i++)
+                {
+                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {Convert.ToInt32(prediction[i])}");
+                }
+
+                reconLine.Append(" res");
+                for (int i = 0; i < 8; i++)
+                {
+                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {residual[i]}");
+                }
+
+                reconLine.Append(" q");
+                for (int i = 0; i < 8; i++)
+                {
+                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {coefficients[i]}");
+                }
+
+                reconLine.Append(" dst");
+                for (int r = 0; r < height && r < 8; r++)
+                {
+                    Span<TSample> reconRow = destinationPlane.DangerousGetRowSpan(planeOrigin.Y + r);
+                    for (int c = 0; c < width && c < 8; c++)
+                    {
+                        reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {Convert.ToInt32(reconRow[planeOrigin.X + c])}");
+                    }
+                }
+
+                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(reconLine.ToString());
             }
         }
 

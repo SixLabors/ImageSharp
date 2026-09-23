@@ -2786,10 +2786,18 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             ? blockHeight
             : blockHeight + (partitionInfo.ModeBlockToBottomEdge >> 3);
 
-        planeWidth = blockWidth >> subX;
-        planeHeight = blockHeight >> subY;
-        columns = columnsInsideImage >> subX;
-        rows = rowsInsideImage >> subY;
+        // A chroma plane narrower or shorter than four samples belongs to a block that shares its
+        // chroma with the neighbour it pairs with, so its map covers the pair. Reference:
+        // av1_get_block_dimensions().
+        int planeBlockWidth = blockWidth >> subX;
+        int planeBlockHeight = blockHeight >> subY;
+        int chromaSub8Width = planeType == Av1PlaneType.Uv && planeBlockWidth < 4 ? 2 : 0;
+        int chromaSub8Height = planeType == Av1PlaneType.Uv && planeBlockHeight < 4 ? 2 : 0;
+
+        planeWidth = planeBlockWidth + chromaSub8Width;
+        planeHeight = planeBlockHeight + chromaSub8Height;
+        columns = (columnsInsideImage >> subX) + chromaSub8Width;
+        rows = (rowsInsideImage >> subY) + chromaSub8Height;
     }
 
     /// <summary>

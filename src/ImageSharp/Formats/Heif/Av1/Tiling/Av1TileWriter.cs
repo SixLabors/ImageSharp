@@ -1398,13 +1398,20 @@ internal partial class Av1TileWriter
                     int subY = planeType == Av1PlaneType.Uv && colorConfig.SubSamplingY ? 1 : 0;
                     int blockWidth = blockSize.GetWidth();
                     int blockHeight = blockSize.GetHeight();
-                    int planeWidth = blockWidth >> subX;
-                    int planeHeight = blockHeight >> subY;
+                    // A chroma plane narrower or shorter than four samples belongs to a block that shares
+                    // its chroma with the neighbour it pairs with, so its map covers the pair.
+                    // Reference: av1_get_block_dimensions().
+                    int planeBlockWidth = blockWidth >> subX;
+                    int planeBlockHeight = blockHeight >> subY;
+                    int chromaSub8Width = planeType == Av1PlaneType.Uv && planeBlockWidth < 4 ? 2 : 0;
+                    int chromaSub8Height = planeType == Av1PlaneType.Uv && planeBlockHeight < 4 ? 2 : 0;
+                    int planeWidth = planeBlockWidth + chromaSub8Width;
+                    int planeHeight = planeBlockHeight + chromaSub8Height;
 
                     // Palette syntax covers coded alignment samples too. Visible-frame clipping would omit symbols
                     // that the decoder consumes before transform syntax and corrupt the remainder of the tile.
-                    int columns = (blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subX;
-                    int rows = (blockHeight + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subY;
+                    int columns = ((blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subX) + chromaSub8Width;
+                    int rows = ((blockHeight + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subY) + chromaSub8Height;
                     int tokenCount = rows * columns;
                     if (TBlockEncoder.UsesRetainedDecisions)
                     {

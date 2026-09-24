@@ -1757,6 +1757,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 : resolution == 1 ? IntraPartitionSplitThreshMidres[sizeIndex] : IntraPartitionSplitThreshLowres[sizeIndex];
             float noSplitThreshold = resolution == 2 ? IntraPartitionNoSplitThreshHdres[sizeIndex]
                 : resolution == 1 ? IntraPartitionNoSplitThreshMidres[sizeIndex] : IntraPartitionNoSplitThreshLowres[sizeIndex];
+            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                $"CNN {blockOrigin.X},{blockOrigin.Y} {blockSize} logit {score:F6} split {splitThreshold:F6} nosplit {noSplitThreshold:F6}");
             bool squareOnly = score > splitThreshold;
             if (squareOnly)
             {

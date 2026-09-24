@@ -758,6 +758,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 squarePartitionsOnly |= !allowMotionNone;
             }
 
+            // A block above the largest partition may only split, whatever the models above decided.
+            // Reference: av1_prune_partitions_by_max_min_bsize(), which av1_rd_pick_partition() applies
+            // after av1_prune_partitions_before_search().
+            if (blockSize > this.maximumPartitionSize)
+            {
+                allowMotionNone = false;
+                allowMotionSplit = true;
+                allowRectangularSplit = false;
+            }
+
             if (this.picture.Sequence.SequenceHeader.IsStillPicture &&
                 (blockSize >= Av1BlockSize.Block16x16 || (!this.mustFindValidPartition && partitionSettings.Speed >= HeifEncodingSpeed.Level6)))
             {

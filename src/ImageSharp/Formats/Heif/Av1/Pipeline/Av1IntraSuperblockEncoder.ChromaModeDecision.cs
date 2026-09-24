@@ -1538,12 +1538,6 @@ internal static partial class Av1IntraSuperblockEncoder
                                 coefficientOffset,
                                 transformSampleCount);
 
-                            predictionDistortion += this.GetChromaPredictionDistortion(
-                                residual,
-                                transformWidth,
-                                Math.Min(transformWidth, source.Width - transformOrigin.X),
-                                Math.Min(transformHeight, source.Height - transformOrigin.Y));
-
                             ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
                             long transformDistortion = TOperator.EncodePredictionCandidate(
                                 this.blockWorkspace,
@@ -1567,8 +1561,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                 this.quantization.DeltaQDc[(int)plane],
                                 this.quantization.DeltaQAc[(int)plane],
                                 this.bitDepth,
-                                ref state);
+                                ref state,
+                                out long transformSse);
 
+                            // The uncoded cost uses the energy the transform search reports, which is measured in
+                            // the transform domain whenever the distortion is. Reference: the sse of search_tx_type().
+                            predictionDistortion += transformSse;
                             int transformRate = writer.GetCoefficientCost(
                                 transformSize,
                                 transformType,
@@ -1697,20 +1695,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 usesInterTransformSet: false);
 
             return distortion;
-        }
-
-        private long GetChromaPredictionDistortion(ReadOnlySpan<short> residual, int stride, int width, int height)
-        {
-            long squares = 0;
-            for (int row = 0; row < height; row++)
-            {
-                squares += Av1ResidualBuilder.SumSquares(residual.Slice(row * stride, width));
-            }
-
-            // Keep the same eight-bit distortion scale for every sample precision, rounding once
-            // for the complete transform before accumulating it with the other transforms.
-            int shift = (this.bitDepth.GetBitCount() - 8) * 2;
-            return ((squares + ((1L << shift) >> 1)) >> shift) << 4;
         }
 
         private static int FindBestChromaFromLumaEstimate(
@@ -1956,7 +1940,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.quantization.DeltaQAc[(int)Av1Plane.U],
                 this.bitDepth,
                 distortionPolicy,
-                ref candidateBlueState);
+                ref candidateBlueState,
+                out long blueSse);
 
             int blueRate = writer.GetCoefficientCost(
                 transformSize,
@@ -1970,11 +1955,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraMode.AllFilterIntraModes,
                 usesInterTransformSet: false);
 
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
-            int visibleWidth = Math.Min(width, blueSource.Width - chromaOrigin.X);
-            int visibleHeight = Math.Min(height, blueSource.Height - chromaOrigin.Y);
-            long predictionDistortion = this.GetChromaPredictionDistortion(this.blockWorkspace.Residual, width, visibleWidth, visibleHeight);
+            // The uncoded cost uses the energy the transform search reports, which is measured in the transform
+            // domain whenever the distortion is. Reference: the sse of search_tx_type().
+            long predictionDistortion = blueSse;
 
             // An intra plane whose transform blocks exceed the bound is invalid before the uncoded cost is
             // considered. Reference: the exit_early test of block_rd_txfm() within av1_txfm_rd_in_plane().
@@ -2017,9 +2000,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.quantization.DeltaQAc[(int)Av1Plane.V],
                 this.bitDepth,
                 distortionPolicy,
-                ref candidateRedState);
+                ref candidateRedState,
+                out long redSse);
 
-            predictionDistortion += this.GetChromaPredictionDistortion(this.blockWorkspace.Residual, width, visibleWidth, visibleHeight);
+            predictionDistortion += redSse;
 
             // The mode and angle are written once for the UV pair; coefficient syntax remains independent
             // because each plane has its own EOB, scan values, and neighboring coefficient context.

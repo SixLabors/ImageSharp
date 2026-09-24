@@ -6982,7 +6982,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.quantization.DeltaQDc[(int)plane],
                     this.quantization.DeltaQAc[(int)plane],
                     this.bitDepth,
-                    ref candidateState);
+                    ref candidateState,
+                    out _);
 
                 int candidateRate = writer.GetCoefficientCost(
                     transformSize,

@@ -125,6 +125,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
     /// <returns>The normalized distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
@@ -151,7 +152,8 @@ internal static partial class Av1TransformBlockEncoder
         int acDeltaQ,
         Av1Plane plane,
         (int Type, uint Threshold) distortionPolicy,
-        ref Av1EncoderTransformBlockState state)
+        ref Av1EncoderTransformBlockState state,
+        out long sse)
     {
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
@@ -193,6 +195,7 @@ internal static partial class Av1TransformBlockEncoder
                 workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(
                 workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+        sse = residualEnergy;
 
         // predict_dc_only_block settles a block whose residual cannot survive
         // quantization. Its prediction stands as the reconstruction and it codes the all-zero flag alone.
@@ -266,7 +269,7 @@ internal static partial class Av1TransformBlockEncoder
                     workspace.DequantizedCoefficients[..codedCoefficientCount],
                     transformSize,
                     Av1BitDepth.EightBit,
-                    out _);
+                    out sse);
         }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
@@ -305,6 +308,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodePredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
@@ -327,7 +331,8 @@ internal static partial class Av1TransformBlockEncoder
         int dcDeltaQ,
         int acDeltaQ,
         Av1Plane plane,
-        ref Av1EncoderTransformBlockState state)
+        ref Av1EncoderTransformBlockState state,
+        out long sse)
     {
         // search_tx_type measures the residual of the visible samples, can settle
         // the block as skipped before any transform, and selects the distortion domain of this stage.
@@ -343,6 +348,7 @@ internal static partial class Av1TransformBlockEncoder
         long residualEnergy = predictDcBlock
             ? GetBlockStatistics(residual, inputStride, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+        sse = residualEnergy;
 
         if (predictDcBlock && PredictSkippedBlock(
             transformSize,
@@ -416,7 +422,7 @@ internal static partial class Av1TransformBlockEncoder
                 workspace.DequantizedCoefficients[..codedCoefficientCount],
                 transformSize,
                 Av1BitDepth.EightBit,
-                out _);
+                out sse);
         }
 
         return BoundPixelDistortion(pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
@@ -811,6 +817,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
     /// <returns>The normalized distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
@@ -838,7 +845,8 @@ internal static partial class Av1TransformBlockEncoder
         Av1Plane plane,
         Av1BitDepth bitDepth,
         (int Type, uint Threshold) distortionPolicy,
-        ref Av1EncoderTransformBlockState state)
+        ref Av1EncoderTransformBlockState state,
+        out long sse)
     {
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
@@ -881,6 +889,7 @@ internal static partial class Av1TransformBlockEncoder
                 workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(
                 workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+        sse = residualEnergy;
 
         // predict_dc_only_block settles a block whose residual cannot survive
         // quantization. Its prediction stands as the reconstruction and it codes the all-zero flag alone.
@@ -955,7 +964,7 @@ internal static partial class Av1TransformBlockEncoder
                     workspace.DequantizedCoefficients[..codedCoefficientCount],
                     transformSize,
                     bitDepth,
-                    out _);
+                    out sse);
         }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
@@ -1000,6 +1009,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long EncodePredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
@@ -1023,7 +1033,8 @@ internal static partial class Av1TransformBlockEncoder
         int acDeltaQ,
         Av1Plane plane,
         Av1BitDepth bitDepth,
-        ref Av1EncoderTransformBlockState state)
+        ref Av1EncoderTransformBlockState state,
+        out long sse)
     {
         // search_tx_type measures the residual of the visible samples, can settle
         // the block as skipped before any transform, and selects the distortion domain of this stage.
@@ -1039,6 +1050,7 @@ internal static partial class Av1TransformBlockEncoder
         long residualEnergy = predictDcBlock
             ? GetBlockStatistics(residual, inputStride, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+        sse = residualEnergy;
 
         if (predictDcBlock && PredictSkippedBlock(
             transformSize,
@@ -1113,7 +1125,7 @@ internal static partial class Av1TransformBlockEncoder
                 workspace.DequantizedCoefficients[..codedCoefficientCount],
                 transformSize,
                 bitDepth,
-                out _);
+                out sse);
         }
 
         return BoundPixelDistortion(pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);

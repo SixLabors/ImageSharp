@@ -524,7 +524,8 @@ public class Av1TransformBlockEncoderTests
 
             // Type zero measures the candidate in the pixel domain, as speed 0 does.
             (0, 0u),
-            ref state);
+            ref state,
+            out _);
 
         for (int y = 0; y < Height; y++)
         {
@@ -584,7 +585,8 @@ public class Av1TransformBlockEncoderTests
             dcDeltaQ: 0,
             acDeltaQ: 0,
             Av1Plane.Y,
-            ref state);
+            ref state,
+            out _);
 
         Assert.Equal((ushort)0, state.EndOfBlock);
         Assert.True(prediction.AsSpan().SequenceEqual(reconstruction));
@@ -640,7 +642,8 @@ public class Av1TransformBlockEncoderTests
             acDeltaQ: 0,
             Av1Plane.Y,
             Av1BitDepth.TwelveBit,
-            ref state);
+            ref state,
+            out _);
 
         Assert.Equal((ushort)0, state.EndOfBlock);
         Assert.True(prediction.AsSpan().SequenceEqual(reconstruction));
@@ -723,7 +726,8 @@ public class Av1TransformBlockEncoderTests
 
             // Type zero measures the candidate in the pixel domain, as speed 0 does.
             (0, 0u),
-            ref state);
+            ref state,
+            out _);
 
         Assert.Equal(0, distortion);
         Assert.Equal((ushort)0, state.EndOfBlock);

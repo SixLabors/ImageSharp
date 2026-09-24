@@ -1049,7 +1049,8 @@ public class Av1IntraSuperblockEncoderTests
                         0,
                         0,
                         bitDepth,
-                        ref state);
+                        ref state,
+                        out _);
 
                     int rate = writer.GetSkipCost(false, skipContext) + writer.GetCoefficientCost(
                         Av1TransformSize.Size8x8,

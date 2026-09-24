@@ -302,6 +302,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
         /// <param name="state">The candidate transform state.</param>
+        /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
         /// <returns>The normalized distortion in AV1 transform units.</returns>
         public static abstract long EncodeCandidate(
             Av1EncoderBlockWorkspace workspace,
@@ -329,7 +330,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int acDeltaQ,
             Av1BitDepth bitDepth,
             (int Type, uint Threshold) distortionPolicy,
-            ref Av1EncoderTransformBlockState state);
+            ref Av1EncoderTransformBlockState state,
+            out long sse);
 
         /// <summary>
         /// Builds one spatial intra prediction and its source residual for reuse across transform candidates.
@@ -557,6 +559,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         /// <param name="state">The candidate transform state.</param>
+        /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
         /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
         public static abstract long EncodePredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
@@ -580,7 +583,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int dcDeltaQ,
             int acDeltaQ,
             Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state);
+            ref Av1EncoderTransformBlockState state,
+            out long sse);
 
         /// <summary>
         /// Encodes one chroma-from-luma candidate into contiguous decision scratch.
@@ -1049,7 +1053,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int acDeltaQ,
             Av1BitDepth bitDepth,
             (int Type, uint Threshold) distortionPolicy,
-            ref Av1EncoderTransformBlockState state)
+            ref Av1EncoderTransformBlockState state,
+            out long sse)
             => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
                 workspace,
                 writer,
@@ -1075,7 +1080,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 acDeltaQ,
                 plane,
                 distortionPolicy,
-                ref state);
+                ref state,
+                out sse);
 
         /// <inheritdoc/>
         public static void PrepareIntra(
@@ -1492,7 +1498,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int dcDeltaQ,
             int acDeltaQ,
             Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state)
+            ref Av1EncoderTransformBlockState state,
+            out long sse)
             => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
                 workspace,
                 writer,
@@ -1514,7 +1521,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 dcDeltaQ,
                 acDeltaQ,
                 plane,
-                ref state);
+                ref state,
+                out sse);
 
         /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(
@@ -1989,7 +1997,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int acDeltaQ,
             Av1BitDepth bitDepth,
             (int Type, uint Threshold) distortionPolicy,
-            ref Av1EncoderTransformBlockState state)
+            ref Av1EncoderTransformBlockState state,
+            out long sse)
             => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
                 workspace,
                 writer,
@@ -2016,7 +2025,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 plane,
                 bitDepth,
                 distortionPolicy,
-                ref state);
+                ref state,
+                out sse);
 
         /// <inheritdoc/>
         public static void PrepareIntra(
@@ -2453,7 +2463,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int dcDeltaQ,
             int acDeltaQ,
             Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state)
+            ref Av1EncoderTransformBlockState state,
+            out long sse)
             => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
                 workspace,
                 writer,
@@ -2476,7 +2487,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 acDeltaQ,
                 plane,
                 bitDepth,
-                ref state);
+                ref state,
+                out sse);
 
         /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(

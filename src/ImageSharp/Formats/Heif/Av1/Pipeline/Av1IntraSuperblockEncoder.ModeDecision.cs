@@ -2075,14 +2075,19 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1EncoderPartitionTree tree = this.blockWorkspace.PartitionTree;
-            int count = Math.Min(childCosts.Length, stoppedAtLeaf);
+            // The leaf that ended the search early still keeps the context its own search filled, so
+            // a split child whose partition search found nothing within its budget still offers its
+            // unsplit mode. Reference: copy_partition_mode_from_pc_tree(), which tests only the rate of
+            // pc_tree->split[i]->none.
+            int count = Math.Min(childCosts.Length, stoppedAtLeaf + 1);
             for (int leaf = 0; leaf < count; leaf++)
             {
-                // A square child that never searched its unsplit shape reports no cost, and offers no mode:
-                // its unsplit context exists but still holds the invalid statistics it was created with.
-                // Reference: set_none_partition_params(), which allocates the context whether or not the
-                // shape is allowed, and av1_alloc_pmc(), which invalidates its rd_stats.
-                if (childCosts[leaf] == long.MaxValue || (partitionType == Av1PartitionType.Split && childCosts[leaf] == 0))
+                // A leaf that was never searched reports no cost, and offers no mode. A square child that
+                // never searched its unsplit shape is the same: its unsplit context exists but still holds
+                // the invalid statistics it was created with. Reference: set_none_partition_params(),
+                // which allocates the context whether or not the shape is allowed, and av1_alloc_pmc(),
+                // which invalidates its rd_stats.
+                if (childCosts[leaf] == long.MaxValue || childCosts[leaf] == 0)
                 {
                     continue;
                 }

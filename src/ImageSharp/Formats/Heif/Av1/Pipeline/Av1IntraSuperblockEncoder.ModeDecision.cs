@@ -2630,8 +2630,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // A still picture at the non-RD speeds never searches a copy, even in the blocks that take the full
+            // search, although its header may still allow one. Reference: the use_nonrd_pick_mode and
+            // rt_use_intrabc test that opens rd_pick_intrabc_mode_sb().
             bool allowIntraBlockCopy = this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
-            bool searchIntraBlockCopy = allowIntraBlockCopy && this.picture.Parent.MotionSearchSettings.AllowIntraBlockCopy &&
+            bool nonRdWithoutCopy = this.picture.Sequence.SequenceHeader.IsStillPicture &&
+                this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8;
+            bool searchIntraBlockCopy = allowIntraBlockCopy && !nonRdWithoutCopy &&
+                this.picture.Parent.MotionSearchSettings.AllowIntraBlockCopy &&
                 (!this.picture.Parent.MotionSearchSettings.UseFastIntraBlockCopySearch ||
                  blockSize is Av1BlockSize.Block4x4 or Av1BlockSize.Block8x8 or Av1BlockSize.Block16x16);
 

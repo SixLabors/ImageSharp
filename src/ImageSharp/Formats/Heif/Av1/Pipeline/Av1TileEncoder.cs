@@ -231,6 +231,30 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
+    /// Determines whether any coded block copies from the current frame.
+    /// </summary>
+    /// <param name="picture">The completed frame decisions.</param>
+    /// <returns><see langword="true"/> when at least one block uses intra block copy.</returns>
+    private static bool UsesIntraBlockCopy(Av1PictureControlSet picture)
+    {
+        ObuFrameHeader header = picture.Parent.FrameHeader;
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        for (int row = 0; row < header.ModeInfoRowCount; row++)
+        {
+            for (int column = 0; column < header.ModeInfoColumnCount; column++)
+            {
+                if (allocation[grid[(row * picture.ModeInfoStride) + column]].Block.UseIntraBlockCopy)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Determines whether any coded block uses a transform smaller than the largest its size permits, the
     /// condition under which the reference increments <c>txb_split_count</c> while it encodes each block.
     /// </summary>
@@ -442,6 +466,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
         _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
             writer, source, references, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+
+        // A frame that allows intra block copy but never selects it stops allowing it, which also leaves the
+        // in-loop filters free to run. Reference: the intrabc_used test at the end of encode_frame_internal().
+        if (frameHeader.AllowIntraBlockCopy && !UsesIntraBlockCopy(picture))
+        {
+            frameHeader.AllowIntraBlockCopy = false;
+        }
 
         // When no coded block split its transform, av1_encode_frame signals the largest transforms instead of
         // selecting them per block. The frame parameter update that holds this runs

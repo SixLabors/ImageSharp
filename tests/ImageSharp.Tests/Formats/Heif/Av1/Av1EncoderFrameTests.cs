@@ -1905,9 +1905,12 @@ public class Av1EncoderFrameTests
         obuReader.ReadAll(ref reader, payload.Length, () => tileReader);
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(obuReader.FrameHeader);
         Assert.True(frameHeader.AllowScreenContentTools);
-        Assert.True(frameHeader.AllowIntraBlockCopy);
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        // A frame keeps intra block copy allowed only when one of its blocks copies.
+        // Reference: the intrabc_used test at the end of encode_frame_internal().
+        Assert.Equal(UsesIntraBlockCopy(decoder), frameHeader.AllowIntraBlockCopy);
         using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -1992,7 +1995,10 @@ public class Av1EncoderFrameTests
         // search, where libaom does not evaluate the screen-content tools at all.
         bool screenContentEvaluated = speed < HeifEncodingSpeed.Level9;
         Assert.Equal(screenContentEvaluated, frameHeader.AllowScreenContentTools);
-        Assert.Equal(screenContentEvaluated, frameHeader.AllowIntraBlockCopy);
+
+        // A frame keeps intra block copy allowed only when one of its blocks copies.
+        // Reference: the intrabc_used test at the end of encode_frame_internal().
+        Assert.Equal(UsesIntraBlockCopy(decoder), frameHeader.AllowIntraBlockCopy);
 
         // A frame whose blocks all keep their largest transform signals that mode instead of per-block sizes.
         Assert.True(frameHeader.TransformMode is Av1TransformMode.Select or Av1TransformMode.Largest);
@@ -2423,5 +2429,29 @@ public class Av1EncoderFrameTests
 
             return base.AllocateCore<T>(length, options);
         }
+    }
+
+    private static bool UsesIntraBlockCopy(Av1Decoder decoder)
+    {
+        Av1FrameInfo info = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        int superblockSize = decoder.SequenceHeader!.SuperblockModeInfoSize;
+        int columns = (decoder.FrameHeader!.ModeInfoColumnCount + superblockSize - 1) / superblockSize;
+        int rows = (decoder.FrameHeader.ModeInfoRowCount + superblockSize - 1) / superblockSize;
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                Point position = new(column, row);
+                foreach (Av1BlockModeInfo mode in info.GetModeInfos(position, info.GetModeInfoCount(position)))
+                {
+                    if (mode.UseIntraBlockCopy)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

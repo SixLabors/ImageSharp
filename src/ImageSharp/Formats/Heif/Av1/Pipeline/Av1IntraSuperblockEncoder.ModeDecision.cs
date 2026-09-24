@@ -2072,7 +2072,11 @@ internal static partial class Av1IntraSuperblockEncoder
             int count = Math.Min(childCosts.Length, stoppedAtLeaf);
             for (int leaf = 0; leaf < count; leaf++)
             {
-                if (childCosts[leaf] == long.MaxValue)
+                // A square child that never searched its unsplit shape reports no cost, and offers no mode:
+                // its unsplit context exists but still holds the invalid statistics it was created with.
+                // Reference: set_none_partition_params(), which allocates the context whether or not the
+                // shape is allowed, and av1_alloc_pmc(), which invalidates its rd_stats.
+                if (childCosts[leaf] == long.MaxValue || (partitionType == Av1PartitionType.Split && childCosts[leaf] == 0))
                 {
                     continue;
                 }

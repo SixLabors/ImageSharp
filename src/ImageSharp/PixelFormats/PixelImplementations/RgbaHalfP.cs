@@ -160,7 +160,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaHalfP FromUnassociatedVector4(Vector4 source)
     {
-        // Associate with the alpha actually stored as binary16 so a later native unassociation
+        // Associate with the alpha actually stored as half-precision so a later native unassociation
         // observes the same straight color when alpha rounds during packing.
         source.W = HalfTypeHelper.Unpack(HalfTypeHelper.Pack(source.W));
         Numerics.Premultiply(ref source);

@@ -190,12 +190,15 @@ internal static class HorizontalPredictor
         }
         else if (bitsPerPixel == 16)
         {
-            // Assume rows are L16 grayscale since that's currently the only way 16 bits is supported by encoder
-            ApplyHorizontalPrediction16Bit(rows, width);
+            ApplyHorizontalPrediction16Bit(rows, width, 1);
         }
         else if (bitsPerPixel == 24)
         {
             ApplyHorizontalPrediction24Bit(rows, width);
+        }
+        else if (bitsPerPixel == 48 || bitsPerPixel == 64)
+        {
+            ApplyHorizontalPrediction16Bit(rows, width, bitsPerPixel / 16);
         }
     }
 
@@ -228,26 +231,26 @@ internal static class HorizontalPredictor
     }
 
     /// <summary>
-    /// Applies a horizontal predictor to the L16 row.
-    /// Make use of the fact that many continuous-tone images rarely vary much in pixel value from one pixel to the next.
-    /// In such images, if we replace the pixel values by differences between consecutive pixels, many of the differences should be 0, plus
-    /// or minus 1, and so on.This reduces the apparent information content and allows LZW to encode the data more compactly.
+    /// Applies horizontal differencing to each 16-bit component using the preceding pixel's corresponding component.
     /// </summary>
-    /// <param name="rows">The L16 pixel rows.</param>
+    /// <param name="rows">The rows of native-endian 16-bit samples.</param>
     /// <param name="width">The width.</param>
+    /// <param name="samplesPerPixel">The number of 16-bit components in each pixel.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ApplyHorizontalPrediction16Bit(Span<byte> rows, int width)
+    private static void ApplyHorizontalPrediction16Bit(Span<byte> rows, int width, int samplesPerPixel)
     {
         DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
         int height = rows.Length / width;
         for (int y = 0; y < height; y++)
         {
             Span<byte> rowSpan = rows.Slice(y * width, width);
-            Span<L16> rowL16 = MemoryMarshal.Cast<byte, L16>(rowSpan);
+            Span<ushort> samples = MemoryMarshal.Cast<byte, ushort>(rowSpan);
 
-            for (int x = rowL16.Length - 1; x >= 1; x--)
+            // TIFF Predictor 2 uses a one-pixel sample stride (libtiff horDiff16).
+            // Walk backward so every subtraction uses the original preceding sample.
+            for (int i = samples.Length - 1; i >= samplesPerPixel; i--)
             {
-                rowL16[x].PackedValue = (ushort)(rowL16[x].PackedValue - rowL16[x - 1].PackedValue);
+                samples[i] = (ushort)(samples[i] - samples[i - samplesPerPixel]);
             }
         }
     }

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// </summary>
 internal static class HalfTypeHelper
 {
-    // These constants mirror the binary16 conversion used by System.Half. Keeping the vector conversion
+    // These constants mirror the half-precision conversion used by System.Half. Keeping the vector conversion
     // bit-for-bit equivalent to the scalar runtime conversion makes SIMD a pure throughput optimization.
     private const uint HalfExponentMask = 0x7C00;
     private const uint HalfQuietNaNMask = 0x0200;
@@ -45,9 +45,9 @@ internal static class HalfTypeHelper
     internal static float Unpack(ushort value) => (float)BitConverter.UInt16BitsToHalf(value);
 
     /// <summary>
-    /// Unpacks eight binary16 values into two vectors of single-precision values.
+    /// Unpacks eight half-precision values into two vectors of single-precision values.
     /// </summary>
-    /// <param name="value">The packed binary16 values.</param>
+    /// <param name="value">The packed half-precision values.</param>
     /// <returns>The unpacked lower and upper values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static (Vector128<float> Lower, Vector128<float> Upper) Unpack(Vector128<ushort> value)
@@ -57,9 +57,9 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Unpacks sixteen binary16 values into two vectors of single-precision values.
+    /// Unpacks sixteen half-precision values into two vectors of single-precision values.
     /// </summary>
-    /// <param name="value">The packed binary16 values.</param>
+    /// <param name="value">The packed half-precision values.</param>
     /// <returns>The unpacked lower and upper values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static (Vector256<float> Lower, Vector256<float> Upper) Unpack(Vector256<ushort> value)
@@ -69,9 +69,9 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Unpacks thirty-two binary16 values into two vectors of single-precision values.
+    /// Unpacks thirty-two half-precision values into two vectors of single-precision values.
     /// </summary>
-    /// <param name="value">The packed binary16 values.</param>
+    /// <param name="value">The packed half-precision values.</param>
     /// <returns>The unpacked lower and upper values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static (Vector512<float> Lower, Vector512<float> Upper) Unpack(Vector512<ushort> value)
@@ -81,39 +81,39 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Packs eight single-precision values into binary16 storage.
+    /// Packs eight single-precision values into half-precision storage.
     /// </summary>
     /// <param name="lower">The lower single-precision values.</param>
     /// <param name="upper">The upper single-precision values.</param>
-    /// <returns>The packed binary16 values.</returns>
+    /// <returns>The packed half-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector128<ushort> Pack(Vector128<float> lower, Vector128<float> upper)
         => Vector128.Narrow(ConvertSingleToHalfBits(lower), ConvertSingleToHalfBits(upper));
 
     /// <summary>
-    /// Packs sixteen single-precision values into binary16 storage.
+    /// Packs sixteen single-precision values into half-precision storage.
     /// </summary>
     /// <param name="lower">The lower single-precision values.</param>
     /// <param name="upper">The upper single-precision values.</param>
-    /// <returns>The packed binary16 values.</returns>
+    /// <returns>The packed half-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector256<ushort> Pack(Vector256<float> lower, Vector256<float> upper)
         => Vector256.Narrow(ConvertSingleToHalfBits(lower), ConvertSingleToHalfBits(upper));
 
     /// <summary>
-    /// Packs thirty-two single-precision values into binary16 storage.
+    /// Packs thirty-two single-precision values into half-precision storage.
     /// </summary>
     /// <param name="lower">The lower single-precision values.</param>
     /// <param name="upper">The upper single-precision values.</param>
-    /// <returns>The packed binary16 values.</returns>
+    /// <returns>The packed half-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector512<ushort> Pack(Vector512<float> lower, Vector512<float> upper)
         => Vector512.Narrow(ConvertSingleToHalfBits(lower), ConvertSingleToHalfBits(upper));
 
     /// <summary>
-    /// Expands a span of binary16 components into single-precision components without changing their values.
+    /// Expands a span of half-precision components into single-precision components without changing their values.
     /// </summary>
-    /// <param name="source">The packed binary16 components.</param>
+    /// <param name="source">The packed half-precision components.</param>
     /// <param name="destination">The expanded components.</param>
     internal static void Unpack(ReadOnlySpan<ushort> source, Span<float> destination)
     {
@@ -163,10 +163,10 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Narrows single-precision components into binary16 storage using the same rounding as <see cref="Half"/>.
+    /// Narrows single-precision components into half-precision storage using the same rounding as <see cref="Half"/>.
     /// </summary>
     /// <param name="source">The single-precision components.</param>
-    /// <param name="destination">The packed binary16 components.</param>
+    /// <param name="destination">The packed half-precision components.</param>
     internal static void Pack(ReadOnlySpan<float> source, Span<ushort> destination)
     {
         ref float sourceBase = ref MemoryMarshal.GetReference(source);
@@ -216,7 +216,7 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Expands four-component binary16 pixels and associates their first three components with the fourth.
+    /// Expands four-component half-precision pixels and associates their first three components with the fourth.
     /// </summary>
     /// <param name="source">The packed components, grouped in fours.</param>
     /// <param name="destination">The expanded components.</param>
@@ -278,7 +278,7 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Unassociates four-component vectors and packs their native values into binary16 storage.
+    /// Unassociates four-component vectors and packs their native values into half-precision storage.
     /// </summary>
     /// <param name="source">The associated components, grouped in fours.</param>
     /// <param name="destination">The packed components.</param>
@@ -341,7 +341,7 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Expands associated four-component binary16 pixels and unassociates their first three components.
+    /// Expands associated four-component half-precision pixels and unassociates their first three components.
     /// </summary>
     /// <param name="source">The packed components, grouped in fours.</param>
     /// <param name="destination">The expanded components.</param>
@@ -408,7 +408,7 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Associates four-component vectors with their stored binary16 alpha and packs them.
+    /// Associates four-component vectors with their stored half-precision alpha and packs them.
     /// </summary>
     /// <param name="source">The unassociated components, grouped in fours.</param>
     /// <param name="destination">The packed components.</param>
@@ -504,7 +504,7 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Associates the first three components with alpha rounded to binary16 storage.
+    /// Associates the first three components with alpha rounded to half-precision storage.
     /// </summary>
     /// <param name="source">The unassociated components.</param>
     /// <returns>The associated components with their stored alpha.</returns>
@@ -552,36 +552,36 @@ internal static class HalfTypeHelper
         => Numerics.UnPremultiply(source, Vector512_.ShuffleNative(source, 0b_11_11_11_11));
 
     /// <summary>
-    /// Rounds single-precision values through binary16 without changing the vector width.
+    /// Rounds single-precision values through half-precision without changing the vector width.
     /// </summary>
     /// <param name="value">The single-precision values.</param>
-    /// <returns>The values after binary16 quantization.</returns>
+    /// <returns>The values after half-precision quantization.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector128<float> RoundToHalf(Vector128<float> value)
         => ConvertHalfBitsToSingle(ConvertSingleToHalfBits(value));
 
     /// <summary>
-    /// Rounds single-precision values through binary16 without changing the vector width.
+    /// Rounds single-precision values through half-precision without changing the vector width.
     /// </summary>
     /// <param name="value">The single-precision values.</param>
-    /// <returns>The values after binary16 quantization.</returns>
+    /// <returns>The values after half-precision quantization.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector256<float> RoundToHalf(Vector256<float> value)
         => ConvertHalfBitsToSingle(ConvertSingleToHalfBits(value));
 
     /// <summary>
-    /// Rounds single-precision values through binary16 without changing the vector width.
+    /// Rounds single-precision values through half-precision without changing the vector width.
     /// </summary>
     /// <param name="value">The single-precision values.</param>
-    /// <returns>The values after binary16 quantization.</returns>
+    /// <returns>The values after half-precision quantization.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector512<float> RoundToHalf(Vector512<float> value)
         => ConvertHalfBitsToSingle(ConvertSingleToHalfBits(value));
 
     /// <summary>
-    /// Converts zero-extended binary16 bit patterns to single-precision values.
+    /// Converts zero-extended half-precision bit patterns to single-precision values.
     /// </summary>
-    /// <param name="value">The binary16 bit patterns.</param>
+    /// <param name="value">The half-precision bit patterns.</param>
     /// <returns>The converted single-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<float> ConvertHalfBitsToSingle(Vector128<uint> value)
@@ -593,7 +593,7 @@ internal static class HalfTypeHelper
         Vector128<uint> maskedExponentLowerBound = subnormalMask & Vector128.Create(SingleExponentLowerBound);
         Vector128<uint> exponentOffset = Vector128.Create(SingleExponentOffset) | maskedExponentLowerBound;
 
-        // Binary16 and binary32 fraction fields differ by thirteen bits. Subnormals and special values
+        // Half and float fraction fields differ by thirteen bits. Subnormals and special values
         // need different exponent offsets before that shared field layout can be reinterpreted as float.
         Vector128<uint> bits = Vector128.ShiftLeft(value, 13) & Vector128.Create(HalfToSingleBitsMask);
         exponentOffset = Vector128.ConditionalSelect(infinityOrNaNMask, Vector128.ShiftLeft(exponentOffset, 1), exponentOffset);
@@ -603,9 +603,9 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Converts zero-extended binary16 bit patterns to single-precision values.
+    /// Converts zero-extended half-precision bit patterns to single-precision values.
     /// </summary>
-    /// <param name="value">The binary16 bit patterns.</param>
+    /// <param name="value">The half-precision bit patterns.</param>
     /// <returns>The converted single-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<float> ConvertHalfBitsToSingle(Vector256<uint> value)
@@ -617,7 +617,7 @@ internal static class HalfTypeHelper
         Vector256<uint> maskedExponentLowerBound = subnormalMask & Vector256.Create(SingleExponentLowerBound);
         Vector256<uint> exponentOffset = Vector256.Create(SingleExponentOffset) | maskedExponentLowerBound;
 
-        // Binary16 and binary32 fraction fields differ by thirteen bits. Subnormals and special values
+        // Half and float fraction fields differ by thirteen bits. Subnormals and special values
         // need different exponent offsets before that shared field layout can be reinterpreted as float.
         Vector256<uint> bits = Vector256.ShiftLeft(value, 13) & Vector256.Create(HalfToSingleBitsMask);
         exponentOffset = Vector256.ConditionalSelect(infinityOrNaNMask, Vector256.ShiftLeft(exponentOffset, 1), exponentOffset);
@@ -627,9 +627,9 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Converts zero-extended binary16 bit patterns to single-precision values.
+    /// Converts zero-extended half-precision bit patterns to single-precision values.
     /// </summary>
-    /// <param name="value">The binary16 bit patterns.</param>
+    /// <param name="value">The half-precision bit patterns.</param>
     /// <returns>The converted single-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<float> ConvertHalfBitsToSingle(Vector512<uint> value)
@@ -641,7 +641,7 @@ internal static class HalfTypeHelper
         Vector512<uint> maskedExponentLowerBound = subnormalMask & Vector512.Create(SingleExponentLowerBound);
         Vector512<uint> exponentOffset = Vector512.Create(SingleExponentOffset) | maskedExponentLowerBound;
 
-        // Binary16 and binary32 fraction fields differ by thirteen bits. Subnormals and special values
+        // Half and float fraction fields differ by thirteen bits. Subnormals and special values
         // need different exponent offsets before that shared field layout can be reinterpreted as float.
         Vector512<uint> bits = Vector512.ShiftLeft(value, 13) & Vector512.Create(HalfToSingleBitsMask);
         exponentOffset = Vector512.ConditionalSelect(infinityOrNaNMask, Vector512.ShiftLeft(exponentOffset, 1), exponentOffset);
@@ -651,10 +651,10 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Converts single-precision values to zero-extended binary16 bit patterns.
+    /// Converts single-precision values to zero-extended half-precision bit patterns.
     /// </summary>
     /// <param name="value">The single-precision values.</param>
-    /// <returns>The binary16 bit patterns in 32-bit lanes.</returns>
+    /// <returns>The half-precision bit patterns in 32-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<uint> ConvertSingleToHalfBits(Vector128<float> value)
     {
@@ -667,7 +667,7 @@ internal static class HalfTypeHelper
         exponentOffset &= Vector128.Create(SingleBiasedExponentMask);
         exponentOffset += Vector128.Create(SingleExponent13);
 
-        // Adding an exponent-sized float rounds the significand to binary16 precision using IEEE
+        // Adding an exponent-sized float rounds the significand to half precision using IEEE
         // round-to-nearest-even. The remaining integer operations realign the exponent and sign fields.
         value += exponentOffset.AsSingle();
         bits = value.AsUInt32() - Vector128.Create(SingleExponent126);
@@ -682,10 +682,10 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Converts single-precision values to zero-extended binary16 bit patterns.
+    /// Converts single-precision values to zero-extended half-precision bit patterns.
     /// </summary>
     /// <param name="value">The single-precision values.</param>
-    /// <returns>The binary16 bit patterns in 32-bit lanes.</returns>
+    /// <returns>The half-precision bit patterns in 32-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<uint> ConvertSingleToHalfBits(Vector256<float> value)
     {
@@ -698,7 +698,7 @@ internal static class HalfTypeHelper
         exponentOffset &= Vector256.Create(SingleBiasedExponentMask);
         exponentOffset += Vector256.Create(SingleExponent13);
 
-        // Adding an exponent-sized float rounds the significand to binary16 precision using IEEE
+        // Adding an exponent-sized float rounds the significand to half precision using IEEE
         // round-to-nearest-even. The remaining integer operations realign the exponent and sign fields.
         value += exponentOffset.AsSingle();
         bits = value.AsUInt32() - Vector256.Create(SingleExponent126);
@@ -713,10 +713,10 @@ internal static class HalfTypeHelper
     }
 
     /// <summary>
-    /// Converts single-precision values to zero-extended binary16 bit patterns.
+    /// Converts single-precision values to zero-extended half-precision bit patterns.
     /// </summary>
     /// <param name="value">The single-precision values.</param>
-    /// <returns>The binary16 bit patterns in 32-bit lanes.</returns>
+    /// <returns>The half-precision bit patterns in 32-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<uint> ConvertSingleToHalfBits(Vector512<float> value)
     {
@@ -729,7 +729,7 @@ internal static class HalfTypeHelper
         exponentOffset &= Vector512.Create(SingleBiasedExponentMask);
         exponentOffset += Vector512.Create(SingleExponent13);
 
-        // Adding an exponent-sized float rounds the significand to binary16 precision using IEEE
+        // Adding an exponent-sized float rounds the significand to half precision using IEEE
         // round-to-nearest-even. The remaining integer operations realign the exponent and sign fields.
         value += exponentOffset.AsSingle();
         bits = value.AsUInt32() - Vector512.Create(SingleExponent126);

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public partial struct RgbaHalfP
 {
     /// <summary>
-    /// Provides bulk operations for associated binary16 pixels.
+    /// Provides bulk operations for associated half-precision pixels.
     /// </summary>
     internal class PixelOperations : AssociatedAlphaPixelOperations<RgbaHalfP>
     {

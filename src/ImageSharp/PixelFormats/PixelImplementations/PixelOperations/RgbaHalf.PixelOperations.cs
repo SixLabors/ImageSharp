@@ -55,7 +55,7 @@ public partial struct RgbaHalf
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // Unassociation is fused with binary16 packing so processors do not pay for another pass over their vector buffer.
+            // Unassociation is fused with half-precision packing so processors do not pay for another pass over their vector buffer.
             HalfTypeHelper.PackFromAssociated(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.Cast<RgbaHalf, ushort>(destination[..source.Length]));
         }
 

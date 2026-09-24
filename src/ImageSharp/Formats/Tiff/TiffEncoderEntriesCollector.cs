@@ -382,6 +382,15 @@ internal class TiffEncoderEntriesCollector
                     });
                 }
             }
+            else if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit64)
+            {
+                // The bulk Rgba64 conversion writes straight color, so the fourth 16-bit
+                // sample must be identified as unassociated alpha.
+                this.Collector.AddOrReplace(new ExifShortArray(ExifTagValue.ExtraSamples)
+                {
+                    Value = [(ushort)TiffExtraSampleType.UnassociatedAlphaData]
+                });
+            }
 
             if (encoder.HorizontalPredictor == TiffPredictor.Horizontal &&
                 (encoder.PhotometricInterpretation is TiffPhotometricInterpretation.Rgb or
@@ -406,7 +415,7 @@ internal class TiffEncoderEntriesCollector
                 TiffPhotometricInterpretation.PaletteColor or
                 TiffPhotometricInterpretation.BlackIsZero or
                 TiffPhotometricInterpretation.WhiteIsZero => 1,
-                _ => 3,
+                _ => encoder.BitsPerPixel == TiffBitsPerPixel.Bit64 ? (ushort)4 : (ushort)3,
             };
         }
 
@@ -430,7 +439,12 @@ internal class TiffEncoderEntriesCollector
                     return TiffConstants.BitsPerSample8Bit.ToArray();
 
                 case TiffPhotometricInterpretation.Rgb:
-                    return TiffConstants.BitsPerSampleRgb8Bit.ToArray();
+                    return encoder.BitsPerPixel switch
+                    {
+                        TiffBitsPerPixel.Bit48 => [16, 16, 16],
+                        TiffBitsPerPixel.Bit64 => [16, 16, 16, 16],
+                        _ => TiffConstants.BitsPerSampleRgb8Bit.ToArray(),
+                    };
 
                 case TiffPhotometricInterpretation.WhiteIsZero:
                     return encoder.BitsPerPixel switch

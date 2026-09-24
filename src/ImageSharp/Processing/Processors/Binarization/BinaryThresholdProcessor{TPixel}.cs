@@ -84,24 +84,19 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
     }
 
     /// <summary>
-    /// Gets the selected metric without using the alpha component.
+    /// Gets the selected threshold metric from a pixel vector.
     /// </summary>
     /// <param name="vector">The source pixel components.</param>
     /// <param name="mode">The selected threshold metric.</param>
     /// <returns>The metric value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float GetMetric(Vector4 vector, BinaryThresholdMode mode)
-    {
-        // The alpha component is not part of any threshold metric. Clear it before
-        // the luminance dot product so even a nonfinite alpha cannot affect the result.
-        vector.W = 0F;
-        return mode switch
+        => mode switch
         {
             BinaryThresholdMode.Saturation => GetSaturation(vector),
             BinaryThresholdMode.MaxChroma => GetMaxChroma(vector),
             _ => ColorNumerics.GetBT709Luminance(vector)
         };
-    }
 
     /// <summary>
     /// Gets HSL saturation from the original color components.

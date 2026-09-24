@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Packed pixel type containing four associated 16-bit floating-point values.
 /// </summary>
 /// <remarks>
-/// Native and scaled vector conversions preserve the stored associated IEEE 754 binary16 values.
+/// Native and scaled vector conversions preserve the stored associated IEEE 754 half-precision values.
 /// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
@@ -110,7 +110,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector4P FromUnassociatedVector4(Vector4 source)
     {
-        // Association uses the alpha that binary16 stores so the color components
+        // Association uses the alpha that half-precision stores so the color components
         // retain their straight values when the supplied alpha rounds on packing.
         source.W = HalfTypeHelper.Unpack(HalfTypeHelper.Pack(source.W));
         Numerics.Premultiply(ref source);
@@ -186,10 +186,10 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     }
 
     /// <summary>
-    /// Packs the four native binary16 components in DirectX component order.
+    /// Packs the four native half-precision components in DirectX component order.
     /// </summary>
     /// <param name="vector">The component values.</param>
-    /// <returns>The packed binary16 value.</returns>
+    /// <returns>The packed half-precision value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong Pack(Vector4 vector)
     {

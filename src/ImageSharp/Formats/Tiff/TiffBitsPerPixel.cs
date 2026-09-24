@@ -48,8 +48,7 @@ public enum TiffBitsPerPixel
     Bit14 = 14,
 
     /// <summary>
-    /// <para>16 bits per pixel, for gray images.</para>
-    /// <para>Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 16 bits grayscale instead.</para>
+    /// 16 bits per pixel, for grayscale images.
     /// </summary>
     Bit16 = 16,
 
@@ -60,7 +59,7 @@ public enum TiffBitsPerPixel
 
     /// <summary>
     /// <para>30 bits per pixel. 10 bit for each color channel.</para>
-    /// <para>Note: The TiffEncoder does not yet support 10 bits per color channel and will default to 24 bits per pixel instead.</para>
+    /// <para>The TiffEncoder writes this request as 48 bits per pixel.</para>
     /// </summary>
     Bit30 = 30,
 
@@ -71,35 +70,35 @@ public enum TiffBitsPerPixel
 
     /// <summary>
     /// <para>36 bits per pixel. 12 bit for each color channel.</para>
-    /// <para>Note: The TiffEncoder does not yet support 12 bits per color channel and will default to 24 bits per pixel instead.</para>
+    /// <para>The TiffEncoder writes this request as 48 bits per pixel.</para>
     /// </summary>
     Bit36 = 36,
 
     /// <summary>
     /// <para>42 bits per pixel. 14 bit for each color channel.</para>
-    /// <para>Note: The TiffEncoder does not yet support 14 bits per color channel and will default to 24 bits per pixel instead.</para>
+    /// <para>The TiffEncoder writes this request as 48 bits per pixel.</para>
     /// </summary>
     Bit42 = 42,
 
     /// <summary>
-    /// <para>48 bits per pixel. 16 bit for each color channel.</para>
-    /// <para>Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 24 bits per pixel instead.</para>
+    /// 48 bits per pixel. Three 16-bit color samples.
     /// </summary>
     Bit48 = 48,
 
     /// <summary>
-    /// <para>64 bits per pixel. 16 bit for each color channel.</para>
-    /// <para>Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 32 bits per pixel instead.</para>
+    /// 64 bits per pixel. Three 16-bit color samples and a 16-bit alpha sample.
     /// </summary>
     Bit64 = 64,
 
     /// <summary>
     /// 96 bits per pixel, with three 32-bit color samples.
+    /// The TiffEncoder writes unsigned integer requests as 48 bits per pixel.
     /// </summary>
     Bit96 = 96,
 
     /// <summary>
     /// 128 bits per pixel, with four 32-bit color and alpha samples.
+    /// The TiffEncoder writes unsigned integer requests as 64 bits per pixel.
     /// </summary>
     Bit128 = 128,
 }

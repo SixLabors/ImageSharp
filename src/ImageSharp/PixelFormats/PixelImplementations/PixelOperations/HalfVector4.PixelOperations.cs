@@ -48,7 +48,7 @@ public partial struct HalfVector4
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // DirectX half vectors store the binary16 result, including finite values outside [0, 1].
+            // DirectX half vectors store the half-precision result, including finite values outside [0, 1].
             HalfTypeHelper.Pack(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.Cast<HalfVector4, ushort>(destination[..source.Length]));
         }
 

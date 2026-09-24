@@ -26,7 +26,10 @@ public partial struct RgbaVectorP
         /// <inheritdoc />
         protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
         {
-            this.ToAssociatedVector4(configuration, source, destination);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            MemoryMarshal.Cast<RgbaVectorP, Vector4>(source).CopyTo(destination);
+
+            // Unassociate the destination after copying so the stored source components are unchanged.
             Numerics.UnPremultiply(destination[..source.Length]);
         }
 
@@ -40,8 +43,11 @@ public partial struct RgbaVectorP
         /// <inheritdoc />
         protected override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
         {
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // The source is destructive by contract, so associate it before copying to storage.
             Numerics.Premultiply(source);
-            this.FromAssociatedVector4Destructive(configuration, source, destination);
+            MemoryMarshal.Cast<Vector4, RgbaVectorP>(source).CopyTo(destination);
         }
 
         /// <inheritdoc />

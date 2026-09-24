@@ -479,6 +479,15 @@ internal sealed class TiffEncoderCore
             return;
         }
 
+        // Unsupported integer color depths use 16-bit channels. Choose the
+        // layout before compression so JPEG's 8-bit writer is not selected.
+        bitsPerPixel = bitsPerPixel switch
+        {
+            TiffBitsPerPixel.Bit30 or TiffBitsPerPixel.Bit36 or TiffBitsPerPixel.Bit42 or TiffBitsPerPixel.Bit96 => TiffBitsPerPixel.Bit48,
+            TiffBitsPerPixel.Bit128 => TiffBitsPerPixel.Bit64,
+            _ => bitsPerPixel
+        };
+
         // Ensure 1 Bit compression is only used with 1 bit pixel type.
         // Choose a sensible default based on the bits per pixel.
         if (IsOneBitCompression(compression) && bitsPerPixel != TiffBitsPerPixel.Bit1)
@@ -492,6 +501,14 @@ internal sealed class TiffEncoderCore
 
         // Ensure predictor is only used with compression that supports it.
         predictor = HasPredictor(compression) ? predictor : TiffPredictor.None;
+
+        // The JPEG compressor writes 8-bit RGB only. Keep a requested 16-bit color
+        // depth by selecting the established non-bilevel compression fallback.
+        if (compression == TiffCompression.Jpeg &&
+            (bitsPerPixel == TiffBitsPerPixel.Bit48 || bitsPerPixel == TiffBitsPerPixel.Bit64))
+        {
+            compression = TiffCompression.Deflate;
+        }
 
         // BitsPerPixel should be the primary source of truth for the encoder options.
         switch (bitsPerPixel)
@@ -530,22 +547,12 @@ internal sealed class TiffEncoderCore
             case TiffBitsPerPixel.Bit10:
             case TiffBitsPerPixel.Bit12:
             case TiffBitsPerPixel.Bit14:
-            case TiffBitsPerPixel.Bit30:
-            case TiffBitsPerPixel.Bit36:
-            case TiffBitsPerPixel.Bit42:
-            case TiffBitsPerPixel.Bit48:
                 // Encoding not yet supported bits per pixel will default to 24 bits.
                 this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, predictor);
                 break;
-            case TiffBitsPerPixel.Bit96:
-            case TiffBitsPerPixel.Bit128:
-                // Float samples are handled before this switch. The integer writer cannot
-                // emit 32-bit samples, so unsigned output uses its RGB24 fallback.
-                this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, predictor);
-                break;
+            case TiffBitsPerPixel.Bit48:
             case TiffBitsPerPixel.Bit64:
-                // Encoding not yet supported bits per pixel will default to 32 bits.
-                this.SetEncoderOptions(TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Rgb, compression, predictor);
+                this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);
                 break;
             default:
                 this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);

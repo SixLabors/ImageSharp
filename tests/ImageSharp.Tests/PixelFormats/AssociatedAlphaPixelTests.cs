@@ -367,7 +367,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
             float lower = (float)BitConverter.UInt16BitsToHalf((ushort)bits);
             float upper = (float)BitConverter.UInt16BitsToHalf((ushort)(bits + 1));
 
-            // Every midpoint exercises binary16 round-to-nearest-even; negating it covers the symmetric sign path.
+            // Every midpoint exercises half-precision round-to-nearest-even; negating it covers the symmetric sign path.
             float midpoint = (lower + upper) * .5F;
             components[index++] = midpoint;
             components[index++] = -midpoint;

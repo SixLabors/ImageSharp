@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 public class FloatingPointPixelPreservationTests
 {
     /// <summary>
-    /// The four binary16 pixel types keep the same DirectX component order and bit layout.
+    /// The four half-precision pixel types keep the same DirectX component order and bit layout.
     /// </summary>
     [Fact]
     public void FourComponentHalfPixelsKeepDirectXLayout()
@@ -407,7 +407,7 @@ public class FloatingPointPixelPreservationTests
     }
 
     /// <summary>
-    /// Scalar and SIMD binary16 packing use nearest-even rounding, overflow to infinity, and signed zero.
+    /// Scalar and SIMD half-precision packing use nearest-even rounding, overflow to infinity, and signed zero.
     /// </summary>
     [Fact]
     public void HalfVector4BulkPackingMatchesBinary16BoundaryBits()
@@ -416,7 +416,7 @@ public class FloatingPointPixelPreservationTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks binary16 boundary bits at each supported instruction width.
+    /// Checks half-precision boundary bits at each supported instruction width.
     /// </summary>
     private static void AssertHalfVector4BulkPackingMatchesBinary16BoundaryBits()
     {

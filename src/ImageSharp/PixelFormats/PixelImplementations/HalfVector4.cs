@@ -7,10 +7,10 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing four IEEE 754 binary16 floating-point values.
+/// Packed pixel type containing four IEEE 754 half-precision floating-point values.
 /// </summary>
 /// <remarks>
-/// Native and scaled vector conversions return the stored IEEE 754 binary16 values directly.
+/// Native and scaled vector conversions return the stored IEEE 754 half-precision values directly.
 /// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>

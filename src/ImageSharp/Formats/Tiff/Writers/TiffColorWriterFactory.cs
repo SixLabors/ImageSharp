@@ -21,15 +21,27 @@ internal static class TiffColorWriterFactory
         TiffEncoderEntriesCollector entriesCollector,
         int bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel>
-        => photometricInterpretation switch
+    {
+        switch (photometricInterpretation)
         {
-            TiffPhotometricInterpretation.PaletteColor => new TiffPaletteWriter<TPixel>(image, encodingSize, quantizer, pixelSamplingStrategy, memoryAllocator, configuration, entriesCollector, bitsPerPixel),
-            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bitsPerPixel switch
-            {
-                1 => new TiffBiColorWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
-                16 => new TiffGrayL16Writer<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
-                _ => new TiffGrayWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector)
-            },
-            _ => new TiffRgbWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
-        };
+            case TiffPhotometricInterpretation.PaletteColor:
+                return new TiffPaletteWriter<TPixel>(image, encodingSize, quantizer, pixelSamplingStrategy, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
+            case TiffPhotometricInterpretation.BlackIsZero:
+            case TiffPhotometricInterpretation.WhiteIsZero:
+                return bitsPerPixel switch
+                {
+                    1 => new TiffBiColorWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
+                    16 => new TiffGrayL16Writer<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
+                    _ => new TiffGrayWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector)
+                };
+
+            default:
+                if (bitsPerPixel == 48 || bitsPerPixel == 64)
+                {
+                    return new TiffRgb16Writer<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
+                }
+
+                return new TiffRgbWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector);
+        }
+    }
 }

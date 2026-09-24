@@ -34,7 +34,7 @@ public class BinaryThresholdTest
     }
 
     [Fact]
-    public void LuminanceThreshold_IgnoresNonfiniteMetricsAndAlpha()
+    public void LuminanceThreshold_NonfiniteMetricsSelectLower()
     {
         using Image<RgbaVector> image = new(65, 1);
         for (int x = 0; x < image.Width; x++)
@@ -55,7 +55,7 @@ public class BinaryThresholdTest
         Assert.Equal(0F, image[31, 0].R);
         Assert.Equal(0F, image[32, 0].R);
         Assert.Equal(0F, image[33, 0].R);
-        Assert.Equal(1F, image[34, 0].R);
+        Assert.Equal(0F, image[34, 0].R);
     }
 
     [Fact]

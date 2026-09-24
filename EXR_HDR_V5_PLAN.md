@@ -59,7 +59,7 @@ Examples define the result:
 - HalfVector4 component 0 becomes 0 in RgbaVector, not 0.5.
 
 The current HalfSingle and HalfVector scaled methods map the full finite
-binary16 range to [0, 1]. Replace that rule. It destroys the meaning of zero
+half-precision range to [0, 1]. Replace that rule. It destroys the meaning of zero
 and near-zero HDR values. Do not change their DirectX-compatible storage layout.
 
 ## Values at the boundaries
@@ -70,7 +70,7 @@ saturation and nonfinite rules at its storage boundary. Any change needed to
 make those bounded rules consistent belongs in the bounded pixel implementation.
 
 Float-to-float conversion keeps NaN and infinities where the destination can
-store them. NaN payload and sign are not guaranteed. A binary16 destination
+store them. NaN payload and sign are not guaranteed. A half-precision destination
 uses the same conversion as System.Half: nearest value, ties to even, signed
 zero, and signed infinity for finite overflow. SIMD and scalar packers must
 give the same bits for finite values, infinities, and signed zero.
@@ -90,8 +90,10 @@ directly in the requested pixel type. A bounded TPixel therefore loses HDR
 values at its storage boundary. Neither overload requires a range option.
 Choose RgbaHalfP for associated EXR HALF, RgbaVectorP for associated EXR FLOAT
 or float TIFF, and the corresponding straight floating-point type when the
-file has no associated alpha. Read the file header or TIFF root directory once
-before selecting the pixel type; do not decode into a temporary image.
+file has no associated alpha. Follow the existing PNG decoder pattern: identify
+the sample layout, rewind, then dispatch to the generic decoder. This parses
+the header or root directory twice but decodes pixel data only once. Do not
+decode into a temporary image.
 
 Decode each image once into its final pixel buffer. Do not keep a second
 full-image copy of the source samples. EXR has no standard sample minimum or
@@ -118,7 +120,9 @@ minimum equals maximum, values equal to it use the upper color.
 
 Use the existing luminance calculation for luminance mode. Do not replace its
 weights with new constants. Apply the same range rule to the selected metric
-in the other threshold modes. Do not include alpha in the threshold metric.
+in the other threshold modes. Alpha has zero weight in luminance and is not a
+component of the other metrics. IEEE arithmetic still makes luminance NaN
+when alpha is NaN; treat that as a nonfinite metric.
 
 ## EXR and float TIFF
 
@@ -138,7 +142,7 @@ A new integer image keeps the existing integer TIFF default.
 
 DirectX compatibility means that RgbaVector and RgbaVectorP keep four float32
 components in order. RgbaHalf, RgbaHalfP, HalfVector4, and HalfVector4P keep
-four binary16 components in order. The P types change alpha interpretation,
+four half-precision components in order. The P types change alpha interpretation,
 not component layout. No native float conversion inserts an sRGB transfer
 function.
 
@@ -164,7 +168,7 @@ function.
 
 Check every source/destination group pair. Include zero, 0.4, one, 2.5,
 negative finite values, NaN, both infinities, and signed zero. Check each
-DirectX layout and the binary16 overflow boundary. Check SIMD widths and
+DirectX layout and the half-precision overflow boundary. Check SIMD widths and
 scalar tails against the same expected values. Check float EXR and TIFF
 load-save-load values. Check Image.Load without options and Image.Load<TPixel>.
 Check the exact TIFF tags and all supported float compression modes. Check

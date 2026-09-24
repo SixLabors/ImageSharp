@@ -16,6 +16,19 @@ public class ExrDecoderTests
     private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Exr;
 
     [Theory]
+    [InlineData(TestImages.Exr.UncompressedFloatRgb, typeof(Image<RgbaVector>))]
+    [InlineData(TestImages.Exr.UncompressedRgba, typeof(Image<RgbaHalfP>))]
+    [InlineData(TestImages.Exr.Rgb, typeof(Image<RgbaHalf>))]
+    public void DefaultLoad_UsesFloatingStorageForExrSamples(string imagePath, Type expectedImageType)
+    {
+        TestFile file = TestFile.Create(imagePath);
+        using MemoryStream stream = new(file.Bytes, false);
+        using Image image = Image.Load(stream);
+
+        Assert.Equal(expectedImageType, image.GetType());
+    }
+
+    [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_Uncompressed_Rgb_ExrPixelType_Half<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

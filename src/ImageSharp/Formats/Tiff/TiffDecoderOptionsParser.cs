@@ -111,6 +111,11 @@ internal static class TiffDecoderOptionsParser
         options.Predictor = frameMetadata.Predictor;
         options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation;
         options.SampleFormat = sampleFormat ?? TiffSampleFormat.UnsignedInteger;
+        frameMetadata.SampleFormat = options.SampleFormat;
+
+        // The typed frame metadata now owns this value. Remove the raw IFD tag so
+        // re-encoding cannot retain a stale SampleFormat when encoder options change it.
+        exifProfile.RemoveValue(ExifTag.SampleFormat);
         options.BitsPerPixel = (int)frameMetadata.BitsPerPixel;
         options.BitsPerSample = frameMetadata.BitsPerSample;
 

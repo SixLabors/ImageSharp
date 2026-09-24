@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -26,6 +27,22 @@ public class FloatingPointPixelPreservationTests
     }
 
     /// <summary>
+    /// Associated binary32 pixels keep the DirectX component order and signed zero.
+    /// </summary>
+    [Fact]
+    public void AssociatedFloatPixelsKeepDirectXLayout()
+    {
+        RgbaVectorP[] pixels = [new(1F, 2F, -0F, -1F)];
+        ReadOnlySpan<float> components = MemoryMarshal.Cast<RgbaVectorP, float>(pixels);
+
+        Assert.Equal(4, components.Length);
+        Assert.Equal(BitConverter.SingleToInt32Bits(1F), BitConverter.SingleToInt32Bits(components[0]));
+        Assert.Equal(BitConverter.SingleToInt32Bits(2F), BitConverter.SingleToInt32Bits(components[1]));
+        Assert.Equal(BitConverter.SingleToInt32Bits(-0F), BitConverter.SingleToInt32Bits(components[2]));
+        Assert.Equal(BitConverter.SingleToInt32Bits(-1F), BitConverter.SingleToInt32Bits(components[3]));
+    }
+
+    /// <summary>
     /// Floating-point formats preserve finite component values outside the unit interval.
     /// </summary>
     [Fact]
@@ -40,6 +57,7 @@ public class FloatingPointPixelPreservationTests
         Assert.Equal(source, RgbaVector.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
         Assert.Equal(source, HalfVector4P.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
         Assert.Equal(source, RgbaHalfP.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
+        Assert.Equal(source, RgbaVectorP.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
     }
 
     /// <summary>
@@ -55,6 +73,7 @@ public class FloatingPointPixelPreservationTests
         Assert.Equal(source, RgbaVector.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
         Assert.Equal(source, HalfVector4P.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
         Assert.Equal(source, RgbaHalfP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+        Assert.Equal(source, RgbaVectorP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
     }
 
     /// <summary>
@@ -77,6 +96,7 @@ public class FloatingPointPixelPreservationTests
         AssertBoundedConversion<RgbaVector>(expectedFour32, expectedFour64);
         AssertBoundedConversion<HalfVector4P>(expectedFour32, expectedFour64);
         AssertBoundedConversion<RgbaHalfP>(expectedFour32, expectedFour64);
+        AssertBoundedConversion<RgbaVectorP>(expectedFour32, expectedFour64);
     }
 
     /// <summary>
@@ -477,6 +497,12 @@ public class FloatingPointPixelPreservationTests
     public void RgbaHalfP_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<RgbaHalfP>();
 
     /// <summary>
+    /// Associated binary32 pixels preserve unassociated scaled input in scalar and bulk conversions.
+    /// </summary>
+    [Fact]
+    public void RgbaVectorP_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<RgbaVectorP>();
+
+    /// <summary>
     /// Raw half storage and scaled vectors preserve IEEE special values.
     /// </summary>
     [Fact]
@@ -493,6 +519,12 @@ public class FloatingPointPixelPreservationTests
     /// </summary>
     [Fact]
     public void RgbaHalfP_AssociatedScaledInputIsPreserved() => AssertAssociatedScaledInputIsPreserved<RgbaHalfP>();
+
+    /// <summary>
+    /// Associated binary32 pixels preserve stored values in scalar and bulk conversions.
+    /// </summary>
+    [Fact]
+    public void RgbaVectorP_AssociatedScaledInputIsPreserved() => AssertAssociatedScaledInputIsPreserved<RgbaVectorP>();
 
     /// <summary>
     /// Checks that the scaled modifier does not change finite floating-point input.

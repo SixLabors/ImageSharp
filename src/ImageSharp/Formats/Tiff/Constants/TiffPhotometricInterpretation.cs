@@ -10,7 +10,7 @@ public enum TiffPhotometricInterpretation : ushort
 {
     /// <summary>
     /// <para>Bilevel and grayscale: 0 is imaged as white. The maximum value is imaged as black.</para>
-    /// <para>Not supported by the TiffEncoder.</para>
+    /// <para>The TiffEncoder supports this interpretation for 32-bit floating-point grayscale samples.</para>
     /// </summary>
     WhiteIsZero = 0,
 

@@ -27,34 +27,45 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     /// <summary>
-    /// Decoded floating-point components are normalized before they enter half-vector storage.
+    /// Decoded floating-point components retain their values in half-vector storage.
     /// </summary>
     /// <param name="hex">The encoded floating-point TIFF.</param>
-    /// <param name="intensity">The normalized intensity.</param>
+    /// <param name="intensity">The decoded intensity.</param>
     [Theory]
     [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
-                "000020000000530103000100000003000000000000000000807F0000807F0000807F0000807F0000807F0000807F0000807F0000807F", 1F)]
+                "000020000000530103000100000003000000000000000000807F0000807F0000807F0000807F0000807F0000807F0000807F0000807F", float.PositiveInfinity)]
     [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
-                "000020000000530103000100000003000000000000000000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F", 0F)]
+                "000020000000530103000100000003000000000000000000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F", float.NaN)]
     [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
-                "000020000000530103000100000003000000000000000000004000000040000000400000004000000040000000400000004000000040", 1F)]
+                "000020000000530103000100000003000000000000000000004000000040000000400000004000000040000000400000004000000040", 2F)]
     [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
                 "000020000000530103000100000003000000000000000000003F0000003F0000003F0000003F0000003F0000003F0000003F0000003F", .5F)]
-    public void Decode_FloatingPointSamples_NormalizesHalfVector4(string hex, float intensity)
+    public void Decode_FloatingPointSamples_PreservesHalfVector4Values(string hex, float intensity)
     {
         byte[] data = Convert.FromHexString(hex);
         using Image<HalfVector4> image = Image.Load<HalfVector4>(data);
         Assert.Equal(new Size(8, 1), image.Size);
 
-        Vector4 expected = new(intensity, intensity, intensity, 1F);
-
         for (int x = 0; x < image.Width; x++)
         {
-            Assert.Equal(expected, image[x, 0].ToScaledVector4());
+            Vector4 actual = image[x, 0].ToScaledVector4();
+
+            if (float.IsNaN(intensity))
+            {
+                // NaN needs an explicit assertion for each decoded component.
+                Assert.True(float.IsNaN(actual.X));
+                Assert.True(float.IsNaN(actual.Y));
+                Assert.True(float.IsNaN(actual.Z));
+                Assert.Equal(1F, actual.W);
+            }
+            else
+            {
+                Assert.Equal(new Vector4(intensity, intensity, intensity, 1F), actual);
+            }
         }
     }
 

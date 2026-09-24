@@ -101,6 +101,58 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadExrHeader(stream);
+        return this.DecodePixels<TPixel>(stream, cancellationToken);
+    }
+
+    /// <summary>
+    /// Decodes into a floating-point pixel type selected from the EXR channel layout.
+    /// </summary>
+    /// <param name="configuration">The shared configuration.</param>
+    /// <param name="stream">The image stream.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The decoded image.</returns>
+    internal Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+    {
+        BufferedReadStream buffered = stream as BufferedReadStream ?? new BufferedReadStream(configuration, stream, cancellationToken);
+
+        try
+        {
+            this.ReadExrHeader(buffered);
+
+            // Choose storage after reading the channel types, then use the same pixel decode
+            // path as Image.Load<TPixel>. Associated storage retains color at zero alpha.
+            return this.PixelType switch
+            {
+                ExrPixelType.Half when this.ImageDataType == ExrImageDataType.Rgba => this.DecodePixels<RgbaHalfP>(buffered, cancellationToken),
+                ExrPixelType.Half => this.DecodePixels<RgbaHalf>(buffered, cancellationToken),
+                ExrPixelType.Float when this.ImageDataType == ExrImageDataType.Rgba => this.DecodePixels<RgbaVectorP>(buffered, cancellationToken),
+                ExrPixelType.Float => this.DecodePixels<RgbaVector>(buffered, cancellationToken),
+                _ => this.DecodePixels<Rgba32>(buffered, cancellationToken)
+            };
+        }
+        catch (InvalidMemoryOperationException ex)
+        {
+            throw new InvalidImageContentException(this.Dimensions, ex);
+        }
+        finally
+        {
+            if (buffered != stream)
+            {
+                buffered.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Decodes pixels after the EXR header has established channel types and image dimensions.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
+    /// <param name="stream">The positioned image stream.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The decoded image.</returns>
+    private Image<TPixel> DecodePixels<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         if (!this.IsSupportedCompression())
         {
             ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
@@ -165,6 +217,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         int width = this.Width;
         int height = this.Height;
         int channelCount = this.Channels.Count;
+        PixelConversionModifiers modifiers = PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale;
 
         // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
         using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
@@ -217,13 +270,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     offset += ReadFloatChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
-                for (int x = 0; x < width; x++)
-                {
-                    Vector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1F);
-
-                    // OpenEXR channels are associated color values, not values in the destination pixel format's native numeric range.
-                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(pixelValue);
-                }
+                PixelOperations<TPixel>.Instance.PackFromFloatPlanes(
+                    this.configuration,
+                    redPixelData,
+                    greenPixelData,
+                    bluePixelData,
+                    hasAlpha ? alphaPixelData : Span<float>.Empty,
+                    pixelRow,
+                    modifiers);
 
                 decodedRows++;
             }

@@ -153,16 +153,81 @@ internal class TiffDecoderCore : ImageDecoderCore
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        List<ImageFrame<TPixel>> frames = [];
-        List<ImageFrameMetadata> framesMetadata = [];
+        this.inputStream = stream;
+        DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
+        IList<ExifProfile> directories = reader.Read();
+        this.byteOrder = reader.ByteOrder;
+
+        return this.DecodeFrames<TPixel>(directories, reader, cancellationToken);
+    }
+
+    /// <summary>
+    /// Decodes into a pixel type selected from the root TIFF directory's sample format.
+    /// </summary>
+    /// <param name="configuration">The shared configuration.</param>
+    /// <param name="stream">The image stream.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The decoded image.</returns>
+    internal Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+    {
+        BufferedReadStream buffered = stream as BufferedReadStream ?? new BufferedReadStream(configuration, stream, cancellationToken);
+
         try
         {
-            this.inputStream = stream;
-            DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
-
+            this.inputStream = buffered;
+            DirectoryReader reader = new(buffered, this.configuration.MemoryAllocator);
             IList<ExifProfile> directories = reader.Read();
             this.byteOrder = reader.ByteOrder;
 
+            ExifProfile root = directories[0];
+            ushort[] sampleFormats = root.TryGetValue(ExifTag.SampleFormat, out IExifValue<ushort[]> formatValue)
+                ? formatValue.Value
+                : null;
+
+            if (sampleFormats is not null && sampleFormats.Length > 0 && sampleFormats[0] == (ushort)TiffSampleFormat.Float)
+            {
+                ushort[] extraSamples = root.TryGetValue(ExifTag.ExtraSamples, out IExifValue<ushort[]> extraValue)
+                    ? extraValue.Value
+                    : null;
+
+                // The root IFD determines the image pixel type. Associated float storage
+                // preserves color at zero alpha without converting through straight pixels.
+                return extraSamples is not null && extraSamples.Length > 0 && extraSamples[0] == (ushort)TiffExtraSampleType.AssociatedAlphaData
+                    ? this.DecodeFrames<RgbaVectorP>(directories, reader, cancellationToken)
+                    : this.DecodeFrames<RgbaVector>(directories, reader, cancellationToken);
+            }
+
+            return this.DecodeFrames<Rgba32>(directories, reader, cancellationToken);
+        }
+        catch (InvalidMemoryOperationException ex)
+        {
+            throw new InvalidImageContentException(this.Dimensions, ex);
+        }
+        finally
+        {
+            if (buffered != stream)
+            {
+                buffered.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Decodes already-read TIFF directories into the selected pixel type.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
+    /// <param name="directories">The TIFF directories.</param>
+    /// <param name="reader">The directory reader holding their byte order.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The decoded image.</returns>
+    private Image<TPixel> DecodeFrames<TPixel>(IList<ExifProfile> directories, DirectoryReader reader, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        List<ImageFrame<TPixel>> frames = [];
+        List<ImageFrameMetadata> framesMetadata = [];
+
+        try
+        {
             Size? size = null;
             uint frameCount = 0;
             foreach (ExifProfile ifd in directories)

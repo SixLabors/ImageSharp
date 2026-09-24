@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats;
@@ -277,6 +278,94 @@ public partial class PixelOperations<TPixel>
         ReadOnlySpan<TPixel> source,
         Span<Vector4> destinationVectors)
         => this.ToVector4(configuration, source, destinationVectors, PixelConversionModifiers.None);
+
+    /// <summary>
+    /// Converts planar floating-point components to a contiguous row of pixels.
+    /// An empty fourth plane supplies a value of 1 for each pixel.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="component0">The first component plane.</param>
+    /// <param name="component1">The second component plane.</param>
+    /// <param name="component2">The third component plane.</param>
+    /// <param name="component3">The fourth component plane, or an empty span to use 1 for every value.</param>
+    /// <param name="destination">The destination pixels.</param>
+    /// <param name="modifiers">The representation of the channel values.</param>
+    internal void PackFromFloatPlanes(
+        Configuration configuration,
+        ReadOnlySpan<float> component0,
+        ReadOnlySpan<float> component1,
+        ReadOnlySpan<float> component2,
+        ReadOnlySpan<float> component3,
+        Span<TPixel> destination,
+        PixelConversionModifiers modifiers)
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.IsTrue(component1.Length == component0.Length, nameof(component1), "Components must be of same size!");
+        Guard.IsTrue(component2.Length == component0.Length, nameof(component2), "Components must be of same size!");
+        Guard.IsTrue(component3.IsEmpty || component3.Length == component0.Length, nameof(component3), "Components must be of same size!");
+        Guard.DestinationShouldNotBeTooShort(component0, destination, nameof(destination));
+
+        const int BlockSize = 64;
+        Span<Vector4> vectors = stackalloc Vector4[BlockSize];
+
+        // The transposer and pixel converter share one bounded scratch block. Each pixel is
+        // converted once, and the final short block follows the same numeric-domain path.
+        for (int offset = 0; offset < component0.Length; offset += BlockSize)
+        {
+            int count = Math.Min(BlockSize, component0.Length - offset);
+            Span<Vector4> block = vectors[..count];
+            SimdUtils.InterleaveFloatPlanes(
+                component0.Slice(offset, count),
+                component1.Slice(offset, count),
+                component2.Slice(offset, count),
+                component3.IsEmpty ? ReadOnlySpan<float>.Empty : component3.Slice(offset, count),
+                block);
+
+            this.FromVector4Destructive(configuration, block, destination.Slice(offset, count), modifiers);
+        }
+    }
+
+    /// <summary>
+    /// Converts a contiguous row of pixels to planar floating-point components.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="component0">The first component plane.</param>
+    /// <param name="component1">The second component plane.</param>
+    /// <param name="component2">The third component plane.</param>
+    /// <param name="component3">The fourth component plane.</param>
+    /// <param name="modifiers">The requested representation of the channel values.</param>
+    internal void UnpackToFloatPlanes(
+        Configuration configuration,
+        ReadOnlySpan<TPixel> source,
+        Span<float> component0,
+        Span<float> component1,
+        Span<float> component2,
+        Span<float> component3,
+        PixelConversionModifiers modifiers)
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, component0, nameof(component0));
+        Guard.DestinationShouldNotBeTooShort(source, component1, nameof(component1));
+        Guard.DestinationShouldNotBeTooShort(source, component2, nameof(component2));
+        Guard.DestinationShouldNotBeTooShort(source, component3, nameof(component3));
+
+        const int BlockSize = 64;
+        Span<Vector4> vectors = stackalloc Vector4[BlockSize];
+
+        for (int offset = 0; offset < source.Length; offset += BlockSize)
+        {
+            int count = Math.Min(BlockSize, source.Length - offset);
+            Span<Vector4> block = vectors[..count];
+            this.ToVector4(configuration, source.Slice(offset, count), block, modifiers);
+            SimdUtils.DeinterleaveFloatPlanes(
+                block,
+                component0.Slice(offset, count),
+                component1.Slice(offset, count),
+                component2.Slice(offset, count),
+                component3.Slice(offset, count));
+        }
+    }
 
     /// <summary>
     /// Bulk operation that converts <paramref name="source"/> pixels from <typeparamref name="TSourcePixel"/> format to

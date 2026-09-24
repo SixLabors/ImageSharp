@@ -44,5 +44,12 @@ public class ExrDecoder : ImageDecoder
 
     /// <inheritdoc/>
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => this.Decode<Rgba32>(options, stream, cancellationToken);
+    {
+        ExrDecoderCore decoder = new(new ExrDecoderOptions { GeneralOptions = options });
+        Image image = decoder.Decode(options.Configuration, stream, cancellationToken);
+
+        ScaleToTargetSize(options, image);
+
+        return image;
+    }
 }

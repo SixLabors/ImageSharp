@@ -34,15 +34,78 @@ public class TiffMetadataTests
         {
             ByteOrder = ByteOrder.BigEndian,
             FormatType = TiffFormatType.BigTIFF,
+            SampleFormat = TiffSampleFormat.Float
         };
 
         TiffMetadata clone = (TiffMetadata)meta.DeepClone();
 
         clone.ByteOrder = ByteOrder.LittleEndian;
         clone.FormatType = TiffFormatType.Default;
+        clone.SampleFormat = TiffSampleFormat.UnsignedInteger;
 
         Assert.Equal(ByteOrder.BigEndian, meta.ByteOrder);
         Assert.Equal(TiffFormatType.BigTIFF, meta.FormatType);
+        Assert.Equal(TiffSampleFormat.Float, meta.SampleFormat);
+    }
+
+    [Fact]
+    public void TiffMetadata_PixelTypeInfo_DescribesSingle32BitGrayscaleSample()
+    {
+        TiffMetadata metadata = new()
+        {
+            BitsPerPixel = TiffBitsPerPixel.Bit32,
+            BitsPerSample = new TiffBitsPerSample(32, 0, 0),
+            PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero
+        };
+
+        PixelTypeInfo info = metadata.GetPixelTypeInfo();
+
+        Assert.Equal(32, info.BitsPerPixel);
+        Assert.Equal(PixelColorType.Luminance, info.ColorType);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(1, info.ComponentInfo.Value.ComponentCount);
+        Assert.Equal(32, info.ComponentInfo.Value.GetComponentPrecision(0));
+        Assert.Equal(0, info.ComponentInfo.Value.Padding);
+    }
+
+    [Fact]
+    public void TiffMetadata_PixelTypeInfo_DescribesTwoComponentGrayscale()
+    {
+        TiffMetadata metadata = new()
+        {
+            BitsPerPixel = TiffBitsPerPixel.Bit16,
+            BitsPerSample = new TiffBitsPerSample(8, 8, 0),
+            PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero,
+            ExtraSampleType = TiffExtraSampleType.UnassociatedAlphaData
+        };
+
+        PixelTypeInfo info = metadata.GetPixelTypeInfo();
+
+        Assert.Equal(PixelColorType.Luminance | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(2, info.ComponentInfo.Value.ComponentCount);
+        Assert.Equal(8, info.ComponentInfo.Value.GetComponentPrecision(0));
+        Assert.Equal(8, info.ComponentInfo.Value.GetComponentPrecision(1));
+        Assert.Equal(0, info.ComponentInfo.Value.Padding);
+    }
+
+    [Fact]
+    public void TiffMetadata_PixelTypeInfo_PreservesAssociatedAlpha()
+    {
+        TiffMetadata metadata = new()
+        {
+            BitsPerPixel = TiffBitsPerPixel.Bit128,
+            BitsPerSample = new TiffBitsPerSample(32, 32, 32, 32),
+            PhotometricInterpretation = TiffPhotometricInterpretation.Rgb,
+            ExtraSampleType = TiffExtraSampleType.AssociatedAlphaData
+        };
+
+        PixelTypeInfo info = metadata.GetPixelTypeInfo();
+
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelAlphaRepresentation.Associated, info.AlphaRepresentation);
+        Assert.Equal(4, info.ComponentInfo.Value.ComponentCount);
+        Assert.Equal(32, info.ComponentInfo.Value.GetComponentPrecision(3));
     }
 
     [Theory]

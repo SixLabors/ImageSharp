@@ -44,5 +44,12 @@ public class TiffDecoder : ImageDecoder
 
     /// <inheritdoc/>
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => this.Decode<Rgba32>(options, stream, cancellationToken);
+    {
+        TiffDecoderCore decoder = new(options);
+        Image image = decoder.Decode(options.Configuration, stream, cancellationToken);
+
+        ScaleToTargetSize(options, image);
+
+        return image;
+    }
 }

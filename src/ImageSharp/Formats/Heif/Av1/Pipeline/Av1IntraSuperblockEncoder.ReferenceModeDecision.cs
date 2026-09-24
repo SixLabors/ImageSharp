@@ -68,6 +68,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.GetMotionSearchSites(settings.GetFullPixelMethod(blockSize), this.reconstruction.GetPlane(Av1Plane.Y).Stride),
                 candidates);
 
+            if (Entropy.Av1SymbolWriter.DiagnosticSymbolTrace is not null)
+            {
+                System.Text.StringBuilder ibc = new($"IBC {blockOrigin.X},{blockOrigin.Y} {blockSize} ref {reference.Row},{reference.Column} n {candidateCount}");
+                for (int i = 0; i < candidateCount; i++)
+                {
+                    ibc.Append($" dv {candidates[i].Row},{candidates[i].Column}");
+                }
+
+                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(ibc.ToString());
+            }
+
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Av1RateDistortionStatistics selectedStatistics = regularStatistics;
             Av1MotionVector selectedVector = default;
@@ -120,6 +131,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     out InlineArray16<Av1TransformSize> sizes,
                     out InlineArray16<Av1EncoderTransformBlockState> blueStates,
                     out InlineArray16<Av1EncoderTransformBlockState> redStates);
+
+                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                    $"IBCRD {blockOrigin.X},{blockOrigin.Y} {blockSize} dv {vector.Row},{vector.Column} mvrate {predictionRate} rate {statistics.Rate} dist {statistics.Distortion} rd {statistics.Cost} best {Math.Min(this.blockCostLimit, selectedStatistics.Cost)}");
 
                 // Earlier intra modes and displacement candidates retain equal-cost ties.
                 if (statistics.Cost < Math.Min(this.blockCostLimit, selectedStatistics.Cost))

@@ -1808,21 +1808,31 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
                     int siblingLumaArea = this.codedAreaLuma;
                     int siblingChromaArea = this.codedAreaChroma;
-                    this.ReconstructSelectedIntraBlock(writer, macroBlock, leafOrigin, tileIndex, sibling);
+                    if (sibling.Snapshot.ModeInfo.Block.UseIntraBlockCopy)
+                    {
+                        // A copied block is encoded from its displacement, not from an intra predictor.
+                        // Reference: the is_inter_block() branch of encode_superblock().
+                        this.ReconstructPartitionLeaf(writer, macroBlock, leafOrigin, tileIndex, sibling, true, false, false);
+                    }
+                    else
+                    {
+                        this.ReconstructSelectedIntraBlock(writer, macroBlock, leafOrigin, tileIndex, sibling);
 
-                    // The encode leaves the entropy contexts of what it coded for the next leaf, from the
-                    // coefficients it just wrote. Reference: the av1_update_txb_context() call of
-                    // encode_superblock().
-                    this.PublishPartitionLeafContexts(
-                        macroBlock,
-                        leafOrigin,
-                        tileIndex,
-                        siblingLumaArea,
-                        siblingChromaArea,
-                        sibling.Snapshot.ModeInfo,
-                        sibling.Snapshot.Block,
-                        sibling.Snapshot.Palette,
-                        true);
+                        // The encode leaves the entropy contexts of what it coded for the next leaf, from the
+                        // coefficients it just wrote. Reference: the av1_update_txb_context() call of
+                        // encode_superblock().
+                        this.PublishPartitionLeafContexts(
+                            macroBlock,
+                            leafOrigin,
+                            tileIndex,
+                            siblingLumaArea,
+                            siblingChromaArea,
+                            sibling.Snapshot.ModeInfo,
+                            sibling.Snapshot.Block,
+                            sibling.Snapshot.Palette,
+                            true);
+                    }
+
                     this.codedAreaLuma = siblingLumaArea;
                     this.codedAreaChroma = siblingChromaArea;
                 }

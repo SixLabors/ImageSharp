@@ -1750,7 +1750,13 @@ internal static partial class Av1IntraSuperblockEncoder
                         : childStatistics.Cost;
                 }
 
-                if (childStatistics.Cost == long.MaxValue)
+                // Every split child is searched as a partition of its own, and it reports a result only when
+                // that result stays below the budget it received. A 4x4 child is evaluated here directly, so
+                // the same test applies to it. Reference: the found_best_partition result of
+                // av1_rd_pick_partition(), which split_partition_search() turns into an invalid split.
+                if (childStatistics.Cost == long.MaxValue ||
+                    (partitionType == Av1PartitionType.Split && blockSize <= Av1BlockSize.Block8x8 &&
+                    childStatistics.Cost >= remainingCost.Cost))
                 {
                     accumulatedCost = long.MaxValue;
                     return Av1RateDistortionStatistics.Invalid;

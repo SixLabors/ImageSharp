@@ -664,6 +664,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 }
 
                                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(costLine.ToString());
+                                System.Text.StringBuilder txLine = new($"TXCOST {modeInfoColumn * 4},{modeInfoRow * 4}");
+                                for (int t = 0; t < 4; t++)
+                                {
+                                    txLine.Append(' ').Append(writer.GetTransformTypeCost((Av1TransformType)t, Av1TransformSize.Size8x8, frameHeader.UseReducedTransformSet, 200, Av1FilterIntraMode.AllFilterIntraModes, Prediction.Av1PredictionMode.Directional135Degrees, false));
+                                }
+
+                                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(txLine.ToString());
                             }
 
                             int tileSuperblockRow = (modeInfoRow - tile.ModeInfoRowStart) >> superblockShift;

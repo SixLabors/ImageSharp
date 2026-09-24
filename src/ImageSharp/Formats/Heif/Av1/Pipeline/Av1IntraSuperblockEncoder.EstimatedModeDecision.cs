@@ -585,12 +585,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(mode, transformSize, this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
-            // A palette block predicts from its color index map, and keeps the transform type its search
-            // chose for each transform block. Reference: the tx_type_map that av1_nonrd_pick_intra_mode()
-            // copies into the context when palette wins, read back by encode_block_intra().
+            // A palette block predicts from its color index map. It keeps the transform types its search chose
+            // only when the first transform block's type is not DCT_DCT; otherwise the context keeps the DCT_DCT
+            // map it was allocated with, for every transform block. Reference: the tx_type_map that
+            // av1_nonrd_pick_intra_mode() copies into the context when palette wins and xd->tx_type_map[0] is
+            // not DCT_DCT, read back by encode_block_intra().
             Buffer2DRegion<byte> paletteMap = paletteColors.IsEmpty
                 ? default
                 : this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, planeBlockSize.GetWidth(), planeBlockSize.GetHeight());
+            bool keepsSearchedTypes = !paletteColors.IsEmpty &&
+                states[coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount].TransformType != Av1TransformType.DctDct;
 
             // The selected predictor writes directly to the retained frame. Its inverse transform adds
             // residuals in place, so subsequent units consume reconstructed neighbors without a pixel copy.
@@ -652,7 +656,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     prediction.Slice(row * width, width).CopyTo(transform.Slice(row * destination.Stride, width));
                                 }
 
-                                blockTransformType = state.TransformType;
+                                blockTransformType = keepsSearchedTypes ? state.TransformType : Av1TransformType.DctDct;
                             }
                             else
                             {

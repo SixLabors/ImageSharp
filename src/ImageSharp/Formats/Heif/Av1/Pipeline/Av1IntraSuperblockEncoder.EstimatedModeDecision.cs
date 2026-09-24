@@ -246,6 +246,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 // full transform search and would unfairly penalize horizontal and vertical estimates.
                 rate += writer.GetLumaModeCost(mode, aboveContext, leftContext);
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, distortion);
+                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                    $"NRD {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)mode} rate {rate} dist {distortion} rd {statistics.Cost} skip {skip} var {sourceVariance} sad {bestSad}");
                 if (statistics.Cost < bestStatistics.Cost)
                 {
                     bestStatistics = statistics;
@@ -470,8 +472,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.SetDisplacementVector(
                     new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2), copyVector);
             }
-            else if (!paletteSelected)
+            else
             {
+                // The search leaves only a candidate reconstruction behind, so the selected block is
+                // encoded again, palette included. Reference: the encode_b() that follows
+                // av1_nonrd_pick_intra_mode(), which reaches encode_block_intra().
                 this.EncodeSelectedIntraPlane(
                     writer,
                     tileIndex,
@@ -482,7 +487,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     bestMode,
                     transformSize,
                     lumaOffset,
-                    false);
+                    false,
+                    paletteSelected ? paletteInfo.GetColors(Av1Plane.Y) : default);
             }
 
             codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
@@ -539,7 +545,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode mode,
             Av1TransformSize transformSize,
             int coefficientOffset,
-            bool skipResidual)
+            bool skipResidual,
+            ReadOnlySpan<ushort> paletteColors = default)
         {
             int planeIndex = (int)plane;
             int subX = plane == Av1Plane.Y ? 0 : this.source.ChromaSubsamplingX;
@@ -577,6 +584,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformType transformType = plane == Av1Plane.Y || this.picture.Parent.FrameHeader.CodedLossless
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(mode, transformSize, this.picture.Parent.FrameHeader.UseReducedTransformSet);
+
+            // A palette block predicts from its color index map, and keeps the transform type its search
+            // chose for each transform block. Reference: the tx_type_map that av1_nonrd_pick_intra_mode()
+            // copies into the context when palette wins, read back by encode_block_intra().
+            Buffer2DRegion<byte> paletteMap = paletteColors.IsEmpty
+                ? default
+                : this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, planeBlockSize.GetWidth(), planeBlockSize.GetHeight());
 
             // The selected predictor writes directly to the retained frame. Its inverse transform adds
             // residuals in place, so subsequent units consume reconstructed neighbors without a pixel copy.
@@ -617,26 +631,49 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             Point origin = planeOrigin + new Size(x, y);
                             Span<TSample> transform = reconstructedBlock[((y * destination.Stride) + x)..];
-                            TOperator.PrepareIntra(
-                                this.blockWorkspace,
-                                source,
-                                origin,
-                                transform,
-                                destination.Stride,
-                                aboveStorage.Slice(1, width + height),
-                                leftStorage.Slice(1, width + height),
-                                hasLeft,
-                                hasAbove,
-                                mode,
-                                0,
-                                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                                this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
-                                residual,
-                                transformSize,
-                                this.bitDepth);
-
                             ref Av1EncoderTransformBlockState state = ref states[
                                 coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
+
+                            Av1TransformType blockTransformType = transformType;
+                            if (!paletteColors.IsEmpty)
+                            {
+                                Span<TSample> prediction = workspace.Prediction[..sampleCount];
+                                TOperator.PreparePalette(
+                                    source,
+                                    origin,
+                                    paletteColors,
+                                    paletteMap.GetSubRegion(x, y, width, height),
+                                    prediction,
+                                    residual,
+                                    transformSize);
+
+                                for (int row = 0; row < height; row++)
+                                {
+                                    prediction.Slice(row * width, width).CopyTo(transform.Slice(row * destination.Stride, width));
+                                }
+
+                                blockTransformType = state.TransformType;
+                            }
+                            else
+                            {
+                                TOperator.PrepareIntra(
+                                    this.blockWorkspace,
+                                    source,
+                                    origin,
+                                    transform,
+                                    destination.Stride,
+                                    aboveStorage.Slice(1, width + height),
+                                    leftStorage.Slice(1, width + height),
+                                    hasLeft,
+                                    hasAbove,
+                                    mode,
+                                    0,
+                                    this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                                    this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
+                                    residual,
+                                    transformSize,
+                                    this.bitDepth);
+                            }
 
                             state = default;
                             Span<byte> transformTop = topContexts.Slice(x / 4, width / 4);
@@ -663,7 +700,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     width,
                                     coefficients.Slice(coefficientOffset, sampleCount),
                                     transformSize,
-                                    transformType,
+                                    blockTransformType,
                                     this.quantization.QIndex[0],
                                     this.quantization.DeltaQDc[planeIndex],
                                     this.quantization.DeltaQAc[planeIndex],
@@ -676,10 +713,17 @@ internal static partial class Av1IntraSuperblockEncoder
                                     ref state);
                             }
 
+                            // A luma transform block that quantized to nothing returns to DCT_DCT.
+                            // Reference: the update_txk_array() call of encode_block_intra().
+                            if (plane == Av1Plane.Y && state.EndOfBlock == 0)
+                            {
+                                state.TransformType = Av1TransformType.DctDct;
+                            }
+
                             byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                                 coefficients.Slice(coefficientOffset, sampleCount),
                                 transformSize,
-                                transformType,
+                                state.TransformType,
                                 state.EndOfBlock);
 
                             transformTop.Fill(coefficientContext);

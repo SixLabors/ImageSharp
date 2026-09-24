@@ -308,20 +308,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Final intra prediction consumes reconstructed neighbors. The prediction-only candidate
                 // must not be copied here, because each transform now contributes its selected residual.
                 modeInfo.Block.Skip = winner.Skip && !parent.FrameHeader.CodedLossless;
-                if (!paletteSelected)
-                {
-                    this.EncodeSelectedIntraPlane(
-                        writer,
-                        tileIndex,
-                        macroBlock,
-                        origin,
-                        blockSize,
-                        Av1Plane.Y,
-                        winner.Mode,
-                        winner.TransformSize,
-                        this.codedAreaLuma,
-                        modeInfo.Block.Skip);
-                }
+                this.EncodeSelectedIntraPlane(
+                    writer,
+                    tileIndex,
+                    macroBlock,
+                    origin,
+                    blockSize,
+                    Av1Plane.Y,
+                    winner.Mode,
+                    winner.TransformSize,
+                    this.codedAreaLuma,
+                    modeInfo.Block.Skip,
+                    paletteSelected ? palette.GetColors(Av1Plane.Y) : default);
 
                 if (block.HasChroma)
                 {

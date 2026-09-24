@@ -950,7 +950,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Span<VariancePartitionNode> temporalNodes = MemoryMarshal.Cast<int, VariancePartitionNode>(
-                    this.blockWorkspace.TransformCoefficients);
+                    this.blockWorkspace.PartitionAnalysisScratch);
 
                 this.BuildInterVariancePartitions(
                     macroBlock,
@@ -993,7 +993,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Partition analysis precedes residual coding. Its compact moment tree borrows coefficient scratch
             // only for this pass; the selected partition bytes survive after transform trials reuse that storage.
-            Span<VariancePartitionNode> nodes = MemoryMarshal.Cast<int, VariancePartitionNode>(this.blockWorkspace.TransformCoefficients);
+            Span<VariancePartitionNode> nodes = MemoryMarshal.Cast<int, VariancePartitionNode>(this.blockWorkspace.PartitionAnalysisScratch);
             this.BuildVariancePartitions(
                 this.source.GetPlane(Av1Plane.Y),
                 macroBlock.Tile,

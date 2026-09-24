@@ -470,6 +470,14 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         => this.owner.Memory.Span.Slice(TransformCoefficientOffset, MaximumCoefficientCount);
 
     /// <summary>
+    /// Gets the scratch storage of partition analysis, which completes before any transform of the superblock.
+    /// It spans the forward and dequantized coefficient workspaces, enough for the moment tree of a 128x128
+    /// superblock down to 8x8.
+    /// </summary>
+    public Span<int> PartitionAnalysisScratch
+        => this.owner.Memory.Span.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
+
+    /// <summary>
     /// Gets the maximum-size dequantized reconstruction coefficient workspace.
     /// </summary>
     public Span<int> DequantizedCoefficients

@@ -980,6 +980,10 @@ public class Av1IntraSuperblockEncoderTests
                 Av1TileEncoder.PrepareFrame(picture, new Size(source.Frame.Width, source.Frame.Height), blockWorkspace);
                 blockWorkspace.SpeedSettings = picture.Parent.SpeedSettings;
 
+                // The tile encoder resets the adaptive mode thresholds before a row's block searches, and this
+                // fixture stands in for it. Pooled storage otherwise hands the search another test's history.
+                blockWorkspace.ModeThresholdFactors.Fill(32);
+
                 int multiplier = isIntraBlockCopy
                     ? Av1RateDistortion.GetRateMultiplier(qIndex, bitDepth, Av1FrameUpdateType.Key)
                     : Av1RateDistortion.GetRateMultiplier(qIndex, bitDepth, Av1FrameUpdateType.Last);

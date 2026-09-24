@@ -387,7 +387,8 @@ internal static partial class Av1IntraSuperblockEncoder
             this.replayPartition = Av1PartitionType.Invalid;
             this.replayPartitionOrigin = default;
             this.replayParentSize = Av1BlockSize.Invalid;
-            if (!picture.Parent.SpeedSettings.UseVarianceBasedPartition ||
+            bool searchesLeaves = SearchesVariancePartitionLeaves(picture);
+            if (!picture.Parent.SpeedSettings.UseVarianceBasedPartition || searchesLeaves ||
                 (!picture.Parent.FrameHeader.IsIntra && picture.Parent.SpeedSettings.GetEstimatedPartitionMergeLevel(picture.Parent.IsScreenContent) != 0))
             {
                 int side = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
@@ -400,7 +401,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     width,
                     height,
                     picture.Parent.FrameHeader.AllowScreenContentTools,
-                    picture.Parent.SpeedSettings.UseVarianceBasedPartition);
+                    picture.Parent.SpeedSettings.UseVarianceBasedPartition && !searchesLeaves);
             }
         }
 
@@ -445,9 +446,16 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (this.picture.Parent.SpeedSettings.UseVarianceBasedPartition)
             {
+                bool searchesLeaves = SearchesVariancePartitionLeaves(this.picture);
                 if (this.superblock.Workspace.PartitionSearchTypes[0] == (byte)Av1PartitionType.Invalid)
                 {
                     this.PrepareVariancePartitions(macroBlock, blockOrigin);
+                    if (searchesLeaves)
+                    {
+                        // Every leaf of the superblock is searched before the writer encodes any of them.
+                        // Reference: the av1_rd_use_partition() call of encode_rd_sb(), with do_recon set.
+                        this.SearchVariancePartition(writer, macroBlock, blockOrigin, tileIndex, blockSize, 0, true);
+                    }
                 }
 
                 Av1PartitionType variancePartition = (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[nodeIndex];
@@ -458,7 +466,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 this.PreparePartitionGeometry(blockOrigin, blockSize, variancePartition);
-                if (variancePartition == Av1PartitionType.None && !this.picture.Parent.FrameHeader.IsIntra &&
+                if (searchesLeaves)
+                {
+                    // The writer reaches each leaf in partition order and encodes the decision the search kept.
+                    this.replayNodeIndex = nodeIndex;
+                    this.replayPartition = variancePartition;
+                    this.replayPartitionOrigin = blockOrigin;
+                    this.replayParentSize = blockSize;
+                }
+                else if (variancePartition == Av1PartitionType.None && !this.picture.Parent.FrameHeader.IsIntra &&
                     this.picture.Parent.SpeedSettings.GetEstimatedPartitionMergeLevel(this.picture.Parent.IsScreenContent) != 0 &&
                     this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.Ready)
                 {
@@ -1541,6 +1557,153 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockSize != superblockSize &&
                 noneInvalid &&
                 splitInvalid;
+
+        /// <summary>
+        /// Gets a value indicating whether a variance partition keeps its leaves' full mode search, rather than
+        /// the estimated one. Reference: encode_rd_sb(), which a frame reaches while use_nonrd_pick_mode is off.
+        /// </summary>
+        private static bool SearchesVariancePartitionLeaves(Av1PictureControlSet picture)
+            => picture.Parent.SpeedSettings.UseVarianceBasedPartition &&
+                picture.Parent.FrameHeader.IsIntra &&
+                picture.Parent.EncodingSpeed < (picture.Sequence.SequenceHeader.IsStillPicture
+                    ? HeifEncodingSpeed.Level8
+                    : HeifEncodingSpeed.Level7);
+
+        /// <summary>
+        /// Searches the modes of the partition the variance analysis chose. A finished subtree that a later
+        /// block predicts from is encoded again from the decisions it kept, and the entropy contexts return to
+        /// their state before the subtree, so the writer encodes the superblock afresh afterwards.
+        /// Reference: av1_rd_use_partition().
+        /// </summary>
+        private bool SearchVariancePartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            bool reconstruct)
+        {
+            if (!this.IsBlockOriginInsideFrame(blockOrigin))
+            {
+                return true;
+            }
+
+            Av1PartitionType partition = (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[nodeIndex];
+            int savedLumaArea = this.codedAreaLuma;
+            int savedChromaArea = this.codedAreaChroma;
+            this.SavePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
+            bool valid = true;
+            switch (partition)
+            {
+                case Av1PartitionType.None:
+                    valid = this.EvaluatePartitionLeaf(
+                        writer,
+                        macroBlock,
+                        blockOrigin,
+                        tileIndex,
+                        blockSize,
+                        Av1PartitionType.None,
+                        this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0),
+                        long.MaxValue,
+                        false,
+                        false).Cost != long.MaxValue;
+                    break;
+
+                case Av1PartitionType.Horizontal:
+                case Av1PartitionType.Vertical:
+                    Av1EncoderPartitionTree.ModeContext first = this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partition, 0);
+                    Av1BlockSize subSize = partition.GetBlockSubSize(blockSize);
+                    valid = this.EvaluatePartitionLeaf(
+                        writer, macroBlock, blockOrigin, tileIndex, subSize, partition, first, long.MaxValue, false, false).Cost != long.MaxValue;
+
+                    GetPartitionLeafGeometry(blockOrigin, blockSize, partition, 1, out Point secondOrigin, out _);
+                    if (valid && this.IsBlockOriginInsideFrame(secondOrigin))
+                    {
+                        // The first half is encoded before the second is searched, so the second predicts from
+                        // it. Reference: the av1_update_state() and encode_superblock() dry run between the
+                        // two pick_sb_modes() calls.
+                        int firstLumaArea = this.codedAreaLuma;
+                        int firstChromaArea = this.codedAreaChroma;
+                        if (first.Snapshot.ModeInfo.Block.UseIntraBlockCopy)
+                        {
+                            this.ReconstructPartitionLeaf(writer, macroBlock, blockOrigin, tileIndex, first, true, false, false);
+                        }
+                        else
+                        {
+                            this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, first);
+                            this.PublishPartitionLeafContexts(
+                                macroBlock,
+                                blockOrigin,
+                                tileIndex,
+                                firstLumaArea,
+                                firstChromaArea,
+                                first.Snapshot.ModeInfo,
+                                first.Snapshot.Block,
+                                first.Snapshot.Palette,
+                                true);
+                        }
+
+                        this.codedAreaLuma = firstLumaArea;
+                        this.codedAreaChroma = firstChromaArea;
+                        valid = this.EvaluatePartitionLeaf(
+                            writer,
+                            macroBlock,
+                            secondOrigin,
+                            tileIndex,
+                            subSize,
+                            partition,
+                            this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partition, 1),
+                            long.MaxValue,
+                            false,
+                            false).Cost != long.MaxValue;
+                    }
+
+                    break;
+
+                case Av1PartitionType.Split:
+                    Av1BlockSize childSize = partition.GetBlockSubSize(blockSize);
+                    int half = childSize.GetWidth();
+                    for (int child = 0; child < 4 && valid; child++)
+                    {
+                        Point childOrigin = blockOrigin + new Size((child & 1) * half, (child >> 1) * half);
+                        valid = this.SearchVariancePartition(
+                            writer, macroBlock, childOrigin, tileIndex, childSize, (nodeIndex * 4) + child + 1, child != 3);
+                    }
+
+                    break;
+            }
+
+            this.ResetPartitionTrial(blockOrigin, tileIndex, blockSize, savedLumaArea, savedChromaArea);
+            if (reconstruct && blockSize != this.picture.Sequence.SequenceHeader.SuperblockSize)
+            {
+                // Reference: the encode_sb() dry run that closes av1_rd_use_partition() when do_recon is set.
+                _ = this.EvaluatePartitionCandidate(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    blockSize,
+                    partition,
+                    nodeIndex,
+                    Av1RateDistortionStatistics.Invalid,
+                    searchChildren: false,
+                    true,
+                    [],
+                    [],
+                    out _,
+                    out _);
+
+                Av1TileWriter.UpdatePartitionContexts(
+                    this.picture.PartitionContexts[tileIndex],
+                    blockOrigin,
+                    partition.GetBlockSubSize(blockSize),
+                    blockSize,
+                    partition);
+            }
+
+            return valid;
+        }
 
         private Av1RateDistortionStatistics EvaluateSelectedPartitionTree(
             Av1SymbolEncoder writer,

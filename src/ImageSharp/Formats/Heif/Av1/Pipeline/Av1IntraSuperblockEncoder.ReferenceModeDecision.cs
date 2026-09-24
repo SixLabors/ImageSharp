@@ -7017,6 +7017,20 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedRate = candidateRate;
                     selectedDistortion = candidateDistortion;
                 }
+
+                // A winner already far above the remaining budget ends the search, and so does a winner that
+                // quantized the block to nothing. Reference: the adaptive_txb_search_level and skip_tx_search
+                // breaks that close the transform type loop of search_tx_type().
+                int adaptiveSearchLevel = settings.InterAdaptiveTransformSearchLevel;
+                if (adaptiveSearchLevel != 0 && bestCost - (bestCost >> adaptiveSearchLevel) > costLimit)
+                {
+                    break;
+                }
+
+                if (settings.SkipTransformSearchAfterEmptyBlock && selectedState.EndOfBlock == 0)
+                {
+                    break;
+                }
             }
 
             // Callers retain the designated selected spans after this scratch workspace is reused by the

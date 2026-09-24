@@ -27,6 +27,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private const int MaximumCoefficientContextCount = (Av1Constants.MaxTransformSize / 2) * (Av1Constants.MaxTransformSize / 2);
 
     /// <summary>
+    /// The partition distributions every frame starts from. The encoder begins each tile from the default
+    /// distributions, so these are also the distributions of the frame context.
+    /// </summary>
+    private static readonly Av1Distribution[] FramePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+
+    /// <summary>
     /// Owns every mutable tile distribution and restores normative defaults without rebuilding the object graph.
     /// </summary>
     private readonly Av1FrameEntropyContext entropyContext;
@@ -1253,8 +1259,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetSplitOrHorizontalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
+        // A block clipped at a frame edge is costed from the frame context, not from the adapted tile
+        // distributions. Reference: set_partition_cost_for_edge_blk(), which reads cm->fc->partition_cdf.
         int frequency = (int)Av1SymbolDecoder.GetSplitOrHorizontalFrequency(
-            this.tilePartitionTypes,
+            FramePartitionTypes,
             blockSize,
             context);
 
@@ -1296,8 +1304,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetSplitOrVerticalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
+        // A block clipped at a frame edge is costed from the frame context, not from the adapted tile
+        // distributions. Reference: set_partition_cost_for_edge_blk(), which reads cm->fc->partition_cdf.
         int frequency = (int)Av1SymbolDecoder.GetSplitOrVerticalFrequency(
-            this.tilePartitionTypes,
+            FramePartitionTypes,
             blockSize,
             context);
 

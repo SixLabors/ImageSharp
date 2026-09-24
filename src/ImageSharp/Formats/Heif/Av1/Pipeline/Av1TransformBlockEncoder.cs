@@ -278,7 +278,7 @@ internal static partial class Av1TransformBlockEncoder
             visibleWidth,
             visibleHeight);
 
-        return distortion << 4;
+        return BoundPixelDistortion(distortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
     }
 
     /// <summary>
@@ -419,7 +419,7 @@ internal static partial class Av1TransformBlockEncoder
                 out _);
         }
 
-        return pixelDistortion;
+        return BoundPixelDistortion(pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
     }
 
     /// <summary>
@@ -712,7 +712,7 @@ internal static partial class Av1TransformBlockEncoder
             visibleWidth,
             visibleHeight);
 
-        return distortion << 4;
+        return BoundPixelDistortion(distortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
     }
 
     /// <summary>
@@ -972,7 +972,7 @@ internal static partial class Av1TransformBlockEncoder
             ? distortion
             : (distortion + (1L << (shift - 1))) >> shift;
 
-        return normalizedDistortion << 4;
+        return BoundPixelDistortion(normalizedDistortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
     }
 
     /// <summary>
@@ -1116,7 +1116,7 @@ internal static partial class Av1TransformBlockEncoder
                 out _);
         }
 
-        return pixelDistortion;
+        return BoundPixelDistortion(pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
     }
 
     /// <summary>
@@ -1394,7 +1394,7 @@ internal static partial class Av1TransformBlockEncoder
             ? distortion
             : (distortion + (1L << (shift - 1))) >> shift;
 
-        return normalizedDistortion << 4;
+        return BoundPixelDistortion(normalizedDistortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
     }
 
     /// <summary>
@@ -2706,6 +2706,54 @@ internal static partial class Av1TransformBlockEncoder
 
         statistics = new Av1RateDistortionStatistics(rateMultiplier, rate, distortion);
         return cost;
+    }
+
+    /// <summary>
+    /// Settles the pixel-domain distortion of a coded transform block. Reconstruction clamps samples, so a block
+    /// whose residual averages at least a quarter of the largest sample energy can measure too small, and its
+    /// transform-domain error bounds it from below. A 64x64 transform whose energy lies mostly outside its coded
+    /// quadrant is measured in the transform domain, with the energy it cannot code added back.
+    /// Reference: the pixel-domain branch of the distortion step of search_tx_type().
+    /// </summary>
+    /// <param name="pixelDistortion">The pixel-domain distortion in AV1 transform units.</param>
+    /// <param name="residualEnergy">The residual energy in the same units.</param>
+    /// <param name="endOfBlock">The position after the final nonzero coefficient.</param>
+    /// <param name="coefficients">The forward transform coefficients.</param>
+    /// <param name="dequantized">The dequantized coefficients.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <returns>The distortion the reference records for the block.</returns>
+    private static long BoundPixelDistortion(
+        long pixelDistortion,
+        long residualEnergy,
+        int endOfBlock,
+        ReadOnlySpan<int> coefficients,
+        ReadOnlySpan<int> dequantized,
+        Av1TransformSize transformSize,
+        Av1BitDepth bitDepth)
+    {
+        bool isHighEnergy = residualEnergy >= 128L * 128 * transformSize.GetSize2d();
+        bool is64x64 = transformSize == Av1TransformSize.Size64x64;
+        if (endOfBlock == 0 || !(isHighEnergy || is64x64))
+        {
+            return pixelDistortion;
+        }
+
+        int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+        long transformDistortion = GetTransformError(
+            coefficients[..codedCoefficientCount],
+            dequantized[..codedCoefficientCount],
+            transformSize,
+            bitDepth,
+            out long transformEnergy);
+
+        long energyDifference = residualEnergy - transformEnergy;
+        if (!is64x64 || !isHighEnergy || energyDifference * 2 < transformEnergy)
+        {
+            return isHighEnergy && pixelDistortion < transformDistortion ? transformDistortion : pixelDistortion;
+        }
+
+        return transformDistortion + energyDifference;
     }
 
     /// <summary>

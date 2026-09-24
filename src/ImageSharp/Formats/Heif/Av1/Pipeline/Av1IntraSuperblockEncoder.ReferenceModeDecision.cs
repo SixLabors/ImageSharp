@@ -52,9 +52,13 @@ internal static partial class Av1IntraSuperblockEncoder
             InlineArray2<Av1MotionVector> candidates = default;
             Av1MotionSearchSettings settings = this.picture.Parent.MotionSearchSettings;
             Av1MotionVectorCosts costs = this.blockWorkspace.GetDisplacementVectorCosts();
+
+            // The displacement search reads the source frame, and only the rate-distortion trial below
+            // predicts from the reconstruction. Reference: the xd->cur_buf, which is cpi->source, that
+            // rd_pick_intrabc_mode_sb() passes to av1_setup_pred_block().
             int candidateCount = this.picture.IntraBlockCopySearch.FindCandidates<TSample, TOperator>(
                 this.source.GetPlane(Av1Plane.Y),
-                this.reconstruction.GetPlane(Av1Plane.Y),
+                this.source.GetPlane(Av1Plane.Y),
                 blockOrigin,
                 blockSize,
                 macroBlock.Tile,
@@ -73,7 +77,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 System.Text.StringBuilder ibc = new($"IBC {blockOrigin.X},{blockOrigin.Y} {blockSize} ref {reference.Row},{reference.Column} n {candidateCount}");
                 for (int i = 0; i < candidateCount; i++)
                 {
-                    ibc.Append($" dv {candidates[i].Row},{candidates[i].Column}");
+                    ibc.Append(System.Globalization.CultureInfo.InvariantCulture, $" dv {candidates[i].Row},{candidates[i].Column}");
                 }
 
                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(ibc.ToString());

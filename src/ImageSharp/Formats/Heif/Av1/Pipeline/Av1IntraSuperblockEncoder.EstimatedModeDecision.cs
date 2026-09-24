@@ -333,9 +333,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     referenceCandidates,
                     referenceWeights);
 
+                // The displacement search reads the source frame, not the reconstruction. Reference: the
+                // xd->cur_buf, which is cpi->source, that av1_search_intrabc_nonrd() passes to
+                // av1_setup_pred_block().
                 if (this.picture.IntraBlockCopySearch.TryFindEstimatedCandidate<TSample, TOperator>(
                     source,
-                    destination,
+                    source,
                     blockOrigin,
                     blockSize,
                     macroBlock.Tile,

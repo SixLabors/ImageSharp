@@ -201,6 +201,10 @@ internal static partial class Av1IntraSuperblockEncoder
         private long interSourceVarianceCost;
         private int interSourceVariance;
         private bool mustFindValidPartition;
+
+        // The selected reference-coded block kept no coefficient, so the frame grid marks it skipped while the
+        // partition context keeps the searched flag. Reference: the skip_txfm initialization of av1_encode_sb().
+        private bool encodedWithoutCoefficients;
         private long blockCostLimit;
         private Av1BlockSize maximumPartitionSize;
 
@@ -2247,7 +2251,13 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo)
         {
             long workStart = Av1WorkCounters.Start();
+            this.encodedWithoutCoefficients = false;
             this.EncodeBlockCore(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo, true);
+            if (this.encodedWithoutCoefficients)
+            {
+                modeInfo.Block.Skip = true;
+            }
+
             Av1WorkCounters.Stop(Av1WorkCounters.PickSbModes, workStart);
         }
 
@@ -2362,7 +2372,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
                     }
 
-                    this.ReconstructSelectedInterBlock(
+                    this.encodedWithoutCoefficients = !this.ReconstructSelectedInterBlock(
                         writer,
                         macroBlock,
                         tileIndex,
@@ -2911,7 +2921,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra)
                 {
                     paletteInfo = default;
-                    this.ReconstructSelectedInterBlock(
+                    this.encodedWithoutCoefficients = !this.ReconstructSelectedInterBlock(
                         writer,
                         macroBlock,
                         tileIndex,
@@ -2988,6 +2998,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPaletteInfo paletteInfo = default;
             int lumaArea = this.codedAreaLuma;
             int chromaArea = this.codedAreaChroma;
+            this.encodedWithoutCoefficients = false;
             this.SearchBlock(
                 writer,
                 macroBlock,
@@ -3022,6 +3033,10 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.RetainModeContext(context, lumaArea, chromaArea, this.codedAreaLuma - lumaArea, this.codedAreaChroma - chromaArea);
+            if (this.encodedWithoutCoefficients)
+            {
+                modeInfo.Block.Skip = true;
+            }
 
             // The leaf keeps the transform grid its own search produced. The shared coefficient buffer
             // belongs to whichever block wrote it last, so a grid taken from there can name a transform
@@ -3243,7 +3258,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                this.ReconstructSelectedInterBlock(
+                // A block whose every transform lost its coefficients is written as skipped.
+                // Reference: the skip_txfm initialization of av1_encode_sb().
+                if (!this.ReconstructSelectedInterBlock(
                     writer,
                     macroBlock,
                     tileIndex,
@@ -3252,7 +3269,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     snapshot.Block,
                     snapshot.Displacement,
                     snapshot.SecondaryDisplacement,
-                    states);
+                    states))
+                {
+                    snapshot.ModeInfo.Block.Skip = true;
+                    this.picture.GetMacroBlockModeInfo(modeInfoPosition).Block.Skip = true;
+                }
+
                 this.picture.SetDisplacementVector(modeInfoPosition, snapshot.Displacement);
                 if (snapshot.ModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                 {

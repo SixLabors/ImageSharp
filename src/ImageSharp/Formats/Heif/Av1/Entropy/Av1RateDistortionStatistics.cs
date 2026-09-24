@@ -64,6 +64,12 @@ internal struct Av1RateDistortionStatistics
     public bool AllTransformsEmpty { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the luma residual was predicted to quantize to nothing before any
+    /// transform search. Reference: the skip_txfm result that set_skip_txfm() leaves.
+    /// </summary>
+    public bool SkipPredicted { get; set; }
+
+    /// <summary>
     /// Gets or sets the luma cost used to compare prediction families, including prediction and skip syntax.
     /// </summary>
     public long LumaCost { get; set; }

@@ -318,6 +318,7 @@ internal readonly struct Av1EncoderSpeedSettings
             _ => defaultInterTypePruning
         };
 
+        this.SkipFlagPredictionLevel = realtime || speed >= HeifEncodingSpeed.Level3 ? 2 : 1;
         this.InterTransformSizePruningLevel = realtime ? 0 : speed >= HeifEncodingSpeed.Level3
             ? 3
             : speed >= HeifEncodingSpeed.Level2 ? minimumDimension >= 480 ? 2 : 3 : minimumDimension < 480 ? 1 : 0;
@@ -720,6 +721,12 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets the adaptive transform-search threshold level.
     /// </summary>
     public int InterAdaptiveTransformSearchLevel { get; }
+
+    /// <summary>
+    /// Gets the predicted-skip level that selects, per evaluation stage, how an inter luma residual is judged
+    /// to quantize to nothing. Reference: use_skip_flag_prediction and predict_skip_levels.
+    /// </summary>
+    public int SkipFlagPredictionLevel { get; }
 
     /// <summary>
     /// Gets the residual-statistics pruning level for high-bit-depth inter transform trees.

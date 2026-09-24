@@ -24,6 +24,30 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
+        /// Gets the transform that predicts a skipped block, per block size. Reference: max_predict_sf_tx_size.
+        /// </summary>
+        private static ReadOnlySpan<Av1TransformSize> PredictSkipTransformSizes =>
+        [
+            Av1TransformSize.Size4x4, Av1TransformSize.Size4x8, Av1TransformSize.Size8x4, Av1TransformSize.Size8x8,
+            Av1TransformSize.Size8x16, Av1TransformSize.Size16x8, Av1TransformSize.Size16x16, Av1TransformSize.Size16x16,
+            Av1TransformSize.Size16x16, Av1TransformSize.Size16x16, Av1TransformSize.Size16x16, Av1TransformSize.Size16x16,
+            Av1TransformSize.Size16x16, Av1TransformSize.Size16x16, Av1TransformSize.Size16x16, Av1TransformSize.Size16x16,
+            Av1TransformSize.Size4x16, Av1TransformSize.Size16x4, Av1TransformSize.Size8x8, Av1TransformSize.Size8x8,
+            Av1TransformSize.Size16x16, Av1TransformSize.Size16x16
+        ];
+
+        /// <summary>
+        /// Gets the coefficient thresholds of a predicted skip, per bit depth and block size.
+        /// Reference: skip_pred_threshold.
+        /// </summary>
+        private static uint[][] SkipPredictionThresholds { get; } =
+        [
+            [64, 64, 64, 70, 60, 60, 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 64, 64, 70, 70, 68, 68],
+            [88, 88, 88, 86, 87, 87, 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 88, 88, 86, 86, 68, 68],
+            [90, 93, 93, 90, 93, 93, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 90, 90, 90, 90, 74, 74]
+        ];
+
+        /// <summary>
         /// Compares legal same-frame displacements with the retained intra winner.
         /// </summary>
         private Av1RateDistortionStatistics SelectIntraBlockCopy(
@@ -175,7 +199,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 block.PredictionUnit.ChromaFromLumaIndex = 0;
                 block.PredictionUnit.ChromaFromLumaSigns = 0;
                 paletteInfo = default;
-                this.ReconstructSelectedInterBlock(
+                this.encodedWithoutCoefficients = !this.ReconstructSelectedInterBlock(
                     writer, macroBlock, tileIndex, blockOrigin, modeInfo, block, selectedVector, default, selectedStates);
                 this.picture.SetDisplacementVector(modeInfoPosition, selectedVector);
             }
@@ -1047,6 +1071,28 @@ internal static partial class Av1IntraSuperblockEncoder
             transformNeighbors.Left.Slice(transformNeighbors.GetLeftIndex(blockOrigin), height4).CopyTo(transformLeft);
 
             stateCount = 0;
+
+            // A residual predicted to quantize to nothing takes the largest transforms with every coefficient
+            // zero, and the transform search is not run. Reference: the predict_skip_txfm() and set_skip_txfm()
+            // step that opens av1_pick_recursive_tx_size_type_yrd() and av1_pick_uniform_tx_size_type_yrd().
+            int skipPredictionLevel = this.GetSkipPredictionLevel();
+            if (skipPredictionLevel != 0 && !this.picture.Parent.FrameHeader.CodedLossless &&
+                this.PredictSkipTransform(macroBlock, blockOrigin, modeInfo.BlockSize, skipPredictionLevel, out long predictedDistortion))
+            {
+                return this.SetSkipTransform(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    ref modeInfo,
+                    states,
+                    coefficientAbove,
+                    coefficientLeft,
+                    transformAbove,
+                    transformLeft,
+                    predictedDistortion,
+                    out stateCount);
+            }
+
             int initialDepth = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
                 !modeInfo.Skip &&
                 (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
@@ -1111,6 +1157,189 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return statistics;
+        }
+
+        /// <summary>
+        /// Gets the predicted-skip level of the current evaluation stage.
+        /// Reference: predict_skip_levels, indexed by use_skip_flag_prediction and the mode evaluation type.
+        /// </summary>
+        private int GetSkipPredictionLevel()
+            => this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate
+                ? this.picture.Parent.SpeedSettings.SkipFlagPredictionLevel
+                : 1;
+
+        /// <summary>
+        /// Predicts whether the whole luma residual of an inter or copied block quantizes to nothing.
+        /// Reference: predict_skip_txfm().
+        /// </summary>
+        private bool PredictSkipTransform(
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int level,
+            out long distortion)
+        {
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            int width = blockSize.GetWidth();
+            int height = blockSize.GetHeight();
+            Span<short> residual = workspace.Residual[..(width * height)];
+            TOperator.SubtractPrediction(
+                this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, width, height);
+
+            // The distortion covers the visible samples only. Reference: av1_pixel_diff_dist().
+            int visibleWidth = width + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
+            int visibleHeight = height + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
+            distortion = 0;
+            for (int y = 0; y < visibleHeight; y++)
+            {
+                ReadOnlySpan<short> row = residual.Slice(y * width, visibleWidth);
+                for (int x = 0; x < row.Length; x++)
+                {
+                    distortion += row[x] * row[x];
+                }
+            }
+
+            int qIndex = this.quantization.QIndex[0];
+            int dcQuantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, this.bitDepth);
+            long meanSquaredError = distortion / width / height;
+            long normalizedDcQuantizer = dcQuantizer >> 3;
+            long meanSquaredErrorThreshold = normalizedDcQuantizer * normalizedDcQuantizer / 8;
+            long predictionError = level >= 2 ? distortion : meanSquaredError;
+            if (predictionError > meanSquaredErrorThreshold)
+            {
+                return false;
+            }
+
+            if (level >= 2)
+            {
+                return true;
+            }
+
+            Av1TransformSize transformSize = PredictSkipTransformSizes[(int)blockSize];
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int acQuantizer = Av1QuantizationLookup.GetAcQuant(qIndex, 0, this.bitDepth);
+            int bitDepthIndex = this.bitDepth == Av1BitDepth.EightBit ? 0 : this.bitDepth == Av1BitDepth.TenBit ? 1 : 2;
+            uint coefficientThreshold = SkipPredictionThresholds[bitDepthIndex][(int)blockSize];
+            uint dcThreshold = coefficientThreshold * (uint)dcQuantizer;
+            uint acThreshold = coefficientThreshold * (uint)acQuantizer;
+            Span<int> coefficients = this.blockWorkspace.TransformCoefficients;
+            int coefficientCount = transformWidth * transformHeight;
+            for (int row = 0; row < height; row += transformHeight)
+            {
+                for (int column = 0; column < width; column += transformWidth)
+                {
+                    Av1ForwardTransformer.Transform2d(
+                        residual[((row * width) + column)..],
+                        coefficients,
+                        (uint)width,
+                        Av1TransformType.DctDct,
+                        transformSize,
+                        this.bitDepth.GetBitCount(),
+                        this.blockWorkspace.TransformWorkspace);
+
+                    if (((uint)Math.Abs(coefficients[0]) << 7) >= dcThreshold)
+                    {
+                        return false;
+                    }
+
+                    for (int i = 1; i < coefficientCount; i++)
+                    {
+                        if (((uint)Math.Abs(coefficients[i]) << 7) >= acThreshold)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Records a predicted-skip luma result: the largest transforms, each coded as all zero.
+        /// Reference: set_skip_txfm().
+        /// </summary>
+        private Av1RateDistortionStatistics SetSkipTransform(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ref Av1EncoderBlockModeInfo modeInfo,
+            Span<Av1EncoderTransformBlockState> states,
+            Span<byte> coefficientAbove,
+            Span<byte> coefficientLeft,
+            Span<byte> transformAbove,
+            Span<byte> transformLeft,
+            long distortion,
+            out int stateCount)
+        {
+            Av1BlockSize blockSize = modeInfo.BlockSize;
+            Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
+            modeInfo.TransformSize = transformSize;
+            int width4 = transformSize.Get4x4WideCount();
+            int height4 = transformSize.Get4x4HighCount();
+            int blockWidth4 = blockSize.Get4x4WideCount();
+            int blockHeight4 = blockSize.Get4x4HighCount();
+            int visibleWidth4 = blockWidth4 + (Math.Min(0, macroBlock.ToRightEdge) >> 5);
+            int visibleHeight4 = blockHeight4 + (Math.Min(0, macroBlock.ToBottomEdge) >> 5);
+
+            // Every transform is costed with the all-zero rate of the first, whether or not it is visible.
+            Av1TransformBlockContext firstContext = Av1TileWriter.GetTransformBlockContexts(
+                Av1ComponentType.Luminance, coefficientAbove[..width4], coefficientLeft[..height4], blockSize, transformSize);
+            int zeroRate = writer.GetTransformBlockSkipCost(
+                true, Av1SymbolContextHelper.GetTransformSizeContext(transformSize), firstContext.SkipContext);
+            int transformCount = (blockWidth4 / width4) * (blockHeight4 / height4);
+
+            // Should the block stay non-skip after chroma, its luma transforms code as empty DCT blocks.
+            stateCount = 0;
+            Size frameContextSize = new(this.picture.Parent.FrameHeader.ModeInfoColumnCount, this.picture.Parent.FrameHeader.ModeInfoRowCount);
+            for (int row = 0; row < blockHeight4; row += height4)
+            {
+                for (int column = 0; column < blockWidth4; column += width4)
+                {
+                    for (int y = 0; y < height4; y++)
+                    {
+                        for (int x = 0; x < width4; x++)
+                        {
+                            modeInfo.InterTransformSizes[modeInfo.GetInterTransformSizeIndex(row + y, column + x)] = transformSize;
+                        }
+                    }
+
+                    if (row >= visibleHeight4 || column >= visibleWidth4)
+                    {
+                        continue;
+                    }
+
+                    Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                        Av1ComponentType.Luminance,
+                        coefficientAbove.Slice(column, width4),
+                        coefficientLeft.Slice(row, height4),
+                        blockSize,
+                        transformSize);
+                    Av1EncoderTransformBlockState state = default;
+                    state.TransformType = Av1TransformType.DctDct;
+                    state.EntropyContext = (byte)(context.SkipContext | (context.DcSignContext << 4));
+                    states[stateCount++] = state;
+                    Av1TileWriter.UpdateCoefficientContexts(
+                        coefficientAbove.Slice(column, width4),
+                        coefficientLeft.Slice(row, height4),
+                        0,
+                        blockOrigin + new Size(column << 2, row << 2),
+                        frameContextSize);
+                    transformAbove.Slice(column, Math.Min(width4, visibleWidth4 - column)).Fill((byte)transformSize.GetWidth());
+                    transformLeft.Slice(row, Math.Min(height4, visibleHeight4 - row)).Fill((byte)transformSize.GetHeight());
+                }
+            }
+
+            int shift = (this.bitDepth.GetBitCount() - 8) * 2;
+            long scaled = (shift == 0 ? distortion : (distortion + (1L << (shift - 1))) >> shift) << 4;
+            return new Av1RateDistortionStatistics(this.rateMultiplier, zeroRate * transformCount, scaled)
+            {
+                PredictionDistortion = scaled,
+                HasCoefficients = false,
+                AllTransformsEmpty = true,
+                SkipPredicted = true
+            };
         }
 
         /// <summary>
@@ -4773,7 +5002,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Reconstructs the selected inter transforms in coding order, carrying each plane's coefficient contexts forward.
         /// </summary>
-        private void ReconstructSelectedInterBlock(
+        /// <returns>Whether any transform block kept a coefficient.</returns>
+        private bool ReconstructSelectedInterBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             ushort tileIndex,
@@ -4808,6 +5038,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? this.references.Span[(int)modeInfo.Block.SecondaryReferenceFrame].CodedView : primaryReference;
             bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
             int planeCount = block.HasChroma ? 3 : 1;
+            bool coded = false;
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -4926,6 +5157,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Av1EncoderTransformBlockState state = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
                         coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
+                    coded |= state.EndOfBlock != 0;
                     byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                         this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)[coefficientOffset..],
                         transformSize,
@@ -4943,6 +5175,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformIndex++;
                 }
             }
+
+            return coded;
         }
 
         /// <summary>
@@ -5982,7 +6216,16 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                skip = allEmpty ||
+                // The recursive luma search marks its result skippable by comparing the costs, not by the
+                // emptiness of its transforms, while chroma is skippable only when it codes nothing. Skip is
+                // taken outright when both are, and otherwise when leaving the residual uncoded costs no more.
+                // Reference: the skip_txfm result of select_inter_block_yrd(), merged with av1_txfm_uvrd()'s,
+                // and the choose_skip_txfm comparison of av1_txfm_search().
+                bool lumaSkippable = lumaStatistics.SkipPredicted || (this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
+                    ? Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, lumaPredictionDistortion) <=
+                        Av1RateDistortion.GetCost(this.rateMultiplier, lumaRate + writer.GetSkipCost(false, skipContext), lumaDistortion)
+                    : !lumaStatistics.HasCoefficients);
+                skip = (lumaSkippable && !blueHasCoefficients && !redHasCoefficients) ||
                     Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion) <=
                     Av1RateDistortion.GetCost(this.rateMultiplier, codedRate - predictionRate, codedDistortion);
             }

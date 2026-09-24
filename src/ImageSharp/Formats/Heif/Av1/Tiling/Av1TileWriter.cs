@@ -2122,13 +2122,29 @@ internal partial class Av1TileWriter
         int blockSizeContext = GetPaletteBlockSizeContext(blockSize);
         Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = pcs.PaletteContexts[tileIndex];
         int yPaletteSize = paletteInfo.PaletteSizes[0];
+
+        // The encoder's own probability pass leaves the luma palette flag and size alone for a block that
+        // carries no chroma, because its intra statistics return before the palette update when the block is
+        // not a chroma reference. The bitstream codes them either way.
+        // Reference: the is_chroma_ref return ahead of update_palette_cdf() in sum_intra_stats().
+        ObuColorConfig colorConfig = scs.SequenceHeader.ColorConfig;
+        bool updatesLumaPalette = TOperation.WritesOutput ||
+            IsChromaReference(blockOrigin, blockSize, colorConfig.SubSamplingX, colorConfig.SubSamplingY);
         if (macroBlockModeInfo.Block.Mode == Av1PredictionMode.DC)
         {
             int neighborContext = GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
-            writer.WritePaletteYMode<TOperation>(yPaletteSize != 0, blockSizeContext, neighborContext);
+            if (updatesLumaPalette)
+            {
+                writer.WritePaletteYMode<TOperation>(yPaletteSize != 0, blockSizeContext, neighborContext);
+            }
+
             if (yPaletteSize != 0)
             {
-                writer.WritePaletteSize<TOperation>(yPaletteSize, blockSizeContext, Av1PlaneType.Y);
+                if (updatesLumaPalette)
+                {
+                    writer.WritePaletteSize<TOperation>(yPaletteSize, blockSizeContext, Av1PlaneType.Y);
+                }
+
                 Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
                 int cacheSize = GetPaletteCache(
                     paletteContexts,
@@ -2168,6 +2184,25 @@ internal partial class Av1TileWriter
                     scs.SequenceHeader.ColorConfig.BitDepth.GetBitCount());
             }
         }
+    }
+
+    /// <summary>
+    /// Reports whether a block is the one that carries the chroma of its subsampled area.
+    /// Reference: is_chroma_reference().
+    /// </summary>
+    /// <param name="blockOrigin">The block origin in luma samples.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="subsamplingX">Whether chroma is subsampled horizontally.</param>
+    /// <param name="subsamplingY">Whether chroma is subsampled vertically.</param>
+    /// <returns><see langword="true"/> when the block carries chroma; otherwise, <see langword="false"/>.</returns>
+    internal static bool IsChromaReference(Point blockOrigin, Av1BlockSize blockSize, bool subsamplingX, bool subsamplingY)
+    {
+        int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+        int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+        int width = blockSize.Get4x4WideCount();
+        int height = blockSize.Get4x4HighCount();
+        return ((modeInfoRow & 1) != 0 || (height & 1) == 0 || !subsamplingY) &&
+            ((modeInfoColumn & 1) != 0 || (width & 1) == 0 || !subsamplingX);
     }
 
     /// <summary>

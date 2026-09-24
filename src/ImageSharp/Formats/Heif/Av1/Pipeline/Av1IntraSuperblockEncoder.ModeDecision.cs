@@ -1779,6 +1779,20 @@ internal static partial class Av1IntraSuperblockEncoder
                     int siblingLumaArea = this.codedAreaLuma;
                     int siblingChromaArea = this.codedAreaChroma;
                     this.ReconstructSelectedIntraBlock(writer, macroBlock, leafOrigin, tileIndex, sibling);
+
+                    // The encode leaves the entropy contexts of what it coded for the next leaf, from the
+                    // coefficients it just wrote. Reference: the av1_update_txb_context() call of
+                    // encode_superblock().
+                    this.PublishPartitionLeafContexts(
+                        macroBlock,
+                        leafOrigin,
+                        tileIndex,
+                        siblingLumaArea,
+                        siblingChromaArea,
+                        sibling.Snapshot.ModeInfo,
+                        sibling.Snapshot.Block,
+                        sibling.Snapshot.Palette,
+                        true);
                     this.codedAreaLuma = siblingLumaArea;
                     this.codedAreaChroma = siblingChromaArea;
                 }
@@ -2980,7 +2994,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     chromaArea,
                     modeInfo,
                     block,
-                    paletteInfo);
+                    paletteInfo,
+                    true);
             }
 
             return this.SelectedBlockStatistics;
@@ -3116,6 +3131,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int lumaArea = this.codedAreaLuma;
             int chromaArea = this.codedAreaChroma;
+            bool codesNothing = modeSearchReused &&
+                snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra && !snapshot.ModeInfo.Block.UseIntraBlockCopy;
             if (snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || snapshot.ModeInfo.Block.UseIntraBlockCopy)
             {
                 Av1TransformSize rootSize = this.picture.Parent.FrameHeader.CodedLossless
@@ -3236,7 +3253,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     chromaArea,
                     snapshot.ModeInfo,
                     snapshot.Block,
-                    snapshot.Palette);
+                    snapshot.Palette,
+                    !codesNothing);
             }
 
             this.SelectedBlockStatistics = snapshot.Statistics;
@@ -3533,7 +3551,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int chromaArea,
             Av1MacroBlockModeInfo modeInfo,
             Av1EncoderBlockStruct block,
-            Av1EncoderPaletteInfo paletteInfo)
+            Av1EncoderPaletteInfo paletteInfo,
+            bool publishCoefficientContexts)
         {
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1TransformSize transformSize = modeInfo.Block.TransformSize;
@@ -3579,15 +3598,19 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformContexts.UnitModeWrite(
                         (byte)height, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
-                    byte context = lumaStates[
-                        coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount]
-                        .CoefficientContext;
-                    Av1TileWriter.UpdateCoefficientContexts(
-                        coefficientContexts.Top.Slice(coefficientContexts.GetTopIndex(origin), leafSize.Get4x4WideCount()),
-                        coefficientContexts.Left.Slice(coefficientContexts.GetLeftIndex(origin), leafSize.Get4x4HighCount()),
-                        context,
-                        origin,
-                        frameContextSize);
+                    if (publishCoefficientContexts)
+                    {
+                        byte context = lumaStates[
+                            coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount]
+                            .CoefficientContext;
+                        Av1TileWriter.UpdateCoefficientContexts(
+                            coefficientContexts.Top.Slice(coefficientContexts.GetTopIndex(origin), leafSize.Get4x4WideCount()),
+                            coefficientContexts.Left.Slice(coefficientContexts.GetLeftIndex(origin), leafSize.Get4x4HighCount()),
+                            context,
+                            origin,
+                            frameContextSize);
+                    }
+
                     coefficientOffset += leafSize.GetSize2d();
                 }
             }
@@ -3597,6 +3620,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     (byte)transformSize.GetWidth(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
                 transformContexts.UnitModeWrite(
                     (byte)transformSize.GetHeight(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
+            }
+
+            // A reused decision codes nothing here, so its coefficients are not in the shared buffer yet. The
+            // encode that follows it publishes their contexts. Reference: the rd_mode_is_ready branch of
+            // pick_sb_modes(), which leaves the entropy contexts to encode_superblock().
+            if (publishCoefficientContexts && (!interTransform || this.picture.Parent.FrameHeader.CodedLossless))
+            {
                 PublishCoefficientContexts(
                     coefficientContexts,
                     blockOrigin,
@@ -3622,7 +3652,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     PaletteContextMask);
             }
 
-            if (!block.HasChroma)
+            if (!block.HasChroma || !publishCoefficientContexts)
             {
                 return;
             }

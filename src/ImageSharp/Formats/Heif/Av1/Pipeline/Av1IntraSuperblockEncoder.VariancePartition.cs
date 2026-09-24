@@ -1115,17 +1115,18 @@ internal static partial class Av1IntraSuperblockEncoder
             bool fitsColumns = column + columnsRequired <= tile.ModeInfoColumnEnd;
             bool fitsRows = row + rowsRequired <= tile.ModeInfoRowEnd;
             Av1PartitionType partition = Av1PartitionType.Split;
-            if (width == 16 && aboveThreshold && pruneSixteenSplit &&
-                maximumVariance - minimumVariance <= (threshold16 << 2))
+            // Similar child variances permit one sixteen-by-sixteen block even when its own variance
+            // is high. Its parent must still split, as recorded independently above. When the block does
+            // not fit, the shape evaluation continues, unless the variance is very high for a key frame.
+            // Reference: get_part_eval_based_on_sub_blk_var(), and the PART_EVAL_ONLY_NONE path through
+            // set_vt_partitioning().
+            bool onlyNone = width == 16 && aboveThreshold && pruneSixteenSplit &&
+                maximumVariance - minimumVariance <= (threshold16 << 2);
+            if (onlyNone && fitsColumns && fitsRows)
             {
-                // Similar child variances permit one sixteen-by-sixteen block even when its own variance
-                // is high. Its parent must still split, as recorded independently above.
-                if (fitsColumns && fitsRows)
-                {
-                    partition = Av1PartitionType.None;
-                }
+                partition = Av1PartitionType.None;
             }
-            else if (!node.ForceParentSplit)
+            else if (onlyNone ? node.Variance <= (threshold << 4) : !node.ForceParentSplit)
             {
                 if (fitsColumns && fitsRows && node.Variance < threshold)
                 {

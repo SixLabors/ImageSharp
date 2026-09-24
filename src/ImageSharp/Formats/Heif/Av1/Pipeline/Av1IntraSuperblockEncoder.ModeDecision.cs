@@ -1122,6 +1122,13 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref this.asymmetricModeCache, partitionType, splitModeCache, horizontalModeCache, verticalModeCache);
                 }
 
+                // A block above the maximum partition size keeps what its split children leave behind,
+                // so the last child's own dry run leaves its contexts as every earlier child's does.
+                // Reference: the dry run encode_sb() of each child, and the av1_restore_context() that
+                // split_partition_search() skips for such a block.
+                bool keepsSplitContexts = blockSize > this.maximumPartitionSize &&
+                    blockSize != this.picture.Sequence.SequenceHeader.SuperblockSize;
+
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluatePartitionCandidate(
                     writer,
                     macroBlock,
@@ -1132,7 +1139,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     nodeIndex,
                     bestStatistics,
                     searchChildren: true,
-                    publishFinalContexts: false,
+                    publishFinalContexts: keepsSplitContexts && partitionType == Av1PartitionType.Split,
                     childCosts,
                     partitionType == Av1PartitionType.Split ? childRectangleWins : [],
                     out int stoppedAtLeaf,
@@ -1320,9 +1327,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // A block above the maximum partition size never reconstructs its winning subtree
                 // again, so the split children keep the contexts and coefficients they produced.
                 // Reference: split_partition_search().
-                if (partitionType != Av1PartitionType.Split ||
-                    blockSize <= this.maximumPartitionSize ||
-                    blockSize == this.picture.Sequence.SequenceHeader.SuperblockSize)
+                if (partitionType != Av1PartitionType.Split || !keepsSplitContexts)
                 {
                     this.ResetPartitionTrial(
                         blockOrigin,
@@ -5636,7 +5641,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 this.rateMultiplier, bestTransformRate, bestTransformDistortion);
 
                             Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                                $"TXBLOCK {blockOrigin.X},{blockOrigin.Y} blk {transformColumn},{transformRow} txsize {(int)transformSize} mode {(int)mode} filter {(int)filterIntraMode} rate {bestTransformRate} dist {bestTransformDistortion} sse {blockError} mse {blockMseQ8} eob {bestTransformState.EndOfBlock} type {(int)bestTransformType} current {runningCost} best {costLimit}");
+                                $"TXBLOCK {blockOrigin.X},{blockOrigin.Y} blk {transformColumn},{transformRow} txsize {(int)transformSize} mode {(int)mode} filter {(int)filterIntraMode} rate {bestTransformRate} dist {bestTransformDistortion} sse {blockError} mse {blockMseQ8} eob {bestTransformState.EndOfBlock} type {(int)bestTransformType} current {runningCost} best {costLimit} sctx {blockContext.SkipContext} dctx {blockContext.DcSignContext}");
 
                             if (runningCost > costLimit)
                             {

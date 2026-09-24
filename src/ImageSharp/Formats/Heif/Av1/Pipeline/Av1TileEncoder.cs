@@ -649,6 +649,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 writer.RefreshCosts();
                             }
 
+                            if (Entropy.Av1SymbolWriter.DiagnosticSymbolTrace is not null)
+                            {
+                                System.Text.StringBuilder costLine = new($"COST {modeInfoColumn * 4},{modeInfoRow * 4} skip1");
+                                for (int c = 0; c < 13; c++)
+                                {
+                                    costLine.Append(' ').Append(writer.GetTransformBlockSkipCost(true, Av1TransformSize.Size8x8, c));
+                                }
+
+                                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(costLine.ToString());
+                            }
+
                             int tileSuperblockRow = (modeInfoRow - tile.ModeInfoRowStart) >> superblockShift;
                             bool refreshMotionCosts = motionCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.Superblock ||
                                 (firstColumn && (tileSuperblockRow % motionCostRowInterval) == 0);

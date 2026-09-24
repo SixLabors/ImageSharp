@@ -664,6 +664,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 (this.codedAreaLuma / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..];
             Av1TransformSize transformSize = winner.TransformSize;
             Av1RateDistortionStatistics paletteStatistics = state.BestStatistics;
+
+            // The estimated search runs its palette through the complete search at the default stage,
+            // with the transform size searched as the default stage sets it. Reference: the
+            // set_mode_eval_params(DEFAULT_EVAL) that opens av1_nonrd_use_partition().
+            Av1EncoderEvaluationStage previousStage = this.blockWorkspace.EvaluationStage;
+            this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
             bool selected = this.SelectLumaPalette(
                 writer,
                 macroBlock,
@@ -677,6 +683,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref paletteStatistics,
                 ref palette,
                 ref transformSize);
+            this.blockWorkspace.EvaluationStage = previousStage;
             if (selected)
             {
                 bool skip = !paletteStatistics.HasCoefficients;

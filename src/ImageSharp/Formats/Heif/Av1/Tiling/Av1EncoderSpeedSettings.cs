@@ -218,9 +218,12 @@ internal readonly struct Av1EncoderSpeedSettings
         this.TerminatePartitionSearchAfterInvalidNoneAndSplit = realtime || speed >= HeifEncodingSpeed.Level4 ||
             (!allIntra && speed >= HeifEncodingSpeed.Level3 && minimumDimension >= 480);
 
-        this.RectangularPartitionPruningLevel = realtime || speed >= (allIntra ? HeifEncodingSpeed.Level3 : HeifEncodingSpeed.Level4)
+        // The quantizer pass overrides the speed ladder in every mode but realtime: speed 3 relaxes the
+        // check from base_qindex 170, and speeds up to 2 keep the first level.
+        // Reference: the less_rectangular_check_level terms of av1_set_speed_features_qindex_dependent().
+        this.RectangularPartitionPruningLevel = realtime || speed >= HeifEncodingSpeed.Level4
             ? 2
-            : !allIntra && speed == HeifEncodingSpeed.Level3 && qIndex < 170 ? 2 : 1;
+            : speed == HeifEncodingSpeed.Level3 ? qIndex >= 170 ? 1 : 2 : 1;
 
         int partitionDistortionThreshold = 0;
         int partitionRateThreshold = 0;

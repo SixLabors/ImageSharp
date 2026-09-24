@@ -267,7 +267,13 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 Av1RateDistortionStatistics paletteStatistics = bestStatistics;
                 Av1TransformSize paletteTransformSize = transformSize;
-                if (this.SelectLumaPalette(
+
+                // The estimated search runs its palette through the complete search at the default stage,
+                // with the transform size searched as the default stage sets it. Reference: the
+                // set_mode_eval_params(DEFAULT_EVAL) that opens av1_nonrd_use_partition().
+                Av1EncoderEvaluationStage previousStage = this.blockWorkspace.EvaluationStage;
+                this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
+                bool paletteImproved = this.SelectLumaPalette(
                     writer,
                     macroBlock,
                     blockOrigin,
@@ -279,7 +285,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer.GetInterFrameLumaModeCost(Av1PredictionMode.DC, blockSize),
                     ref paletteStatistics,
                     ref paletteInfo,
-                    ref paletteTransformSize))
+                    ref paletteTransformSize);
+                this.blockWorkspace.EvaluationStage = previousStage;
+                if (paletteImproved)
                 {
                     // A skipped palette block omits its residual and mode rates. Apply skip syntax
                     // before comparing with the retained estimate, which already includes that syntax.

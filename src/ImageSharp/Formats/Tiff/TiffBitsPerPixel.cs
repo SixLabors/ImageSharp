@@ -92,13 +92,11 @@ public enum TiffBitsPerPixel
 
     /// <summary>
     /// 96 bits per pixel, with three 32-bit color samples.
-    /// The TiffEncoder writes unsigned integer requests as 48 bits per pixel.
     /// </summary>
     Bit96 = 96,
 
     /// <summary>
     /// 128 bits per pixel, with four 32-bit color and alpha samples.
-    /// The TiffEncoder writes unsigned integer requests as 64 bits per pixel.
     /// </summary>
     Bit128 = 128,
 }

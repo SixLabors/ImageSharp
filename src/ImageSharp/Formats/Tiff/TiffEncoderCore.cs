@@ -479,12 +479,10 @@ internal sealed class TiffEncoderCore
             return;
         }
 
-        // Unsupported integer color depths use 16-bit channels. Choose the
-        // layout before compression so JPEG's 8-bit writer is not selected.
+        // The packed integer depths still use the existing 16-bit color fallback.
         bitsPerPixel = bitsPerPixel switch
         {
-            TiffBitsPerPixel.Bit30 or TiffBitsPerPixel.Bit36 or TiffBitsPerPixel.Bit42 or TiffBitsPerPixel.Bit96 => TiffBitsPerPixel.Bit48,
-            TiffBitsPerPixel.Bit128 => TiffBitsPerPixel.Bit64,
+            TiffBitsPerPixel.Bit30 or TiffBitsPerPixel.Bit36 or TiffBitsPerPixel.Bit42 => TiffBitsPerPixel.Bit48,
             _ => bitsPerPixel
         };
 
@@ -502,10 +500,9 @@ internal sealed class TiffEncoderCore
         // Ensure predictor is only used with compression that supports it.
         predictor = HasPredictor(compression) ? predictor : TiffPredictor.None;
 
-        // The JPEG compressor writes 8-bit RGB only. Keep a requested 16-bit color
-        // depth by selecting the established non-bilevel compression fallback.
+        // JPEG cannot write the requested high-precision integer samples.
         if (compression == TiffCompression.Jpeg &&
-            (bitsPerPixel == TiffBitsPerPixel.Bit48 || bitsPerPixel == TiffBitsPerPixel.Bit64))
+            bitsPerPixel is (TiffBitsPerPixel.Bit48 or TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit96 or TiffBitsPerPixel.Bit128))
         {
             compression = TiffCompression.Deflate;
         }

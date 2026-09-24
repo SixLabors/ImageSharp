@@ -192,6 +192,14 @@ internal class TiffEncoderEntriesCollector
             {
                 foreach (IExifValue entry in exifProfile.Values)
                 {
+                    // This encoder writes strips. Source tile dimensions and offsets
+                    // would make readers use the old layout in the new file.
+                    ExifTagValue tag = (ExifTagValue)(ushort)entry.Tag;
+                    if (tag is ExifTagValue.TileWidth or ExifTagValue.TileLength or ExifTagValue.TileOffsets or ExifTagValue.TileByteCounts)
+                    {
+                        continue;
+                    }
+
                     if (!this.Collector.Entries.Exists(t => t.Tag == entry.Tag) && entry.GetValue() != null)
                     {
                         ExifParts entryPart = ExifTags.GetPart(entry.Tag);
@@ -382,10 +390,9 @@ internal class TiffEncoderEntriesCollector
                     });
                 }
             }
-            else if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit64)
+            else if (encoder.BitsPerPixel is TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit128)
             {
-                // The bulk Rgba64 conversion writes straight color, so the fourth 16-bit
-                // sample must be identified as unassociated alpha.
+                // Integer color writers emit straight color with a fourth alpha sample.
                 this.Collector.AddOrReplace(new ExifShortArray(ExifTagValue.ExtraSamples)
                 {
                     Value = [(ushort)TiffExtraSampleType.UnassociatedAlphaData]
@@ -415,7 +422,7 @@ internal class TiffEncoderEntriesCollector
                 TiffPhotometricInterpretation.PaletteColor or
                 TiffPhotometricInterpretation.BlackIsZero or
                 TiffPhotometricInterpretation.WhiteIsZero => 1,
-                _ => encoder.BitsPerPixel == TiffBitsPerPixel.Bit64 ? (ushort)4 : (ushort)3,
+                _ => encoder.BitsPerPixel is TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit128 ? (ushort)4 : (ushort)3,
             };
         }
 
@@ -443,6 +450,8 @@ internal class TiffEncoderEntriesCollector
                     {
                         TiffBitsPerPixel.Bit48 => [16, 16, 16],
                         TiffBitsPerPixel.Bit64 => [16, 16, 16, 16],
+                        TiffBitsPerPixel.Bit96 => [32, 32, 32],
+                        TiffBitsPerPixel.Bit128 => [32, 32, 32, 32],
                         _ => TiffConstants.BitsPerSampleRgb8Bit.ToArray(),
                     };
 

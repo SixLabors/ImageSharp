@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -42,6 +44,39 @@ internal class Rgba32PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
+            if (!hasAssociatedAlpha && typeof(TPixel) == typeof(Rgba128))
+            {
+                // Straight integer pixels retain the stored samples. Associated
+                // alpha still needs the generic alpha conversion below.
+                Span<Rgba128> exactRow = MemoryMarshal.Cast<TPixel, Rgba128>(pixelRow);
+                ReadOnlySpan<uint> first = MemoryMarshal.Cast<byte, uint>(redData.Slice(offset, width * 4));
+                ReadOnlySpan<uint> second = MemoryMarshal.Cast<byte, uint>(greenData.Slice(offset, width * 4));
+                ReadOnlySpan<uint> third = MemoryMarshal.Cast<byte, uint>(blueData.Slice(offset, width * 4));
+                ReadOnlySpan<uint> fourth = MemoryMarshal.Cast<byte, uint>(alphaData.Slice(offset, width * 4));
+
+                if (this.isBigEndian != BitConverter.IsLittleEndian)
+                {
+                    for (int x = 0; x < exactRow.Length; x++)
+                    {
+                        exactRow[x] = new Rgba128(first[x], second[x], third[x], fourth[x]);
+                    }
+                }
+                else
+                {
+                    for (int x = 0; x < exactRow.Length; x++)
+                    {
+                        exactRow[x] = new Rgba128(
+                            BinaryPrimitives.ReverseEndianness(first[x]),
+                            BinaryPrimitives.ReverseEndianness(second[x]),
+                            BinaryPrimitives.ReverseEndianness(third[x]),
+                            BinaryPrimitives.ReverseEndianness(fourth[x]));
+                    }
+                }
+
+                offset += width * 4;
+                continue;
+            }
+
             if (this.isBigEndian)
             {
                 for (int x = 0; x < pixelRow.Length; x++)

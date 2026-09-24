@@ -439,37 +439,212 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     }
 
     [Theory]
-    [InlineData(TiffBitsPerPixel.Bit96, TiffBitsPerPixel.Bit48, TiffCompression.None)]
-    [InlineData(TiffBitsPerPixel.Bit128, TiffBitsPerPixel.Bit64, TiffCompression.None)]
-    [InlineData(TiffBitsPerPixel.Bit96, TiffBitsPerPixel.Bit48, TiffCompression.Jpeg)]
-    [InlineData(TiffBitsPerPixel.Bit128, TiffBitsPerPixel.Bit64, TiffCompression.Jpeg)]
-    public void EncoderOptions_UnsupportedUnsignedColorDepth_Uses16BitSamples(
-        TiffBitsPerPixel bitsPerPixel,
-        TiffBitsPerPixel expectedBitsPerPixel,
-        TiffCompression compression)
+    [InlineData(TiffCompression.None, TiffPredictor.None)]
+    [InlineData(TiffCompression.PackBits, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.None)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Jpeg, TiffPredictor.None)]
+    public void UnsignedRgb96_RoundTripsEverySampleBit(TiffCompression compression, TiffPredictor predictor)
     {
-        // Nonzero low bytes reveal a fallback through 8-bit samples.
-        Rgba64 expected = new(0x1201, 0x3402, 0x5603, 0x7804);
-        using Image<Rgba64> input = new(1, 1);
-        input[0, 0] = expected;
-        using MemoryStream stream = new();
+        // 2^24 + 1 is the first integer a float cannot represent exactly.
+        // The second value sets the unsigned high bit and keeps its low bit set.
+        const uint FirstInexactFloatSample = 0x01000001U;
+        const uint HighUnsignedSample = 0x80000001U;
 
-        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.UnsignedInteger, BitsPerPixel = bitsPerPixel, Compression = compression });
+        // The 65-pixel rows cross SIMD block boundaries and check that the predictor
+        // restarts on the second row. Decreasing from uint.MaxValue also checks the
+        // upper bound while adjacent samples differ in bits Vector4 would lose.
+        using Image<Rgb96> input = new(65, 2);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                input[x, y] = new Rgb96(FirstInexactFloatSample + (uint)x, HighUnsignedSample + (uint)y, uint.MaxValue - (uint)x);
+            }
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.UnsignedInteger, BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = compression, HorizontalPredictor = predictor });
 
         stream.Position = 0;
-        using Image<Rgba64> output = Image.Load<Rgba64>(stream);
+        using Image decoded = Image.Load(stream);
+        Image<Rgb96> output = Assert.IsType<Image<Rgb96>>(decoded);
         TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
-        Rgba64 actual = output[0, 0];
 
-        Assert.Equal(expectedBitsPerPixel, metadata.BitsPerPixel);
-        Assert.Equal(expectedBitsPerPixel == TiffBitsPerPixel.Bit64 ? new TiffBitsPerSample(16, 16, 16, 16) : new TiffBitsPerSample(16, 16, 16), metadata.BitsPerSample);
+        Assert.Equal(TiffBitsPerPixel.Bit96, metadata.BitsPerPixel);
+        Assert.Equal(new TiffBitsPerSample(32, 32, 32), metadata.BitsPerSample);
+        Assert.Equal(TiffSampleFormat.UnsignedInteger, metadata.SampleFormat);
         Assert.Equal(compression == TiffCompression.Jpeg ? TiffCompression.Deflate : compression, metadata.Compression);
-        Assert.Equal(expected.R, actual.R);
-        Assert.Equal(expected.G, actual.G);
-        Assert.Equal(expected.B, actual.B);
+        Assert.Equal(predictor, metadata.Predictor);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
 
-        // Three-channel output omits alpha; the decoder supplies opaque alpha.
-        Assert.Equal(expectedBitsPerPixel == TiffBitsPerPixel.Bit64 ? expected.A : ushort.MaxValue, actual.A);
+    [Theory]
+    [InlineData(TiffCompression.None, TiffPredictor.None)]
+    [InlineData(TiffCompression.PackBits, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.None)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Jpeg, TiffPredictor.None)]
+    public void UnsignedRgba128_RoundTripsEverySampleBit(TiffCompression compression, TiffPredictor predictor)
+    {
+        // These values exercise the first integer a float cannot represent,
+        // the unsigned high bit, and a non-opaque alpha with a significant low bit.
+        const uint FirstInexactFloatSample = 0x01000001U;
+        const uint HighUnsignedSample = 0x80000001U;
+        const uint NonOpaqueAlphaSample = 0x40000001U;
+
+        // Cross SIMD block and row boundaries and decrease from uint.MaxValue.
+        // The first pixel in each row has nonzero color with zero alpha, which
+        // encoding must retain.
+        using Image<Rgba128> input = new(65, 2);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                input[x, y] = new Rgba128(FirstInexactFloatSample + (uint)x, HighUnsignedSample + (uint)y, uint.MaxValue - (uint)x, x == 0 ? 0U : NonOpaqueAlphaSample + (uint)x);
+            }
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.UnsignedInteger, BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = compression, HorizontalPredictor = predictor });
+
+        stream.Position = 0;
+        using Image decoded = Image.Load(stream);
+        Image<Rgba128> output = Assert.IsType<Image<Rgba128>>(decoded);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffBitsPerPixel.Bit128, metadata.BitsPerPixel);
+        Assert.Equal(new TiffBitsPerSample(32, 32, 32, 32), metadata.BitsPerSample);
+        Assert.Equal(TiffSampleFormat.UnsignedInteger, metadata.SampleFormat);
+        Assert.Equal(TiffExtraSampleType.UnassociatedAlphaData, metadata.ExtraSampleType);
+        Assert.Equal(compression == TiffCompression.Jpeg ? TiffCompression.Deflate : compression, metadata.Compression);
+        Assert.Equal(predictor, metadata.Predictor);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(TiledRgb96BitLittleEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgb96BitBigEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgb96BitLittleEndianLzwCompressedWithPredictor)]
+    [InlineData(TiledRgb96BitBigEndianLzwCompressedWithPredictor)]
+    public void UnsignedRgb96_RealReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgb96> input = Image.Load<Rgb96>(TestFile.GetInputFileFullPath(path));
+
+        // These are the sample words at two pixels in libtiff's uncompressed output
+        // of the source tiles. Hex keeps each stored byte visible.
+        Assert.Equal(new Rgb96(0x0D0D0D0DU, 0x0D0D0D0DU, 0x0F0F0F0FU), input[0, 0]);
+        Assert.Equal(new Rgb96(0xB1B1B1B1U, 0xA9A9A9A9U, 0x9E9E9E9EU), input[65, 97]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgb96> output = Image.Load<Rgb96>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(TiledRgba128BitLittleEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgba128BitBigEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgba128BitLittleEndianLzwCompressedWithPredictor)]
+    [InlineData(TiledRgba128BitBigEndianLzwCompressedWithPredictor)]
+    public void UnsignedRgba128_RealReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgba128> input = Image.Load<Rgba128>(TestFile.GetInputFileFullPath(path));
+
+        // These are the sample words at two pixels in libtiff's uncompressed output
+        // of the source tiles. Hex keeps each stored byte visible.
+        Assert.Equal(new Rgba128(0x0D0D0D0DU, 0x0D0D0D0DU, 0x0F0F0F0FU, uint.MaxValue), input[0, 0]);
+        Assert.Equal(new Rgba128(0xB1B1B1B1U, 0xA9A9A9A9U, 0x9E9E9E9EU, uint.MaxValue), input[65, 97]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgba128> output = Image.Load<Rgba128>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(FlowerRgb323232Planar)]
+    [InlineData(FlowerRgb323232PlanarLittleEndian)]
+    public void UnsignedRgb96_PlanarReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgb96> input = Image.Load<Rgb96>(TestFile.GetInputFileFullPath(path));
+
+        // These are the 32-bit sample words at two pixels in the uncompressed
+        // planar TIFF. Hex keeps each stored byte visible for byte-order checks.
+        Assert.Equal(new Rgb96(0x58CC576BU, 0x58A64DD6U, 0x47713036U), input[0, 0]);
+        Assert.Equal(new Rgb96(0x44B8137EU, 0x4650DF9BU, 0x3C3B4613U), input[72, 42]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgb96> output = Image.Load<Rgb96>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(Rgba32BitPlanarUnassociatedAlphaLittleEndian)]
+    [InlineData(Rgba32BitPlanarUnassociatedAlphaBigEndian)]
+    public void UnsignedRgba128_PlanarReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgba128> input = Image.Load<Rgba128>(TestFile.GetInputFileFullPath(path));
+
+        // These hex values are the exact 32-bit sample words at the named pixels
+        // in the uncompressed planar TIFF, with each byte visible. The first
+        // pixel has stored color at zero alpha; the second checks nonzero alpha.
+        Assert.Equal(new Rgba128(0xB2B2B2B2U, 0xB2B2B2B2U, 0xFEFEFEFEU, 0U), input[78, 7]);
+        Assert.Equal(new Rgba128(0xD2D2D2D2U, 0xA0A0A0A0U, 0xA0A0A0A0U, 0xF7F7F7F7U), input[140, 105]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgba128> output = Image.Load<Rgba128>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
     }
 
     [Theory]

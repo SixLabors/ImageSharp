@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -199,6 +200,48 @@ internal static class HorizontalPredictor
         else if (bitsPerPixel == 48 || bitsPerPixel == 64)
         {
             ApplyHorizontalPrediction16Bit(rows, width, bitsPerPixel / 16);
+        }
+        else if (bitsPerPixel == 96 || bitsPerPixel == 128)
+        {
+            ApplyHorizontalPrediction32Bit(rows, width, bitsPerPixel / 32);
+        }
+    }
+
+    /// <summary>
+    /// Applies horizontal differencing to each 32-bit component using the preceding pixel's component.
+    /// </summary>
+    /// <param name="rows">The rows of native-endian 32-bit samples.</param>
+    /// <param name="width">The row width in bytes.</param>
+    /// <param name="samplesPerPixel">The number of components in each pixel.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void ApplyHorizontalPrediction32Bit(Span<byte> rows, int width, int samplesPerPixel)
+    {
+        DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equal");
+        for (int row = 0; row < rows.Length; row += width)
+        {
+            Span<uint> samples = MemoryMarshal.Cast<byte, uint>(rows.Slice(row, width));
+
+            // Predictor 2 subtracts the same component of the preceding pixel.
+            // Work backward so those preceding samples still have their original
+            // values. Load both vectors before writing because their spans can
+            // overlap when a pixel has three or four components. Unsigned vector
+            // subtraction wraps at 32 bits, as the scalar predictor does.
+            int i = samples.Length - 1;
+            if (Vector.IsHardwareAccelerated)
+            {
+                for (; i >= samplesPerPixel + Vector<uint>.Count - 1; i -= Vector<uint>.Count)
+                {
+                    int first = i - Vector<uint>.Count + 1;
+                    Vector<uint> current = new(samples.Slice(first, Vector<uint>.Count));
+                    Vector<uint> previous = new(samples.Slice(first - samplesPerPixel, Vector<uint>.Count));
+                    (current - previous).CopyTo(samples.Slice(first, Vector<uint>.Count));
+                }
+            }
+
+            for (; i >= samplesPerPixel; i--)
+            {
+                samples[i] -= samples[i - samplesPerPixel];
+            }
         }
     }
 

@@ -41,6 +41,11 @@ internal static class TiffColorWriterFactory
                     return new TiffRgb16Writer<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
                 }
 
+                if (bitsPerPixel == 96 || bitsPerPixel == 128)
+                {
+                    return new TiffRgb32Writer<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
+                }
+
                 return new TiffRgbWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector);
         }
     }

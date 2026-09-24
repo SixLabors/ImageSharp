@@ -65,11 +65,13 @@ public class TiffDecoder : ImageDecoder
         if (metadata.SampleFormat == TiffSampleFormat.UnsignedInteger &&
             metadata.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb)
         {
-            // A default load must retain all 16 bits of each color sample.
+            // Match the stored integer channel width when choosing the default pixel type.
             return metadata.BitsPerPixel switch
             {
                 TiffBitsPerPixel.Bit48 => this.Decode<Rgb48>(options, stream, cancellationToken),
                 TiffBitsPerPixel.Bit64 => this.Decode<Rgba64>(options, stream, cancellationToken),
+                TiffBitsPerPixel.Bit96 => this.Decode<Rgb96>(options, stream, cancellationToken),
+                TiffBitsPerPixel.Bit128 => this.Decode<Rgba128>(options, stream, cancellationToken),
                 _ => this.Decode<Rgba32>(options, stream, cancellationToken),
             };
         }

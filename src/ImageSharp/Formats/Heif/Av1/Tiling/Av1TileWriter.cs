@@ -2944,6 +2944,57 @@ internal partial class Av1TileWriter
         int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
         int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
         Point chromaBlockOrigin = GetChromaBlockOrigin(blockOrigin, subsamplingX, subsamplingY);
+        int chromaAreaStart = 0;
+
+        // The adaptation pass visits each plane across the whole block before the next plane, unlike the
+        // syntax below, which interleaves the planes of each 64x64 region. The order changes how a shared
+        // distribution adapts once a block spans more than one region.
+        // Reference: av1_update_txb_context(), which calls av1_foreach_transformed_block_in_plane() per plane.
+        if (!TOperation.WritesOutput && (maximumBlocksWide > maximumUnitBlocksWide || maximumBlocksHigh > maximumUnitBlocksHigh))
+        {
+            for (int planeIndex = 0; planeIndex < (hasChroma ? 3 : 1); planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                if (plane == Av1Plane.V)
+                {
+                    entropyCodingContext.CodedAreaSuperblockUv = chromaAreaStart;
+                }
+                else if (plane == Av1Plane.U)
+                {
+                    chromaAreaStart = entropyCodingContext.CodedAreaSuperblockUv;
+                }
+
+                for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
+                {
+                    int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
+                    for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
+                    {
+                        int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
+                        bool isLuma = plane == Av1Plane.Y;
+                        EncodeTransformCoefficientRegion<TOperation>(
+                            pcs,
+                            entropyCodingContext,
+                            writer,
+                            ref block,
+                            isLuma ? blockOrigin : chromaBlockOrigin,
+                            intraLumaMode,
+                            blockSize,
+                            plane,
+                            coefficientBuffer,
+                            superblockIndex,
+                            isLuma ? lumaCoefficientNeighbors : plane == Av1Plane.U ? blueCoefficientNeighbors : redCoefficientNeighbors,
+                            isLuma ? regionRow : regionRow >> subsamplingY,
+                            isLuma ? regionColumn : regionColumn >> subsamplingX,
+                            isLuma ? unitBottom : Av1Math.RoundPowerOf2(unitBottom, subsamplingY),
+                            isLuma ? unitRight : Av1Math.RoundPowerOf2(unitRight, subsamplingX),
+                            useRetainedContexts,
+                            advanceBlueArea: plane == Av1Plane.U);
+                    }
+                }
+            }
+
+            return;
+        }
 
         // Residual syntax is region-major, then plane-major. Keeping the three plane calls together
         // prevents a 128x128 block from emitting later luma regions before earlier chroma regions.
@@ -3036,7 +3087,8 @@ internal partial class Av1TileWriter
         int regionColumn,
         int unitBottom,
         int unitRight,
-        bool useRetainedContexts)
+        bool useRetainedContexts,
+        bool advanceBlueArea = false)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
@@ -3185,9 +3237,10 @@ internal partial class Av1TileWriter
         {
             entropyCodingContext.CodedAreaSuperblock = codedArea;
         }
-        else if (plane == Av1Plane.V)
+        else if (plane == Av1Plane.V || advanceBlueArea)
         {
-            // U and V share the same per-plane coded-area positions; advance only after V completes the region.
+            // U and V share the same per-plane coded-area positions; advance only after V completes the region,
+            // unless U runs across the whole block on its own.
             entropyCodingContext.CodedAreaSuperblockUv = codedArea;
         }
     }

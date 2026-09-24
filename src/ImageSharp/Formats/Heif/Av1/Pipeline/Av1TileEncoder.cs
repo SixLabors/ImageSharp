@@ -657,6 +657,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                     costLine.Append(' ').Append(writer.GetTransformBlockSkipCost(true, Av1TransformSize.Size8x8, c));
                                 }
 
+                                costLine.Append(" uv32");
+                                for (int c = 0; c < 13; c++)
+                                {
+                                    costLine.Append(' ').Append(writer.GetTransformBlockSkipCost(true, Av1TransformSize.Size32x32, c));
+                                }
+
                                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(costLine.ToString());
                             }
 

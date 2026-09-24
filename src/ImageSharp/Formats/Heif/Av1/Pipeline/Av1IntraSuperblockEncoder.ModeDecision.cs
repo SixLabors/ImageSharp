@@ -2643,7 +2643,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1RateDistortionStatistics regularStatistics = lumaStatistics.Cost == long.MaxValue
                 ? Av1RateDistortionStatistics.Invalid
-                : this.GetRegularBlockCost(writer, macroBlock, lumaStatistics, allowIntraBlockCopy);
+                : this.GetRegularBlockCost(writer, macroBlock, lumaStatistics);
 
             if (isInterFrame && interStatistics.Cost != long.MaxValue && interStatistics.Cost <= regularStatistics.Cost)
             {
@@ -2765,7 +2765,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer, macroBlock, blockOrigin, tileIndex, refinedModeInfo, refinedBlock, refinedPalette, chromaStatistics);
                         refinedLuma.Add(this.rateMultiplier, refinedChroma);
                         Av1RateDistortionStatistics refinedStatistics = this.GetRegularBlockCost(
-                            writer, macroBlock, refinedLuma, allowIntraBlockCopy);
+                            writer, macroBlock, refinedLuma);
                         if (refinedStatistics.Cost < this.SelectedBlockStatistics.Cost)
                         {
                             modeInfo = refinedModeInfo;
@@ -4038,14 +4038,9 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics GetRegularBlockCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
-            Av1RateDistortionStatistics modeStatistics,
-            bool allowIntraBlockCopy)
+            Av1RateDistortionStatistics modeStatistics)
         {
             int rateAdjustment = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
-            if (allowIntraBlockCopy)
-            {
-                rateAdjustment += writer.GetUseIntraBlockCopyCost(false);
-            }
 
             return new(this.rateMultiplier, modeStatistics.Rate + rateAdjustment, modeStatistics.Distortion);
         }
@@ -5136,6 +5131,13 @@ internal static partial class Av1IntraSuperblockEncoder
                             blockSize);
                     }
                 }
+            }
+
+            // Every intra candidate of a frame that allows intra block copy signals that it does not copy.
+            // Reference: the intrabc_cost term of intra_mode_info_cost_y().
+            if (this.picture.Parent.FrameHeader.AllowIntraBlockCopy)
+            {
+                rate += writer.GetUseIntraBlockCopyCost(false);
             }
 
             Buffer2DRegion<byte> colorIndexMap = default;

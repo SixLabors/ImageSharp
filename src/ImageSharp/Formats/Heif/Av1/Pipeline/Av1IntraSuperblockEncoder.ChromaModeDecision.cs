@@ -1221,11 +1221,14 @@ internal static partial class Av1IntraSuperblockEncoder
                         out long bluePredictionDistortion,
                         out int blueRate);
 
-                    // block_rd_txfm scores an intra transform with its coefficient
-                    // rate and distortion alone, and invalidates the plane as soon as the running cost passes
-                    // the reference. The skipped alternative belongs to inter blocks.
+                    // Inside a plane, block_rd_txfm scores an intra transform with its coefficient rate and
+                    // distortion alone and stops the plane once the running cost passes the reference. After the
+                    // plane, the running totals pass when either the coded cost or the cost of leaving the
+                    // residual uncoded stays within the bound. Reference: av1_txfm_uvrd().
                     if (blueRate == int.MaxValue ||
-                        Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion) > costLimit)
+                        Math.Min(
+                            Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion),
+                            Av1RateDistortion.GetCost(this.rateMultiplier, 0, bluePredictionDistortion)) > costLimit)
                     {
                         if (angleDelta == 0)
                         {
@@ -1264,7 +1267,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         out int redRate);
 
                     if (redRate == int.MaxValue ||
-                        Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion + redDistortion) > costLimit)
+                        Math.Min(
+                            Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion + redDistortion),
+                            Av1RateDistortion.GetCost(this.rateMultiplier, 0, bluePredictionDistortion + redPredictionDistortion)) > costLimit)
                     {
                         if (angleDelta == 0)
                         {
@@ -2034,9 +2039,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraMode.AllFilterIntraModes,
                 usesInterTransformSet: false);
 
-            // block_rd_txfm scores an intra transform with its coefficient rate and
-            // distortion alone. The skipped alternative belongs to inter blocks.
-            if (Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion) > costLimit)
+            // Each plane is checked on the running totals of both planes, and a total passes when either its
+            // coded cost or the cost of leaving its residual uncoded stays within the bound.
+            // Reference: the AOMMIN(this_rd, skip_txfm_rd) test of av1_txfm_uvrd().
+            if (Math.Min(
+                Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion),
+                Av1RateDistortion.GetCost(this.rateMultiplier, 0, predictionDistortion)) > costLimit)
             {
                 return Av1RateDistortionStatistics.Invalid;
             }

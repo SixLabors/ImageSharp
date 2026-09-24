@@ -410,7 +410,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Every depth opens with the best candidate cost so far. With the breakout, a later depth also
             // stops at the best depth this candidate already measured, taken without its palette syntax,
-            // because the running cost inside a depth carries only the size syntax and the coefficients.
+            // because the running cost inside a depth carries only the non-skip flag, the size syntax and
+            // the coefficients.
             // Reference: the rd_thresh of choose_tx_size_type_from_rd(), which palette_rd_y() reaches
             // through av1_pick_uniform_tx_size_type_yrd() with *best_rd.
             long costLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
@@ -453,9 +454,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (settings.UseIntraTransformRdBreakout && candidateStatistics.Cost < bestDepthCost)
                 {
                     bestDepthCost = candidateStatistics.Cost;
-                    long sizeModeCost = Av1RateDistortion.GetCost(
-                        this.rateMultiplier, candidateStatistics.Rate - candidateStatistics.ResidualRate, 0);
-                    costLimit = Math.Min(costLimit, candidateStatistics.Cost - sizeModeCost);
+                    costLimit = Math.Min(costLimit, candidateStatistics.TransformCost);
                 }
 
                 if (candidateStatistics.Cost < Math.Min(this.blockCostLimit, bestStatistics.Cost))

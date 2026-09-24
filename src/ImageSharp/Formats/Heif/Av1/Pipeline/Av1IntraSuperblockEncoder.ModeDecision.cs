@@ -4390,9 +4390,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         if (statistics.Cost != long.MaxValue)
                         {
-                            long depthModeCost = Av1RateDistortion.GetCost(
-                                this.rateMultiplier, statistics.Rate - statistics.ResidualRate, 0);
-                            blockBest = Math.Min(blockBest, statistics.Cost - depthModeCost);
+                            blockBest = Math.Min(blockBest, statistics.TransformCost);
                         }
 
                         if (statistics.Cost < selectedStatistics.Cost)
@@ -4789,9 +4787,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             // syntax therefore comes off before the measured depth becomes a budget.
                             // Reference: the rd_thresh of choose_tx_size_type_from_rd() against the
                             // current_rd of block_rd_txfm().
-                            long sizeModeCost = Av1RateDistortion.GetCost(
-                                this.rateMultiplier, statistics.Rate - statistics.ResidualRate, 0);
-                            costLimit = Math.Min(costLimit, statistics.Cost - sizeModeCost);
+                            costLimit = Math.Min(costLimit, statistics.TransformCost);
                         }
                     }
 
@@ -5635,6 +5631,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return new(this.rateMultiplier, rate, distortion)
             {
                 ResidualRate = rate - modeRate,
+                TransformCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate - modeRate + noSkipRate, distortion),
                 HasCoefficients = hasCoefficients,
 
                 // An intra candidate is always priced as non-skip, because its transform search reports

@@ -69,6 +69,13 @@ internal struct Av1RateDistortionStatistics
     public long LumaCost { get; set; }
 
     /// <summary>
+    /// Gets or sets the cost of the transform choice alone: its coefficients, the non-skip flag and the
+    /// transform-size syntax, without the prediction syntax. A later transform depth is bounded by it.
+    /// Reference: the rd that uniform_txfm_yrd() returns.
+    /// </summary>
+    public long TransformCost { get; set; }
+
+    /// <summary>
     /// Gets or sets the candidate comparison cost, including any mode-selection adjustment.
     /// </summary>
     public long Cost { get; set; }

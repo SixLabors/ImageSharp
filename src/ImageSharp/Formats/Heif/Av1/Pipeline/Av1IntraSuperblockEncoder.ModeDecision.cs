@@ -22,6 +22,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1IntraSuperblockEncoder
 {
     /// <summary>
+    /// The position of the split candidate in <see cref="PartitionSearchOrder"/>.
+    /// </summary>
+    private const int SplitSearchOrderIndex = 1;
+
+    /// <summary>
     /// Gets the zero-angle luma mode evaluation order.
     /// </summary>
     private static ReadOnlySpan<Av1PredictionMode> LumaModeSearchOrder =>
@@ -54,10 +59,19 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Gets the partition candidate evaluation order.
     /// </summary>
-    /// <summary>
-    /// The position of the split candidate in <see cref="PartitionSearchOrder"/>.
-    /// </summary>
-    private const int SplitSearchOrderIndex = 1;
+    private static ReadOnlySpan<Av1PartitionType> PartitionSearchOrder =>
+    [
+        Av1PartitionType.None,
+        Av1PartitionType.Split,
+        Av1PartitionType.Horizontal,
+        Av1PartitionType.Vertical,
+        Av1PartitionType.HorizontalA,
+        Av1PartitionType.HorizontalB,
+        Av1PartitionType.VerticalA,
+        Av1PartitionType.VerticalB,
+        Av1PartitionType.Horizontal4,
+        Av1PartitionType.Vertical4
+    ];
 
     /// <summary>
     /// Reports whether a plane position falls inside the window named by AV1_TRACE_XY, which reads
@@ -86,20 +100,6 @@ internal static partial class Av1IntraSuperblockEncoder
             planeOrigin.X >= traceX && planeOrigin.X < traceX + traceWidth &&
             planeOrigin.Y >= traceY && planeOrigin.Y < traceY + traceHeight;
     }
-
-    private static ReadOnlySpan<Av1PartitionType> PartitionSearchOrder =>
-    [
-        Av1PartitionType.None,
-        Av1PartitionType.Split,
-        Av1PartitionType.Horizontal,
-        Av1PartitionType.Vertical,
-        Av1PartitionType.HorizontalA,
-        Av1PartitionType.HorizontalB,
-        Av1PartitionType.VerticalA,
-        Av1PartitionType.VerticalB,
-        Av1PartitionType.Horizontal4,
-        Av1PartitionType.Vertical4
-    ];
 
     /// <summary>
     /// Builds the fixed 8x8 partition skeleton consumed by interleaved mode decision and tile writing.
@@ -2090,6 +2090,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1EncoderPartitionTree tree = this.blockWorkspace.PartitionTree;
+
             // The leaf that ended the search early still keeps the context its own search filled, so
             // a split child whose partition search found nothing within its budget still offers its
             // unsplit mode. Reference: copy_partition_mode_from_pc_tree(), which tests only the rate of
@@ -6357,7 +6358,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} pred");
                 for (int i = 0; i < width && i < 8; i++)
                 {
-                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {Convert.ToInt32(prediction[i])}");
+                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {TOperator.GetSampleValue(prediction[i])}");
                 }
 
                 reconLine.Append(" res");
@@ -6378,7 +6379,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Span<TSample> reconRow = destinationPlane.DangerousGetRowSpan(planeOrigin.Y + r);
                     for (int c = 0; c < width && c < 8; c++)
                     {
-                        reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {Convert.ToInt32(reconRow[planeOrigin.X + c])}");
+                        reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {TOperator.GetSampleValue(reconRow[planeOrigin.X + c])}");
                     }
                 }
 

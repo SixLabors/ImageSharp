@@ -1115,6 +1115,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool fitsColumns = column + columnsRequired <= tile.ModeInfoColumnEnd;
             bool fitsRows = row + rowsRequired <= tile.ModeInfoRowEnd;
             Av1PartitionType partition = Av1PartitionType.Split;
+
             // Similar child variances permit one sixteen-by-sixteen block even when its own variance
             // is high. Its parent must still split, as recorded independently above. When the block does
             // not fit, the shape evaluation continues, unless the variance is very high for a key frame.

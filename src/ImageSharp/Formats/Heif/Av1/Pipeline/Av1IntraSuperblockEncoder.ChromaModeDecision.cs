@@ -1472,12 +1472,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         int transformRow = rowOffset / transformHeight;
                         for (int columnOffset = regionColumn; columnOffset < unitRight; columnOffset += transformWidth)
                         {
-                            if (accumulatedCost > costLimit)
-                            {
-                                rate = int.MaxValue;
-                                return long.MaxValue;
-                            }
-
                             int transformColumn = columnOffset / transformWidth;
                             int reconstructionOffset = (rowOffset * blockWidth) + columnOffset;
                             Point transformOrigin = chromaOrigin + new Size(columnOffset, rowOffset);
@@ -1590,6 +1584,14 @@ internal static partial class Av1IntraSuperblockEncoder
                             rate += transformRate;
                             distortion += transformDistortion;
                             accumulatedCost += Av1RateDistortion.GetCost(this.rateMultiplier, transformRate, transformDistortion);
+
+                            // The block that takes the running cost over the bound invalidates the plane, even
+                            // when it is the last. Reference: the exit_early test of block_rd_txfm().
+                            if (accumulatedCost > costLimit)
+                            {
+                                rate = int.MaxValue;
+                                return long.MaxValue;
+                            }
 
                             byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                                 transformCoefficients,
@@ -1973,14 +1975,23 @@ internal static partial class Av1IntraSuperblockEncoder
             int visibleWidth = Math.Min(width, blueSource.Width - chromaOrigin.X);
             int visibleHeight = Math.Min(height, blueSource.Height - chromaOrigin.Y);
             long predictionDistortion = this.GetChromaPredictionDistortion(this.blockWorkspace.Residual, width, visibleWidth, visibleHeight);
+
+            // An intra plane whose transform blocks exceed the bound is invalid before the uncoded cost is
+            // considered. Reference: the exit_early test of block_rd_txfm() within av1_txfm_rd_in_plane().
+            long blueCost = Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion);
+            if (blueCost > costLimit)
+            {
+                return Av1RateDistortionStatistics.Invalid;
+            }
+
             if (Math.Min(
-                Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion),
+                blueCost,
                 Av1RateDistortion.GetCost(this.rateMultiplier, 0, predictionDistortion)) > costLimit)
             {
                 return Av1RateDistortionStatistics.Invalid;
             }
 
-            distortion += TOperator.EncodeCandidate(
+            long redDistortion = TOperator.EncodeCandidate(
                 this.blockWorkspace,
                 writer,
                 redContext,
@@ -2038,6 +2049,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 Av1FilterIntraMode.AllFilterIntraModes,
                 usesInterTransformSet: false);
+
+            if (Av1RateDistortion.GetCost(this.rateMultiplier, redRate, redDistortion) > costLimit)
+            {
+                return Av1RateDistortionStatistics.Invalid;
+            }
+
+            distortion += redDistortion;
 
             // Each plane is checked on the running totals of both planes, and a total passes when either its
             // coded cost or the cost of leaving its residual uncoded stays within the bound.

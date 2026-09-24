@@ -98,8 +98,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Clip against the coded mode-info boundary before subsampling, as the decoder does. Visible odd
             // dimensions still have complete coded chroma samples; truncating them here can leave an empty palette input.
-            int rows = (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY;
-            int columns = (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX;
+            // A chroma plane narrower or shorter than four samples belongs to a block that shares its chroma
+            // with the neighbour it pairs with, so its samples cover the pair.
+            // Reference: av1_get_block_dimensions().
+            int chromaSub8Height = (blockSize.GetHeight() >> subsamplingY) < 4 ? 2 : 0;
+            int chromaSub8Width = (blockSize.GetWidth() >> subsamplingX) < 4 ? 2 : 0;
+            int rows = ((blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY) + chromaSub8Height;
+            int columns = ((blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX) + chromaSub8Width;
             int activeSampleCount = rows * columns;
             Span<short> blueSamples = workspace.GetSamples(0)[..activeSampleCount];
             Span<short> redSamples = workspace.GetSamples(1)[..activeSampleCount];
@@ -364,6 +369,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     ResidualRate = blueRate + redRate
                 };
+
+                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                    $"UVPAL {lumaOrigin.X},{lumaOrigin.Y} n={bluePaletteColors.Length} u {string.Join(' ', bluePaletteColors.ToArray())} v {string.Join(' ', redPaletteColors.ToArray())} rate={rate} tok={blueRate + redRate} dist={distortion} rd={candidateStatistics.Cost} best={bestStatistics.Cost}");
 
                 if (candidateStatistics.Cost < bestStatistics.Cost)
                 {

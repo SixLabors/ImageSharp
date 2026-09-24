@@ -534,7 +534,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1EncoderPartitionTree.ModeContext noneContext = this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0);
             Av1RateDistortionStatistics none = this.EvaluatePartitionLeaf(
-                writer, macroBlock, blockOrigin, tileIndex, blockSize, Av1PartitionType.None, noneContext, long.MaxValue, false);
+                writer, macroBlock, blockOrigin, tileIndex, blockSize, Av1PartitionType.None, noneContext, long.MaxValue, false, true);
             Av1RateDistortionStatistics noneSyntax = new(this.rateMultiplier, noneRate, 0);
             none.Add(this.rateMultiplier, in noneSyntax);
             this.ResetPartitionTrial(blockOrigin, tileIndex, blockSize, savedLumaArea, savedChromaArea);
@@ -565,7 +565,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1EncoderPartitionTree.ModeContext childContext =
                         this.blockWorkspace.PartitionTree.GetContext(firstChild + child, Av1PartitionType.None, 0);
                     Av1RateDistortionStatistics childStatistics = this.EvaluatePartitionLeaf(
-                        writer, macroBlock, childOrigin, tileIndex, childSize, Av1PartitionType.None, childContext, long.MaxValue, child < 3);
+                        writer, macroBlock, childOrigin, tileIndex, childSize, Av1PartitionType.None, childContext, long.MaxValue, child < 3, true);
 
                     // A leaf that found no mode retained nothing, so nothing may read its decision back.
                     // Reference: the rd_mode_is_ready flag of pick_sb_modes(), which a caller sets only
@@ -1692,6 +1692,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     : default;
                 long childNoneCost = 0;
                 byte childWins = 3;
+
+                // A leaf the search follows with an encode leaves its coefficient contexts to that encode, which
+                // reads the neighbours' contexts, not the leaf's own. Reference: pick_sb_modes(), which updates
+                // no entropy context, against the encode_superblock() that rd_try_subblock() and
+                // rectangular_partition_search() make after it, and the dry run encode_sb() of a 4x4 child.
+                bool encodeFollows = searchChildren && this.picture.Parent.FrameHeader.IsIntra &&
+                    leafIndex + 1 < leafCount && (partitionType != Av1PartitionType.Split || blockSize <= Av1BlockSize.Block8x8);
                 Av1RateDistortionStatistics childStatistics = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
                     ? this.EvaluateSelectedPartitionTree(
                         writer,
@@ -1716,7 +1723,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType,
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
                             remainingCost.Cost,
-                            publishContexts)
+                            publishContexts,
+                            !encodeFollows)
                         : this.ReconstructPartitionLeaf(
                             writer,
                             macroBlock,
@@ -1724,7 +1732,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             tileIndex,
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
                             publishContexts,
-                            searchChildren);
+                            searchChildren,
+                            encodeFollows);
 
                 this.activeModeCache = default;
                 if (!childRectangleWins.IsEmpty)
@@ -2909,7 +2918,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PartitionType partitionType,
             Av1EncoderPartitionTree.ModeContext context,
             long costLimit,
-            bool publishContexts)
+            bool publishContexts,
+            bool publishCoefficientContexts)
         {
             this.blockCostLimit = costLimit;
 
@@ -2995,7 +3005,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo,
                     block,
                     paletteInfo,
-                    true);
+                    publishCoefficientContexts);
             }
 
             return this.SelectedBlockStatistics;
@@ -3112,7 +3122,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1EncoderPartitionTree.ModeContext context,
             bool publishContexts,
-            bool modeSearchReused)
+            bool modeSearchReused,
+            bool encodeFollows)
         {
             Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
             Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
@@ -3254,7 +3265,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     snapshot.ModeInfo,
                     snapshot.Block,
                     snapshot.Palette,
-                    !codesNothing);
+                    !codesNothing && !encodeFollows);
             }
 
             this.SelectedBlockStatistics = snapshot.Statistics;

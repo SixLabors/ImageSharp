@@ -2341,11 +2341,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize bestTransform = Av1TransformSize.Size4x4;
             variance = 0;
             squaredError = 0;
+
+            // search_filter_ref() tries the first FILTER_SEARCH_SIZE filters, regular and smooth, in both directions.
+            // Without dual filtering only the equal pairs remain.
             ReadOnlySpan<Av1InterpolationFilter> filters =
             [
                 Av1InterpolationFilter.Regular,
-                Av1InterpolationFilter.Smooth,
-                Av1InterpolationFilter.Sharp
+                Av1InterpolationFilter.Smooth
             ];
 
             foreach (Av1InterpolationFilter filter in filters)

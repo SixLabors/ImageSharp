@@ -311,7 +311,11 @@ internal static partial class Av1MotionSearchBase
             out FractionalResult result)
         {
             Size size = new(this.blockSize.GetWidth(), this.blockSize.GetHeight());
-            Point start = new(referenceVector.Column >> 3, referenceVector.Row >> 3);
+
+            // combined_motion_search() starts at get_fullmv_from_mv(), which rounds to the nearest full sample.
+            Point start = new(
+                (referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3,
+                (referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3);
             FullPixelSearchMethod method = settings.GetEstimatedFullPixelMethod(this.blockSize, sourceSad);
             FullPixelSearch<TSample, TOperator> fullSearch = new(
                 this.source,

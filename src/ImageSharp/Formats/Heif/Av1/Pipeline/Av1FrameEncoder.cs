@@ -363,11 +363,14 @@ internal static class Av1FrameEncoder
                     ? ObuSequenceProfile.High
                     : ObuSequenceProfile.Main;
 
-        // Superblock geometry follows coding speed and resolution.
-        // Small frames use 64x64 above speed zero; the fastest still-image mode also uses it below 4K.
+        // Superblock geometry follows coding speed and resolution. Reference: av1_select_sb_size(). Real-time
+        // coding uses 128x128 only above 720p. Otherwise small frames use 64x64 above speed zero, and the fastest
+        // still-image mode also uses it below 4K.
         int minimumDimension = Math.Min(width, height);
-        bool use128x128Superblock = !(speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
-            !(isStillPicture && speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160);
+        bool use128x128Superblock = speedSettings.IsRealtime
+            ? minimumDimension > 720
+            : !(speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
+                !(isStillPicture && speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160);
 
         return new ObuSequenceHeader
         {

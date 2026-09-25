@@ -1767,13 +1767,6 @@ internal static class Av1FrameEncoder
         private int contextTypeSlot = -1;
 
         /// <summary>
-        /// The frame interpolation filter, which persists between frames. Reference: cm->features.interp_filter,
-        /// which av1_encode_frame() resets to SWITCHABLE only in the frame_parameter_update and
-        /// use_comp_ref_nonrd branch, and which fix_interp_filter() narrows after each inter frame.
-        /// </summary>
-        private Av1InterpolationFilter frameInterpolationFilter = Av1InterpolationFilter.Switchable;
-
-        /// <summary>
         /// The running warped-motion usage probability, out of 128, of each frame update type.
         /// Reference: frame_probs->warped_probs, initialized from default_warped_probs.
         /// </summary>
@@ -2062,14 +2055,11 @@ internal static class Av1FrameEncoder
                 }
             }
 
-            if (!speedSettings.IsRealtime || speedSettings.UseEstimatedCompound)
-            {
-                this.frameInterpolationFilter = Av1InterpolationFilter.Switchable;
-            }
-
+            // Every frame starts with switchable filters, and fix_interp_filter() narrows the filter after the
+            // frame. Reference: set_size_independent_vars() in encode_without_recode().
             if (!frameHeader.IsIntra)
             {
-                frameHeader.InterpolationFilter = this.frameInterpolationFilter;
+                frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
             }
 
             // Temporal motion vectors are on by default. Reference: frame_might_allow_ref_frame_mvs() with
@@ -2180,8 +2170,6 @@ internal static class Av1FrameEncoder
                         break;
                     }
                 }
-
-                this.frameInterpolationFilter = frameHeader.InterpolationFilter;
             }
 
             // update_golden_frame_stats() and the golden refresh test of update_rc_counts().

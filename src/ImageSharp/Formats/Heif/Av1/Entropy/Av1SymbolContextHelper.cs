@@ -294,17 +294,22 @@ internal static class Av1SymbolContextHelper
         int forwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(secondaryOrderHint, frameHeader.OrderHint));
         int backwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, primaryOrderHint));
 
+        // Reference: get_comp_index_context(). A single-reference ALTREF neighbor counts 1.
         int context = forwardDistance == backwardDistance ? 3 : 0;
         if (macroBlock.IsUpAvailable)
         {
             Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
-            context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && above.CompoundIndex ? 1 : 0;
+            context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                ? above.CompoundIndex ? 1 : 0
+                : above.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 1 : 0;
         }
 
         if (macroBlock.IsLeftAvailable)
         {
             Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
-            context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && left.CompoundIndex ? 1 : 0;
+            context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                ? left.CompoundIndex ? 1 : 0
+                : left.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 1 : 0;
         }
 
         return context;

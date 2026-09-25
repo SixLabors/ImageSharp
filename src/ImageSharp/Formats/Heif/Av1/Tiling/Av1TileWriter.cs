@@ -1998,20 +1998,25 @@ internal partial class Av1TileWriter
     /// </summary>
     public static int GetCompoundGroupIndexContext(Av1MacroBlockD macroBlock)
     {
+        // Reference: get_comp_group_idx_context(). A single-reference ALTREF neighbor counts 3.
         int context = 0;
         if (macroBlock.IsUpAvailable)
         {
             Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
-            context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && above.CompoundGroupIndex ? 1 : 0;
+            context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                ? above.CompoundGroupIndex ? 1 : 0
+                : above.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 3 : 0;
         }
 
         if (macroBlock.IsLeftAvailable)
         {
             Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
-            context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra && left.CompoundGroupIndex ? 1 : 0;
+            context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                ? left.CompoundGroupIndex ? 1 : 0
+                : left.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 3 : 0;
         }
 
-        return context;
+        return Math.Min(5, context);
     }
 
     /// <summary>

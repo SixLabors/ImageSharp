@@ -2126,6 +2126,19 @@ internal static partial class Av1IntraSuperblockEncoder
                 sum = (sum + ((1 << shift) >> 1)) >> shift;
                 squaredError = (uint)((error + ((1L << (2 * shift)) >> 1)) >> (2 * shift));
                 variance = (uint)Math.Max(0, squaredError - (((long)sum * sum) >> BitOperations.Log2((uint)(width * height))));
+
+                // handle_inter_mode_nonrd() drops a compound candidate of the large-block model whose variance
+                // exceeds that of either single-reference mode; model_skip_for_sb_y_large() returns before its tests.
+                if (modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
+                    this.picture.Parent.SpeedSettings.PrunesCompoundBySingleVariance &&
+                    this.UsesLargeBlockModel(blockSize) &&
+                    variance > searchState.GetCompoundVarianceThreshold(
+                        modeInfo.Mode, modeInfo.ReferenceFrame, modeInfo.SecondaryReferenceFrame))
+                {
+                    this.RecordLumaPrediction(prediction);
+                    return Av1RateDistortionStatistics.Invalid;
+                }
+
                 modeInfo.TransformSize = this.SelectEstimatedInterTransformSize(
                     blockSize, variance, squaredError, evaluateBlue, evaluateRed, false, out bool forceSkip);
 

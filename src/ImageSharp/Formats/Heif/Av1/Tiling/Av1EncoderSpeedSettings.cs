@@ -654,6 +654,13 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool UsesQuantizerGoldenRefresh => this.realtime && this.Speed >= HeifEncodingSpeed.Level6;
 
     /// <summary>
+    /// Gets a value indicating whether a compound candidate of the large-block model is dropped when its luma
+    /// variance exceeds that of either of its single-reference modes. Reference:
+    /// prune_compoundmode_with_singlecompound_var, set in real-time usage from speed 7.
+    /// </summary>
+    public bool PrunesCompoundBySingleVariance => this.realtime && this.Speed >= HeifEncodingSpeed.Level7;
+
+    /// <summary>
     /// Gets a value indicating whether estimated inter search admits compound prediction.
     /// </summary>
     public bool UseEstimatedCompound => this.realtime && (this.Speed < HeifEncodingSpeed.Level9 || this.minimumDimension >= 360);

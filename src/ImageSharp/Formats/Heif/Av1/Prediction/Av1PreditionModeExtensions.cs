@@ -96,4 +96,40 @@ internal static class Av1PreditionModeExtensions
     /// <param name="mode">The luma intra-prediction mode.</param>
     /// <returns>The prediction angle in degrees, or zero for a non-directional mode.</returns>
     public static int ToAngle(this Av1PredictionMode mode) => AngleMap[(int)mode];
+
+    /// <summary>
+    /// Gets the single-reference mode of the first reference of a compound mode. Reference: compound_ref0_mode().
+    /// </summary>
+    /// <param name="mode">The compound inter-prediction mode.</param>
+    /// <returns>The single-reference mode that predicts from the first reference.</returns>
+    public static Av1PredictionMode GetFirstReferenceMode(this Av1PredictionMode mode)
+        => mode switch
+        {
+            Av1PredictionMode.NearestNearestMotionVector => Av1PredictionMode.NearestMotionVector,
+            Av1PredictionMode.NearNearMotionVector => Av1PredictionMode.NearMotionVector,
+            Av1PredictionMode.NearestNewMotionVector => Av1PredictionMode.NearestMotionVector,
+            Av1PredictionMode.NewNearestMotionVector => Av1PredictionMode.NewMotionVector,
+            Av1PredictionMode.NearNewMotionVector => Av1PredictionMode.NearMotionVector,
+            Av1PredictionMode.NewNearMotionVector => Av1PredictionMode.NewMotionVector,
+            Av1PredictionMode.GlobalGlobalMotionVector => Av1PredictionMode.GlobalMotionVector,
+            _ => Av1PredictionMode.NewMotionVector
+        };
+
+    /// <summary>
+    /// Gets the single-reference mode of the second reference of a compound mode. Reference: compound_ref1_mode().
+    /// </summary>
+    /// <param name="mode">The compound inter-prediction mode.</param>
+    /// <returns>The single-reference mode that predicts from the second reference.</returns>
+    public static Av1PredictionMode GetSecondReferenceMode(this Av1PredictionMode mode)
+        => mode switch
+        {
+            Av1PredictionMode.NearestNearestMotionVector => Av1PredictionMode.NearestMotionVector,
+            Av1PredictionMode.NearNearMotionVector => Av1PredictionMode.NearMotionVector,
+            Av1PredictionMode.NearestNewMotionVector => Av1PredictionMode.NewMotionVector,
+            Av1PredictionMode.NewNearestMotionVector => Av1PredictionMode.NearestMotionVector,
+            Av1PredictionMode.NearNewMotionVector => Av1PredictionMode.NewMotionVector,
+            Av1PredictionMode.NewNearMotionVector => Av1PredictionMode.NearMotionVector,
+            Av1PredictionMode.GlobalGlobalMotionVector => Av1PredictionMode.GlobalMotionVector,
+            _ => Av1PredictionMode.NewMotionVector
+        };
 }

@@ -334,6 +334,23 @@ internal struct Av1EstimatedInterSearchState
     }
 
     /// <summary>
+    /// Gets the luma variance above which a compound candidate is dropped: the smaller variance of its two
+    /// single-reference modes. Reference: var_threshold in handle_inter_mode_nonrd() under
+    /// prune_compoundmode_with_singlecompound_var.
+    /// </summary>
+    /// <param name="mode">The compound mode.</param>
+    /// <param name="first">The first reference.</param>
+    /// <param name="second">The second reference.</param>
+    /// <returns>The variance threshold, or <see cref="uint.MaxValue"/> when neither mode was measured.</returns>
+    public readonly uint GetCompoundVarianceThreshold(
+        Av1PredictionMode mode,
+        Av1ReferenceFrameType first,
+        Av1ReferenceFrameType second)
+        => Math.Min(
+            this.Variances[(int)mode.GetFirstReferenceMode() - (int)Av1PredictionMode.SingleInterModeStart][(int)first],
+            this.Variances[(int)mode.GetSecondReferenceMode() - (int)Av1PredictionMode.SingleInterModeStart][(int)second]);
+
+    /// <summary>
     /// Determines whether the single-reference results already make compound search unnecessary.
     /// </summary>
     /// <param name="blockSize">The current coding-block geometry.</param>

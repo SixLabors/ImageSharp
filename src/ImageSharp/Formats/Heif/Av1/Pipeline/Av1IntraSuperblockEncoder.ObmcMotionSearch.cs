@@ -30,13 +30,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceFrame">The reference of the block.</param>
         /// <param name="start">The simple-translation vector that starts the search.</param>
         /// <param name="referenceVector">The reference of the new vector.</param>
+        /// <param name="spatialMagnitude">The largest full-sample magnitude of the reference's spatial predictors.</param>
         /// <returns>The searched vector.</returns>
         private Av1MotionVector SearchObmcVector(
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1ReferenceFrameType referenceFrame,
             Av1MotionVector start,
-            Av1MotionVector referenceVector)
+            Av1MotionVector referenceVector,
+            int spatialMagnitude)
         {
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
@@ -70,7 +72,21 @@ internal static partial class Av1IntraSuperblockEncoder
             int bestSad = GetObmcSad(reference, referencePlane.Stride, referenceOrigin, best, weightedSource, mask, width, height) +
                 Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, costs.GetCost(new Av1MotionVector(best.Y * 8, best.X * 8), integerReference), 0);
             ReadOnlySpan<Point> neighbors = [new(0, -1), new(-1, 0), new(1, 0), new(0, 1)];
-            if (this.picture.Parent.MotionSearchSettings.UseRefiningObmcSearch)
+            Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
+            if (!motionSettings.UseRefiningObmcSearch)
+            {
+                int stepParameter = this.picture.Parent.MotionSearchStepParameter;
+                if (motionSettings.AutomaticStepSizeLevel != 0 && frameHeader.ShowFrame)
+                {
+                    stepParameter = (Av1MotionSearchBase.GetInitialStepParameter(spatialMagnitude) + stepParameter) / 2;
+                }
+
+                Av1MotionSearchSettings.FullPixelSearchMethod method = motionSettings.GetFullPixelMethod(blockSize);
+                Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(method, referencePlane.Stride);
+                best = this.SearchObmcDiamond(
+                    reference, referencePlane.Stride, referenceOrigin, best, stepParameter, sites, fullBounds, referenceVector, integerReference, costs, sadPerBit, weightedSource, mask, width, height);
+            }
+            else
             {
                 for (int iteration = 0; iteration < 8; iteration++)
                 {
@@ -150,6 +166,143 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return bestVector;
+        }
+
+        /// <summary>
+        /// Runs the diamond search from the start at the given step, then restarts it from the start at each finer
+        /// step that the earlier searches did not settle at their start, and keeps the vector with the lowest OBMC
+        /// variance plus vector cost. Reference: obmc_full_pixel_diamond() with get_obmc_mvpred_var().
+        /// </summary>
+        /// <returns>The selected full-sample vector.</returns>
+        private readonly Point SearchObmcDiamond(
+            ReadOnlySpan<TSample> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Point start,
+            int stepParameter,
+            Av1MotionSearchSites sites,
+            Rectangle bounds,
+            Av1MotionVector referenceVector,
+            Av1MotionVector integerReference,
+            Av1MotionVectorCosts costs,
+            int sadPerBit,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height)
+        {
+            Point best = SearchObmcDiamondSteps(
+                reference, referenceStride, referenceOrigin, start, stepParameter, sites, bounds, integerReference, costs, sadPerBit, weightedSource, mask, width, height, out int stage);
+            int bestCost = this.GetObmcFullPixelCost(reference, referenceStride, referenceOrigin, best, referenceVector, costs, weightedSource, mask, width, height);
+            int furtherStages = sites.StageCount - 1 - stepParameter;
+            int centeredStages = 0;
+            while (stage < furtherStages)
+            {
+                stage++;
+                if (centeredStages != 0)
+                {
+                    centeredStages--;
+                    continue;
+                }
+
+                Point candidate = SearchObmcDiamondSteps(
+                    reference, referenceStride, referenceOrigin, start, stepParameter + stage, sites, bounds, integerReference, costs, sadPerBit, weightedSource, mask, width, height, out centeredStages);
+                int cost = this.GetObmcFullPixelCost(reference, referenceStride, referenceOrigin, candidate, referenceVector, costs, weightedSource, mask, width, height);
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Visits the sites of each stage from the given step down to the finest, moving to the site with the lowest
+        /// OBMC SAD plus vector cost, and counts the stages that leave the search at its start.
+        /// Reference: obmc_diamond_search_sad().
+        /// </summary>
+        /// <returns>The selected full-sample vector.</returns>
+        private static Point SearchObmcDiamondSteps(
+            ReadOnlySpan<TSample> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Point start,
+            int stepParameter,
+            Av1MotionSearchSites sites,
+            Rectangle bounds,
+            Av1MotionVector integerReference,
+            Av1MotionVectorCosts costs,
+            int sadPerBit,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height,
+            out int centeredStages)
+        {
+            centeredStages = 0;
+            Point best = start;
+            int bestSad = GetObmcSad(reference, referenceStride, referenceOrigin, best, weightedSource, mask, width, height) +
+                Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, costs.GetCost(new Av1MotionVector(best.Y * 8, best.X * 8), integerReference), 0);
+            for (int stage = sites.StageCount - stepParameter - 1; stage >= 0; stage--)
+            {
+                ReadOnlySpan<Av1MotionSearchSites.Site> stageSites = sites.GetSites(stage);
+                int bestSite = 0;
+                for (int index = 1; index <= sites.GetCandidateCount(stage); index++)
+                {
+                    Point candidate = new(best.X + stageSites[index].Column, best.Y + stageSites[index].Row);
+                    if (!bounds.Contains(candidate))
+                    {
+                        continue;
+                    }
+
+                    int sad = GetObmcSad(reference, referenceStride, referenceOrigin, candidate, weightedSource, mask, width, height);
+                    if (sad < bestSad)
+                    {
+                        sad += Av1RateDistortion.GetMotionSearchSadCost(
+                            sadPerBit, costs.GetCost(new Av1MotionVector(candidate.Y * 8, candidate.X * 8), integerReference), 0);
+                        if (sad < bestSad)
+                        {
+                            bestSad = sad;
+                            bestSite = index;
+                        }
+                    }
+                }
+
+                if (bestSite != 0)
+                {
+                    best = new Point(best.X + stageSites[bestSite].Column, best.Y + stageSites[bestSite].Row);
+                }
+                else if (best == start)
+                {
+                    centeredStages++;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Returns the OBMC variance of the reference block at a full-sample vector plus the vector cost.
+        /// Reference: get_obmc_mvpred_var().
+        /// </summary>
+        private readonly int GetObmcFullPixelCost(
+            ReadOnlySpan<TSample> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Point vector,
+            Av1MotionVector referenceVector,
+            Av1MotionVectorCosts costs,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height)
+        {
+            Av1MotionVector fullVector = new(vector.Y * 8, vector.X * 8);
+            int index = referenceOrigin + (vector.Y * referenceStride) + vector.X;
+            int variance = this.GetObmcVariance(reference[index..], referenceStride, weightedSource, mask, width, height);
+            return variance + Av1RateDistortion.GetMotionSearchCost(this.rateMultiplier, costs.GetCost(fullVector, referenceVector), 0);
         }
 
         /// <summary>

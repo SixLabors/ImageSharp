@@ -224,6 +224,11 @@ internal static partial class Av1IntraSuperblockEncoder
         // encode of an inter winner adds it to the winner's own flags. Reference: x->txfm_search_info.skip_txfm.
         private bool transformSearchSkip;
 
+        // Whether a motion mode trial of the current mode search reached its transform search; each such trial clears
+        // the leftover skip flag before searching. Reference: the txfm_info->skip_txfm reset of each mode_index in
+        // motion_mode_rd().
+        private bool transformSearchReset;
+
         // The reference types that a rectangular block does not search, one bit per reference type.
         // Reference: skip_ref_frame_mask of av1_rd_pick_inter_mode().
         private int skipReferenceFrameMask;

@@ -34,7 +34,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <summary>
     /// The number of sample buffers retained by one mode decision.
     /// </summary>
-    public const int SampleBufferCount = 9;
+    public const int SampleBufferCount = 12;
 
     /// <summary>
     /// The sample capacity shared by sequential transform trials.
@@ -44,7 +44,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <summary>
     /// The number of coefficient buffers retained by one mode decision.
     /// </summary>
-    public const int CoefficientBufferCount = 6;
+    public const int CoefficientBufferCount = 9;
 
     private readonly Span<TSample> samples;
     private readonly Span<short> residual;
@@ -165,6 +165,36 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// Gets the current red-difference chroma candidate coefficients.
     /// </summary>
     public Span<int> RedCandidateCoefficients => this.GetCoefficients(5);
+
+    /// <summary>
+    /// Gets the spare luma reconstruction that holds an earlier winner while a candidate awaits a final test.
+    /// </summary>
+    public Span<TSample> SpareLumaReconstruction => this.GetSamples(9);
+
+    /// <summary>
+    /// Gets the spare blue-difference reconstruction that holds an earlier winner while a candidate awaits a final test.
+    /// </summary>
+    public Span<TSample> SpareBlueReconstruction => this.GetSamples(10);
+
+    /// <summary>
+    /// Gets the spare red-difference reconstruction that holds an earlier winner while a candidate awaits a final test.
+    /// </summary>
+    public Span<TSample> SpareRedReconstruction => this.GetSamples(11);
+
+    /// <summary>
+    /// Gets the spare luma coefficients that hold an earlier winner while a candidate awaits a final test.
+    /// </summary>
+    public Span<int> SpareLumaCoefficients => this.GetCoefficients(6);
+
+    /// <summary>
+    /// Gets the spare blue-difference coefficients that hold an earlier winner while a candidate awaits a final test.
+    /// </summary>
+    public Span<int> SpareBlueCoefficients => this.GetCoefficients(7);
+
+    /// <summary>
+    /// Gets the spare red-difference coefficients that hold an earlier winner while a candidate awaits a final test.
+    /// </summary>
+    public Span<int> SpareRedCoefficients => this.GetCoefficients(8);
 
     /// <summary>
     /// Gets the coefficient scratch overwritten by each transform trial.

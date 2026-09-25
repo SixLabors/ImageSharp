@@ -520,7 +520,16 @@ interval. The still-picture regression stays at 620/620.
     `av1_estimate_txfm_yrd()` and the interpolation filter that the previous `ref_mv_idx` pass leaves in the
     block, and intra search for every block size in inter frames (`max_intra_bsize` only feeds the real-time
     `prune_intra_mode_based_on_mv_range` test of `skip_intra_modes_in_interframe()`).
-    Remaining: speed 0 (inter-intra in the mode loop, the full-pel OBMC diamond search), the SIMD form
+    Speed 0 matches frames 0-3 so far. It added the full-pel OBMC diamond (`obmc_full_pixel_diamond()`), the
+    skippable flag that `av1_txfm_search()` merges (the recursive luma search reports the skip RD test, not
+    all-zero coefficients), the block-wide saved wedge and difference-weighted masks of `HandleInterModeArgs`, the
+    LAST2/LAST3 weight test of `ref_mv_idx_early_breakout()` for compound pairs, the `init_mbmi()` reset of a
+    compound candidate's motion mode, the filter that the best motion mode leaves for the next `ref_mv_idx`
+    pass, and the per-trial and final `av1_check_newmv_joint_nonzero()` tests of `motion_mode_rd()` (a new
+    vector equal to its reference skips only simple translation). Keeping speed 1 exact needed the
+    learned `inter_mode_rd_model` samples to match: the winning type's transform-domain `sse`, the leftover
+    `skip_txfm` of a failed mode search, and the skippable-over-budget failure at the end of `av1_txfm_search()`.
+    Remaining: speed 0 frames 4-5, the SIMD form
     of the OBMC SAD and variance, and
     global motion (the estimator, and the writer that codes parameters against the primary reference).
   - [ ] The border padding of the inter paths (`rdopt` model cost and subtraction, the inter transform tree,

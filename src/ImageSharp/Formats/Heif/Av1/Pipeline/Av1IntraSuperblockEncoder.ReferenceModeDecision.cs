@@ -242,6 +242,10 @@ internal static partial class Av1IntraSuperblockEncoder
             this.interSourceVarianceCost = (long)this.interSourceVariance * blockSize.GetWidth() * blockSize.GetHeight() * 128;
             Span<long> topAverageCosts = stackalloc long[5];
             topAverageCosts.Fill(long.MaxValue);
+
+            // The saved wedge index, wedge sign and difference-weighted mask type are shared by every compound
+            // reference pair of the block; the last compound type is kept per pair. Reference: wedge_index,
+            // wedge_sign, diffwtd_index and cmp_mode[] of HandleInterModeArgs in av1_rd_pick_inter_mode().
             Span<int> compoundMaskHistory = stackalloc int[64];
             compoundMaskHistory.Fill(-1);
             modeInfo.Block.MotionMode = Av1MotionMode.SimpleTranslation;
@@ -418,6 +422,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             Av1Constants.ReferenceFrameCount) + (int)reference);
                     }
 
+                    this.transformSearchReset = false;
                     Av1RateDistortionStatistics candidateStatistics = this.SelectSingleReferenceMode(
                         writer,
                         macroBlock,
@@ -441,6 +446,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (candidateStatistics.Cost != long.MaxValue)
                     {
                         this.transformSearchSkip = candidateModeInfo.Block.Skip;
+                    }
+                    else if (this.transformSearchReset)
+                    {
+                        // A search whose every entry failed leaves the flag its trials cleared.
+                        this.transformSearchSkip = false;
                     }
 
                     if (candidateStatistics.Cost < bestSingleCosts[(int)reference])
@@ -527,7 +537,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         compoundReferences[(pairIndex * 2) + 1],
                         phase == 0,
                         topAverageCosts,
-                        compoundMaskHistory.Slice(pairIndex * 4, 4),
+                        compoundMaskHistory[..3],
+                        compoundMaskHistory.Slice(3 + pairIndex, 1),
                         outsideSingleReferenceCutoff,
                         bestSingleModes,
                         searchedSingleModes,
@@ -638,6 +649,29 @@ internal static partial class Av1IntraSuperblockEncoder
             };
 
         /// <summary>
+        /// Returns the largest full-sample magnitude of the first two reference predictors, which sets the block's
+        /// spatial search range. Clamping at the last potentially visible interpolation tap bounds padded reads
+        /// without changing their prediction. Reference: x->max_mv_context from av1_find_best_ref_mvs().
+        /// </summary>
+        private static int GetSpatialMotionMagnitude(
+            in Av1ReferenceMotionVectors referenceMotionVectors,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Size frameSize)
+        {
+            int spatialMagnitude = 0;
+            for (int index = 0; index < 2; index++)
+            {
+                Av1MotionVector spatial = referenceMotionVectors.GetNewReference(index);
+                int column = Math.Clamp(spatial.Column, -(blockOrigin.X + blockSize.GetWidth() + 4) * 8, (frameSize.Width - blockOrigin.X + 4) * 8);
+                int row = Math.Clamp(spatial.Row, -(blockOrigin.Y + blockSize.GetHeight() + 4) * 8, (frameSize.Height - blockOrigin.Y + 4) * 8);
+                spatialMagnitude = Math.Max(spatialMagnitude, Math.Max(Math.Abs(row), Math.Abs(column)) >> 3);
+            }
+
+            return spatialMagnitude;
+        }
+
+        /// <summary>
         /// Evaluates a motion mode other than simple translation for a single-reference prediction, from the
         /// decisions of its simple-translation result. OBMC re-searches a new vector against its blended target, and
         /// warped motion refines one against its local model. A pruned mode, an invalid model, or a new vector equal
@@ -721,7 +755,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     // codes no difference. Reference: the av1_single_motion_search() call of motion_mode_rd(),
                     // then av1_check_newmv_joint_nonzero().
                     Av1MotionVector referenceVector = referenceMotionVectors.GetNewReference(referenceIndex);
-                    vector = this.SearchObmcVector(blockOrigin, blockSize, candidate.ReferenceFrame, vector, referenceVector);
+                    Size frameSize = new(
+                        this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                        this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+                    int spatialMagnitude = GetSpatialMotionMagnitude(in referenceMotionVectors, blockOrigin, blockSize, frameSize);
+                    vector = this.SearchObmcVector(blockOrigin, blockSize, candidate.ReferenceFrame, vector, referenceVector, spatialMagnitude);
                     if (vector == referenceVector)
                     {
                         this.useWarpedPrediction = false;
@@ -777,6 +815,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 motionModeRate = writer.ModeCosts.GetMotionMode(blockSize, Av1MotionMode.Warped);
             }
 
+            this.transformSearchReset = true;
             Av1RateDistortionStatistics statistics = this.EvaluateInterCandidate(
                 writer,
                 macroBlock,
@@ -2825,16 +2864,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer.GetSkipCost(true, skipContext),
                 this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
 
-            // The first two reference predictors set the block's spatial range. Clamping at the last
-            // potentially visible interpolation tap bounds padded reads without changing their prediction.
-            int spatialMagnitude = 0;
-            for (int index = 0; index < 2; index++)
-            {
-                Av1MotionVector spatial = referenceMotionVectors.GetNewReference(index);
-                int column = Math.Clamp(spatial.Column, -(blockOrigin.X + blockSize.GetWidth() + 4) * 8, (frameSize.Width - blockOrigin.X + 4) * 8);
-                int row = Math.Clamp(spatial.Row, -(blockOrigin.Y + blockSize.GetHeight() + 4) * 8, (frameSize.Height - blockOrigin.Y + 4) * 8);
-                spatialMagnitude = Math.Max(spatialMagnitude, Math.Max(Math.Abs(row), Math.Abs(column)) >> 3);
-            }
+            int spatialMagnitude = GetSpatialMotionMagnitude(in referenceMotionVectors, blockOrigin, blockSize, frameSize);
 
             Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
             Av1MotionSearchBase.SingleReferenceState motionState = default;
@@ -2944,10 +2974,98 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1InterpolationFilter heldHorizontalFilter = defaultFilter;
             Av1InterpolationFilter heldVerticalFilter = defaultFilter;
 
+            // A new-motion entry keeps its motion modes only when the vector that its last trial leaves in the block
+            // differs from the reference; otherwise the entry yields nothing and the block keeps the filters of that
+            // trial. The winner from before the entry is held in the spare buffers until the test, which runs when
+            // the next entry starts and after the last. Reference: the av1_check_newmv_joint_nonzero() test at the
+            // end of motion_mode_rd().
+            Span<TSample> spareLumaReconstruction = workspace.SpareLumaReconstruction;
+            Span<TSample> spareBlueReconstruction = workspace.SpareBlueReconstruction;
+            Span<TSample> spareRedReconstruction = workspace.SpareRedReconstruction;
+            Span<int> spareLumaCoefficients = workspace.SpareLumaCoefficients;
+            Span<int> spareBlueCoefficients = workspace.SpareBlueCoefficients;
+            Span<int> spareRedCoefficients = workspace.SpareRedCoefficients;
+            bool entryPending = false;
+            bool winnerHeld = false;
+            Av1MotionVector entryReference = default;
+            Av1MotionVector lastTrialVector = default;
+            Av1InterpolationFilter lastTrialHorizontalFilter = defaultFilter;
+            Av1InterpolationFilter lastTrialVerticalFilter = defaultFilter;
+            Av1RateDistortionStatistics priorWinnerStatistics = default;
+            Av1MotionVector priorWinnerVector = default;
+            Av1PredictionMode priorWinnerMode = default;
+            int priorWinnerReferenceIndex = default;
+            bool priorWinnerSkip = default;
+            bool priorWinnerInterIntra = default;
+            Av1MotionMode priorWinnerMotionMode = default;
+            Av1InterIntraMode priorWinnerInterIntraMode = default;
+            bool priorWinnerInterIntraWedge = default;
+            int priorWinnerInterIntraWedgeIndex = default;
+            InlineArray64<Av1EncoderTransformBlockState> priorWinnerLumaStates = default;
+            InlineArray16<Av1TransformSize> priorWinnerLumaSizes = default;
+            InlineArray16<Av1EncoderTransformBlockState> priorWinnerBlueState = default;
+            InlineArray16<Av1EncoderTransformBlockState> priorWinnerRedState = default;
+            Av1InterpolationFilter priorWinnerVerticalFilter = default;
+            Av1InterpolationFilter priorWinnerHorizontalFilter = default;
+
             // Rank interpolation families with prediction-error modeling before running a full transform search.
             // The selected inter reconstruction remains untouched while two existing prediction views alternate.
-            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
+            for (int candidateIndex = 0; candidateIndex <= candidateCount; candidateIndex++)
             {
+                if (entryPending)
+                {
+                    entryPending = false;
+                    if (lastTrialVector == entryReference)
+                    {
+                        heldHorizontalFilter = lastTrialHorizontalFilter;
+                        heldVerticalFilter = lastTrialVerticalFilter;
+                        if (winnerHeld)
+                        {
+                            Span<TSample> discardedLumaReconstruction = selectedLumaReconstruction;
+                            selectedLumaReconstruction = spareLumaReconstruction;
+                            spareLumaReconstruction = discardedLumaReconstruction;
+                            Span<TSample> discardedBlueReconstruction = selectedBlueReconstruction;
+                            selectedBlueReconstruction = spareBlueReconstruction;
+                            spareBlueReconstruction = discardedBlueReconstruction;
+                            Span<TSample> discardedRedReconstruction = selectedRedReconstruction;
+                            selectedRedReconstruction = spareRedReconstruction;
+                            spareRedReconstruction = discardedRedReconstruction;
+                            Span<int> discardedLumaCoefficients = selectedLumaCoefficients;
+                            selectedLumaCoefficients = spareLumaCoefficients;
+                            spareLumaCoefficients = discardedLumaCoefficients;
+                            Span<int> discardedBlueCoefficients = selectedBlueCoefficients;
+                            selectedBlueCoefficients = spareBlueCoefficients;
+                            spareBlueCoefficients = discardedBlueCoefficients;
+                            Span<int> discardedRedCoefficients = selectedRedCoefficients;
+                            selectedRedCoefficients = spareRedCoefficients;
+                            spareRedCoefficients = discardedRedCoefficients;
+                            selectedStatistics = priorWinnerStatistics;
+                            selectedVector = priorWinnerVector;
+                            selectedMode = priorWinnerMode;
+                            selectedReferenceIndex = priorWinnerReferenceIndex;
+                            selectedSkip = priorWinnerSkip;
+                            selectedInterIntra = priorWinnerInterIntra;
+                            selectedMotionMode = priorWinnerMotionMode;
+                            selectedInterIntraMode = priorWinnerInterIntraMode;
+                            selectedInterIntraWedge = priorWinnerInterIntraWedge;
+                            selectedInterIntraWedgeIndex = priorWinnerInterIntraWedgeIndex;
+                            selectedLumaStates = priorWinnerLumaStates;
+                            selectedLumaSizes = priorWinnerLumaSizes;
+                            selectedBlueState = priorWinnerBlueState;
+                            selectedRedState = priorWinnerRedState;
+                            selectedVerticalFilter = priorWinnerVerticalFilter;
+                            selectedHorizontalFilter = priorWinnerHorizontalFilter;
+                        }
+                    }
+
+                    winnerHeld = false;
+                }
+
+                if (candidateIndex == candidateCount)
+                {
+                    break;
+                }
+
                 if ((candidateMask & (1 << candidateIndex)) == 0)
                 {
                     continue;
@@ -3098,60 +3216,105 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                // A new vector equal to its reference codes no difference, so the mode is invalid.
-                // Reference: av1_check_newmv_joint_nonzero() in motion_mode_rd().
-                if (requestedMode == Av1PredictionMode.NewMotionVector &&
-                    candidateVectors[candidateIndex] == referenceMotionVectors.GetNewReference(candidateReferenceIndices[candidateIndex]))
+                // A new vector equal to its reference codes no difference, so simple translation skips it; the other
+                // motion modes search their own vectors. Reference: av1_check_newmv_joint_nonzero() in the mode_index
+                // loop of motion_mode_rd().
+                bool newEntry = requestedMode == Av1PredictionMode.NewMotionVector;
+                Av1MotionVector newReference = newEntry
+                    ? referenceMotionVectors.GetNewReference(candidateReferenceIndices[candidateIndex])
+                    : default;
+                bool simpleSkipped = newEntry && candidateVectors[candidateIndex] == newReference;
+                if (simpleSkipped && !searchMotionModes)
                 {
                     continue;
                 }
 
                 Av1InterpolationFilter horizontalFilter = modeInfo.Block.HorizontalInterpolationFilter;
                 Av1InterpolationFilter verticalFilter = modeInfo.Block.VerticalInterpolationFilter;
+                entryPending = newEntry;
+                entryReference = newReference;
+                lastTrialVector = candidateVectors[candidateIndex];
+                lastTrialHorizontalFilter = horizontalFilter;
+                lastTrialVerticalFilter = verticalFilter;
+                if (entryPending)
+                {
+                    priorWinnerStatistics = selectedStatistics;
+                    priorWinnerVector = selectedVector;
+                    priorWinnerMode = selectedMode;
+                    priorWinnerReferenceIndex = selectedReferenceIndex;
+                    priorWinnerSkip = selectedSkip;
+                    priorWinnerInterIntra = selectedInterIntra;
+                    priorWinnerMotionMode = selectedMotionMode;
+                    priorWinnerInterIntraMode = selectedInterIntraMode;
+                    priorWinnerInterIntraWedge = selectedInterIntraWedge;
+                    priorWinnerInterIntraWedgeIndex = selectedInterIntraWedgeIndex;
+                    priorWinnerLumaStates = selectedLumaStates;
+                    priorWinnerLumaSizes = selectedLumaSizes;
+                    priorWinnerBlueState = selectedBlueState;
+                    priorWinnerRedState = selectedRedState;
+                    priorWinnerVerticalFilter = selectedVerticalFilter;
+                    priorWinnerHorizontalFilter = selectedHorizontalFilter;
+                }
+
                 int simplePredictionRate = commonPredictionRate + filterRate +
                     (interIntraEligible ? writer.GetInterIntraCost(blockSize, false, default, false, 0) : 0) +
                     this.GetSimpleTranslationRate(writer, macroBlock, blockOrigin, blockSize, referenceFrame, requestedMode);
-                Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
-                    writer,
-                    macroBlock,
-                    blockOrigin,
-                    blockSize,
-                    tileIndex,
-                    Math.Min(bestCost, selectedStatistics.Cost),
-                    block.HasChroma,
-                    simplePredictionRate,
-                    referenceFrame,
-                    candidateVectors[candidateIndex],
-                    default,
-                    requestedMode,
-                    Av1ReferenceFrameType.None,
-                    usePreparedPrediction: preparedPrediction,
-                    Av1CompoundType.Average,
-                    0,
-                    false,
-                    Av1DifferenceWeightedMaskType.Type38,
-                    0,
-                    horizontalFilter,
-                    verticalFilter,
-                    candidateReferenceIndices[candidateIndex],
-                    false,
-                    default,
-                    false,
-                    0,
-                    in referenceMotionVectors,
-                    candidateLumaReconstruction,
-                    candidateLumaCoefficients,
-                    candidateBlueReconstruction,
-                    candidateBlueCoefficients,
-                    candidateRedReconstruction,
-                    candidateRedCoefficients,
-                    out bool candidateSkip,
-                    out InlineArray64<Av1EncoderTransformBlockState> candidateLumaStates,
-                    out InlineArray16<Av1TransformSize> candidateLumaSizes,
-                    out InlineArray16<Av1EncoderTransformBlockState> candidateBlueState,
-                    out InlineArray16<Av1EncoderTransformBlockState> candidateRedState);
+                Av1RateDistortionStatistics candidateStatistics = Av1RateDistortionStatistics.Invalid;
+                bool candidateSkip = false;
+                InlineArray64<Av1EncoderTransformBlockState> candidateLumaStates = default;
+                InlineArray16<Av1TransformSize> candidateLumaSizes = default;
+                InlineArray16<Av1EncoderTransformBlockState> candidateBlueState = default;
+                InlineArray16<Av1EncoderTransformBlockState> candidateRedState = default;
+                if (!simpleSkipped)
+                {
+                    this.transformSearchReset = true;
+                    candidateStatistics = this.EvaluateInterCandidate(
+                        writer,
+                        macroBlock,
+                        blockOrigin,
+                        blockSize,
+                        tileIndex,
+                        Math.Min(bestCost, selectedStatistics.Cost),
+                        block.HasChroma,
+                        simplePredictionRate,
+                        referenceFrame,
+                        candidateVectors[candidateIndex],
+                        default,
+                        requestedMode,
+                        Av1ReferenceFrameType.None,
+                        usePreparedPrediction: preparedPrediction,
+                        Av1CompoundType.Average,
+                        0,
+                        false,
+                        Av1DifferenceWeightedMaskType.Type38,
+                        0,
+                        horizontalFilter,
+                        verticalFilter,
+                        candidateReferenceIndices[candidateIndex],
+                        false,
+                        default,
+                        false,
+                        0,
+                        in referenceMotionVectors,
+                        candidateLumaReconstruction,
+                        candidateLumaCoefficients,
+                        candidateBlueReconstruction,
+                        candidateBlueCoefficients,
+                        candidateRedReconstruction,
+                        candidateRedCoefficients,
+                        out candidateSkip,
+                        out candidateLumaStates,
+                        out candidateLumaSizes,
+                        out candidateBlueState,
+                        out candidateRedState);
+                }
 
                 this.blockWorkspace.SingleReferenceSimpleCosts[filterCostIndex] = candidateStatistics.Cost;
+
+                // The block leaves this entry with the filters of its best motion mode, or of its last motion mode
+                // trial when none succeeds; a warped trial holds the regular filter. Reference: the best_mbmi
+                // restore and the base_mbmi reset of each mode_index in motion_mode_rd().
+                long motionModeCost = candidateStatistics.Cost;
 
                 // Strict replacement preserves nearest, new, near, then global mode order on equal RD cost.
                 if (candidateStatistics.Cost < selectedStatistics.Cost)
@@ -3196,13 +3359,38 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedLumaSizes = candidateLumaSizes;
                     selectedBlueState = candidateBlueState;
                     selectedRedState = candidateRedState;
+
+                    // The first winner of a new-motion entry keeps the earlier winner in the spare buffers until the entry's
+                    // final vector test.
+                    if (entryPending && !winnerHeld)
+                    {
+                        Span<TSample> spareLumaReconstructionBuffer = spareLumaReconstruction;
+                        spareLumaReconstruction = candidateLumaReconstruction;
+                        candidateLumaReconstruction = spareLumaReconstructionBuffer;
+                        Span<TSample> spareBlueReconstructionBuffer = spareBlueReconstruction;
+                        spareBlueReconstruction = candidateBlueReconstruction;
+                        candidateBlueReconstruction = spareBlueReconstructionBuffer;
+                        Span<TSample> spareRedReconstructionBuffer = spareRedReconstruction;
+                        spareRedReconstruction = candidateRedReconstruction;
+                        candidateRedReconstruction = spareRedReconstructionBuffer;
+                        Span<int> spareLumaCoefficientsBuffer = spareLumaCoefficients;
+                        spareLumaCoefficients = candidateLumaCoefficients;
+                        candidateLumaCoefficients = spareLumaCoefficientsBuffer;
+                        Span<int> spareBlueCoefficientsBuffer = spareBlueCoefficients;
+                        spareBlueCoefficients = candidateBlueCoefficients;
+                        candidateBlueCoefficients = spareBlueCoefficientsBuffer;
+                        Span<int> spareRedCoefficientsBuffer = spareRedCoefficients;
+                        spareRedCoefficients = candidateRedCoefficients;
+                        candidateRedCoefficients = spareRedCoefficientsBuffer;
+                        winnerHeld = true;
+                    }
                 }
 
                 // Without motion_mode_for_winner_cand, each candidate searches OBMC and warped motion after simple
                 // translation. A reference kept only because a compound pair uses it searches no other motion mode,
                 // and a simple translation whose luma search failed ends the candidate. Reference: the mode_index
                 // loop of motion_mode_rd(), with the skip_motion_mode test and the mode_index 0 return.
-                if (searchMotionModes && this.lumaSearchFailed)
+                if (searchMotionModes && !simpleSkipped && this.lumaSearchFailed)
                 {
                     continue;
                 }
@@ -3243,6 +3431,16 @@ internal static partial class Av1IntraSuperblockEncoder
                             out InlineArray16<Av1EncoderTransformBlockState> motionBlueState,
                             out InlineArray16<Av1EncoderTransformBlockState> motionRedState);
 
+                        lastTrialVector = motionVector;
+                        lastTrialHorizontalFilter = motionModeInfo.HorizontalInterpolationFilter;
+                        lastTrialVerticalFilter = motionModeInfo.VerticalInterpolationFilter;
+                        if (motionModeCost == long.MaxValue || motionStatistics.Cost < motionModeCost)
+                        {
+                            motionModeCost = motionStatistics.Cost;
+                            heldHorizontalFilter = motionModeInfo.HorizontalInterpolationFilter;
+                            heldVerticalFilter = motionModeInfo.VerticalInterpolationFilter;
+                        }
+
                         if (motionStatistics.Cost >= selectedStatistics.Cost)
                         {
                             continue;
@@ -3279,6 +3477,31 @@ internal static partial class Av1IntraSuperblockEncoder
                         selectedLumaSizes = motionLumaSizes;
                         selectedBlueState = motionBlueState;
                         selectedRedState = motionRedState;
+
+                        // The first winner of a new-motion entry keeps the earlier winner in the spare buffers until the entry's
+                        // final vector test.
+                        if (entryPending && !winnerHeld)
+                        {
+                            Span<TSample> spareLumaReconstructionBuffer = spareLumaReconstruction;
+                            spareLumaReconstruction = candidateLumaReconstruction;
+                            candidateLumaReconstruction = spareLumaReconstructionBuffer;
+                            Span<TSample> spareBlueReconstructionBuffer = spareBlueReconstruction;
+                            spareBlueReconstruction = candidateBlueReconstruction;
+                            candidateBlueReconstruction = spareBlueReconstructionBuffer;
+                            Span<TSample> spareRedReconstructionBuffer = spareRedReconstruction;
+                            spareRedReconstruction = candidateRedReconstruction;
+                            candidateRedReconstruction = spareRedReconstructionBuffer;
+                            Span<int> spareLumaCoefficientsBuffer = spareLumaCoefficients;
+                            spareLumaCoefficients = candidateLumaCoefficients;
+                            candidateLumaCoefficients = spareLumaCoefficientsBuffer;
+                            Span<int> spareBlueCoefficientsBuffer = spareBlueCoefficients;
+                            spareBlueCoefficients = candidateBlueCoefficients;
+                            candidateBlueCoefficients = spareBlueCoefficientsBuffer;
+                            Span<int> spareRedCoefficientsBuffer = spareRedCoefficients;
+                            spareRedCoefficients = candidateRedCoefficients;
+                            candidateRedCoefficients = spareRedCoefficientsBuffer;
+                            winnerHeld = true;
+                        }
                     }
                 }
 
@@ -3294,6 +3517,17 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1MotionVectorCosts costs = this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision);
                     interIntraMotionRate = ((costs.GetCost(candidateVectors[candidateIndex], referenceVector) * 108) + 64) >> 7;
                 }
+
+                // The inter-intra trial keeps the interpolation filters.
+                if (motionModeCost == long.MaxValue)
+                {
+                    heldHorizontalFilter = horizontalFilter;
+                    heldVerticalFilter = verticalFilter;
+                }
+
+                lastTrialVector = candidateVectors[candidateIndex];
+                lastTrialHorizontalFilter = horizontalFilter;
+                lastTrialVerticalFilter = verticalFilter;
 
                 Av1MotionVector interIntraVector = candidateVectors[candidateIndex];
                 if (!this.SelectInterIntraBlend(
@@ -3318,6 +3552,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
+                // A new vector that the blend search leaves at its reference codes no difference. Reference:
+                // av1_check_newmv_joint_nonzero() after av1_handle_inter_intra_mode() in motion_mode_rd().
+                lastTrialVector = interIntraVector;
+                if (newEntry && interIntraVector == newReference)
+                {
+                    continue;
+                }
+
                 this.PrepareInterIntraPrediction(
                     macroBlock,
                     blockOrigin,
@@ -3338,6 +3580,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     useWedge,
                     wedgeIndex);
 
+                this.transformSearchReset = true;
                 Av1RateDistortionStatistics interIntraStatistics = this.EvaluateInterCandidate(
                     writer,
                     macroBlock,
@@ -3378,6 +3621,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     out InlineArray16<Av1EncoderTransformBlockState> interIntraBlueState,
                     out InlineArray16<Av1EncoderTransformBlockState> interIntraRedState);
 
+                if (interIntraStatistics.Cost < motionModeCost)
+                {
+                    heldHorizontalFilter = horizontalFilter;
+                    heldVerticalFilter = verticalFilter;
+                }
+
                 if (interIntraStatistics.Cost >= selectedStatistics.Cost)
                 {
                     continue;
@@ -3417,6 +3666,31 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedLumaSizes = interIntraLumaSizes;
                 selectedBlueState = interIntraBlueState;
                 selectedRedState = interIntraRedState;
+
+                // The first winner of a new-motion entry keeps the earlier winner in the spare buffers until the entry's
+                // final vector test.
+                if (entryPending && !winnerHeld)
+                {
+                    Span<TSample> spareLumaReconstructionBuffer = spareLumaReconstruction;
+                    spareLumaReconstruction = candidateLumaReconstruction;
+                    candidateLumaReconstruction = spareLumaReconstructionBuffer;
+                    Span<TSample> spareBlueReconstructionBuffer = spareBlueReconstruction;
+                    spareBlueReconstruction = candidateBlueReconstruction;
+                    candidateBlueReconstruction = spareBlueReconstructionBuffer;
+                    Span<TSample> spareRedReconstructionBuffer = spareRedReconstruction;
+                    spareRedReconstruction = candidateRedReconstruction;
+                    candidateRedReconstruction = spareRedReconstructionBuffer;
+                    Span<int> spareLumaCoefficientsBuffer = spareLumaCoefficients;
+                    spareLumaCoefficients = candidateLumaCoefficients;
+                    candidateLumaCoefficients = spareLumaCoefficientsBuffer;
+                    Span<int> spareBlueCoefficientsBuffer = spareBlueCoefficients;
+                    spareBlueCoefficients = candidateBlueCoefficients;
+                    candidateBlueCoefficients = spareBlueCoefficientsBuffer;
+                    Span<int> spareRedCoefficientsBuffer = spareRedCoefficients;
+                    spareRedCoefficients = candidateRedCoefficients;
+                    candidateRedCoefficients = spareRedCoefficientsBuffer;
+                    winnerHeld = true;
+                }
             }
 
             // Candidate pixels and coefficients remain scratch. Preserve the transform decisions so final
@@ -4635,6 +4909,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool nearestOnly,
             Span<long> topAverageCosts,
             Span<int> compoundMaskHistory,
+            Span<int> compoundTypeHistory,
             bool outsideSingleReferenceCutoff,
             ReadOnlySpan<Av1PredictionMode> bestSingleModes,
             uint searchedSingleModes,
@@ -4921,8 +5196,21 @@ internal static partial class Av1IntraSuperblockEncoder
                         prediction.CompoundType = Av1CompoundType.Average;
                         prediction.CompoundGroupIndex = false;
                         prediction.CompoundIndex = true;
+                        bool secondaryPastPair = primaryReference is Av1ReferenceFrameType.Last2 or Av1ReferenceFrameType.Last3 ||
+                            secondaryReference is Av1ReferenceFrameType.Last2 or Av1ReferenceFrameType.Last3;
                         for (int index = candidateIndex; index < candidateCount && modes[index] == mode; index++)
                         {
+                            // A later list entry of a pair that uses LAST2 or LAST3 is searched only when its stack
+                            // weight marks a nearest neighbor. Reference: the reduce_inter_modes test of
+                            // ref_mv_idx_early_breakout().
+                            if (settings.ReduceInterReferenceIndices != 0 && referenceIndices[index] > 0 && secondaryPastPair &&
+                                referenceMotionVectors.Weights[referenceIndices[index] + (nearMode ? 1 : 0)] <
+                                Av1ReferenceMotionVectors.NearestCandidateWeight)
+                            {
+                                candidateMask &= ~(1 << referenceIndices[index]);
+                                continue;
+                            }
+
                             int translationModeRate = this.GetCompoundInterModeRate(
                                 writer, mode, primaryVectors[index], secondaryVectors[index], referenceIndices[index], in referenceMotionVectors) -
                                 this.GetCompoundMotionRate(
@@ -5065,6 +5353,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in referenceMotionVectors,
                     topAverageCosts,
                     compoundMaskHistory,
+                    compoundTypeHistory,
                     ref candidatePrimary,
                     ref candidateSecondary,
                     out Av1CompoundType compoundType,
@@ -5079,10 +5368,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 // are how that choice reaches the bitstream: the group flag separates the masked
                 // blends from the rest, and the index then separates a plain average from a
                 // distance weighted one.
+                // Each mode starts from simple translation, whatever an earlier trial left in the block.
+                // Reference: init_mbmi().
                 Av1EncoderBlockModeInfo candidateMode = modeInfo.Block;
                 candidateMode.ReferenceFrame = primaryReference;
                 candidateMode.SecondaryReferenceFrame = secondaryReference;
                 candidateMode.Mode = modes[candidateIndex];
+                candidateMode.MotionMode = Av1MotionMode.SimpleTranslation;
+                candidateMode.SkipMode = false;
                 candidateMode.CompoundType = compoundType;
                 candidateMode.CompoundGroupIndex = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
                 candidateMode.CompoundIndex = compoundType != Av1CompoundType.DistanceWeighted;
@@ -5247,6 +5540,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1ReferenceMotionVectors referenceMotionVectors,
             Span<long> topAverageCosts,
             Span<int> maskHistory,
+            Span<int> typeHistory,
             ref Av1MotionVector primary,
             ref Av1MotionVector secondary,
             out Av1CompoundType selectedType,
@@ -5382,7 +5676,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if ((type == Av1CompoundType.DistanceWeighted && !jointCompound) ||
                     (isMasked && !masked) ||
                     (isWedge && (!supportsWedge || this.interSourceVariance <= settings.InterInterWedgeVarianceThreshold ||
-                                maskHistory[3] == (int)Av1CompoundType.Average)))
+                                typeHistory[0] == (int)Av1CompoundType.Average)))
                 {
                     continue;
                 }
@@ -5777,7 +6071,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (mode == Av1PredictionMode.NewNewMotionVector)
             {
-                maskHistory[3] = (int)selectedType;
+                typeHistory[0] = (int)selectedType;
             }
 
             if (matchIndex < 0 && this.compoundSearchRecordCount < Av1CompoundSearchRecord.Capacity)
@@ -7595,6 +7889,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.rateMultiplier,
                     predictionRate + skipRate,
                     skipDistortion);
+
+                // A skippable residual whose skipped cost exceeds the budget fails the search. Reference: the
+                // rd_stats->skip_txfm test at the end of av1_txfm_search().
+                if (skippable && selectedStatistics.Cost > bestCost)
+                {
+                    return Av1RateDistortionStatistics.Invalid;
+                }
+
                 int lumaSampleCount = blockSize.GetWidth() * blockSize.GetHeight();
                 workspace.LumaPrediction[..lumaSampleCount].CopyTo(lumaReconstruction);
                 lumaCoefficients[..lumaSampleCount].Clear();
@@ -7620,7 +7922,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 : skippable ? skippedLumaCost
                 : Av1RateDistortion.GetCost(this.rateMultiplier, predictionRate + noSkipCost, lumaPredictionDistortion);
             selectedStatistics.HasCoefficients = !skip;
-            selectedStatistics.AllTransformsEmpty = allEmpty;
+
+            // The mode search reports the merged skippable result, which best_mode_skippable and the partition
+            // search read. Reference: the rd_stats->skip_txfm merge of av1_txfm_search().
+            selectedStatistics.AllTransformsEmpty = skippable;
             selectedStatistics.ResidualRate = selectedStatistics.Rate - predictionRate;
             selectedStatistics.PredictionDistortion = skipDistortion;
             if (referenceFrame != Av1ReferenceFrameType.Intra && selectedStatistics.Cost < bestCost)
@@ -8739,6 +9044,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> bestReconstruction = selectedReconstruction[..sampleCount];
             Span<int> bestCoefficients = selectedCoefficients[..sampleCount];
             bool bestUsesSelectedStorage = true;
+
+            // The winning type reports the residual energy that the block would leave unskipped: the transform-domain
+            // energy where the type search measured distortion there, and the visible pixel energy otherwise.
+            // Reference: this_rd_stats.sse in search_tx_type(), which best_rd_stats keeps.
+            long selectedSse = predictionDistortion;
             for (int transformIndex = 0; transformIndex < 16; transformIndex++)
             {
                 Av1TransformType transformType = transformOrder[transformIndex];
@@ -8771,7 +9081,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.quantization.DeltaQAc[(int)plane],
                     this.bitDepth,
                     ref candidateState,
-                    out _);
+                    out long candidateSse);
 
                 // A DC-only block codes DCT_DCT whatever type it derives. Reference: the tx_type of search_tx_type()
                 // that the DCT_DCT mask of a DC-only block leaves.
@@ -8806,6 +9116,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedState = candidateState;
                     selectedRate = candidateRate;
                     selectedDistortion = candidateDistortion;
+                    selectedSse = candidateSse;
                 }
 
                 // A winner already far above the remaining budget ends the search, and so does a winner that
@@ -8831,6 +9142,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Callers retain the designated selected spans after this scratch workspace is reused by the
             // next plane or motion vector, so normalize only when the final best result occupies scratch.
+            predictionDistortion = selectedSse;
+
             if (!bestUsesSelectedStorage)
             {
                 bestReconstruction.CopyTo(selectedReconstruction);

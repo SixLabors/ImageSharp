@@ -59,8 +59,10 @@ internal struct Av1RateDistortionStatistics
     public bool HasCoefficients { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether every searched transform was empty before the skip-cost comparison.
+    /// Gets or sets a value indicating whether the searched residual is skippable before the block's skip-cost
+    /// comparison: every transform is empty, or a recursive luma transform search found the skip cost no higher.
     /// </summary>
+    /// <remarks>This is the <c>skip_txfm</c> of the search's <c>RD_STATS</c>.</remarks>
     public bool AllTransformsEmpty { get; set; }
 
     /// <summary>

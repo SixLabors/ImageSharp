@@ -2410,11 +2410,23 @@ internal partial class Av1TileWriter
             return false;
         }
 
-        // Global identity and affine models infer the regular filter on blocks at least 8x8. Translation still
-        // carries filter symbols, including integer translations. Residual skip does not suppress these symbols.
-        return modeInfo.Mode != Av1PredictionMode.GlobalMotionVector ||
-            Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) < Av1BlockSize.Block8x8.GetWidth() ||
-            frameHeader.GetGlobalMotionParameters()[(int)modeInfo.ReferenceFrame - 1].Type == Av1GlobalMotionType.Translation;
+        // Global identity and affine models infer the regular filter on blocks at least 8x8, for GLOBALMV and for
+        // GLOBAL_GLOBALMV. A translation model on any reference still carries filter symbols, including integer
+        // translations. Residual skip does not suppress these symbols. Reference: is_nontrans_global_motion().
+        if (modeInfo.Mode is not (Av1PredictionMode.GlobalMotionVector or Av1PredictionMode.GlobalGlobalMotionVector) ||
+            Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) < Av1BlockSize.Block8x8.GetWidth())
+        {
+            return true;
+        }
+
+        ReadOnlySpan<Av1GlobalMotionParameters> globalMotion = frameHeader.GetGlobalMotionParameters();
+        if (globalMotion[(int)modeInfo.ReferenceFrame - 1].Type == Av1GlobalMotionType.Translation)
+        {
+            return true;
+        }
+
+        return modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
+            globalMotion[(int)modeInfo.SecondaryReferenceFrame - 1].Type == Av1GlobalMotionType.Translation;
     }
 
     /// <summary>

@@ -461,6 +461,33 @@ public class Av1CoefficientsEntropyTests
         Assert.False(Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
     }
 
+    /// <summary>
+    /// Verifies that a compound global block signals filters only when one of its references uses a translation
+    /// model, as for a single-reference global block.
+    /// </summary>
+    [Theory]
+    [InlineData(Av1GlobalMotionType.Identity, Av1GlobalMotionType.Identity, false)]
+    [InlineData(Av1GlobalMotionType.Translation, Av1GlobalMotionType.Identity, true)]
+    [InlineData(Av1GlobalMotionType.Identity, Av1GlobalMotionType.Translation, true)]
+    [InlineData(Av1GlobalMotionType.RotationZoom, Av1GlobalMotionType.Affine, false)]
+    public void EncoderCompoundGlobalInterpolationSyntaxMatchesModeEligibility(int firstType, int secondType, bool expected)
+    {
+        ObuFrameHeader frameHeader = new() { InterpolationFilter = Av1InterpolationFilter.Switchable };
+        frameHeader.GetGlobalMotionParameters()[(int)Av1ReferenceFrameType.Last - 1].Type = (Av1GlobalMotionType)firstType;
+        frameHeader.GetGlobalMotionParameters()[(int)Av1ReferenceFrameType.Alternate - 1].Type = (Av1GlobalMotionType)secondType;
+        Av1EncoderBlockModeInfo modeInfo = new()
+        {
+            BlockSize = Av1BlockSize.Block16x16,
+            ReferenceFrame = Av1ReferenceFrameType.Last,
+            SecondaryReferenceFrame = Av1ReferenceFrameType.Alternate,
+            Mode = Av1PredictionMode.GlobalGlobalMotionVector
+        };
+
+        Assert.Equal(expected, Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
+        modeInfo.Mode = Av1PredictionMode.NearestNearestMotionVector;
+        Assert.True(Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
+    }
+
     [Fact]
     public void EncoderSuperblockWorkspaceUsesOneExactSizeOwner()
     {

@@ -1,6 +1,6 @@
 # AV1/AVIF remaining implementation plan
 
-Updated 2026-09-17. Milestone 1 is active.
+Updated 2026-09-25. Milestone 1 is complete for still pictures. Next: inter frames (milestone 2).
 Existing changes must be preserved. Do not create worktrees or reload Roslynk.
 
 ## Working rule
@@ -34,7 +34,58 @@ quality with the non-IQ formula. Until this is ported, output matches libavif on
 The superblock rule in `Av1FrameEncoder.CreateSequenceHeader` equals `av1_select_sb_size`
 (`encoder_utils.c:1017-1039`) for one thread without delta-q modes.
 
-## Verified state, 2026-09-17
+## Verified state, 2026-09-25
+
+Still pictures are byte-identical to the pinned x64 `aomenc.exe` in all 620 comparison cases.
+The reference is the optimized x64 build. Where libaom's C and SIMD code disagree, the port follows the SIMD result.
+
+Each case encodes the same Y4M source with the port and with `aomenc --usage=2 --passes=1 --end-usage=q
+--lag-in-frames=0 --tile-columns=0 --tile-rows=0 --threads=1 --limit=1`. The two streams must be equal byte for byte,
+and the decoded block decisions must be equal.
+
+| Set | Cases |
+|---|---|
+| Bike at 512, 333 and 1000 pixels, 4:2:0 8-bit, qIndex 32/64/128/200, speeds 0-9 | 100 |
+| Splash, Ducky, Calliphora (400 pixels) and synthetic screen content (320 pixels), qIndex 64 and 160 | 80 |
+| The same four images, qIndex 32 and 255 | 80 |
+| Bike 512: 4:2:0 10-bit, 4:4:4 8/10-bit, 4:2:2 8/10-bit, monochrome; qIndex 64 and 128 | 120 |
+| Bike 512, 4:2:0 12-bit, qIndex 64 and 128 | 20 |
+| Bike 512, lossless (qIndex 0), 4:2:0 and 4:4:4 | 20 |
+| Bike at odd sizes 333x251 and 127x97, qIndex 64 and 200 | 40 |
+| The four images in 4:4:4 8-bit and 4:2:0 10-bit, qIndex 64 and 160 | 160 |
+
+All sets use speeds 0-9. The HEIF suite passes (10,518 tests) and the analyzer build has no errors.
+
+Corrections verified in this period (each one moved a failing case to byte-identical):
+
+- The final encode marks a copied or inter block as skipped when it keeps no coefficient (`av1_encode_sb`).
+- `predict_skip_txfm` and `set_skip_txfm` are ported for inter and intra-block-copy luma.
+- Chroma compares the cost of an uncoded residual with the SSE that `search_tx_type` reports. That SSE is in the
+  transform domain when the distortion is measured there.
+- Still pictures at speed 7 follow `av1_rd_use_partition`: every leaf is searched, finished subtrees are
+  encoded as a dry run, and then the superblock is encoded. The dry run resets a luma transform type to DCT when
+  it has no coefficients, and the final encode uses that DCT.
+- The inter and intra-block-copy transform-type loop has the `adaptive_txb_search_level` and `skip_tx_search`
+  exits of `search_tx_type`.
+- The 16x16 Hadamard combine in `av1_block_yrd` wraps in 16 bits, as `hadamard_16x16_avx2` does. The C code
+  does not wrap there, so 10-bit and 12-bit screen content at speed 9 differs between the C and x64 builds.
+
+Known limits and open items:
+
+- The pinned `aomenc.exe` cannot encode 12-bit 4:4:4 (`AV1E_SET_CHROMA_SUBSAMPLING_X` fails before the bit depth
+  is set). That format has no reference stream.
+- Two inter-search rules are not yet verified, because still pictures do not reach them:
+  `EvaluateInterTransform` discards the transform-domain SSE that `try_tx_block_no_split` uses for
+  `zero_blk_rd`, and `EncodePredictionLossyCandidate` measures every candidate in pixels under distortion
+  policy 1, where `search_tx_type` measures candidates in the transform domain and only the winner in pixels.
+- `PaletteColorMapCostDoesNotAllocateAfterEntropyInitialization` failed once under load and passed in all
+  later runs. The cause is not yet known.
+- The working tree still has temporary trace code (`Av1TileWriter`, `Av1IntraSuperblockEncoder.ReferenceModeDecision`),
+  and the libaom tree has trace instrumentation. Both are removed at final cleanup.
+- The comparison harness is scratch code outside the repository. It is copied into the test project to run and is
+  never committed.
+
+## Verified state, 2026-09-17 (historical)
 
 - `src/ImageSharp`, the test project, and the benchmark project compile for net11.0. `src/ImageSharp` has zero
   analyzer errors and warnings for net10.0 and net11.0. The test and benchmark projects are not yet checked with analyzers.
@@ -148,7 +199,10 @@ The superblock rule in `Av1FrameEncoder.CreateSequenceHeader` equals `av1_select
 - End-to-end performance includes conversion, allocation, output writing, and disposal.
   Historical measurements and earlier test passes do not verify this tree.
 
-## 1. Complete encoder decision policy — active
+## 1. Complete encoder decision policy — complete for still pictures
+
+The items below are verified for still pictures by the 620 comparison cases. The unchecked items stay open
+only for inter frames, where milestone 2 supplies the frame roles.
 
 - [ ] Finish speed policy for the actual coding mode, frame role, resolution, quantizer, and content.
   The sole public control is `HeifEncodingSpeed`; do not reintroduce effort thresholds.
@@ -404,7 +458,11 @@ Managed owners are `Av1IntraSuperblockEncoder.*`, `Av1EncoderSpeedSettings`,
 `Av1EncoderBlockWorkspace`, `Av1EncoderPictureBuffer`, and `Av1TileWriter`.
 Proceed directly to milestone 2 when this implementation is complete.
 
-## 2. Complete frame and sequence control
+## 2. Complete frame and sequence control — active
+
+First step: extend the comparison harness to image sequences. Encode the same frames with the port's sequence
+encoder and with `aomenc`, find a reference configuration whose frame roles the port supports, and compare the
+streams frame by frame as for still pictures. Then correct each first difference against libaom.
 
 - [ ] Implement reference-slot selection, refresh scheduling, frame roles, entropy inheritance, and temporal motion context.
   Current LAST/retained-GOLDEN support is incomplete. Remove forced error resilience and disabled frame-end CDF
@@ -430,9 +488,13 @@ Proceed directly to milestone 2 when this implementation is complete.
 - [ ] Resolve prior failures and contradictory verification records against the final tree.
   Earlier frame/public results included a global-motion assertion and interpolation-selection failures.
 - [ ] Establish independent separate-encoder parity with identical sources and explicitly reconciled settings.
+  Done for still pictures: byte-identical streams in 620 cases (see "Verified state, 2026-09-25").
+  Remaining: inter frames and `tune=iq` settings.
 - [ ] Separately establish byte-exact same-stream decoding.
 - [ ] Cover lossless and lossy 8/10/12-bit samples, monochrome and all chroma formats, alpha, meaningful photographic
   and screen-content inputs, odd/coded edges, tiles, grids, and dependent animation.
+  Done for still pictures: lossless and lossy 8/10/12-bit, monochrome, 4:2:0, 4:2:2, 4:4:4, photographic and
+  screen content, odd sizes. Remaining: alpha, tiles, grids, and dependent animation.
 - [ ] Verify public option precedence, pixel conversion, metadata/CICP/ICC, timing/repetition, root-frame behavior,
   cancellation, prefixed/non-seekable output, and allocator ownership.
 - [ ] Follow established encoder `VerifyEncoder` patterns with independent decoding against the input.

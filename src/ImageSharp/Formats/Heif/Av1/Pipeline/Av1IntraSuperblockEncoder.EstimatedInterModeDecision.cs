@@ -1053,6 +1053,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int modeMask = speed.GetEstimatedIntraModeMask(blockSize, screenChange);
+            Av1PredictionMode chromaMode = Av1PredictionMode.DC;
             foreach (Av1PredictionMode mode in EstimatedIntraModes)
             {
                 // Forced intra keeps DC, vertical, and horizontal available even when the ordinary
@@ -1094,7 +1095,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1RateDistortionStatistics residual = this.EstimateInterFrameIntraCandidate(
-                    macroBlock, blockOrigin, blockSize, mode, transformSize, evaluateBlue, evaluateRed, prediction);
+                    macroBlock, blockOrigin, blockSize, mode, chromaMode, transformSize, evaluateBlue, evaluateRed, prediction);
                 this.RecordLumaPrediction(prediction);
 
                 int rate = residual.Rate + referenceRate + penalty;
@@ -1130,6 +1131,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     state.BestStatistics = statistics;
                     winner.Mode = mode;
                     winner.UvMode = (Av1ChromaPredictionMode)mode;
+                    chromaMode = mode;
                     winner.TransformSize = transformSize;
                     winner.ReferenceFrame = Av1ReferenceFrameType.Intra;
                     winner.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
@@ -1147,7 +1149,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="macroBlock">The block's reconstructed neighbors and frame edges.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The coding-block geometry.</param>
-        /// <param name="mode">The luma and chroma prediction mode.</param>
+        /// <param name="mode">The luma prediction mode.</param>
+        /// <param name="chromaMode">
+        /// The chroma prediction mode: the mode of the best intra candidate so far, or DC. Reference:
+        /// av1_estimate_block_intra() predicts chroma from mi->uv_mode, which av1_estimate_intra_mode() sets only when
+        /// a mode becomes the best, after init_mbmi_nonrd() set UV_DC_PRED.
+        /// </param>
         /// <param name="transformSize">The luma residual estimation size.</param>
         /// <param name="evaluateBlue">Whether blue-difference distortion participates in selection.</param>
         /// <param name="evaluateRed">Whether red-difference distortion participates in selection.</param>
@@ -1158,6 +1165,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1PredictionMode mode,
+            Av1PredictionMode chromaMode,
             Av1TransformSize transformSize,
             bool evaluateBlue,
             bool evaluateRed,
@@ -1241,7 +1249,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     left.Slice(1, transformWidth + transformHeight),
                                     hasLeft,
                                     hasAbove,
-                                    mode,
+                                    planeIndex == 0 ? mode : chromaMode,
                                     0,
                                     this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
                                     this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),

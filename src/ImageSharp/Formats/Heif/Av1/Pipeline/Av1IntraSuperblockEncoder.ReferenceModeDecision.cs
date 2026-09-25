@@ -288,6 +288,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1ReferenceFrameType.None);
             }
 
+            this.skipReferenceFrameMask = this.GetSkipReferenceFrameMask(blockOrigin, blockSize, initialModeInfo.Block.PartitionType);
             this.SetInterModeSkipMasks(blockOrigin, blockSize, singleReferenceVectors[..]);
 
             // Search the same syntax mode across the available references before advancing to the
@@ -302,9 +303,13 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 foreach (Av1ReferenceFrameType reference in referenceOrder)
                 {
+                    // Reference: the skip_txfm reset at the start of each iteration of the av1_rd_pick_inter_mode()
+                    // mode loop.
+                    this.transformSearchSkip = false;
                     int index = (int)reference;
                     if ((availableReferences & (1 << index)) == 0 ||
-                        (this.interModeSkipMasks[index] & (1u << (int)mode)) != 0)
+                        (this.interModeSkipMasks[index] & (1u << (int)mode)) != 0 ||
+                        this.IsSingleReferenceSkipped(index))
                     {
                         continue;
                     }
@@ -428,13 +433,25 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref newVectors,
                         ref newVectorMask);
 
+                    // A completed search leaves the skip flag of its best motion mode. Reference: the best_xskip_txfm
+                    // restore at the end of handle_inter_mode().
+                    if (candidateStatistics.Cost != long.MaxValue)
+                    {
+                        this.transformSearchSkip = candidateModeInfo.Block.Skip;
+                    }
+
                     if (candidateStatistics.Cost < bestSingleCosts[(int)reference])
                     {
                         bestSingleCosts[(int)reference] = candidateStatistics.Cost;
                         bestSingleModes[(int)reference] = mode;
                     }
 
-                    this.RecordMotionModeWinner(candidateStatistics.Cost, false, in candidateModeInfo, in candidateBlock, candidateVector);
+                    // A reference kept only because a compound pair uses it searches no motion mode.
+                    // Reference: the skip_motion_mode result of inter_mode_search_order_independent_skip().
+                    if ((this.skipReferenceFrameMask & (1 << index)) == 0)
+                    {
+                        this.RecordMotionModeWinner(candidateStatistics.Cost, false, in candidateModeInfo, in candidateBlock, candidateVector);
+                    }
 
                     if (candidateStatistics.Cost < Math.Min(this.blockCostLimit, selectedStatistics.Cost))
                     {
@@ -468,6 +485,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ];
 
             ReadOnlySpan<byte> compoundSearchOrder = [4, 0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+            // The compound iterations of the mode loop follow the single ones, and each clears the skip flag.
+            if (this.picture.Parent.FrameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect)
+            {
+                this.transformSearchSkip = false;
+            }
 
             // Nearest pairs establish a bound across all admitted references first. The remaining
             // motion families then complete each pair in order, retaining that pair's mask history.
@@ -529,6 +552,70 @@ internal static partial class Av1IntraSuperblockEncoder
 
             return selectedStatistics;
         }
+
+        /// <summary>
+        /// Returns the combined type of a reference or reference pair. A pair of a forward and a backward reference
+        /// indexes the forward-by-backward table, and a pair on one side indexes the unidirectional pairs after it.
+        /// Reference: av1_ref_frame_type() with get_uni_comp_ref_idx().
+        /// </summary>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference, or none for a single reference.</param>
+        /// <returns>The combined reference type.</returns>
+        private static int GetReferenceFrameType(Av1ReferenceFrameType first, Av1ReferenceFrameType second)
+        {
+            if (second <= Av1ReferenceFrameType.Intra)
+            {
+                return (int)first;
+            }
+
+            for (int index = 0; index < 9; index++)
+            {
+                (Av1ReferenceFrameType pairFirst, Av1ReferenceFrameType pairSecond) = GetUnidirectionalPair(index);
+                if (first == pairFirst && second == pairSecond)
+                {
+                    return Av1Constants.ReferenceFrameCount + (4 * 3) + index;
+                }
+            }
+
+            return Av1Constants.ReferenceFrameCount + ((int)first - (int)Av1ReferenceFrameType.Last) +
+                (((int)second - (int)Av1ReferenceFrameType.Backward) * 4);
+        }
+
+        /// <summary>
+        /// Returns the reference pair of a combined compound type. Reference: ref_frame_map.
+        /// </summary>
+        /// <param name="type">The combined reference type, at least the single-reference count.</param>
+        /// <returns>The two references.</returns>
+        private static (Av1ReferenceFrameType First, Av1ReferenceFrameType Second) GetReferenceFramePair(int type)
+        {
+            int index = type - Av1Constants.ReferenceFrameCount;
+            if (index >= 4 * 3)
+            {
+                return GetUnidirectionalPair(index - (4 * 3));
+            }
+
+            return ((Av1ReferenceFrameType)((int)Av1ReferenceFrameType.Last + (index % 4)),
+                (Av1ReferenceFrameType)((int)Av1ReferenceFrameType.Backward + (index / 4)));
+        }
+
+        /// <summary>
+        /// Returns a unidirectional compound pair. Reference: comp_ref0() and comp_ref1().
+        /// </summary>
+        /// <param name="index">The pair index, from zero to eight.</param>
+        /// <returns>The two references.</returns>
+        private static (Av1ReferenceFrameType First, Av1ReferenceFrameType Second) GetUnidirectionalPair(int index)
+            => index switch
+            {
+                0 => (Av1ReferenceFrameType.Last, Av1ReferenceFrameType.Last2),
+                1 => (Av1ReferenceFrameType.Last, Av1ReferenceFrameType.Last3),
+                2 => (Av1ReferenceFrameType.Last, Av1ReferenceFrameType.Golden),
+                3 => (Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Alternate),
+                4 => (Av1ReferenceFrameType.Last2, Av1ReferenceFrameType.Last3),
+                5 => (Av1ReferenceFrameType.Last2, Av1ReferenceFrameType.Golden),
+                6 => (Av1ReferenceFrameType.Last3, Av1ReferenceFrameType.Golden),
+                7 => (Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Alternate2),
+                _ => (Av1ReferenceFrameType.Alternate2, Av1ReferenceFrameType.Alternate)
+            };
 
         /// <summary>
         /// Retains a mode-loop result for the motion-mode search after the loop. Reference: the handle_winner_cand()
@@ -608,6 +695,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     continue;
                 }
+
+                // Reference: the skip_txfm reset of each candidate in evaluate_motion_mode_for_winner_candidates().
+                this.transformSearchSkip = false;
 
                 Av1MacroBlockModeInfo candidateModeInfo = winner.ModeInfo;
                 Av1EncoderBlockStruct candidateBlock = winner.Block;
@@ -698,6 +788,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     out InlineArray16<Av1EncoderTransformBlockState> redStates);
 
                 this.useWarpedPrediction = false;
+
+                // Reference: the best_xskip_txfm restore at the end of motion_mode_rd().
+                if (statistics.Cost != long.MaxValue)
+                {
+                    this.transformSearchSkip = skip;
+                }
+
                 if (statistics.Cost >= costLimit)
                 {
                     continue;
@@ -916,6 +1013,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
+                // Reference: the skip_txfm reset of each candidate in tx_search_best_inter_candidates().
+                this.transformSearchSkip = false;
                 if (!this.ShouldSearchInterTransforms(candidate))
                 {
                     continue;
@@ -1155,9 +1254,10 @@ internal static partial class Av1IntraSuperblockEncoder
             bool allEmpty = !candidateStatistics.HasCoefficients;
 
             // Skipping removes the entire transform tree, including every partition and coefficient
-            // symbol. Compare that complete syntax once both luma and chroma have been evaluated.
-            bool skip = allEmpty ||
-                Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, candidateStatistics.PredictionDistortion) <=
+            // symbol. Compare that complete syntax once both luma and chroma have been evaluated. An empty
+            // residual still codes as non-skip when its skip flag costs more. Reference: the skip_blk test of
+            // refine_winner_mode_tx().
+            bool skip = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, candidateStatistics.PredictionDistortion) <
                 Av1RateDistortion.GetCost(this.rateMultiplier, noSkipRate + candidateStatistics.Rate, candidateStatistics.Distortion);
 
             if (skip)
@@ -3741,6 +3841,95 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Returns the reference types that a block reached by a rectangular or extended partition does not search:
+        /// those that no square block of the superblock picked over the same area.
+        /// Reference: the picked_ref_frames_mask setup of av1_rd_pick_inter_mode() with fetch_picked_ref_frames_mask().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="partitionType">The partition that produced the block.</param>
+        /// <returns>The skipped reference types, one bit per reference type.</returns>
+        private int GetSkipReferenceFrameMask(Point blockOrigin, Av1BlockSize blockSize, Av1PartitionType partitionType)
+        {
+            int level = this.picture.Parent.SpeedSettings.GetRectangularPartitionReferencePruning(this.picture.Parent.FrameUpdateType);
+            if (level == 0 || partitionType == Av1PartitionType.None ||
+                (partitionType is Av1PartitionType.Horizontal or Av1PartitionType.Vertical && level < 2))
+            {
+                return 0;
+            }
+
+            int superblockMask = (1 << (this.picture.Sequence.SequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)) - 1;
+            int row = (blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2) & superblockMask;
+            int column = (blockOrigin.X >> Av1Constants.ModeInfoSizeLog2) & superblockMask;
+            int picked = 0;
+            int[] masks = this.blockWorkspace.PickedReferenceFrameMasks;
+            for (int i = row; i < row + blockSize.Get4x4HighCount(); i++)
+            {
+                for (int j = column; j < column + blockSize.Get4x4WideCount(); j++)
+                {
+                    picked |= masks[(i * 32) + j];
+                }
+            }
+
+            return picked != 0 ? ~picked : 0;
+        }
+
+        /// <summary>
+        /// Returns whether the block searches no mode of a single reference: the rectangular pruning skips it and no
+        /// compound pair that the pruning keeps uses it.
+        /// Reference: is_ref_frame_used_by_compound_ref() with the skip_ref_frame_mask tests.
+        /// </summary>
+        /// <param name="reference">The reference type.</param>
+        /// <returns><see langword="true"/> when the reference is skipped.</returns>
+        private readonly bool IsSingleReferenceSkipped(int reference)
+        {
+            if ((this.skipReferenceFrameMask & (1 << reference)) == 0)
+            {
+                return false;
+            }
+
+            for (int type = Av1Constants.ReferenceFrameCount; type < ModeContextReferenceFrameCount; type++)
+            {
+                if ((this.skipReferenceFrameMask & (1 << type)) == 0)
+                {
+                    (Av1ReferenceFrameType first, Av1ReferenceFrameType second) = GetReferenceFramePair(type);
+                    if ((int)first == reference || (int)second == reference)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Records the reference type that the unsplit search of a square block picked over the block area.
+        /// Reference: av1_update_picked_ref_frames_mask().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The square block size.</param>
+        /// <param name="mode">The picked block decisions.</param>
+        private void UpdatePickedReferenceFrames(Point blockOrigin, Av1BlockSize blockSize, in Av1EncoderBlockModeInfo mode)
+        {
+            int type = mode.ReferenceFrame <= Av1ReferenceFrameType.Intra
+                ? 0
+                : GetReferenceFrameType(mode.ReferenceFrame, mode.SecondaryReferenceFrame);
+            int superblockMask = (1 << (this.picture.Sequence.SequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)) - 1;
+            int row = (blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2) & superblockMask;
+            int column = (blockOrigin.X >> Av1Constants.ModeInfoSizeLog2) & superblockMask;
+            int size = blockSize.Get4x4WideCount();
+            int[] masks = this.blockWorkspace.PickedReferenceFrameMasks;
+            for (int i = row; i < row + size; i++)
+            {
+                for (int j = column; j < column + size; j++)
+                {
+                    masks[(i * 32) + j] |= 1 << type;
+                }
+            }
+        }
+
+        /// <summary>
         /// Masks the modes of each reference whose predicted-vector SAD is poor. A reference far from the best SAD
         /// loses its fixed-vector modes, and with single-reference pruning a reference other than the closest ones
         /// loses every single-reference mode. Reference: av1_mv_pred() in setup_buffer_ref_mvs_inter(), then
@@ -3781,7 +3970,9 @@ internal static partial class Av1IntraSuperblockEncoder
             sads.Fill(int.MaxValue);
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
-                if ((availableReferences & (1 << reference)) == 0)
+                // A reference that the block does not search measures no SAD. Reference: the skip_ref_frame_mask
+                // test of set_params_rd_pick_inter_mode().
+                if ((availableReferences & (1 << reference)) == 0 || this.IsSingleReferenceSkipped(reference))
                 {
                     continue;
                 }
@@ -4069,7 +4260,8 @@ internal static partial class Av1IntraSuperblockEncoder
             if ((this.picture.Parent.AvailableReferenceMask & (1 << (int)primaryReference)) == 0 ||
                 (this.picture.Parent.AvailableReferenceMask & (1 << (int)secondaryReference)) == 0 ||
                 frameHeader.ReferenceMode == ObuReferenceMode.SingleReference ||
-                Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) < 8)
+                Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) < 8 ||
+                (this.skipReferenceFrameMask & (1 << GetReferenceFrameType(primaryReference, secondaryReference))) != 0)
             {
                 return;
             }
@@ -6948,6 +7140,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // All-empty residuals omit the transform tree. Nonempty residuals can also be discarded when
             // prediction alone costs no more; shared prediction syntax must not affect the rounded comparison.
             bool allEmpty = !lumaStatistics.HasCoefficients && !blueHasCoefficients && !redHasCoefficients;
+            bool skippable = allEmpty;
 
             if (this.picture.Parent.FrameHeader.CodedLossless)
             {
@@ -6961,12 +7154,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 // emptiness of its transforms, while chroma is skippable only when it codes nothing. Skip is
                 // taken outright when both are, and otherwise when leaving the residual uncoded costs no more.
                 // Reference: the skip_txfm result of select_inter_block_yrd(), merged with av1_txfm_uvrd()'s,
-                // and the choose_skip_txfm comparison of av1_txfm_search().
-                bool lumaSkippable = lumaStatistics.SkipPredicted || (this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
+                // and the choose_skip_txfm comparison of av1_txfm_search(). A mode search that defers the size
+                // search runs the uniform search of TX_MODE_LARGEST, whose luma is skippable when it is empty.
+                // Reference: the tx_mode_search_type set by set_mode_eval_params() for MODE_EVAL.
+                bool recursiveLumaSearch = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
+                    (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
+                        this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate);
+                bool lumaSkippable = lumaStatistics.SkipPredicted || (recursiveLumaSearch
                     ? Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, lumaPredictionDistortion) <=
                         Av1RateDistortion.GetCost(this.rateMultiplier, lumaRate + writer.GetSkipCost(false, skipContext), lumaDistortion)
                     : !lumaStatistics.HasCoefficients);
-                skip = (lumaSkippable && !blueHasCoefficients && !redHasCoefficients) ||
+                skippable = lumaSkippable && !blueHasCoefficients && !redHasCoefficients;
+                skip = skippable ||
                     Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion) <=
                     Av1RateDistortion.GetCost(this.rateMultiplier, codedRate - predictionRate, codedDistortion);
             }
@@ -6996,7 +7195,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            selectedStatistics.LumaCost = skip ? skippedLumaCost : codedLumaCost;
+            // The luma cost prices the skip flag that the complete residual search reports, and a block coded as
+            // skip drops its luma rate and keeps the prediction error. Reference: this_yrd in motion_mode_rd().
+            selectedStatistics.LumaCost = !skip ? codedLumaCost
+                : skippable ? skippedLumaCost
+                : Av1RateDistortion.GetCost(this.rateMultiplier, predictionRate + noSkipCost, lumaPredictionDistortion);
             selectedStatistics.HasCoefficients = !skip;
             selectedStatistics.AllTransformsEmpty = allEmpty;
             selectedStatistics.ResidualRate = selectedStatistics.Rate - predictionRate;

@@ -169,6 +169,12 @@ internal static partial class Av1IntraSuperblockEncoder
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
+        /// <summary>
+        /// The number of combined reference types: the single references and every compound pair.
+        /// Reference: MODE_CTX_REF_FRAMES.
+        /// </summary>
+        private const int ModeContextReferenceFrameCount = Av1Constants.ReferenceFrameCount + (4 * 3) + 9;
+
         private readonly Av1EncoderFrame<TSample>.PlanarView source;
         private readonly ReadOnlyMemory<Av1EncoderFrame<TSample>> references;
         private readonly Av1EncoderFrame<TSample>.PlanarView reference;
@@ -205,6 +211,14 @@ internal static partial class Av1IntraSuperblockEncoder
         private int motionModeWinnerLimit;
         private bool evaluatingMotionModeWinners;
         private InlineArray8<uint> interModeSkipMasks;
+
+        // The skip flag that the last completed transform search of the inter mode search leaves behind. The final
+        // encode of an inter winner adds it to the winner's own flags. Reference: x->txfm_search_info.skip_txfm.
+        private bool transformSearchSkip;
+
+        // The reference types that a rectangular block does not search, one bit per reference type.
+        // Reference: skip_ref_frame_mask of av1_rd_pick_inter_mode().
+        private int skipReferenceFrameMask;
         private bool searchingRetainedCandidates;
         private long interSourceVarianceCost;
         private int interSourceVariance;
@@ -213,6 +227,10 @@ internal static partial class Av1IntraSuperblockEncoder
         // The selected reference-coded block kept no coefficient, so the frame grid marks it skipped while the
         // partition context keeps the searched flag. Reference: the skip_txfm initialization of av1_encode_sb().
         private bool encodedWithoutCoefficients;
+
+        // Set while an inter leaf is reconstructed for the partition search. The mode search keeps the types it
+        // searched; only an encode of the decision writes DCT_DCT for a luma block that quantized to nothing.
+        private bool keepSearchedZeroBlockTypes;
         private long blockCostLimit;
         private Av1BlockSize maximumPartitionSize;
 
@@ -1312,6 +1330,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     noneCost = noneInvalid
                         ? long.MaxValue
                         : this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.Statistics.Cost;
+                    if (!noneInvalid && !this.picture.Parent.FrameHeader.IsIntra &&
+                        this.picture.Parent.SpeedSettings.GetRectangularPartitionReferencePruning(this.picture.Parent.FrameUpdateType) != 0)
+                    {
+                        this.UpdatePickedReferenceFrames(
+                            blockOrigin,
+                            blockSize,
+                            in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo.Block);
+                    }
+
                     if (!noneInvalid)
                     {
                         parentSourceVariance = this.interSourceVariance;
@@ -2089,6 +2116,21 @@ internal static partial class Av1IntraSuperblockEncoder
                     statistics.Cost < costLimit.Cost &&
                     this.IsPartitionSiblingInsideFrame(blockOrigin, blockSize, partitionType, leafIndex);
 
+                // An inter frame leaves the leaf's samples from its own search, but the encode it stands for
+                // still writes DCT_DCT for each luma block that quantized to nothing.
+                if (searchChildren && !this.picture.Parent.FrameHeader.IsIntra &&
+                    (reconstructSplitLeaf || reconstructSibling))
+                {
+                    Av1EncoderPartitionTree.ModeContext sibling =
+                        this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
+                    if (sibling.Snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
+                        !sibling.Snapshot.ModeInfo.Block.Skip && !this.picture.Parent.FrameHeader.CodedLossless)
+                    {
+                        Span<Av1EncoderTransformBlockState> siblingStates = sibling.GetTransformStates(Av1Plane.Y);
+                        RetainEncodedZeroBlockTypes(siblingStates, siblingStates);
+                    }
+                }
+
                 if (searchChildren && this.picture.Parent.FrameHeader.IsIntra &&
                     (reconstructSplitLeaf || reconstructSibling))
                 {
@@ -2848,6 +2890,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics lumaStatistics = Av1RateDistortionStatistics.Invalid;
             if (!skipIntra)
             {
+                // Reference: the skip_txfm reset of each luma mode in search_intra_modes_in_interframe().
+                this.transformSearchSkip = false;
                 modeInfo.Block.Mode = this.SelectLumaMode(
                     writer,
                     macroBlock,
@@ -3250,7 +3294,23 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra)
                 {
+                    // The block codes no residual when the last transform search left its skip flag set, or when the
+                    // mode search winner was skippable, even after a winner refinement that kept coefficients. The
+                    // rate-distortion result keeps the refined cost. Reference: the skip_txfm updates at the end of
+                    // av1_rd_pick_inter_mode(), stored by store_coding_context() for av1_encode_sb().
+                    if (!modeInfo.Block.Skip && (this.transformSearchSkip || this.SelectedBlockStatistics.AllTransformsEmpty))
+                    {
+                        Av1TransformSize maximumSize = this.picture.Parent.FrameHeader.CodedLossless
+                            ? Av1TransformSize.Size4x4
+                            : blockSize.GetMaximumTransformSize();
+                        modeInfo.Block.Skip = true;
+                        modeInfo.Block.TransformSize = maximumSize;
+                        modeInfo.Block.InterTransformSizes.Fill(maximumSize);
+                        interStates = default;
+                    }
+
                     paletteInfo = default;
+                    this.keepSearchedZeroBlockTypes = true;
                     this.encodedWithoutCoefficients = !this.ReconstructSelectedInterBlock(
                         writer,
                         macroBlock,
@@ -3261,6 +3321,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         interVector,
                         interSecondaryVector,
                         interStates);
+                    this.keepSearchedZeroBlockTypes = false;
                     this.picture.SetDisplacementVector(modeInfoPosition, interVector);
                     if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
@@ -3605,6 +3666,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.GetMacroBlockModeInfo(modeInfoPosition).Block.Skip = true;
                 }
 
+                if (!context.Snapshot.ModeInfo.Block.Skip && !this.picture.Parent.FrameHeader.CodedLossless)
+                {
+                    int unit = Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                    RetainEncodedZeroBlockTypes(
+                        context.GetTransformStates(Av1Plane.Y)[..(retainedArea / unit)],
+                        this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y).Slice(lumaArea / unit, retainedArea / unit));
+                }
+
                 this.picture.SetDisplacementVector(modeInfoPosition, snapshot.Displacement);
                 if (snapshot.ModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                 {
@@ -3669,6 +3738,27 @@ internal static partial class Av1IntraSuperblockEncoder
 
             this.SelectedBlockStatistics = snapshot.Statistics;
             return snapshot.Statistics;
+        }
+
+        /// <summary>
+        /// Leaves DCT_DCT as the retained type of every luma transform block that an encode of an inter decision
+        /// quantized to nothing, so a later encode of the same decision transforms it with the default type.
+        /// Reference: the update_txk_array() call of encode_block(), which writes the tx_type_map of the block's
+        /// PICK_MODE_CONTEXT.
+        /// </summary>
+        /// <param name="retained">The retained luma transform states, one per coefficient unit.</param>
+        /// <param name="encoded">The luma transform states the encode left, one per coefficient unit.</param>
+        private static void RetainEncodedZeroBlockTypes(
+            Span<Av1EncoderTransformBlockState> retained,
+            ReadOnlySpan<Av1EncoderTransformBlockState> encoded)
+        {
+            for (int index = 0; index < retained.Length; index++)
+            {
+                if (encoded[index].EndOfBlock == 0)
+                {
+                    retained[index].TransformType = Av1TransformType.DctDct;
+                }
+            }
         }
 
         private void ReconstructSelectedIntraBlock(
@@ -6082,10 +6172,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 TransformCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate - modeRate + noSkipRate, distortion),
                 HasCoefficients = hasCoefficients,
 
-                // An intra candidate is always priced as non-skip, because its transform search reports
-                // no skipped plane (block_rd_txfm) and the inter-frame comparison
-                // adds the non-skip flag to it.
-                LumaCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate + noSkipRate, distortion)
+                // The luma cost of an intra candidate in an inter frame is its token and mode rate without a
+                // skip flag, because its transform search reports no skipped plane. Reference: the rd_y of
+                // av1_handle_intra_y_mode().
+                LumaCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion)
             };
         }
 
@@ -6770,11 +6860,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.quantization.QIndex[0] == 0,
                     state);
             }
-            else if (plane == Av1Plane.Y)
+            else if (plane == Av1Plane.Y && !(isInter && this.keepSearchedZeroBlockTypes))
             {
                 // A luma transform block that quantized to nothing returns to DCT_DCT, so a later pass
                 // over the same block transforms it with the default type rather than the one this
-                // search picked. Reference: the update_txk_array() call of encode_block_intra().
+                // search picked. Reference: the update_txk_array() calls of encode_block_intra() and
+                // encode_block().
                 state.TransformType = Av1TransformType.DctDct;
             }
 

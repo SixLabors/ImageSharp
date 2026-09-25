@@ -18,6 +18,8 @@ internal readonly struct Av1EncoderSpeedSettings
     private readonly int minimumDimension;
     private readonly bool realtime;
     private readonly bool allIntra;
+    private readonly bool screenContent;
+    private readonly bool intraFrame;
     private readonly InlineArray5<float> partitionBreakoutThresholds;
 
     /// <summary>
@@ -28,11 +30,15 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <param name="intraFrame">Whether the current picture is intra-only.</param>
     /// <param name="qIndex">The current base quantizer index.</param>
     /// <param name="frameSize">The visible frame dimensions.</param>
-    public Av1EncoderSpeedSettings(HeifEncodingSpeed speed, bool allIntra, bool intraFrame, int qIndex, Size frameSize)
+    /// <param name="screenContent">Whether the frame allows the screen content tools.</param>
+    public Av1EncoderSpeedSettings(
+        HeifEncodingSpeed speed, bool allIntra, bool intraFrame, int qIndex, Size frameSize, bool screenContent = false)
     {
         this.Speed = speed;
         this.qIndex = qIndex;
         this.allIntra = allIntra;
+        this.screenContent = screenContent;
+        this.intraFrame = intraFrame;
         this.minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
 
         // GOOD mode disables dual interpolation filtering in its baseline speed features. All-intra pictures do not
@@ -309,6 +315,16 @@ internal readonly struct Av1EncoderSpeedSettings
         int winnerTypePruning = realtime || speed >= HeifEncodingSpeed.Level6 ? 4
             : speed >= HeifEncodingSpeed.Level4 ? 2
             : speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && !intraFrame && minimumDimension < 480) ? 1 : 0;
+
+        // Good quality speed 5 prunes more strongly in an inter frame without screen content, at any quantizer
+        // below 480p and at a low quantizer from 480p. Reference: the speed 5 winner_mode_tx_type_pruning of
+        // set_good_speed_features_qindex_dependent().
+        if (!realtime && !allIntra && speed == HeifEncodingSpeed.Level5 && !intraFrame && !screenContent &&
+            qIndex < (minimumDimension >= 480 ? 128 : 256))
+        {
+            winnerTypePruning = 3;
+        }
+
         this.DefaultInterTransformTypePruning = defaultInterTypePruning;
         this.CandidateInterTransformTypePruning = winnerTypePruning switch
         {
@@ -1369,6 +1385,35 @@ internal readonly struct Av1EncoderSpeedSettings
         }
 
         return this.Speed >= HeifEncodingSpeed.Level3 || !boosted ? 2 : 1;
+    }
+
+    /// <summary>
+    /// Gets which partitions search only the references that the square blocks of the superblock picked: one for
+    /// the extended partitions, two for the horizontal and vertical partitions as well.
+    /// Reference: prune_ref_frame_for_rect_partitions.
+    /// </summary>
+    /// <param name="updateType">The frame update type.</param>
+    /// <returns>The pruning level, from zero for none to two.</returns>
+    public int GetRectangularPartitionReferencePruning(Av1FrameUpdateType updateType)
+    {
+        bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+        bool boostedOrIntermediate = boosted || updateType == Av1FrameUpdateType.IntermediateAlternate;
+        if (this.allIntra)
+        {
+            return 0;
+        }
+
+        if (this.realtime)
+        {
+            return boosted ? 0 : 1;
+        }
+
+        if (this.screenContent || (this.Speed == HeifEncodingSpeed.Level0 ? boosted : this.intraFrame))
+        {
+            return 0;
+        }
+
+        return (this.Speed == HeifEncodingSpeed.Level0 ? boostedOrIntermediate : boosted) ? 1 : 2;
     }
 
     /// <summary>

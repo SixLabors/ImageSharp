@@ -470,7 +470,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture.Sequence.SequenceHeader.IsStillPicture,
             frameHeader.IsIntra,
             frameHeader.QuantizationParameters.BaseQIndex,
-            sourceSize);
+            sourceSize,
+            frameHeader.AllowScreenContentTools);
 
         // Distortion stops at the coded boundary, or at the frame edge when the picture pads its border.
         // Reference: set_pixels_to_frame_edge() with cpi->do_border_pad.
@@ -866,6 +867,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         int superblockRow = modeInfoRow >> superblockShift;
                         int superblockColumn = modeInfoColumn >> superblockShift;
                         superblock.Index = (superblockRow * coefficientBuffer.SuperblockColumnCount) + superblockColumn;
+
+                        // Reference: the av1_zero(x->picked_ref_frames_mask) of init_encode_rd_sb().
+                        Array.Clear(blockWorkspace.PickedReferenceFrameMasks);
                         entropyContext.SuperblockOrigin = new Point(
                             modeInfoColumn << Av1Constants.ModeInfoSizeLog2,
                             modeInfoRow << Av1Constants.ModeInfoSizeLog2);

@@ -387,6 +387,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public int[] ReferenceBaseQIndices { get; } = new int[Av1Constants.ReferenceFrameCount];
 
     /// <summary>
+    /// Gets the references that the square blocks of the current superblock picked, one bit per reference type,
+    /// for each 4x4 position in a 32 by 32 grid. Reference: x->picked_ref_frames_mask.
+    /// </summary>
+    public int[] PickedReferenceFrameMasks { get; } = new int[32 * 32];
+
+    /// <summary>
     /// Gets the luma vertical, luma horizontal, U, and V deblocking levels retained from the preceding frame.
     /// </summary>
     /// <remarks>

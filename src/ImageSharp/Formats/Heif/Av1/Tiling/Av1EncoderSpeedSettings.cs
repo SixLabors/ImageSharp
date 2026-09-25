@@ -412,7 +412,10 @@ internal readonly struct Av1EncoderSpeedSettings
         int distortionLevel = realtime ? 2 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? intraFrame ? 1 : 2 : 0;
-        int distortionThresholdLevel = realtime ? 2 : allIntra
+
+        // Real-time usage raises the threshold level to 3 from speed 6, and this port reaches real-time usage
+        // from speed 7 only. Reference: tx_domain_dist_thres_level in set_rt_speed_features_framesize_independent().
+        int distortionThresholdLevel = realtime ? 3 : allIntra
             ? speed >= HeifEncodingSpeed.Level4 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? 1 : 0;
         bool winnerDistortionStages = !realtime && speed >= (allIntra ? HeifEncodingSpeed.Level4 : HeifEncodingSpeed.Level3);

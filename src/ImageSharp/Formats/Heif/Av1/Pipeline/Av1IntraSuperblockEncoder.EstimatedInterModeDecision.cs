@@ -1172,9 +1172,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> lumaPrediction)
         {
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-            Av1EncoderModeDecisionWorkspace<TSample> intraWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-            Span<TSample> above = intraWorkspace.GetReferenceSamples(0);
-            Span<TSample> left = intraWorkspace.GetReferenceSamples(1);
+
+            // The intra mode-decision workspace shares storage with the inter predictions that are live here, so
+            // the reference edges use their own storage.
+            const int edgeLength = (2 * Av1Constants.MaxTransformSize) + 1;
+            Span<TSample> edges = stackalloc TSample[2 * edgeLength];
+            Span<TSample> above = edges[..edgeLength];
+            Span<TSample> left = edges[edgeLength..];
             Span<short> residual = workspace.Residual;
             int rate = 0;
             long distortion = 0;

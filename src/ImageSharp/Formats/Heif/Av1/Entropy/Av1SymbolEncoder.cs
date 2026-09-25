@@ -163,6 +163,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[] compoundIndex;
 
     /// <summary>
+    /// The tile-adaptive three-way motion-mode distributions, indexed by block size.
+    /// </summary>
+    private readonly Av1Distribution[] motionMode;
+
+    /// <summary>
+    /// The tile-adaptive OBMC flag distributions, indexed by block size.
+    /// </summary>
+    private readonly Av1Distribution[] obmc;
+
+    /// <summary>
     /// The tile-adaptive compound-group distributions.
     /// </summary>
     private readonly Av1Distribution[] compoundGroupIndex;
@@ -330,6 +340,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         this.interIntraMode = this.entropyContext.InterIntraMode;
         this.wedgeInterIntra = this.entropyContext.WedgeInterIntra;
         this.compoundIndex = this.entropyContext.CompoundIndex;
+        this.motionMode = this.entropyContext.MotionMode;
+        this.obmc = this.entropyContext.Obmc;
         this.compoundGroupIndex = this.entropyContext.CompoundGroupIndex;
         this.newMotionVector = this.entropyContext.NewMv;
         this.zeroMotionVector = this.entropyContext.ZeroMv;
@@ -2846,6 +2858,31 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         rate += this.ModeCosts.GetInterIntraMode(blockSize, mode);
         rate += this.ModeCosts.GetWedgeInterIntra(blockSize, useWedge ? 1 : 0);
         return useWedge ? rate + this.ModeCosts.GetWedgeIndex(blockSize, wedgeIndex) : rate;
+    }
+
+    /// <summary>
+    /// Writes the motion mode of a single-reference inter block. Reference: write_motion_mode(), which codes
+    /// nothing when only simple translation is allowed, the OBMC flag when OBMC is the last allowed mode, and
+    /// the three-way mode otherwise.
+    /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="lastAllowedMode">The last motion mode the block may signal.</param>
+    /// <param name="motionMode">The selected motion mode.</param>
+    public void WriteMotionMode<TOperation>(Av1BlockSize blockSize, Av1MotionMode lastAllowedMode, Av1MotionMode motionMode)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        switch (lastAllowedMode)
+        {
+            case Av1MotionMode.SimpleTranslation:
+                break;
+            case Av1MotionMode.Obmc:
+                _ = TOperation.ProcessSymbol(ref w, motionMode == Av1MotionMode.Obmc, this.obmc[(int)blockSize]);
+                break;
+            default:
+                _ = TOperation.ProcessSymbol(ref w, (int)motionMode, this.motionMode[(int)blockSize]);
+                break;
+        }
     }
 
     /// <summary>

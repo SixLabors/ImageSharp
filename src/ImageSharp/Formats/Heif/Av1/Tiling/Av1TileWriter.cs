@@ -1273,6 +1273,19 @@ internal partial class Av1TileWriter
                         macroBlockModeInfo.Block.InterIntraWedgeIndex);
                 }
 
+                if (macroBlockModeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.None)
+                {
+                    // Every block keeps simple translation: the real-time search prunes warped motion
+                    // (extra_prune_warped) and never evaluates OBMC. The mode is still coded whenever the frame
+                    // and the neighbors allow another one. Reference: write_motion_mode().
+                    Av1MotionMode lastAllowedMode = Av1EncoderMotionVariation.GetLastAllowedMotionMode(
+                        pcs,
+                        macroBlock,
+                        modeInfoPosition,
+                        in macroBlockModeInfo.Block);
+                    writer.WriteMotionMode<TOperation>(blockSize, lastAllowedMode, Av1MotionMode.SimpleTranslation);
+                }
+
                 if (UsesSwitchableInterpolation(frm_hdr, macroBlockModeInfo.Block))
                 {
                     // The vertical symbol is first and supplies both axes unless the sequence enables dual filters.

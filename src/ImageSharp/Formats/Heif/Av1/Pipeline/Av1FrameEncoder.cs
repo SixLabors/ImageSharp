@@ -949,12 +949,15 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         HeifEncodingSpeed speed)
     {
+        // Real-time usage never searches global motion. Reference: the g_usage test that clears
+        // tool_cfg->enable_global_motion in av1_cx_iface.
         ConfigureGlobalMotion<byte, ByteGlobalMotionSearchOperator>(
             configuration.MemoryAllocator,
             source,
             reference,
             frameHeader,
-            sequenceHeader.ColorConfig.BitDepth);
+            sequenceHeader.ColorConfig.BitDepth,
+            sequenceHeader.IsStillPicture || speed < HeifEncodingSpeed.Level7);
 
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
@@ -1056,12 +1059,15 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         HeifEncodingSpeed speed)
     {
+        // Real-time usage never searches global motion. Reference: the g_usage test that clears
+        // tool_cfg->enable_global_motion in av1_cx_iface.
         ConfigureGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(
             configuration.MemoryAllocator,
             source,
             reference,
             frameHeader,
-            sequenceHeader.ColorConfig.BitDepth);
+            sequenceHeader.ColorConfig.BitDepth,
+            sequenceHeader.IsStillPicture || speed < HeifEncodingSpeed.Level7);
 
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
@@ -1261,6 +1267,7 @@ internal static class Av1FrameEncoder
     /// <param name="reference">The frame the model maps onto.</param>
     /// <param name="frameHeader">The header that receives the chosen model.</param>
     /// <param name="bitDepth">The coded sample depth.</param>
+    /// <param name="enableGlobalMotion">Whether the encoder configuration searches global motion.</param>
     /// <remarks>
     /// Every model family is tried, and the one whose warped error is the smallest share of the
     /// unwarped error wins, as long as that share also justifies what the model costs to code. A
@@ -1272,13 +1279,14 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reference,
         ObuFrameHeader frameHeader,
-        Av1BitDepth bitDepth)
+        Av1BitDepth bitDepth,
+        bool enableGlobalMotion)
         where TSample : unmanaged
         where TOperator : struct, IGlobalMotionSearchOperator<TSample>
     {
         Span<Av1GlobalMotionParameters> models = frameHeader.GetGlobalMotionParameters();
         models.Fill(Av1GlobalMotionParameters.Identity);
-        if (frameHeader.IsIntra)
+        if (frameHeader.IsIntra || !enableGlobalMotion)
         {
             return;
         }
@@ -1747,6 +1755,12 @@ internal static class Av1FrameEncoder
         /// </summary>
         private Av1InterpolationFilter frameInterpolationFilter = Av1InterpolationFilter.Switchable;
 
+        /// <summary>
+        /// The running warped-motion usage probability, out of 128, of each frame update type.
+        /// Reference: frame_probs->warped_probs, initialized from default_warped_probs.
+        /// </summary>
+        private readonly int[] warpedProbabilities = [64, 64, 64, 64, 64, 64, 64];
+
         protected SequenceEncoder(
             Configuration configuration,
             int width,
@@ -1971,6 +1985,7 @@ internal static class Av1FrameEncoder
             }
 
             bool goldenUpdate = this.goldenFrameIndex == 0;
+            parent.StartsGoldenGroup = !keyFrame && goldenUpdate;
 
             // av1_set_rtc_reference_structure_one_layer()
             uint alternateLag = 4;
@@ -2032,6 +2047,24 @@ internal static class Av1FrameEncoder
             frameHeader.UseReferenceFrameMotionVectors = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
                 orderHintInfo.EnableOrderHint && orderHintInfo.EnableReferenceFrameMotionVectors;
 
+            // Warped motion is allowed by default, and a frame whose update type has rarely used it disallows it.
+            // Reference: frame_might_allow_warped_motion() in av1_setup_frame's caller, then the
+            // prune_warped_prob_thresh test of encode_frame_internal().
+            bool allowWarpedMotion = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
+                this.SequenceHeader.EnableWarpedMotion;
+            int warpedThreshold = speedSettings.WarpedProbabilityThreshold;
+            if (allowWarpedMotion && warpedThreshold > 0 &&
+                this.warpedProbabilities[(int)GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup)] < warpedThreshold)
+            {
+                allowWarpedMotion = false;
+            }
+
+            frameHeader.AllowWarpedMotion = allowWarpedMotion;
+
+            // OBMC is enabled by default, so the motion mode is switchable in every inter frame.
+            // Reference: is_switchable_motion_mode_allowed(allow_warped_motion, enable_obmc).
+            frameHeader.IsMotionModeSwitchable = !frameHeader.IsIntra;
+
             frameHeader.SkipModeParameters.Derive(this.SequenceHeader.OrderHintInfo, frameHeader);
             frameHeader.SkipModeParameters.SkipModeFlag = frameHeader.SkipModeParameters.SkipModeAllowed;
         }
@@ -2092,6 +2125,15 @@ internal static class Av1FrameEncoder
         protected void CompleteReferenceStructure()
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
+            Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
+            if (frameHeader.AllowWarpedMotion && parent.SpeedSettings.WarpedProbabilityThreshold > 0)
+            {
+                // No block selects warped motion, so the new usage probability is 0 and the running value halves.
+                // Reference: the warped_probs update at the end of encode_frame_internal().
+                int updateType = (int)GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup);
+                this.warpedProbabilities[updateType] >>= 1;
+            }
+
             if (frameHeader.FrameType == ObuFrameType.KeyFrame)
             {
                 this.contextTypeSlot = 0;
@@ -2123,6 +2165,16 @@ internal static class Av1FrameEncoder
 
             this.frameNumber++;
         }
+
+        /// <summary>
+        /// Returns the update type of a frame in the one-layer real-time structure. Reference: the update_type that
+        /// av1_get_one_pass_rt_params() and set_baseline_gf_interval() store for the frame.
+        /// </summary>
+        /// <param name="keyFrame">Whether the frame is a key frame.</param>
+        /// <param name="startsGoldenGroup">Whether an inter frame starts a golden group.</param>
+        /// <returns>The frame update type.</returns>
+        private static Av1FrameUpdateType GetFrameUpdateType(bool keyFrame, bool startsGoldenGroup)
+            => keyFrame ? Av1FrameUpdateType.Key : startsGoldenGroup ? Av1FrameUpdateType.Golden : Av1FrameUpdateType.Last;
 
         /// <summary>
         /// Starts a golden group. Reference: set_baseline_gf_interval() and set_golden_update(). Real-time usage

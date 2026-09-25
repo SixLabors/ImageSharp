@@ -627,6 +627,17 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool SkipCdefSuperblock => this.realtime && this.Speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360;
 
     /// <summary>
+    /// Gets the warped-motion usage probability, out of 128, below which a frame disallows warped motion, or 0 to
+    /// keep it allowed. Reference: prune_warped_prob_thresh, 8 in real-time usage from speed 6, and in GOOD usage
+    /// from speed 5 at 480p (8) and 720p (16).
+    /// </summary>
+    public int WarpedProbabilityThreshold
+        => this.realtime
+            ? this.Speed >= HeifEncodingSpeed.Level6 ? 8 : 0
+            : this.Speed >= HeifEncodingSpeed.Level5 && this.minimumDimension >= 720 ? 16
+            : this.Speed >= HeifEncodingSpeed.Level5 && this.minimumDimension >= 480 ? 8 : 0;
+
+    /// <summary>
     /// Gets the level that adapts the ALTREF lag to the average source SAD, or 0 for the fixed lag of 4 frames.
     /// Reference: sad_based_adp_altref_lag in set_rt_speed_feature_framesize_dependent(), speed 9 at 360p and
     /// larger, with a separate level from 720p.

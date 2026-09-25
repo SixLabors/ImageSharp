@@ -416,7 +416,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.QuantizationParameters.BaseQIndex,
             sourceSize);
 
-        parent.FrameUpdateType = frameHeader.FrameType == ObuFrameType.KeyFrame ? Av1FrameUpdateType.Key : Av1FrameUpdateType.Last;
+        // An inter frame that starts a golden group is a GF_UPDATE frame. Reference: set_baseline_gf_interval().
+        parent.FrameUpdateType = frameHeader.FrameType == ObuFrameType.KeyFrame
+            ? Av1FrameUpdateType.Key
+            : parent.StartsGoldenGroup ? Av1FrameUpdateType.Golden : Av1FrameUpdateType.Last;
         if (!frameHeader.IsIntra)
         {
             // DC steps are represented at four times sample precision. Normalize high-bit-depth

@@ -58,6 +58,11 @@ internal class Av1PictureParentControlSet
     public byte AvailableReferenceMask { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether an inter frame starts a golden group and refreshes GOLDEN.
+    /// </summary>
+    public bool StartsGoldenGroup { get; set; }
+
+    /// <summary>
     /// Gets or sets the temporal motion field of a sequence frame, or <see langword="null"/> for a still picture.
     /// </summary>
     public Av1EncoderMotionField? MotionField { get; set; }

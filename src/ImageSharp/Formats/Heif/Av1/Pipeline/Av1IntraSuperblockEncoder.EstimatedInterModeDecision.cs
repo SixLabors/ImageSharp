@@ -246,6 +246,40 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref prediction);
             }
 
+            if (winner.ReferenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                // The intra estimate borrows storage that holds the inter search prediction, so the winner's
+                // prediction is built again. The reference builds it again as well: it keeps no search
+                // prediction while warped motion is enabled (reuse_inter_pred_nonrd).
+                Av1ReferenceFrameType secondaryReferenceFrame = winner.SecondaryReferenceFrame;
+                bool compoundWinner = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+                Av1EncoderFrame<TSample>.PlanarView primaryPlanes = this.references.Span[(int)winner.ReferenceFrame].CodedView;
+                Av1EncoderFrame<TSample>.PlanarView secondaryPlanes = compoundWinner
+                    ? this.references.Span[(int)secondaryReferenceFrame].CodedView : primaryPlanes;
+                this.PrepareInterPlanePrediction(
+                    state.WinningMotionVectors[(int)winner.Mode][(int)winner.ReferenceFrame],
+                    compoundWinner ? state.WinningMotionVectors[(int)winner.Mode][(int)secondaryReferenceFrame] : default,
+                    Av1Plane.Y,
+                    winner.Mode,
+                    winner.ReferenceFrame,
+                    secondaryReferenceFrame,
+                    false,
+                    winner.CompoundType,
+                    winner.CompoundWedgeIndex,
+                    winner.CompoundWedgeSign,
+                    winner.DifferenceWeightedMaskType,
+                    winner.HorizontalInterpolationFilter,
+                    winner.VerticalInterpolationFilter,
+                    primaryPlanes.GetPlane(Av1Plane.Y),
+                    secondaryPlanes.GetPlane(Av1Plane.Y),
+                    origin,
+                    0,
+                    0,
+                    blockSize,
+                    winningPrediction,
+                    workspace.Residual);
+            }
+
             Av1TransformType transformType = Av1TransformType.DctDct;
             bool paletteSelected = this.SelectEstimatedScreenModes(
                 writer,
@@ -1660,7 +1694,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref mode,
                     reference,
                     motionRate,
-                    variance,
+                    UsesMotionModeSearch(candidate, vector, searchFilters) ? uint.MaxValue : variance,
                     squaredError,
                     chromaDistortion,
                     ref statistics,
@@ -1947,6 +1981,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            bool searchMotionMode = UsesMotionModeSearch(modeInfo, vector, searchFilters);
             if (searchFilters && ((vector.Row | vector.Column) & 7) != 0)
             {
                 this.SelectEstimatedInterFilter(
@@ -1968,6 +2003,14 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
+                if (searchMotionMode)
+                {
+                    // search_motion_mode() evaluates simple translation with the regular filter. Warped motion is
+                    // pruned (extra_prune_warped), so that is its only candidate.
+                    modeInfo.HorizontalInterpolationFilter = Av1InterpolationFilter.Regular;
+                    modeInfo.VerticalInterpolationFilter = Av1InterpolationFilter.Regular;
+                }
+
                 this.PrepareInterPlanePrediction(
                     vector,
                     secondaryVector,
@@ -2014,12 +2057,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (modeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.None)
             {
+                // The motion-mode model does not report the variance, so the mode keeps the unset value.
+                uint reportedVariance = searchMotionMode ? uint.MaxValue : variance;
                 int modeIndex = (int)modeInfo.Mode - (int)Av1PredictionMode.SingleInterModeStart;
-                searchState.Variances[modeIndex][(int)modeInfo.ReferenceFrame] = variance;
+                searchState.Variances[modeIndex][(int)modeInfo.ReferenceFrame] = reportedVariance;
                 if (vector.IsZero)
                 {
                     int globalIndex = (int)Av1PredictionMode.GlobalMotionVector - (int)Av1PredictionMode.SingleInterModeStart;
-                    searchState.Variances[globalIndex][(int)modeInfo.ReferenceFrame] = variance;
+                    searchState.Variances[globalIndex][(int)modeInfo.ReferenceFrame] = reportedVariance;
                 }
             }
 
@@ -2082,6 +2127,21 @@ internal static partial class Av1IntraSuperblockEncoder
                 out chromaDistortion,
                 out initialSkip);
         }
+
+        /// <summary>
+        /// Returns whether a single-reference candidate is predicted by the motion-mode search rather than by the
+        /// default path. Reference: the branch of handle_inter_mode_nonrd() that calls search_motion_mode() for NEWMV
+        /// when the motion vector does not reach the filter search and warped motion is enabled in the encoder
+        /// configuration, which is its default.
+        /// </summary>
+        /// <param name="modeInfo">The candidate syntax.</param>
+        /// <param name="vector">The candidate motion vector.</param>
+        /// <param name="searchFilters">Whether the filter search is enabled for the candidate.</param>
+        /// <returns><see langword="true"/> when search_motion_mode() predicts the candidate.</returns>
+        private static bool UsesMotionModeSearch(in Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector, bool searchFilters)
+            => modeInfo.Mode == Av1PredictionMode.NewMotionVector &&
+                modeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.None &&
+                !(searchFilters && ((vector.Row | vector.Column) & 7) != 0);
 
         /// <summary>
         /// Selects a luma interpolation filter using prediction-error estimates.

@@ -38,7 +38,15 @@ internal readonly struct Av1EncoderSpeedSettings
         // GOOD mode disables dual interpolation filtering in its baseline speed features. All-intra pictures do not
         // write inter filters, so keeping the sequence flag disabled avoids advertising an unused coding tool.
         this.EnableDualFilter = false;
-        this.EnableRestoration = !allIntra || speed < HeifEncodingSpeed.Level5;
+
+        // Real-time usage never enables loop restoration. Reference: the g_usage test that sets
+        // tool_cfg->enable_restoration in av1_cx_iface.
+        this.EnableRestoration = (allIntra || speed < HeifEncodingSpeed.Level7) &&
+            (!allIntra || speed < HeifEncodingSpeed.Level5);
+
+        // GOOD mode keeps distance-weighted compound at speed 0 only, and real-time usage disables it.
+        // Reference: use_dist_wtd_comp_flag in the good and rt framesize-independent speed features.
+        this.UseDistanceWeightedCompound = !allIntra && speed == HeifEncodingSpeed.Level0;
         this.AllowHighPrecisionMotionVector = !intraFrame && qIndex < 128;
         this.UseVarianceBasedPartition = speed >= HeifEncodingSpeed.Level7;
         int minimumDimension = this.minimumDimension;
@@ -564,6 +572,11 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool EnableRestoration { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the sequence enables distance-weighted compound prediction.
+    /// </summary>
+    public bool UseDistanceWeightedCompound { get; }
+
+    /// <summary>
     /// Gets a value indicating whether eighth-sample motion-vector syntax is enabled for the picture.
     /// </summary>
     public bool AllowHighPrecisionMotionVector { get; }
@@ -598,6 +611,17 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets a value indicating whether inter blocks use prediction-based mode decisions.
     /// </summary>
     public bool UseEstimatedInterModeDecision => this.realtime;
+
+    /// <summary>
+    /// Gets a value indicating whether the sequence follows the reference real-time usage.
+    /// </summary>
+    public bool IsRealtime => this.realtime;
+
+    /// <summary>
+    /// Gets a value indicating whether each 64x64 unit may leave CDEF off through a second, empty strength.
+    /// Reference: skip_cdef_sb in set_rt_speed_feature_framesize_dependent(), speed 9 at 360p and larger.
+    /// </summary>
+    public bool SkipCdefSuperblock => this.realtime && this.Speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360;
 
     /// <summary>
     /// Gets a value indicating whether estimated inter search admits compound prediction.

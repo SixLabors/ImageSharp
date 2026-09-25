@@ -224,6 +224,10 @@ internal static partial class Av1IntraSuperblockEncoder
         private bool usePartitionMotion;
         private int estimatedReferencePruning;
         private InlineArray2<byte> superblockColorSensitivity;
+
+        // Whether each 64x64 unit of the superblock still leaves CDEF off, in raster order.
+        // Reference: the cdef_strength flag that encode_nonrd_sb() sets and pick_sb_modes_nonrd() narrows.
+        private InlineArray4<bool> cdefSkipUnits;
         private InlineArray2<byte> goldenColorSensitivity;
         private InlineArray2<byte> alternateColorSensitivity;
         private InlineArray2<uint> superblockChromaSad;
@@ -383,6 +387,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.codedAreaLuma = 0;
             this.codedAreaChroma = 0;
             this.SelectedBlockStatistics = default;
+            this.cdefSkipUnits[..].Fill(true);
             this.replayNodeIndex = -1;
             this.replayPartition = Av1PartitionType.Invalid;
             this.replayPartitionOrigin = default;
@@ -449,6 +454,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool searchesLeaves = SearchesVariancePartitionLeaves(this.picture);
                 if (this.superblock.Workspace.PartitionSearchTypes[0] == (byte)Av1PartitionType.Invalid)
                 {
+                    // The variance analysis reads the superblock's own edge availability, not the one the
+                    // previously coded block left behind. Reference: the av1_set_offsets() call on the
+                    // superblock that precedes av1_choose_var_based_partitioning().
+                    Av1TileWriter.SetModeInfoRowAndColumn(
+                        this.picture,
+                        macroBlock,
+                        macroBlock.Tile,
+                        new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2),
+                        blockSize,
+                        this.picture.Parent.Common.ModeInfoStride,
+                        this.picture.Parent.Common.ModeInfoRowCount,
+                        this.picture.Parent.Common.ModeInfoColumnCount);
                     this.PrepareVariancePartitions(macroBlock, blockOrigin);
                     if (searchesLeaves)
                     {
@@ -2421,7 +2438,34 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo.Block.Skip = true;
             }
 
+            if (this.picture.Parent.SpeedSettings.SkipCdefSuperblock)
+            {
+                this.UpdateCdefSkip(blockOrigin, modeInfo.Block.Mode);
+            }
+
             Av1WorkCounters.Stop(Av1WorkCounters.PickSbModes, workStart);
+        }
+
+        /// <summary>
+        /// Narrows the CDEF skip flag of the 64x64 unit that holds a coded block, and stores it on the unit's
+        /// first block, which carries the unit's strength index. A unit keeps CDEF off only when skipping is
+        /// allowed for the frame and none of its blocks is intra or uses a new motion vector.
+        /// Reference: the skip_cdef_sb step at the end of pick_sb_modes_nonrd(), with skip_cdef_sb 1 and the
+        /// speed 9 spatial-variance threshold of UINT_MAX.
+        /// </summary>
+        /// <param name="blockOrigin">The luma origin of the coded block.</param>
+        /// <param name="mode">The selected luma prediction mode.</param>
+        private void UpdateCdefSkip(Point blockOrigin, Av1PredictionMode mode)
+        {
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            bool allowSkipping = parent.FramesSinceKey > 10 && !parent.HighSourceSad &&
+                this.superblockColorSensitivity[0] == 0 && this.superblockColorSensitivity[1] == 0;
+
+            int unit = (((blockOrigin.Y >> 6) & 1) << 1) | ((blockOrigin.X >> 6) & 1);
+            ref bool skip = ref this.cdefSkipUnits[unit];
+            skip = skip && allowSkipping && !(mode < Av1PredictionMode.IntraModeEnd || mode == Av1PredictionMode.NewMotionVector);
+            Point unitOrigin = new((blockOrigin.X & ~63) >> Av1Constants.ModeInfoSizeLog2, (blockOrigin.Y & ~63) >> Av1Constants.ModeInfoSizeLog2);
+            this.picture.GetMacroBlockModeInfo(unitOrigin).CdefStrength = skip ? 1 : 0;
         }
 
         /// <summary>

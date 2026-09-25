@@ -66,6 +66,7 @@ internal static partial class Av1CdefEncoder
         ReadOnlySpan<byte> candidates = GetCandidateStrengths(
             picture.Parent.EncodingSpeed,
             sequence.IsStillPicture,
+            picture.Parent.SpeedSettings.IsRealtime,
             new Size(source.Width, source.Height));
 
         if (candidates.IsEmpty)

@@ -22,10 +22,26 @@ internal static partial class Av1CdefEncoder
     /// </summary>
     /// <param name="speed">The configured encoding speed.</param>
     /// <param name="stillPicture">Whether the sequence contains one still image.</param>
+    /// <param name="realtime">Whether the sequence follows the real-time usage.</param>
     /// <param name="size">The visible luma dimensions.</param>
     /// <returns>The packed strengths, or an empty span when strengths are predicted from quantization.</returns>
-    private static ReadOnlySpan<byte> GetCandidateStrengths(HeifEncodingSpeed speed, bool stillPicture, Size size)
+    private static ReadOnlySpan<byte> GetCandidateStrengths(HeifEncodingSpeed speed, bool stillPicture, bool realtime, Size size)
     {
+        if (realtime)
+        {
+            // Real-time usage searches the fourth fast level, and the fifth from speed 7. Strengths come from
+            // the quantizer from speed 7 below 360p, and from speed 9 below 1080p. Reference: cdef_pick_method in
+            // set_rt_speed_features_framesize_independent() and set_rt_speed_feature_framesize_dependent().
+            int minimumDimension = Math.Min(size.Width, size.Height);
+            if ((speed >= HeifEncodingSpeed.Level7 && minimumDimension < 360) ||
+                (speed >= HeifEncodingSpeed.Level9 && minimumDimension < 1080))
+            {
+                return [];
+            }
+
+            return speed >= HeifEncodingSpeed.Level7 ? [0, 20] : [0, 2, 44, 46];
+        }
+
         if (stillPicture && speed >= HeifEncodingSpeed.Level7)
         {
             return [];

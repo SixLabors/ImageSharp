@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 internal static partial class Av1CdefEncoder
 {
     /// <summary>
-    /// Predicts the single strength pair used by fast still-image encoding.
+    /// Predicts the frame strengths from the quantizer. Reference: av1_pick_cdef_from_qp(), without its screen-content fit.
     /// </summary>
     /// <param name="picture">The frame receiving predicted strengths.</param>
     private static void PredictStrengths(Av1PictureControlSet picture)
@@ -23,18 +23,44 @@ internal static partial class Av1CdefEncoder
 
         // The fit consumes the AC step normalized to eight bits. Its single-precision polynomial
         // rounds halfway values away from zero before clipping to the transmitted field widths.
-        float yPrimaryEstimate = (q * q * 0.0000033731974F) + (q * 0.008070594F) + 0.0187634F;
-        float ySecondaryEstimate = (q * q * 0.0000029167343F) + (q * 0.0027798624F) + 0.0079405F;
-        float uvPrimaryEstimate = (q * q * -0.0000130790995F) + (q * 0.012892405F) - 0.00748388F;
-        float uvSecondaryEstimate = (q * q * 0.0000032651783F) + (q * 0.00035520183F) + 0.00228092F;
+        // Intra and inter frames use separate fits.
+        float yPrimaryEstimate;
+        float ySecondaryEstimate;
+        float uvPrimaryEstimate;
+        float uvSecondaryEstimate;
+        if (header.IsIntra)
+        {
+            yPrimaryEstimate = (q * q * 0.0000033731974F) + (q * 0.008070594F) + 0.0187634F;
+            ySecondaryEstimate = (q * q * 0.0000029167343F) + (q * 0.0027798624F) + 0.0079405F;
+            uvPrimaryEstimate = (q * q * -0.0000130790995F) + (q * 0.012892405F) - 0.00748388F;
+            uvSecondaryEstimate = (q * q * 0.0000032651783F) + (q * 0.00035520183F) + 0.00228092F;
+        }
+        else
+        {
+            yPrimaryEstimate = (q * q * -0.0000023593946F) + (q * 0.0068615186F) + 0.02709886F;
+            ySecondaryEstimate = (q * q * -0.00000057629734F) + (q * 0.0013993345F) + 0.03831067F;
+            uvPrimaryEstimate = (q * q * -0.0000007095069F) + (q * 0.0034628846F) + 0.00887099F;
+            uvSecondaryEstimate = (q * q * 0.00000023874085F) + (q * 0.00028223585F) + 0.05576307F;
+        }
+
         int yPrimary = Math.Clamp((int)MathF.Round(yPrimaryEstimate, MidpointRounding.AwayFromZero), 0, 15);
         int ySecondary = Math.Clamp((int)MathF.Round(ySecondaryEstimate, MidpointRounding.AwayFromZero), 0, 3);
         int uvPrimary = Math.Clamp((int)MathF.Round(uvPrimaryEstimate, MidpointRounding.AwayFromZero), 0, 15);
         int uvSecondary = Math.Clamp((int)MathF.Round(uvSecondaryEstimate, MidpointRounding.AwayFromZero), 0, 3);
 
-        header.CdefParameters.BitCount = 0;
         header.CdefParameters.YStrength[0] = (yPrimary << 2) + ySecondary;
         header.CdefParameters.UvStrength[0] = (uvPrimary << 2) + uvSecondary;
+        if (picture.Parent.SpeedSettings.SkipCdefSuperblock)
+        {
+            // A second, empty strength lets a 64x64 unit leave CDEF off. Mode decision already stored each
+            // unit's index, so the indices stay as they are.
+            header.CdefParameters.BitCount = 1;
+            header.CdefParameters.YStrength[1] = 0;
+            header.CdefParameters.UvStrength[1] = 0;
+            return;
+        }
+
+        header.CdefParameters.BitCount = 0;
         for (int row = 0; row < header.ModeInfoRowCount; row += 16)
         {
             for (int column = 0; column < header.ModeInfoColumnCount; column += 16)

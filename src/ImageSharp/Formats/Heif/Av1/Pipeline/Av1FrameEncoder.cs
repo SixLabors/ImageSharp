@@ -386,12 +386,18 @@ internal static class Av1FrameEncoder
             EnableDualFilter = speedSettings.EnableDualFilter,
             EnableIntraEdgeFilter = true,
             EnableMaskedCompound = !isStillPicture,
+
+            // A sequence enables temporal motion vectors and warped motion, and the frame header decides whether
+            // each frame uses them. Distance-weighted compound follows the speed features. Reference: the
+            // order_hint_info and tool flags that init_seq_coding_tools() sets, with
+            // DEFAULT_EXPLICIT_ORDER_HINT_BITS, and the speed-feature adjustments that follow them.
+            EnableWarpedMotion = !isStillPicture,
             OrderHintInfo = new ObuOrderHintInfo
             {
                 EnableOrderHint = !isStillPicture,
-                EnableJointCompound = !isStillPicture,
-                EnableReferenceFrameMotionVectors = false,
-                OrderHintBits = isStillPicture ? 0 : 8
+                EnableJointCompound = !isStillPicture && speedSettings.UseDistanceWeightedCompound,
+                EnableReferenceFrameMotionVectors = !isStillPicture,
+                OrderHintBits = isStillPicture ? 0 : 7
             },
             EnableSuperResolution = false,
 
@@ -1841,6 +1847,11 @@ internal static class Av1FrameEncoder
         protected void ConfigureFrameHeader(ObuFrameType frameType)
         {
             Av1FrameEncoder.ConfigureFrameHeader(this.FrameHeader, this.QIndex, this.Speed, frameType);
+
+            // A sequence keeps backward adaptation, so every frame stores its final probabilities for later frames.
+            // Reference: the REFRESH_FRAME_CONTEXT_BACKWARD default of refresh_frame_context, which the frame
+            // header writes as disable_frame_end_update_cdf.
+            this.FrameHeader.DisableFrameEndUpdateCdf = false;
             int orderHintBits = this.SequenceHeader.OrderHintInfo.OrderHintBits;
             this.FrameHeader.OrderHint = orderHintBits == 0
                 ? 0

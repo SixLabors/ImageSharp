@@ -589,8 +589,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 ? Av1MotionSearchSettings.CostUpdateFrequency.Off
                 : Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
         }
-        else if (!sequenceHeader.IsStillPicture && picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level6 && minimumDimension < 720)
+        else if (!sequenceHeader.IsStillPicture && !picture.Parent.SpeedSettings.IsRealtime &&
+            picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level6 && minimumDimension < 720)
         {
+            // Only GOOD mode refreshes rates once per superblock row. Real-time usage keeps the default
+            // refresh at every superblock. Reference: coeff_cost_upd_level and mode_cost_upd_level in
+            // set_good_speed_feature_framesize_dependent(), which set_rt_speed_features does not change.
             modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
         }
 

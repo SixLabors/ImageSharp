@@ -317,6 +317,49 @@ public class Av1EncoderFrameTests
         }
     }
 
+    /// <summary>
+    /// Verifies that the slowest sequence speed searches motion in 128x128 blocks. Motion search measures the
+    /// residual of the whole block, which is larger than the largest transform.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void SequenceEncoderSearchesMotionInLargestBlocks(int speed)
+    {
+        const int Width = 256;
+        const int Height = 256;
+        using Image<Rgba32> first = new(Width + 8, Height);
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width + 8; x++)
+            {
+                first[x, y] = new Rgba32((byte)(x & 255), (byte)((x + y) >> 1), (byte)(y & 255));
+            }
+        }
+
+        using Image<Rgba32> key = first.Clone(x => x.Crop(new Rectangle(0, 0, Width, Height)));
+        using Image<Rgba32> shifted = first.Clone(x => x.Crop(new Rectangle(3, 0, Width, Height)));
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            Width,
+            Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            qIndex: 64,
+            speed: (HeifEncodingSpeed)speed);
+
+        Assert.True(speed != 0 || encoder.SequenceHeader.Use128x128Superblock);
+        using MemoryStream keyStream = new();
+        using MemoryStream interStream = new();
+        encoder.EncodeKeyFrame(key.Frames.RootFrame, keyStream);
+        encoder.EncodeInterFrame(shifted.Frames.RootFrame, interStream);
+        Assert.True(interStream.Length > 0);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -4535,6 +4535,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 out selectedTransformSize,
                 out selectedStatistics);
 
+            if (!this.picture.Parent.FrameHeader.IsIntra && selectedStatistics.Cost != long.MaxValue)
+            {
+                // Every mode writes its best depth into the shared states, so they end with the last mode tried.
+                // The winner's grid was kept when it won; hand it back so the caller retains the winner's types.
+                // Reference: the ctx->tx_type_map that av1_rd_pick_intra_sby_mode() copies on each improvement.
+                CopyWinnerTransformStates(this.blockWorkspace.GetIntraWinnerContext(1).GetTransformStates(Av1Plane.Y), retainedStates);
+            }
+
             if (!this.picture.Parent.FrameHeader.IsIntra || selectedStatistics.Cost == long.MaxValue)
             {
                 return mode;

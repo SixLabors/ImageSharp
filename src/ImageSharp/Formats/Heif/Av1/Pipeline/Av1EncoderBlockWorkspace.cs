@@ -19,9 +19,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal sealed class Av1EncoderBlockWorkspace : IDisposable
 {
     /// <summary>
-    /// The maximum number of spatial residual samples in one AV1 transform block.
+    /// The maximum number of spatial residual samples in one coding block. Motion search measures the residual
+    /// of a whole block, up to 128x128, before transforms divide it.
     /// </summary>
-    public const int MaximumResidualCount = Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize;
+    public const int MaximumResidualCount = (1 << Av1Constants.MaxSuperBlockSizeLog2) * (1 << Av1Constants.MaxSuperBlockSizeLog2);
 
     /// <summary>
     /// The maximum number of coded coefficients after AV1 removes the uncoded half of 64-point axes.

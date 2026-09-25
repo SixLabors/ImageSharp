@@ -1773,6 +1773,11 @@ internal static class Av1FrameEncoder
         /// </summary>
         private readonly int[] warpedProbabilities = [64, 64, 64, 64, 64, 64, 64];
 
+        /// <summary>
+        /// The reference structure of good-quality frames coded without lookahead.
+        /// </summary>
+        private readonly Av1GoodQualityReferenceStructure goodQualityStructure = new();
+
         protected SequenceEncoder(
             Configuration configuration,
             int width,
@@ -1987,14 +1992,78 @@ internal static class Av1FrameEncoder
             => this.frameNumber > 1 ? (int)((this.frameNumber - 1) % RotatingSlotCount) : 0;
 
         /// <summary>
-        /// Selects the reference slots, the refreshed slots, the primary reference, and the frame filter after the
-        /// source analysis of the frame. Reference: set_gf_interval_update_onepass_rt() in
-        /// av1_get_one_pass_rt_params(), then av1_set_rtc_reference_structure_one_layer() with
-        /// gf_update = (gf_frame_index == 0), then choose_primary_ref_frame().
+        /// Selects the reference slots, the refreshed slots, the primary reference, and the frame tools after the
+        /// source analysis of the frame. Real-time usage follows the one-layer real-time structure, and good-quality
+        /// usage the low-delay pyramid of <see cref="Av1GoodQualityReferenceStructure"/>.
         /// </summary>
         /// <param name="parent">The frame state with the source analysis and speed settings of the frame.</param>
         /// <param name="averageSourceSad">The running average source SAD. Reference: rc->avg_source_sad.</param>
         protected void ConfigureReferenceStructure(Av1PictureParentControlSet parent, ulong averageSourceSad)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
+            bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
+            if (!speedSettings.IsRealtime)
+            {
+                // Good-quality usage without lookahead codes low-delay pyramid groups. copy_frame_prob_info() restores
+                // the frame probability tables at every key frame.
+                this.goodQualityStructure.Configure(frameHeader, parent.FramesSinceKey);
+                parent.StartsGoldenGroup = this.goodQualityStructure.UpdateType == Av1FrameUpdateType.Golden;
+                parent.RefreshesGolden = keyFrame || parent.StartsGoldenGroup;
+                if (keyFrame)
+                {
+                    this.warpedProbabilities.AsSpan().Fill(64);
+                }
+            }
+            else
+            {
+                this.ConfigureRealtimeReferenceStructure(parent, averageSourceSad);
+            }
+
+            // Every frame starts with switchable filters, and fix_interp_filter() narrows the filter after the
+            // frame. Reference: set_size_independent_vars() in encode_without_recode().
+            if (!frameHeader.IsIntra)
+            {
+                frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+            }
+
+            // Temporal motion vectors are on by default. Reference: frame_might_allow_ref_frame_mvs() with
+            // use_ref_frame_mvs from enable_ref_frame_mvs, which ref_frame_mvs_lvl leaves on in real-time usage.
+            ObuOrderHintInfo orderHintInfo = this.SequenceHeader.OrderHintInfo;
+            frameHeader.UseReferenceFrameMotionVectors = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
+                orderHintInfo.EnableOrderHint && orderHintInfo.EnableReferenceFrameMotionVectors;
+
+            // Warped motion is allowed by default, and a frame whose update type has rarely used it disallows it.
+            // Reference: frame_might_allow_warped_motion() in av1_setup_frame's caller, then the
+            // prune_warped_prob_thresh test of encode_frame_internal().
+            bool allowWarpedMotion = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
+                this.SequenceHeader.EnableWarpedMotion;
+            int warpedThreshold = speedSettings.WarpedProbabilityThreshold;
+            if (allowWarpedMotion && warpedThreshold > 0 &&
+                this.warpedProbabilities[(int)GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup)] < warpedThreshold)
+            {
+                allowWarpedMotion = false;
+            }
+
+            frameHeader.AllowWarpedMotion = allowWarpedMotion;
+
+            // OBMC is enabled by default, so the motion mode is switchable in every inter frame.
+            // Reference: is_switchable_motion_mode_allowed(allow_warped_motion, enable_obmc).
+            frameHeader.IsMotionModeSwitchable = !frameHeader.IsIntra;
+
+            frameHeader.SkipModeParameters.Derive(this.SequenceHeader.OrderHintInfo, frameHeader);
+            frameHeader.SkipModeParameters.SkipModeFlag = frameHeader.SkipModeParameters.SkipModeAllowed;
+        }
+
+        /// <summary>
+        /// Selects the reference slots, the refreshed slots, and the primary reference of a real-time frame.
+        /// Reference: set_gf_interval_update_onepass_rt() in av1_get_one_pass_rt_params(), then
+        /// av1_set_rtc_reference_structure_one_layer() with gf_update = (gf_frame_index == 0), then
+        /// choose_primary_ref_frame().
+        /// </summary>
+        /// <param name="parent">The frame state with the source analysis and speed settings of the frame.</param>
+        /// <param name="averageSourceSad">The running average source SAD. Reference: rc->avg_source_sad.</param>
+        private void ConfigureRealtimeReferenceStructure(Av1PictureParentControlSet parent, ulong averageSourceSad)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
@@ -2062,40 +2131,6 @@ internal static class Av1FrameEncoder
                     }
                 }
             }
-
-            // Every frame starts with switchable filters, and fix_interp_filter() narrows the filter after the
-            // frame. Reference: set_size_independent_vars() in encode_without_recode().
-            if (!frameHeader.IsIntra)
-            {
-                frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
-            }
-
-            // Temporal motion vectors are on by default. Reference: frame_might_allow_ref_frame_mvs() with
-            // use_ref_frame_mvs from enable_ref_frame_mvs, which ref_frame_mvs_lvl leaves on in real-time usage.
-            ObuOrderHintInfo orderHintInfo = this.SequenceHeader.OrderHintInfo;
-            frameHeader.UseReferenceFrameMotionVectors = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
-                orderHintInfo.EnableOrderHint && orderHintInfo.EnableReferenceFrameMotionVectors;
-
-            // Warped motion is allowed by default, and a frame whose update type has rarely used it disallows it.
-            // Reference: frame_might_allow_warped_motion() in av1_setup_frame's caller, then the
-            // prune_warped_prob_thresh test of encode_frame_internal().
-            bool allowWarpedMotion = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
-                this.SequenceHeader.EnableWarpedMotion;
-            int warpedThreshold = speedSettings.WarpedProbabilityThreshold;
-            if (allowWarpedMotion && warpedThreshold > 0 &&
-                this.warpedProbabilities[(int)GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup)] < warpedThreshold)
-            {
-                allowWarpedMotion = false;
-            }
-
-            frameHeader.AllowWarpedMotion = allowWarpedMotion;
-
-            // OBMC is enabled by default, so the motion mode is switchable in every inter frame.
-            // Reference: is_switchable_motion_mode_allowed(allow_warped_motion, enable_obmc).
-            frameHeader.IsMotionModeSwitchable = !frameHeader.IsIntra;
-
-            frameHeader.SkipModeParameters.Derive(this.SequenceHeader.OrderHintInfo, frameHeader);
-            frameHeader.SkipModeParameters.SkipModeFlag = frameHeader.SkipModeParameters.SkipModeAllowed;
         }
 
         /// <summary>
@@ -2119,9 +2154,11 @@ internal static class Av1FrameEncoder
                 Av1ReferenceFrameType.Last3
             ];
 
-            int flags = (1 << (int)Av1ReferenceFrameType.Last) |
-                (1 << (int)Av1ReferenceFrameType.Alternate) |
-                (1 << (int)Av1ReferenceFrameType.Golden);
+            // Real-time usage enables LAST, GOLDEN, and ALTREF; good-quality usage starts from every reference.
+            // Reference: av1_set_rtc_reference_structure_one_layer() and the AOM_REFFRAME_ALL default.
+            int flags = speedSettings.IsRealtime
+                ? (1 << (int)Av1ReferenceFrameType.Last) | (1 << (int)Av1ReferenceFrameType.Alternate) | (1 << (int)Av1ReferenceFrameType.Golden)
+                : 0xFE;
 
             for (int i = 1; i < priorityOrder.Length; i++)
             {
@@ -2161,6 +2198,11 @@ internal static class Av1FrameEncoder
                 // Reference: the warped_probs update at the end of encode_frame_internal().
                 int updateType = (int)GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup);
                 this.warpedProbabilities[updateType] >>= 1;
+            }
+
+            if (!parent.SpeedSettings.IsRealtime)
+            {
+                this.goodQualityStructure.Complete(frameHeader);
             }
 
             if (frameHeader.FrameType == ObuFrameType.KeyFrame)

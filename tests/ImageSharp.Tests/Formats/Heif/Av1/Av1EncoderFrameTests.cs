@@ -643,11 +643,11 @@ public class Av1EncoderFrameTests
         Assert.NotEqual(Av1InterpolationFilter.Bilinear, frameHeader.InterpolationFilter);
         Assert.False(decoder.SequenceHeader.EnableDualFilter);
 
-        // The first inter frame reads LAST from slot 0 and GOLDEN from slot 6, and refreshes slot 1, which
-        // becomes LAST for the next frame. Reference: av1_set_rtc_reference_structure_one_layer().
+        // Good-quality usage: the key frame fills every slot with one buffer, so the first inter frame reads every
+        // reference from slot 0 and refreshes the first slot that the key frame left free. Reference:
+        // init_ref_map_pair(), av1_get_ref_frames(), and av1_get_refresh_frame_flags().
         Assert.Equal(1U << 1, frameHeader.RefreshFrameFlags);
-        Assert.Equal(0U, frameHeader.GetReferenceFrameIndices()[(int)Av1ReferenceFrameType.Last - 1]);
-        Assert.Equal(6U, frameHeader.GetReferenceFrameIndices()[(int)Av1ReferenceFrameType.Golden - 1]);
+        Assert.All(frameHeader.GetReferenceFrameIndices().ToArray(), slot => Assert.Equal(0U, slot));
         Av1FrameInfo secondFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         bool hasSkippedInterBlock = false;
         bool hasLargeInterBlock = false;

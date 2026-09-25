@@ -648,6 +648,12 @@ internal readonly struct Av1EncoderSpeedSettings
             : 0;
 
     /// <summary>
+    /// Gets a value indicating whether a coded constant-bitrate frame may force or cancel the golden refresh.
+    /// Reference: gf_refresh_based_on_qp, set in real-time usage from speed 6.
+    /// </summary>
+    public bool UsesQuantizerGoldenRefresh => this.realtime && this.Speed >= HeifEncodingSpeed.Level6;
+
+    /// <summary>
     /// Gets a value indicating whether estimated inter search admits compound prediction.
     /// </summary>
     public bool UseEstimatedCompound => this.realtime && (this.Speed < HeifEncodingSpeed.Level9 || this.minimumDimension >= 360);

@@ -1691,7 +1691,7 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Retains the reconstructed reference state shared by the samples of one AV1 sequence track.
     /// </summary>
-    internal abstract class SequenceEncoder : IDisposable
+    internal abstract class SequenceEncoder : IDisposable, IAv1ReferenceRefreshControl
     {
         /// <summary>
         /// The number of rotating slots that hold LAST and ALTREF. Reference: sh in
@@ -1741,6 +1741,21 @@ internal static class Av1FrameEncoder
         /// Reference: cpi->gf_frame_index.
         /// </summary>
         private int goldenFrameIndex;
+
+        /// <summary>
+        /// Reference: p_rc->baseline_gf_interval.
+        /// </summary>
+        private int baselineGoldenInterval;
+
+        /// <summary>
+        /// The number of the frame that last refreshed GOLDEN. Reference: rc->frame_num_last_gf_refresh.
+        /// </summary>
+        private uint lastGoldenRefreshFrameNumber;
+
+        /// <summary>
+        /// Reference: rc->frames_since_golden.
+        /// </summary>
+        private int framesSinceGolden;
 
         /// <summary>
         /// The slot that holds the entropy context of the most recent frame of the only context type that
@@ -1832,6 +1847,11 @@ internal static class Av1FrameEncoder
 
                 this.PictureBuffer.Picture.Parent.EncodingSpeed = speed;
                 this.PictureBuffer.Picture.Parent.SpeedSettings = speedSettings;
+                this.PictureBuffer.Picture.Parent.ReferenceRefreshControl = this;
+
+                // One-pass constant-bitrate coding starts the running inter quantizer at the worst allowed
+                // quantizer, which the fixed quantizer sets. Reference: avg_frame_qindex in av1_rc_init().
+                this.PictureBuffer.Picture.Parent.AverageInterQuantizer = qIndex;
 
                 this.MotionField = new Av1EncoderMotionField(
                     configuration,
@@ -1876,6 +1896,11 @@ internal static class Av1FrameEncoder
         public ObuSequenceHeader SequenceHeader { get; }
 
         protected Configuration Configuration { get; }
+
+        /// <summary>
+        /// Gets the number of displayed frames since GOLDEN was refreshed. Reference: rc->frames_since_golden.
+        /// </summary>
+        protected int FramesSinceGolden => this.framesSinceGolden;
 
         protected int QIndex { get; }
 
@@ -1986,6 +2011,9 @@ internal static class Av1FrameEncoder
 
             bool goldenUpdate = this.goldenFrameIndex == 0;
             parent.StartsGoldenGroup = !keyFrame && goldenUpdate;
+
+            // av1_configure_buffer_updates() refreshes GOLDEN in key frames and golden-group frames.
+            parent.RefreshesGolden = keyFrame || goldenUpdate;
 
             // av1_set_rtc_reference_structure_one_layer()
             uint alternateLag = 4;
@@ -2153,6 +2181,17 @@ internal static class Av1FrameEncoder
                 this.frameInterpolationFilter = frameHeader.InterpolationFilter;
             }
 
+            // update_golden_frame_stats() and the golden refresh test of update_rc_counts().
+            if (parent.RefreshesGolden)
+            {
+                this.framesSinceGolden = 0;
+                this.lastGoldenRefreshFrameNumber = this.frameNumber;
+            }
+            else
+            {
+                this.framesSinceGolden++;
+            }
+
             if (this.framesTillGoldenUpdateDue > 0)
             {
                 this.framesTillGoldenUpdateDue--;
@@ -2190,14 +2229,59 @@ internal static class Av1FrameEncoder
                 interval = LowMotionGoldenInterval;
             }
 
+            this.baselineGoldenInterval = interval;
             this.framesTillGoldenUpdateDue = interval;
             this.goldenFrameIndex = 0;
+        }
+
+        /// <summary>
+        /// Cancels a golden refresh that ends a period at a high quantizer, or forces one halfway through a period
+        /// at a low quantizer or in a high-motion frame. Reference: av1_adjust_gf_refresh_qp_one_pass_rt(), which
+        /// runs after av1_encode_frame() and update_motion_stat() in constant-bitrate real-time coding.
+        /// </summary>
+        /// <param name="parent">The frame state, with the motion statistics of the coded frame.</param>
+        void IAv1ReferenceRefreshControl.AdjustRefresh(Av1PictureParentControlSet parent)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            if (frameHeader.IsIntra || !parent.SpeedSettings.UsesQuantizerGoldenRefresh || parent.HighSourceSad)
+            {
+                return;
+            }
+
+            int averageQuantizer = parent.AverageInterQuantizer;
+            int qIndex = frameHeader.QuantizationParameters.BaseQIndex;
+            bool allowGoldenUpdate = this.framesTillGoldenUpdateDue <= this.baselineGoldenInterval - 10;
+            bool refresh;
+            if (this.frameNumber - this.lastGoldenRefreshFrameNumber < FixedGoldenIntervalRealtime &&
+                this.framesTillGoldenUpdateDue == 1 &&
+                qIndex > averageQuantizer)
+            {
+                refresh = false;
+            }
+            else if (allowGoldenUpdate &&
+                (qIndex < 87 * averageQuantizer / 100 ||
+                (parent.AverageFrameLowMotion != 0 && parent.AverageFrameLowMotion < 20)))
+            {
+                refresh = true;
+            }
+            else
+            {
+                return;
+            }
+
+            parent.RefreshesGolden = refresh;
+            this.SetBaselineGoldenInterval(parent.AverageFrameLowMotion);
+            frameHeader.RefreshFrameFlags = refresh
+                ? frameHeader.RefreshFrameFlags | (1U << GoldenSlot)
+                : frameHeader.RefreshFrameFlags & ~(1U << GoldenSlot);
         }
 
         protected void CompleteFrameHeader()
         {
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
-            if (parent.FrameUpdateType == Av1FrameUpdateType.Last)
+
+            // av1_rc_postencode_update() skips frames that refresh GOLDEN.
+            if (this.FrameHeader.FrameType != ObuFrameType.KeyFrame && !parent.RefreshesGolden)
             {
                 parent.AverageInterQuantizer = ((3 * parent.AverageInterQuantizer) + this.FrameHeader.QuantizationParameters.BaseQIndex + 2) >> 2;
             }
@@ -2412,7 +2496,7 @@ internal static class Av1FrameEncoder
             }
 
             parent.FramesSinceKey = this.framesSinceKey;
-            parent.FramesSinceGolden = Math.Max(0, this.framesSinceKey - 1);
+            parent.FramesSinceGolden = this.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
             parent.SpeedSettings = new(
                 this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
@@ -2630,7 +2714,7 @@ internal static class Av1FrameEncoder
             }
 
             parent.FramesSinceKey = this.framesSinceKey;
-            parent.FramesSinceGolden = Math.Max(0, this.framesSinceKey - 1);
+            parent.FramesSinceGolden = this.FramesSinceGolden;
 
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent));

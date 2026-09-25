@@ -639,6 +639,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.AverageFrameLowMotion = parent.AverageFrameLowMotion == 0
                 ? percentage
                 : ((3 * parent.AverageFrameLowMotion) + percentage) / 4;
+
+            parent.ReferenceRefreshControl?.AdjustRefresh(parent);
         }
 
         if (parent.SpeedSettings.TrackTransformTypeProbabilities)

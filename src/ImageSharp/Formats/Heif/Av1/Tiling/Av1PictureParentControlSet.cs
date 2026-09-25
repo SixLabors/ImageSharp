@@ -148,6 +148,18 @@ internal class Av1PictureParentControlSet
     public int FramesSinceGolden { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the frame refreshes the golden reference.
+    /// Reference: cpi->refresh_frame.golden_frame.
+    /// </summary>
+    public bool RefreshesGolden { get; set; }
+
+    /// <summary>
+    /// Gets or sets the control that adjusts the refreshed slots after the frame is coded, or
+    /// <see langword="null"/> to keep them.
+    /// </summary>
+    public IAv1ReferenceRefreshControl? ReferenceRefreshControl { get; set; }
+
+    /// <summary>
     /// Gets or sets the resolved motion-search policy for the current frame.
     /// </summary>
     public Av1MotionSearchSettings MotionSearchSettings { get; set; }

@@ -204,6 +204,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private int motionModeWinnerCount;
         private int motionModeWinnerLimit;
         private bool evaluatingMotionModeWinners;
+        private InlineArray8<uint> interModeSkipMasks;
         private bool searchingRetainedCandidates;
         private long interSourceVarianceCost;
         private int interSourceVariance;
@@ -2965,6 +2966,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1RateDistortionStatistics.Invalid
                 : this.GetRegularBlockCost(writer, macroBlock, lumaStatistics);
 
+            // An inter frame keeps the intra result only when it beats the budget of the block, so a block
+            // without a mode below the budget has no winner to refine. Reference: the best_rd test before
+            // update_search_state() in search_intra_modes_in_interframe().
+            if (isInterFrame && regularStatistics.Cost >= this.blockCostLimit)
+            {
+                regularStatistics = Av1RateDistortionStatistics.Invalid;
+            }
+
             if (isInterFrame && interStatistics.Cost != long.MaxValue && interStatistics.Cost <= regularStatistics.Cost)
             {
                 // Inter candidates precede intra candidates, so an equal cost retains the inter winner.
@@ -3203,8 +3212,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (isInterFrame)
             {
+                // Skip mode is a one-sided compound when every reference is in the past, so a frame that drops those
+                // pairs neither searches it nor prices the non-skip-mode symbol. Reference: the
+                // disable_onesided_comp return of rd_pick_skip_mode().
                 ObuSkipModeParameters skipModeParameters = this.picture.Parent.FrameHeader.SkipModeParameters;
-                if (skipModeParameters.SkipModeFlag && Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
+                if (skipModeParameters.SkipModeFlag && Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8 &&
+                    !this.picture.Parent.PrunesAllCompoundReferences)
                 {
                     int skipModeContext = Av1TileWriter.GetSkipModeContext(macroBlock);
                     Av1RateDistortionStatistics selectedStatistics = this.SelectedBlockStatistics;
@@ -4566,25 +4579,30 @@ internal static partial class Av1IntraSuperblockEncoder
                 CopyWinnerTransformStates(this.blockWorkspace.GetIntraWinnerContext(1).GetTransformStates(Av1Plane.Y), retainedStates);
             }
 
-            if (!this.picture.Parent.FrameHeader.IsIntra || selectedStatistics.Cost == long.MaxValue)
+            if (selectedStatistics.Cost == long.MaxValue)
             {
                 return mode;
             }
 
-            Av1PredictionMode refinedMode = this.RefineLumaMode(
-                writer,
-                macroBlock,
-                blockOrigin,
-                blockSize,
-                tileIndex,
-                retainedCoefficients,
-                retainedStates,
-                mode,
-                ref paletteInfo,
-                ref selectedAngleDelta,
-                ref selectedFilterIntraMode,
-                ref selectedTransformSize,
-                ref selectedStatistics);
+            // An inter frame keeps the luma winner of the mode search; only an intra frame refines it.
+            // Reference: av1_search_intra_uv_modes_in_interframe() after the luma loop of
+            // search_intra_modes_in_interframe(), against av1_rd_pick_intra_sby_mode().
+            Av1PredictionMode refinedMode = !this.picture.Parent.FrameHeader.IsIntra
+                ? mode
+                : this.RefineLumaMode(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    blockSize,
+                    tileIndex,
+                    retainedCoefficients,
+                    retainedStates,
+                    mode,
+                    ref paletteInfo,
+                    ref selectedAngleDelta,
+                    ref selectedFilterIntraMode,
+                    ref selectedTransformSize,
+                    ref selectedStatistics);
 
             // The chroma search encodes the luma plane again before it starts, so chroma predicts from
             // the refined winner rather than the candidate the first search left behind, and every luma

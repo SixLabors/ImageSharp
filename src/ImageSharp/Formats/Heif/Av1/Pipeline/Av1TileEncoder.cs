@@ -256,6 +256,62 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
+    /// Records the display distance of each enabled reference, and keeps the best-ranked references out of the
+    /// block-level single-reference pruning. A reference ranks by its distance plus its base quantizer index.
+    /// Reference: set_rel_frame_dist() and setup_keep_ref_frame_mask().
+    /// </summary>
+    /// <param name="parent">The frame state that receives the distances and the mask.</param>
+    /// <param name="frameHeader">The frame header.</param>
+    /// <param name="blockWorkspace">The workspace with the reference slot history.</param>
+    private static void SetKeepSingleReferenceMask(
+        Av1PictureParentControlSet parent,
+        ObuFrameHeader frameHeader,
+        Av1EncoderBlockWorkspace blockWorkspace)
+    {
+        Span<int> scores = stackalloc int[Av1Constants.ReferenceFrameCount - 1];
+        Span<int> order = stackalloc int[Av1Constants.ReferenceFrameCount - 1];
+        for (int index = 0; index < scores.Length; index++)
+        {
+            Av1ReferenceFrameType referenceType = (Av1ReferenceFrameType)(index + (int)Av1ReferenceFrameType.Last);
+            scores[index] = int.MaxValue;
+            order[index] = index;
+            if ((parent.AvailableReferenceMask & (1 << (int)referenceType)) == 0)
+            {
+                continue;
+            }
+
+            int slot = (int)frameHeader.GetReferenceFrameIndices()[index];
+            int distance = blockWorkspace.ReferenceFrameNumbers[slot] - blockWorkspace.EncodedFrameCount;
+            parent.ReferenceDistances[(int)referenceType] = distance;
+            scores[index] = Math.Abs(distance) + blockWorkspace.ReferenceBaseQIndices[slot];
+        }
+
+        // Ascending scores; equal scores keep the reference order.
+        for (int i = 1; i < order.Length; i++)
+        {
+            int current = order[i];
+            int j = i - 1;
+            while (j >= 0 && scores[order[j]] > scores[current])
+            {
+                order[j + 1] = order[j];
+                j--;
+            }
+
+            order[j + 1] = current;
+        }
+
+        ReadOnlySpan<int> keptCounts = [7, 5, 3, 0, 0];
+        int kept = keptCounts[parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType)];
+        int mask = 0;
+        for (int i = 0; i < kept; i++)
+        {
+            mask |= 1 << (order[i] + (int)Av1ReferenceFrameType.Last);
+        }
+
+        parent.KeepSingleReferenceMask = mask;
+    }
+
+    /// <summary>
     /// Determines whether any coded block predicts from two references. Reference: compound_ref_used_flag,
     /// which the encoder sets while it encodes each block.
     /// </summary>
@@ -471,6 +527,25 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         parent.NearestPastReference = Av1ReferenceFrameType.None;
         parent.NearestFutureReference = Av1ReferenceFrameType.None;
+        Array.Clear(parent.ReferenceDistances);
+        parent.KeepSingleReferenceMask = 0;
+        parent.AllOneSidedReferences = false;
+        if (!frameHeader.IsIntra)
+        {
+            SetKeepSingleReferenceMask(parent, frameHeader, blockWorkspace);
+
+            // Every reference, enabled or not, must precede the frame. Reference: refs_are_one_sided().
+            parent.AllOneSidedReferences = true;
+            for (int index = 0; index < Av1Constants.ReferenceFrameCount - 1; index++)
+            {
+                int slot = (int)frameHeader.GetReferenceFrameIndices()[index];
+                if (blockWorkspace.ReferenceFrameNumbers[slot] > blockWorkspace.EncodedFrameCount)
+                {
+                    parent.AllOneSidedReferences = false;
+                }
+            }
+        }
+
         if (!frameHeader.IsIntra)
         {
             int nearestPastDistance = int.MaxValue;
@@ -678,6 +753,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
             {
                 blockWorkspace.ReferenceFrameNumbers[slot] = blockWorkspace.EncodedFrameCount;
+                blockWorkspace.ReferenceBaseQIndices[slot] = frameHeader.QuantizationParameters.BaseQIndex;
                 parent.SelectedInterpolationCounts.Span.CopyTo(blockWorkspace.ReferenceInterpolationUsage.Slice(
                     slot * Av1InterpolationProbabilities.FilterCount, Av1InterpolationProbabilities.FilterCount));
             }

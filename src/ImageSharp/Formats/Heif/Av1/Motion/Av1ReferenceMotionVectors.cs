@@ -475,6 +475,16 @@ internal struct Av1ReferenceMotionVectors
         => this.Count > 1 ? this.candidates[referenceMotionVectorIndex] : this.references[0];
 
     /// <summary>
+    /// Gets a single-reference stack entry, or the global motion vector past the last entry.
+    /// Reference: av1_get_ref_mv_from_stack().
+    /// </summary>
+    /// <param name="index">The stack index.</param>
+    /// <param name="globalMotionVector">The global motion vector of the reference.</param>
+    /// <returns>The stack vector.</returns>
+    public Av1MotionVector GetStackVector(int index, Av1MotionVector globalMotionVector)
+        => index < this.Count ? this.candidates[index] : globalMotionVector;
+
+    /// <summary>
     /// Gets the nearest reference for one member of a compound pair.
     /// </summary>
     /// <param name="referenceIndex">Zero for the primary reference or one for the secondary reference.</param>

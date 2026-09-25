@@ -288,6 +288,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1ReferenceFrameType.None);
             }
 
+            this.SetInterModeSkipMasks(blockOrigin, blockSize, singleReferenceVectors[..]);
+
             // Search the same syntax mode across the available references before advancing to the
             // next mode. NEWMV's complete DRL search is retained for the later compound candidates.
             ReadOnlySpan<Av1PredictionMode> modeOrder =
@@ -301,7 +303,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 foreach (Av1ReferenceFrameType reference in referenceOrder)
                 {
                     int index = (int)reference;
-                    if ((availableReferences & (1 << index)) == 0)
+                    if ((availableReferences & (1 << index)) == 0 ||
+                        (this.interModeSkipMasks[index] & (1u << (int)mode)) != 0)
                     {
                         continue;
                     }
@@ -468,7 +471,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Nearest pairs establish a bound across all admitted references first. The remaining
             // motion families then complete each pair in order, retaining that pair's mask history.
-            for (int phase = 0; phase < 2; phase++)
+            for (int phase = 0; !this.picture.Parent.PrunesAllCompoundReferences && phase < 2; phase++)
             {
                 for (int index = 0; index < compoundSearchOrder.Length; index++)
                 {
@@ -1575,9 +1578,14 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.SubtractPrediction(
                 this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, width, height);
 
+            // The whole block is subtracted with the DCT_DCT border padding. Reference: av1_subtract_plane().
+            Av1TransformBlockEncoder.PadBorderResidual(
+                this.blockWorkspace, Av1Plane.Y, blockOrigin, residual, width, width, height, Av1TransformType.DctDct);
+
             // The distortion covers the visible samples only. Reference: av1_pixel_diff_dist().
-            int visibleWidth = width + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
-            int visibleHeight = height + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
+            Size visibleSize = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, width, height);
+            int visibleWidth = visibleSize.Width;
+            int visibleHeight = visibleSize.Height;
             distortion = 0;
             for (int y = 0; y < visibleHeight; y++)
             {
@@ -2770,6 +2778,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
+                // A new vector equal to its reference codes no difference, so the mode is invalid.
+                // Reference: av1_check_newmv_joint_nonzero() in motion_mode_rd().
+                if (requestedMode == Av1PredictionMode.NewMotionVector &&
+                    candidateVectors[candidateIndex] == referenceMotionVectors.GetNewReference(candidateReferenceIndices[candidateIndex]))
+                {
+                    continue;
+                }
+
                 Av1InterpolationFilter horizontalFilter = modeInfo.Block.HorizontalInterpolationFilter;
                 Av1InterpolationFilter verticalFilter = modeInfo.Block.VerticalInterpolationFilter;
                 int simplePredictionRate = commonPredictionRate + filterRate +
@@ -3725,6 +3741,122 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Masks the modes of each reference whose predicted-vector SAD is poor. A reference far from the best SAD
+        /// loses its fixed-vector modes, and with single-reference pruning a reference other than the closest ones
+        /// loses every single-reference mode. Reference: av1_mv_pred() in setup_buffer_ref_mvs_inter(), then
+        /// init_mode_skip_mask().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="singleReferenceVectors">The reference vector stacks, indexed by reference type.</param>
+        private void SetInterModeSkipMasks(
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            ReadOnlySpan<Av1ReferenceMotionVectors> singleReferenceVectors)
+        {
+            const uint nearestNearZero =
+                (1u << (int)Av1PredictionMode.NearestMotionVector) | (1u << (int)Av1PredictionMode.NearMotionVector) |
+                (1u << (int)Av1PredictionMode.GlobalMotionVector) | (1u << (int)Av1PredictionMode.NearestNearestMotionVector) |
+                (1u << (int)Av1PredictionMode.GlobalGlobalMotionVector) | (1u << (int)Av1PredictionMode.NearestNewMotionVector) |
+                (1u << (int)Av1PredictionMode.NewNearestMotionVector) | (1u << (int)Av1PredictionMode.NewNearMotionVector) |
+                (1u << (int)Av1PredictionMode.NearNewMotionVector) | (1u << (int)Av1PredictionMode.NearNearMotionVector);
+            const uint singleAll =
+                (1u << (int)Av1PredictionMode.NearestMotionVector) | (1u << (int)Av1PredictionMode.NearMotionVector) |
+                (1u << (int)Av1PredictionMode.GlobalMotionVector) | (1u << (int)Av1PredictionMode.NewMotionVector);
+
+            this.interModeSkipMasks = default;
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            ObuFrameHeader frameHeader = parent.FrameHeader;
+            byte availableReferences = parent.AvailableReferenceMask;
+            int width = blockSize.GetWidth();
+            int height = blockSize.GetHeight();
+            Point position = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+            Size frameSize = new(
+                parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+
+            Span<int> sads = stackalloc int[Av1Constants.ReferenceFrameCount + 1];
+            sads.Fill(int.MaxValue);
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
+            {
+                if ((availableReferences & (1 << reference)) == 0)
+                {
+                    continue;
+                }
+
+                Av1MotionVector globalMotion = frameHeader.GetGlobalMotionParameters()[reference - (int)Av1ReferenceFrameType.Last]
+                    .GetMotionVector(frameHeader.AllowHighPrecisionMotionVector, blockSize, position, frameHeader.ForceIntegerMotionVector);
+                Av1MotionVector first = singleReferenceVectors[reference].GetStackVector(0, globalMotion);
+                Av1MotionVector second = singleReferenceVectors[reference].GetStackVector(1, globalMotion);
+                int count = first == second ? 1 : 2;
+                Buffer2DRegion<TSample> referencePlane = this.references.Span[reference].CodedView.GetPlane(Av1Plane.Y);
+                ReadOnlySpan<TSample> referenceSamples = referencePlane.Buffer.DangerousGetSingleSpan();
+                bool zeroSeen = false;
+                int best = int.MaxValue;
+                for (int i = 0; i < count; i++)
+                {
+                    // Clamp the vector to the interpolation extension around the coded frame, then round it to whole
+                    // samples. Reference: enc_clamp_mv().
+                    Av1MotionVector vector = i == 0 ? first : second;
+                    int column = Math.Clamp(vector.Column, -(blockOrigin.X + width + 4) * 8, (frameSize.Width - blockOrigin.X + 4) * 8);
+                    int row = Math.Clamp(vector.Row, -(blockOrigin.Y + height + 4) * 8, (frameSize.Height - blockOrigin.Y + 4) * 8);
+                    int fullRow = (row + 3 + (row >= 0 ? 1 : 0)) >> 3;
+                    int fullColumn = (column + 3 + (column >= 0 ? 1 : 0)) >> 3;
+                    if (fullRow == 0 && fullColumn == 0 && zeroSeen)
+                    {
+                        continue;
+                    }
+
+                    zeroSeen |= fullRow == 0 && fullColumn == 0;
+                    int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y + fullRow) * referencePlane.Stride) +
+                        referencePlane.Bounds.X + blockOrigin.X + fullColumn;
+                    int sad = TOperator.SumAbsoluteDifferences(
+                        sourceBlock, sourcePlane.Stride, referenceSamples[referenceOrigin..], referencePlane.Stride, width, height, 1);
+                    best = Math.Min(best, sad);
+                }
+
+                sads[reference] = best;
+            }
+
+            int minimum = int.MaxValue;
+            InlineArray2<int> bestByDirection = default;
+            bestByDirection[0] = int.MaxValue;
+            bestByDirection[1] = int.MaxValue;
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
+            {
+                minimum = Math.Min(minimum, sads[reference]);
+                int direction = parent.ReferenceDistances[reference] < 0 ? 0 : 1;
+                bestByDirection[direction] = Math.Min(bestByDirection[direction], sads[reference]);
+            }
+
+            int pruneLevel = parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType);
+            double pruneThreshold = pruneLevel <= 3 ? 1.20 : 1.05;
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
+            {
+                uint mask = 0;
+                if ((availableReferences & (1 << reference)) != 0 && (sads[reference] >> 2) > minimum)
+                {
+                    mask |= nearestNearZero;
+                }
+
+                bool closest = (Av1ReferenceFrameType)reference == parent.NearestPastReference ||
+                    (Av1ReferenceFrameType)reference == parent.NearestFutureReference;
+                if (pruneLevel != 0 && (parent.KeepSingleReferenceMask & (1 << reference)) == 0 && !closest)
+                {
+                    int direction = parent.ReferenceDistances[reference] < 0 ? 0 : 1;
+                    if (bestByDirection[direction] < int.MaxValue && sads[reference] > pruneThreshold * bestByDirection[direction])
+                    {
+                        mask |= singleAll;
+                    }
+                }
+
+                this.interModeSkipMasks[reference] = mask;
+            }
+        }
+
+        /// <summary>
         /// Rejects near-motion modes when adjacent reference pairs do not meet the quantizer-dependent threshold.
         /// </summary>
         private bool ShouldPruneNearMode(
@@ -4145,6 +4277,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         secondaryReference,
                         Math.Min(this.blockCostLimit, selectedStatistics.Cost),
                         modeInfo.Block.Skip);
+                    rejectMode |= (this.interModeSkipMasks[(int)primaryReference] & (1u << (int)mode)) != 0;
                     rejectMode |= mode == Av1PredictionMode.NearNearMotionVector &&
                         this.ShouldPruneNearMode(
                             macroBlock, primaryReference, secondaryReference, Math.Min(this.blockCostLimit, selectedStatistics.Cost));

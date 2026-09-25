@@ -286,9 +286,11 @@ internal static class Av1LoopFilterEncoder
         int best = middle;
         errors[middle] = bestError;
 
-        // The encoder never enables the coarse search, so the step halves until it reaches zero.
+        // The coarse search ends at a step of two; otherwise the step halves until it reaches zero.
+        // Reference: min_filter_step_thesh in search_filter_level().
+        int minimumStep = picture.Parent.SpeedSettings.UseCoarseFilterLevelSearch ? 2 : 0;
         int searchDirection = 0;
-        while (step > 0)
+        while (step > minimumStep)
         {
             int high = Math.Min(middle + step, maximumLevel);
             int low = Math.Max(middle - step, minimumLevel);

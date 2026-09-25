@@ -54,6 +54,30 @@ internal class Av1PictureParentControlSet
     public int[] WarpedUsage { get; } = new int[2];
 
     /// <summary>
+    /// Gets the display distance of each reference type from the frame, negative for a past reference and zero for
+    /// a disabled one. Reference: ref_relative_dist of set_rel_frame_dist().
+    /// </summary>
+    public int[] ReferenceDistances { get; } = new int[Av1Constants.ReferenceFrameCount + 1];
+
+    /// <summary>
+    /// Gets or sets the references whose single-reference modes the block-level pruning keeps, one bit per
+    /// reference type. Reference: keep_single_ref_frame_mask.
+    /// </summary>
+    public int KeepSingleReferenceMask { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether every reference precedes the frame in display order.
+    /// Reference: all_one_sided_refs from refs_are_one_sided().
+    /// </summary>
+    public bool AllOneSidedReferences { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the frame drops every compound reference pair, because one-sided compound is
+    /// disabled and every reference lies on one side. Reference: the first branch of setup_prune_ref_frame_mask().
+    /// </summary>
+    public bool PrunesAllCompoundReferences => this.AllOneSidedReferences && this.SpeedSettings.DisableOneSidedCompound;
+
+    /// <summary>
     /// Gets or sets the closest enabled reference before the current frame.
     /// </summary>
     public Av1ReferenceFrameType NearestPastReference { get; set; }

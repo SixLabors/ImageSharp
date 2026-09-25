@@ -339,6 +339,25 @@ internal readonly struct Av1EncoderSpeedSettings
         this.LoopFilterPickMethod = realtime || (allIntra && speed >= HeifEncodingSpeed.Level6)
             ? Av1LoopFilterPickMethod.FromQuantizer
             : speed >= HeifEncodingSpeed.Level4 ? Av1LoopFilterPickMethod.FullImageNonDual : Av1LoopFilterPickMethod.FullImage;
+
+        // Good quality from speed 3 stops the level search of an inter frame at a step of two.
+        // Reference: use_coarse_filter_level_search.
+        this.UseCoarseFilterLevelSearch = !realtime && !allIntra && !intraFrame && speed >= HeifEncodingSpeed.Level3;
+
+        // Real-time usage, and good quality from speed 3, drop compound prediction from two references on the same
+        // side of the frame. Reference: disable_onesided_comp.
+        this.DisableOneSidedCompound = realtime || (!allIntra && speed >= HeifEncodingSpeed.Level3);
+
+        // selective_ref_frame: good quality starts at 1 and raises the level with speed; speed 0 uses 2 for a
+        // 1080p frame at a low quantizer; real-time usage uses 4.
+        this.SelectiveReferenceFrameLevel = realtime ? 4 : allIntra ? 0 : speed switch
+        {
+            >= HeifEncodingSpeed.Level6 => 6,
+            >= HeifEncodingSpeed.Level3 => 5,
+            HeifEncodingSpeed.Level2 => 3,
+            HeifEncodingSpeed.Level1 => 2,
+            _ => minimumDimension >= 1080 && qIndex <= 108 ? 2 : 1
+        };
         this.EnableWinnerCoefficientOptimization = !realtime &&
             speed >= (allIntra ? HeifEncodingSpeed.Level4 : HeifEncodingSpeed.Level3);
 
@@ -1115,6 +1134,22 @@ internal readonly struct Av1EncoderSpeedSettings
     public Av1LoopFilterPickMethod LoopFilterPickMethod { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the loop filter level search ends at a step of two instead of one.
+    /// </summary>
+    public bool UseCoarseFilterLevelSearch { get; }
+
+    /// <summary>
+    /// Gets the level that limits the references an inter frame searches. Reference: selective_ref_frame.
+    /// </summary>
+    public int SelectiveReferenceFrameLevel { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether compound prediction from two references on the same side of the frame is
+    /// disabled.
+    /// </summary>
+    public bool DisableOneSidedCompound { get; }
+
+    /// <summary>
     /// Gets a value indicating whether candidate and winner coefficient thresholds differ.
     /// </summary>
     public bool EnableWinnerCoefficientOptimization { get; }
@@ -1306,6 +1341,34 @@ internal readonly struct Av1EncoderSpeedSettings
         }
 
         return this.Speed >= HeifEncodingSpeed.Level3 && updateType != Av1FrameUpdateType.IntermediateAlternate ? 2 : 1;
+    }
+
+    /// <summary>
+    /// Gets how strongly the mode loop drops single-reference modes of a reference whose predicted-vector SAD is
+    /// far above the best of its direction. Reference: prune_single_ref.
+    /// </summary>
+    /// <param name="updateType">The frame update type.</param>
+    /// <returns>The pruning level, from zero for none to four.</returns>
+    public int GetPruneSingleReferenceLevel(Av1FrameUpdateType updateType)
+    {
+        if (this.realtime || this.allIntra || this.Speed < HeifEncodingSpeed.Level2)
+        {
+            return 0;
+        }
+
+        bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+        bool boostedOrIntermediate = boosted || updateType == Av1FrameUpdateType.IntermediateAlternate;
+        if (this.Speed >= HeifEncodingSpeed.Level6)
+        {
+            return boostedOrIntermediate ? 0 : 4;
+        }
+
+        if (this.Speed >= HeifEncodingSpeed.Level5)
+        {
+            return boostedOrIntermediate ? 0 : 3;
+        }
+
+        return this.Speed >= HeifEncodingSpeed.Level3 || !boosted ? 2 : 1;
     }
 
     /// <summary>

@@ -382,6 +382,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.referenceFrameNumberStorageOffset, Av1Constants.ReferenceFrameCount);
 
     /// <summary>
+    /// Gets the base quantizer index of the frame retained in each decoded reference slot.
+    /// </summary>
+    public int[] ReferenceBaseQIndices { get; } = new int[Av1Constants.ReferenceFrameCount];
+
+    /// <summary>
     /// Gets the luma vertical, luma horizontal, U, and V deblocking levels retained from the preceding frame.
     /// </summary>
     /// <remarks>

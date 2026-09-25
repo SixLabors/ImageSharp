@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
@@ -2134,6 +2135,108 @@ internal static class Av1FrameEncoder
         }
 
         /// <summary>
+        /// Turns skip mode off when its two references lie at distances from the frame that differ by more than one
+        /// frame, or when the encoder disabled either reference. Reference: check_skip_mode_enabled().
+        /// </summary>
+        /// <param name="sequenceHeader">The sequence header with the order hint parameters.</param>
+        /// <param name="frameHeader">The frame header whose skip mode flag is updated.</param>
+        /// <param name="availableReferences">The references the encoder searches, one bit per reference type.</param>
+        protected static void CheckSkipModeEnabled(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, byte availableReferences)
+        {
+            ObuSkipModeParameters skipMode = frameHeader.SkipModeParameters;
+            if (!skipMode.SkipModeAllowed)
+            {
+                skipMode.SkipModeFlag = false;
+                return;
+            }
+
+            ObuOrderHintInfo orderHintInfo = sequenceHeader.OrderHintInfo;
+            ReadOnlySpan<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
+            ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            Av1ReferenceFrameType first = skipMode.FirstReferenceFrame;
+            Av1ReferenceFrameType second = skipMode.SecondReferenceFrame;
+            uint firstOrderHint = referenceOrderHints[(int)referenceFrameIndices[(int)first - (int)Av1ReferenceFrameType.Last]];
+            uint secondOrderHint = referenceOrderHints[(int)referenceFrameIndices[(int)second - (int)Av1ReferenceFrameType.Last]];
+            int toFirst = orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, firstOrderHint);
+            int toSecond = Math.Abs(orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, secondOrderHint));
+            if (Math.Abs(toFirst - toSecond) > 1 ||
+                (availableReferences & (1 << (int)first)) == 0 ||
+                (availableReferences & (1 << (int)second)) == 0)
+            {
+                skipMode.SkipModeFlag = false;
+            }
+        }
+
+        /// <summary>
+        /// Removes references in a fixed order until the frame uses no more references than its speed allows.
+        /// Reference: enforce_max_ref_frames(), get_max_allowed_ref_frames(), and get_num_refs_to_disable().
+        /// </summary>
+        /// <param name="sequenceHeader">The sequence header with the order hint parameters.</param>
+        /// <param name="frameHeader">The frame header with the reference order hints.</param>
+        /// <param name="flags">The available references, one bit per reference type.</param>
+        /// <param name="speedSettings">The speed settings of the frame.</param>
+        /// <returns>The available references that remain, one bit per reference type.</returns>
+        protected static byte EnforceMaximumReferenceFrames(
+            ObuSequenceHeader sequenceHeader,
+            ObuFrameHeader frameHeader,
+            byte flags,
+            in Av1EncoderSpeedSettings speedSettings)
+        {
+            int level = speedSettings.SelectiveReferenceFrameLevel;
+            int referencesToDisable = 0;
+            if (level >= 3)
+            {
+                referencesToDisable++;
+                if (level >= 6)
+                {
+                    // Disable LAST2 and ALTREF2.
+                    referencesToDisable += 2;
+                }
+                else if (level == 5 && (flags & (1 << (int)Av1ReferenceFrameType.Last2)) != 0)
+                {
+                    // Disable LAST2 when it is temporally distant. The first-pass statistics test does not apply
+                    // to one-pass coding.
+                    int slot = (int)frameHeader.GetReferenceFrameIndices()[Av1ReferenceFrameType.Last2 - Av1ReferenceFrameType.Last];
+                    int distance = sequenceHeader.OrderHintInfo.GetRelativeDistance(
+                        frameHeader.GetReferenceOrderHints()[slot],
+                        frameHeader.OrderHint);
+                    if (Math.Abs(distance) > 2)
+                    {
+                        referencesToDisable++;
+                    }
+                }
+            }
+
+            // The max_reference_frames option keeps its default of every inter reference.
+            const int maximumReferenceFrames = Av1Constants.ReferenceFrameCount - 1;
+            int maximumReferences = Math.Min(Av1Constants.ReferenceFrameCount - 1 - referencesToDisable, maximumReferenceFrames);
+            int validReferences = BitOperations.PopCount((uint)(flags & 0xFE));
+            ReadOnlySpan<Av1ReferenceFrameType> disableOrder =
+            [
+                Av1ReferenceFrameType.Last3,
+                Av1ReferenceFrameType.Last2,
+                Av1ReferenceFrameType.Alternate2,
+                Av1ReferenceFrameType.Backward
+            ];
+
+            for (int i = 0; i < disableOrder.Length && validReferences > maximumReferences; i++)
+            {
+                Av1ReferenceFrameType reference = disableOrder[i];
+                if ((flags & (1 << (int)reference)) == 0)
+                {
+                    continue;
+                }
+
+                // libaom clears the GOLDEN flag, not the BWDREF flag, when it disables BWDREF.
+                Av1ReferenceFrameType cleared = reference == Av1ReferenceFrameType.Backward ? Av1ReferenceFrameType.Golden : reference;
+                flags &= (byte)~(1 << (int)cleared);
+                validReferences--;
+            }
+
+            return flags;
+        }
+
+        /// <summary>
         /// Returns the references that the frame may use, without a second reference to a buffer that an
         /// earlier reference in priority order already uses. Reference: get_ref_frame_flags(), with the
         /// LAST, GOLDEN, and ALTREF flags that av1_set_rtc_reference_structure_one_layer() enables.
@@ -2609,7 +2712,12 @@ internal static class Av1FrameEncoder
                 this.referenceBufferIds[reference] = entry.Id;
             }
 
-            parent.AvailableReferenceMask = GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings);
+            parent.AvailableReferenceMask = EnforceMaximumReferenceFrames(
+                this.SequenceHeader,
+                frameHeader,
+                GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
+                parent.SpeedSettings);
+            CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask);
             return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
                 ? null
                 : this.referencePool.GetSlot((int)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame])!.Context;
@@ -2828,7 +2936,12 @@ internal static class Av1FrameEncoder
                 this.referenceBufferIds[reference] = entry.Id;
             }
 
-            parent.AvailableReferenceMask = GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings);
+            parent.AvailableReferenceMask = EnforceMaximumReferenceFrames(
+                this.SequenceHeader,
+                frameHeader,
+                GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
+                parent.SpeedSettings);
+            CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask);
             return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
                 ? null
                 : this.referencePool.GetSlot((int)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame])!.Context;

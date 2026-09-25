@@ -117,20 +117,23 @@ internal static partial class Av1ForwardTransformer
         {
             // Four eight-by-eight transforms are combined in quadrant order. Arithmetic shifts
             // halve the paired coefficients before the final sum to preserve the estimation scale.
+            // Every sum stays in a sixteen-bit lane, so a high-bit-depth residual wraps before the
+            // shift and again after the final sum, as the reference x64 encoder computes it.
+            // Reference: hadamard_16x16_avx2(), which aom_hadamard_16x16 dispatches to.
             for (int i = 0; i < 64; i++)
             {
                 int a0 = coefficients[i];
                 int a1 = coefficients[64 + i];
                 int a2 = coefficients[128 + i];
                 int a3 = coefficients[192 + i];
-                int b0 = (a0 + a1) >> 1;
-                int b1 = (a0 - a1) >> 1;
-                int b2 = (a2 + a3) >> 1;
-                int b3 = (a2 - a3) >> 1;
-                coefficients[i] = highBitDepth ? b0 + b2 : (short)(b0 + b2);
-                coefficients[64 + i] = highBitDepth ? b1 + b3 : (short)(b1 + b3);
-                coefficients[128 + i] = highBitDepth ? b0 - b2 : (short)(b0 - b2);
-                coefficients[192 + i] = highBitDepth ? b1 - b3 : (short)(b1 - b3);
+                int b0 = (short)(a0 + a1) >> 1;
+                int b1 = (short)(a0 - a1) >> 1;
+                int b2 = (short)(a2 + a3) >> 1;
+                int b3 = (short)(a2 - a3) >> 1;
+                coefficients[i] = (short)(b0 + b2);
+                coefficients[64 + i] = (short)(b1 + b3);
+                coefficients[128 + i] = (short)(b0 - b2);
+                coefficients[192 + i] = (short)(b1 - b3);
             }
 
             if (highBitDepth)

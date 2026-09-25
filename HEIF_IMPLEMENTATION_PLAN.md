@@ -462,8 +462,9 @@ Proceed directly to milestone 2 when this implementation is complete.
 
 The sequence harness encodes the same frames with the port's sequence encoder and with `aomenc`
 (`--usage=1 --passes=1 --end-usage=cbr --min-q=Q --max-q=Q --threads=1`) and compares the streams frame by frame.
-Current state: 3-frame 512x384 sequences at q64 and q128, speeds 7, 8 and 9, are byte-identical to `aomenc` on
-every frame. The still-picture regression stays at 620/620.
+Current state: 512x384 bike sequences are byte-identical to `aomenc` on every frame for speeds 7, 8 and 9:
+3 and 12 frames with a slow pan at q64 and q128, and 30 frames at q128 (slow pan) and q64 (static, slow pan,
+fast pan of 6x3 samples per frame). The still-picture regression stays at 620/620.
 
 - [x] Real-time one-layer reference structure (`av1_set_rtc_reference_structure_one_layer`): slot selection,
   refresh, GOLDEN interval, ALTREF lag, `get_ref_frame_flags` duplicate removal, primary reference and per-slot
@@ -472,11 +473,14 @@ every frame. The still-picture regression stays at 620/620.
   prediction rebuild, `model_skip_for_sb_y_large`, intra skip in inter frames, CBR projection NEWMV search
   (`av1_int_pro_motion_estimation`), `try_merge`/`calc_do_split_flag` with residual-spread pruning, preceding-frame
   merge rdmult, and no partition CDF or context updates during non-RD analysis.
-- [ ] Extend the harness to longer sequences, other content and sizes, so that GOLDEN refresh, adaptive ALTREF
-  lag, temporal MV projection, and the warped cut-off (frame 5) are all exercised.
-- [ ] Port the remaining real-time frame control: `av1_adjust_gf_refresh_qp_one_pass_rt`, frames_to_key,
-  frames-since-golden, `direct_partition_merging` (speed 8 and up), and `enable_ref_short_signaling` below 360p.
-  Handle `context_update_tile_id` for multi-tile frames.
+- [x] Longer sequences: GOLDEN refresh (`av1_adjust_gf_refresh_qp_one_pass_rt`, frames_since_golden), temporal
+  MV projection, the warped cut-off, compound pruning by single-reference variance, `newmv_diff_bias`, the CDEF
+  skip from block color sensitivity, compound global filter syntax, full-sample rounding of search starts and
+  neighbor vectors, and the running chroma mode of the intra estimate.
+- [ ] Extend the harness to other content, sizes (odd, small, 360p and below, 720p and up), bit depths and
+  4:4:4, and to scene cuts (high source SAD) and sequences past the 80-frame golden interval.
+- [ ] Port the remaining real-time frame control: frames_to_key, `direct_partition_merging` where it applies, and
+  `enable_ref_short_signaling` below 360p. Handle `context_update_tile_id` for multi-tile frames.
 - [ ] GOOD usage (speeds 0-6) sequences: lag, ARF groups, and the warped/OBMC search. Remove forced error
   resilience and disabled frame-end CDF propagation where they differ from the selected configuration.
 - [ ] Replace the central-window translation search with the required global-motion estimator and selection policy.

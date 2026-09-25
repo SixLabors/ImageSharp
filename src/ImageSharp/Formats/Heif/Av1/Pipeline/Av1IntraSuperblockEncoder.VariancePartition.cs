@@ -562,8 +562,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     source, sourcePlane.Stride, Av1TransformBlockEncoder.GetPlaneSpan(golden, origin), golden.Stride, side, side, 1) >> precisionShift;
             }
 
+            // ALTREF takes part when the non-RD search uses it, alone or in the LAST_ALTREF compound pair.
+            // Reference: use_alt_ref in setup_planes().
             uint alternateSad = uint.MaxValue;
-            if ((parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Alternate)) != 0 &&
+            bool useAlternate = parent.SpeedSettings.UseEstimatedAlternateReference || parent.SpeedSettings.UseEstimatedCompound;
+            if (useAlternate && (parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Alternate)) != 0 &&
                 this.sourceSadLevel != Av1SourceSadLevel.Zero)
             {
                 Buffer2DRegion<TSample> alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y);
@@ -694,9 +697,20 @@ internal static partial class Av1IntraSuperblockEncoder
 
             this.partitionReference = Av1ReferenceFrameType.Last;
             this.estimatedReferencePruning = parent.SpeedSettings.GetEstimatedReferencePruningLevel(parent.IsScreenContent);
-            if (goldenSad < 0.9 * lastSad)
+
+            // set_ref_frame_for_partition(): GOLDEN or ALTREF, whichever has the lower error, replaces LAST when
+            // its error is below 0.9 of LAST's.
+            if (goldenSad < 0.9 * lastSad && goldenSad < alternateSad)
             {
                 this.partitionReference = Av1ReferenceFrameType.Golden;
+            }
+            else if (alternateSad < 0.9 * lastSad && alternateSad < goldenSad)
+            {
+                this.partitionReference = Av1ReferenceFrameType.Alternate;
+            }
+
+            if (this.partitionReference != Av1ReferenceFrameType.Last)
+            {
                 this.partitionMotion = default;
                 this.usePartitionMotion = false;
                 this.estimatedReferencePruning = 0;
@@ -704,8 +718,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             bool zeroMotion = this.partitionMotion.IsZero;
-            Av1EncoderFrame<TSample>.PlanarView selected = this.partitionReference == Av1ReferenceFrameType.Last
-                ? this.reference : this.goldenReference;
+            Av1EncoderFrame<TSample>.PlanarView selected = this.partitionReference switch
+            {
+                Av1ReferenceFrameType.Golden => this.goldenReference,
+                Av1ReferenceFrameType.Alternate => this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView,
+                _ => this.reference
+            };
             if (!zeroMotion)
             {
                 int planes = this.source.IsMonochrome ? 1 : 3;
@@ -776,7 +794,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1Plane plane = index == 0 ? Av1Plane.U : Av1Plane.V;
                     Buffer2DRegion<TSample> chromaSource = this.source.GetPlane(plane);
-                    Buffer2DRegion<TSample> chromaReference = this.reference.GetPlane(plane);
+
+                    // chroma_check() measures zero motion against the reference chosen for partitioning (pre[0]).
+                    Buffer2DRegion<TSample> chromaReference = selected.GetPlane(plane);
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
                         : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;

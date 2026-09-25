@@ -1,0 +1,199 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+
+/// <summary>
+/// Holds the eight reference-map slots of a sequence and the reconstructed frames they point at. A frame buffer
+/// stays alive while at least one slot points at it, and returns to the pool when the last slot is refreshed away.
+/// Reference: the RefCntBuffer pool behind cm->ref_frame_map, with assign_frame_buffer_p() and
+/// decrease_ref_count().
+/// </summary>
+/// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
+    where TSample : unmanaged
+{
+    private readonly Configuration configuration;
+    private readonly int width;
+    private readonly int height;
+    private readonly int bitDepth;
+    private readonly Av1ColorFormat colorFormat;
+    private readonly int chromaPositionX;
+    private readonly int chromaPositionY;
+    private readonly int lumaBorder;
+    private readonly int qIndex;
+    private readonly Av1EncoderMotionField motionField;
+    private readonly Entry?[] slots = new Entry?[Av1Constants.ReferenceFrameCount];
+    private readonly Stack<Entry> free = new();
+    private readonly List<Entry> entries = [];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1EncoderReferencePool{TSample}"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration providing the frame allocator.</param>
+    /// <param name="width">The visible luma width.</param>
+    /// <param name="height">The visible luma height.</param>
+    /// <param name="bitDepth">The native component precision.</param>
+    /// <param name="colorFormat">The native luma and chroma sampling layout.</param>
+    /// <param name="chromaPositionX">The horizontal chroma position in half-luma-sample units.</param>
+    /// <param name="chromaPositionY">The vertical chroma position in half-luma-sample units.</param>
+    /// <param name="lumaBorder">The border width and height in luma samples.</param>
+    /// <param name="qIndex">The quantizer index that selects the initial distributions of a new frame context.</param>
+    /// <param name="motionField">The motion field of the sequence, which sizes the saved motion vectors of a buffer.</param>
+    public Av1EncoderReferencePool(
+        Configuration configuration,
+        int width,
+        int height,
+        int bitDepth,
+        Av1ColorFormat colorFormat,
+        int chromaPositionX,
+        int chromaPositionY,
+        int lumaBorder,
+        int qIndex,
+        Av1EncoderMotionField motionField)
+    {
+        this.configuration = configuration;
+        this.width = width;
+        this.height = height;
+        this.bitDepth = bitDepth;
+        this.colorFormat = colorFormat;
+        this.chromaPositionX = chromaPositionX;
+        this.chromaPositionY = chromaPositionY;
+        this.lumaBorder = lumaBorder;
+        this.qIndex = qIndex;
+        this.motionField = motionField;
+    }
+
+    /// <summary>
+    /// Returns an unused frame buffer for the frame about to be coded. Reference: get_free_fb().
+    /// </summary>
+    /// <returns>A buffer that no slot points at.</returns>
+    public Entry Acquire()
+    {
+        if (this.free.TryPop(out Entry? entry))
+        {
+            return entry;
+        }
+
+        entry = new Entry(
+            this.entries.Count,
+            new Av1EncoderFrameBuffer<TSample>(
+                this.configuration,
+                this.width,
+                this.height,
+                this.bitDepth,
+                this.colorFormat,
+                this.chromaPositionX,
+                this.chromaPositionY,
+                this.lumaBorder),
+            new Av1FrameEntropyContext(this.qIndex),
+            this.motionField.CreateSavedMotionField(this.configuration));
+
+        this.entries.Add(entry);
+        return entry;
+    }
+
+    /// <summary>
+    /// Gets the buffer a slot points at.
+    /// </summary>
+    /// <param name="slot">The reference-map slot.</param>
+    /// <returns>The buffer, or <see langword="null"/> when no frame has refreshed the slot.</returns>
+    public Entry? GetSlot(int slot) => this.slots[slot];
+
+    /// <summary>
+    /// Points every slot selected by the refresh mask at the coded frame, and releases buffers that no slot points
+    /// at any more. Reference: the refresh_frame_flags loop of av1_update_reference_frames().
+    /// </summary>
+    /// <param name="current">The buffer holding the coded frame.</param>
+    /// <param name="refreshFrameFlags">The eight-bit refresh mask of the coded frame.</param>
+    public void Refresh(Entry current, uint refreshFrameFlags)
+    {
+        for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
+        {
+            if ((refreshFrameFlags & (1U << slot)) == 0)
+            {
+                continue;
+            }
+
+            Entry? previous = this.slots[slot];
+            if (previous == current)
+            {
+                continue;
+            }
+
+            current.ReferenceCount++;
+            this.slots[slot] = current;
+            if (previous is not null && --previous.ReferenceCount == 0)
+            {
+                this.free.Push(previous);
+            }
+        }
+
+        if (current.ReferenceCount == 0)
+        {
+            this.free.Push(current);
+        }
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        foreach (Entry entry in this.entries)
+        {
+            entry.Buffer.Dispose();
+            entry.MotionField.Dispose();
+        }
+
+        this.entries.Clear();
+        this.free.Clear();
+        Array.Clear(this.slots);
+    }
+
+    /// <summary>
+    /// One reconstructed frame and the entropy context saved with it.
+    /// </summary>
+    internal sealed class Entry
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Entry"/> class.
+        /// </summary>
+        /// <param name="id">The identity used to detect two references to the same buffer.</param>
+        /// <param name="buffer">The frame storage.</param>
+        /// <param name="context">The saved frame context.</param>
+        /// <param name="motionField">The saved motion vectors.</param>
+        public Entry(int id, Av1EncoderFrameBuffer<TSample> buffer, Av1FrameEntropyContext context, Av1EncoderMotionField.SavedMotionField motionField)
+        {
+            this.Id = id;
+            this.Buffer = buffer;
+            this.Context = context;
+            this.MotionField = motionField;
+        }
+
+        /// <summary>
+        /// Gets the identity used to detect two references to the same buffer.
+        /// </summary>
+        public int Id { get; }
+
+        /// <summary>
+        /// Gets the frame storage.
+        /// </summary>
+        public Av1EncoderFrameBuffer<TSample> Buffer { get; }
+
+        /// <summary>
+        /// Gets the adapted distributions saved at the end of the frame. Reference: cur_frame->frame_context.
+        /// </summary>
+        public Av1FrameEntropyContext Context { get; }
+
+        /// <summary>
+        /// Gets the motion vectors saved at the end of the frame. Reference: cur_frame->mvs.
+        /// </summary>
+        public Av1EncoderMotionField.SavedMotionField MotionField { get; }
+
+        /// <summary>
+        /// Gets or sets the number of slots that point at this buffer.
+        /// </summary>
+        public int ReferenceCount { get; set; }
+    }
+}

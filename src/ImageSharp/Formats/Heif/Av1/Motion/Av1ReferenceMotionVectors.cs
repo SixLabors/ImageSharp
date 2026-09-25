@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -1534,6 +1535,12 @@ internal struct Av1ReferenceMotionVectors
 
         public bool IsReferenceSignBiased(Av1ReferenceFrameType referenceFrame)
         {
+            Av1EncoderMotionField? encodedMotionField = this.encodedPicture?.Parent.MotionField;
+            if (encodedMotionField is not null)
+            {
+                return encodedMotionField.IsReferenceSignBiased(referenceFrame);
+            }
+
             Av1FrameInfo? frameInfo = this.decodedFrame;
             return frameInfo is not null && frameInfo.IsReferenceSignBiased(referenceFrame);
         }
@@ -1547,6 +1554,19 @@ internal struct Av1ReferenceMotionVectors
             bool forceIntegerMotionVector,
             out Av1MotionVector motionVector)
         {
+            Av1EncoderMotionField? encodedMotionField = this.encodedPicture?.Parent.MotionField;
+            if (encodedMotionField is not null)
+            {
+                return encodedMotionField.TryGetProjectedTemporalMotionVector(
+                    row,
+                    column,
+                    referenceFrame,
+                    orderHintInfo,
+                    allowHighPrecisionMotionVector,
+                    forceIntegerMotionVector,
+                    out motionVector);
+            }
+
             Av1FrameInfo? frameInfo = this.decodedFrame;
             if (frameInfo is null)
             {

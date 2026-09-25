@@ -421,17 +421,55 @@ internal partial class Av1FrameInfo
             startToCurrentFrameOffset = -startToCurrentFrameOffset;
         }
 
-        int sourceRowCount = (this.activeModeInfoRowCount + 1) >> MotionFieldModeInfoShift;
-        int sourceColumnCount = (this.activeModeInfoColumnCount + 1) >> MotionFieldModeInfoShift;
-        int destinationRowCount = this.activeModeInfoRowCount >> MotionFieldModeInfoShift;
-        int destinationColumnCount = this.activeModeInfoColumnCount >> MotionFieldModeInfoShift;
         MotionFieldStorage<RetainedMotionFieldEntry>? retainedMotionFieldState = startFrameState.RetainedMotionField;
         if (retainedMotionFieldState is null)
         {
             return false;
         }
 
-        MotionFieldStorage<RetainedMotionFieldEntry> retainedMotionField = retainedMotionFieldState.Value;
+        InlineArray8<uint> startReferenceOrderHints = startFrameState.MotionFieldReferenceOrderHints;
+        ProjectMotionFieldEntries(
+            orderHintInfo,
+            retainedMotionFieldState.Value,
+            startFrameHeader.OrderHint,
+            startReferenceOrderHints,
+            startToCurrentFrameOffset,
+            reverseDirection,
+            this.activeModeInfoRowCount,
+            this.activeModeInfoColumnCount,
+            temporalMotionField);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Projects the retained vectors of one start frame into a temporal candidate grid. Reference: the block loop
+    /// of motion_field_projection().
+    /// </summary>
+    /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
+    /// <param name="retainedMotionField">The retained 8x8 motion field of the start frame.</param>
+    /// <param name="startOrderHint">The order hint of the start frame.</param>
+    /// <param name="startReferenceOrderHints">The order hint of each reference of the start frame, by reference type.</param>
+    /// <param name="startToCurrentFrameOffset">The signed start-to-current distance, negated for a reversed projection.</param>
+    /// <param name="reverseDirection">Whether the vector moves backwards from the source position.</param>
+    /// <param name="activeModeInfoRowCount">The frame height in 4x4 mode-information units.</param>
+    /// <param name="activeModeInfoColumnCount">The frame width in 4x4 mode-information units.</param>
+    /// <param name="temporalMotionField">The destination temporal field of the current frame.</param>
+    internal static void ProjectMotionFieldEntries(
+        ObuOrderHintInfo orderHintInfo,
+        MotionFieldStorage<RetainedMotionFieldEntry> retainedMotionField,
+        uint startOrderHint,
+        ReadOnlySpan<uint> startReferenceOrderHints,
+        int startToCurrentFrameOffset,
+        bool reverseDirection,
+        int activeModeInfoRowCount,
+        int activeModeInfoColumnCount,
+        MotionFieldStorage<TemporalMotionFieldEntry> temporalMotionField)
+    {
+        int sourceRowCount = (activeModeInfoRowCount + 1) >> MotionFieldModeInfoShift;
+        int sourceColumnCount = (activeModeInfoColumnCount + 1) >> MotionFieldModeInfoShift;
+        int destinationRowCount = activeModeInfoRowCount >> MotionFieldModeInfoShift;
+        int destinationColumnCount = activeModeInfoColumnCount >> MotionFieldModeInfoShift;
 
         ReadOnlySpan<RetainedMotionFieldEntry> sourceEntries = retainedMotionField.Owner.Memory.Span;
         Span<TemporalMotionFieldEntry> destinationEntries = temporalMotionField.Owner.Memory.Span;
@@ -448,8 +486,8 @@ internal partial class Av1FrameInfo
                 }
 
                 int referenceFrameOffset = orderHintInfo.GetRelativeDistance(
-                    startFrameHeader.OrderHint,
-                    startFrameState.MotionFieldReferenceOrderHints[(int)source.ReferenceFrame]);
+                    startOrderHint,
+                    startReferenceOrderHints[(int)source.ReferenceFrame]);
 
                 bool positionIsValid = Math.Abs(referenceFrameOffset) <= Av1MotionVector.MaximumTemporalDistance &&
                     referenceFrameOffset > 0 &&
@@ -481,8 +519,6 @@ internal partial class Av1FrameInfo
                 destinationEntries[destinationOffset] = new(source.MotionVector, referenceFrameOffset);
             }
         }
-
-        return true;
     }
 
     /// <summary>
@@ -757,7 +793,7 @@ internal partial class Av1FrameInfo
     /// <summary>
     /// Stores one temporal candidate projected over the current frame's 8x8 grid.
     /// </summary>
-    private readonly struct TemporalMotionFieldEntry
+    internal readonly struct TemporalMotionFieldEntry
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TemporalMotionFieldEntry"/> struct.

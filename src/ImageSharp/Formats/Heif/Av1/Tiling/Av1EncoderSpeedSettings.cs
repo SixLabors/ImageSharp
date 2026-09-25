@@ -627,6 +627,16 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool SkipCdefSuperblock => this.realtime && this.Speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360;
 
     /// <summary>
+    /// Gets the level that adapts the ALTREF lag to the average source SAD, or 0 for the fixed lag of 4 frames.
+    /// Reference: sad_based_adp_altref_lag in set_rt_speed_feature_framesize_dependent(), speed 9 at 360p and
+    /// larger, with a separate level from 720p.
+    /// </summary>
+    public int AlternateReferenceLagLevel
+        => this.realtime && this.Speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360
+            ? this.minimumDimension >= 720 ? 1 : 2
+            : 0;
+
+    /// <summary>
     /// Gets a value indicating whether estimated inter search admits compound prediction.
     /// </summary>
     public bool UseEstimatedCompound => this.realtime && (this.Speed < HeifEncodingSpeed.Level9 || this.minimumDimension >= 360);

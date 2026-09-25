@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -255,6 +256,90 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
+    /// Determines whether any coded block predicts from two references. Reference: compound_ref_used_flag,
+    /// which the encoder sets while it encodes each block.
+    /// </summary>
+    /// <param name="picture">The completed frame decisions.</param>
+    /// <returns><see langword="true"/> when at least one block uses a compound reference.</returns>
+    private static bool UsesCompoundReference(Av1PictureControlSet picture)
+    {
+        ObuFrameHeader header = picture.Parent.FrameHeader;
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        for (int row = 0; row < header.ModeInfoRowCount; row++)
+        {
+            for (int column = 0; column < header.ModeInfoColumnCount; column++)
+            {
+                if (allocation[grid[(row * picture.ModeInfoStride) + column]].Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether any coded block uses skip mode. Reference: skip_mode_used_flag.
+    /// </summary>
+    /// <param name="picture">The completed frame decisions.</param>
+    /// <returns><see langword="true"/> when at least one block uses skip mode.</returns>
+    private static bool UsesSkipMode(Av1PictureControlSet picture)
+    {
+        ObuFrameHeader header = picture.Parent.FrameHeader;
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        for (int row = 0; row < header.ModeInfoRowCount; row++)
+        {
+            for (int column = 0; column < header.ModeInfoColumnCount; column++)
+            {
+                if (allocation[grid[(row * picture.ModeInfoStride) + column]].Block.SkipMode)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Signals the one interpolation filter at frame level when every inter block uses it in both directions.
+    /// Reference: fix_interp_filter(), which reads the switchable_interp counts that update_filter_type_count()
+    /// gathers for every inter block while the frame filter is SWITCHABLE.
+    /// </summary>
+    /// <param name="picture">The completed frame decisions.</param>
+    private static void FixInterpolationFilter(Av1PictureControlSet picture)
+    {
+        ObuFrameHeader header = picture.Parent.FrameHeader;
+        if (header.InterpolationFilter != Av1InterpolationFilter.Switchable)
+        {
+            return;
+        }
+
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        uint used = 0;
+        for (int row = 0; row < header.ModeInfoRowCount; row++)
+        {
+            for (int column = 0; column < header.ModeInfoColumnCount; column++)
+            {
+                ref readonly Av1EncoderBlockModeInfo mode = ref allocation[grid[(row * picture.ModeInfoStride) + column]].Block;
+                if (mode.ReferenceFrame > Av1ReferenceFrameType.Intra)
+                {
+                    used |= (1U << (int)mode.HorizontalInterpolationFilter) | (1U << (int)mode.VerticalInterpolationFilter);
+                }
+            }
+        }
+
+        if (used != 0 && (used & (used - 1)) == 0)
+        {
+            header.InterpolationFilter = (Av1InterpolationFilter)BitOperations.TrailingZeroCount(used);
+        }
+    }
+
+    /// <summary>
     /// Determines whether any coded block uses a transform smaller than the largest its size permits, the
     /// condition under which the reference increments <c>txb_split_count</c> while it encodes each block.
     /// </summary>
@@ -479,11 +564,40 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // outside realtime mode, and in realtime mode while estimated compound prediction is enabled
         // (use_comp_ref_nonrd).
         Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
+        bool frameParameterUpdate = !speedSettings.UseEstimatedInterModeDecision || speedSettings.UseEstimatedCompound;
         if (frameHeader.TransformMode == Av1TransformMode.Select &&
-            (!speedSettings.UseEstimatedInterModeDecision || speedSettings.UseEstimatedCompound) &&
+            frameParameterUpdate &&
             !HasTransformSplit(picture))
         {
             frameHeader.TransformMode = Av1TransformMode.Largest;
+        }
+
+        if (!frameHeader.IsIntra)
+        {
+            // The same branch of av1_encode_frame codes single references when no block used a compound
+            // reference, and then leaves skip mode off when it is not allowed or no block used it.
+            ObuSkipModeParameters skipMode = frameHeader.SkipModeParameters;
+            if (frameParameterUpdate)
+            {
+                if (frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect && !UsesCompoundReference(picture))
+                {
+                    frameHeader.ReferenceMode = ObuReferenceMode.SingleReference;
+                }
+
+                if (frameHeader.ReferenceMode == ObuReferenceMode.SingleReference)
+                {
+                    skipMode.Derive(picture.Sequence.SequenceHeader.OrderHintInfo, frameHeader);
+                    skipMode.SkipModeFlag = false;
+                }
+
+                if (skipMode.SkipModeFlag && !UsesSkipMode(picture))
+                {
+                    skipMode.SkipModeFlag = false;
+                }
+            }
+
+            // Reference: fix_interp_filter() in av1_finalize_encoded_frame().
+            FixInterpolationFilter(picture);
         }
 
         // loopfilter_frame picks the levels against the source, then filters the frame.

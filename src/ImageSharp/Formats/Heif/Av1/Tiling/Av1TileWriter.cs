@@ -748,8 +748,8 @@ internal partial class Av1TileWriter
         }
 
         return !hasRows
-            ? Av1SymbolEncoder.GetSplitOrHorizontalCost(partitionType, blockSize, context)
-            : Av1SymbolEncoder.GetSplitOrVerticalCost(partitionType, blockSize, context);
+            ? writer.GetSplitOrHorizontalCost(partitionType, blockSize, context)
+            : writer.GetSplitOrVerticalCost(partitionType, blockSize, context);
     }
 
     /// <summary>

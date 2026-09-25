@@ -58,6 +58,11 @@ internal class Av1PictureParentControlSet
     public byte AvailableReferenceMask { get; set; }
 
     /// <summary>
+    /// Gets or sets the temporal motion field of a sequence frame, or <see langword="null"/> for a still picture.
+    /// </summary>
+    public Av1EncoderMotionField? MotionField { get; set; }
+
+    /// <summary>
     /// Gets or sets the closest enabled reference after the current frame.
     /// </summary>
     public Av1ReferenceFrameType NearestFutureReference { get; set; }

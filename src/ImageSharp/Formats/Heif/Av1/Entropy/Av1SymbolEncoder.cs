@@ -27,10 +27,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private const int MaximumCoefficientContextCount = (Av1Constants.MaxTransformSize / 2) * (Av1Constants.MaxTransformSize / 2);
 
     /// <summary>
-    /// The partition distributions every frame starts from. The encoder begins each tile from the default
-    /// distributions, so these are also the distributions of the frame context.
+    /// The default partition distributions, which are the frame context of a frame without a primary reference.
     /// </summary>
-    private static readonly Av1Distribution[] FramePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+    private static readonly Av1Distribution[] DefaultFramePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+
+    /// <summary>
+    /// The retained primary-reference context every tile of the current frame starts from, or
+    /// <see langword="null"/> when tiles start from the normative defaults.
+    /// </summary>
+    private Av1FrameEntropyContext? frameBase;
 
     /// <summary>
     /// Owns every mutable tile distribution and restores normative defaults without rebuilding the object graph.
@@ -488,10 +493,32 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// </summary>
     public void Reset()
     {
-        this.entropyContext.ResetToDefaults(this.baseQIndex);
+        this.ResetDistributions();
         this.RefreshCosts();
         this.writer.Reset();
     }
+
+    /// <summary>
+    /// Selects the context every tile of the next frame starts from, and resets the tile state to it.
+    /// </summary>
+    /// <param name="primaryReferenceContext">
+    /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
+    /// The context must stay unchanged while the frame is coded.
+    /// </param>
+    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext)
+    {
+        this.frameBase = primaryReferenceContext;
+        this.Reset();
+    }
+
+    /// <summary>
+    /// Copies the adapted distributions of the last coded tile into a retained frame context, with the observation
+    /// counters reset. Reference: the backward-adaptation copy of the context-update tile's tctx into cm->fc,
+    /// followed by av1_reset_cdf_symbol_counters().
+    /// </summary>
+    /// <param name="destination">The retained frame context that receives the snapshot.</param>
+    public void SnapshotTo(Av1FrameEntropyContext destination)
+        => this.entropyContext.SnapshotTo(destination);
 
     /// <summary>
     /// Retains mode and coefficient rates from the current distributions for subsequent candidate comparisons.
@@ -508,9 +535,25 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="outputOffset">The first output byte available to the next tile.</param>
     public void Reset(int outputOffset)
     {
-        this.entropyContext.ResetToDefaults(this.baseQIndex);
+        this.ResetDistributions();
         this.RefreshCosts();
         this.writer.Reset(outputOffset);
+    }
+
+    /// <summary>
+    /// Restores the tile distributions to the frame context: the primary reference's retained context, or the
+    /// normative defaults for the frame quantizer.
+    /// </summary>
+    private void ResetDistributions()
+    {
+        if (this.frameBase is null)
+        {
+            this.entropyContext.ResetToDefaults(this.baseQIndex);
+        }
+        else
+        {
+            this.entropyContext.CopyFrom(this.frameBase);
+        }
     }
 
     /// <summary>
@@ -1257,12 +1300,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public static int GetSplitOrHorizontalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    public int GetSplitOrHorizontalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
         // A block clipped at a frame edge is costed from the frame context, not from the adapted tile
         // distributions. Reference: set_partition_cost_for_edge_blk(), which reads cm->fc->partition_cdf.
         int frequency = (int)Av1SymbolDecoder.GetSplitOrHorizontalFrequency(
-            FramePartitionTypes,
+            this.frameBase?.PartitionTypes ?? DefaultFramePartitionTypes,
             blockSize,
             context);
 
@@ -1302,12 +1345,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public static int GetSplitOrVerticalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    public int GetSplitOrVerticalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
         // A block clipped at a frame edge is costed from the frame context, not from the adapted tile
         // distributions. Reference: set_partition_cost_for_edge_blk(), which reads cm->fc->partition_cdf.
         int frequency = (int)Av1SymbolDecoder.GetSplitOrVerticalFrequency(
-            FramePartitionTypes,
+            this.frameBase?.PartitionTypes ?? DefaultFramePartitionTypes,
             blockSize,
             context);
 

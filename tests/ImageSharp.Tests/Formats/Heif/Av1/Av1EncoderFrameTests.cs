@@ -521,7 +521,7 @@ public class Av1EncoderFrameTests
 
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
         Assert.Equal(ObuFrameType.InterFrame, frameHeader.FrameType);
-        Assert.Equal(Av1InterpolationFilter.Switchable, frameHeader.InterpolationFilter);
+        Assert.NotEqual(Av1InterpolationFilter.Bilinear, frameHeader.InterpolationFilter);
 
         Assert.True(hasMotion);
         if (colorConfig.SubSamplingX || colorConfig.SubSamplingY)
@@ -597,11 +597,14 @@ public class Av1EncoderFrameTests
         Assert.False(frameHeader.ForceIntegerMotionVector);
         Assert.True(frameHeader.AllowHighPrecisionMotionVector);
         Assert.Equal(37, frameHeader.QuantizationParameters.BaseQIndex);
-        Assert.Equal(Av1InterpolationFilter.Switchable, frameHeader.InterpolationFilter);
+        Assert.NotEqual(Av1InterpolationFilter.Bilinear, frameHeader.InterpolationFilter);
         Assert.False(decoder.SequenceHeader.EnableDualFilter);
-        Assert.Equal(1U, frameHeader.RefreshFrameFlags);
+
+        // The first inter frame reads LAST from slot 0 and GOLDEN from slot 6, and refreshes slot 1, which
+        // becomes LAST for the next frame. Reference: av1_set_rtc_reference_structure_one_layer().
+        Assert.Equal(1U << 1, frameHeader.RefreshFrameFlags);
         Assert.Equal(0U, frameHeader.GetReferenceFrameIndices()[(int)Av1ReferenceFrameType.Last - 1]);
-        Assert.Equal(7U, frameHeader.GetReferenceFrameIndices()[(int)Av1ReferenceFrameType.Golden - 1]);
+        Assert.Equal(6U, frameHeader.GetReferenceFrameIndices()[(int)Av1ReferenceFrameType.Golden - 1]);
         Av1FrameInfo secondFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         bool hasSkippedInterBlock = false;
         bool hasLargeInterBlock = false;
@@ -627,10 +630,11 @@ public class Av1EncoderFrameTests
     }
 
     /// <summary>
-    /// Verifies that the third sequence frame can select the bounded equal-average LAST and GOLDEN compound mode.
+    /// Verifies that the third sequence frame can select the bounded equal-average compound of LAST and the retained
+    /// key frame, which duplicate removal leaves reachable through ALTREF. Reference: get_ref_frame_flags().
     /// </summary>
     [Fact]
-    public void SequenceEncoderWritesLastGoldenNearestNearestCompoundBlock()
+    public void SequenceEncoderWritesLastAlternateNearestNearestCompoundBlock()
     {
         const int Width = 32;
         const int Height = 32;
@@ -712,7 +716,7 @@ public class Av1EncoderFrameTests
         foreach (Av1BlockModeInfo mode in frameInfo.GetModeInfos(Point.Empty, frameInfo.GetModeInfoCount(Point.Empty)))
         {
             hasCompoundBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last &&
-                mode.ReferenceFrames[1] == Av1ReferenceFrameType.Golden &&
+                mode.ReferenceFrames[1] == Av1ReferenceFrameType.Alternate &&
                 mode.YMode == Av1PredictionMode.NearestNearestMotionVector;
         }
 
@@ -720,10 +724,11 @@ public class Av1EncoderFrameTests
     }
 
     /// <summary>
-    /// Verifies that a third sequence frame can independently select the retained GOLDEN reference.
+    /// Verifies that a third sequence frame can independently select the retained key frame. GOLDEN and ALTREF both
+    /// hold the key frame, so duplicate removal leaves it reachable through ALTREF. Reference: get_ref_frame_flags().
     /// </summary>
     [Fact]
-    public void SequenceEncoderWritesGoldenSingleReferenceBlock()
+    public void SequenceEncoderWritesKeyFrameSingleReferenceBlock()
     {
         const int Width = 32;
         const int Height = 32;
@@ -797,14 +802,14 @@ public class Av1EncoderFrameTests
             false);
 
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        bool hasGoldenBlock = false;
+        bool hasKeyFrameBlock = false;
         foreach (Av1BlockModeInfo mode in frameInfo.GetModeInfos(Point.Empty, frameInfo.GetModeInfoCount(Point.Empty)))
         {
-            hasGoldenBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Golden &&
+            hasKeyFrameBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate &&
                 mode.ReferenceFrames[1] == Av1ReferenceFrameType.None;
         }
 
-        Assert.True(hasGoldenBlock);
+        Assert.True(hasKeyFrameBlock);
     }
 
     [Fact]

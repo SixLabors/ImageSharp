@@ -584,6 +584,14 @@ internal static class Av1FrameEncoder
 
             frameHeader.AllowHighPrecisionMotionVector = speedSettings.AllowHighPrecisionMotionVector;
             frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+
+            // Real-time usage selects the reference mode per frame only while estimated compound prediction is
+            // enabled, and otherwise codes single references. Reference: the frame_parameter_update and
+            // use_comp_ref_nonrd branches of av1_encode_frame().
+            if (speedSettings.IsRealtime && !speedSettings.UseEstimatedCompound)
+            {
+                frameHeader.ReferenceMode = ObuReferenceMode.SingleReference;
+            }
         }
 
         frameHeader.QuantizationParameters.BaseQIndex = qIndex;
@@ -1677,7 +1685,67 @@ internal static class Av1FrameEncoder
     /// </summary>
     internal abstract class SequenceEncoder : IDisposable
     {
+        /// <summary>
+        /// The number of rotating slots that hold LAST and ALTREF. Reference: sh in
+        /// av1_set_rtc_reference_structure_one_layer().
+        /// </summary>
+        private const int RotatingSlotCount = 6;
+
+        /// <summary>
+        /// The fixed GOLDEN slot. Reference: gld_idx in av1_set_rtc_reference_structure_one_layer().
+        /// </summary>
+        private const int GoldenSlot = 6;
+
+        /// <summary>
+        /// The slot that no reference uses. Reference: the ref_idx default of 7 in
+        /// av1_set_rtc_reference_structure_one_layer().
+        /// </summary>
+        private const int UnusedSlot = 7;
+
+        /// <summary>
+        /// The golden interval when cyclic refresh gives no refresh period. Reference: FIXED_GF_INTERVAL_RT.
+        /// </summary>
+        private const int FixedGoldenIntervalRealtime = 80;
+
+        /// <summary>
+        /// The golden interval after a period of high motion. Reference: set_golden_update().
+        /// </summary>
+        private const int LowMotionGoldenInterval = 16;
+
+        /// <summary>
+        /// The wrap point of the golden group index. Reference: MAX_STATIC_GF_GROUP_LENGTH.
+        /// </summary>
+        private const int MaximumStaticGoldenGroupLength = 250;
+
         private uint nextOrderHint;
+
+        /// <summary>
+        /// The number of frames coded before the current frame. Reference: cm->current_frame.frame_number.
+        /// </summary>
+        private uint frameNumber;
+
+        /// <summary>
+        /// Reference: rc->frames_till_gf_update_due.
+        /// </summary>
+        private int framesTillGoldenUpdateDue;
+
+        /// <summary>
+        /// Reference: cpi->gf_frame_index.
+        /// </summary>
+        private int goldenFrameIndex;
+
+        /// <summary>
+        /// The slot that holds the entropy context of the most recent frame of the only context type that
+        /// one-layer real-time coding uses, or -1 when there is none. Reference: fb_of_context_type[0].
+        /// </summary>
+        private int contextTypeSlot = -1;
+
+        /// <summary>
+        /// The frame interpolation filter, which persists between frames. Reference: cm->features.interp_filter,
+        /// which av1_encode_frame() resets to SWITCHABLE only in the frame_parameter_update and
+        /// use_comp_ref_nonrd branch, and which fix_interp_filter() narrows after each inter frame.
+        /// </summary>
+        private Av1InterpolationFilter frameInterpolationFilter = Av1InterpolationFilter.Switchable;
 
         protected SequenceEncoder(
             Configuration configuration,
@@ -1751,6 +1819,13 @@ internal static class Av1FrameEncoder
                 this.PictureBuffer.Picture.Parent.EncodingSpeed = speed;
                 this.PictureBuffer.Picture.Parent.SpeedSettings = speedSettings;
 
+                this.MotionField = new Av1EncoderMotionField(
+                    configuration,
+                    this.FrameHeader.ModeInfoColumnCount,
+                    this.FrameHeader.ModeInfoRowCount);
+
+                this.PictureBuffer.Picture.Parent.MotionField = this.MotionField;
+
                 this.SuperblockWorkspace = new Av1EncoderSuperblockWorkspace(configuration);
 
                 this.TileWorkspace = new Av1EncoderTileWorkspace(this.FrameHeader, this.SuperblockWorkspace);
@@ -1760,8 +1835,8 @@ internal static class Av1FrameEncoder
                     allocateDisplacementCosts: allocateIntraBlockCopySearch,
                     this.SequenceHeader.SuperblockSize);
 
-                // Tile probabilities adapt within a sample, while error-resilient frame headers prohibit carrying
-                // those updates into the next sample. The retained encoder is therefore reset before each frame.
+                // Each frame starts from the defaults or from the context saved with its primary reference, and the
+                // adapted context is saved with the coded frame. BeginFrame selects the start for each frame.
                 this.SymbolEncoder = new Av1SymbolEncoder(
                     configuration,
                     this.TileBufferLength,
@@ -1844,6 +1919,11 @@ internal static class Av1FrameEncoder
         /// </summary>
         protected ObuWriter ObuWriter { get; }
 
+        /// <summary>
+        /// Gets the temporal motion field that each frame projects from its references.
+        /// </summary>
+        protected Av1EncoderMotionField MotionField { get; }
+
         protected void ConfigureFrameHeader(ObuFrameType frameType)
         {
             Av1FrameEncoder.ConfigureFrameHeader(this.FrameHeader, this.QIndex, this.Speed, frameType);
@@ -1856,8 +1936,210 @@ internal static class Av1FrameEncoder
             this.FrameHeader.OrderHint = orderHintBits == 0
                 ? 0
                 : this.nextOrderHint & ((1U << orderHintBits) - 1);
-            this.FrameHeader.SkipModeParameters.Derive(this.SequenceHeader.OrderHintInfo, this.FrameHeader);
-            this.FrameHeader.SkipModeParameters.SkipModeFlag = this.FrameHeader.SkipModeParameters.SkipModeAllowed;
+
+            // A key frame is error resilient by definition. Inter frames keep the references' state and
+            // entropy contexts. Reference: set_ext_overrides(), with use_error_resilient off by default.
+            this.FrameHeader.ErrorResilientMode = frameType == ObuFrameType.KeyFrame;
+        }
+
+        /// <summary>
+        /// Returns the slot that LAST uses before the source analysis selects the rest of the structure.
+        /// Reference: last_idx in av1_set_rtc_reference_structure_one_layer().
+        /// </summary>
+        /// <returns>The reference-map slot of LAST.</returns>
+        protected int GetLastSlot()
+            => this.frameNumber > 1 ? (int)((this.frameNumber - 1) % RotatingSlotCount) : 0;
+
+        /// <summary>
+        /// Selects the reference slots, the refreshed slots, the primary reference, and the frame filter after the
+        /// source analysis of the frame. Reference: set_gf_interval_update_onepass_rt() in
+        /// av1_get_one_pass_rt_params(), then av1_set_rtc_reference_structure_one_layer() with
+        /// gf_update = (gf_frame_index == 0), then choose_primary_ref_frame().
+        /// </summary>
+        /// <param name="parent">The frame state with the source analysis and speed settings of the frame.</param>
+        /// <param name="averageSourceSad">The running average source SAD. Reference: rc->avg_source_sad.</param>
+        protected void ConfigureReferenceStructure(Av1PictureParentControlSet parent, ulong averageSourceSad)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
+            bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
+
+            // set_gf_interval_update_onepass_rt()
+            if (parent.HighSourceSad || this.framesTillGoldenUpdateDue == 0)
+            {
+                this.SetBaselineGoldenInterval(parent.AverageFrameLowMotion);
+            }
+
+            bool goldenUpdate = this.goldenFrameIndex == 0;
+
+            // av1_set_rtc_reference_structure_one_layer()
+            uint alternateLag = 4;
+            int lagLevel = speedSettings.AlternateReferenceLagLevel;
+            if (lagLevel != 0)
+            {
+                // th_frame_sad rows HDRES CPU 9 and MIDRES CPU 9 hold one value in every column.
+                ulong threshold = lagLevel == 1 ? 18000UL : 25000UL;
+                alternateLag = averageSourceSad > threshold ? 3U : 6U;
+            }
+
+            uint number = this.frameNumber;
+            uint lastSlot = (uint)this.GetLastSlot();
+            uint lastRefreshSlot = number % RotatingSlotCount;
+            uint alternateSlot = number > alternateLag ? (number - alternateLag) % RotatingSlotCount : 0;
+            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            referenceFrameIndices.Fill(UnusedSlot);
+            referenceFrameIndices[(int)Av1ReferenceFrameType.Last - 1] = lastSlot;
+            referenceFrameIndices[(int)Av1ReferenceFrameType.Last2 - 1] = lastRefreshSlot;
+            referenceFrameIndices[(int)Av1ReferenceFrameType.Golden - 1] = GoldenSlot;
+            referenceFrameIndices[(int)Av1ReferenceFrameType.Alternate - 1] = alternateSlot;
+            if (!keyFrame)
+            {
+                uint refreshFrameFlags = 1U << (int)lastRefreshSlot;
+                if (goldenUpdate)
+                {
+                    refreshFrameFlags |= 1U << GoldenSlot;
+                }
+
+                frameHeader.RefreshFrameFlags = refreshFrameFlags;
+            }
+
+            // choose_primary_ref_frame(): the last reference whose slot holds the wanted context.
+            frameHeader.PrimaryReferenceFrame = Av1Constants.PrimaryReferenceFrameNone;
+            if (!frameHeader.IsIntra && !frameHeader.ErrorResilientMode)
+            {
+                for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+                {
+                    if ((int)referenceFrameIndices[reference] == this.contextTypeSlot)
+                    {
+                        frameHeader.PrimaryReferenceFrame = (uint)reference;
+                    }
+                }
+            }
+
+            if (!speedSettings.IsRealtime || speedSettings.UseEstimatedCompound)
+            {
+                this.frameInterpolationFilter = Av1InterpolationFilter.Switchable;
+            }
+
+            if (!frameHeader.IsIntra)
+            {
+                frameHeader.InterpolationFilter = this.frameInterpolationFilter;
+            }
+
+            // Temporal motion vectors are on by default. Reference: frame_might_allow_ref_frame_mvs() with
+            // use_ref_frame_mvs from enable_ref_frame_mvs, which ref_frame_mvs_lvl leaves on in real-time usage.
+            ObuOrderHintInfo orderHintInfo = this.SequenceHeader.OrderHintInfo;
+            frameHeader.UseReferenceFrameMotionVectors = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
+                orderHintInfo.EnableOrderHint && orderHintInfo.EnableReferenceFrameMotionVectors;
+
+            frameHeader.SkipModeParameters.Derive(this.SequenceHeader.OrderHintInfo, frameHeader);
+            frameHeader.SkipModeParameters.SkipModeFlag = frameHeader.SkipModeParameters.SkipModeAllowed;
+        }
+
+        /// <summary>
+        /// Returns the references that the frame may use, without a second reference to a buffer that an
+        /// earlier reference in priority order already uses. Reference: get_ref_frame_flags(), with the
+        /// LAST, GOLDEN, and ALTREF flags that av1_set_rtc_reference_structure_one_layer() enables.
+        /// </summary>
+        /// <param name="bufferIds">The buffer identity of each reference type, indexed by reference type.</param>
+        /// <param name="speedSettings">The speed settings of the frame.</param>
+        /// <returns>The available references, one bit per reference type.</returns>
+        protected static byte GetReferenceFrameFlags(ReadOnlySpan<int> bufferIds, in Av1EncoderSpeedSettings speedSettings)
+        {
+            ReadOnlySpan<Av1ReferenceFrameType> priorityOrder =
+            [
+                Av1ReferenceFrameType.Last,
+                Av1ReferenceFrameType.Alternate,
+                Av1ReferenceFrameType.Backward,
+                Av1ReferenceFrameType.Golden,
+                Av1ReferenceFrameType.Alternate2,
+                Av1ReferenceFrameType.Last2,
+                Av1ReferenceFrameType.Last3
+            ];
+
+            int flags = (1 << (int)Av1ReferenceFrameType.Last) |
+                (1 << (int)Av1ReferenceFrameType.Alternate) |
+                (1 << (int)Av1ReferenceFrameType.Golden);
+
+            for (int i = 1; i < priorityOrder.Length; i++)
+            {
+                Av1ReferenceFrameType reference = priorityOrder[i];
+
+                // One-pass real-time coding compares GOLDEN only with LAST, and with ALTREF while estimated
+                // search uses ALTREF.
+                int index = speedSettings.IsRealtime && reference == Av1ReferenceFrameType.Golden
+                    ? 1 + (speedSettings.UseEstimatedAlternateReference ? 1 : 0)
+                    : i;
+
+                for (int j = 0; j < index; j++)
+                {
+                    Av1ReferenceFrameType earlier = priorityOrder[j];
+                    if (bufferIds[(int)reference] == bufferIds[(int)earlier] && (flags & (1 << (int)earlier)) != 0)
+                    {
+                        flags &= ~(1 << (int)reference);
+                        break;
+                    }
+                }
+            }
+
+            return (byte)flags;
+        }
+
+        /// <summary>
+        /// Advances the reference structure state after a coded frame. Reference: update_fb_of_context_type()
+        /// and update_rc_counts().
+        /// </summary>
+        protected void CompleteReferenceStructure()
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            if (frameHeader.FrameType == ObuFrameType.KeyFrame)
+            {
+                this.contextTypeSlot = 0;
+            }
+            else
+            {
+                // The first refreshed slot. A frame that refreshes no slot keeps the previous one.
+                for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
+                {
+                    if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
+                    {
+                        this.contextTypeSlot = slot;
+                        break;
+                    }
+                }
+
+                this.frameInterpolationFilter = frameHeader.InterpolationFilter;
+            }
+
+            if (this.framesTillGoldenUpdateDue > 0)
+            {
+                this.framesTillGoldenUpdateDue--;
+            }
+
+            if (++this.goldenFrameIndex == MaximumStaticGoldenGroupLength)
+            {
+                this.goldenFrameIndex = 0;
+            }
+
+            this.frameNumber++;
+        }
+
+        /// <summary>
+        /// Starts a golden group. Reference: set_baseline_gf_interval() and set_golden_update(). Real-time usage
+        /// defaults to cyclic-refresh AQ, whose refresh percentage stays 0 while the quantizer is fixed, so the
+        /// interval is FIXED_GF_INTERVAL_RT unless recent frames had little zero motion.
+        /// </summary>
+        /// <param name="averageFrameLowMotion">The running zero-motion percentage. Reference: rc->avg_frame_low_motion.</param>
+        private void SetBaselineGoldenInterval(int averageFrameLowMotion)
+        {
+            int interval = FixedGoldenIntervalRealtime;
+            if (averageFrameLowMotion != 0 && averageFrameLowMotion < 40)
+            {
+                interval = LowMotionGoldenInterval;
+            }
+
+            this.framesTillGoldenUpdateDue = interval;
+            this.goldenFrameIndex = 0;
         }
 
         protected void CompleteFrameHeader()
@@ -1923,6 +2205,7 @@ internal static class Av1FrameEncoder
             // Construction can stop between any two allocations. Successful instances have every owner;
             // failed constructors retain only the prefix completed before the allocator rejected a request.
             this.ObuWriter?.Dispose();
+            this.MotionField?.Dispose();
             this.SymbolEncoder?.Dispose();
             this.BlockWorkspace?.Dispose();
             this.SuperblockWorkspace?.Dispose();
@@ -1940,10 +2223,11 @@ internal static class Av1FrameEncoder
         private ulong averageSourceSad;
         private int framesSinceKey;
         private readonly Av1EncoderFrame<byte>[] references = new Av1EncoderFrame<byte>[Av1Constants.ReferenceFrameCount];
-        private Av1EncoderFrameBuffer<byte> reference;
-        private Av1EncoderFrameBuffer<byte> goldenReference;
-        private Av1EncoderFrameBuffer<byte> reconstruction;
-        private bool hasDistinctGoldenReference;
+        private readonly int[] referenceBufferIds = new int[Av1Constants.ReferenceFrameCount];
+        private readonly Av1EncoderMotionField.SavedMotionField?[] referenceMotionFields =
+            new Av1EncoderMotionField.SavedMotionField?[Av1Constants.ReferenceFrameCount];
+
+        private Av1EncoderReferencePool<byte> referencePool;
 
         public ByteSequenceEncoder(
             Configuration configuration,
@@ -1997,7 +2281,9 @@ internal static class Av1FrameEncoder
                         lumaBorder);
                 }
 
-                this.goldenReference = new(
+                // Reconstructed frames live in the reference slots, and a slot keeps its frame until a later frame
+                // refreshes it.
+                this.referencePool = new(
                     configuration,
                     width,
                     height,
@@ -2005,27 +2291,9 @@ internal static class Av1FrameEncoder
                     colorFormat,
                     CenteredChromaSamplePosition,
                     CenteredChromaSamplePosition,
-                    lumaBorder);
-
-                this.reference = new(
-                    configuration,
-                    width,
-                    height,
-                    ByteSampleBitDepth,
-                    colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    lumaBorder);
-
-                this.reconstruction = new(
-                    configuration,
-                    width,
-                    height,
-                    ByteSampleBitDepth,
-                    colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    lumaBorder);
+                    lumaBorder,
+                    qIndex,
+                    this.MotionField);
             }
             catch
             {
@@ -2038,9 +2306,7 @@ internal static class Av1FrameEncoder
         protected override void DisposeFrames()
         {
             // A derived constructor can fail before all frame owners exist.
-            this.goldenReference?.Dispose();
-            this.reconstruction?.Dispose();
-            this.reference?.Dispose();
+            this.referencePool?.Dispose();
             this.source?.Dispose();
             this.previousSource?.Dispose();
             this.sourceBlockSad?.Dispose();
@@ -2056,13 +2322,14 @@ internal static class Av1FrameEncoder
             this.ConfigureFrameHeader(frameType);
 
             Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
-            this.SymbolEncoder.Reset();
+            Av1EncoderReferencePool<byte>.Entry current = this.referencePool.Acquire();
+            Av1EncoderReferencePool<byte>.Entry? last = frameHeader.IsIntra ? null : this.referencePool.GetSlot(this.GetLastSlot());
             bool isScreenContent = PrepareFrame(
                 this.Configuration,
                 image,
                 sourceRectangle,
                 this.source.Frame,
-                this.reference.Frame,
+                (last ?? current).Buffer.Frame,
                 this.SequenceHeader,
                 frameHeader,
                 this.Speed,
@@ -2092,16 +2359,14 @@ internal static class Av1FrameEncoder
                 this.framesSinceKey = 0;
             }
 
-            this.references[(int)Av1ReferenceFrameType.Last] = this.reference.Frame;
-            this.references[(int)Av1ReferenceFrameType.Golden] = this.hasDistinctGoldenReference ? this.goldenReference.Frame : this.reference.Frame;
-            parent.AvailableReferenceMask = frameHeader.IsIntra ? (byte)0 :
-                (byte)((1 << (int)Av1ReferenceFrameType.Last) | (this.hasDistinctGoldenReference ? 1 << (int)Av1ReferenceFrameType.Golden : 0));
-
             parent.FramesSinceKey = this.framesSinceKey;
             parent.FramesSinceGolden = Math.Max(0, this.framesSinceKey - 1);
             parent.IsScreenContent = isScreenContent;
-            this.PictureBuffer.Picture.Parent.SpeedSettings = new(
+            parent.SpeedSettings = new(
                 this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+
+            this.ConfigureReferenceStructure(parent, this.averageSourceSad);
+            this.SymbolEncoder.BeginFrame(this.BindReferences(parent));
 
             Encode(
                 this.ObuWriter,
@@ -2111,14 +2376,17 @@ internal static class Av1FrameEncoder
                 this.PictureBuffer.Picture,
                 this.source,
                 this.references,
-                this.reconstruction,
+                current.Buffer,
                 this.Coefficients,
                 this.TileWorkspace,
                 this.BlockWorkspace,
                 this.SymbolEncoder,
                 writeSequenceHeader);
 
+            this.SymbolEncoder.SnapshotTo(current.Context);
+            this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
             this.CompleteFrameHeader();
+            this.CompleteReferenceStructure();
 
             this.framesSinceKey++;
             if (this.previousSource is not null)
@@ -2126,23 +2394,42 @@ internal static class Av1FrameEncoder
                 (this.source, this.previousSource) = (this.previousSource, this.source);
             }
 
-            this.reconstruction.Frame.ExtendBorders();
+            current.Buffer.Frame.ExtendBorders();
+            this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
+        }
 
-            if (frameType == ObuFrameType.KeyFrame || this.hasDistinctGoldenReference)
+        /// <summary>
+        /// Points each reference type at the frame in its slot and returns the context of the primary reference.
+        /// </summary>
+        /// <param name="parent">The frame state that receives the available references.</param>
+        /// <returns>The primary reference context, or <see langword="null"/> for the default distributions.</returns>
+        private Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
-                (this.reference, this.reconstruction) = (this.reconstruction, this.reference);
-                if (frameType == ObuFrameType.KeyFrame)
-                {
-                    this.hasDistinctGoldenReference = false;
-                }
+                this.referenceMotionFields[reference] = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])?.MotionField;
             }
-            else
+
+            this.MotionField.Setup(this.SequenceHeader, frameHeader, this.referenceMotionFields);
+            parent.AvailableReferenceMask = 0;
+            if (frameHeader.IsIntra)
             {
-                // Preserve the key reconstruction as GOLDEN while the first inter reconstruction becomes LAST.
-                (this.goldenReference, this.reference, this.reconstruction) =
-                    (this.reference, this.reconstruction, this.goldenReference);
-                this.hasDistinctGoldenReference = true;
+                return null;
             }
+
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
+            {
+                Av1EncoderReferencePool<byte>.Entry entry = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])!;
+                this.references[reference] = entry.Buffer.Frame;
+                this.referenceBufferIds[reference] = entry.Id;
+            }
+
+            parent.AvailableReferenceMask = GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings);
+            return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
+                ? null
+                : this.referencePool.GetSlot((int)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame])!.Context;
         }
     }
 
@@ -2154,10 +2441,11 @@ internal static class Av1FrameEncoder
         private ulong averageSourceSad;
         private int framesSinceKey;
         private readonly Av1EncoderFrame<ushort>[] references = new Av1EncoderFrame<ushort>[Av1Constants.ReferenceFrameCount];
-        private Av1EncoderFrameBuffer<ushort> reference;
-        private Av1EncoderFrameBuffer<ushort> goldenReference;
-        private Av1EncoderFrameBuffer<ushort> reconstruction;
-        private bool hasDistinctGoldenReference;
+        private readonly int[] referenceBufferIds = new int[Av1Constants.ReferenceFrameCount];
+        private readonly Av1EncoderMotionField.SavedMotionField?[] referenceMotionFields =
+            new Av1EncoderMotionField.SavedMotionField?[Av1Constants.ReferenceFrameCount];
+
+        private Av1EncoderReferencePool<ushort> referencePool;
 
         public HighBitDepthSequenceEncoder(
             Configuration configuration,
@@ -2209,7 +2497,9 @@ internal static class Av1FrameEncoder
                         lumaBorder);
                 }
 
-                this.goldenReference = new(
+                // Reconstructed frames live in the reference slots, and a slot keeps its frame until a later frame
+                // refreshes it.
+                this.referencePool = new(
                     configuration,
                     width,
                     height,
@@ -2217,27 +2507,9 @@ internal static class Av1FrameEncoder
                     colorFormat,
                     CenteredChromaSamplePosition,
                     CenteredChromaSamplePosition,
-                    lumaBorder);
-
-                this.reference = new(
-                    configuration,
-                    width,
-                    height,
-                    bitDepth,
-                    colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    lumaBorder);
-
-                this.reconstruction = new(
-                    configuration,
-                    width,
-                    height,
-                    bitDepth,
-                    colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    lumaBorder);
+                    lumaBorder,
+                    qIndex,
+                    this.MotionField);
             }
             catch
             {
@@ -2250,9 +2522,7 @@ internal static class Av1FrameEncoder
         protected override void DisposeFrames()
         {
             // A derived constructor can fail before all frame owners exist.
-            this.goldenReference?.Dispose();
-            this.reconstruction?.Dispose();
-            this.reference?.Dispose();
+            this.referencePool?.Dispose();
             this.source?.Dispose();
             this.previousSource?.Dispose();
             this.sourceBlockSad?.Dispose();
@@ -2268,13 +2538,14 @@ internal static class Av1FrameEncoder
             this.ConfigureFrameHeader(frameType);
 
             Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
-            this.SymbolEncoder.Reset();
+            Av1EncoderReferencePool<ushort>.Entry current = this.referencePool.Acquire();
+            Av1EncoderReferencePool<ushort>.Entry? last = frameHeader.IsIntra ? null : this.referencePool.GetSlot(this.GetLastSlot());
             bool isScreenContent = PrepareFrame(
                 this.Configuration,
                 image,
                 sourceRectangle,
                 this.source.Frame,
-                this.reference.Frame,
+                (last ?? current).Buffer.Frame,
                 this.SequenceHeader,
                 frameHeader,
                 this.Speed,
@@ -2306,13 +2577,12 @@ internal static class Av1FrameEncoder
                 this.framesSinceKey = 0;
             }
 
-            this.references[(int)Av1ReferenceFrameType.Last] = this.reference.Frame;
-            this.references[(int)Av1ReferenceFrameType.Golden] = this.hasDistinctGoldenReference ? this.goldenReference.Frame : this.reference.Frame;
-            parent.AvailableReferenceMask = frameHeader.IsIntra ? (byte)0 :
-                (byte)((1 << (int)Av1ReferenceFrameType.Last) | (this.hasDistinctGoldenReference ? 1 << (int)Av1ReferenceFrameType.Golden : 0));
-
             parent.FramesSinceKey = this.framesSinceKey;
             parent.FramesSinceGolden = Math.Max(0, this.framesSinceKey - 1);
+
+            this.ConfigureReferenceStructure(parent, this.averageSourceSad);
+            this.SymbolEncoder.BeginFrame(this.BindReferences(parent));
+
             Encode(
                 this.ObuWriter,
                 stream,
@@ -2321,14 +2591,17 @@ internal static class Av1FrameEncoder
                 this.PictureBuffer.Picture,
                 this.source,
                 this.references,
-                this.reconstruction,
+                current.Buffer,
                 this.Coefficients,
                 this.TileWorkspace,
                 this.BlockWorkspace,
                 this.SymbolEncoder,
                 writeSequenceHeader);
 
+            this.SymbolEncoder.SnapshotTo(current.Context);
+            this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
             this.CompleteFrameHeader();
+            this.CompleteReferenceStructure();
             this.framesSinceKey++;
 
             if (this.previousSource is not null)
@@ -2336,23 +2609,42 @@ internal static class Av1FrameEncoder
                 (this.source, this.previousSource) = (this.previousSource, this.source);
             }
 
-            this.reconstruction.Frame.ExtendBorders();
+            current.Buffer.Frame.ExtendBorders();
+            this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
+        }
 
-            if (frameType == ObuFrameType.KeyFrame || this.hasDistinctGoldenReference)
+        /// <summary>
+        /// Points each reference type at the frame in its slot and returns the context of the primary reference.
+        /// </summary>
+        /// <param name="parent">The frame state that receives the available references.</param>
+        /// <returns>The primary reference context, or <see langword="null"/> for the default distributions.</returns>
+        private Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
-                (this.reference, this.reconstruction) = (this.reconstruction, this.reference);
-                if (frameType == ObuFrameType.KeyFrame)
-                {
-                    this.hasDistinctGoldenReference = false;
-                }
+                this.referenceMotionFields[reference] = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])?.MotionField;
             }
-            else
+
+            this.MotionField.Setup(this.SequenceHeader, frameHeader, this.referenceMotionFields);
+            parent.AvailableReferenceMask = 0;
+            if (frameHeader.IsIntra)
             {
-                // Preserve the key reconstruction as GOLDEN while the first inter reconstruction becomes LAST.
-                (this.goldenReference, this.reference, this.reconstruction) =
-                    (this.reference, this.reconstruction, this.goldenReference);
-                this.hasDistinctGoldenReference = true;
+                return null;
             }
+
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
+            {
+                Av1EncoderReferencePool<ushort>.Entry entry = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])!;
+                this.references[reference] = entry.Buffer.Frame;
+                this.referenceBufferIds[reference] = entry.Id;
+            }
+
+            parent.AvailableReferenceMask = GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings);
+            return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
+                ? null
+                : this.referencePool.GetSlot((int)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame])!.Context;
         }
     }
 }

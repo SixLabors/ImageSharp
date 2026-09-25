@@ -337,6 +337,98 @@ public class Av1CoefficientsEntropyTests
     }
 
     /// <summary>
+    /// Verifies that the encoder's neighbor contexts equal the decoder's for every pair of neighbor references,
+    /// including compound neighbors in both directions.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void EncoderReferenceContextsMatchDecoder(bool aboveAvailable, bool leftAvailable)
+    {
+        (Av1ReferenceFrameType Primary, Av1ReferenceFrameType Secondary)[] references =
+        [
+            (Av1ReferenceFrameType.Intra, Av1ReferenceFrameType.None),
+            (Av1ReferenceFrameType.Last, Av1ReferenceFrameType.None),
+            (Av1ReferenceFrameType.Golden, Av1ReferenceFrameType.None),
+            (Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.None),
+            (Av1ReferenceFrameType.Alternate, Av1ReferenceFrameType.None),
+            (Av1ReferenceFrameType.Last, Av1ReferenceFrameType.Alternate),
+            (Av1ReferenceFrameType.Golden, Av1ReferenceFrameType.Alternate),
+            (Av1ReferenceFrameType.Last, Av1ReferenceFrameType.Last2),
+            (Av1ReferenceFrameType.Last, Av1ReferenceFrameType.Golden),
+            (Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Alternate)
+        ];
+
+        Av1MacroBlockModeInfo[] allocation = new Av1MacroBlockModeInfo[3];
+        int[] grid = new int[9];
+        grid[1] = 0;
+        grid[3] = 1;
+        grid[4] = 2;
+        Av1MacroBlockD macroBlock = CreateMacroBlock();
+        macroBlock.ModeInfoStride = 3;
+        macroBlock.IsUpAvailable = aboveAvailable;
+        macroBlock.IsLeftAvailable = leftAvailable;
+        macroBlock.SetModeInfoGrid(grid, allocation, 4);
+        for (int above = 0; above < references.Length; above++)
+        {
+            for (int left = 0; left < references.Length; left++)
+            {
+                SetNeighbor(ref allocation[0].Block, references[above], above);
+                SetNeighbor(ref allocation[1].Block, references[left], left + 1);
+                Av1BlockModeInfo? decodedAbove = aboveAvailable ? CreateDecodedNeighbor(references[above], above) : null;
+                Av1BlockModeInfo? decodedLeft = leftAvailable ? CreateDecodedNeighbor(references[left], left + 1) : null;
+
+                Assert.Equal(
+                    Av1SymbolContextHelper.GetCompoundReferenceTypeContext(decodedAbove, decodedLeft),
+                    Av1SymbolContextHelper.GetCompoundReferenceTypeContext(macroBlock));
+                Assert.Equal(
+                    Av1SymbolContextHelper.GetReferenceModeContext(decodedAbove, decodedLeft),
+                    Av1SymbolContextHelper.GetReferenceModeContext(macroBlock));
+                Assert.Equal(
+                    Av1SymbolContextHelper.GetIntraInterContext(decodedAbove, decodedLeft),
+                    Av1TileWriter.GetIntraInterContext(macroBlock));
+
+                for (int current = 1; current < references.Length; current++)
+                {
+                    Av1EncoderBlockModeInfo encoderCurrent = new()
+                    {
+                        ReferenceFrame = references[current].Primary,
+                        SecondaryReferenceFrame = references[current].Secondary
+                    };
+
+                    Av1BlockModeInfo decodedCurrent = CreateDecodedNeighbor(references[current], 0);
+                    for (int direction = 0; direction < 2; direction++)
+                    {
+                        Assert.Equal(
+                            Av1SymbolContextHelper.GetSwitchableInterpolationContext(decodedCurrent, decodedAbove, decodedLeft, direction),
+                            Av1SymbolContextHelper.GetSwitchableInterpolationContext(encoderCurrent, macroBlock, direction));
+                    }
+                }
+            }
+        }
+
+        static void SetNeighbor(ref Av1EncoderBlockModeInfo block, (Av1ReferenceFrameType Primary, Av1ReferenceFrameType Secondary) reference, int filterSeed)
+        {
+            block.ReferenceFrame = reference.Primary;
+            block.SecondaryReferenceFrame = reference.Secondary;
+            block.VerticalInterpolationFilter = (Av1InterpolationFilter)(filterSeed % 3);
+            block.HorizontalInterpolationFilter = (Av1InterpolationFilter)((filterSeed + 1) % 3);
+        }
+
+        static Av1BlockModeInfo CreateDecodedNeighbor((Av1ReferenceFrameType Primary, Av1ReferenceFrameType Secondary) reference, int filterSeed)
+        {
+            Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+            modeInfo.ReferenceFrames[0] = reference.Primary;
+            modeInfo.ReferenceFrames[1] = reference.Secondary;
+            modeInfo.InterpolationFilters[0] = (Av1InterpolationFilter)(filterSeed % 3);
+            modeInfo.InterpolationFilters[1] = (Av1InterpolationFilter)((filterSeed + 1) % 3);
+            return modeInfo;
+        }
+    }
+
+    /// <summary>
     /// Verifies which inter modes signal filters and distinguishes residual skip from compound skip mode.
     /// </summary>
     [Theory]

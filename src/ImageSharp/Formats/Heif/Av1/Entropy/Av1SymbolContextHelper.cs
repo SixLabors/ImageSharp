@@ -1154,12 +1154,13 @@ internal static class Av1SymbolContextHelper
         Av1MacroBlockD macroBlock,
         int direction)
     {
+        // Reference: get_ref_filter_type(). A compound neighbor contributes when either of its references matches.
         int aboveFilter = SwitchableInterpolationFilterCount;
         int leftFilter = SwitchableInterpolationFilterCount;
         if (macroBlock.IsUpAvailable)
         {
             Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
-            if (above.ReferenceFrame == modeInfo.ReferenceFrame)
+            if (above.ReferenceFrame == modeInfo.ReferenceFrame || above.SecondaryReferenceFrame == modeInfo.ReferenceFrame)
             {
                 aboveFilter = (int)(direction == 0 ? above.VerticalInterpolationFilter : above.HorizontalInterpolationFilter);
             }
@@ -1168,7 +1169,7 @@ internal static class Av1SymbolContextHelper
         if (macroBlock.IsLeftAvailable)
         {
             Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
-            if (left.ReferenceFrame == modeInfo.ReferenceFrame)
+            if (left.ReferenceFrame == modeInfo.ReferenceFrame || left.SecondaryReferenceFrame == modeInfo.ReferenceFrame)
             {
                 leftFilter = (int)(direction == 0 ? left.VerticalInterpolationFilter : left.HorizontalInterpolationFilter);
             }
@@ -1230,7 +1231,10 @@ internal static class Av1SymbolContextHelper
 
     /// <summary>
     /// Gets the compound reference-direction context from compact encoder neighbors.
+    /// Reference: av1_get_comp_reference_type_context().
     /// </summary>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <returns>The context in the inclusive range zero through four.</returns>
     public static int GetCompoundReferenceTypeContext(Av1MacroBlockD macroBlock)
     {
         bool hasAbove = macroBlock.IsUpAvailable;
@@ -1249,40 +1253,74 @@ internal static class Av1SymbolContextHelper
             if (aboveIntra || leftIntra)
             {
                 Av1EncoderBlockModeInfo inter = aboveIntra ? left : above;
-                return inter.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra ? 3 : 2;
+                if (inter.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra)
+                {
+                    return 2;
+                }
+
+                return 1 + (2 * (HasUnidirectionalCompoundReferences(inter) ? 1 : 0));
             }
 
-            bool aboveCompound = above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
-            bool leftCompound = left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+            bool aboveSingle = above.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra;
+            bool leftSingle = left.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra;
             bool aboveBackward = above.ReferenceFrame >= Av1ReferenceFrameType.Backward;
             bool leftBackward = left.ReferenceFrame >= Av1ReferenceFrameType.Backward;
-            if (!aboveCompound && !leftCompound)
+            if (aboveSingle && leftSingle)
             {
                 return 1 + (aboveBackward == leftBackward ? 2 : 0);
             }
 
-            if (!aboveCompound || !leftCompound)
+            if (aboveSingle || leftSingle)
             {
+                if (!HasUnidirectionalCompoundReferences(aboveSingle ? left : above))
+                {
+                    return 1;
+                }
+
                 return 3 + (aboveBackward == leftBackward ? 1 : 0);
             }
 
-            return 3 + (aboveBackward == leftBackward ? 1 : 0);
-        }
+            bool aboveUnidirectional = HasUnidirectionalCompoundReferences(above);
+            bool leftUnidirectional = HasUnidirectionalCompoundReferences(left);
+            if (!aboveUnidirectional && !leftUnidirectional)
+            {
+                return 0;
+            }
 
-        if (hasAbove || hasLeft)
-        {
-            Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(hasAbove ? -macroBlock.ModeInfoStride : -1).Block;
-            if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra ||
-                neighbor.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra)
+            if (!aboveUnidirectional || !leftUnidirectional)
             {
                 return 2;
             }
 
-            return 4;
+            return 3 + ((above.ReferenceFrame == Av1ReferenceFrameType.Backward) ==
+                (left.ReferenceFrame == Av1ReferenceFrameType.Backward) ? 1 : 0);
+        }
+
+        if (hasAbove || hasLeft)
+        {
+            Av1EncoderBlockModeInfo edge = macroBlock.GetRelativeModeInfo(hasAbove ? -macroBlock.ModeInfoStride : -1).Block;
+            if (edge.ReferenceFrame <= Av1ReferenceFrameType.Intra ||
+                edge.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra)
+            {
+                return 2;
+            }
+
+            return HasUnidirectionalCompoundReferences(edge) ? 4 : 0;
         }
 
         return 2;
     }
+
+    /// <summary>
+    /// Returns whether a compact encoder block predicts from two references in the same direction.
+    /// Reference: has_uni_comp_refs().
+    /// </summary>
+    /// <param name="modeInfo">The neighboring block.</param>
+    /// <returns><see langword="true"/> for a unidirectional compound block.</returns>
+    private static bool HasUnidirectionalCompoundReferences(Av1EncoderBlockModeInfo modeInfo)
+        => modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
+            (modeInfo.ReferenceFrame >= Av1ReferenceFrameType.Backward) ==
+            (modeInfo.SecondaryReferenceFrame >= Av1ReferenceFrameType.Backward);
 
     /// <summary>
     /// Combines the two neighboring filter states into the shared encoder and decoder context layout.

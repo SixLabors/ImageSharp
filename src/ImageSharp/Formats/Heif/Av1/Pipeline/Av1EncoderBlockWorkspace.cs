@@ -268,7 +268,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.owner = this.MemoryAllocator.Allocate<int>(length);
         this.TransformTypeProbabilities.Clear();
         this.InterpolationProbabilities.Clear();
-        this.ReferenceInterpolationUsage.Clear();
         this.PreviousLoopFilterLevels.Clear();
         if (allocateSearchSites)
         {
@@ -368,14 +367,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         Av1InterpolationProbabilities.FilterCount);
 
     /// <summary>
-    /// Gets the emitted filter counts retained for each decoded reference slot.
-    /// </summary>
-    public Span<int> ReferenceInterpolationUsage => this.owner.Memory.Span.Slice(
-        this.interpolationProbabilityStorageOffset + Av1InterpolationProbabilities.ProbabilityLength + Av1InterpolationProbabilities.FrameLength +
-        Av1InterpolationProbabilities.FilterCount,
-        Av1InterpolationProbabilities.ReferenceUsageLength);
-
-    /// <summary>
     /// Gets the unwrapped frame numbers retained in the decoded reference slots.
     /// </summary>
     public Span<int> ReferenceFrameNumbers => this.owner.Memory.Span.Slice(
@@ -401,16 +392,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </remarks>
     public Span<int> PreviousLoopFilterLevels => this.owner.Memory.Span.Slice(
         this.loopFilterLevelStorageOffset, LoopFilterLevelCount);
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the preceding coded frame was a key frame.
-    /// </summary>
-    public bool PreviousFrameWasKey { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the three-bit mask of filters allowed by preceding reference usage.
-    /// </summary>
-    public int InterpolationSearchMask { get; set; }
 
     /// <summary>
     /// Gets or sets the number of completed coded frames.

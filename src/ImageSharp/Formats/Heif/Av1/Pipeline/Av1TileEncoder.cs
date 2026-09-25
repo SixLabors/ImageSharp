@@ -522,10 +522,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             blockWorkspace.InterpolationProbabilities.Fill(512);
         }
 
-        blockWorkspace.InterpolationSearchMask = blockWorkspace.PreviousFrameWasKey || parent.FrameUpdateType == Av1FrameUpdateType.Alternate
-            ? (1 << Av1InterpolationProbabilities.FilterCount) - 1
-            : Av1InterpolationProbabilities.GetSearchMask(blockWorkspace.ReferenceInterpolationUsage, frameHeader.GetReferenceFrameIndices());
-
         parent.NearestPastReference = Av1ReferenceFrameType.None;
         parent.NearestFutureReference = Av1ReferenceFrameType.None;
         Array.Clear(parent.ReferenceDistances);
@@ -755,12 +751,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             {
                 blockWorkspace.ReferenceFrameNumbers[slot] = blockWorkspace.EncodedFrameCount;
                 blockWorkspace.ReferenceBaseQIndices[slot] = frameHeader.QuantizationParameters.BaseQIndex;
-                parent.SelectedInterpolationCounts.Span.CopyTo(blockWorkspace.ReferenceInterpolationUsage.Slice(
-                    slot * Av1InterpolationProbabilities.FilterCount, Av1InterpolationProbabilities.FilterCount));
             }
         }
 
-        blockWorkspace.PreviousFrameWasKey = frameHeader.FrameType == ObuFrameType.KeyFrame;
         blockWorkspace.EncodedFrameCount++;
         blockWorkspace.PreviousFrameRateMultiplier = Av1RateDistortion.GetRateMultiplier(
             frameHeader.QuantizationParameters.QIndex[0] + frameHeader.QuantizationParameters.DeltaQDc[0],

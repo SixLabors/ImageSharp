@@ -219,6 +219,11 @@ internal static partial class Av1IntraSuperblockEncoder
         // The reference types that a rectangular block does not search, one bit per reference type.
         // Reference: skip_ref_frame_mask of av1_rd_pick_inter_mode().
         private int skipReferenceFrameMask;
+
+        // The predicted-vector SAD of each reference, and the best of the references that precede the frame.
+        // Reference: x->pred_mv_sad and x->best_pred_mv_sad[0].
+        private InlineArray8<int> predictionVectorSads;
+        private int bestPastPredictionVectorSad;
         private bool searchingRetainedCandidates;
         private long interSourceVarianceCost;
         private int interSourceVariance;

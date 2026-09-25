@@ -309,7 +309,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     int index = (int)reference;
                     if ((availableReferences & (1 << index)) == 0 ||
                         (this.interModeSkipMasks[index] & (1u << (int)mode)) != 0 ||
-                        this.IsSingleReferenceSkipped(index))
+                        this.IsSingleReferenceSkipped(index) ||
+                        this.PrunesReferenceBySelectiveReferenceFrame(reference, Av1ReferenceFrameType.None))
                     {
                         continue;
                     }
@@ -3875,6 +3876,67 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Returns whether the selective reference search drops a reference or pair: from level two, LAST2 and LAST3
+        /// when they precede GOLDEN, and from level three, ALTREF2 and BWDREF when they precede LAST. A reference whose
+        /// predicted-vector SAD is the best of the past references is kept. Without temporal-dependency statistics
+        /// no reference is kept by them.
+        /// Reference: prune_ref_by_selective_ref_frame() with prune_ref(). The pair pruning of
+        /// prune_comp_ref_frames is not ported; the frames that reach it here drop every compound pair.
+        /// </summary>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference, or none for a single reference.</param>
+        /// <returns><see langword="true"/> when the reference or pair is dropped.</returns>
+        private readonly bool PrunesReferenceBySelectiveReferenceFrame(Av1ReferenceFrameType first, Av1ReferenceFrameType second)
+        {
+            int level = this.picture.Parent.SpeedSettings.SelectiveReferenceFrameLevel;
+            if (level == 0)
+            {
+                return false;
+            }
+
+            bool compound = second > Av1ReferenceFrameType.Intra;
+            if (level >= 2 || (level == 1 && compound))
+            {
+                if (this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Last3, Av1ReferenceFrameType.Golden) ||
+                    this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Last2, Av1ReferenceFrameType.Golden))
+                {
+                    return true;
+                }
+            }
+
+            return level >= 3 &&
+                (this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Alternate2, Av1ReferenceFrameType.Last) ||
+                this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Last));
+        }
+
+        /// <summary>
+        /// Returns whether a reference or pair uses a candidate reference that precedes the anchor reference in
+        /// display order, unless the candidate has the best past predicted-vector SAD. Reference: prune_ref().
+        /// </summary>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference, or none.</param>
+        /// <param name="candidate">The reference that may be dropped.</param>
+        /// <param name="anchor">The reference it is compared with.</param>
+        /// <returns><see langword="true"/> when the candidate is used and precedes the anchor.</returns>
+        private readonly bool PrunesOlderReference(
+            Av1ReferenceFrameType first,
+            Av1ReferenceFrameType second,
+            Av1ReferenceFrameType candidate,
+            Av1ReferenceFrameType anchor)
+        {
+            if ((first != candidate && second != candidate) ||
+                this.predictionVectorSads[(int)candidate] == this.bestPastPredictionVectorSad)
+            {
+                return false;
+            }
+
+            ReadOnlySpan<uint> slots = this.picture.Parent.FrameHeader.GetReferenceFrameIndices();
+            Span<int> numbers = this.blockWorkspace.ReferenceFrameNumbers;
+            return numbers[(int)slots[(int)candidate - (int)Av1ReferenceFrameType.Last]] <
+                numbers[(int)slots[(int)anchor - (int)Av1ReferenceFrameType.Last]];
+        }
+
+        /// <summary>
         /// Returns whether the block searches no mode of a single reference: the rectangular pruning skips it and no
         /// compound pair that the pruning keeps uses it.
         /// Reference: is_ref_frame_used_by_compound_ref() with the skip_ref_frame_mask tests.
@@ -4021,6 +4083,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 int direction = parent.ReferenceDistances[reference] < 0 ? 0 : 1;
                 bestByDirection[direction] = Math.Min(bestByDirection[direction], sads[reference]);
             }
+
+            sads[..Av1Constants.ReferenceFrameCount].CopyTo(this.predictionVectorSads);
+            this.bestPastPredictionVectorSad = bestByDirection[0];
 
             int pruneLevel = parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType);
             double pruneThreshold = pruneLevel <= 3 ? 1.20 : 1.05;
@@ -4261,7 +4326,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 (this.picture.Parent.AvailableReferenceMask & (1 << (int)secondaryReference)) == 0 ||
                 frameHeader.ReferenceMode == ObuReferenceMode.SingleReference ||
                 Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) < 8 ||
-                (this.skipReferenceFrameMask & (1 << GetReferenceFrameType(primaryReference, secondaryReference))) != 0)
+                (this.skipReferenceFrameMask & (1 << GetReferenceFrameType(primaryReference, secondaryReference))) != 0 ||
+                this.PrunesReferenceBySelectiveReferenceFrame(primaryReference, secondaryReference))
             {
                 return;
             }
@@ -6098,8 +6164,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize planeSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
             int width = planeSize.GetWidth();
             int height = planeSize.GetHeight();
-            int right = blockOrigin.X + blockSize.GetWidth() - this.source.Width;
-            int bottom = blockOrigin.Y + blockSize.GetHeight() - this.source.Height;
+
+            // The model measures only the visible samples: the frame edge with border padding, otherwise the coded
+            // boundary. Reference: get_visible_dimensions() in model_rd_for_sb_with_curvfit().
+            Size visible = this.picture.Parent.GetVisibleBoundary(0, 0);
+            int right = blockOrigin.X + blockSize.GetWidth() - visible.Width;
+            int bottom = blockOrigin.Y + blockSize.GetHeight() - visible.Height;
             if (right > 0)
             {
                 // Round the out-of-frame luma count before subtracting it from the plane size.
@@ -6192,11 +6262,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 return false;
             }
 
+            // The adaptive search allows only the filters of interp_filter_search_mask, which a one-pass encode
+            // never fills, so it tries no filter other than the regular one. Reference: the
+            // adaptive_interp_filter_search tests of find_best_non_dual_interp_filter(), with
+            // av1_setup_interp_filter_search_mask() called only in the stats-consuming pass of a two-pass encode.
             const int filterCount = Av1InterpolationProbabilities.FilterCount;
             int allowedMask = winnerSearch
                 ? (1 << (int)Av1InterpolationFilter.Regular) |
                     (1 << (int)(settings.WinnerInterpolationUsesSharp ? Av1InterpolationFilter.Sharp : Av1InterpolationFilter.Smooth))
-                : settings.InterpolationPruningLevel != 0 ? this.blockWorkspace.InterpolationSearchMask : (1 << filterCount) - 1;
+                : settings.InterpolationPruningLevel != 0 ? 0 : (1 << filterCount) - 1;
             if (!winnerSearch && !dual && settings.InterpolationPruningLevel == 2)
             {
                 ReadOnlySpan<byte> thresholds = [0, 8, 8, 8, 8, 0, 8];
@@ -7593,6 +7667,122 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Builds the chroma prediction of a block four samples wide or high, whose subsampled plane block covers the
+        /// neighboring luma blocks as well, from the vector, reference and filters of each covered block. The path
+        /// applies only when every covered block predicts from a reference frame.
+        /// Reference: is_sub8x8_inter() and build_inter_predictors_sub8x8().
+        /// </summary>
+        /// <param name="vector">The vector of the current block.</param>
+        /// <param name="referenceFrame">The reference of the current block.</param>
+        /// <param name="horizontalFilter">The horizontal filter of the current block.</param>
+        /// <param name="verticalFilter">The vertical filter of the current block.</param>
+        /// <param name="referencePlane">The reference plane of the current block.</param>
+        /// <param name="plane">The chroma plane.</param>
+        /// <param name="lumaOrigin">The plane block origin in luma samples.</param>
+        /// <param name="subsamplingX">The horizontal subsampling shift.</param>
+        /// <param name="subsamplingY">The vertical subsampling shift.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="residual">The contiguous residual destination.</param>
+        /// <param name="predictionScratch">The interpolation scratch.</param>
+        /// <returns><see langword="true"/> when the prediction was built.</returns>
+        private bool TryPrepareSubEightInterPrediction(
+            Av1MotionVector vector,
+            Av1ReferenceFrameType referenceFrame,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            Buffer2DRegion<TSample> referencePlane,
+            Av1Plane plane,
+            Point lumaOrigin,
+            int subsamplingX,
+            int subsamplingY,
+            Av1BlockSize blockSize,
+            Span<TSample> prediction,
+            Span<short> residual,
+            Span<short> predictionScratch)
+        {
+            bool subFourX = blockSize.GetWidth() == 4 && subsamplingX != 0;
+            bool subFourY = blockSize.GetHeight() == 4 && subsamplingY != 0;
+            if (!subFourX && !subFourY)
+            {
+                return false;
+            }
+
+            // The plane block starts at the first covered luma block; the current block is the last one.
+            int rowStart = subFourY ? -1 : 0;
+            int columnStart = subFourX ? -1 : 0;
+            Point current = new(
+                (lumaOrigin.X >> Av1Constants.ModeInfoSizeLog2) - columnStart,
+                (lumaOrigin.Y >> Av1Constants.ModeInfoSizeLog2) - rowStart);
+            for (int row = rowStart; row <= 0; row++)
+            {
+                for (int column = columnStart; column <= 0; column++)
+                {
+                    if (row == 0 && column == 0)
+                    {
+                        continue;
+                    }
+
+                    ref Av1EncoderBlockModeInfo covered =
+                        ref this.picture.GetMacroBlockModeInfo(new Point(current.X + column, current.Y + row)).Block;
+                    if (covered.ReferenceFrame <= Av1ReferenceFrameType.Intra || covered.UseIntraBlockCopy)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            Av1BlockSize planeSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
+            int planeWidth = planeSize.GetWidth();
+            int planeHeight = planeSize.GetHeight();
+            int subWidth = blockSize.GetWidth() >> subsamplingX;
+            int subHeight = blockSize.GetHeight() >> subsamplingY;
+            Point planeOrigin = new(lumaOrigin.X >> subsamplingX, lumaOrigin.Y >> subsamplingY);
+            int modeRow = rowStart;
+            for (int y = 0; y < planeHeight; y += subHeight, modeRow++)
+            {
+                int modeColumn = columnStart;
+                for (int x = 0; x < planeWidth; x += subWidth, modeColumn++)
+                {
+                    Av1MotionVector subVector = vector;
+                    Buffer2DRegion<TSample> subReference = referencePlane;
+                    Av1InterpolationFilter subHorizontal = horizontalFilter;
+                    Av1InterpolationFilter subVertical = verticalFilter;
+                    if (modeRow != 0 || modeColumn != 0)
+                    {
+                        Point position = new(current.X + modeColumn, current.Y + modeRow);
+                        ref Av1EncoderBlockModeInfo covered = ref this.picture.GetMacroBlockModeInfo(position).Block;
+                        subVector = this.picture.GetDisplacementVector(position);
+                        subReference = this.references.Span[(int)covered.ReferenceFrame].CodedView.GetPlane(plane);
+                        subHorizontal = covered.HorizontalInterpolationFilter;
+                        subVertical = covered.VerticalInterpolationFilter;
+                    }
+
+                    int columnQ4 = ((planeOrigin.X + x) << 4) + (subVector.Column << (1 - subsamplingX));
+                    int rowQ4 = ((planeOrigin.Y + y) << 4) + (subVector.Row << (1 - subsamplingY));
+                    TOperator.PredictTranslationalInter(
+                        subReference,
+                        new Point(columnQ4 >> 4, rowQ4 >> 4),
+                        subHorizontal,
+                        subVertical,
+                        columnQ4 & 15,
+                        rowQ4 & 15,
+                        prediction[((y * planeWidth) + x)..],
+                        planeWidth,
+                        subWidth,
+                        subHeight,
+                        predictionScratch,
+                        this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
+                }
+            }
+
+            int sampleCount = planeWidth * planeHeight;
+            TOperator.SubtractPrediction(
+                this.source.GetPlane(plane), planeOrigin, prediction[..sampleCount], residual[..sampleCount], planeWidth, planeHeight);
+            return true;
+        }
+
+        /// <summary>
         /// Builds the complete plane prediction and residual in contiguous block rows.
         /// </summary>
         private void PrepareInterPlanePrediction(
@@ -7618,6 +7808,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> prediction,
             Span<short> residual)
         {
+            // A chroma block of a block four samples wide or high starts at the first luma block it covers.
+            // Reference: the odd mi_row and mi_col adjustment of setup_pred_plane().
+            if (plane != Av1Plane.Y)
+            {
+                Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(lumaOrigin, subsamplingX, subsamplingY);
+                lumaOrigin = new Point(chromaOrigin.X << subsamplingX, chromaOrigin.Y << subsamplingY);
+            }
+
             Point planeOrigin = new(lumaOrigin.X >> subsamplingX, lumaOrigin.Y >> subsamplingY);
             int sourceColumnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
             int sourceRowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY));
@@ -7688,6 +7886,24 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<short> predictionScratch = this.blockWorkspace
                     .GetInterPredictionWorkspace<TSample>()
                     .PredictionScratch;
+
+                if (plane != Av1Plane.Y && this.TryPrepareSubEightInterPrediction(
+                    vector,
+                    primaryReferenceFrame,
+                    horizontalFilter,
+                    verticalFilter,
+                    referencePlane,
+                    plane,
+                    lumaOrigin,
+                    subsamplingX,
+                    subsamplingY,
+                    blockSize,
+                    prediction,
+                    residual,
+                    predictionScratch))
+                {
+                    return;
+                }
 
                 // A warped block predicts each plane of at least 8x8 samples with its local model. A smaller
                 // chroma plane keeps the translational prediction. Reference: av1_init_warp_params() and

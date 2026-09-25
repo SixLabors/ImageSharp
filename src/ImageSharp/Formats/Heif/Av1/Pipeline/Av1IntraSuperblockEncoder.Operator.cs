@@ -497,6 +497,35 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
+        /// Predicts one translational rectangle into a strided destination, without a residual.
+        /// </summary>
+        /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+        /// <param name="verticalFilter">The vertical interpolation filter.</param>
+        /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+        /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+        /// <param name="prediction">The prediction destination, starting at the rectangle.</param>
+        /// <param name="predictionStride">The destination stride.</param>
+        /// <param name="width">The rectangle width.</param>
+        /// <param name="height">The rectangle height.</param>
+        /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PredictTranslationalInter(
+            Buffer2DRegion<TSample> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            Span<TSample> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            Span<short> predictionScratch,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
         /// Applies the selected luma adjustment to a DC-predicted chroma block.
         /// </summary>
         /// <param name="lumaQ3">The zero-mean Q3 luma surface.</param>
@@ -1265,6 +1294,42 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingY,
                 parameters,
                 scratch);
+
+        /// <inheritdoc/>
+        public static void PredictTranslationalInter(
+            Buffer2DRegion<byte> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            Span<byte> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            Span<short> predictionScratch,
+            Av1BitDepth bitDepth)
+        {
+            Rectangle referenceBounds = reference.Bounds;
+            int referenceOrigin =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            Av1TranslationalInterPredictor.Predict(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                referenceOrigin,
+                prediction,
+                predictionStride,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                predictionScratch);
+        }
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
@@ -2250,6 +2315,43 @@ internal static partial class Av1IntraSuperblockEncoder
                 bitDepth.GetBitCount(),
                 parameters,
                 scratch);
+
+        /// <inheritdoc/>
+        public static void PredictTranslationalInter(
+            Buffer2DRegion<ushort> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            Span<ushort> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            Span<short> predictionScratch,
+            Av1BitDepth bitDepth)
+        {
+            Rectangle referenceBounds = reference.Bounds;
+            int referenceOrigin =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            Av1TranslationalInterPredictor.Predict(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                referenceOrigin,
+                prediction,
+                predictionStride,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                bitDepth.GetBitCount(),
+                predictionScratch);
+        }
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(

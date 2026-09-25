@@ -23,11 +23,8 @@ internal static class Av1InterpolationProbabilities
     /// <summary>The probability entries for all frame update roles.</summary>
     public const int ProbabilityLength = (int)Av1FrameUpdateType.Count * FrameLength;
 
-    /// <summary>The filter counts retained for each decoded reference slot.</summary>
-    public const int ReferenceUsageLength = Av1Constants.ReferenceFrameCount * FilterCount;
-
-    /// <summary>The combined probabilities, context counts, output counts, and reference usage.</summary>
-    public const int StorageLength = ProbabilityLength + FrameLength + FilterCount + ReferenceUsageLength;
+    /// <summary>The combined probabilities, context counts, and output counts.</summary>
+    public const int StorageLength = ProbabilityLength + FrameLength + FilterCount;
 
     /// <summary>
     /// Updates one frame role from the final selected blocks' context counts.
@@ -57,53 +54,5 @@ internal static class Av1InterpolationProbabilities
                 probabilities[offset + filter] = filter == 0 ? probability + remainder : probability;
             }
         }
-    }
-
-    /// <summary>
-    /// Selects the non-dual filters worth searching from preceding reference-frame usage.
-    /// </summary>
-    /// <param name="usage">The selected filter counts by decoded reference slot.</param>
-    /// <param name="referenceSlots">The named references' decoded-slot mapping.</param>
-    /// <returns>A three-bit filter mask.</returns>
-    public static int GetSearchMask(ReadOnlySpan<int> usage, ReadOnlySpan<uint> referenceSlots)
-    {
-        InlineArray8<int> totals = default;
-        int otherTotal = 0;
-        for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
-        {
-            int offset = (int)referenceSlots[reference - 1] * FilterCount;
-            for (int filter = 0; filter < FilterCount; filter++)
-            {
-                totals[reference] += usage[offset + filter];
-            }
-
-            if (reference != (int)Av1ReferenceFrameType.Last)
-            {
-                otherTotal += totals[reference];
-            }
-        }
-
-        int mask = (1 << FilterCount) - 1;
-        int lastOffset = (int)referenceSlots[(int)Av1ReferenceFrameType.Last - 1] * FilterCount;
-        for (int filter = 0; filter < FilterCount; filter++)
-        {
-            if (totals[(int)Av1ReferenceFrameType.Last] != 0 &&
-                usage[lastOffset + filter] * 30 <= totals[(int)Av1ReferenceFrameType.Last])
-            {
-                int score = 0;
-                for (int reference = (int)Av1ReferenceFrameType.Last2; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
-                {
-                    int weight = reference <= (int)Av1ReferenceFrameType.Golden ? 20 : 10;
-                    score += usage[((int)referenceSlots[reference - 1] * FilterCount) + filter] * weight;
-                }
-
-                if (score < otherTotal)
-                {
-                    mask &= ~(1 << filter);
-                }
-            }
-        }
-
-        return mask;
     }
 }

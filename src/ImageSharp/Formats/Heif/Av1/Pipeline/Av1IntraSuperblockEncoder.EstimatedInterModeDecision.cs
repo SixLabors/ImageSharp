@@ -341,7 +341,9 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // Final intra prediction consumes reconstructed neighbors. The prediction-only candidate
                 // must not be copied here, because each transform now contributes its selected residual.
-                modeInfo.Block.Skip = winner.Skip && !parent.FrameHeader.CodedLossless;
+                // An intra block never signals skip: pick_sb_modes_nonrd() clears mbmi->skip_txfm before the
+                // search, and neither the search nor encode_superblock() sets it for an intra winner.
+                modeInfo.Block.Skip = false;
                 this.EncodeSelectedIntraPlane(
                     writer,
                     tileIndex,
@@ -511,7 +513,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     out _,
                     out uint squaredError,
                     out _,
-                    out bool initialSkip);
+                    out bool initialSkip,
+                    out bool compoundEarlyTermination);
                 if (statistics.Cost == long.MaxValue)
                 {
                     continue;
@@ -528,7 +531,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     state.BestStatistics = statistics;
                     state.BestSquaredError = squaredError;
                     state.BestInitialSkip = initialSkip;
-                    state.BestEarlyTermination = false;
+                    state.BestEarlyTermination = compoundEarlyTermination;
                     state.WinningMotionVectors[(int)mode][(int)Av1ReferenceFrameType.Last] = primaryVector;
                     state.WinningMotionVectors[(int)mode][(int)Av1ReferenceFrameType.Alternate] = secondaryVector;
                     candidate.Skip = statistics.AllTransformsEmpty;
@@ -1674,7 +1677,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     out uint variance,
                     out uint squaredError,
                     out long chromaDistortion,
-                    out bool initialSkip);
+                    out bool initialSkip,
+                    out bool candidateEarlyTermination);
 
                 if (reference == Av1ReferenceFrameType.Last && vector.IsZero && variance != uint.MaxValue)
                 {
@@ -1704,7 +1708,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidate.Skip = statistics.AllTransformsEmpty;
                     winner = candidate;
                     state.BestInitialSkip = initialSkip;
-                    state.BestEarlyTermination = forceZeroMotion;
+                    state.BestEarlyTermination = forceZeroMotion || candidateEarlyTermination;
 
                     // The previous winner becomes reusable candidate storage. The third predictor
                     // remains available for filter trials, without copying or overwriting the winner.
@@ -1850,6 +1854,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="squaredError">The candidate luma squared error.</param>
         /// <param name="chromaDistortion">The modeled chroma distortion when evaluated.</param>
         /// <param name="initialSkip">Whether residual skipping required no coded alternative.</param>
+        /// <param name="modelEarlyTermination">Whether the large-block model ended the residual estimate.</param>
         /// <returns>The residual cost, or an invalid result when prediction error rejects the candidate.</returns>
         private Av1RateDistortionStatistics EvaluateEstimatedInterCandidate(
             Av1SymbolEncoder writer,
@@ -1872,9 +1877,11 @@ internal static partial class Av1IntraSuperblockEncoder
             out uint variance,
             out uint squaredError,
             out long chromaDistortion,
-            out bool initialSkip)
+            out bool initialSkip,
+            out bool modelEarlyTermination)
         {
             initialSkip = false;
+            modelEarlyTermination = false;
             Av1BlockSize blockSize = modeInfo.BlockSize;
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             chromaDistortion = long.MaxValue;
@@ -1992,14 +1999,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref modeInfo,
                     vector,
                     secondaryVector,
-                    primaryReference.GetPlane(Av1Plane.Y),
-                    secondaryReference.GetPlane(Av1Plane.Y),
+                    primaryReference,
+                    secondaryReference,
                     evaluateBlue,
                     evaluateRed,
                     ref prediction,
                     ref scratch,
                     out variance,
-                    out squaredError);
+                    out squaredError,
+                    out modelEarlyTermination);
             }
             else
             {
@@ -2052,7 +2060,32 @@ internal static partial class Av1IntraSuperblockEncoder
                 squaredError = (uint)((error + ((1L << (2 * shift)) >> 1)) >> (2 * shift));
                 variance = (uint)Math.Max(0, squaredError - (((long)sum * sum) >> BitOperations.Log2((uint)(width * height))));
                 modeInfo.TransformSize = this.SelectEstimatedInterTransformSize(
-                    blockSize, variance, squaredError, evaluateBlue, evaluateRed, false, out _);
+                    blockSize, variance, squaredError, evaluateBlue, evaluateRed, false, out bool forceSkip);
+
+                if (this.UsesLargeBlockModel(blockSize))
+                {
+                    // model_skip_for_sb_y_large(): a forced skip ends the candidate. Otherwise the unit test decides,
+                    // unless the default path (calculate_rd 0) already fails the SSE early termination.
+                    modelEarlyTermination = forceSkip;
+                    if (!forceSkip &&
+                        (searchMotionMode || !searchState.SkipByPredictionError(this.picture.Parent.EncodingSpeed, blockSize, squaredError)))
+                    {
+                        modelEarlyTermination = this.TestLargeBlockSkip(
+                            blockOrigin,
+                            in modeInfo,
+                            vector,
+                            secondaryVector,
+                            primaryReference,
+                            secondaryReference,
+                            prediction,
+                            modeInfo.TransformSize,
+                            variance,
+                            squaredError,
+                            sum,
+                            evaluateBlue,
+                            evaluateRed);
+                    }
+                }
             }
 
             if (modeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.None)
@@ -2076,6 +2109,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Prediction-error rejection precedes chroma work. Only color-sensitive planes need
             // predictors for this estimate; final reconstruction still writes every coded plane.
+            earlyTermination |= modelEarlyTermination;
             if (!earlyTermination)
             {
                 for (int planeIndex = 1; planeIndex <= 2; planeIndex++)
@@ -2153,14 +2187,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfo">The candidate syntax and selected transform size.</param>
         /// <param name="vector">The primary displacement.</param>
         /// <param name="secondaryVector">The secondary displacement.</param>
-        /// <param name="primaryReference">The primary bordered luma plane.</param>
-        /// <param name="secondaryReference">The secondary bordered luma plane.</param>
+        /// <param name="primaryReferencePlanes">The primary bordered reference planes.</param>
+        /// <param name="secondaryReferencePlanes">The secondary bordered reference planes.</param>
         /// <param name="evaluateBlue">Whether blue-difference residuals participate in mode selection.</param>
         /// <param name="evaluateRed">Whether red-difference residuals participate in mode selection.</param>
         /// <param name="prediction">The winning packed predictor on return.</param>
         /// <param name="scratch">The alternate packed predictor storage on return.</param>
         /// <param name="variance">The winning normalized prediction variance.</param>
         /// <param name="squaredError">The winning normalized squared error.</param>
+        /// <param name="earlyTermination">Whether the winning filter's residual estimate ended early.</param>
         private void SelectEstimatedInterFilter(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -2169,15 +2204,20 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockModeInfo modeInfo,
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
-            Buffer2DRegion<TSample> primaryReference,
-            Buffer2DRegion<TSample> secondaryReference,
+            Av1EncoderFrame<TSample>.PlanarView primaryReferencePlanes,
+            Av1EncoderFrame<TSample>.PlanarView secondaryReferencePlanes,
             bool evaluateBlue,
             bool evaluateRed,
             ref Span<TSample> prediction,
             ref Span<TSample> scratch,
             out uint variance,
-            out uint squaredError)
+            out uint squaredError,
+            out bool earlyTermination)
         {
+            Buffer2DRegion<TSample> primaryReference = primaryReferencePlanes.GetPlane(Av1Plane.Y);
+            Buffer2DRegion<TSample> secondaryReference = secondaryReferencePlanes.GetPlane(Av1Plane.Y);
+            bool largeBlockModel = this.UsesLargeBlockModel(blockSize);
+            earlyTermination = false;
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int width = blockSize.GetWidth();
@@ -2242,9 +2282,33 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformSize transformSize = this.SelectEstimatedInterTransformSize(
                     blockSize, currentVariance, (uint)error, evaluateBlue, evaluateRed, false, out bool forceSkip);
 
+                // search_filter_ref() models a large block with model_skip_for_sb_y_large() and calculate_rd 1, so a
+                // passing unit test ends the filter's residual estimate as a forced skip does.
+                bool filterEarlyTermination = false;
+                if (largeBlockModel)
+                {
+                    Av1EncoderBlockModeInfo filterMode = modeInfo;
+                    filterMode.HorizontalInterpolationFilter = filter;
+                    filterMode.VerticalInterpolationFilter = filter;
+                    filterEarlyTermination = forceSkip || this.TestLargeBlockSkip(
+                        blockOrigin,
+                        in filterMode,
+                        vector,
+                        secondaryVector,
+                        primaryReferencePlanes,
+                        secondaryReferencePlanes,
+                        scratch,
+                        transformSize,
+                        currentVariance,
+                        (uint)error,
+                        sum,
+                        evaluateBlue,
+                        evaluateRed);
+                }
+
                 int rate;
                 long distortion;
-                if (forceSkip)
+                if (forceSkip || filterEarlyTermination)
                 {
                     rate = 0;
                     distortion = error << 4;
@@ -2264,6 +2328,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     bestTransform = transformSize;
                     variance = currentVariance;
                     squaredError = (uint)error;
+                    earlyTermination = filterEarlyTermination;
 
                     // Exchange borrowed views, not their contents. The winning predictor remains intact
                     // while the next filter writes into the other worker buffer.
@@ -2276,6 +2341,178 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.HorizontalInterpolationFilter = bestFilter;
             modeInfo.VerticalInterpolationFilter = bestFilter;
             modeInfo.TransformSize = bestTransform;
+        }
+
+        /// <summary>
+        /// Returns whether a candidate uses the large-block model, which can end the mode search early.
+        /// Reference: get_model_rd_flag(), for constant-bitrate real-time usage at 8 bits.
+        /// </summary>
+        /// <param name="blockSize">The coding-block geometry.</param>
+        /// <returns><see langword="true"/> for 32x32 and larger blocks at a nonzero quantizer and 8 bits.</returns>
+        private bool UsesLargeBlockModel(Av1BlockSize blockSize)
+            => this.picture.Parent.SpeedSettings.IsRealtime &&
+                blockSize >= Av1BlockSize.Block32x32 &&
+                this.picture.Parent.FrameHeader.QuantizationParameters.BaseQIndex != 0 &&
+                this.bitDepth == Av1BitDepth.EightBit;
+
+        /// <summary>
+        /// Tests whether every luma test unit and the color-sensitive chroma planes of a candidate quantize to zero,
+        /// which ends the candidate's residual estimate. Reference: the skip test of model_skip_for_sb_y_large()
+        /// and model_skip_for_sb_y_large_64(), which is set_early_term_based_on_uv_plane().
+        /// </summary>
+        /// <param name="blockOrigin">The luma coding-block origin.</param>
+        /// <param name="modeInfo">The candidate syntax, whose filters build the chroma predictions.</param>
+        /// <param name="vector">The primary displacement.</param>
+        /// <param name="secondaryVector">The secondary displacement.</param>
+        /// <param name="primaryReference">The primary reference planes.</param>
+        /// <param name="secondaryReference">The secondary reference planes.</param>
+        /// <param name="lumaPrediction">The packed luma predictor.</param>
+        /// <param name="transformSize">The estimation transform, which sets the 8x8 or 16x16 test units.</param>
+        /// <param name="variance">The luma prediction variance.</param>
+        /// <param name="squaredError">The luma prediction squared error.</param>
+        /// <param name="sum">The luma prediction error sum.</param>
+        /// <param name="evaluateBlue">Whether blue-difference prediction is color sensitive.</param>
+        /// <param name="evaluateRed">Whether red-difference prediction is color sensitive.</param>
+        /// <returns><see langword="true"/> when the candidate can skip its residual.</returns>
+        private bool TestLargeBlockSkip(
+            Point blockOrigin,
+            in Av1EncoderBlockModeInfo modeInfo,
+            Av1MotionVector vector,
+            Av1MotionVector secondaryVector,
+            Av1EncoderFrame<TSample>.PlanarView primaryReference,
+            Av1EncoderFrame<TSample>.PlanarView secondaryReference,
+            ReadOnlySpan<TSample> lumaPrediction,
+            Av1TransformSize transformSize,
+            uint variance,
+            uint squaredError,
+            int sum,
+            bool evaluateBlue,
+            bool evaluateRed)
+        {
+            Av1BlockSize blockSize = modeInfo.BlockSize;
+            int width = blockSize.GetWidth();
+            int height = blockSize.GetHeight();
+            int sizeLog2 = BitOperations.Log2((uint)width) + BitOperations.Log2((uint)height) - 4;
+            long dcQuant = Av1QuantizationLookup.GetDcQuant(this.quantization.QIndex[0], this.quantization.DeltaQDc[0], this.bitDepth);
+            long acQuant = Av1QuantizationLookup.GetAcQuant(this.quantization.QIndex[0], this.quantization.DeltaQAc[0], this.bitDepth);
+            long dcThreshold = (dcQuant * dcQuant) >> 6;
+            long acThreshold = (acQuant * acQuant) >> 6;
+
+            // ac_thr_factor()
+            int normalizedSum = Math.Abs(sum) >> sizeLog2;
+            ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
+            if (this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8 && normalizedSum < 5)
+            {
+                acThreshold *= frameSize.FrameWidth <= 640 && frameSize.FrameHeight <= 480 ? 4 : 2;
+            }
+
+            if (frameSize.FrameWidth * frameSize.FrameHeight >= 1280 * 720 &&
+                !this.picture.Parent.IsScreenContent &&
+                this.sourceSadLevel > Av1SourceSadLevel.Low &&
+                (squaredError >> sizeLog2) > 1000)
+            {
+                dcThreshold >>= 4;
+                acThreshold >>= 4;
+            }
+
+            // The units are the 16x16 transforms of a block larger than 32x32 or of a 16x16 estimation transform,
+            // and 8x8 units otherwise.
+            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Span<TSample> sourceSpan = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+            int unit = transformSize == Av1TransformSize.Size16x16 ? 16 : 8;
+            int unitLog2 = unit == 16 ? 8 : 6;
+            for (int y = 0; y < height; y += unit)
+            {
+                for (int x = 0; x < width; x += unit)
+                {
+                    TOperator.GetMoments(
+                        sourceSpan[((y * sourcePlane.Stride) + x)..],
+                        sourcePlane.Stride,
+                        lumaPrediction[((y * width) + x)..],
+                        width,
+                        unit,
+                        unit,
+                        out int unitSum,
+                        out long unitError);
+
+                    long unitVariance = unitError - (((long)unitSum * unitSum) >> unitLog2);
+                    if (!(unitVariance < acThreshold || variance == 0))
+                    {
+                        return false;
+                    }
+
+                    if (!(unitError - unitVariance < dcThreshold || squaredError == variance))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            // The transform skipping test in the chroma planes that are color sensitive.
+            int subX = this.source.ChromaSubsamplingX;
+            int subY = this.source.ChromaSubsamplingY;
+            Av1BlockSize chromaSize = blockSize.GetSubsampled(subX != 0, subY != 0);
+            int chromaWidth = chromaSize.GetWidth();
+            int chromaHeight = chromaSize.GetHeight();
+            int chromaLog2 = BitOperations.Log2((uint)(chromaWidth * chromaHeight));
+            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            for (int planeIndex = 1; planeIndex <= 2; planeIndex++)
+            {
+                if (!(planeIndex == 1 ? evaluateBlue : evaluateRed))
+                {
+                    continue;
+                }
+
+                Av1Plane plane = (Av1Plane)planeIndex;
+                long chromaDc = Av1QuantizationLookup.GetDcQuant(this.quantization.QIndex[0], this.quantization.DeltaQDc[planeIndex], this.bitDepth);
+                long chromaAc = Av1QuantizationLookup.GetAcQuant(this.quantization.QIndex[0], this.quantization.DeltaQAc[planeIndex], this.bitDepth);
+                long chromaDcThreshold = (chromaDc * chromaDc) >> 3;
+                long chromaAcThreshold = (chromaAc * chromaAc) >> 3;
+                Span<TSample> chromaPrediction = planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
+                this.PrepareInterPlanePrediction(
+                    vector,
+                    secondaryVector,
+                    plane,
+                    modeInfo.Mode,
+                    modeInfo.ReferenceFrame,
+                    modeInfo.SecondaryReferenceFrame,
+                    false,
+                    modeInfo.CompoundType,
+                    modeInfo.CompoundWedgeIndex,
+                    modeInfo.CompoundWedgeSign,
+                    modeInfo.DifferenceWeightedMaskType,
+                    modeInfo.HorizontalInterpolationFilter,
+                    modeInfo.VerticalInterpolationFilter,
+                    primaryReference.GetPlane(plane),
+                    secondaryReference.GetPlane(plane),
+                    blockOrigin,
+                    subX,
+                    subY,
+                    blockSize,
+                    chromaPrediction,
+                    workspace.Residual);
+
+                Buffer2DRegion<TSample> chromaSource = this.source.GetPlane(plane);
+                TOperator.GetMoments(
+                    Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
+                    chromaSource.Stride,
+                    chromaPrediction,
+                    chromaWidth,
+                    chromaWidth,
+                    chromaHeight,
+                    out int chromaSum,
+                    out long chromaError);
+
+                long chromaVariance = chromaError - (((long)chromaSum * chromaSum) >> chromaLog2);
+                if (!((chromaVariance < chromaAcThreshold || chromaVariance == 0) &&
+                    (chromaError - chromaVariance < chromaDcThreshold || chromaError == chromaVariance)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

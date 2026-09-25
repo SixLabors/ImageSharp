@@ -65,6 +65,7 @@ public class ExrEncoderTests
     [Theory]
     [InlineData(ExrCompression.None)]
     [InlineData(ExrCompression.Zip)]
+    [InlineData(ExrCompression.Zips)]
     public void FloatDefaultLoad_RetainsAssociatedColorAtZeroAlpha(ExrCompression compression)
     {
         using Image<RgbaVectorP> input = new(65, 1);
@@ -100,6 +101,7 @@ public class ExrEncoderTests
     [Theory]
     [InlineData(ExrCompression.None)]
     [InlineData(ExrCompression.Zip)]
+    [InlineData(ExrCompression.Zips)]
     public void HalfDefaultLoad_RetainsAssociatedColorAtZeroAlpha(ExrCompression compression)
     {
         using Image<RgbaHalfP> input = new(65, 1);
@@ -123,8 +125,11 @@ public class ExrEncoderTests
         }
     }
 
-    [Fact]
-    public void FloatDefaultLoad_PreservesNonfiniteSamplesAndSignedZero()
+    [Theory]
+    [InlineData(ExrCompression.None)]
+    [InlineData(ExrCompression.Zip)]
+    [InlineData(ExrCompression.Zips)]
+    public void FloatDefaultLoad_PreservesNonfiniteSamplesAndSignedZero(ExrCompression compression)
     {
         using Image<RgbaVectorP> input = new(65, 1);
         RgbaVectorP pixel = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, -0F);
@@ -135,7 +140,7 @@ public class ExrEncoderTests
         }
 
         using MemoryStream stream = new();
-        input.Save(stream, new ExrEncoder { PixelType = ExrPixelType.Float, Compression = ExrCompression.Zip });
+        input.Save(stream, new ExrEncoder { PixelType = ExrPixelType.Float, Compression = compression });
 
         stream.Position = 0;
         using Image decoded = Image.Load(stream);

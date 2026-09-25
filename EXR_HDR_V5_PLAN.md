@@ -14,10 +14,15 @@ does not rename the current APIs.
   and writing now use bulk pixel operations and TIFF-local SIMD row kernels for
   grayscale, three-component, and four-component samples, including opposite
   byte order and the declared alpha representation.
-- Validate ImageSharp-written float and unsigned 32-bit TIFF with libtiff, and
-  ImageSharp-written HDR EXR with OpenEXR. Check samples, tags, compression, and
-  nonfinite and zero-alpha cases. Complete the conversion and SIMD acceptance
-  checks below, then run the relevant Release solution checks.
+- Native interoperability checks passed. libtiff decoded 31 ImageSharp-written
+  floating-point and unsigned 32-bit TIFF files across the supported compression
+  modes. It read their sample-format, component-width, alpha, and compression
+  tags; all 9,750 component samples matched after libtiff decompression.
+  OpenEXR validated five ImageSharp-written HDR EXR files and decoded them into
+  uncompressed copies; all 1,300 channel samples matched, including nonfinite
+  values and stored color at zero alpha. Its reader also accepted ImageSharp's
+  ZIPS output. The conversion, SIMD, codec, and processor acceptance tests pass
+  in Release on both net10.0 and net11.0.
 - Rename the scaled APIs only as a separate v5 change after numeric behavior
   and codec interoperability are verified.
 
@@ -191,7 +196,8 @@ load-save-load values. Check Image.Load without options and Image.Load<TPixel>.
 Check the exact TIFF tags and all supported float compression modes. Check
 percentage thresholds on images with different observed ranges.
 
-Use focused tests and Release builds after implementation changes. The Release
-solution builds and 530 focused TIFF tests pass on both net10.0 and net11.0.
-Independent libtiff and OpenEXR output validation and the complete acceptance
-checks above are still outstanding.
+The Release solution builds pass on net10.0 and net11.0. On each framework,
+39,805 pixel-format, TIFF, EXR, and processor tests pass with one test skipped;
+another 437 SIMD and OilPaint tests pass. The EXR HDR round-trip tests cover
+None, ZIP, and ZIPS compression. The native interoperability checks described
+above passed against the files produced by the focused codec tests.

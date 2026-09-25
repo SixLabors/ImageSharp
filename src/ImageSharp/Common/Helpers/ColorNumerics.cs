@@ -16,7 +16,7 @@ internal static class ColorNumerics
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
     /// </summary>
-    private static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
+    public static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
 
     /// <summary>
     /// Gets unrounded, unsaturated luminance using ITU-R Recommendation BT.709.

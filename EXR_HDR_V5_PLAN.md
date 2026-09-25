@@ -1,8 +1,25 @@
 # ImageSharp v5 HDR and pixel-format conversion plan
 
-This plan replaces the earlier native-versus-scaled codec design. The current branch
-does not yet meet these rules. The rules below apply to all pixel formats and all
-codecs. This document records the design. It does not rename the current APIs.
+This plan replaces the earlier native-versus-scaled codec design. The rules below
+apply to all pixel formats and all codecs. This document records the design. It
+does not rename the current APIs.
+
+## Current status
+
+- The shared pixel conversion rules, associated floating-point pixel types,
+  float-plane SIMD operations, EXR floating-point paths, float TIFF writer,
+  default floating-file loads, bounded processor indices, and percentage
+  thresholding are implemented on this branch. Unsigned 16-bit and 32-bit TIFF
+  color output also preserves its stored sample precision. Float TIFF decoding
+  and writing now use bulk pixel operations and TIFF-local SIMD row kernels for
+  grayscale, three-component, and four-component samples, including opposite
+  byte order and the declared alpha representation.
+- Validate ImageSharp-written float and unsigned 32-bit TIFF with libtiff, and
+  ImageSharp-written HDR EXR with OpenEXR. Check samples, tags, compression, and
+  nonfinite and zero-alpha cases. Complete the conversion and SIMD acceptance
+  checks below, then run the relevant Release solution checks.
+- Rename the scaled APIs only as a separate v5 change after numeric behavior
+  and codec interoperability are verified.
 
 ## Conversion rules
 
@@ -174,5 +191,7 @@ load-save-load values. Check Image.Load without options and Image.Load<TPixel>.
 Check the exact TIFF tags and all supported float compression modes. Check
 percentage thresholds on images with different observed ranges.
 
-Use focused tests and Release builds after implementation changes. The
-current working tree has not passed those checks.
+Use focused tests and Release builds after implementation changes. The Release
+solution builds and 530 focused TIFF tests pass on both net10.0 and net11.0.
+Independent libtiff and OpenEXR output validation and the complete acceptance
+checks above are still outstanding.

@@ -198,6 +198,13 @@ internal static partial class Av1IntraSuperblockEncoder
         private long bestInterEstimate;
         private long bestInterPredictionCost;
         private long bestInterLumaPredictionCost;
+        private Av1GlobalMotionParameters warpedModel;
+        private bool useWarpedPrediction;
+        private InlineArray10<Av1MotionModeWinner> motionModeWinners;
+        private int motionModeWinnerCount;
+        private int motionModeWinnerLimit;
+        private bool evaluatingMotionModeWinners;
+        private bool searchingRetainedCandidates;
         private long interSourceVarianceCost;
         private int interSourceVariance;
         private bool mustFindValidPartition;
@@ -864,7 +871,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             if (!this.mustFindValidPartition && !frameHeader.IsIntra && motionAggressiveness >= 0 &&
-                frameHeader.FrameSize.SuperResolutionDenominator == Av1Constants.SuperResolutionScaleDenominatorMinimum)
+                frameHeader.FrameSize.SuperResolutionDenominator == Av1Constants.ScaleNumerator)
             {
                 this.PrunePartitionsBySimpleMotion(
                     macroBlock,
@@ -1311,7 +1318,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (candidateStatistics.Cost < bestStatistics.Cost && !this.picture.Parent.FrameHeader.IsIntra &&
                         !this.picture.Parent.FrameHeader.CodedLossless &&
-                        this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo.Block.Skip)
+                        IsSkippable(in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot))
                     {
                         // Scale distortion by block area relative to a maximum superblock. Rate uses the
                         // logarithmic sample count, so both tests must pass before smaller partitions stop.
@@ -1650,6 +1657,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
         private static int GetBlockArea(Av1BlockSize blockSize)
             => blockSize.GetWidth() * blockSize.GetHeight();
+
+        /// <summary>
+        /// Gets whether a selected mode kept no coefficient in any plane during mode evaluation. This is not the
+        /// coded skip flag. Reference: ctx->skippable, which store_coding_context() takes from best_mode_skippable.
+        /// </summary>
+        private static bool IsSkippable(in Av1EncoderPartitionTree.ModeSnapshot snapshot)
+            => snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra
+                ? snapshot.Statistics.AllTransformsEmpty
+                : !snapshot.Statistics.HasCoefficients;
 
         internal static bool ShouldTerminatePartitionSearchAfterNoneAndSplit(
             bool enabled,
@@ -2967,11 +2983,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     _ => false
                 };
 
+                // The partition search reads whether the mode-evaluation winner kept any coefficient. The
+                // winner refinement does not change it. Reference: best_mode_skippable in
+                // av1_rd_pick_inter_mode(), which refine_winner_mode_tx() leaves unchanged.
+                bool skippable = interStatistics.AllTransformsEmpty;
                 if (!bypassWinner && (winnerSettings.EnableWinnerCoefficientOptimization ||
                     winnerSettings.DeferTransformSizeSearch || winnerSettings.UseWinnerInterpolation ||
                     winnerSettings.InterTransformTypeProbabilityThreshold != int.MaxValue))
                 {
                     this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Winner;
+                    this.SetWarpedPrediction(macroBlock, blockOrigin, modeInfo.Block.PartitionType, in modeInfo.Block, interVector);
                     this.RefineInterTransformSize(
                         writer,
                         macroBlock,
@@ -2983,8 +3004,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         interSecondaryVector,
                         ref interStatistics,
                         ref interStates);
+                    this.useWarpedPrediction = false;
                 }
 
+                interStatistics.AllTransformsEmpty = skippable;
                 this.SelectedBlockStatistics = interStatistics;
             }
             else
@@ -5621,6 +5644,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                 transformOrder[type] = (Av1TransformType)type;
                             }
 
+                            // search_tx_type() subtracts a block crossing the frame edge with the DCT_DCT padding
+                            // before the skip prediction and the type pruning read the residual.
+                            Av1TransformBlockEncoder.PadBorderResidual(
+                                this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, transformWidth, transformWidth, transformHeight, Av1TransformType.DctDct);
                             ushort candidateTransformMask = transformMask;
                             Av1EncoderSpeedSettings typeSettings = this.picture.Parent.SpeedSettings;
                             if (typeSettings.EstimateTransformTypeRateDistortion &&

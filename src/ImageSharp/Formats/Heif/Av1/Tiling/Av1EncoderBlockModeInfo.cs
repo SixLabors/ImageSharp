@@ -67,6 +67,7 @@ internal struct Av1EncoderBlockModeInfo
     private byte uvMode;
     private byte compoundState;
     private byte compoundWedgeIndex;
+    private byte motionMode;
     private InlineArray16<Av1TransformSize> interTransformSizes;
 
     /// <summary>
@@ -270,6 +271,15 @@ internal struct Av1EncoderBlockModeInfo
         // Offset the signed reference identifier so zero-initialized blocks retain the absent sentinel.
         readonly get => (Av1ReferenceFrameType)(this.secondaryReference - 1);
         set => this.secondaryReference = (byte)((int)value + 1);
+    }
+
+    /// <summary>
+    /// Gets or sets the motion mode of a single-reference inter block.
+    /// </summary>
+    public Av1MotionMode MotionMode
+    {
+        readonly get => (Av1MotionMode)this.motionMode;
+        set => this.motionMode = (byte)value;
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ internal static class Av1EncoderMotionVariation
     /// <summary>
     /// The largest number of warped-motion samples. Reference: LEAST_SQUARES_SAMPLES_MAX.
     /// </summary>
-    private const int MaximumSampleCount = 8;
+    public const int MaximumSampleCount = 8;
 
     /// <summary>
     /// The widest neighbor step, in 4x4 units, of the overlappable neighbor scans. Reference: mi_size_wide[BLOCK_64X64].
@@ -62,7 +62,7 @@ internal static class Av1EncoderMotionVariation
         // The references of a sequence all have the frame size, so none is scaled.
         if (frameHeader.AllowWarpedMotion &&
             !frameHeader.ForceIntegerMotionVector &&
-            CountSamples(picture, macroBlock, position, mode) >= 1)
+            FindSamples(picture, macroBlock, position, mode, stackalloc Point[MaximumSampleCount], stackalloc Point[MaximumSampleCount]) >= 1)
         {
             return Av1MotionMode.Warped;
         }
@@ -145,19 +145,24 @@ internal static class Av1EncoderMotionVariation
     }
 
     /// <summary>
-    /// Counts the neighbors that predict from the same single reference as the block, which supply warped-motion
-    /// samples. Reference: av1_findSamples().
+    /// Collects the warped-motion samples of the neighbors that predict from the same single reference as the
+    /// block. Each sample is a neighbor center relative to the block origin, and that center displaced by the
+    /// neighbor's motion vector, both in eighth samples. Reference: av1_findSamples() with record_samples().
     /// </summary>
     /// <param name="picture">The frame decisions.</param>
     /// <param name="macroBlock">The neighbor availability of the block.</param>
     /// <param name="position">The block origin in 4x4 units.</param>
     /// <param name="mode">The block decisions.</param>
+    /// <param name="sourcePoints">Receives up to eight neighbor centers.</param>
+    /// <param name="referencePoints">Receives up to eight displaced neighbor centers.</param>
     /// <returns>The number of samples, at most eight.</returns>
-    public static int CountSamples(
+    public static int FindSamples(
         Av1PictureControlSet picture,
         Av1MacroBlockD macroBlock,
         Point position,
-        in Av1EncoderBlockModeInfo mode)
+        in Av1EncoderBlockModeInfo mode,
+        Span<Point> sourcePoints,
+        Span<Point> referencePoints)
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         Av1ReferenceFrameType referenceFrame = mode.ReferenceFrame;
@@ -171,14 +176,16 @@ internal static class Av1EncoderMotionVariation
 
         if (macroBlock.IsUpAvailable)
         {
-            ref readonly Av1EncoderBlockModeInfo above = ref picture.GetFromModeInfoGrid(new Point(column, row - 1)).Block;
+            Point abovePosition = new(column, row - 1);
+            ref readonly Av1EncoderBlockModeInfo above = ref picture.GetFromModeInfoGrid(abovePosition).Block;
             int aboveWidth = above.BlockSize.Get4x4WideCount();
             if (width <= aboveWidth)
             {
                 int columnOffset = -column % aboveWidth;
                 doTopLeft &= columnOffset >= 0;
                 doTopRight &= columnOffset + aboveWidth <= width;
-                if (IsSample(in above, referenceFrame) && ++count >= MaximumSampleCount)
+                if (IsSample(in above, referenceFrame) &&
+                    RecordSample(picture, abovePosition, in above, 0, -1, columnOffset, 1, sourcePoints, referencePoints, ref count))
                 {
                     return MaximumSampleCount;
                 }
@@ -188,9 +195,11 @@ internal static class Av1EncoderMotionVariation
                 int end = Math.Min(width, frameHeader.ModeInfoColumnCount - column);
                 for (int i = 0; i < end; i += aboveWidth)
                 {
-                    above = ref picture.GetFromModeInfoGrid(new Point(column + i, row - 1)).Block;
+                    abovePosition = new Point(column + i, row - 1);
+                    above = ref picture.GetFromModeInfoGrid(abovePosition).Block;
                     aboveWidth = above.BlockSize.Get4x4WideCount();
-                    if (IsSample(in above, referenceFrame) && ++count >= MaximumSampleCount)
+                    if (IsSample(in above, referenceFrame) &&
+                        RecordSample(picture, abovePosition, in above, 0, -1, i, 1, sourcePoints, referencePoints, ref count))
                     {
                         return MaximumSampleCount;
                     }
@@ -200,13 +209,15 @@ internal static class Av1EncoderMotionVariation
 
         if (macroBlock.IsLeftAvailable)
         {
-            ref readonly Av1EncoderBlockModeInfo left = ref picture.GetFromModeInfoGrid(new Point(column - 1, row)).Block;
+            Point leftPosition = new(column - 1, row);
+            ref readonly Av1EncoderBlockModeInfo left = ref picture.GetFromModeInfoGrid(leftPosition).Block;
             int leftHeight = left.BlockSize.Get4x4HighCount();
             if (height <= leftHeight)
             {
                 int rowOffset = -row % leftHeight;
                 doTopLeft &= rowOffset >= 0;
-                if (IsSample(in left, referenceFrame) && ++count >= MaximumSampleCount)
+                if (IsSample(in left, referenceFrame) &&
+                    RecordSample(picture, leftPosition, in left, rowOffset, 1, 0, -1, sourcePoints, referencePoints, ref count))
                 {
                     return MaximumSampleCount;
                 }
@@ -216,9 +227,11 @@ internal static class Av1EncoderMotionVariation
                 int end = Math.Min(height, frameHeader.ModeInfoRowCount - row);
                 for (int i = 0; i < end; i += leftHeight)
                 {
-                    left = ref picture.GetFromModeInfoGrid(new Point(column - 1, row + i)).Block;
+                    leftPosition = new Point(column - 1, row + i);
+                    left = ref picture.GetFromModeInfoGrid(leftPosition).Block;
                     leftHeight = left.BlockSize.Get4x4HighCount();
-                    if (IsSample(in left, referenceFrame) && ++count >= MaximumSampleCount)
+                    if (IsSample(in left, referenceFrame) &&
+                        RecordSample(picture, leftPosition, in left, i, 1, 0, -1, sourcePoints, referencePoints, ref count))
                     {
                         return MaximumSampleCount;
                     }
@@ -228,8 +241,10 @@ internal static class Av1EncoderMotionVariation
 
         if (doTopLeft && macroBlock.IsLeftAvailable && macroBlock.IsUpAvailable)
         {
-            ref readonly Av1EncoderBlockModeInfo topLeft = ref picture.GetFromModeInfoGrid(new Point(column - 1, row - 1)).Block;
-            if (IsSample(in topLeft, referenceFrame) && ++count >= MaximumSampleCount)
+            Point topLeftPosition = new(column - 1, row - 1);
+            ref readonly Av1EncoderBlockModeInfo topLeft = ref picture.GetFromModeInfoGrid(topLeftPosition).Block;
+            if (IsSample(in topLeft, referenceFrame) &&
+                RecordSample(picture, topLeftPosition, in topLeft, 0, -1, 0, -1, sourcePoints, referencePoints, ref count))
             {
                 return MaximumSampleCount;
             }
@@ -250,14 +265,41 @@ internal static class Av1EncoderMotionVariation
             topRightColumn >= tile.ModeInfoColumnStart &&
             topRightColumn < tile.ModeInfoColumnEnd)
         {
-            ref readonly Av1EncoderBlockModeInfo topRight = ref picture.GetFromModeInfoGrid(new Point(topRightColumn, topRightRow)).Block;
-            if (IsSample(in topRight, referenceFrame) && ++count >= MaximumSampleCount)
+            Point topRightPosition = new(topRightColumn, topRightRow);
+            ref readonly Av1EncoderBlockModeInfo topRight = ref picture.GetFromModeInfoGrid(topRightPosition).Block;
+            if (IsSample(in topRight, referenceFrame) &&
+                RecordSample(picture, topRightPosition, in topRight, 0, -1, width, 1, sourcePoints, referencePoints, ref count))
             {
                 return MaximumSampleCount;
             }
         }
 
         return count;
+    }
+
+    /// <summary>
+    /// Records one neighbor center and its displaced position, and reports whether the sample list is full.
+    /// Reference: record_samples().
+    /// </summary>
+    private static bool RecordSample(
+        Av1PictureControlSet picture,
+        Point neighborPosition,
+        in Av1EncoderBlockModeInfo neighbor,
+        int rowOffset,
+        int rowSign,
+        int columnOffset,
+        int columnSign,
+        Span<Point> sourcePoints,
+        Span<Point> referencePoints,
+        ref int count)
+    {
+        int x = (columnOffset << Av1Constants.ModeInfoSizeLog2) + (columnSign * neighbor.BlockSize.GetWidth() / 2) - 1;
+        int y = (rowOffset << Av1Constants.ModeInfoSizeLog2) + (rowSign * neighbor.BlockSize.GetHeight() / 2) - 1;
+        Av1MotionVector vector = picture.GetDisplacementVector(neighborPosition);
+        Point sample = new(x * 8, y * 8);
+        sourcePoints[count] = sample;
+        referencePoints[count] = new Point(sample.X + vector.Column, sample.Y + vector.Row);
+        return ++count >= MaximumSampleCount;
     }
 
     /// <summary>

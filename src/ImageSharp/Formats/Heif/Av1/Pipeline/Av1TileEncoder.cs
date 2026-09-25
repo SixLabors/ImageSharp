@@ -459,6 +459,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         parent.SelectedInterpolationCounts = blockWorkspace.SelectedInterpolationCounts;
         parent.InterpolationCounts.Span.Clear();
         parent.SelectedInterpolationCounts.Span.Clear();
+        Array.Clear(parent.WarpedUsage);
         if (restoreProbabilities && parent.SpeedSettings.InterpolationPruningLevel == 2)
         {
             blockWorkspace.InterpolationProbabilities.Fill(512);

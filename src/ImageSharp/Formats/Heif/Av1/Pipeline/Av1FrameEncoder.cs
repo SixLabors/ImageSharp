@@ -2194,10 +2194,12 @@ internal static class Av1FrameEncoder
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
             if (frameHeader.AllowWarpedMotion && parent.SpeedSettings.WarpedProbabilityThreshold > 0)
             {
-                // No block selects warped motion, so the new usage probability is 0 and the running value halves.
+                // The running probability moves halfway to this frame's share of warped blocks.
                 // Reference: the warped_probs update at the end of encode_frame_internal().
                 int updateType = (int)GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup);
-                this.warpedProbabilities[updateType] >>= 1;
+                int sum = parent.WarpedUsage[0] + parent.WarpedUsage[1];
+                int newProbability = sum != 0 ? 128 * parent.WarpedUsage[1] / sum : 0;
+                this.warpedProbabilities[updateType] = (this.warpedProbabilities[updateType] + newProbability) >> 1;
             }
 
             if (!parent.SpeedSettings.IsRealtime)

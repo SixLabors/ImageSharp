@@ -336,7 +336,9 @@ internal struct Av1GlobalMotionParameters
         determinantShift -= ModelPrecisionBits;
         if (determinantShift < 0)
         {
-            inverseDeterminant <<= -determinantShift;
+            // The reference holds the inverse in a 16-bit integer, so a shifted inverse wraps.
+            // Reference: the int16_t iDet of find_affine_int().
+            inverseDeterminant = (short)(inverseDeterminant << -determinantShift);
             determinantShift = 0;
         }
 

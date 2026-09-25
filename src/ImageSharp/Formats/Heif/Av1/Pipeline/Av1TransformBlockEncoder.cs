@@ -354,13 +354,17 @@ internal static partial class Av1TransformBlockEncoder
             : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
         sse = residualEnergy;
 
+        bool dcOnly = false;
+        bool dcOnlyCandidate = false;
+        Av1TransformType derivedType = transformType;
         if (predictDcBlock && PredictSkippedBlock(
             transformSize,
             Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
             Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
             Av1BitDepth.EightBit,
             perPixelMean,
-            blockVariance))
+            blockVariance,
+            out dcOnlyCandidate))
         {
             state.EndOfBlock = 0;
             state.CoefficientContext = 0;
@@ -372,6 +376,15 @@ internal static partial class Av1TransformBlockEncoder
         }
         else
         {
+            // From level two a low-variance block searches DCT_DCT alone and codes its mean as the DC
+            // coefficient. Chroma of an intra block keeps its full transform. Reference: the dc_only_blk
+            // result of predict_dc_only_block() in search_tx_type().
+            dcOnly = dcOnlyCandidate && predictDcLevel > 1 && (plane == Av1Plane.Y || isInter);
+            if (dcOnly)
+            {
+                transformType = Av1TransformType.DctDct;
+            }
+
             // search_tx_type() subtracts with the border padding of the candidate type.
             PadBorderResidual(workspace, plane, blockOrigin, residual, inputStride, width, height, transformType);
             EncodeLossyCandidate(
@@ -393,7 +406,17 @@ internal static partial class Av1TransformBlockEncoder
                 useChromaWeights,
                 false,
                 blockMseQ8,
-                ref state);
+                ref state,
+                dcOnly,
+                perPixelMean);
+        }
+
+        // A DC-only chroma block is quantized as DCT_DCT but measured with the type that the block derives from
+        // luma. Reference: av1_get_tx_type() in dist_block_px_domain().
+        Av1EncoderTransformBlockState reconstructionState = state;
+        if (dcOnly && plane != Av1Plane.Y)
+        {
+            reconstructionState.TransformType = derivedType;
         }
 
         // Later transform blocks predict from these samples, so the candidate is always reconstructed.
@@ -409,7 +432,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             qIndex,
             plane,
-            in state);
+            in reconstructionState);
 
         // An empty transform reconstructs the prediction, so its error is the residual energy. This search
         // holds one transform type, so a policy that measures the winner in the pixel domain measures
@@ -417,6 +440,12 @@ internal static partial class Av1TransformBlockEncoder
         if (state.EndOfBlock == 0)
         {
             return residualEnergy;
+        }
+
+        // A DC-only block keeps its pixel-domain distortion. Reference: dist_block_px_domain() in search_tx_type().
+        if (dcOnly)
+        {
+            return pixelDistortion;
         }
 
         (int Type, uint Threshold) distortionPolicy = GetDistortionPolicy(workspace);
@@ -1065,13 +1094,17 @@ internal static partial class Av1TransformBlockEncoder
             : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
         sse = residualEnergy;
 
+        bool dcOnly = false;
+        bool dcOnlyCandidate = false;
+        Av1TransformType derivedType = transformType;
         if (predictDcBlock && PredictSkippedBlock(
             transformSize,
             Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
             Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
             bitDepth,
             perPixelMean,
-            blockVariance))
+            blockVariance,
+            out dcOnlyCandidate))
         {
             state.EndOfBlock = 0;
             state.CoefficientContext = 0;
@@ -1083,6 +1116,15 @@ internal static partial class Av1TransformBlockEncoder
         }
         else
         {
+            // From level two a low-variance block searches DCT_DCT alone and codes its mean as the DC
+            // coefficient. Chroma of an intra block keeps its full transform. Reference: the dc_only_blk
+            // result of predict_dc_only_block() in search_tx_type().
+            dcOnly = dcOnlyCandidate && predictDcLevel > 1 && (plane == Av1Plane.Y || isInter);
+            if (dcOnly)
+            {
+                transformType = Av1TransformType.DctDct;
+            }
+
             // search_tx_type() subtracts with the border padding of the candidate type.
             PadBorderResidual(workspace, plane, blockOrigin, residual, inputStride, width, height, transformType);
             EncodeLossyCandidate(
@@ -1104,7 +1146,17 @@ internal static partial class Av1TransformBlockEncoder
                 useChromaWeights,
                 false,
                 blockMseQ8,
-                ref state);
+                ref state,
+                dcOnly,
+                perPixelMean);
+        }
+
+        // A DC-only chroma block is quantized as DCT_DCT but measured with the type that the block derives from
+        // luma. Reference: av1_get_tx_type() in dist_block_px_domain().
+        Av1EncoderTransformBlockState reconstructionState = state;
+        if (dcOnly && plane != Av1Plane.Y)
+        {
+            reconstructionState.TransformType = derivedType;
         }
 
         // Later transform blocks predict from these samples, so the candidate is always reconstructed.
@@ -1121,7 +1173,7 @@ internal static partial class Av1TransformBlockEncoder
             qIndex,
             plane,
             bitDepth,
-            in state);
+            in reconstructionState);
 
         // An empty transform reconstructs the prediction, so its error is the residual energy. This search
         // holds one transform type, so a policy that measures the winner in the pixel domain measures
@@ -1129,6 +1181,12 @@ internal static partial class Av1TransformBlockEncoder
         if (state.EndOfBlock == 0)
         {
             return residualEnergy;
+        }
+
+        // A DC-only block keeps its pixel-domain distortion. Reference: dist_block_px_domain() in search_tx_type().
+        if (dcOnly)
+        {
+            return pixelDistortion;
         }
 
         (int Type, uint Threshold) distortionPolicy = GetDistortionPolicy(workspace);
@@ -2045,7 +2103,9 @@ internal static partial class Av1TransformBlockEncoder
         bool useChromaWeights,
         bool winnerEvaluation,
         uint blockMseQ8,
-        ref Av1EncoderTransformBlockState state)
+        ref Av1EncoderTransformBlockState state,
+        bool dcOnly = false,
+        long perPixelMean = 0)
     {
         Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
@@ -2066,14 +2126,24 @@ internal static partial class Av1TransformBlockEncoder
         }
 
         long workXform = Av1WorkCounters.Start();
-        Av1ForwardTransformer.Transform2d(
-            residual,
-            transformed,
-            (uint)residualStride,
-            transformType,
-            transformSize,
-            bitDepth.GetBitCount(),
-            workspace.TransformWorkspace);
+        if (dcOnly)
+        {
+            // A DC-only block replaces the forward transform with its scaled mean. Reference: av1_xform_dc_only().
+            transformed.Clear();
+            transformed[0] = (int)((perPixelMean * DcCoefficientScale[(int)transformSize]) >> 12);
+        }
+        else
+        {
+            Av1ForwardTransformer.Transform2d(
+                residual,
+                transformed,
+                (uint)residualStride,
+                transformType,
+                transformSize,
+                bitDepth.GetBitCount(),
+                workspace.TransformWorkspace);
+        }
+
         Av1WorkCounters.Stop(Av1WorkCounters.FwdXform, workXform);
 
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
@@ -2567,6 +2637,55 @@ internal static partial class Av1TransformBlockEncoder
 
         dcOnly = true;
         return false;
+    }
+
+    /// <summary>
+    /// Predicts whether a transform block of a type search codes only its DC coefficient, so the search tries
+    /// DCT_DCT alone. A block predicted to code no coefficients is not DC-only. Reference: the dc_only_blk result of
+    /// predict_dc_only_block(), which sets the DCT_DCT mask of search_tx_type().
+    /// </summary>
+    /// <param name="workspace">The block workspace with the evaluation stage and visible boundary.</param>
+    /// <param name="residual">The source-minus-prediction block.</param>
+    /// <param name="residualStride">The number of residual samples between rows.</param>
+    /// <param name="plane">The component plane.</param>
+    /// <param name="blockOrigin">The transform block origin in plane samples.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="qIndex">The base quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="isInter">Whether the block is inter predicted.</param>
+    /// <returns><see langword="true"/> when the search keeps DCT_DCT alone.</returns>
+    public static bool IsDcOnlyBlock(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        Av1Plane plane,
+        Point blockOrigin,
+        Av1TransformSize transformSize,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1BitDepth bitDepth,
+        bool isInter)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        if (GetPredictDcLevel(workspace) < 2 || width == 64 || height == 64 || (plane != Av1Plane.Y && !isInter))
+        {
+            return false;
+        }
+
+        Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
+        GetBlockStatistics(residual, residualStride, visible.Width, visible.Height, bitDepth, out _, out long perPixelMean, out ulong blockVariance);
+        return !PredictSkippedBlock(
+            transformSize,
+            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth),
+            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth),
+            bitDepth,
+            perPixelMean,
+            blockVariance,
+            out bool dcOnly) && dcOnly;
     }
 
     /// <summary>

@@ -436,6 +436,36 @@ internal static partial class Av1IntraSuperblockEncoder
             int height);
 
         /// <summary>
+        /// Predicts a block with an affine warped model. Reference: av1_warp_plane(), which
+        /// av1_make_inter_predictor() calls for a warped block.
+        /// </summary>
+        /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="referenceWidth">The visible width of the reference plane.</param>
+        /// <param name="referenceHeight">The visible height of the reference plane.</param>
+        /// <param name="blockOrigin">The block origin in plane samples.</param>
+        /// <param name="width">The prediction width.</param>
+        /// <param name="height">The prediction height.</param>
+        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+        /// <param name="parameters">The warped model.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="scratch">The warp filter intermediate storage.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PrepareWarpedInterPrediction(
+            Buffer2DRegion<TSample> reference,
+            int referenceWidth,
+            int referenceHeight,
+            Point blockOrigin,
+            int width,
+            int height,
+            int subsamplingX,
+            int subsamplingY,
+            Av1GlobalMotionParameters parameters,
+            Span<TSample> prediction,
+            Span<short> scratch,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
         /// Builds a translational prediction from a retained reference frame and the matching source residual.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
@@ -1205,6 +1235,36 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height);
+
+        /// <inheritdoc/>
+        public static void PrepareWarpedInterPrediction(
+            Buffer2DRegion<byte> reference,
+            int referenceWidth,
+            int referenceHeight,
+            Point blockOrigin,
+            int width,
+            int height,
+            int subsamplingX,
+            int subsamplingY,
+            Av1GlobalMotionParameters parameters,
+            Span<byte> prediction,
+            Span<short> scratch,
+            Av1BitDepth bitDepth)
+            => Av1WarpedInterPredictor.PredictWarped(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                reference.Bounds.Location,
+                referenceWidth,
+                referenceHeight,
+                prediction,
+                width,
+                blockOrigin,
+                width,
+                height,
+                subsamplingX,
+                subsamplingY,
+                parameters,
+                scratch);
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
@@ -2159,6 +2219,37 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height);
+
+        /// <inheritdoc/>
+        public static void PrepareWarpedInterPrediction(
+            Buffer2DRegion<ushort> reference,
+            int referenceWidth,
+            int referenceHeight,
+            Point blockOrigin,
+            int width,
+            int height,
+            int subsamplingX,
+            int subsamplingY,
+            Av1GlobalMotionParameters parameters,
+            Span<ushort> prediction,
+            Span<short> scratch,
+            Av1BitDepth bitDepth)
+            => Av1WarpedInterPredictor.PredictWarped(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                reference.Bounds.Location,
+                referenceWidth,
+                referenceHeight,
+                prediction,
+                width,
+                blockOrigin,
+                width,
+                height,
+                subsamplingX,
+                subsamplingY,
+                bitDepth.GetBitCount(),
+                parameters,
+                scratch);
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(

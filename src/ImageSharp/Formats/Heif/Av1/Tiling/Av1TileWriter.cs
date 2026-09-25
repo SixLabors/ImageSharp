@@ -1286,15 +1286,18 @@ internal partial class Av1TileWriter
 
                 if (macroBlockModeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.None)
                 {
-                    // Every block keeps simple translation: the real-time search prunes warped motion
-                    // (extra_prune_warped) and never evaluates OBMC. The mode is still coded whenever the frame
-                    // and the neighbors allow another one. Reference: write_motion_mode().
+                    // The mode is coded whenever the frame and the neighbors allow another one.
+                    // Reference: write_motion_mode().
                     Av1MotionMode lastAllowedMode = Av1EncoderMotionVariation.GetLastAllowedMotionMode(
                         pcs,
                         macroBlock,
                         modeInfoPosition,
                         in macroBlockModeInfo.Block);
-                    writer.WriteMotionMode<TOperation>(blockSize, lastAllowedMode, Av1MotionMode.SimpleTranslation);
+                    writer.WriteMotionMode<TOperation>(blockSize, lastAllowedMode, macroBlockModeInfo.Block.MotionMode);
+                    if (TOperation.WritesOutput && lastAllowedMode == Av1MotionMode.Warped)
+                    {
+                        pcs.Parent.WarpedUsage[macroBlockModeInfo.Block.MotionMode == Av1MotionMode.Warped ? 1 : 0]++;
+                    }
                 }
 
                 if (UsesSwitchableInterpolation(frm_hdr, macroBlockModeInfo.Block))
@@ -2405,7 +2408,9 @@ internal partial class Av1TileWriter
     /// <returns>Whether the block writes a vertical filter and, when enabled, a horizontal filter.</returns>
     public static bool UsesSwitchableInterpolation(ObuFrameHeader frameHeader, Av1EncoderBlockModeInfo modeInfo)
     {
-        if (frameHeader.InterpolationFilter != Av1InterpolationFilter.Switchable || modeInfo.SkipMode)
+        // A warped block filters with the warp filter alone. Reference: av1_is_interp_needed().
+        if (frameHeader.InterpolationFilter != Av1InterpolationFilter.Switchable || modeInfo.SkipMode ||
+            modeInfo.MotionMode == Av1MotionMode.Warped)
         {
             return false;
         }

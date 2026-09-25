@@ -1276,6 +1276,57 @@ internal readonly struct Av1EncoderSpeedSettings
             : screenContent ? this.allIntra && this.Speed >= HeifEncodingSpeed.Level5 ? 1 : 0 : 2;
 
     /// <summary>
+    /// Gets the gate level that compares a prediction-only cost with the best one before an inter transform search.
+    /// Boosted frames search every transform. Reference: txfm_rd_gate_level, read by get_txfm_rd_gate_level().
+    /// </summary>
+    /// <param name="updateType">The frame update type.</param>
+    /// <param name="searchCase">The search that applies the gate.</param>
+    /// <returns>The gate level, or zero for no gate.</returns>
+    public int GetInterTransformGateLevel(Av1FrameUpdateType updateType, Av1TransformSearchCase searchCase)
+    {
+        if (this.InterTransformGateLevel == 0 || this.realtime)
+        {
+            return this.InterTransformGateLevel;
+        }
+
+        bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+        if (boosted)
+        {
+            return 0;
+        }
+
+        if (this.Speed >= HeifEncodingSpeed.Level4)
+        {
+            return searchCase switch
+            {
+                Av1TransformSearchCase.MotionMode => 5,
+                Av1TransformSearchCase.CompoundType => this.Speed >= HeifEncodingSpeed.Level5 ? 5 : 3,
+                _ => this.Speed >= HeifEncodingSpeed.Level5 ? 4 : 3
+            };
+        }
+
+        return this.Speed >= HeifEncodingSpeed.Level3 && updateType != Av1FrameUpdateType.IntermediateAlternate ? 2 : 1;
+    }
+
+    /// <summary>
+    /// Gets how many simple-translation winners of the mode loop search the other motion modes after it. Zero
+    /// searches every motion mode inside the loop. Reference: motion_mode_for_winner_cand with
+    /// num_winner_motion_modes.
+    /// </summary>
+    /// <param name="updateType">The frame update type.</param>
+    /// <returns>The number of retained winners.</returns>
+    public int GetMotionModeWinnerCount(Av1FrameUpdateType updateType)
+    {
+        if (this.realtime || this.allIntra || this.Speed < HeifEncodingSpeed.Level3)
+        {
+            return 0;
+        }
+
+        bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+        return boosted ? 0 : updateType == Av1FrameUpdateType.IntermediateAlternate ? 10 : 3;
+    }
+
+    /// <summary>
     /// Gets split suppression, pruning aggressiveness, and unsplit termination for motion-based partition decisions.
     /// </summary>
     public (int SplitLevel, int Aggressiveness, bool TerminateNone) GetSimpleMotionPartitionSettings(

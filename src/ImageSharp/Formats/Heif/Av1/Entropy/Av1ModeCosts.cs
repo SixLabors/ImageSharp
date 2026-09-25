@@ -678,6 +678,20 @@ internal readonly ref struct Av1ModeCosts
         => this.WedgeIndex[((int)blockSize * WedgeIndexAlphabetSize) + symbol];
 
     /// <summary>
+    /// Gets a retained motion-mode rate of a block that may use warped motion, in 1/512-bit units.
+    /// Reference: motion_mode_cost.
+    /// </summary>
+    public int GetMotionMode(Av1BlockSize blockSize, Av1MotionMode mode)
+        => this.MotionMode[((int)blockSize * MotionModeAlphabetSize) + (int)mode];
+
+    /// <summary>
+    /// Gets a retained motion-mode rate of a block that may use OBMC but not warped motion, in 1/512-bit units.
+    /// Reference: motion_mode_cost1.
+    /// </summary>
+    public int GetObmc(Av1BlockSize blockSize, Av1MotionMode mode)
+        => this.Obmc[((int)blockSize * ObmcAlphabetSize) + (int)mode];
+
+    /// <summary>
     /// Gets a retained inter-intra enable rate in 1/512-bit units.
     /// </summary>
     public int GetInterIntra(Av1BlockSize blockSize, int symbol)

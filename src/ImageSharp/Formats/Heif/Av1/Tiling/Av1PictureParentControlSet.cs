@@ -48,6 +48,12 @@ internal class Av1PictureParentControlSet
     public Memory<int> SelectedInterpolationCounts { get; set; }
 
     /// <summary>
+    /// Gets the coded blocks that could use warped motion, split by whether they do. Reference: the warped_used
+    /// counts of encode_b().
+    /// </summary>
+    public int[] WarpedUsage { get; } = new int[2];
+
+    /// <summary>
     /// Gets or sets the closest enabled reference before the current frame.
     /// </summary>
     public Av1ReferenceFrameType NearestPastReference { get; set; }

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -181,6 +182,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int filterPolicy = this.GetEstimatedFilterSearchPolicy(macroBlock, origin, blockSize, false, out Av1InterpolationFilter filter);
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Span<TSample> winningPrediction = workspace.SelectedLumaReconstruction;
+            this.lastLumaPredictionBuffer = -1;
             Span<TSample> prediction = workspace.LumaPrediction;
             Span<TSample> scratch = workspace.LumaCandidateReconstruction;
             Av1EncoderBlockModeInfo winner = modeInfo.Block;
@@ -1083,6 +1085,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1RateDistortionStatistics residual = this.EstimateInterFrameIntraCandidate(
                     macroBlock, blockOrigin, blockSize, mode, transformSize, evaluateBlue, evaluateRed, prediction);
+                this.RecordLumaPrediction(prediction);
 
                 int rate = residual.Rate + referenceRate + penalty;
                 if ((mode == Av1PredictionMode.Vertical || mode == Av1PredictionMode.Horizontal) && blockSize >= Av1BlockSize.Block8x8)
@@ -1948,7 +1951,71 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.VerticalInterpolationFilter,
                     this.blockWorkspace.GetMotionVectorCosts(header.MotionVectorPrecision));
 
-                if (!motionSearch.SearchEstimated(
+                Av1MotionSearchBase.FractionalResult result;
+                if (this.UsesProjectionMotionSearch(modeInfo.ReferenceFrame))
+                {
+                    // search_new_mv() estimates GOLDEN and ALTREF motion from row and column projections in
+                    // constant-bitrate usage, gives up below 16x16 or when the projection error exceeds LAST's
+                    // predicted-vector error, and refines the estimate to fractional precision.
+                    if (blockSize < Av1BlockSize.Block16x16)
+                    {
+                        return Av1RateDistortionStatistics.Invalid;
+                    }
+
+                    Point integerVector = Point.Empty;
+                    uint projectionSad;
+                    ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+                    if (this.bitDepth == Av1BitDepth.EightBit)
+                    {
+                        projectionSad = Av1MotionSearchBase.SearchProjection(
+                            MemoryMarshal.Cast<TSample, byte>(sourceBlock),
+                            sourcePlane.Stride,
+                            MemoryMarshal.Cast<TSample, byte>(referencePlane.Buffer.DangerousGetSingleSpan()),
+                            referencePlane.Stride,
+                            referenceOrigin,
+                            new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
+                            new Size(sourcePlane.Width, sourcePlane.Height),
+                            Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y),
+                            blockSize.GetWidth() >> 1,
+                            blockSize.GetHeight() >> 1,
+                            false,
+                            false,
+                            default(Av1MotionVector).GetFullPixelSearchBounds(bounds),
+                            workspace.PredictionScratch,
+                            out Av1MotionVector projected,
+                            out _);
+
+                        integerVector = new Point(projected.Column >> 3, projected.Row >> 3);
+                    }
+                    else
+                    {
+                        // av1_int_pro_motion_estimation() keeps zero motion above 8 bits.
+                        projectionSad = (uint)TOperator.SumAbsoluteDifferences(
+                            sourceBlock,
+                            sourcePlane.Stride,
+                            referencePlane.Buffer.DangerousGetSingleSpan()[referenceOrigin..],
+                            referencePlane.Stride,
+                            blockSize.GetWidth(),
+                            blockSize.GetHeight(),
+                            1);
+                    }
+
+                    if (projectionSad > (long)searchState.PredictorSad[(int)Av1ReferenceFrameType.Last] ||
+                        !motionSearch.RefineProjection(
+                            this.picture.Parent.MotionSearchSettings,
+                            integerVector,
+                            referenceVectors.GetNewReference(0),
+                            header.AllowHighPrecisionMotionVector,
+                            this.picture.Parent.AverageFrameLowMotion,
+                            this.sourceSadLevel,
+                            (uint)this.interSourceVariance,
+                            out motionRate,
+                            out result))
+                    {
+                        return Av1RateDistortionStatistics.Invalid;
+                    }
+                }
+                else if (!motionSearch.SearchEstimated(
                     this.picture.Parent.MotionSearchSettings,
                     this.picture.Parent.MotionSearchStepParameter,
                     referenceVectors.GetNewReference(0),
@@ -1959,7 +2026,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     (uint)this.interSourceVariance,
                     searchState.BestStatistics.Cost,
                     out motionRate,
-                    out Av1MotionSearchBase.FractionalResult result))
+                    out result))
                 {
                     return Av1RateDistortionStatistics.Invalid;
                 }
@@ -2088,6 +2155,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            this.RecordLumaPrediction(prediction);
             if (modeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.None)
             {
                 // The motion-mode model does not report the variance, so the mode keeps the unset value.
@@ -2342,6 +2410,50 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.VerticalInterpolationFilter = bestFilter;
             modeInfo.TransformSize = bestTransform;
         }
+
+        /// <summary>
+        /// Records which inter-prediction buffer holds the luma prediction built last. With prediction reuse off,
+        /// the reference builds every candidate in the frame buffer, so that buffer holds the last prediction after
+        /// the search.
+        /// </summary>
+        /// <param name="prediction">The buffer that received the prediction.</param>
+        private void RecordLumaPrediction(ReadOnlySpan<TSample> prediction)
+        {
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            ref TSample start = ref MemoryMarshal.GetReference(prediction);
+            this.lastLumaPredictionBuffer =
+                Unsafe.AreSame(ref start, ref MemoryMarshal.GetReference(workspace.SelectedLumaReconstruction)) ? 0
+                : Unsafe.AreSame(ref start, ref MemoryMarshal.GetReference(workspace.LumaPrediction)) ? 1
+                : Unsafe.AreSame(ref start, ref MemoryMarshal.GetReference(workspace.LumaCandidateReconstruction)) ? 2
+                : -1;
+        }
+
+        /// <summary>
+        /// Gets the luma prediction built last by the estimated search.
+        /// </summary>
+        /// <returns>The packed prediction.</returns>
+        private ReadOnlySpan<TSample> GetLastLumaPrediction()
+        {
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            return this.lastLumaPredictionBuffer switch
+            {
+                0 => workspace.SelectedLumaReconstruction,
+                1 => workspace.LumaPrediction,
+                _ => workspace.LumaCandidateReconstruction
+            };
+        }
+
+        /// <summary>
+        /// Returns whether NEWMV motion for a reference comes from the projection search. Reference: the
+        /// constant-bitrate condition of search_new_mv(): a reference after LAST while LAST is available, at the same
+        /// scale as LAST and without lag.
+        /// </summary>
+        /// <param name="reference">The candidate reference.</param>
+        /// <returns><see langword="true"/> when the projection search estimates the motion.</returns>
+        private bool UsesProjectionMotionSearch(Av1ReferenceFrameType reference)
+            => reference > Av1ReferenceFrameType.Last &&
+                this.picture.Parent.SpeedSettings.IsRealtime &&
+                (this.picture.Parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Last)) != 0;
 
         /// <summary>
         /// Returns whether a candidate uses the large-block model, which can end the mode search early.

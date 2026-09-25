@@ -406,6 +406,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public int EncodedFrameCount { get; set; }
 
     /// <summary>
+    /// Gets or sets the frame rate multiplier of the preceding coded frame. Reference: td.mb.rdmult, which
+    /// loopfilter_frame() sets to cpi->rd.RDMULT after each frame and the block searches restore after use.
+    /// </summary>
+    public int PreviousFrameRateMultiplier { get; set; }
+
+    /// <summary>
     /// Gets the per-size mode history retained throughout one superblock row.
     /// </summary>
     public Span<int> ModeThresholdFactors => this.owner.Memory.Span.Slice(

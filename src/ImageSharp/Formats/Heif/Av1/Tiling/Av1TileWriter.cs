@@ -237,13 +237,19 @@ internal partial class Av1TileWriter
         int halfBlockSize = blockSize.GetWidth() >> 1;
         int quarterBlockSize = blockSize.GetWidth() >> 2;
 
-        EncodePartition<TOperation>(
-            pcs,
-            writer,
-            blockSize,
-            partition,
-            blockOrigin,
-            pcs.PartitionContexts[tileIndex]);
+        // The real-time search encodes through nonrd_use_partition(), which never adapts the partition
+        // distributions, so its partition costs stay at the frame context. Only the packed partition adapts them.
+        // Reference: the partition update_cdf() of encode_sb(), which the non-RD path does not call.
+        if (TOperation.WritesOutput || !pcs.Parent.SpeedSettings.IsRealtime)
+        {
+            EncodePartition<TOperation>(
+                pcs,
+                writer,
+                blockSize,
+                partition,
+                blockOrigin,
+                pcs.PartitionContexts[tileIndex]);
+        }
 
         switch (partition)
         {
@@ -580,12 +586,17 @@ internal partial class Av1TileWriter
                 break;
         }
 
-        UpdatePartitionContexts(
-            pcs.PartitionContexts[tileIndex],
-            blockOrigin,
-            subSize,
-            blockSize,
-            partition);
+        // nonrd_use_partition() leaves the partition contexts cleared while it encodes, so real-time partition
+        // costs read zero neighbor contexts. Only the packed partitions update them.
+        if (TOperation.WritesOutput || !pcs.Parent.SpeedSettings.IsRealtime)
+        {
+            UpdatePartitionContexts(
+                pcs.PartitionContexts[tileIndex],
+                blockOrigin,
+                subSize,
+                blockSize,
+                partition);
+        }
     }
 
     /// <summary>

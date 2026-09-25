@@ -670,6 +670,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         blockWorkspace.PreviousFrameWasKey = frameHeader.FrameType == ObuFrameType.KeyFrame;
         blockWorkspace.EncodedFrameCount++;
+        blockWorkspace.PreviousFrameRateMultiplier = Av1RateDistortion.GetRateMultiplier(
+            frameHeader.QuantizationParameters.QIndex[0] + frameHeader.QuantizationParameters.DeltaQDc[0],
+            picture.Sequence.SequenceHeader.ColorConfig.BitDepth,
+            parent.FrameUpdateType);
         return encodedTiles;
     }
 

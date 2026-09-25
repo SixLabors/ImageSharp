@@ -460,15 +460,25 @@ Proceed directly to milestone 2 when this implementation is complete.
 
 ## 2. Complete frame and sequence control — active
 
-First step: extend the comparison harness to image sequences. Encode the same frames with the port's sequence
-encoder and with `aomenc`, find a reference configuration whose frame roles the port supports, and compare the
-streams frame by frame as for still pictures. Then correct each first difference against libaom.
+The sequence harness encodes the same frames with the port's sequence encoder and with `aomenc`
+(`--usage=1 --passes=1 --end-usage=cbr --min-q=Q --max-q=Q --threads=1`) and compares the streams frame by frame.
+Current state: 3-frame 512x384 sequences at q64 and q128, speeds 7, 8 and 9, are byte-identical to `aomenc` on
+every frame. The still-picture regression stays at 620/620.
 
-- [ ] Implement reference-slot selection, refresh scheduling, frame roles, entropy inheritance, and temporal motion context.
-  Current LAST/retained-GOLDEN support is incomplete. Remove forced error resilience and disabled frame-end CDF
-  propagation where they differ from the selected configuration.
-- [ ] Complete reference/mode ordering, motion search, interpolation, compound selection, and winner refinement
-  for those frame roles. Connect required motion-mode and reference tools.
+- [x] Real-time one-layer reference structure (`av1_set_rtc_reference_structure_one_layer`): slot selection,
+  refresh, GOLDEN interval, ALTREF lag, `get_ref_frame_flags` duplicate removal, primary reference and per-slot
+  CDF inheritance, saved and projected temporal motion fields.
+- [x] Real-time inter tools: motion-mode signaling and warped-probability pruning, global motion off, winner
+  prediction rebuild, `model_skip_for_sb_y_large`, intra skip in inter frames, CBR projection NEWMV search
+  (`av1_int_pro_motion_estimation`), `try_merge`/`calc_do_split_flag` with residual-spread pruning, preceding-frame
+  merge rdmult, and no partition CDF or context updates during non-RD analysis.
+- [ ] Extend the harness to longer sequences, other content and sizes, so that GOLDEN refresh, adaptive ALTREF
+  lag, temporal MV projection, and the warped cut-off (frame 5) are all exercised.
+- [ ] Port the remaining real-time frame control: `av1_adjust_gf_refresh_qp_one_pass_rt`, frames_to_key,
+  frames-since-golden, `direct_partition_merging` (speed 8 and up), and `enable_ref_short_signaling` below 360p.
+  Handle `context_update_tile_id` for multi-tile frames.
+- [ ] GOOD usage (speeds 0-6) sequences: lag, ARF groups, and the warped/OBMC search. Remove forced error
+  resilience and disabled frame-end CDF propagation where they differ from the selected configuration.
 - [ ] Replace the central-window translation search with the required global-motion estimator and selection policy.
   Use current eligibility, corner, stride, frame geometry, and storage rules.
 - [ ] Reconcile quantization/rate control, super-resolution, and film-grain configuration/signaling.

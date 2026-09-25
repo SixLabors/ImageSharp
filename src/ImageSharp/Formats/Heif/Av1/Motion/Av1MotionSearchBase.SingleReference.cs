@@ -398,6 +398,76 @@ internal static partial class Av1MotionSearchBase
         }
 
         /// <summary>
+        /// Refines a full-sample projection estimate to fractional precision. Reference: the constant-bitrate
+        /// branch of search_new_mv(), which runs find_fractional_mv_step() from the av1_int_pro_motion_estimation()
+        /// result without start statistics or a cost list, and stops at the precision that subpel_select() gives
+        /// for a zero start.
+        /// </summary>
+        /// <param name="settings">The resolved frame search policy.</param>
+        /// <param name="integerVector">The projection result in full samples.</param>
+        /// <param name="referenceVector">The differential coding reference in eighth-sample units.</param>
+        /// <param name="allowHighPrecision">Whether eighth-sample vectors are permitted.</param>
+        /// <param name="frameLowMotion">The running zero-motion percentage of the frame.</param>
+        /// <param name="sourceSad">The superblock's source-change classification.</param>
+        /// <param name="sourceVariance">The normalized source variance.</param>
+        /// <param name="motionRate">The weighted vector rate.</param>
+        /// <param name="result">The refined vector and its prediction-error statistics.</param>
+        /// <returns><see langword="true"/> when the refined vector differs from the reference vector.</returns>
+        public bool RefineProjection(
+            Av1MotionSearchSettings settings,
+            Point integerVector,
+            Av1MotionVector referenceVector,
+            bool allowHighPrecision,
+            int frameLowMotion,
+            Av1SourceSadLevel sourceSad,
+            uint sourceVariance,
+            out int motionRate,
+            out FractionalResult result)
+        {
+            Size size = new(this.blockSize.GetWidth(), this.blockSize.GetHeight());
+            SearchPrecision precision = settings.GetEstimatedFractionalPrecision(
+                this.blockSize,
+                integerVector,
+                referenceVector,
+                Point.Empty,
+                frameLowMotion,
+                sourceSad,
+                sourceVariance,
+                false);
+
+            FractionalSearch<TSample, TOperator> fractionalSearch = new(
+                this.source,
+                this.sourceStride,
+                this.reference,
+                this.referenceStride,
+                this.referenceOrigin,
+                this.prediction,
+                size,
+                referenceVector.GetSubpixelSearchBounds(this.frameBounds),
+                referenceVector,
+                this.motionCosts,
+                this.bitDepth,
+                this.rateMultiplier,
+                [],
+                []);
+
+            fractionalSearch.Search(
+                new Av1MotionVector(integerVector.Y * 8, integerVector.X * 8),
+                null,
+                settings.FractionalMethod,
+                precision,
+                allowHighPrecision,
+                settings.FractionalIterationsPerStep,
+                settings.FractionalInterpolationTaps,
+                [],
+                [],
+                out result);
+
+            motionRate = ((this.motionCosts.GetCost(result.Vector, referenceVector) * 108) + 64) >> 7;
+            return result.Vector != referenceVector;
+        }
+
+        /// <summary>
         /// Searches one differential-reference choice while retaining state for subsequent choices.
         /// </summary>
         /// <param name="settings">The resolved frame search policy.</param>

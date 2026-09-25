@@ -222,6 +222,11 @@ internal static partial class Av1IntraSuperblockEncoder
         private int forceZeroMotionLevel;
         private Av1ReferenceFrameType partitionReference;
         private bool usePartitionMotion;
+
+        /// <summary>
+        /// The inter-prediction buffer that holds the luma prediction the estimated search built last, or -1.
+        /// </summary>
+        private int lastLumaPredictionBuffer = -1;
         private int estimatedReferencePruning;
         private InlineArray2<byte> superblockColorSensitivity;
 
@@ -561,6 +566,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // try_merge() compares the two costs with x->rdmult, which still holds the preceding frame's
+            // multiplier: the block searches set it and restore it.
+            int mergeMultiplier = this.blockWorkspace.PreviousFrameRateMultiplier;
             int savedLumaArea = this.codedAreaLuma;
             int savedChromaArea = this.codedAreaChroma;
             this.SavePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
@@ -572,24 +580,26 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPartitionTree.ModeContext noneContext = this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0);
             Av1RateDistortionStatistics none = this.EvaluatePartitionLeaf(
                 writer, macroBlock, blockOrigin, tileIndex, blockSize, Av1PartitionType.None, noneContext, long.MaxValue, false, true);
-            Av1RateDistortionStatistics noneSyntax = new(this.rateMultiplier, noneRate, 0);
-            none.Add(this.rateMultiplier, in noneSyntax);
+
+            // The search's skip decision, not the encoded block's. Reference: none_rdc.skip_txfm in try_merge().
+            bool noneSkip = none.AllTransformsEmpty;
+            Av1RateDistortionStatistics noneSyntax = new(mergeMultiplier, noneRate, 0);
+            none.Add(mergeMultiplier, in noneSyntax);
             this.ResetPartitionTrial(blockOrigin, tileIndex, blockSize, savedLumaArea, savedChromaArea);
 
-            bool skipped = noneContext.Snapshot.ModeInfo.Block.Skip;
-            bool evaluateSplit = blockSize <= Av1BlockSize.Block32x32 || this.quantization.QIndex[0] > 100 || mergeLevel < 3;
-            if (skipped && (!parent.IsScreenContent ||
-                noneContext.Snapshot.ModeInfo.Block.Mode != Av1PredictionMode.NewMotionVector))
+            // try_merge() compares the split when the merge level is below 2, the merged block keeps a residual,
+            // or it codes NEWMV; calc_do_split_flag() then decides.
+            Av1PredictionMode noneMode = noneContext.Snapshot.ModeInfo.Block.Mode;
+            bool evaluateSplit = false;
+            if (mergeLevel < 2 || !noneSkip || noneMode == Av1PredictionMode.NewMotionVector)
             {
-                // Empty residuals were established by transform estimates. Unlike a variance-only model,
-                // this decision can stop the split comparison at every quantizer.
-                evaluateSplit = false;
+                evaluateSplit = this.CalculateDoSplit(mergeLevel, noneSkip, noneMode, blockSize, blockOrigin);
             }
 
             Av1RateDistortionStatistics split = Av1RateDistortionStatistics.Invalid;
             if (evaluateSplit)
             {
-                split = new(this.rateMultiplier, splitRate, 0);
+                split = new(mergeMultiplier, splitRate, 0);
                 Av1BlockSize childSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
                 for (int child = 0; child < 4; child++)
                 {
@@ -609,7 +619,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // after av1_rd_pick_partition() reports a best partition.
                     childContext.Snapshot.Ready = childStatistics.Cost != long.MaxValue;
                     this.superblock.Workspace.PartitionSearchTypes[firstChild + child] = (byte)Av1PartitionType.None;
-                    split.Add(this.rateMultiplier, in childStatistics);
+                    split.Add(mergeMultiplier, in childStatistics);
                     if (none.Cost < split.Cost)
                     {
                         break;
@@ -623,6 +633,76 @@ internal static partial class Av1IntraSuperblockEncoder
             noneContext.Snapshot.Ready = selected == Av1PartitionType.None;
             this.superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)selected;
             return selected;
+        }
+
+        /// <summary>
+        /// Decides whether a merge trial compares the four sub-blocks. Reference: calc_do_split_flag().
+        /// </summary>
+        /// <param name="mergeLevel">The partition merge level. Reference: nonrd_check_partition_merge_mode.</param>
+        /// <param name="noneSkip">Whether the merged block's search skipped its residual.</param>
+        /// <param name="noneMode">The merged block's selected mode.</param>
+        /// <param name="blockSize">The merged block size.</param>
+        /// <param name="blockOrigin">The merged block origin.</param>
+        /// <returns><see langword="true"/> when the split is compared.</returns>
+        private bool CalculateDoSplit(int mergeLevel, bool noneSkip, Av1PredictionMode noneMode, Av1BlockSize blockSize, Point blockOrigin)
+        {
+            bool largerQuantizer = this.picture.Parent.FrameHeader.QuantizationParameters.BaseQIndex > 100;
+            bool doSplit = mergeLevel != 3 || blockSize <= Av1BlockSize.Block32x32 || (largerQuantizer && blockSize <= Av1BlockSize.Block64x64);
+            if (this.picture.Parent.IsScreenContent || mergeLevel < 2 || !noneSkip)
+            {
+                return doSplit;
+            }
+
+            // A skip from the Hadamard estimate is reliable, so the split is not compared. The large-block model's
+            // skip is less reliable, and the split is still compared above quantizer index 100.
+            if (!this.UsesLargeBlockModel(blockSize) || !largerQuantizer)
+            {
+                return false;
+            }
+
+            if (noneMode == Av1PredictionMode.NewMotionVector && blockSize == Av1BlockSize.Block32x32 && doSplit &&
+                this.lastLumaPredictionBuffer >= 0)
+            {
+                // The four 16x16 residuals of a 32x32 NEWMV block are measured against the prediction the search
+                // built last, which is what the frame buffer holds after the search. A split is not compared when
+                // their per-sample errors are within 1.5 of each other.
+                ReadOnlySpan<TSample> prediction = this.GetLastLumaPrediction();
+                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+                double minimumError = double.MaxValue;
+                double maximumError = 0;
+                int quadrants = 0;
+                for (int i = 0; i < 4; i++)
+                {
+                    Point quadrant = blockOrigin + new Size((i & 1) * 16, (i >> 1) * 16);
+                    if (!this.IsBlockOriginInsideFrame(quadrant))
+                    {
+                        break;
+                    }
+
+                    TOperator.GetMoments(
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, quadrant),
+                        sourcePlane.Stride,
+                        prediction[(((i >> 1) * 16 * 32) + ((i & 1) * 16))..],
+                        32,
+                        16,
+                        16,
+                        out int sum,
+                        out long squaredError);
+
+                    uint variance = (uint)(squaredError - (((long)sum * sum) >> 8));
+                    double error = Math.Sqrt((double)variance / 16 / 16);
+                    minimumError = Math.Min(minimumError, error);
+                    maximumError = Math.Max(maximumError, error);
+                    quadrants++;
+                }
+
+                if (quadrants == 4 && maximumError - minimumError <= 1.5)
+                {
+                    doSplit = false;
+                }
+            }
+
+            return doSplit;
         }
 
         private Av1PartitionType SelectBestPartition(

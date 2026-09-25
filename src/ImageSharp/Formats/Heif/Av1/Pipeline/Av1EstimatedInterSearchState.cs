@@ -58,6 +58,16 @@ internal struct Av1EstimatedInterSearchState
     /// </summary>
     public InlineArray8<int> NearSad;
 
+    private bool useMotionVectorBias;
+    private Av1BlockSize biasBlockSize;
+    private HeifEncodingSpeed biasSpeed;
+    private int biasSourceVariance;
+    private bool biasHighSourceSad;
+    private bool aboveVectorValid;
+    private bool leftVectorValid;
+    private Av1MotionVector aboveVector;
+    private Av1MotionVector leftVector;
+
     /// <summary>
     /// Reference-selection syntax costs, including the intra entry.
     /// </summary>
@@ -182,6 +192,37 @@ internal struct Av1EstimatedInterSearchState
     }
 
     /// <summary>
+    /// Sets the block state that biases the cost of single-reference candidates in constant-bitrate coding.
+    /// Reference: the arguments of newmv_diff_bias() in handle_inter_mode_nonrd().
+    /// </summary>
+    /// <param name="enabled">Whether the bias applies. Reference: rc_cfg.mode == AOM_CBR.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="speed">The encoding speed.</param>
+    /// <param name="sourceVariance">The source variance of the block. Reference: x->source_variance.</param>
+    /// <param name="highSourceSad">Whether the superblock source change is high. Reference: source_sad_nonrd.</param>
+    /// <param name="aboveVector">The first vector of the above inter block, or <see langword="null"/>.</param>
+    /// <param name="leftVector">The first vector of the left inter block, or <see langword="null"/>.</param>
+    public void SetMotionVectorBias(
+        bool enabled,
+        Av1BlockSize blockSize,
+        HeifEncodingSpeed speed,
+        int sourceVariance,
+        bool highSourceSad,
+        Av1MotionVector? aboveVector,
+        Av1MotionVector? leftVector)
+    {
+        this.useMotionVectorBias = enabled;
+        this.biasBlockSize = blockSize;
+        this.biasSpeed = speed;
+        this.biasSourceVariance = sourceVariance;
+        this.biasHighSourceSad = highSourceSad;
+        this.aboveVectorValid = aboveVector.HasValue;
+        this.leftVectorValid = leftVector.HasValue;
+        this.aboveVector = aboveVector.GetValueOrDefault();
+        this.leftVector = leftVector.GetValueOrDefault();
+    }
+
+    /// <summary>
     /// Adds single-reference syntax costs and records a completed candidate.
     /// </summary>
     /// <param name="writer">The current symbol-cost state.</param>
@@ -243,6 +284,10 @@ internal struct Av1EstimatedInterSearchState
         statistics.Add(
             rateMultiplier,
             new Av1RateDistortionStatistics(rateMultiplier, motionRate + this.ModeCosts[modeIndex][slot] + this.ReferenceCosts[slot], 0));
+        if (this.useMotionVectorBias)
+        {
+            this.ApplyMotionVectorBias(mode, this.MotionVectors[(int)mode][slot], ref statistics);
+        }
 
         this.EvaluatedModes[(int)searchedMode][slot] = 1;
         this.EvaluatedModes[(int)mode][slot] = 1;
@@ -260,6 +305,69 @@ internal struct Av1EstimatedInterSearchState
         this.BestSquaredError = squaredError;
         this.WinningMotionVectors[(int)mode][slot] = this.MotionVectors[(int)mode][slot];
         return true;
+    }
+
+    /// <summary>
+    /// Raises the cost of a NEWMV vector that differs much from the above and left vectors, or of a long vector
+    /// in a flat block at speed 8 and above. Reference: newmv_diff_bias().
+    /// </summary>
+    /// <param name="mode">The candidate mode.</param>
+    /// <param name="vector">The candidate vector.</param>
+    /// <param name="statistics">The candidate statistics, with a biased cost.</param>
+    private readonly void ApplyMotionVectorBias(
+        Av1PredictionMode mode,
+        Av1MotionVector vector,
+        ref Av1RateDistortionStatistics statistics)
+    {
+        int row = vector.Row;
+        int column = vector.Column;
+        if (mode == Av1PredictionMode.NewMotionVector)
+        {
+            if (this.biasBlockSize >= Av1BlockSize.Block64x64 && !this.biasHighSourceSad &&
+                this.biasSourceVariance < 300 &&
+                (row > 16 || row < -16 || column > 16 || column < -16))
+            {
+                statistics.Cost <<= 2;
+                return;
+            }
+
+            int averageRow;
+            int averageColumn;
+            if (this.aboveVectorValid && this.leftVectorValid)
+            {
+                averageRow = (this.aboveVector.Row + this.leftVector.Row + 1) >> 1;
+                averageColumn = (this.aboveVector.Column + this.leftVector.Column + 1) >> 1;
+            }
+            else if (this.aboveVectorValid)
+            {
+                averageRow = this.aboveVector.Row;
+                averageColumn = this.aboveVector.Column;
+            }
+            else if (this.leftVectorValid)
+            {
+                averageRow = this.leftVector.Row;
+                averageColumn = this.leftVector.Column;
+            }
+            else
+            {
+                averageRow = 0;
+                averageColumn = 0;
+            }
+
+            int rowDifference = averageRow - row;
+            int columnDifference = averageColumn - column;
+            if (rowDifference > 80 || rowDifference < -80 || columnDifference > 80 || columnDifference < -80)
+            {
+                statistics.Cost = this.biasBlockSize >= Av1BlockSize.Block32x32
+                    ? statistics.Cost << 1
+                    : (5 * statistics.Cost) >> 2;
+            }
+        }
+        else if (this.biasSpeed >= HeifEncodingSpeed.Level8 && this.biasSourceVariance < 150 &&
+            (row > 64 || row < -64 || column > 64 || column < -64))
+        {
+            statistics.Cost = (5 * statistics.Cost) >> 2;
+        }
     }
 
     /// <summary>

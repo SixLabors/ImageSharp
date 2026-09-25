@@ -53,6 +53,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TileWriter.GetIntraInterContext(macroBlock),
                 Av1SymbolContextHelper.GetCompoundReferenceTypeContext(macroBlock),
                 parent.FrameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect);
+            state.SetMotionVectorBias(
+                settings.IsRealtime,
+                blockSize,
+                parent.EncodingSpeed,
+                this.interSourceVariance,
+                this.sourceSadLevel == Av1SourceSadLevel.High,
+                this.GetNeighborMotionVector(macroBlock, origin, above: true),
+                this.GetNeighborMotionVector(macroBlock, origin, above: false));
 
             bool forceZeroMotion = this.CanSkipEstimatedZeroMotionBlock(origin, blockSize);
             InlineArray2<byte> colorSensitivity = this.superblockColorSensitivity;
@@ -2454,6 +2462,28 @@ internal static partial class Av1IntraSuperblockEncoder
                 1 => workspace.LumaPrediction,
                 _ => workspace.LumaCandidateReconstruction
             };
+        }
+
+        /// <summary>
+        /// Gets the first vector of the above or left block, or <see langword="null"/> when that block is unavailable
+        /// or intra coded. Reference: the INVALID_MV test on xd->above_mbmi and xd->left_mbmi in newmv_diff_bias().
+        /// </summary>
+        /// <param name="macroBlock">The coding-block neighbors.</param>
+        /// <param name="origin">The luma block origin.</param>
+        /// <param name="above"><see langword="true"/> for the above block; otherwise, the left block.</param>
+        /// <returns>The first vector of the neighbor, or <see langword="null"/>.</returns>
+        private Av1MotionVector? GetNeighborMotionVector(Av1MacroBlockD macroBlock, Point origin, bool above)
+        {
+            if (!(above ? macroBlock.IsUpAvailable : macroBlock.IsLeftAvailable) ||
+                macroBlock.GetRelativeModeInfo(above ? -macroBlock.ModeInfoStride : -1).Block.ReferenceFrame <= Av1ReferenceFrameType.Intra)
+            {
+                return null;
+            }
+
+            Point position = new(
+                (origin.X >> Av1Constants.ModeInfoSizeLog2) - (above ? 0 : 1),
+                (origin.Y >> Av1Constants.ModeInfoSizeLog2) - (above ? 1 : 0));
+            return this.picture.GetDisplacementVector(position);
         }
 
         /// <summary>

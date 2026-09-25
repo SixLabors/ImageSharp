@@ -648,6 +648,12 @@ internal readonly struct Av1EncoderSpeedSettings
             : 0;
 
     /// <summary>
+    /// Gets a value indicating whether warped motion is pruned further, which also restores the frame probability
+    /// tables at every golden refresh. Reference: extra_prune_warped, set in real-time usage from speed 6.
+    /// </summary>
+    public bool ExtraPruneWarped => this.realtime && this.Speed >= HeifEncodingSpeed.Level6;
+
+    /// <summary>
     /// Gets a value indicating whether a coded constant-bitrate frame may force or cancel the golden refresh.
     /// Reference: gf_refresh_based_on_qp, set in real-time usage from speed 6.
     /// </summary>

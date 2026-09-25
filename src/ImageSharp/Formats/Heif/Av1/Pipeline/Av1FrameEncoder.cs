@@ -2011,6 +2011,13 @@ internal static class Av1FrameEncoder
             // av1_configure_buffer_updates() refreshes GOLDEN in key frames and golden-group frames.
             parent.RefreshesGolden = keyFrame || goldenUpdate;
 
+            // encode_without_recode() restores the frame probability tables at a key frame, and at a golden refresh
+            // when warped motion is pruned further. Reference: copy_frame_prob_info().
+            if (keyFrame || (speedSettings.ExtraPruneWarped && parent.RefreshesGolden))
+            {
+                this.warpedProbabilities.AsSpan().Fill(64);
+            }
+
             // av1_set_rtc_reference_structure_one_layer()
             uint alternateLag = 4;
             int lagLevel = speedSettings.AlternateReferenceLagLevel;

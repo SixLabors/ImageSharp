@@ -438,7 +438,11 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         parent.TransformTypeCounts = blockWorkspace.TransformTypeCounts;
         parent.TransformTypeCounts.Span.Clear();
-        if (frameHeader.FrameType == ObuFrameType.KeyFrame && parent.SpeedSettings.TransformTypeProbabilityPruning != 0)
+
+        // copy_frame_prob_info() runs at a key frame, and at a golden refresh when warped motion is pruned further.
+        bool restoreProbabilities = frameHeader.FrameType == ObuFrameType.KeyFrame ||
+            (parent.SpeedSettings.ExtraPruneWarped && parent.RefreshesGolden);
+        if (restoreProbabilities && parent.SpeedSettings.TransformTypeProbabilityPruning != 0)
         {
             Av1TransformTypeProbabilities.Defaults.CopyTo(blockWorkspace.TransformTypeProbabilities);
         }
@@ -447,7 +451,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         parent.SelectedInterpolationCounts = blockWorkspace.SelectedInterpolationCounts;
         parent.InterpolationCounts.Span.Clear();
         parent.SelectedInterpolationCounts.Span.Clear();
-        if (frameHeader.FrameType == ObuFrameType.KeyFrame && parent.SpeedSettings.InterpolationPruningLevel == 2)
+        if (restoreProbabilities && parent.SpeedSettings.InterpolationPruningLevel == 2)
         {
             blockWorkspace.InterpolationProbabilities.Fill(512);
         }

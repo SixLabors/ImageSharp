@@ -172,6 +172,7 @@ internal static partial class Av1MotionSearchBase
         private readonly int referenceStride;
         private readonly int referenceOrigin;
         private readonly Av1BlockSize blockSize;
+        private readonly Point blockOrigin;
         private readonly Rectangle frameBounds;
         private readonly Av1EncoderBlockWorkspace workspace;
         private readonly Span<TSample> prediction;
@@ -190,8 +191,6 @@ internal static partial class Av1MotionSearchBase
         private readonly int transformSizeRate;
         private readonly int noSkipRate;
         private readonly int skipRate;
-        private readonly Av1InterpolationFilter horizontalFilter;
-        private readonly Av1InterpolationFilter verticalFilter;
         private readonly Av1MotionVectorCosts motionCosts;
 
         /// <summary>
@@ -203,6 +202,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="referenceStride">The reference row stride.</param>
         /// <param name="referenceOrigin">The reference origin corresponding to zero displacement.</param>
         /// <param name="blockSize">The containing prediction block size.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="frameBounds">The full-sample frame search limits before differential-vector limits.</param>
         /// <param name="workspace">The worker transform and search-site storage.</param>
         /// <param name="prediction">The worker search prediction buffer, also reused for final predictions.</param>
@@ -221,8 +221,6 @@ internal static partial class Av1MotionSearchBase
         /// <param name="transformSizeRate">The transform partition rate used by winner estimation.</param>
         /// <param name="noSkipRate">The rate of a non-skipped prediction block.</param>
         /// <param name="skipRate">The rate of a skipped prediction block.</param>
-        /// <param name="horizontalFilter">The final horizontal interpolation family.</param>
-        /// <param name="verticalFilter">The final vertical interpolation family.</param>
         /// <param name="motionCosts">The retained differential motion-rate table.</param>
         public SingleReferenceSearch(
             ReadOnlySpan<TSample> source,
@@ -231,6 +229,7 @@ internal static partial class Av1MotionSearchBase
             int referenceStride,
             int referenceOrigin,
             Av1BlockSize blockSize,
+            Point blockOrigin,
             Rectangle frameBounds,
             Av1EncoderBlockWorkspace workspace,
             Span<TSample> prediction,
@@ -249,8 +248,6 @@ internal static partial class Av1MotionSearchBase
             int transformSizeRate,
             int noSkipRate,
             int skipRate,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
             Av1MotionVectorCosts motionCosts)
         {
             this.source = source;
@@ -259,6 +256,7 @@ internal static partial class Av1MotionSearchBase
             this.referenceStride = referenceStride;
             this.referenceOrigin = referenceOrigin;
             this.blockSize = blockSize;
+            this.blockOrigin = blockOrigin;
             this.frameBounds = frameBounds;
             this.workspace = workspace;
             this.prediction = prediction;
@@ -277,8 +275,6 @@ internal static partial class Av1MotionSearchBase
             this.transformSizeRate = transformSizeRate;
             this.noSkipRate = noSkipRate;
             this.skipRate = skipRate;
-            this.horizontalFilter = horizontalFilter;
-            this.verticalFilter = verticalFilter;
             this.motionCosts = motionCosts;
         }
 
@@ -485,6 +481,8 @@ internal static partial class Av1MotionSearchBase
         /// <param name="referenceIndex">The current dynamic-reference index.</param>
         /// <param name="referenceVector">The differential coding reference in eighth-sample units.</param>
         /// <param name="drlRate">The syntax rate selecting this differential reference.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation family that the block holds during the search.</param>
+        /// <param name="verticalFilter">The vertical interpolation family that the block holds during the search.</param>
         /// <param name="starts">Weighted starting positions in decreasing weight order.</param>
         /// <param name="totalWeight">The total represented weight before selecting the first two starts.</param>
         /// <param name="state">The block's retained results; initialize once before its first new-motion mode.</param>
@@ -502,6 +500,8 @@ internal static partial class Av1MotionSearchBase
             int referenceIndex,
             Av1MotionVector referenceVector,
             int drlRate,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
             ReadOnlySpan<StartingCandidate> starts,
             int totalWeight,
             ref SingleReferenceState state,
@@ -732,8 +732,10 @@ internal static partial class Av1MotionSearchBase
 
                         if (settings.SecondCandidateSelection == CandidateSelection.RateDistortion && secondCost != int.MaxValue)
                         {
-                            long firstRateDistortion = this.EstimateCandidate(result.Vector, referenceVector);
-                            long secondRateDistortion = this.EstimateCandidate(secondResult.Vector, referenceVector);
+                            long firstRateDistortion = this.EstimateCandidate(
+                                result.Vector, referenceVector, horizontalFilter, verticalFilter);
+                            long secondRateDistortion = this.EstimateCandidate(
+                                secondResult.Vector, referenceVector, horizontalFilter, verticalFilter);
                             if (secondRateDistortion < firstRateDistortion)
                             {
                                 result = secondResult;
@@ -781,8 +783,14 @@ internal static partial class Av1MotionSearchBase
         /// </summary>
         /// <param name="vector">The refined candidate vector.</param>
         /// <param name="referenceVector">The differential coding reference.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation family of the prediction.</param>
+        /// <param name="verticalFilter">The vertical interpolation family of the prediction.</param>
         /// <returns>The rate-distortion estimate excluding the block skip-header cost.</returns>
-        private long EstimateCandidate(Av1MotionVector vector, Av1MotionVector referenceVector)
+        private long EstimateCandidate(
+            Av1MotionVector vector,
+            Av1MotionVector referenceVector,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter)
         {
             int width = this.blockSize.GetWidth();
             int height = this.blockSize.GetHeight();
@@ -798,11 +806,16 @@ internal static partial class Av1MotionSearchBase
                 this.convolutionScratch,
                 width,
                 height,
-                this.horizontalFilter,
-                this.verticalFilter,
+                horizontalFilter,
+                verticalFilter,
                 (vector.Column & 7) << 1,
                 (vector.Row & 7) << 1,
                 this.bitDepth.GetBitCount());
+
+            // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
+            // av1_subtract_txb() call of av1_estimate_txfm_yrd().
+            Av1TransformBlockEncoder.PadBorderResidual(
+                this.workspace, Av1Plane.Y, this.blockOrigin, this.residual, width, width, height, Av1TransformType.DctDct);
 
             Av1TransformBlockEncoder.EstimateInterTransform(
                 this.workspace,

@@ -89,6 +89,7 @@ internal readonly struct Av1EncoderSpeedSettings
             speed >= HeifEncodingSpeed.Level2 && !intraFrame ? 2 : 1;
         this.MaximumIntraBlockSize = realtime || (!allIntra && speed >= HeifEncodingSpeed.Level3 && minimumDimension < 720)
             ? Av1BlockSize.Block32x32 : Av1BlockSize.Block128x128;
+        this.IntraModeMotionRangePruneLevel = !realtime ? 0 : minimumDimension < 360 ? 1 : 2;
         this.UseHighResolutionPartitionBreakout = minimumDimension >= 720 &&
             speed is >= HeifEncodingSpeed.Level1 and < HeifEncodingSpeed.Level3;
         this.PartitionBreakoutHighBitDepthLevel = speed >= HeifEncodingSpeed.Level4 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 2 : 1;
@@ -1062,6 +1063,13 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets the largest intra block considered during inter-picture mode search.
     /// </summary>
     public Av1BlockSize MaximumIntraBlockSize { get; }
+
+    /// <summary>
+    /// Gets the motion range level that skips intra search for a block above <see cref="MaximumIntraBlockSize"/>
+    /// whose best single-reference motion is small, or zero to never skip it.
+    /// </summary>
+    /// <remarks>This is <c>rt_sf.prune_intra_mode_based_on_mv_range</c>.</remarks>
+    public int IntraModeMotionRangePruneLevel { get; }
 
     /// <summary>
     /// Gets a value indicating whether an unsplit block can terminate partition search using its trained model.

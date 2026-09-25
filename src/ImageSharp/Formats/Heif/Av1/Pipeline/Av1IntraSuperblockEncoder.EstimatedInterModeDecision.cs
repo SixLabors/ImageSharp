@@ -1960,6 +1960,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     referencePlane.Stride,
                     referenceOrigin,
                     blockSize,
+                    blockOrigin,
                     bounds,
                     this.blockWorkspace,
                     this.blockWorkspace.GetMotionSearchPrediction<TSample>(),
@@ -1978,8 +1979,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     writer.GetSkipCost(false, skipContext),
                     writer.GetSkipCost(true, skipContext),
-                    modeInfo.HorizontalInterpolationFilter,
-                    modeInfo.VerticalInterpolationFilter,
                     this.blockWorkspace.GetMotionVectorCosts(header.MotionVectorPrecision));
 
                 Av1MotionSearchBase.FractionalResult result;

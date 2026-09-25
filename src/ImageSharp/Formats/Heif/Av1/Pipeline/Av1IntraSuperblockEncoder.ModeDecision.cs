@@ -2991,8 +2991,21 @@ internal static partial class Av1IntraSuperblockEncoder
             if (isInterFrame)
             {
                 Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-                skipIntra = blockSize > settings.MaximumIntraBlockSize;
-                if (settings.IntraInInterPruningLevel >= 2 && this.interSourceVariance > 1 &&
+
+                // A block above the intra size limit skips intra search when its best single-reference motion
+                // is small and its source is not flat. Without a valid inter mode the best mode is zeroed.
+                // Reference: the prune_intra_mode_based_on_mv_range test of skip_intra_modes_in_interframe().
+                bool validInter = interStatistics.Cost != long.MaxValue;
+                if (settings.IntraModeMotionRangePruneLevel != 0 && blockSize > settings.MaximumIntraBlockSize &&
+                    !(validInter && interModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra))
+                {
+                    Av1MotionVector bestVector = validInter ? interVector : default;
+                    int threshold = 16 << settings.IntraModeMotionRangePruneLevel;
+                    skipIntra = Math.Abs(bestVector.Row) < threshold && Math.Abs(bestVector.Column) < threshold &&
+                        this.interSourceVariance > 128;
+                }
+
+                if (!skipIntra && settings.IntraInInterPruningLevel >= 2 && this.interSourceVariance > 1 &&
                     interStatistics.Cost != long.MaxValue && interModeInfo.Block.Skip)
                 {
                     bool newMotion = interModeInfo.Block.Mode is Av1PredictionMode.NewMotionVector or

@@ -2731,8 +2731,12 @@ internal static partial class Av1IntraSuperblockEncoder
             // A frame that selects its transform size codes, for each block, whether the largest
             // transform is split. This search never splits, so the cost of the unsplit flag is
             // common to every candidate. The smallest transform cannot split and codes nothing.
+            // Mode evaluation that defers the transform size search codes the largest transform, which signals no
+            // split flag. Reference: the tx_select test of av1_estimate_txfm_yrd().
             int transformPartitionRate = 0;
-            if (frameHeader.TransformMode == Av1TransformMode.Select && lumaTransformSize != Av1TransformSize.Size4x4)
+            if (frameHeader.TransformMode == Av1TransformMode.Select && lumaTransformSize != Av1TransformSize.Size4x4 &&
+                (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
+                    this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate))
             {
                 Av1NeighborArrayUnit<byte> transformContexts = this.picture.TransformFunctionContexts[tileIndex];
                 int topIndex = transformContexts.GetTopIndex(blockOrigin);
@@ -2800,6 +2804,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 referencePlane.Stride,
                 referenceOrigin,
                 blockSize,
+                blockOrigin,
                 frameBounds,
                 this.blockWorkspace,
                 this.blockWorkspace.GetMotionSearchPrediction<TSample>(),
@@ -2818,8 +2823,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPartitionRate,
                 writer.GetSkipCost(false, skipContext),
                 writer.GetSkipCost(true, skipContext),
-                defaultFilter,
-                defaultFilter,
                 this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
 
             // The first two reference predictors set the block's spatial range. Clamping at the last
@@ -2934,6 +2937,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // The block keeps the interpolation families of the previous list entry until the next entry searches
+            // its filters, so a new-motion search predicts with them. Reference: set_default_interp_filters() in
+            // init_mbmi(), and the mbmi left by av1_interpolation_filter_search() between the ref_mv_idx passes of
+            // handle_inter_mode().
+            Av1InterpolationFilter heldHorizontalFilter = defaultFilter;
+            Av1InterpolationFilter heldVerticalFilter = defaultFilter;
+
             // Rank interpolation families with prediction-error modeling before running a full transform search.
             // The selected inter reconstruction remains untouched while two existing prediction views alternate.
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
@@ -3023,6 +3033,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         referenceIndex,
                         referenceVector,
                         drlRate,
+                        heldHorizontalFilter,
+                        heldVerticalFilter,
                         motionStarts,
                         totalWeight: 0,
                         ref motionState,
@@ -3066,6 +3078,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         out long filterModelCost);
 
                     this.blockWorkspace.SingleReferenceFilterCosts[filterCostIndex] = filterModelCost;
+                    heldHorizontalFilter = modeInfo.Block.HorizontalInterpolationFilter;
+                    heldVerticalFilter = modeInfo.Block.VerticalInterpolationFilter;
                     if (settings.ModelBasedInterpolationBreakout &&
                         candidateLimit != long.MaxValue && (filterModelCost >> 3) * 3 > candidateLimit)
                     {

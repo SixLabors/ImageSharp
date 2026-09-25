@@ -496,7 +496,7 @@ interval. The still-picture regression stays at 620/620.
     trellis gate, and `do_border_pad` (true-frame-size visible dimensions and `fill_residue_outside_frame` in the
     type search, the intra model cost, the CFL alpha estimate and the final encode).
   - [ ] Inter frames. Done: the lag-0 reference structure, the reference mode, skip mode, transform mode and
-    `fix_interp_filter` decisions, and much of the `rdopt` inter mode search. Speeds 2-6 are byte-identical
+    `fix_interp_filter` decisions, and much of the `rdopt` inter mode search. Speeds 1-6 are byte-identical
     on all six frames when both encoders run without global motion (aomenc `--enable-global-motion=0`; the port
     uses a scratch switch). The ports that got there include `enforce_max_ref_frames`, `check_skip_mode_enabled`,
     one-sided compound pruning, `init_mode_skip_mask` and `prune_single_ref`, `prune_ref_frame_for_rect_partitions`,
@@ -516,7 +516,11 @@ interval. The still-picture regression stays at 620/620.
     the reference-list and budget tests of `rd_pick_skip_mode()` (and its skippable result and visible-only
     error), the compound index cost that `calc_masked_type_cost()` always adds, and the border padding and
     largest-transform rate of `estimate_yrd_for_sb()`.
-    Remaining: speeds 0-1 (inter-intra in the mode loop, the full-pel OBMC diamond search at s0), the SIMD form
+    Speed 1 added the second-vector check of `av1_single_motion_search()` with the border padding of
+    `av1_estimate_txfm_yrd()` and the interpolation filter that the previous `ref_mv_idx` pass leaves in the
+    block, and intra search for every block size in inter frames (`max_intra_bsize` only feeds the real-time
+    `prune_intra_mode_based_on_mv_range` test of `skip_intra_modes_in_interframe()`).
+    Remaining: speed 0 (inter-intra in the mode loop, the full-pel OBMC diamond search), the SIMD form
     of the OBMC SAD and variance, and
     global motion (the estimator, and the writer that codes parameters against the primary reference).
   - [ ] The border padding of the inter paths (`rdopt` model cost and subtraction, the inter transform tree,

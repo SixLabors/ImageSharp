@@ -117,6 +117,7 @@ public class Av1MotionSearchTests
                             ReferenceStride,
                             ReferenceOrigin,
                             blockSize,
+                            Point.Empty,
                             bounds,
                             workspace,
                             prediction,
@@ -135,8 +136,6 @@ public class Av1MotionSearchTests
                             512,
                             1024,
                             256,
-                            Av1InterpolationFilter.Regular,
-                            Av1InterpolationFilter.Regular,
                             costs);
 
                         Av1MotionSearchBase.SingleReferenceState state = default;
@@ -176,6 +175,8 @@ public class Av1MotionSearchTests
                                 referenceIndex,
                                 referenceVector,
                                 drlRate,
+                                Av1InterpolationFilter.Regular,
+                                Av1InterpolationFilter.Regular,
                                 starts.AsSpan(0, startCount),
                                 totalWeight,
                                 ref state,

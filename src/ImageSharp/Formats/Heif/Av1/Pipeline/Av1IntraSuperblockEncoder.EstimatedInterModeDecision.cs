@@ -64,6 +64,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool forceZeroMotion = this.CanSkipEstimatedZeroMotionBlock(origin, blockSize);
             InlineArray2<byte> colorSensitivity = this.superblockColorSensitivity;
+            this.blockColorSensitivity = colorSensitivity;
             bool measureSad = !forceZeroMotion &&
                 (this.estimatedReferencePruning <= 2 || colorSensitivity[0] == 2 || colorSensitivity[1] == 2);
             InlineArray3<Av1ReferenceMotionVectors> referenceVectors = default;
@@ -183,6 +184,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            this.blockColorSensitivity = colorSensitivity;
             bool evaluateBlue = block.HasChroma && colorSensitivity[0] != 0;
             bool evaluateRed = block.HasChroma && colorSensitivity[1] != 0;
             bool rejectStationaryScreen = this.interSourceVariance == 0 &&

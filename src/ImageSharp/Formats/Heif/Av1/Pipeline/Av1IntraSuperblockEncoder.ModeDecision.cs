@@ -227,6 +227,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// The inter-prediction buffer that holds the luma prediction the estimated search built last, or -1.
         /// </summary>
         private int lastLumaPredictionBuffer = -1;
+
+        /// <summary>
+        /// The color sensitivity of the block searched last, after its block-level check. Reference:
+        /// x->color_sensitivity, which av1_nonrd_pick_inter_mode_sb() copies from x->color_sensitivity_sb and
+        /// set_color_sensitivity() resolves.
+        /// </summary>
+        private InlineArray2<byte> blockColorSensitivity;
         private int estimatedReferencePruning;
         private InlineArray2<byte> superblockColorSensitivity;
 
@@ -2539,7 +2546,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             bool allowSkipping = parent.FramesSinceKey > 10 && !parent.HighSourceSad &&
-                this.superblockColorSensitivity[0] == 0 && this.superblockColorSensitivity[1] == 0;
+                this.blockColorSensitivity[0] == 0 && this.blockColorSensitivity[1] == 0;
 
             int unit = (((blockOrigin.Y >> 6) & 1) << 1) | ((blockOrigin.X >> 6) & 1);
             ref bool skip = ref this.cdefSkipUnits[unit];

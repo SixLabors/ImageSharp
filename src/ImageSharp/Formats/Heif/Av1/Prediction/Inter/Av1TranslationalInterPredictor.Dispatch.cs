@@ -30,6 +30,10 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalPhase,
         Span<short> scratch)
     {
+        DebugGuard.IsTrue(
+            horizontalPhase == 0 || verticalPhase == 0 || scratch.Length >= GetScratchLength(width, height),
+            "The two-dimensional scratch holds fewer samples than GetScratchLength requires.");
+
         switch (horizontalFilter)
         {
             case Av1InterpolationFilter.Regular:
@@ -113,6 +117,10 @@ internal static partial class Av1TranslationalInterPredictor
         int bitDepth,
         Span<short> scratch)
     {
+        DebugGuard.IsTrue(
+            horizontalPhase == 0 || verticalPhase == 0 || scratch.Length >= GetScratchLength(width, height),
+            "The two-dimensional scratch holds fewer samples than GetScratchLength requires.");
+
         switch (horizontalFilter)
         {
             case Av1InterpolationFilter.Regular:

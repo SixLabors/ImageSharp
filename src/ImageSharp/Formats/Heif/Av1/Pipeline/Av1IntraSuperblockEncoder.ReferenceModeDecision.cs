@@ -2243,6 +2243,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1FilterIntraMode.AllFilterIntraModes,
                     usesInterTransformSet: true);
 
+                // The neighbors of this transform read the entropy context of its coded result, even when the
+                // empty residual below wins. Reference: txb_entropy_ctx, which the zero_blk_rd branch of
+                // try_tx_block_no_split() leaves as quantization set it.
+                coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                    workspace.LumaCandidateCoefficients, transformSize, noSplitState.TransformType, noSplitState.EndOfBlock);
+
                 // An empty residual can win even when quantization retained coefficients. Its distortion
                 // is the prediction error, and its syntax consists only of the transform-skip symbol. The
                 // uniform search of the largest transform keeps the coded result and its searched type.
@@ -2258,9 +2264,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     rate = zeroRate;
                     distortion = predictionDistortion;
                 }
-
-                coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
-                    workspace.LumaCandidateCoefficients, transformSize, noSplitState.TransformType, noSplitState.EndOfBlock);
 
                 noSplitState.EntropyContext = (byte)(context.SkipContext | (context.DcSignContext << 4));
                 if (transformSize > Av1TransformSize.Size4x4 && depth < Av1Constants.MaxVarTransform)
@@ -3168,6 +3171,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 modeInfo.Block.Mode = requestedMode;
+
+                // Estimated mode evaluation keeps the budget of the entry for every motion mode trial; a full search
+                // lowers it to each trial it completes. Reference: the ref_best_rd update of the full transform
+                // search path of motion_mode_rd(), which the estimation path does not have.
                 long candidateLimit = Math.Min(bestCost, selectedStatistics.Cost);
                 modeInfo.Block.HorizontalInterpolationFilter = defaultFilter;
                 modeInfo.Block.VerticalInterpolationFilter = defaultFilter;
@@ -3413,7 +3420,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             motionMode,
                             lastAllowed,
                             baseRate,
-                            Math.Min(bestCost, selectedStatistics.Cost),
+                            this.estimateInterCandidates ? candidateLimit : Math.Min(bestCost, selectedStatistics.Cost),
                             block.HasChroma,
                             candidateReferenceIndices[candidateIndex],
                             in referenceMotionVectors,
@@ -3543,7 +3550,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     horizontalFilter,
                     verticalFilter,
                     interIntraMotionRate,
-                    Math.Min(bestCost, selectedStatistics.Cost),
+                    this.estimateInterCandidates ? candidateLimit : Math.Min(bestCost, selectedStatistics.Cost),
                     ref cachedInterIntraMode,
                     out Av1InterIntraMode interIntraMode,
                     out bool useWedge,
@@ -3587,7 +3594,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
-                    Math.Min(bestCost, selectedStatistics.Cost),
+                    this.estimateInterCandidates ? candidateLimit : Math.Min(bestCost, selectedStatistics.Cost),
                     block.HasChroma,
                     commonPredictionRate + filterRate + interIntraRate,
                     referenceFrame,

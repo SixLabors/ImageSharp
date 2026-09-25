@@ -3412,7 +3412,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1RateDistortionStatistics selectedStatistics = this.SelectedBlockStatistics;
                     Av1RateDistortionStatistics syntaxStatistics = new(
                         this.rateMultiplier, writer.GetSkipModeCost(false, skipModeContext), 0);
-                    if (selectedStatistics.Cost != long.MaxValue)
+
+                    // The non-skip-mode symbol is priced only once the reference lists of the pair exist. Reference:
+                    // the ref_mv_count return of rd_pick_skip_mode() before it adds skip_mode_cost[ctx][0].
+                    bool skipModeListsReady = this.HasSkipModeReferenceLists(
+                        skipModeParameters.FirstReferenceFrame, skipModeParameters.SecondReferenceFrame);
+                    if (selectedStatistics.Cost != long.MaxValue && skipModeListsReady)
                     {
                         selectedStatistics.Add(this.rateMultiplier, syntaxStatistics);
                     }
@@ -3420,7 +3425,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     byte availableReferences = this.picture.Parent.AvailableReferenceMask;
                     if ((availableReferences & (1 << (int)skipModeParameters.FirstReferenceFrame)) != 0 &&
                         (availableReferences & (1 << (int)skipModeParameters.SecondReferenceFrame)) != 0 &&
-                        this.HasSkipModeReferenceLists(skipModeParameters.FirstReferenceFrame, skipModeParameters.SecondReferenceFrame))
+                        skipModeListsReady)
                     {
                         this.SelectSkipModeBlock(
                             writer,

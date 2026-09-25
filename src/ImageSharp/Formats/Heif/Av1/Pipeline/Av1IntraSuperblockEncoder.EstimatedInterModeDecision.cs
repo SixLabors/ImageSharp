@@ -1548,6 +1548,14 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             modeInfo.Skip = !lossless && allTransformsEmpty;
+            if (modeInfo.Skip)
+            {
+                // A skipped inter block codes the largest transform, which also sets how many coefficient
+                // positions it owns where the frame edge crosses it. Reference: the tx_size of a skipped inter
+                // block in encode_superblock(), tx_size_from_tx_mode().
+                modeInfo.TransformSize = modeInfo.BlockSize.GetMaximumTransformSize();
+                modeInfo.InterTransformSizes.Fill(modeInfo.TransformSize);
+            }
         }
 
         /// <summary>

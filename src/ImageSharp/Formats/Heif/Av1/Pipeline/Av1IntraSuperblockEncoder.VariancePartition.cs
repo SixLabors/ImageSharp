@@ -659,10 +659,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     Point neighborPosition = position + (index == 0 ? new Size(0, -1) : new Size(-1, 0));
+
+                    // get_fullmv_from_mv() rounds the clamped vector to the nearest full sample (GET_MV_RAWPEL).
                     Av1MotionVector motion = this.picture.GetDisplacementVector(neighborPosition);
+                    int row = Math.Clamp(motion.Row, fractionalBounds.Top, fractionalBounds.Bottom - 1);
+                    int column = Math.Clamp(motion.Column, fractionalBounds.Left, fractionalBounds.Right - 1);
                     motion = new Av1MotionVector(
-                        (Math.Clamp(motion.Row, fractionalBounds.Top, fractionalBounds.Bottom - 1) >> 3) << 3,
-                        (Math.Clamp(motion.Column, fractionalBounds.Left, fractionalBounds.Right - 1) >> 3) << 3);
+                        ((row + 3 + (row >= 0 ? 1 : 0)) >> 3) << 3,
+                        ((column + 3 + (column >= 0 ? 1 : 0)) >> 3) << 3);
                     neighbors[index] = motion;
                     if (motion == this.partitionMotion || (index == 1 && motion == neighbors[0]))
                     {

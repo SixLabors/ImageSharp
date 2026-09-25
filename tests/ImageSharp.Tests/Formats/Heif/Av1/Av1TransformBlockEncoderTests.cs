@@ -70,6 +70,8 @@ public class Av1TransformBlockEncoderTests
             Av1BitDepth.EightBit,
             0);
 
+        Av1TransformBlockEncoder.GetBlockError(
+            workspace.Residual, width, width, transformSize.GetHeight(), Av1BitDepth.EightBit, out uint blockMseQ8);
         Av1EncoderTransformBlockState actualState = default;
         Av1TransformBlockEncoder.EncodeLossyCandidate(
             workspace,
@@ -89,6 +91,7 @@ public class Av1TransformBlockEncoderTests
             false,
             false,
             false,
+            blockMseQ8,
             ref actualState);
 
         Assert.Equal(expectedQuantized, actualQuantized);
@@ -164,6 +167,8 @@ public class Av1TransformBlockEncoderTests
             expectedEndOfBlock,
             out _);
 
+        Av1TransformBlockEncoder.GetBlockError(
+            workspace.Residual, width, width, transformSize.GetHeight(), Av1BitDepth.EightBit, out uint blockMseQ8);
         Av1EncoderTransformBlockState actualState = default;
         Av1TransformBlockEncoder.EncodeLossyCandidate(
             workspace,
@@ -183,6 +188,7 @@ public class Av1TransformBlockEncoderTests
             false,
             false,
             finalEncoding,
+            blockMseQ8,
             ref actualState);
 
         Assert.Equal(expectedQuantized, actualQuantized);
@@ -493,7 +499,11 @@ public class Av1TransformBlockEncoderTests
         }
 
         using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(source, Width, Height, Width);
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default)
+        {
+            LumaVisibleBoundary = new Size(Width, Height)
+        };
+
         using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
@@ -561,7 +571,11 @@ public class Av1TransformBlockEncoderTests
             TransformWidth,
             TransformWidth);
 
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default)
+        {
+            LumaVisibleBoundary = new Size(CodedWidth, CodedWidth)
+        };
+
         using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
@@ -617,7 +631,11 @@ public class Av1TransformBlockEncoderTests
             TransformWidth,
             TransformWidth);
 
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default)
+        {
+            LumaVisibleBoundary = new Size(CodedWidth, CodedWidth)
+        };
+
         using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
@@ -695,7 +713,11 @@ public class Av1TransformBlockEncoderTests
             Av1PredictionMode.Directional135Degrees.ToAngle() + (angleDelta * Av1Constants.AngleStep));
 
         using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(source, Width, Height, Width);
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default)
+        {
+            LumaVisibleBoundary = new Size(Width, Height)
+        };
+
         using Av1SymbolEncoder writer = new(Configuration.Default, 4096, 255, updateCdf: true);
         Av1EncoderTransformBlockState state = default;
         long distortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate(

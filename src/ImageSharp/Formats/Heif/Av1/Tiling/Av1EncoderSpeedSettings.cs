@@ -290,9 +290,9 @@ internal readonly struct Av1EncoderSpeedSettings
         this.AdaptIntraModelCountToNeighbors = allIntra && speed >= HeifEncodingSpeed.Level6;
         this.PruneOddIntraAngleDeltas = allIntra && speed >= HeifEncodingSpeed.Level6;
 
-        // adaptive_txb_search_level: all-intra keeps 2 from speed 1; the good-quality path turns it off at speed 6.
+        // adaptive_txb_search_level: all-intra keeps 2 from speed 1. Good quality raises unboosted frames to 3 from
+        // speed 3, and turns the level off only for sharpness 3, which this encoder does not configure.
         this.InterAdaptiveTransformSearchLevel = realtime ? 2
-            : !allIntra && speed >= HeifEncodingSpeed.Level6 ? 0
             : speed >= HeifEncodingSpeed.Level3 && !intraFrame ? 3
             : speed >= HeifEncodingSpeed.Level1 ? 2 : 1;
 
@@ -414,10 +414,11 @@ internal readonly struct Av1EncoderSpeedSettings
             : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? intraFrame ? 1 : 2 : 0;
 
         // Real-time usage raises the threshold level to 3 from speed 6, and this port reaches real-time usage
-        // from speed 7 only. Reference: tx_domain_dist_thres_level in set_rt_speed_features_framesize_independent().
+        // from speed 7 only. Good-quality usage keeps level 1 from speed 1. Reference: tx_domain_dist_thres_level
+        // in set_rt_speed_features_framesize_independent() and set_good_speed_features_framesize_independent().
         int distortionThresholdLevel = realtime ? 3 : allIntra
             ? speed >= HeifEncodingSpeed.Level4 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 1 : 0
-            : speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? 1 : 0;
+            : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? 1 : 0;
         bool winnerDistortionStages = !realtime && speed >= (allIntra ? HeifEncodingSpeed.Level4 : HeifEncodingSpeed.Level3);
         uint distortionThreshold = distortionThresholdLevel switch
         {

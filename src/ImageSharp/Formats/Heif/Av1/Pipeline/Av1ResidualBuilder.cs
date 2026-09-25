@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -573,6 +574,136 @@ internal static partial class Av1ResidualBuilder
         int width,
         int height)
         => Subtract<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
+
+    /// <summary>
+    /// Replaces the residual of a transform block outside the frame with values derived from its visible part, so
+    /// the transform codes no edge that the frame does not show. A two-dimensional transform takes the mean of the
+    /// visible residual, and a one-dimensional transform takes the mean of each visible row or column along its
+    /// identity direction. Reference: fill_residue_outside_frame().
+    /// </summary>
+    /// <param name="residual">The residual block.</param>
+    /// <param name="residualStride">The residual row stride.</param>
+    /// <param name="columns">The transform width.</param>
+    /// <param name="rows">The transform height.</param>
+    /// <param name="visibleColumns">The number of columns inside the frame.</param>
+    /// <param name="visibleRows">The number of rows inside the frame.</param>
+    /// <param name="transformType">The transform type that will code the block.</param>
+    public static void FillResidueOutsideFrame(
+        Span<short> residual,
+        int residualStride,
+        int columns,
+        int rows,
+        int visibleColumns,
+        int visibleRows,
+        Av1TransformType transformType)
+    {
+        bool completeBlockOutside = visibleColumns == 0 || visibleRows == 0;
+        int rightPixels = columns - visibleColumns;
+        if (transformType <= Av1TransformType.Identity)
+        {
+            short average = 0;
+            if (transformType != Av1TransformType.Identity && !completeBlockOutside)
+            {
+                int sum = 0;
+                for (int row = 0; row < visibleRows; row++)
+                {
+                    foreach (short value in residual.Slice(row * residualStride, visibleColumns))
+                    {
+                        sum += value;
+                    }
+                }
+
+                average = (short)DivideAndRoundSigned(sum, visibleColumns * visibleRows);
+            }
+
+            for (int row = 0; row < rows; row++)
+            {
+                residual.Slice((row * residualStride) + visibleColumns, rightPixels).Fill(average);
+            }
+
+            for (int row = visibleRows; row < rows; row++)
+            {
+                residual.Slice(row * residualStride, visibleColumns).Fill(average);
+            }
+
+            return;
+        }
+
+        if (IsHorizontalIdentity(transformType))
+        {
+            // The rows are coded by the identity, so each hidden row repeats the mean of its visible column.
+            if (visibleRows < rows)
+            {
+                for (int column = 0; column < visibleColumns; column++)
+                {
+                    short average = 0;
+                    if (!completeBlockOutside)
+                    {
+                        int sum = 0;
+                        for (int row = 0; row < visibleRows; row++)
+                        {
+                            sum += residual[(row * residualStride) + column];
+                        }
+
+                        average = (short)DivideAndRoundSigned(sum, visibleRows);
+                    }
+
+                    for (int row = visibleRows; row < rows; row++)
+                    {
+                        residual[(row * residualStride) + column] = average;
+                    }
+                }
+            }
+
+            if (rightPixels != 0)
+            {
+                for (int row = 0; row < rows; row++)
+                {
+                    residual.Slice((row * residualStride) + visibleColumns, rightPixels).Clear();
+                }
+            }
+
+            return;
+        }
+
+        // The columns are coded by the identity, so each hidden column repeats the mean of its visible row.
+        if (rightPixels != 0)
+        {
+            for (int row = 0; row < visibleRows; row++)
+            {
+                short average = 0;
+                if (!completeBlockOutside)
+                {
+                    int sum = 0;
+                    foreach (short value in residual.Slice(row * residualStride, visibleColumns))
+                    {
+                        sum += value;
+                    }
+
+                    average = (short)DivideAndRoundSigned(sum, visibleColumns);
+                }
+
+                residual.Slice((row * residualStride) + visibleColumns, rightPixels).Fill(average);
+            }
+        }
+
+        for (int row = visibleRows; row < rows; row++)
+        {
+            residual.Slice(row * residualStride, columns).Clear();
+        }
+    }
+
+    /// <summary>
+    /// Divides and rounds half away from zero. Reference: DIVIDE_AND_ROUND_SIGNED.
+    /// </summary>
+    private static int DivideAndRoundSigned(int numerator, int denominator)
+        => numerator < 0 ? (numerator - (denominator / 2)) / denominator : (numerator + (denominator / 2)) / denominator;
+
+    /// <summary>
+    /// Gets whether the horizontal one-dimensional transform of a type is the identity. Reference: htx_tab.
+    /// </summary>
+    private static bool IsHorizontalIdentity(Av1TransformType transformType)
+        => transformType is Av1TransformType.VerticalDct or Av1TransformType.VerticalAdst or Av1TransformType.VerticalFlipAdst;
 
     /// <summary>
     /// Calculates the exact squared error between strided 8-bit sample planes.

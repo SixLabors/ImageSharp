@@ -450,6 +450,22 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Av1EncoderSpeedSettings SpeedSettings { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the residual beyond the frame edge is filled from its visible part.
+    /// Reference: cpi->do_border_pad.
+    /// </summary>
+    public bool BorderPad { get; set; }
+
+    /// <summary>
+    /// Gets or sets the right and bottom limits of the luma samples that a distortion measures.
+    /// </summary>
+    public Size LumaVisibleBoundary { get; set; }
+
+    /// <summary>
+    /// Gets or sets the right and bottom limits of the chroma samples that a distortion measures.
+    /// </summary>
+    public Size ChromaVisibleBoundary { get; set; }
+
+    /// <summary>
     /// Gets or sets the current mode-evaluation stage.
     /// </summary>
     public Av1EncoderEvaluationStage EvaluationStage { get; set; }
@@ -740,5 +756,30 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.partitionTree?.Dispose();
         this.restorationBoundary?.Dispose();
         this.owner.Dispose();
+    }
+
+    /// <summary>
+    /// Gets the right and bottom limits of the samples that a distortion measures in one plane.
+    /// </summary>
+    /// <param name="plane">The plane.</param>
+    /// <returns>The visible plane width and height.</returns>
+    public Size GetVisibleBoundary(Av1Plane plane)
+        => plane == Av1Plane.Y ? this.LumaVisibleBoundary : this.ChromaVisibleBoundary;
+
+    /// <summary>
+    /// Gets the number of columns and rows of a block that lie inside the visible boundary, never less than zero.
+    /// Reference: get_visible_dimensions() with clip_dims set.
+    /// </summary>
+    /// <param name="plane">The plane.</param>
+    /// <param name="origin">The block origin in plane samples.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <returns>The visible block width and height.</returns>
+    public Size GetVisibleSize(Av1Plane plane, Point origin, int width, int height)
+    {
+        Size boundary = this.GetVisibleBoundary(plane);
+        return new Size(
+            Math.Clamp(boundary.Width - origin.X, 0, width),
+            Math.Clamp(boundary.Height - origin.Y, 0, height));
     }
 }

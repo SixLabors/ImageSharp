@@ -2500,6 +2500,10 @@ internal static class Av1FrameEncoder
             parent.SpeedSettings = new(
                 this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
 
+            // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
+            // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
+            parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
+
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent));
 
@@ -2691,6 +2695,10 @@ internal static class Av1FrameEncoder
             parent.IsScreenContent = isScreenContent;
             parent.SpeedSettings = new(
                 this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+
+            // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
+            // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
+            parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
 
             parent.SourceBlockSad = this.sourceBlockSad is not null ? this.sourceBlockSad.Memory : default;
             parent.HighSourceSad = false;

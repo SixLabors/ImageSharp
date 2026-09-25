@@ -5657,8 +5657,11 @@ internal static partial class Av1IntraSuperblockEncoder
                             // Block-level decisions of search_tx_type. The residual energy of
                             // the visible samples gates coefficient refinement for every type, and selects
                             // transform-domain distortion by the speed policy of the current evaluation stage.
-                            int visibleWidth = Math.Min(transformWidth, sourcePlane.Width - transformOrigin.X);
-                            int visibleHeight = Math.Min(transformHeight, sourcePlane.Height - transformOrigin.Y);
+                            Size visibleSize = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, transformOrigin, transformWidth, transformHeight);
+                            int visibleWidth = visibleSize.Width;
+                            int visibleHeight = visibleSize.Height;
+                            bool borderBlock = this.blockWorkspace.BorderPad &&
+                                (visibleWidth < transformWidth || visibleHeight < transformHeight);
                             int predictDcLevel = this.blockWorkspace.EvaluationStage switch
                             {
                                 Av1EncoderEvaluationStage.Candidate => typeSettings.ModePredictDcLevel,
@@ -5690,6 +5693,32 @@ internal static partial class Av1IntraSuperblockEncoder
                                     this.bitDepth,
                                     out blockMseQ8);
 
+                            int acDequantizer = Av1QuantizationLookup.GetAcQuant(
+                                this.quantization.QIndex[0],
+                                this.quantization.DeltaQAc[(int)Av1Plane.Y],
+                                this.bitDepth);
+
+                            // predict_dc_only_block settles a block whose residual cannot survive quantization,
+                            // and from level two keeps only the DC coefficient of a low-variance luma block. A
+                            // DC-only block searches DCT_DCT alone and measures its distortion in the pixel domain.
+                            bool dcOnlyCandidate = false;
+                            bool predictedSkip = predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
+                                transformSize,
+                                Av1QuantizationLookup.GetDcQuant(
+                                    this.quantization.QIndex[0],
+                                    this.quantization.DeltaQDc[(int)Av1Plane.Y],
+                                    this.bitDepth),
+                                acDequantizer,
+                                this.bitDepth,
+                                perPixelMean,
+                                blockVariance,
+                                out dcOnlyCandidate);
+                            bool dcOnlyBlock = predictDcBlock && dcOnlyCandidate && predictDcLevel > 1;
+                            if (dcOnlyBlock)
+                            {
+                                candidateTransformMask = 1;
+                            }
+
                             (uint Distortion, uint Satd) refinementThresholds = this.blockWorkspace.EvaluationStage switch
                             {
                                 Av1EncoderEvaluationStage.Candidate => typeSettings.ModeCoefficientOptimizationThresholds,
@@ -5704,10 +5733,6 @@ internal static partial class Av1IntraSuperblockEncoder
                                 _ => typeSettings.DefaultTransformDomainDistortion
                             };
 
-                            int acDequantizer = Av1QuantizationLookup.GetAcQuant(
-                                this.quantization.QIndex[0],
-                                this.quantization.DeltaQAc[(int)Av1Plane.Y],
-                                this.bitDepth);
                             int dequantShift = this.bitDepth == Av1BitDepth.EightBit ? 3 : this.bitDepth.GetBitCount() - 5;
                             ulong quantizerStep = (uint)(acDequantizer >> dequantShift);
                             bool skipTrellis = !typeSettings.EnableCoefficientOptimization ||
@@ -5718,7 +5743,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             // that type in the pixel domain directly instead of twice.
                             bool useTransformDomainDistortion = distortionPolicy.Type > 0 &&
                                 blockMseQ8 >= distortionPolicy.Threshold &&
-                                transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
+                                transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64 &&
+                                !dcOnlyBlock;
                             bool measureWinnerInPixelDomain = distortionPolicy.Type == 1 && useTransformDomainDistortion;
                             if (measureWinnerInPixelDomain &&
                                 (System.Numerics.BitOperations.PopCount((uint)transformMask) == 1 || candidateTransformMask == 1))
@@ -5728,7 +5754,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
                             long highEnergyThreshold = 128L * 128 * transformSampleCount;
-                            bool isHighEnergy = blockError >= highEnergyThreshold;
+                            bool isHighEnergy = !dcOnlyBlock && blockError >= highEnergyThreshold;
                             int adaptiveSearchLevel = typeSettings.InterAdaptiveTransformSearchLevel;
 
                             // search_tx_type receives what is left of the budget (block_rd_txfm).
@@ -5736,27 +5762,26 @@ internal static partial class Av1IntraSuperblockEncoder
                             bool bestReconstructed = false;
                             Av1WorkCounters.Count(Av1WorkCounters.SearchTxTypeY);
 
-                            // predict_dc_only_block settles a block whose residual cannot
-                            // survive quantization: no transform type is searched, the prediction stands as the
+                            // A predicted skip block searches no transform type: the prediction stands as the
                             // reconstruction, and the block costs the all-zero flag alone.
-                            if (predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
-                                transformSize,
-                                Av1QuantizationLookup.GetDcQuant(
-                                    this.quantization.QIndex[0],
-                                    this.quantization.DeltaQDc[(int)Av1Plane.Y],
-                                    this.bitDepth),
-                                acDequantizer,
-                                this.bitDepth,
-                                perPixelMean,
-                                blockVariance))
+                            if (predictedSkip)
                             {
+                                // The all-zero flag is priced with the contexts that av1_get_entropy_contexts()
+                                // reads at the block origin, not with the contexts that earlier transform blocks of
+                                // this search have updated. Every predicted transform block reads the same corner.
+                                Av1TransformBlockContext originContext = Av1TileWriter.GetTransformBlockContexts(
+                                    Av1ComponentType.Luminance,
+                                    coefficientNeighbors,
+                                    blockOrigin,
+                                    blockSize,
+                                    transformSize);
                                 candidateTransformMask = 0;
                                 bestTransformType = Av1TransformType.DctDct;
                                 bestTransformState = default;
                                 bestTransformRate = writer.GetTransformBlockSkipCost(
                                     true,
                                     Av1SymbolContextHelper.GetTransformSizeContext(transformSize),
-                                    blockContext.SkipContext);
+                                    originContext.SkipContext);
                                 bestTransformDistortion = blockError;
                                 bestTransformCoefficients.Clear();
                                 prediction.CopyTo(bestTransformReconstruction);
@@ -5771,6 +5796,13 @@ internal static partial class Av1IntraSuperblockEncoder
                                 if ((candidateTransformMask & (1 << (int)transformType)) == 0)
                                 {
                                     continue;
+                                }
+
+                                // A block crossing the frame edge fills its hidden residual for each transform type.
+                                if (borderBlock)
+                                {
+                                    Av1TransformBlockEncoder.PadBorderResidual(
+                                        this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, transformWidth, transformWidth, transformHeight, transformType);
                                 }
 
                                 Av1EncoderTransformBlockState candidateState = default;
@@ -5799,6 +5831,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                     this.picture.Sequence.SequenceHeader.IsStillPicture,
                                     skipTrellis,
                                     refinementThresholds.Satd,
+                                    dcOnlyBlock,
+                                    perPixelMean,
                                     ref candidateState);
 
                                 // Distortion is never negative. A candidate whose rate alone already costs more than
@@ -6428,6 +6462,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.bitDepth);
                     }
 
+                    // intra_model_rd() subtracts with the border padding of the picture.
+                    Av1TransformBlockEncoder.PadBorderResidual(
+                        this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, tileSize, tileSize, tileSize, Av1TransformType.DctDct);
                     cost += Av1ForwardTransformer.GetHadamardCost(
                         residual,
                         tileSize,
@@ -6592,7 +6629,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Av1TransformSize transformSize,
             ReadOnlySpan<TSample> prediction,
-            ReadOnlySpan<short> residual,
+            Span<short> residual,
             int inputStride,
             Av1EncoderTransformBlockState selectedState,
             bool skipTransform,
@@ -6611,7 +6648,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Av1TransformSize transformSize,
             ReadOnlySpan<TSample> prediction,
-            ReadOnlySpan<short> residual,
+            Span<short> residual,
             int inputStride,
             Av1EncoderTransformBlockState selectedState,
             bool skipTransform,
@@ -6651,7 +6688,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Mode and transform decisions are already fixed. Generate their coefficients and add the
             // inverse transform directly to the frame, without another distortion scan or candidate copy.
+            // encode_block_intra() and encode_block() subtract with the border padding of the selected type.
             int planeIndex = (int)plane;
+            Av1TransformBlockEncoder.PadBorderResidual(
+                this.blockWorkspace, plane, planeOrigin, residual, inputStride, width, height, selectedState.TransformType);
             Av1TransformBlockEncoder.EncodeLossyCandidate(
                 this.blockWorkspace,
                 writer,
@@ -6670,6 +6710,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 isInter,
                 this.picture.Sequence.SequenceHeader.IsStillPicture,
                 true,
+                0,
                 ref state);
 
             if (state.EndOfBlock > 0)

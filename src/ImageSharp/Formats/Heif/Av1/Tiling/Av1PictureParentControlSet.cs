@@ -154,6 +154,13 @@ internal class Av1PictureParentControlSet
     public bool RefreshesGolden { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether distortion stops at the frame edge rather than at the coded
+    /// eight-sample boundary, and the residual beyond the frame edge is filled from its visible part. Good-quality
+    /// sequences enable it. Reference: cpi->do_border_pad.
+    /// </summary>
+    public bool BorderPad { get; set; }
+
+    /// <summary>
     /// Gets or sets the control that adjusts the refreshed slots after the frame is coded, or
     /// <see langword="null"/> to keep them.
     /// </summary>
@@ -173,4 +180,28 @@ internal class Av1PictureParentControlSet
     /// Gets or sets the largest whole-sample magnitude written by a new-motion mode in the preceding frame.
     /// </summary>
     public int MaximumMotionVectorMagnitude { get; set; } = -1;
+
+    /// <summary>
+    /// Gets the right and bottom limits of the samples that a distortion measures in one plane. Without border
+    /// padding they are the coded eight-sample boundary. With it they are the frame edge, and a subsampled plane
+    /// rounds the distance to that edge up. Reference: set_pixels_to_frame_edge() and get_visible_dimensions().
+    /// </summary>
+    /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
+    /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
+    /// <returns>The visible plane width and height.</returns>
+    public Size GetVisibleBoundary(int subsamplingX, int subsamplingY)
+    {
+        int codedWidth = this.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2;
+        int codedHeight = this.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2;
+        if (!this.BorderPad)
+        {
+            return new Size(codedWidth >> subsamplingX, codedHeight >> subsamplingY);
+        }
+
+        int width = this.FrameHeader.FrameSize.FrameWidth;
+        int height = this.FrameHeader.FrameSize.FrameHeight;
+        return new Size(
+            (codedWidth >> subsamplingX) - ((codedWidth - width + ((1 << subsamplingX) >> 1)) >> subsamplingX),
+            (codedHeight >> subsamplingY) - ((codedHeight - height + ((1 << subsamplingY) >> 1)) >> subsamplingY));
+    }
 }

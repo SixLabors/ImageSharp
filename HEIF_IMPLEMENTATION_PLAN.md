@@ -489,12 +489,20 @@ interval. The still-picture regression stays at 620/620.
   `enable_ref_short_signaling` below 360p. Handle `context_update_tile_id` for multi-tile frames.
 - [ ] GOOD usage (speeds 0-6) sequences. libavif codes a sequence with alpha without lag and a sequence without
   alpha with libaom's default lag (ARF groups). Start with lag 0 (`aomenc --usage=0 --end-usage=q --cq-level=Q
-  --min-q=Q --max-q=Q --lag-in-frames=0`). State: every speed differs from the key frame on. The GOOD key frame
-  uses GOOD speed features, not the all-intra ones of stills (first difference: partition choices in the first
-  superblocks, and `enable_interintra_comp` in the sequence header); inter frames use the GOOD reference
-  structure (all references on slot 0 after a key frame, no primary reference). Then lagged ARF groups, and the
-  warped/OBMC search. Remove forced error resilience and disabled frame-end CDF propagation where they differ
-  from the selected configuration.
+  --min-q=Q --max-q=Q --lag-in-frames=0`).
+  - [x] Key frame: byte-identical at speeds 0-6 (splash 333x251, q64). This needed the sequence flag
+    `enable_interintra_compound`, GOOD `tx_domain_dist_thres_level` and `adaptive_txb_search_level`, the
+    block-origin skip context of `predict_dc_only_block`, DC-only blocks (`av1_xform_dc_only`), the visible-MSE
+    trellis gate, and `do_border_pad` (true-frame-size visible dimensions and `fill_residue_outside_frame` in the
+    type search, the intra model cost, the CFL alpha estimate and the final encode).
+  - [ ] Inter frames: the GOOD reference structure (all references on slot 0 after a key frame, no primary
+    reference), the reference mode, skip mode, transform mode and `fix_interp_filter` decisions, then the `rdopt`
+    inter mode search. The current inter search is not a transcription: it crashed on a compound transform-size
+    order bug, and GOOD streams with its affine global motion fail in aomdec (s0/s2/s5, frame 4).
+  - [ ] The border padding of the inter paths (`rdopt` model cost and subtraction, the inter transform tree,
+    skip mode distortion), and the predicted-skip context of the inter and chroma transform searches.
+  - [ ] Lagged ARF groups, and the warped/OBMC search. Remove forced error resilience and disabled frame-end CDF
+    propagation where they differ from the selected configuration.
 - [ ] Replace the central-window translation search with the required global-motion estimator and selection policy.
   Use current eligibility, corner, stride, frame geometry, and storage rules.
 - [ ] Reconcile quantization/rate control, super-resolution, and film-grain configuration/signaling.

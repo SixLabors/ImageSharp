@@ -3821,7 +3821,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateMode.Mode = modes[candidateIndex];
                 candidateMode.CompoundType = compoundType;
                 candidateMode.CompoundGroupIndex = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
-                candidateMode.CompoundIndex = compoundType == Av1CompoundType.Average;
+                candidateMode.CompoundIndex = compoundType != Av1CompoundType.DistanceWeighted;
                 candidateMode.CompoundWedgeIndex = (byte)wedgeIndex;
                 candidateMode.CompoundWedgeSign = wedgeSign;
                 candidateMode.DifferenceWeightedMaskType = maskType;
@@ -3943,7 +3943,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo.Block.Mode = modes[candidateIndex];
                 modeInfo.Block.Skip = candidateSkip;
                 modeInfo.Block.CompoundGroupIndex = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
-                modeInfo.Block.CompoundIndex = compoundType == Av1CompoundType.Average;
+                modeInfo.Block.CompoundIndex = compoundType != Av1CompoundType.DistanceWeighted;
                 modeInfo.Block.CompoundType = compoundType;
                 modeInfo.Block.CompoundWedgeIndex = (byte)wedgeIndex;
                 modeInfo.Block.CompoundWedgeSign = wedgeSign;
@@ -5788,7 +5788,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 VerticalInterpolationFilter = verticalFilter,
                 CompoundType = compoundType,
                 CompoundGroupIndex = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted,
-                CompoundIndex = compoundType == Av1CompoundType.Average,
+                CompoundIndex = compoundType != Av1CompoundType.DistanceWeighted,
                 CompoundWedgeIndex = (byte)compoundWedgeIndex,
                 CompoundWedgeSign = compoundWedgeSign,
                 DifferenceWeightedMaskType = differenceWeightedMaskType
@@ -6786,7 +6786,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformType transformTypeSelection,
             Av1TransformBlockContext blockContext,
             ReadOnlySpan<TSample> prediction,
-            ReadOnlySpan<short> residual,
+            Span<short> residual,
             int inputStride,
             long costLimit,
             Span<TSample> transformReconstruction,

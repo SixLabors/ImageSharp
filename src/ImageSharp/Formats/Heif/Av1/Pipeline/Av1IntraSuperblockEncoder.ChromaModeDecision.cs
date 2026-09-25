@@ -676,6 +676,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         int estimatedBlueCandidate = speedSettings.ChromaFromLumaSearchRange == Av1ChromaFromLumaMath.AlphaCandidateCount
                             ? Av1ChromaFromLumaMath.AlphaZeroIndex
                             : FindBestChromaFromLumaEstimate(
+                            this.blockWorkspace,
+                            Av1Plane.U,
                             blueSource,
                             chromaOrigin,
                             blueDc,
@@ -690,6 +692,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         int estimatedRedCandidate = speedSettings.ChromaFromLumaSearchRange == Av1ChromaFromLumaMath.AlphaCandidateCount
                             ? Av1ChromaFromLumaMath.AlphaZeroIndex
                             : FindBestChromaFromLumaEstimate(
+                            this.blockWorkspace,
+                            Av1Plane.V,
                             redSource,
                             chromaOrigin,
                             redDc,
@@ -1698,6 +1702,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private static int FindBestChromaFromLumaEstimate(
+            Av1EncoderBlockWorkspace blockWorkspace,
+            Av1Plane plane,
             Buffer2DRegion<TSample> source,
             Point chromaOrigin,
             TSample dc,
@@ -1710,12 +1716,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> transformWorkspace)
         {
             long workStart = Av1WorkCounters.Start();
-            int workResult = FindBestChromaFromLumaEstimateCore(source, chromaOrigin, dc, lumaQ3, transformSize, bitDepth, prediction, residual, coefficients, transformWorkspace);
+            int workResult = FindBestChromaFromLumaEstimateCore(blockWorkspace, plane, source, chromaOrigin, dc, lumaQ3, transformSize, bitDepth, prediction, residual, coefficients, transformWorkspace);
             Av1WorkCounters.Stop(Av1WorkCounters.CflEstimate, workStart);
             return workResult;
         }
 
         private static int FindBestChromaFromLumaEstimateCore(
+            Av1EncoderBlockWorkspace blockWorkspace,
+            Av1Plane plane,
             Buffer2DRegion<TSample> source,
             Point chromaOrigin,
             TSample dc,
@@ -1749,6 +1757,17 @@ internal static partial class Av1IntraSuperblockEncoder
                         bitDepth);
 
                     TOperator.SubtractPrediction(source, chromaOrigin, prediction, residual, transformSize.GetWidth(), transformSize.GetHeight());
+
+                    // intra_model_rd() subtracts with the border padding of the picture.
+                    Av1TransformBlockEncoder.PadBorderResidual(
+                        blockWorkspace,
+                        plane,
+                        chromaOrigin,
+                        residual,
+                        transformSize.GetWidth(),
+                        transformSize.GetWidth(),
+                        transformSize.GetHeight(),
+                        Av1TransformType.DctDct);
                     Av1ForwardTransformer.Transform2d(
                         residual,
                         coefficients,

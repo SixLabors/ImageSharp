@@ -1519,6 +1519,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             true,
                             false,
                             true,
+                            0,
                             ref state);
 
                         if (state.EndOfBlock > 0)

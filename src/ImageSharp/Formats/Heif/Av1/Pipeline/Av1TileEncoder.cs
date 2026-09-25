@@ -416,6 +416,14 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.QuantizationParameters.BaseQIndex,
             sourceSize);
 
+        // Distortion stops at the coded boundary, or at the frame edge when the picture pads its border.
+        // Reference: set_pixels_to_frame_edge() with cpi->do_border_pad.
+        ObuColorConfig colorConfig = picture.Sequence.SequenceHeader.ColorConfig;
+        blockWorkspace.BorderPad = parent.BorderPad;
+        blockWorkspace.LumaVisibleBoundary = parent.GetVisibleBoundary(0, 0);
+        blockWorkspace.ChromaVisibleBoundary = parent.GetVisibleBoundary(
+            colorConfig.SubSamplingX ? 1 : 0, colorConfig.SubSamplingY ? 1 : 0);
+
         // An inter frame that starts a golden group is a GF_UPDATE frame. Reference: set_baseline_gf_interval().
         parent.FrameUpdateType = frameHeader.FrameType == ObuFrameType.KeyFrame
             ? Av1FrameUpdateType.Key

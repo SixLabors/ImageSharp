@@ -717,6 +717,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     false,
                                     true,
                                     true,
+                                    0,
                                     ref state);
                             }
 

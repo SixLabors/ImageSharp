@@ -462,9 +462,10 @@ Proceed directly to milestone 2 when this implementation is complete.
 
 The sequence harness encodes the same frames with the port's sequence encoder and with `aomenc`
 (`--usage=1 --passes=1 --end-usage=cbr --min-q=Q --max-q=Q --threads=1`) and compares the streams frame by frame.
-Current state: 512x384 bike sequences are byte-identical to `aomenc` on every frame for speeds 7, 8 and 9:
-3 and 12 frames with a slow pan at q64 and q128, and 30 frames at q128 (slow pan) and q64 (static, slow pan,
-fast pan of 6x3 samples per frame). The still-picture regression stays at 620/620.
+Current state: 8-bit 4:2:0 sequences are byte-identical to `aomenc` on every frame for speeds 7, 8 and 9:
+512x384 bike (3 and 12 frames at q64 and q128; 30 frames static, slow pan and fast pan), 333x251 splash and
+320x180 ducky (20 frames, q64), and 1280x720 calliphora (10 frames, q128, 4x2 pan). The still-picture regression
+stays at 620/620.
 
 - [x] Real-time one-layer reference structure (`av1_set_rtc_reference_structure_one_layer`): slot selection,
   refresh, GOLDEN interval, ALTREF lag, `get_ref_frame_flags` duplicate removal, primary reference and per-slot
@@ -477,8 +478,12 @@ fast pan of 6x3 samples per frame). The still-picture regression stays at 620/62
   MV projection, the warped cut-off, compound pruning by single-reference variance, `newmv_diff_bias`, the CDEF
   skip from block color sensitivity, compound global filter syntax, full-sample rounding of search starts and
   neighbor vectors, and the running chroma mode of the intra estimate.
-- [ ] Extend the harness to other content, sizes (odd, small, 360p and below, 720p and up), bit depths and
-  4:4:4, and to scene cuts (high source SAD) and sequences past the 80-frame golden interval.
+- [x] Other sizes: odd frame edges (skipped inter blocks code the largest transform), 64x64 superblocks for
+  real-time up to 720p, ALTREF as the variance-partition reference, the regular/smooth filter search, a
+  switchable frame filter at the start of every frame, and two memory faults found on the way (the 2-D
+  interpolation scratch size and intra-estimate edges that aliased live inter predictions).
+- [ ] Extend the harness to high bit depth and 4:4:4 sequences, screen content, scene cuts (high source SAD),
+  sizes above 720p (128x128 superblocks), and sequences past the 80-frame golden interval.
 - [ ] Port the remaining real-time frame control: frames_to_key, `direct_partition_merging` where it applies, and
   `enable_ref_short_signaling` below 360p. Handle `context_update_tile_id` for multi-tile frames.
 - [ ] GOOD usage (speeds 0-6) sequences: lag, ARF groups, and the warped/OBMC search. Remove forced error

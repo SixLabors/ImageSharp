@@ -1772,7 +1772,22 @@ internal static class Av1FrameEncoder
         /// The running warped-motion usage probability, out of 128, of each frame update type.
         /// Reference: frame_probs->warped_probs, initialized from default_warped_probs.
         /// </summary>
+        /// <summary>
+        /// The initial OBMC probability of each frame update type and block size. Reference: default_obmc_probs.
+        /// </summary>
+        private static readonly int[] DefaultObmcProbabilities =
+        [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 106, 90, 90, 97, 67, 59, 70, 28, 30, 38, 16, 16, 16, 0, 0, 44, 50, 26, 25,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 98, 93, 97, 68, 82, 85, 33, 30, 33, 16, 16, 16, 16, 0, 0, 43, 37, 26, 16,
+            0, 0, 0, 91, 80, 76, 78, 55, 49, 24, 16, 16, 16, 16, 16, 16, 0, 0, 29, 45, 16, 38,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 103, 89, 89, 89, 62, 63, 76, 34, 35, 32, 19, 16, 16, 0, 0, 49, 55, 29, 19
+        ];
+
         private readonly int[] warpedProbabilities = [64, 64, 64, 64, 64, 64, 64];
+        private readonly int[] obmcProbabilities = (int[])DefaultObmcProbabilities.Clone();
 
         /// <summary>
         /// The reference structure of good-quality frames coded without lookahead.
@@ -2014,6 +2029,7 @@ internal static class Av1FrameEncoder
                 if (keyFrame)
                 {
                     this.warpedProbabilities.AsSpan().Fill(64);
+                    DefaultObmcProbabilities.CopyTo(this.obmcProbabilities, 0);
                 }
             }
             else
@@ -2047,6 +2063,8 @@ internal static class Av1FrameEncoder
             }
 
             frameHeader.AllowWarpedMotion = allowWarpedMotion;
+            int obmcRow = (int)GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup) * (int)Av1BlockSize.AllSizes;
+            this.obmcProbabilities.AsSpan(obmcRow, (int)Av1BlockSize.AllSizes).CopyTo(parent.ObmcProbabilities);
 
             // OBMC is enabled by default, so the motion mode is switchable in every inter frame.
             // Reference: is_switchable_motion_mode_allowed(allow_warped_motion, enable_obmc).
@@ -2087,6 +2105,7 @@ internal static class Av1FrameEncoder
             if (keyFrame || (speedSettings.ExtraPruneWarped && parent.RefreshesGolden))
             {
                 this.warpedProbabilities.AsSpan().Fill(64);
+                DefaultObmcProbabilities.CopyTo(this.obmcProbabilities, 0);
             }
 
             // av1_set_rtc_reference_structure_one_layer()
@@ -2303,6 +2322,21 @@ internal static class Av1FrameEncoder
                 int sum = parent.WarpedUsage[0] + parent.WarpedUsage[1];
                 int newProbability = sum != 0 ? 128 * parent.WarpedUsage[1] / sum : 0;
                 this.warpedProbabilities[updateType] = (this.warpedProbabilities[updateType] + newProbability) >> 1;
+            }
+
+            int obmcThreshold = parent.SpeedSettings.ObmcProbabilityThreshold;
+            if (obmcThreshold > 0 && obmcThreshold < int.MaxValue)
+            {
+                // Each block size's probability moves halfway to this frame's share of OBMC blocks.
+                // Reference: the obmc_probs update at the end of encode_frame_internal().
+                int row = (int)GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup) *
+                    (int)Av1BlockSize.AllSizes;
+                for (int size = 0; size < (int)Av1BlockSize.AllSizes; size++)
+                {
+                    int sum = parent.ObmcUsage[size * 2] + parent.ObmcUsage[(size * 2) + 1];
+                    int newProbability = sum != 0 ? 128 * parent.ObmcUsage[(size * 2) + 1] / sum : 0;
+                    this.obmcProbabilities[row + size] = (this.obmcProbabilities[row + size] + newProbability) >> 1;
+                }
             }
 
             if (!parent.SpeedSettings.IsRealtime)

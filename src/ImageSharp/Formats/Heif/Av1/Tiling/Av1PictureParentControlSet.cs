@@ -54,6 +54,18 @@ internal class Av1PictureParentControlSet
     public int[] WarpedUsage { get; } = new int[2];
 
     /// <summary>
+    /// Gets the OBMC probability of each block size for the frame's update type. Reference: the obmc_probs row of
+    /// frame_probs.
+    /// </summary>
+    public int[] ObmcProbabilities { get; } = new int[(int)Av1BlockSize.AllSizes];
+
+    /// <summary>
+    /// Gets the count of blocks that could use OBMC and did not or did, two entries per block size.
+    /// Reference: rd_counts.obmc_used.
+    /// </summary>
+    public int[] ObmcUsage { get; } = new int[(int)Av1BlockSize.AllSizes * 2];
+
+    /// <summary>
     /// Gets the display distance of each reference type from the frame, negative for a past reference and zero for
     /// a disabled one. Reference: ref_relative_dist of set_rel_frame_dist().
     /// </summary>

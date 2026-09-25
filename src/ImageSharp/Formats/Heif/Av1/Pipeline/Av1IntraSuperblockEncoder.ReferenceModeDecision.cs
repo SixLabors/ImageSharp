@@ -236,6 +236,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.bestInterPredictionCost = long.MaxValue;
             this.bestInterLumaPredictionCost = long.MaxValue;
             this.useWarpedPrediction = false;
+            this.useObmcPrediction = false;
             this.motionModeWinnerCount = 0;
             this.motionModeWinnerLimit = this.picture.Parent.SpeedSettings.GetMotionModeWinnerCount(this.picture.Parent.FrameUpdateType);
             this.interSourceVarianceCost = (long)this.interSourceVariance * blockSize.GetWidth() * blockSize.GetHeight() * 128;
@@ -700,119 +701,182 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Reference: the skip_txfm reset of each candidate in evaluate_motion_mode_for_winner_candidates().
                 this.transformSearchSkip = false;
 
-                Av1MacroBlockModeInfo candidateModeInfo = winner.ModeInfo;
-                Av1EncoderBlockStruct candidateBlock = winner.Block;
-                ref Av1EncoderBlockModeInfo candidate = ref candidateModeInfo.Block;
-                Av1BlockSize blockSize = candidate.BlockSize;
-                if (Av1EncoderMotionVariation.GetLastAllowedMotionMode(this.picture, macroBlock, position, in candidate) != Av1MotionMode.Warped)
-                {
-                    continue;
-                }
+                ObuFrameHeader winnerHeader = frameHeader;
+                Av1MotionMode lastAllowed = Av1EncoderMotionVariation.GetLastAllowedMotionMode(
+                    this.picture, macroBlock, position, in winner.ModeInfo.Block);
+                long candidateBestCost = long.MaxValue;
+                bool candidateBestSkip = false;
 
-                candidate.MotionMode = Av1MotionMode.Warped;
-                candidate.HorizontalInterpolationFilter = warpedFilter;
-                candidate.VerticalInterpolationFilter = warpedFilter;
-                if (!this.SetWarpedPrediction(macroBlock, blockOrigin, candidate.PartitionType, in candidate, winner.Vector))
+                // OBMC first, then warped motion, each from the simple-translation decisions of the winner.
+                // Reference: the mode_index loop of motion_mode_rd() from update_mode_start_end_index().
+                for (Av1MotionMode motionMode = Av1MotionMode.Obmc; motionMode <= lastAllowed; motionMode++)
                 {
-                    continue;
-                }
-
-                if (candidate.Mode == Av1PredictionMode.NewMotionVector)
-                {
-                    Av1MotionVector referenceVector = singleReferenceVectors[(int)candidate.ReferenceFrame]
-                        .GetNewReference(candidateBlock.ReferenceMotionVectorIndex);
-                    winner.Vector = this.RefineWarpedVector(macroBlock, blockOrigin, in candidate, winner.Vector, referenceVector);
-
-                    // A new vector equal to its reference codes no difference. Reference: av1_check_newmv_joint_nonzero().
-                    if (winner.Vector == referenceVector)
+                    Av1MacroBlockModeInfo candidateModeInfo = winner.ModeInfo;
+                    Av1EncoderBlockStruct candidateBlock = winner.Block;
+                    ref Av1EncoderBlockModeInfo candidate = ref candidateModeInfo.Block;
+                    Av1BlockSize blockSize = candidate.BlockSize;
+                    Av1MotionVector vector = winner.Vector;
+                    candidate.MotionMode = motionMode;
+                    int motionModeRate;
+                    int filterRate = 0;
+                    if (motionMode == Av1MotionMode.Obmc)
                     {
-                        this.useWarpedPrediction = false;
+                        // A block size that rarely picks OBMC does not search it. Reference: the prune_obmc test of
+                        // motion_mode_rd().
+                        if (this.picture.Parent.ObmcProbabilities[(int)blockSize] < this.picture.Parent.SpeedSettings.ObmcProbabilityThreshold)
+                        {
+                            continue;
+                        }
+
+                        this.SetWarpedPrediction(macroBlock, blockOrigin, candidate.PartitionType, in candidate, vector);
+                        if (candidate.Mode == Av1PredictionMode.NewMotionVector)
+                        {
+                            // A new vector is searched again against the OBMC target, and one equal to its reference
+                            // codes no difference. Reference: the av1_single_motion_search() call of motion_mode_rd(),
+                            // then av1_check_newmv_joint_nonzero().
+                            Av1MotionVector referenceVector = singleReferenceVectors[(int)candidate.ReferenceFrame]
+                                .GetNewReference(candidateBlock.ReferenceMotionVectorIndex);
+                            vector = this.SearchObmcVector(blockOrigin, blockSize, candidate.ReferenceFrame, vector, referenceVector);
+                            if (vector == referenceVector)
+                            {
+                                this.useWarpedPrediction = false;
+                                this.useObmcPrediction = false;
+                                continue;
+                            }
+                        }
+
+                        motionModeRate = lastAllowed == Av1MotionMode.Warped
+                            ? writer.ModeCosts.GetMotionMode(blockSize, Av1MotionMode.Obmc)
+                            : writer.ModeCosts.GetObmc(blockSize, Av1MotionMode.Obmc);
+                        if (Av1TileWriter.UsesSwitchableInterpolation(winnerHeader, candidate))
+                        {
+                            filterRate = writer.GetSwitchableInterpolationFilterCost(
+                                candidate.VerticalInterpolationFilter,
+                                Av1SymbolContextHelper.GetSwitchableInterpolationContext(candidate, macroBlock, 0));
+                            if (sequenceHeader.EnableDualFilter)
+                            {
+                                filterRate += writer.GetSwitchableInterpolationFilterCost(
+                                    candidate.HorizontalInterpolationFilter,
+                                    Av1SymbolContextHelper.GetSwitchableInterpolationContext(candidate, macroBlock, 1));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        candidate.HorizontalInterpolationFilter = warpedFilter;
+                        candidate.VerticalInterpolationFilter = warpedFilter;
+                        if (!this.SetWarpedPrediction(macroBlock, blockOrigin, candidate.PartitionType, in candidate, vector))
+                        {
+                            continue;
+                        }
+
+                        if (candidate.Mode == Av1PredictionMode.NewMotionVector)
+                        {
+                            Av1MotionVector referenceVector = singleReferenceVectors[(int)candidate.ReferenceFrame]
+                                .GetNewReference(candidateBlock.ReferenceMotionVectorIndex);
+                            vector = this.RefineWarpedVector(macroBlock, blockOrigin, in candidate, vector, referenceVector);
+
+                            // A new vector equal to its reference codes no difference. Reference: av1_check_newmv_joint_nonzero().
+                            if (vector == referenceVector)
+                            {
+                                this.useWarpedPrediction = false;
+                                this.useObmcPrediction = false;
+                                continue;
+                            }
+                        }
+
+                        motionModeRate = writer.ModeCosts.GetMotionMode(blockSize, Av1MotionMode.Warped);
+                    }
+
+                    // The prediction syntax of the simple-translation result, with the new motion mode and its filters.
+                    int predictionRate = intraInterRate +
+                        writer.GetSingleReferenceCost(candidate.ReferenceFrame, referenceCounts) +
+                        motionModeRate + filterRate;
+                    if (frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
+                        Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
+                    {
+                        predictionRate += writer.ModeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(macroBlock), 0);
+                    }
+
+                    if (sequenceHeader.EnableInterIntraCompound && blockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32)
+                    {
+                        predictionRate += writer.GetInterIntraCost(blockSize, false, default, false, 0);
+                    }
+
+                    long costLimit = Math.Min(this.blockCostLimit, selectedStatistics.Cost);
+                    Av1RateDistortionStatistics statistics = this.EvaluateInterCandidate(
+                        writer,
+                        macroBlock,
+                        blockOrigin,
+                        blockSize,
+                        tileIndex,
+                        costLimit,
+                        candidateBlock.HasChroma,
+                        predictionRate,
+                        candidate.ReferenceFrame,
+                        vector,
+                        default,
+                        candidate.Mode,
+                        Av1ReferenceFrameType.None,
+                        usePreparedPrediction: false,
+                        Av1CompoundType.Average,
+                        0,
+                        false,
+                        Av1DifferenceWeightedMaskType.Type38,
+                        0,
+                        candidate.HorizontalInterpolationFilter,
+                        candidate.VerticalInterpolationFilter,
+                        candidateBlock.ReferenceMotionVectorIndex,
+                        false,
+                        default,
+                        false,
+                        0,
+                        in singleReferenceVectors[(int)candidate.ReferenceFrame],
+                        workspace.LumaCandidateReconstruction,
+                        workspace.LumaCandidateCoefficients,
+                        workspace.BlueCandidateReconstruction,
+                        workspace.BlueCandidateCoefficients,
+                        workspace.RedCandidateReconstruction,
+                        workspace.RedCandidateCoefficients,
+                        out bool skip,
+                        out InlineArray64<Av1EncoderTransformBlockState> lumaStates,
+                        out InlineArray16<Av1TransformSize> lumaSizes,
+                        out InlineArray16<Av1EncoderTransformBlockState> blueStates,
+                        out InlineArray16<Av1EncoderTransformBlockState> redStates);
+
+                    this.useWarpedPrediction = false;
+                    this.useObmcPrediction = false;
+                    if (statistics.Cost < candidateBestCost)
+                    {
+                        candidateBestCost = statistics.Cost;
+                        candidateBestSkip = skip;
+                    }
+
+                    if (statistics.Cost >= costLimit)
+                    {
                         continue;
                     }
+
+                    // Setting the block transform size resets every transform size, so the searched tree is copied after it.
+                    candidate.Skip = skip;
+                    candidate.TransformSize = frameHeader.CodedLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
+                    lumaSizes[..].CopyTo(candidate.InterTransformSizes);
+                    lumaStates[..].CopyTo(selectedStates);
+                    blueStates[..].CopyTo(selectedStates[64..80]);
+                    redStates[..].CopyTo(selectedStates[80..96]);
+                    modeInfo = candidateModeInfo;
+                    block = candidateBlock;
+                    selectedStatistics = statistics;
+                    selectedVector = vector;
+                    selectedSecondaryVector = default;
                 }
 
-                // The prediction syntax of the simple-translation result, with the warped motion mode in place of the
-                // filter and the simple-translation symbols.
-                int predictionRate = intraInterRate +
-                    writer.GetSingleReferenceCost(candidate.ReferenceFrame, referenceCounts) +
-                    writer.ModeCosts.GetMotionMode(blockSize, Av1MotionMode.Warped);
-                if (frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
-                    Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
+                // The best motion mode of the candidate leaves its skip flag. Reference: the best_xskip_txfm restore at the
+                // end of motion_mode_rd().
+                if (candidateBestCost != long.MaxValue)
                 {
-                    predictionRate += writer.ModeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(macroBlock), 0);
+                    this.transformSearchSkip = candidateBestSkip;
                 }
-
-                if (sequenceHeader.EnableInterIntraCompound && blockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32)
-                {
-                    predictionRate += writer.GetInterIntraCost(blockSize, false, default, false, 0);
-                }
-
-                long costLimit = Math.Min(this.blockCostLimit, selectedStatistics.Cost);
-                Av1RateDistortionStatistics statistics = this.EvaluateInterCandidate(
-                    writer,
-                    macroBlock,
-                    blockOrigin,
-                    blockSize,
-                    tileIndex,
-                    costLimit,
-                    candidateBlock.HasChroma,
-                    predictionRate,
-                    candidate.ReferenceFrame,
-                    winner.Vector,
-                    default,
-                    candidate.Mode,
-                    Av1ReferenceFrameType.None,
-                    usePreparedPrediction: false,
-                    Av1CompoundType.Average,
-                    0,
-                    false,
-                    Av1DifferenceWeightedMaskType.Type38,
-                    0,
-                    warpedFilter,
-                    warpedFilter,
-                    candidateBlock.ReferenceMotionVectorIndex,
-                    false,
-                    default,
-                    false,
-                    0,
-                    in singleReferenceVectors[(int)candidate.ReferenceFrame],
-                    workspace.LumaCandidateReconstruction,
-                    workspace.LumaCandidateCoefficients,
-                    workspace.BlueCandidateReconstruction,
-                    workspace.BlueCandidateCoefficients,
-                    workspace.RedCandidateReconstruction,
-                    workspace.RedCandidateCoefficients,
-                    out bool skip,
-                    out InlineArray64<Av1EncoderTransformBlockState> lumaStates,
-                    out InlineArray16<Av1TransformSize> lumaSizes,
-                    out InlineArray16<Av1EncoderTransformBlockState> blueStates,
-                    out InlineArray16<Av1EncoderTransformBlockState> redStates);
-
-                this.useWarpedPrediction = false;
-
-                // Reference: the best_xskip_txfm restore at the end of motion_mode_rd().
-                if (statistics.Cost != long.MaxValue)
-                {
-                    this.transformSearchSkip = skip;
-                }
-
-                if (statistics.Cost >= costLimit)
-                {
-                    continue;
-                }
-
-                // Setting the block transform size resets every transform size, so the searched tree is copied after it.
-                candidate.Skip = skip;
-                candidate.TransformSize = frameHeader.CodedLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
-                lumaSizes[..].CopyTo(candidate.InterTransformSizes);
-                lumaStates[..].CopyTo(selectedStates);
-                blueStates[..].CopyTo(selectedStates[64..80]);
-                redStates[..].CopyTo(selectedStates[80..96]);
-                modeInfo = candidateModeInfo;
-                block = candidateBlock;
-                selectedStatistics = statistics;
-                selectedVector = winner.Vector;
-                selectedSecondaryVector = default;
             }
 
             this.evaluatingMotionModeWinners = false;
@@ -1108,6 +1172,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out InlineArray16<Av1EncoderTransformBlockState> redStates);
 
                 this.useWarpedPrediction = false;
+                this.useObmcPrediction = false;
                 if (statistics.Cost == long.MaxValue)
                 {
                     continue;
@@ -1534,6 +1599,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 workspace.PredictionScratch,
                 predictionSize,
                 this.bitDepth);
+            if (this.useObmcPrediction)
+            {
+                this.ApplyObmcPrediction(Av1Plane.Y, 0, 0, prediction, residual, workspace.PredictionScratch);
+            }
         }
 
         /// <summary>
@@ -3813,6 +3882,17 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector vector)
         {
             this.useWarpedPrediction = false;
+            this.useObmcPrediction = false;
+            if (mode.MotionMode == Av1MotionMode.Obmc)
+            {
+                this.obmcBlockOrigin = blockOrigin;
+                this.obmcBlockSize = mode.BlockSize;
+                this.obmcAboveAvailable = macroBlock.IsUpAvailable;
+                this.obmcLeftAvailable = macroBlock.IsLeftAvailable;
+                this.useObmcPrediction = true;
+                return true;
+            }
+
             if (mode.MotionMode != Av1MotionMode.Warped)
             {
                 return false;
@@ -6153,6 +6233,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.useWarpedPrediction = false;
+            this.useObmcPrediction = false;
             return coded;
         }
 
@@ -6786,6 +6867,10 @@ internal static partial class Av1IntraSuperblockEncoder
             else if (!isCompound && this.useWarpedPrediction)
             {
                 predictionModeInfo.MotionMode = Av1MotionMode.Warped;
+            }
+            else if (!isCompound && this.useObmcPrediction)
+            {
+                predictionModeInfo.MotionMode = Av1MotionMode.Obmc;
             }
 
             Av1InterModeCandidate candidate = new()
@@ -7667,6 +7752,196 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Blends the prediction of one plane with the predictions of the overlappable above and left neighbors over
+        /// the neighbor's own vector, reference and filters, then rebuilds the residual. A plane block smaller than
+        /// 8x8 blends with its left neighbors only.
+        /// Reference: av1_build_prediction_by_above_preds() and av1_build_prediction_by_left_preds() with
+        /// build_obmc_prediction(), then av1_build_obmc_inter_prediction(), foreach_overlappable_nb_above() and
+        /// foreach_overlappable_nb_left().
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="subsamplingX">The horizontal subsampling shift.</param>
+        /// <param name="subsamplingY">The vertical subsampling shift.</param>
+        /// <param name="prediction">The contiguous plane prediction, blended in place.</param>
+        /// <param name="residual">The contiguous residual, rebuilt from the blended prediction.</param>
+        /// <param name="predictionScratch">The interpolation scratch.</param>
+        private void ApplyObmcPrediction(
+            Av1Plane plane,
+            int subsamplingX,
+            int subsamplingY,
+            Span<TSample> prediction,
+            Span<short> residual,
+            Span<short> predictionScratch)
+        {
+            ReadOnlySpan<int> maximumNeighbors = [0, 1, 2, 3, 4, 4];
+            Av1BlockSize blockSize = this.obmcBlockSize;
+            Av1BlockSize planeSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
+            int planeWidth = planeSize.GetWidth();
+            int planeHeight = planeSize.GetHeight();
+            Point position = new(this.obmcBlockOrigin.X >> Av1Constants.ModeInfoSizeLog2, this.obmcBlockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+            int widthUnits = blockSize.Get4x4WideCount();
+            int heightUnits = blockSize.Get4x4HighCount();
+            const int largestStep = 16;
+            Av1BitDepth bitDepth = this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
+            Span<TSample> neighborPrediction = stackalloc TSample[64 * 32];
+            Span<byte> maskRows = stackalloc byte[64 * 32];
+
+            // Reference: av1_skip_u4x4_pred_in_obmc().
+            bool smallPlane = planeSize is Av1BlockSize.Block4x4 or Av1BlockSize.Block8x4 or Av1BlockSize.Block4x8;
+            if (this.obmcAboveAvailable && !smallPlane)
+            {
+                int endColumn = Math.Min(position.X + widthUnits, this.picture.Parent.FrameHeader.ModeInfoColumnCount);
+                int limit = maximumNeighbors[System.Numerics.BitOperations.Log2((uint)widthUnits)];
+                int count = 0;
+                int step;
+                for (int column = position.X; column < endColumn && count < limit; column += step)
+                {
+                    Point neighborPosition = new(column, position.Y - 1);
+                    step = Math.Min(this.picture.GetFromModeInfoGrid(neighborPosition).Block.BlockSize.Get4x4WideCount(), largestStep);
+                    if (step == 1)
+                    {
+                        // A four-sample neighbor is one half of a pair whose second block carries the chroma.
+                        column &= ~1;
+                        neighborPosition = new Point(column + 1, position.Y - 1);
+                        step = 2;
+                    }
+
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref this.picture.GetFromModeInfoGrid(neighborPosition).Block;
+                    if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
+                    {
+                        continue;
+                    }
+
+                    count++;
+                    int width = (Math.Min(widthUnits, step) << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
+                    int predictionHeight = Math.Clamp(blockSize.GetHeight() >> (subsamplingY + 1), 4, 64 >> (subsamplingY + 1));
+                    int overlap = (Math.Min(blockSize.GetHeight(), 64) >> 1) >> subsamplingY;
+                    int planeColumn = ((column - position.X) << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
+                    this.PredictObmcNeighbor(
+                        plane,
+                        subsamplingX,
+                        subsamplingY,
+                        neighborPosition,
+                        in neighbor,
+                        new Point((column << Av1Constants.ModeInfoSizeLog2) >> subsamplingX, (position.Y << Av1Constants.ModeInfoSizeLog2) >> subsamplingY),
+                        width,
+                        predictionHeight,
+                        neighborPrediction,
+                        predictionScratch,
+                        bitDepth);
+
+                    ReadOnlySpan<byte> verticalMask = Av1ObmcMask.Get(overlap);
+                    for (int row = 0; row < overlap; row++)
+                    {
+                        maskRows.Slice(row * width, width).Fill(verticalMask[row]);
+                    }
+
+                    TOperator.BlendMask(prediction[planeColumn..], planeWidth, neighborPrediction, width, maskRows, width, width, overlap);
+                }
+            }
+
+            if (this.obmcLeftAvailable)
+            {
+                int endRow = Math.Min(position.Y + heightUnits, this.picture.Parent.FrameHeader.ModeInfoRowCount);
+                int limit = maximumNeighbors[System.Numerics.BitOperations.Log2((uint)heightUnits)];
+                int count = 0;
+                int step;
+                for (int row = position.Y; row < endRow && count < limit; row += step)
+                {
+                    Point neighborPosition = new(position.X - 1, row);
+                    step = Math.Min(this.picture.GetFromModeInfoGrid(neighborPosition).Block.BlockSize.Get4x4HighCount(), largestStep);
+                    if (step == 1)
+                    {
+                        row &= ~1;
+                        neighborPosition = new Point(position.X - 1, row + 1);
+                        step = 2;
+                    }
+
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref this.picture.GetFromModeInfoGrid(neighborPosition).Block;
+                    if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
+                    {
+                        continue;
+                    }
+
+                    count++;
+                    int height = (Math.Min(heightUnits, step) << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
+                    int predictionWidth = Math.Clamp(blockSize.GetWidth() >> (subsamplingX + 1), 4, 64 >> (subsamplingX + 1));
+                    int overlap = (Math.Min(blockSize.GetWidth(), 64) >> 1) >> subsamplingX;
+                    int planeRow = ((row - position.Y) << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
+                    this.PredictObmcNeighbor(
+                        plane,
+                        subsamplingX,
+                        subsamplingY,
+                        neighborPosition,
+                        in neighbor,
+                        new Point((position.X << Av1Constants.ModeInfoSizeLog2) >> subsamplingX, (row << Av1Constants.ModeInfoSizeLog2) >> subsamplingY),
+                        predictionWidth,
+                        height,
+                        neighborPrediction,
+                        predictionScratch,
+                        bitDepth);
+
+                    TOperator.BlendMask(
+                        prediction[(planeRow * planeWidth)..], planeWidth, neighborPrediction, predictionWidth, Av1ObmcMask.Get(overlap), 0, overlap, height);
+                }
+            }
+
+            Point planeOrigin = new(this.obmcBlockOrigin.X >> subsamplingX, this.obmcBlockOrigin.Y >> subsamplingY);
+            int sampleCount = planeWidth * planeHeight;
+            TOperator.SubtractPrediction(
+                this.source.GetPlane(plane), planeOrigin, prediction[..sampleCount], residual[..sampleCount], planeWidth, planeHeight);
+        }
+
+        /// <summary>
+        /// Predicts one neighbor's rectangle of the OBMC overlap with the neighbor's first reference, vector and
+        /// filters. Reference: build_obmc_prediction() with setup_address_for_obmc().
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="subsamplingX">The horizontal subsampling shift.</param>
+        /// <param name="subsamplingY">The vertical subsampling shift.</param>
+        /// <param name="neighborPosition">The neighbor mode-information position.</param>
+        /// <param name="neighbor">The neighbor decisions.</param>
+        /// <param name="planeOrigin">The rectangle origin in plane samples.</param>
+        /// <param name="width">The rectangle width.</param>
+        /// <param name="height">The rectangle height.</param>
+        /// <param name="destination">The contiguous destination.</param>
+        /// <param name="predictionScratch">The interpolation scratch.</param>
+        /// <param name="bitDepth">The coded bit depth.</param>
+        private void PredictObmcNeighbor(
+            Av1Plane plane,
+            int subsamplingX,
+            int subsamplingY,
+            Point neighborPosition,
+            in Av1EncoderBlockModeInfo neighbor,
+            Point planeOrigin,
+            int width,
+            int height,
+            Span<TSample> destination,
+            Span<short> predictionScratch,
+            Av1BitDepth bitDepth)
+        {
+            Av1MotionVector vector = this.picture.GetDisplacementVector(neighborPosition);
+            Buffer2DRegion<TSample> reference = neighbor.UseIntraBlockCopy
+                ? this.reconstruction.GetPlane(plane)
+                : this.references.Span[(int)neighbor.ReferenceFrame].CodedView.GetPlane(plane);
+            int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
+            int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY));
+            TOperator.PredictTranslationalInter(
+                reference,
+                new Point(columnQ4 >> 4, rowQ4 >> 4),
+                neighbor.HorizontalInterpolationFilter,
+                neighbor.VerticalInterpolationFilter,
+                columnQ4 & 15,
+                rowQ4 & 15,
+                destination,
+                width,
+                width,
+                height,
+                predictionScratch,
+                bitDepth);
+        }
+
+        /// <summary>
         /// Builds the chroma prediction of a block four samples wide or high, whose subsampled plane block covers the
         /// neighboring luma blocks as well, from the vector, reference and filters of each covered block. The path
         /// applies only when every covered block predicts from a reference frame.
@@ -7723,8 +7998,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    ref Av1EncoderBlockModeInfo covered =
-                        ref this.picture.GetMacroBlockModeInfo(new Point(current.X + column, current.Y + row)).Block;
+                    ref readonly Av1EncoderBlockModeInfo covered =
+                        ref this.picture.GetFromModeInfoGrid(new Point(current.X + column, current.Y + row)).Block;
                     if (covered.ReferenceFrame <= Av1ReferenceFrameType.Intra || covered.UseIntraBlockCopy)
                     {
                         return false;
@@ -7751,7 +8026,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (modeRow != 0 || modeColumn != 0)
                     {
                         Point position = new(current.X + modeColumn, current.Y + modeRow);
-                        ref Av1EncoderBlockModeInfo covered = ref this.picture.GetMacroBlockModeInfo(position).Block;
+                        ref readonly Av1EncoderBlockModeInfo covered = ref this.picture.GetFromModeInfoGrid(position).Block;
                         subVector = this.picture.GetDisplacementVector(position);
                         subReference = this.references.Span[(int)covered.ReferenceFrame].CodedView.GetPlane(plane);
                         subHorizontal = covered.HorizontalInterpolationFilter;
@@ -7946,6 +8221,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     predictionScratch,
                     predictionSize,
                     this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
+
+                if (this.useObmcPrediction)
+                {
+                    this.ApplyObmcPrediction(plane, subsamplingX, subsamplingY, prediction, residual, predictionScratch);
+                }
             }
             else
             {
@@ -8252,6 +8532,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
                 }
             }
+
+            // A block crossing the frame edge leaves the residual with the border padding of the winning type,
+            // which the transform split model then reads. Reference: the final av1_subtract_txb() of
+            // search_tx_type().
+            Av1TransformBlockEncoder.PadBorderResidual(
+                this.blockWorkspace, plane, planeOrigin, residual, inputStride, width, transformSize.GetHeight(), selectedState.TransformType);
 
             // Callers retain the designated selected spans after this scratch workspace is reused by the
             // next plane or motion vector, so normalize only when the final best result occupies scratch.

@@ -497,6 +497,27 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
+        /// Blends a second prediction into a destination with 6-bit weights on the destination.
+        /// </summary>
+        /// <param name="destination">The destination, which is also the first prediction.</param>
+        /// <param name="destinationStride">The destination stride.</param>
+        /// <param name="second">The second prediction.</param>
+        /// <param name="secondStride">The second prediction stride.</param>
+        /// <param name="mask">The weights of the destination.</param>
+        /// <param name="maskStride">The mask stride, zero to repeat one row.</param>
+        /// <param name="width">The blended width.</param>
+        /// <param name="height">The blended height.</param>
+        public static abstract void BlendMask(
+            Span<TSample> destination,
+            int destinationStride,
+            ReadOnlySpan<TSample> second,
+            int secondStride,
+            ReadOnlySpan<byte> mask,
+            int maskStride,
+            int width,
+            int height);
+
+        /// <summary>
         /// Predicts one translational rectangle into a strided destination, without a residual.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
@@ -1294,6 +1315,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingY,
                 parameters,
                 scratch);
+
+        /// <inheritdoc/>
+        public static void BlendMask(
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> second,
+            int secondStride,
+            ReadOnlySpan<byte> mask,
+            int maskStride,
+            int width,
+            int height)
+            => Av1CompoundMaskBlendPredictor.Blend(destination, destinationStride, second, secondStride, mask, maskStride, width, height);
 
         /// <inheritdoc/>
         public static void PredictTranslationalInter(
@@ -2315,6 +2348,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 bitDepth.GetBitCount(),
                 parameters,
                 scratch);
+
+        /// <inheritdoc/>
+        public static void BlendMask(
+            Span<ushort> destination,
+            int destinationStride,
+            ReadOnlySpan<ushort> second,
+            int secondStride,
+            ReadOnlySpan<byte> mask,
+            int maskStride,
+            int width,
+            int height)
+            => Av1CompoundMaskBlendPredictor.Blend(destination, destinationStride, second, secondStride, mask, maskStride, width, height);
 
         /// <inheritdoc/>
         public static void PredictTranslationalInter(

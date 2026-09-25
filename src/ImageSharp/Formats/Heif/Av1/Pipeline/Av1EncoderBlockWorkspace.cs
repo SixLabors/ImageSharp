@@ -384,6 +384,16 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public int[] PickedReferenceFrameMasks { get; } = new int[32 * 32];
 
     /// <summary>
+    /// Gets the OBMC search target of the current block, one entry per luma sample. Reference: obmc_buffer.wsrc.
+    /// </summary>
+    public int[] ObmcWeightedSource { get; } = new int[128 * 128];
+
+    /// <summary>
+    /// Gets the OBMC prediction weights of the current block, one entry per luma sample. Reference: obmc_buffer.mask.
+    /// </summary>
+    public int[] ObmcMask { get; } = new int[128 * 128];
+
+    /// <summary>
     /// Gets the luma vertical, luma horizontal, U, and V deblocking levels retained from the preceding frame.
     /// </summary>
     /// <remarks>

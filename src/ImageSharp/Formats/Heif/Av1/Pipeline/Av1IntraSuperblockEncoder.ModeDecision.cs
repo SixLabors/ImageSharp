@@ -206,6 +206,13 @@ internal static partial class Av1IntraSuperblockEncoder
         private long bestInterLumaPredictionCost;
         private Av1GlobalMotionParameters warpedModel;
         private bool useWarpedPrediction;
+
+        // Set while the candidate predicts with OBMC, with the block and its neighbor availability.
+        private bool useObmcPrediction;
+        private Point obmcBlockOrigin;
+        private Av1BlockSize obmcBlockSize;
+        private bool obmcAboveAvailable;
+        private bool obmcLeftAvailable;
         private InlineArray10<Av1MotionModeWinner> motionModeWinners;
         private int motionModeWinnerCount;
         private int motionModeWinnerLimit;
@@ -3034,10 +3041,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PredictionMode.NewNewMotionVector or Av1PredictionMode.NearestNewMotionVector or
                     Av1PredictionMode.NewNearestMotionVector or Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector;
 
-                bool bypassWinner = winnerSettings.InterWinnerPruningLevel switch
+                // Reference: bypass_winner_mode_processing(), with the winner's skip flag and its all-empty result.
+                bool bypassWinner = winnerSettings.GetInterWinnerPruningLevel(this.picture.Parent.FrameUpdateType) switch
                 {
                     2 => !hasNewMotion && interStatistics.AllTransformsEmpty,
                     3 => !hasNewMotion && (interStatistics.AllTransformsEmpty || (this.quantization.QIndex[0] <= 127 && modeInfo.Block.Skip)),
+                    4 => !(winnerSettings.CoefficientOptimizationLevel >= 5 && this.quantization.QIndex[0] <= 70) &&
+                        (modeInfo.Block.Skip || interStatistics.AllTransformsEmpty),
                     _ => false
                 };
 
@@ -3063,6 +3073,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref interStatistics,
                         ref interStates);
                     this.useWarpedPrediction = false;
+                    this.useObmcPrediction = false;
                 }
 
                 interStatistics.AllTransformsEmpty = skippable;

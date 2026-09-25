@@ -410,6 +410,7 @@ internal readonly struct Av1EncoderSpeedSettings
         }
 
         coefficientLevel = realtime ? 0 : coefficientLevel;
+        this.CoefficientOptimizationLevel = coefficientLevel;
         this.DefaultCoefficientOptimizationThresholds = coefficientLevel switch
         {
             1 => (3200U, uint.MaxValue),
@@ -683,6 +684,15 @@ internal readonly struct Av1EncoderSpeedSettings
             : this.Speed >= HeifEncodingSpeed.Level5 && this.minimumDimension >= 480 ? 8 : 0;
 
     /// <summary>
+    /// Gets the frame probability below which a block size does not search OBMC: none before good-quality speed 2,
+    /// a small threshold at speeds 2 and 3, and every block from speed 4. Reference: prune_obmc_prob_thresh.
+    /// </summary>
+    public int ObmcProbabilityThreshold
+        => this.realtime || this.allIntra ? 0
+            : this.Speed >= HeifEncodingSpeed.Level4 ? int.MaxValue
+            : this.Speed >= HeifEncodingSpeed.Level2 ? this.minimumDimension >= 720 ? 16 : 8 : 0;
+
+    /// <summary>
     /// Gets the level that adapts the ALTREF lag to the average source SAD, or 0 for the fixed lag of 4 frames.
     /// Reference: sad_based_adp_altref_lag in set_rt_speed_feature_framesize_dependent(), speed 9 at 360p and
     /// larger, with a separate level from 720p.
@@ -949,6 +959,11 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets the selected-inter refinement pruning level.
     /// </summary>
     public int InterWinnerPruningLevel { get; }
+
+    /// <summary>
+    /// Gets the trellis optimization level. Reference: perform_coeff_opt.
+    /// </summary>
+    public int CoefficientOptimizationLevel { get; }
 
     /// <summary>Gets the interpolation-result reuse level.</summary>
     public int InterpolationReuseLevel { get; }
@@ -1385,6 +1400,24 @@ internal readonly struct Av1EncoderSpeedSettings
         }
 
         return this.Speed >= HeifEncodingSpeed.Level3 || !boosted ? 2 : 1;
+    }
+
+    /// <summary>
+    /// Gets which winners of the inter mode search skip the winner refinement. Real-time usage has its own levels;
+    /// good quality from speed 3 uses level four in a frame that is not boosted.
+    /// Reference: prune_winner_mode_eval_level.
+    /// </summary>
+    /// <param name="updateType">The frame update type.</param>
+    /// <returns>The pruning level, from zero for none to four.</returns>
+    public int GetInterWinnerPruningLevel(Av1FrameUpdateType updateType)
+    {
+        if (this.realtime || this.allIntra || this.intraFrame)
+        {
+            return this.InterWinnerPruningLevel;
+        }
+
+        bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+        return this.Speed >= HeifEncodingSpeed.Level3 && !boosted ? 4 : 0;
     }
 
     /// <summary>

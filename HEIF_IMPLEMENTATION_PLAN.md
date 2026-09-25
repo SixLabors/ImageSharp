@@ -1,6 +1,6 @@
 # AV1/AVIF remaining implementation plan
 
-Updated 2026-09-26. Milestone 1 is complete for still pictures. Milestone 2 (inter frames): real-time is done; GOOD lag-0 matches at speeds 4-6 without global motion.
+Updated 2026-09-26. Milestone 1 is complete for still pictures. Milestone 2 (inter frames): real-time is done; GOOD lag-0 matches at speeds 3-6 without global motion.
 Existing changes must be preserved. Do not create worktrees or reload Roslynk.
 
 ## Working rule
@@ -496,7 +496,7 @@ interval. The still-picture regression stays at 620/620.
     trellis gate, and `do_border_pad` (true-frame-size visible dimensions and `fill_residue_outside_frame` in the
     type search, the intra model cost, the CFL alpha estimate and the final encode).
   - [ ] Inter frames. Done: the lag-0 reference structure, the reference mode, skip mode, transform mode and
-    `fix_interp_filter` decisions, and much of the `rdopt` inter mode search. Speeds 4-6 are byte-identical
+    `fix_interp_filter` decisions, and much of the `rdopt` inter mode search. Speeds 3-6 are byte-identical
     on all six frames when both encoders run without global motion (aomenc `--enable-global-motion=0`; the port
     uses a scratch switch). The ports that got there include `enforce_max_ref_frames`, `check_skip_mode_enabled`,
     one-sided compound pruning, `init_mode_skip_mask` and `prune_single_ref`, `prune_ref_frame_for_rect_partitions`,
@@ -505,7 +505,12 @@ interval. The still-picture regression stays at 620/620.
     (only an encode writes it), the `rd_y` / `this_yrd` gate of intra search in inter frames, the one-pass
     `interp_filter_search_mask` (regular filter only), sub8x8 chroma prediction (`build_inter_predictors_sub8x8`),
     the visible-only curve-fit model, and the single-reference part of `prune_ref_by_selective_ref_frame`.
-    Remaining: speeds 0-3 (OBMC at s2-s3, the in-loop motion modes and inter-intra at s0-s2), and
+    Speed 3 added OBMC for the mode-loop winners (`prune_obmc_prob_thresh` with the frame-level OBMC
+    probabilities, the OBMC prediction, and the NEWMV OBMC search: `obmc_refining_search_sad` and
+    `av1_find_best_obmc_sub_pixel_tree_up`), `prune_winner_mode_eval_level` 4, and the border padding of the
+    winning type that `search_tx_type()` leaves for the transform split model.
+    Remaining: speeds 0-2 (OBMC inside the mode loop at s2, the in-loop motion modes and inter-intra at s0-s1,
+    the full-pel OBMC diamond search at s0), the SIMD form of the OBMC SAD and variance, and
     global motion (the estimator, and the writer that codes parameters against the primary reference).
   - [ ] The border padding of the inter paths (`rdopt` model cost and subtraction, the inter transform tree,
     skip mode distortion), and the predicted-skip context of the inter and chroma transform searches.

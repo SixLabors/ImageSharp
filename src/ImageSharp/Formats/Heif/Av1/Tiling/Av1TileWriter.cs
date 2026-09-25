@@ -753,6 +753,10 @@ internal partial class Av1TileWriter
             return 0;
         }
 
+        if (blockOrigin.X == 0 && blockOrigin.Y == 0 && partitionType == Av1PartitionType.None)
+        {
+        }
+
         if (hasRows && hasColumns)
         {
             return writer.GetPartitionTypeCost(partitionType, context);
@@ -1297,6 +1301,12 @@ internal partial class Av1TileWriter
                     if (TOperation.WritesOutput && lastAllowedMode == Av1MotionMode.Warped)
                     {
                         pcs.Parent.WarpedUsage[macroBlockModeInfo.Block.MotionMode == Av1MotionMode.Warped ? 1 : 0]++;
+                    }
+
+                    // Reference: the obmc_used count of encode_superblock().
+                    if (TOperation.WritesOutput && lastAllowedMode >= Av1MotionMode.Obmc)
+                    {
+                        pcs.Parent.ObmcUsage[((int)blockSize * 2) + (macroBlockModeInfo.Block.MotionMode == Av1MotionMode.Obmc ? 1 : 0)]++;
                     }
                 }
 

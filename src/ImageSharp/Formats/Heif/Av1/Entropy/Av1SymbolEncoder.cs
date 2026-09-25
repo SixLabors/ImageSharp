@@ -2921,8 +2921,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int compoundGroupContext,
         int compoundIndexContext,
         int wedgeIndex,
-        bool maskedCompoundEnabled,
-        bool jointCompoundEnabled)
+        bool maskedCompoundEnabled)
     {
         bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
         int rate = maskedCompoundEnabled
@@ -2930,9 +2929,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             : 0;
         if (!masked)
         {
-            return jointCompoundEnabled
-                ? rate + this.ModeCosts.GetCompoundIndex(compoundIndexContext, compoundType == Av1CompoundType.Average ? 1 : 0)
-                : rate;
+            // The average and distance-weighted types pay the compound index even in a sequence that does not code
+            // it. Reference: calc_masked_type_cost().
+            return rate + this.ModeCosts.GetCompoundIndex(compoundIndexContext, compoundType == Av1CompoundType.Average ? 1 : 0);
         }
 
         rate += this.ModeCosts.GetCompoundType(

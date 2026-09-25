@@ -172,6 +172,7 @@ internal readonly struct Av1EncoderSpeedSettings
         this.CompoundNeighborPruningLevel = allIntra || realtime ? 0 : speed >= HeifEncodingSpeed.Level6 ? 3 :
             speed >= HeifEncodingSpeed.Level4 ? 2 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0;
         this.PruneMixedCompoundBySingleWinner = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level1;
+        this.PruneCompoundUsingSingleReference = !allIntra && !realtime;
         this.CompoundReferenceIndexPruningLevel = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level6
             ? minimumDimension >= 720 ? 2 : 1 : 0;
 
@@ -990,6 +991,12 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets a value indicating whether mixed compound modes require a searched single-reference winner.
     /// </summary>
     public bool PruneMixedCompoundBySingleWinner { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether a compound pair is searched only when one of its references has a single
+    /// reference result within ten percent of the best. Reference: prune_compound_using_single_ref.
+    /// </summary>
+    public bool PruneCompoundUsingSingleReference { get; }
 
     /// <summary>
     /// Gets the motion-distance threshold tier for rejecting unsuccessful repeated compound candidates.

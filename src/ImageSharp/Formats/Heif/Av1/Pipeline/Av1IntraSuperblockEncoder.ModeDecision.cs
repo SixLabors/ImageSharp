@@ -198,6 +198,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private int lumaCandidateCount;
         private InlineArray16<long> interTransformNoSplitCosts;
         private bool estimateInterCandidates;
+        private bool lumaSearchFailed;
         private int interCandidateCount;
         private int compoundSearchRecordCount;
         private int interpolationSearchRecordCount;
@@ -839,7 +840,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool noneInvalid = true;
             bool splitInvalid = true;
             noneCost = 0;
-            long nonePartitionCost = 0;
+            long nonePartitionCost = long.MaxValue;
             InlineArray4<long> splitNoneCosts = default;
             InlineArray2<long> horizontalCosts = default;
             InlineArray2<long> verticalCosts = default;
@@ -971,8 +972,42 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
                 }
 
+                // An unsearched split stage still runs the pruning that follows it, with no split cost. Reference:
+                // prune_partitions_after_split() after a split_partition_search() that do_square_split skips.
+                if (partitionType == Av1PartitionType.Split &&
+                    (!allowMotionSplit || pruneSmallSplits || !this.IsPartitionCandidateAllowed(blockOrigin, blockSize, partitionType)))
+                {
+                    InlineArray4<long> unsearchedCosts = default;
+                    bool noneAndSplitInvalid = !this.mustFindValidPartition && ShouldTerminatePartitionSearchAfterNoneAndSplit(
+                        partitionSettings.TerminatePartitionSearchAfterInvalidNoneAndSplit,
+                        blockSize,
+                        this.picture.Sequence.SequenceHeader.SuperblockSize,
+                        noneInvalid,
+                        true);
+                    if (this.PrunePartitionsAfterSplit(
+                        blockOrigin,
+                        blockSize,
+                        nodeIndex,
+                        noneInvalid,
+                        bestStatistics.Cost,
+                        nonePartitionCost,
+                        noneCost,
+                        long.MaxValue,
+                        unsearchedCosts,
+                        noneAndSplitInvalid,
+                        ref allowRectangularSplit,
+                        ref pruneExtendedPartitions,
+                        ref pruneHorizontalRectangle,
+                        ref pruneVerticalRectangle,
+                        ref parentSourceVariance))
+                    {
+                        break;
+                    }
+
+                    continue;
+                }
+
                 if ((!allowMotionNone && partitionType == Av1PartitionType.None) ||
-                    (!allowMotionSplit && partitionType == Av1PartitionType.Split) ||
                     (squarePartitionsOnly && partitionType is not (Av1PartitionType.None or Av1PartitionType.Split)))
                 {
                     continue;
@@ -1338,7 +1373,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (partitionType == Av1PartitionType.None)
                 {
                     noneInvalid = stoppedAtLeaf == 0 || accumulatedCost == long.MaxValue;
-                    nonePartitionCost = accumulatedCost;
+
+                    // A failed unsplit search leaves no cost. Reference: the rate != INT_MAX test before part_none_rd
+                    // is set in none_partition_search().
+                    nonePartitionCost = noneInvalid ? long.MaxValue : accumulatedCost;
                     noneCost = noneInvalid
                         ? long.MaxValue
                         : this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.Statistics.Cost;
@@ -1414,27 +1452,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     terminateAfterNone = this.ShouldTerminateAfterMotionNone(macroBlock, blockOrigin, blockSize, nodeIndex, candidateStatistics);
                 }
 
-                if (partitionType == Av1PartitionType.Split && !noneInvalid &&
-                    blockSize >= Av1BlockSize.Block16x16 && this.picture.Parent.FrameUpdateType == Av1FrameUpdateType.Last)
-                {
-                    Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-                    Av1MacroBlockModeInfo noneModeInfo = this.blockWorkspace.PartitionTree
-                        .GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo;
-
-                    // A zero-residual square makes further shape refinement optional. The stronger
-                    // setting also excludes ordinary rectangles, but only for inherited motion at lower quantizers.
-                    pruneExtendedPartitions = !this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 1 && noneModeInfo.Block.Skip;
-                    if (!this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 2 && noneModeInfo.Block.Skip &&
-                        this.picture.Parent.FrameHeader.QuantizationParameters.QIndex[0] <= 200 &&
-                        noneModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
-                        noneModeInfo.Block.Mode is not (Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector or
-                            Av1PredictionMode.NearestNewMotionVector or Av1PredictionMode.NewNearestMotionVector or
-                            Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector))
-                    {
-                        allowRectangularSplit = false;
-                    }
-                }
-
                 if (partitionType == Av1PartitionType.Split &&
                     candidateStatistics.Cost >= bestStatistics.Cost &&
                     (this.picture.Parent.SpeedSettings.RectangularPartitionPruningLevel == 2 || stoppedAtLeaf <= 2) &&
@@ -1464,35 +1481,24 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedPartition = partitionType;
                 }
 
-                if (partitionType == Av1PartitionType.Split && !terminateAfterSplit && !this.mustFindValidPartition &&
-                    !frameHeader.IsIntra && partitionSettings.AfterSplitTerminationLevel != 0 && allowRectangularSplit &&
-                    (this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Horizontal) ||
-                     this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Vertical)))
+                if (partitionType == Av1PartitionType.Split)
                 {
-                    terminateAfterSplit = this.ShouldTerminateAfterSplit(
-                        blockOrigin, blockSize, nodeIndex, bestStatistics.Cost, nonePartitionCost, accumulatedCost, splitNoneCosts);
-                }
-
-                if (partitionType == Av1PartitionType.Split && !terminateAfterSplit &&
-                    !this.picture.Parent.FrameHeader.IsIntra && this.picture.Parent.SpeedSettings.EnableRectanglePartitionModel &&
-                    !pruneHorizontalRectangle && !pruneVerticalRectangle &&
-                    (this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Horizontal) ||
-                     this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Vertical)))
-                {
-                    if (parentSourceVariance < 0)
-                    {
-                        parentSourceVariance = this.GetSourceVariance(blockOrigin, blockSize);
-                    }
-
-                    this.PruneRectangularPartitions(
+                    terminateAfterSplit = this.PrunePartitionsAfterSplit(
                         blockOrigin,
                         blockSize,
+                        nodeIndex,
+                        noneInvalid,
                         bestStatistics.Cost,
+                        nonePartitionCost,
                         noneCost,
-                        parentSourceVariance,
+                        accumulatedCost,
                         splitNoneCosts,
-                        out pruneHorizontalRectangle,
-                        out pruneVerticalRectangle);
+                        terminateAfterSplit,
+                        ref allowRectangularSplit,
+                        ref pruneExtendedPartitions,
+                        ref pruneHorizontalRectangle,
+                        ref pruneVerticalRectangle,
+                        ref parentSourceVariance);
                 }
 
                 // A block above the maximum partition size never reconstructs its winning subtree
@@ -1697,6 +1703,98 @@ internal static partial class Av1IntraSuperblockEncoder
 
         private static int GetBlockArea(Av1BlockSize blockSize)
             => blockSize.GetWidth() * blockSize.GetHeight();
+
+        /// <summary>
+        /// Prunes the partitions that follow the split stage, whether or not that stage searched the split. A
+        /// skippable unsplit block without a new vector drops the rectangles, the after-split model can end the
+        /// search, and the rectangle model can drop either direction.
+        /// Reference: the skip_non_sq_part_based_on_none test and prune_partitions_after_split() in
+        /// av1_rd_pick_partition().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The partition tree node of the block.</param>
+        /// <param name="noneInvalid">Whether the unsplit candidate produced no cost.</param>
+        /// <param name="bestCost">The best cost of the block so far.</param>
+        /// <param name="nonePartitionCost">The unsplit cost with its partition syntax.</param>
+        /// <param name="noneCost">The unsplit cost of the block decisions.</param>
+        /// <param name="splitCost">The split cost, or the maximum when the split was not searched.</param>
+        /// <param name="splitCosts">The costs of the split children.</param>
+        /// <param name="terminated">Whether the search already ends after the split stage.</param>
+        /// <param name="allowRectangularSplit">Whether rectangles remain searchable.</param>
+        /// <param name="pruneExtendedPartitions">Whether the extended partitions are pruned.</param>
+        /// <param name="pruneHorizontalRectangle">Whether the horizontal rectangle is pruned.</param>
+        /// <param name="pruneVerticalRectangle">Whether the vertical rectangle is pruned.</param>
+        /// <param name="parentSourceVariance">The cached source variance of the block, or a negative value.</param>
+        /// <returns><see langword="true"/> when the partition search ends here.</returns>
+        private bool PrunePartitionsAfterSplit(
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            bool noneInvalid,
+            long bestCost,
+            long nonePartitionCost,
+            long noneCost,
+            long splitCost,
+            ReadOnlySpan<long> splitCosts,
+            bool terminated,
+            ref bool allowRectangularSplit,
+            ref bool pruneExtendedPartitions,
+            ref bool pruneHorizontalRectangle,
+            ref bool pruneVerticalRectangle,
+            ref int parentSourceVariance)
+        {
+            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+            ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
+            if (!noneInvalid && blockSize >= Av1BlockSize.Block16x16 && this.picture.Parent.FrameUpdateType == Av1FrameUpdateType.Last)
+            {
+                Av1MacroBlockModeInfo noneModeInfo = this.blockWorkspace.PartitionTree
+                    .GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo;
+
+                // A zero-residual square makes further shape refinement optional. The stronger
+                // setting also excludes ordinary rectangles, but only for inherited motion at lower quantizers.
+                pruneExtendedPartitions = !this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 1 && noneModeInfo.Block.Skip;
+                if (!this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 2 && noneModeInfo.Block.Skip &&
+                    frameHeader.QuantizationParameters.QIndex[0] <= 200 &&
+                    noneModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
+                    noneModeInfo.Block.Mode is not (Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector or
+                        Av1PredictionMode.NearestNewMotionVector or Av1PredictionMode.NewNearestMotionVector or
+                        Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector))
+                {
+                    allowRectangularSplit = false;
+                }
+            }
+
+            bool rectangleAllowed = this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Horizontal) ||
+                this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Vertical);
+            if (!terminated && !this.mustFindValidPartition && !frameHeader.IsIntra && settings.AfterSplitTerminationLevel != 0 &&
+                allowRectangularSplit && rectangleAllowed)
+            {
+                terminated = this.ShouldTerminateAfterSplit(
+                    blockOrigin, blockSize, nodeIndex, bestCost, nonePartitionCost, splitCost, splitCosts);
+            }
+
+            if (!terminated && !frameHeader.IsIntra && settings.EnableRectanglePartitionModel &&
+                !pruneHorizontalRectangle && !pruneVerticalRectangle && rectangleAllowed)
+            {
+                if (parentSourceVariance < 0)
+                {
+                    parentSourceVariance = this.GetSourceVariance(blockOrigin, blockSize);
+                }
+
+                this.PruneRectangularPartitions(
+                    blockOrigin,
+                    blockSize,
+                    bestCost,
+                    noneCost,
+                    parentSourceVariance,
+                    splitCosts,
+                    out pruneHorizontalRectangle,
+                    out pruneVerticalRectangle);
+            }
+
+            return terminated;
+        }
 
         /// <summary>
         /// Gets whether a selected mode kept no coefficient in any plane during mode evaluation. This is not the
@@ -2081,6 +2179,19 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!childRectangleWins.IsEmpty)
                 {
                     childRectangleWins[leafIndex] = childWins;
+                }
+
+                // A 4x4 split child is an unsplit search of its own, which records the reference it picked for the
+                // rectangles of its parent. Reference: the av1_update_picked_ref_frames_mask() call that
+                // none_partition_search() makes for a result within its budget.
+                if (searchChildren && partitionType == Av1PartitionType.Split && blockSize <= Av1BlockSize.Block8x8 &&
+                    childStatistics.Cost < remainingCost.Cost && !this.picture.Parent.FrameHeader.IsIntra &&
+                    this.picture.Parent.SpeedSettings.GetRectangularPartitionReferencePruning(this.picture.Parent.FrameUpdateType) != 0)
+                {
+                    this.UpdatePickedReferenceFrames(
+                        leafOrigin,
+                        leafSize,
+                        in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex).Snapshot.ModeInfo.Block);
                 }
 
                 if (!childCosts.IsEmpty)
@@ -3290,7 +3401,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     byte availableReferences = this.picture.Parent.AvailableReferenceMask;
                     if ((availableReferences & (1 << (int)skipModeParameters.FirstReferenceFrame)) != 0 &&
-                        (availableReferences & (1 << (int)skipModeParameters.SecondReferenceFrame)) != 0)
+                        (availableReferences & (1 << (int)skipModeParameters.SecondReferenceFrame)) != 0 &&
+                        this.HasSkipModeReferenceLists(skipModeParameters.FirstReferenceFrame, skipModeParameters.SecondReferenceFrame))
                     {
                         this.SelectSkipModeBlock(
                             writer,
@@ -3305,7 +3417,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             ref interStates);
                     }
 
-                    this.SelectedBlockStatistics = selectedStatistics;
+                    // Skip mode replaces a result that nothing else produced, but a skip mode at or above the block
+                    // budget still leaves the block without one. Reference: the best_rd >= best_rd_so_far return at
+                    // the end of av1_rd_pick_inter_mode(), after rd_pick_skip_mode() sets best_rd.
+                    this.SelectedBlockStatistics = modeInfo.Block.SkipMode && selectedStatistics.Cost >= this.blockCostLimit
+                        ? Av1RateDistortionStatistics.Invalid
+                        : selectedStatistics;
                 }
 
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra)
@@ -5184,7 +5301,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
+                    // An inter frame prunes directional modes only for a block that can code an angle delta; an intra
+                    // frame prunes them for every block. Reference: the av1_use_angle_delta() test before
+                    // prune_intra_mode_with_hog() in av1_handle_intra_y_mode(), against av1_rd_pick_intra_sby_mode().
                     if (mode is >= Av1PredictionMode.Vertical and <= Av1PredictionMode.Directional67Degrees &&
+                        (intraFrame || blockSize >= Av1BlockSize.Block8x8) &&
                         (directionalMask & (1 << ((int)mode - (int)Av1PredictionMode.Vertical))) != 0)
                     {
                         continue;

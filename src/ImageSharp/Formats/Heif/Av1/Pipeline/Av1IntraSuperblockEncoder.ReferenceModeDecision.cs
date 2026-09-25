@@ -3932,13 +3932,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedVector = candidatePrimary;
                 selectedSecondaryVector = candidateSecondary;
                 candidateLumaStates[..].CopyTo(selectedStates);
+
+                // Setting the block transform size resets every transform size, so the searched tree is copied after it.
+                modeInfo.Block.TransformSize = frameHeader.CodedLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
                 candidateLumaSizes[..].CopyTo(modeInfo.Block.InterTransformSizes);
                 candidateBlueState[..].CopyTo(selectedStates[64..80]);
                 candidateRedState[..].CopyTo(selectedStates[80..96]);
                 modeInfo.Block.ReferenceFrame = primaryReference;
                 modeInfo.Block.SecondaryReferenceFrame = secondaryReference;
                 modeInfo.Block.Mode = modes[candidateIndex];
-                modeInfo.Block.TransformSize = frameHeader.CodedLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
                 modeInfo.Block.Skip = candidateSkip;
                 modeInfo.Block.CompoundGroupIndex = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
                 modeInfo.Block.CompoundIndex = compoundType == Av1CompoundType.Average;

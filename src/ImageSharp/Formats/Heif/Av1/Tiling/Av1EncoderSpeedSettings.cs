@@ -570,6 +570,15 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool EnableDualFilter { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the sequence enables inter-intra compound prediction. The sequence clears the
+    /// flag when disable_interintra_wedge_var_thresh is UINT_MAX: in real-time usage, and in good-quality usage from
+    /// speed 3, or at speed 2 below 480p. Reference: av1_set_speed_features_framesize_dependent().
+    /// </summary>
+    public bool EnableInterIntraCompound => this.allIntra ||
+        (!this.realtime && (this.Speed < HeifEncodingSpeed.Level2 ||
+        (this.Speed == HeifEncodingSpeed.Level2 && this.minimumDimension >= 480)));
+
+    /// <summary>
     /// Gets a value indicating whether loop restoration remains enabled for the sequence.
     /// </summary>
     public bool EnableRestoration { get; }

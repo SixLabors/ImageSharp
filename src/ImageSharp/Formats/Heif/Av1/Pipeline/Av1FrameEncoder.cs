@@ -389,6 +389,7 @@ internal static class Av1FrameEncoder
             EnableDualFilter = speedSettings.EnableDualFilter,
             EnableIntraEdgeFilter = true,
             EnableMaskedCompound = !isStillPicture,
+            EnableInterIntraCompound = !isStillPicture && speedSettings.EnableInterIntraCompound,
 
             // A sequence enables temporal motion vectors and warped motion, and the frame header decides whether
             // each frame uses them. Distance-weighted compound follows the speed features. Reference: the

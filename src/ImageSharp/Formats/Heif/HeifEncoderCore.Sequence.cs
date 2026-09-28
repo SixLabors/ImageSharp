@@ -227,6 +227,10 @@ internal sealed partial class HeifEncoderCore
         int alphaQuality = this.encoder.AlphaQuality ?? quality;
         int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality);
         bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
+
+        // libavif turns loop restoration off for 12-bit images, where the encoder can overflow. Reference: the
+        // AV1E_SET_ENABLE_RESTORATION control of aomCodecEncodeImage().
+        bool enableRestoration = av1BitDepth != Av1BitDepth.TwelveBit;
         return new Av1EncodingSettings(
             bitDepth,
             chromaSubsampling,
@@ -235,7 +239,9 @@ internal sealed partial class HeifEncoderCore
             alphaConfig,
             colorQIndex,
             alphaQIndex,
-            hasAlpha);
+            hasAlpha,
+            Av1EncoderOptions.Create(this.encoder.Speed, enableRestoration: enableRestoration),
+            Av1EncoderOptions.Create(this.encoder.Speed, enableRestoration: enableRestoration));
     }
 
     private HeifSequenceEncoding CompressAv1Sequence<TPixel>(
@@ -275,7 +281,7 @@ internal sealed partial class HeifEncoderCore
             image.Height,
             settings.ColorConfig,
             settings.ColorQIndex,
-            speed: this.encoder.Speed))
+            options: settings.ColorOptions))
         {
             cancellationToken.ThrowIfCancellationRequested();
             long colorOffset = stream.Length;
@@ -332,7 +338,7 @@ internal sealed partial class HeifEncoderCore
                 image.Height,
                 settings.AlphaConfig,
                 settings.AlphaQIndex,
-                speed: this.encoder.Speed))
+                options: settings.AlphaOptions))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 long alphaOffset = stream.Length;
@@ -1194,7 +1200,9 @@ internal sealed partial class HeifEncoderCore
             ObuColorConfig alphaConfig,
             int colorQIndex,
             int alphaQIndex,
-            bool hasAlpha)
+            bool hasAlpha,
+            Av1EncoderOptions colorOptions,
+            Av1EncoderOptions alphaOptions)
         {
             this.BitDepth = bitDepth;
             this.ChromaSubsampling = chromaSubsampling;
@@ -1204,6 +1212,8 @@ internal sealed partial class HeifEncoderCore
             this.ColorQIndex = colorQIndex;
             this.AlphaQIndex = alphaQIndex;
             this.HasAlpha = hasAlpha;
+            this.ColorOptions = colorOptions;
+            this.AlphaOptions = alphaOptions;
         }
 
         public HeifBitDepth BitDepth { get; }
@@ -1221,6 +1231,10 @@ internal sealed partial class HeifEncoderCore
         public int AlphaQIndex { get; }
 
         public bool HasAlpha { get; }
+
+        public Av1EncoderOptions ColorOptions { get; }
+
+        public Av1EncoderOptions AlphaOptions { get; }
     }
 
     private readonly struct HeifSequenceSampleInfo

@@ -1102,7 +1102,7 @@ internal sealed partial class HeifEncoderCore
                     stream,
                     settings.ColorConfig,
                     settings.ColorQIndex,
-                    this.encoder.Speed);
+                    settings.ColorOptions);
 
                 long colorLength = stream.Length - colorOffset;
                 HeifItem colorCell = new(Heif4CharCode.Av01, (uint)items.Count + 1)
@@ -1177,7 +1177,7 @@ internal sealed partial class HeifEncoderCore
                         stream,
                         settings.AlphaConfig,
                         settings.AlphaQIndex,
-                        this.encoder.Speed);
+                        settings.AlphaOptions);
 
                     long alphaLength = stream.Length - alphaOffset;
                     HeifItem alphaCell = new(Heif4CharCode.Av01, (uint)items.Count + 1)
@@ -1296,7 +1296,7 @@ internal sealed partial class HeifEncoderCore
             stream,
             settings.ColorConfig,
             settings.ColorQIndex,
-            this.encoder.Speed);
+            settings.ColorOptions);
 
         long colorLength = stream.Length - colorOffset;
         Av1CodecConfiguration? alphaConfiguration = null;
@@ -1313,7 +1313,7 @@ internal sealed partial class HeifEncoderCore
                 stream,
                 settings.AlphaConfig,
                 settings.AlphaQIndex,
-                this.encoder.Speed);
+                settings.AlphaOptions);
 
             alphaLength = stream.Length - alphaOffset;
             alphaConfiguration = new Av1CodecConfiguration(alphaHeader);

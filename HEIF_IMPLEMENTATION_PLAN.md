@@ -46,6 +46,28 @@ and transfer with the BT.601 matrix, and the automatic format of `avifReadImage(
 sampling layout as `YCbCrRatio420`, where libavif falls back to 4:4:4. The parity harness builds `ObuColorConfig`
 directly, so these container and color defaults are checked only by `EncodeWithoutOptionsUsesAvifencDefaults`.
 
+## libavif configuration parity, found 2026-09-28 — next milestone
+
+The parity harness compares AV1 payloads with aomenc at aomenc's defaults (tune=psnr) and builds `ObuColorConfig`
+directly, so it does not check what libavif configures. Port the codec_aom.c configuration for the default
+libavif path, then add aomenc reference cases with the same options (`--tune=iq`, `--enable-restoration=0`, ...).
+
+1. Configuration layer: an encoder configuration equivalent to the used part of libaom's `av1_extracfg`, filled by
+   `HeifEncoderCore` with the libavif rules, and read by the features below instead of speed-only derivations.
+2. Tune selection (codec_aom.c aomCodecEncodeImage): lossless no tune; alpha tune=psnr; a lossy color still in
+   all-intra usage with a non-identity matrix tune=iq (libaom >= 3.13); other lossy color (sequences without
+   layers, identity matrix) tune=ssim.
+3. Quality to quantizer: `tuneIqQualityToQuantizer` under tune=iq, `((100 - q) * 63 + 50) / 100` otherwise.
+4. tune=iq settings (av1_cx_iface.c handle_tuning): enable_qm with QM_FIRST_IQ_SSIMULACRA2..QM_LAST_IQ_SSIMULACRA2
+   and `aom_get_qmlevel_allintra()` / `aom_get_qmlevel_444_chroma()`, sharpness 7, AOM_DIST_METRIC_QM_PSNR,
+   CDEF_ADAPTIVE (CDEF is now off for every still), enable_chroma_deltaq, DELTA_Q_VARIANCE_BOOST (64x64
+   superblocks, per-superblock delta q syntax), AOM_SCREEN_DETECTION_ANTIALIASING_AWARE, enable_adaptive_sharpness.
+5. tune=iq branches in the encoder: av1_quantize.c (896, 996), rd.c (406), rdopt.c (674, 713),
+   speed_features.c (1091, 1528, 2238, 2905), partition_search.c (632), picklpf.c (231), encoder.c (4313),
+   encodeframe_utils.c (52), txb_rdopt.c (449).
+6. tune=ssim for color sequences (libaom av1_set_mb_ssim_rdmult_scaling and its uses).
+7. 12-bit: libavif disables loop restoration (AV1E_SET_ENABLE_RESTORATION 0); the port keeps the speed default.
+
 ## SIMD operator-pattern gaps, found 2026-09-28
 
 A read-only audit found these kernels outside the operator pattern. Each one gets an operator and a traversal,

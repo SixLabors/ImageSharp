@@ -118,7 +118,7 @@ internal static class Av1FrameEncoder
     /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
     /// <param name="colorConfig">The resolved native color and precision configuration.</param>
     /// <param name="qIndex">The frame quantizer index.</param>
-    /// <param name="speed">The encoding speed used to select frame and block search policies.</param>
+    /// <param name="speed">The cpu-used tier; the encoding uses the libaom default tune.</param>
     /// <returns>The sequence header describing the encoded payload.</returns>
     public static ObuSequenceHeader Encode<TPixel>(
         Configuration configuration,
@@ -127,6 +127,27 @@ internal static class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Encode(configuration, image, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+
+    /// <summary>
+    /// Encodes one reduced-still-picture AV1 frame into a low-overhead OBU stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved native color and precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoding options used to select frame and block search policies.</param>
+    /// <returns>The sequence header describing the encoded payload.</returns>
+    public static ObuSequenceHeader Encode<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
@@ -138,7 +159,7 @@ internal static class Av1FrameEncoder
             stream,
             colorConfig,
             qIndex,
-            speed,
+            options,
             FrameEncodingKind.StillColor);
     }
 
@@ -153,7 +174,7 @@ internal static class Av1FrameEncoder
     /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
     /// <param name="colorConfig">The resolved native color and precision configuration.</param>
     /// <param name="qIndex">The frame quantizer index.</param>
-    /// <param name="speed">The encoding speed used to select frame and block search policies.</param>
+    /// <param name="speed">The cpu-used tier; the encoding uses the libaom default tune.</param>
     /// <returns>The sequence header describing the encoded payload.</returns>
     public static ObuSequenceHeader EncodeGridCell<TPixel>(
         Configuration configuration,
@@ -165,6 +186,31 @@ internal static class Av1FrameEncoder
         int qIndex,
         HeifEncodingSpeed speed)
         where TPixel : unmanaged, IPixel<TPixel>
+        => EncodeGridCell(configuration, image, sourceRectangle, cellSize, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+
+    /// <summary>
+    /// Encodes one grid cell as a reduced-still-picture AV1 frame in a low-overhead OBU stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded cell.</param>
+    /// <param name="cellSize">The encoded cell dimensions, including any required edge padding.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved native color and precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoding options used to select frame and block search policies.</param>
+    /// <returns>The sequence header describing the encoded payload.</returns>
+    public static ObuSequenceHeader EncodeGridCell<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Rectangle sourceRectangle,
+        Size cellSize,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options)
+        where TPixel : unmanaged, IPixel<TPixel>
         => Encode(
             configuration,
             image,
@@ -173,7 +219,7 @@ internal static class Av1FrameEncoder
             stream,
             colorConfig,
             qIndex,
-            speed,
+            options,
             FrameEncodingKind.StillColor);
 
     /// <summary>
@@ -185,7 +231,7 @@ internal static class Av1FrameEncoder
     /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
     /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
     /// <param name="qIndex">The frame quantizer index.</param>
-    /// <param name="speed">The encoding speed used to select frame and block search policies.</param>
+    /// <param name="speed">The cpu-used tier; the encoding uses the libaom default tune.</param>
     /// <returns>The sequence header describing the encoded payload.</returns>
     public static ObuSequenceHeader EncodeAlpha<TPixel>(
         Configuration configuration,
@@ -194,6 +240,27 @@ internal static class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => EncodeAlpha(configuration, image, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+
+    /// <summary>
+    /// Encodes one packed alpha channel as a reduced-still-picture monochrome AV1 frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoding options used to select frame and block search policies.</param>
+    /// <returns>The sequence header describing the encoded payload.</returns>
+    public static ObuSequenceHeader EncodeAlpha<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
@@ -205,7 +272,7 @@ internal static class Av1FrameEncoder
             stream,
             colorConfig,
             qIndex,
-            speed,
+            options,
             FrameEncodingKind.StillAlpha);
     }
 
@@ -220,7 +287,7 @@ internal static class Av1FrameEncoder
     /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
     /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
     /// <param name="qIndex">The frame quantizer index.</param>
-    /// <param name="speed">The encoding speed used to select frame and block search policies.</param>
+    /// <param name="speed">The cpu-used tier; the encoding uses the libaom default tune.</param>
     /// <returns>The sequence header describing the encoded payload.</returns>
     public static ObuSequenceHeader EncodeAlphaGridCell<TPixel>(
         Configuration configuration,
@@ -232,6 +299,31 @@ internal static class Av1FrameEncoder
         int qIndex,
         HeifEncodingSpeed speed)
         where TPixel : unmanaged, IPixel<TPixel>
+        => EncodeAlphaGridCell(configuration, image, sourceRectangle, cellSize, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+
+    /// <summary>
+    /// Encodes one packed alpha grid cell as a reduced-still-picture monochrome AV1 frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded cell.</param>
+    /// <param name="cellSize">The encoded cell dimensions, including any required edge padding.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoding options used to select frame and block search policies.</param>
+    /// <returns>The sequence header describing the encoded payload.</returns>
+    public static ObuSequenceHeader EncodeAlphaGridCell<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Rectangle sourceRectangle,
+        Size cellSize,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options)
+        where TPixel : unmanaged, IPixel<TPixel>
         => Encode(
             configuration,
             image,
@@ -240,7 +332,7 @@ internal static class Av1FrameEncoder
             stream,
             colorConfig,
             qIndex,
-            speed,
+            options,
             FrameEncodingKind.StillAlpha);
 
     /// <summary>
@@ -253,7 +345,19 @@ internal static class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
-        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, speed, false);
+        => CreateColorSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+
+    /// <summary>
+    /// Creates an encoder that retains reconstructed color frames for prediction by later samples in the sequence.
+    /// </summary>
+    public static SequenceEncoder CreateColorSequenceEncoder(
+        Configuration configuration,
+        int width,
+        int height,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options)
+        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, options, false);
 
     /// <summary>
     /// Creates an encoder that retains reconstructed alpha frames for prediction by later samples in the sequence.
@@ -265,7 +369,19 @@ internal static class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
-        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, speed, true);
+        => CreateAlphaSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+
+    /// <summary>
+    /// Creates an encoder that retains reconstructed alpha frames for prediction by later samples in the sequence.
+    /// </summary>
+    public static SequenceEncoder CreateAlphaSequenceEncoder(
+        Configuration configuration,
+        int width,
+        int height,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options)
+        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, options, true);
 
     private static ObuSequenceHeader Encode<TPixel>(
         Configuration configuration,
@@ -275,7 +391,7 @@ internal static class Av1FrameEncoder
         Stream stream,
         ObuColorConfig colorConfig,
         int qIndex,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         FrameEncodingKind encodingKind)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -287,13 +403,13 @@ internal static class Av1FrameEncoder
             width,
             height,
             colorConfig,
-            speed,
+            options,
             true);
 
         ObuFrameHeader frameHeader = CreateFrameHeader(
             sequenceHeader,
             qIndex,
-            speed,
+            options,
             ObuFrameType.KeyFrame);
 
         int tileBufferLength = GetTileBufferLength(width, height, colorConfig);
@@ -309,7 +425,7 @@ internal static class Av1FrameEncoder
                 frameHeader,
                 colorFormat,
                 tileBufferLength,
-                speed,
+                options,
                 encodeAlpha);
         }
         else
@@ -324,7 +440,7 @@ internal static class Av1FrameEncoder
                 frameHeader,
                 colorFormat,
                 tileBufferLength,
-                speed,
+                options,
                 encodeAlpha);
         }
 
@@ -337,26 +453,26 @@ internal static class Av1FrameEncoder
         int height,
         ObuColorConfig colorConfig,
         int qIndex,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         bool encodeAlpha)
     {
         if (colorConfig.BitDepth == Av1BitDepth.EightBit)
         {
-            return new ByteSequenceEncoder(configuration, width, height, colorConfig, qIndex, speed, encodeAlpha);
+            return new ByteSequenceEncoder(configuration, width, height, colorConfig, qIndex, options, encodeAlpha);
         }
 
-        return new HighBitDepthSequenceEncoder(configuration, width, height, colorConfig, qIndex, speed, encodeAlpha);
+        return new HighBitDepthSequenceEncoder(configuration, width, height, colorConfig, qIndex, options, encodeAlpha);
     }
 
     private static ObuSequenceHeader CreateSequenceHeader(
         int width,
         int height,
         ObuColorConfig colorConfig,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         bool isStillPicture)
     {
         Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
-        Av1EncoderSpeedSettings speedSettings = new(speed, isStillPicture, intraFrame: true, qIndex: 0, new Size(width, height));
+        Av1EncoderSpeedSettings speedSettings = new(options.Speed, isStillPicture, intraFrame: true, qIndex: 0, new Size(width, height));
         ObuSequenceProfile sequenceProfile = colorConfig.BitDepth == Av1BitDepth.TwelveBit ||
             colorFormat == Av1ColorFormat.Yuv422
                 ? ObuSequenceProfile.Professional
@@ -364,14 +480,14 @@ internal static class Av1FrameEncoder
                     ? ObuSequenceProfile.High
                     : ObuSequenceProfile.Main;
 
-        // Superblock geometry follows coding speed and resolution. Reference: av1_select_sb_size(). Real-time
-        // coding uses 128x128 only above 720p. Otherwise small frames use 64x64 above speed zero, and the fastest
+        // Superblock geometry follows coding options and resolution. Reference: av1_select_sb_size(). Real-time
+        // coding uses 128x128 only above 720p. Otherwise small frames use 64x64 above options zero, and the fastest
         // still-image mode also uses it below 4K.
         int minimumDimension = Math.Min(width, height);
         bool use128x128Superblock = speedSettings.IsRealtime
             ? minimumDimension > 720
-            : !(speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
-                !(isStillPicture && speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160);
+            : !(options.Speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
+                !(isStillPicture && options.Speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160);
 
         return new ObuSequenceHeader
         {
@@ -393,9 +509,9 @@ internal static class Av1FrameEncoder
             EnableInterIntraCompound = !isStillPicture && speedSettings.EnableInterIntraCompound,
 
             // A sequence enables temporal motion vectors and warped motion, and the frame header decides whether
-            // each frame uses them. Distance-weighted compound follows the speed features. Reference: the
+            // each frame uses them. Distance-weighted compound follows the options features. Reference: the
             // order_hint_info and tool flags that init_seq_coding_tools() sets, with
-            // DEFAULT_EXPLICIT_ORDER_HINT_BITS, and the speed-feature adjustments that follow them.
+            // DEFAULT_EXPLICIT_ORDER_HINT_BITS, and the options-feature adjustments that follow them.
             EnableWarpedMotion = !isStillPicture,
             OrderHintInfo = new ObuOrderHintInfo
             {
@@ -409,7 +525,7 @@ internal static class Av1FrameEncoder
             // The reference disables CDEF by default in all-intra mode because it blurs images.
             // Every other mode keeps it enabled.
             EnableCdef = !isStillPicture,
-            EnableRestoration = speedSettings.EnableRestoration,
+            EnableRestoration = speedSettings.EnableRestoration && options.EnableRestoration,
             ColorConfig = colorConfig
         };
     }
@@ -513,7 +629,7 @@ internal static class Av1FrameEncoder
     private static ObuFrameHeader CreateFrameHeader(
         ObuSequenceHeader sequenceHeader,
         int qIndex,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         ObuFrameType frameType)
     {
         int width = sequenceHeader.MaxFrameWidth;
@@ -541,7 +657,7 @@ internal static class Av1FrameEncoder
             }
         };
 
-        ConfigureFrameHeader(frameHeader, qIndex, speed, frameType);
+        ConfigureFrameHeader(frameHeader, qIndex, options, frameType);
         return frameHeader;
     }
 
@@ -551,7 +667,7 @@ internal static class Av1FrameEncoder
     private static void ConfigureFrameHeader(
         ObuFrameHeader frameHeader,
         int qIndex,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         ObuFrameType frameType)
     {
         frameHeader.FrameType = frameType;
@@ -581,7 +697,7 @@ internal static class Av1FrameEncoder
             // Disabling screen-content tools makes force_integer_mv implicitly false, so inter vectors
             // use fractional-motion syntax at the precision selected for the frame quantizer.
             Av1EncoderSpeedSettings speedSettings = new(
-                speed,
+                options.Speed,
                 allIntra: false,
                 intraFrame: false,
                 qIndex,
@@ -673,7 +789,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
         int tileBufferLength,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -722,7 +838,7 @@ internal static class Av1FrameEncoder
             reconstruction.Frame,
             sequenceHeader,
             frameHeader,
-            speed,
+            options,
             encodeAlpha);
 
         using Av1EncoderBlockWorkspace blockWorkspace = new(
@@ -732,10 +848,10 @@ internal static class Av1FrameEncoder
             sequenceHeader.SuperblockSize);
 
         Av1EncoderSpeedSettings speedSettings = new(
-            speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
+            options.Speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
 
         Av1MotionSearchSettings motionSettings = new(
-            speed,
+            options.Speed,
             sequenceHeader.IsStillPicture,
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
@@ -753,7 +869,7 @@ internal static class Av1FrameEncoder
             disallow4x4AllFrames: !frameHeader.CodedLossless && speedSettings.MinimumPartitionSize >= Av1BlockSize.Block8x8);
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
-        picture.Picture.Parent.EncodingSpeed = speed;
+        picture.Picture.Parent.EncodingSpeed = options.Speed;
         picture.Picture.Parent.SpeedSettings = speedSettings;
         Encode(
             obuWriter,
@@ -781,7 +897,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
         int tileBufferLength,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -831,7 +947,7 @@ internal static class Av1FrameEncoder
             reconstruction.Frame,
             sequenceHeader,
             frameHeader,
-            speed,
+            options,
             encodeAlpha);
 
         using Av1EncoderBlockWorkspace blockWorkspace = new(
@@ -841,10 +957,10 @@ internal static class Av1FrameEncoder
             sequenceHeader.SuperblockSize);
 
         Av1EncoderSpeedSettings speedSettings = new(
-            speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
+            options.Speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
 
         Av1MotionSearchSettings motionSettings = new(
-            speed,
+            options.Speed,
             sequenceHeader.IsStillPicture,
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
@@ -862,7 +978,7 @@ internal static class Av1FrameEncoder
             disallow4x4AllFrames: !frameHeader.CodedLossless && speedSettings.MinimumPartitionSize >= Av1BlockSize.Block8x8);
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
-        picture.Picture.Parent.EncodingSpeed = speed;
+        picture.Picture.Parent.EncodingSpeed = options.Speed;
         picture.Picture.Parent.SpeedSettings = speedSettings;
         Encode(
             obuWriter,
@@ -891,7 +1007,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<byte> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -909,7 +1025,7 @@ internal static class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            speed);
+            options);
     }
 
     /// <summary>
@@ -923,7 +1039,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<byte> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         Av1EncoderConversionWorkspace conversionWorkspace)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -940,7 +1056,7 @@ internal static class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            speed);
+            options);
     }
 
     /// <summary>
@@ -952,7 +1068,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<byte> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        HeifEncodingSpeed speed)
+        Av1EncoderOptions options)
     {
         // Real-time usage never searches global motion. Reference: the g_usage test that clears
         // tool_cfg->enable_global_motion in av1_cx_iface.
@@ -962,17 +1078,17 @@ internal static class Av1FrameEncoder
             reference,
             frameHeader,
             sequenceHeader.ColorConfig.BitDepth,
-            sequenceHeader.IsStillPicture || speed < HeifEncodingSpeed.Level7);
+            sequenceHeader.IsStillPicture || options.Speed < HeifEncodingSpeed.Level7);
 
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
-            speed,
+            options.Speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
         Av1MotionSearchSettings motionSettings = new(
-            speed,
+            options.Speed,
             sequenceHeader.IsStillPicture,
             new Size(source.Width, source.Height),
             frameHeader.QuantizationParameters.BaseQIndex,
@@ -1001,7 +1117,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<ushort> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -1019,7 +1135,7 @@ internal static class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            speed);
+            options);
     }
 
     /// <summary>
@@ -1033,7 +1149,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<ushort> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        HeifEncodingSpeed speed,
+        Av1EncoderOptions options,
         Av1EncoderConversionWorkspace conversionWorkspace)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -1050,7 +1166,7 @@ internal static class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            speed);
+            options);
     }
 
     /// <summary>
@@ -1062,7 +1178,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<ushort> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        HeifEncodingSpeed speed)
+        Av1EncoderOptions options)
     {
         // Real-time usage never searches global motion. Reference: the g_usage test that clears
         // tool_cfg->enable_global_motion in av1_cx_iface.
@@ -1072,17 +1188,17 @@ internal static class Av1FrameEncoder
             reference,
             frameHeader,
             sequenceHeader.ColorConfig.BitDepth,
-            sequenceHeader.IsStillPicture || speed < HeifEncodingSpeed.Level7);
+            sequenceHeader.IsStillPicture || options.Speed < HeifEncodingSpeed.Level7);
 
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
-            speed,
+            options.Speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
         Av1MotionSearchSettings motionSettings = new(
-            speed,
+            options.Speed,
             sequenceHeader.IsStillPicture,
             new Size(source.Width, source.Height),
             frameHeader.QuantizationParameters.BaseQIndex,
@@ -1800,20 +1916,20 @@ internal static class Av1FrameEncoder
             int height,
             ObuColorConfig colorConfig,
             int qIndex,
-            HeifEncodingSpeed speed,
+            Av1EncoderOptions options,
             bool encodeAlpha,
             bool usesHighBitDepth)
         {
             this.Configuration = configuration;
-            this.SequenceHeader = CreateSequenceHeader(width, height, colorConfig, speed, false);
+            this.SequenceHeader = CreateSequenceHeader(width, height, colorConfig, options, false);
             this.QIndex = qIndex;
-            this.Speed = speed;
+            this.Options = options;
             this.TileBufferLength = GetTileBufferLength(width, height, colorConfig);
             this.EncodeAlpha = encodeAlpha;
             this.FrameHeader = CreateFrameHeader(
                 this.SequenceHeader,
                 qIndex,
-                speed,
+                options,
                 ObuFrameType.KeyFrame);
 
             this.ConversionWorkspace = new Av1EncoderConversionWorkspace(
@@ -1829,7 +1945,7 @@ internal static class Av1FrameEncoder
                 // optional state once for the fixed-geometry sequence so any classified frame can use legal tools.
                 bool allocateScreenContentState = true;
                 Av1MotionSearchSettings motionSettings = new(
-                    speed,
+                    options.Speed,
                     this.SequenceHeader.IsStillPicture,
                     new Size(width, height),
                     qIndex,
@@ -1843,7 +1959,7 @@ internal static class Av1FrameEncoder
                 // Sequence geometry and maximum tool capacity are fixed before the first sample. Reusing this owner
                 // avoids renting the complete mode grid and optional screen-content index for every frame.
                 Av1EncoderSpeedSettings speedSettings = new(
-                    speed, this.SequenceHeader.IsStillPicture, this.FrameHeader.IsIntra, qIndex, new Size(width, height));
+                    options.Speed, this.SequenceHeader.IsStillPicture, this.FrameHeader.IsIntra, qIndex, new Size(width, height));
 
                 this.PictureBuffer = new Av1EncoderPictureBuffer(
                     configuration,
@@ -1863,7 +1979,7 @@ internal static class Av1FrameEncoder
                     width,
                     height);
 
-                this.PictureBuffer.Picture.Parent.EncodingSpeed = speed;
+                this.PictureBuffer.Picture.Parent.EncodingSpeed = options.Speed;
                 this.PictureBuffer.Picture.Parent.SpeedSettings = speedSettings;
                 this.PictureBuffer.Picture.Parent.ReferenceRefreshControl = this;
 
@@ -1895,7 +2011,7 @@ internal static class Av1FrameEncoder
                     qIndex,
                     updateCdf: true);
 
-                this.SymbolEncoder.EncodingSpeed = speed;
+                this.SymbolEncoder.EncodingSpeed = options.Speed;
 
                 this.ObuWriter = new ObuWriter(configuration);
             }
@@ -1923,9 +2039,9 @@ internal static class Av1FrameEncoder
         protected int QIndex { get; }
 
         /// <summary>
-        /// Gets the encoding speed retained for every frame in this track.
+        /// Gets the encoding options retained for every frame in this track.
         /// </summary>
-        protected HeifEncodingSpeed Speed { get; }
+        protected Av1EncoderOptions Options { get; }
 
         protected int TileBufferLength { get; }
 
@@ -1983,7 +2099,7 @@ internal static class Av1FrameEncoder
 
         protected void ConfigureFrameHeader(ObuFrameType frameType)
         {
-            Av1FrameEncoder.ConfigureFrameHeader(this.FrameHeader, this.QIndex, this.Speed, frameType);
+            Av1FrameEncoder.ConfigureFrameHeader(this.FrameHeader, this.QIndex, this.Options, frameType);
 
             // A sequence keeps backward adaptation, so every frame stores its final probabilities for later frames.
             // Reference: the REFRESH_FRAME_CONTEXT_BACKWARD default of refresh_frame_context, which the frame
@@ -2012,7 +2128,7 @@ internal static class Av1FrameEncoder
         /// source analysis of the frame. Real-time usage follows the one-layer real-time structure, and good-quality
         /// usage the low-delay pyramid of <see cref="Av1GoodQualityReferenceStructure"/>.
         /// </summary>
-        /// <param name="parent">The frame state with the source analysis and speed settings of the frame.</param>
+        /// <param name="parent">The frame state with the source analysis and options settings of the frame.</param>
         /// <param name="averageSourceSad">The running average source SAD. Reference: rc->avg_source_sad.</param>
         protected void ConfigureReferenceStructure(Av1PictureParentControlSet parent, ulong averageSourceSad)
         {
@@ -2080,7 +2196,7 @@ internal static class Av1FrameEncoder
         /// av1_set_rtc_reference_structure_one_layer() with gf_update = (gf_frame_index == 0), then
         /// choose_primary_ref_frame().
         /// </summary>
-        /// <param name="parent">The frame state with the source analysis and speed settings of the frame.</param>
+        /// <param name="parent">The frame state with the source analysis and options settings of the frame.</param>
         /// <param name="averageSourceSad">The running average source SAD. Reference: rc->avg_source_sad.</param>
         private void ConfigureRealtimeReferenceStructure(Av1PictureParentControlSet parent, ulong averageSourceSad)
         {
@@ -2187,13 +2303,13 @@ internal static class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Removes references in a fixed order until the frame uses no more references than its speed allows.
+        /// Removes references in a fixed order until the frame uses no more references than its options allows.
         /// Reference: enforce_max_ref_frames(), get_max_allowed_ref_frames(), and get_num_refs_to_disable().
         /// </summary>
         /// <param name="sequenceHeader">The sequence header with the order hint parameters.</param>
         /// <param name="frameHeader">The frame header with the reference order hints.</param>
         /// <param name="flags">The available references, one bit per reference type.</param>
-        /// <param name="speedSettings">The speed settings of the frame.</param>
+        /// <param name="speedSettings">The options settings of the frame.</param>
         /// <returns>The available references that remain, one bit per reference type.</returns>
         protected static byte EnforceMaximumReferenceFrames(
             ObuSequenceHeader sequenceHeader,
@@ -2261,7 +2377,7 @@ internal static class Av1FrameEncoder
         /// LAST, GOLDEN, and ALTREF flags that av1_set_rtc_reference_structure_one_layer() enables.
         /// </summary>
         /// <param name="bufferIds">The buffer identity of each reference type, indexed by reference type.</param>
-        /// <param name="speedSettings">The speed settings of the frame.</param>
+        /// <param name="speedSettings">The options settings of the frame.</param>
         /// <returns>The available references, one bit per reference type.</returns>
         protected static byte GetReferenceFrameFlags(ReadOnlySpan<int> bufferIds, in Av1EncoderSpeedSettings speedSettings)
         {
@@ -2551,7 +2667,7 @@ internal static class Av1FrameEncoder
             int height,
             ObuColorConfig colorConfig,
             int qIndex,
-            HeifEncodingSpeed speed,
+            Av1EncoderOptions options,
             bool encodeAlpha)
             : base(
                 configuration,
@@ -2559,7 +2675,7 @@ internal static class Av1FrameEncoder
                 height,
                 colorConfig,
                 qIndex,
-                speed,
+                options,
                 encodeAlpha,
                 usesHighBitDepth: false)
         {
@@ -2580,7 +2696,7 @@ internal static class Av1FrameEncoder
                     CenteredChromaSamplePosition,
                     lumaBorder);
 
-                if (speed >= HeifEncodingSpeed.Level7)
+                if (options.Speed >= HeifEncodingSpeed.Level7)
                 {
                     this.sourceBlockSad = configuration.MemoryAllocator.Allocate<ulong>(((width + 63) >> 6) * ((height + 63) >> 6));
 
@@ -2648,7 +2764,7 @@ internal static class Av1FrameEncoder
                 (last ?? current).Buffer.Frame,
                 this.SequenceHeader,
                 frameHeader,
-                this.Speed,
+                this.Options,
                 this.ConversionWorkspace);
 
             this.PictureBuffer.Reset(frameHeader);
@@ -2679,7 +2795,7 @@ internal static class Av1FrameEncoder
             parent.FramesSinceGolden = this.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
             parent.SpeedSettings = new(
-                this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+                this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
@@ -2778,7 +2894,7 @@ internal static class Av1FrameEncoder
             int height,
             ObuColorConfig colorConfig,
             int qIndex,
-            HeifEncodingSpeed speed,
+            Av1EncoderOptions options,
             bool encodeAlpha)
             : base(
                 configuration,
@@ -2786,7 +2902,7 @@ internal static class Av1FrameEncoder
                 height,
                 colorConfig,
                 qIndex,
-                speed,
+                options,
                 encodeAlpha,
                 usesHighBitDepth: true)
         {
@@ -2808,7 +2924,7 @@ internal static class Av1FrameEncoder
                     CenteredChromaSamplePosition,
                     lumaBorder);
 
-                if (speed >= HeifEncodingSpeed.Level7)
+                if (options.Speed >= HeifEncodingSpeed.Level7)
                 {
                     this.sourceBlockSad = configuration.MemoryAllocator.Allocate<ulong>(((width + 63) >> 6) * ((height + 63) >> 6));
                     this.previousSource = new(
@@ -2873,14 +2989,14 @@ internal static class Av1FrameEncoder
                 (last ?? current).Buffer.Frame,
                 this.SequenceHeader,
                 frameHeader,
-                this.Speed,
+                this.Options,
                 this.ConversionWorkspace);
 
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
             parent.IsScreenContent = isScreenContent;
             parent.SpeedSettings = new(
-                this.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+                this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().

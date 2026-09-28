@@ -46,14 +46,13 @@ and a `FeatureTestRunner` test against the scalar libaom definition. Hottest fir
 - Compound and inter-intra mask search: the mask inversion of `RefineCompoundVectors`, and the per-candidate
   mask builders `Av1WedgeMask.Fill` and `Av1InterIntraMaskBuilder.FillInterIntraMask` (libaom reads precomputed
   masks through `av1_get_contiguous_soft_mask`). The wedge measures use `Av1WedgeSearch`.
-- Transform search: the sub-block statistics of the transform split model and the energy grid and correlations
-  of `PruneInterTransformTypes`. (The residual square sums, `aom_satd` and the skip prediction scan use
-  `Av1ResidualBuilder.ResidualSquaresOperator` and `Av1CoefficientMeasures`.)
+- Transform search: the energy grid of `PruneInterTransformTypes` (`get_energy_distribution_finer`, scalar C in
+  libaom). The residual square sums, `aom_satd`, `aom_get_blk_sse_sum`, `av1_get_horver_correlation_full` and the
+  skip prediction scan use `Av1ResidualBuilder.ResidualSquaresOperator` and `Av1CoefficientMeasures`.
 - Intra estimation: the scaling and SSE of `Av1IntraModeEstimator.Estimate`, the scalar Hadamard of
   `GetHadamardCost`, `TransformForModeEstimation`, and the Vector128-only `HadamardEstimationColumns`.
 - `Av1MotionSearchBase.Projection.cs` (`aom_int_pro_row`, `aom_int_pro_col`, `aom_vector_var`).
-- `GetDirectionalModeSkipMask` (Sobel and gradient histogram), the scalar copy of `GetSourceVariance` in
-  `ChromaModeDecision`, the chroma-from-luma alpha search sums, the palette k-means `Accumulate` members (they sum
+- `GetDirectionalModeSkipMask` (Sobel and gradient histogram), the palette k-means `Accumulate` members (they sum
   lanes through scratch) and `CalculateCentroids`, and `CopyPaletteSamples`.
 - Per superblock: the Vector128-only `FilterTemporalSource` and `ConvolveIntraPartition`, and
   `FillResidueOutsideFrame`.

@@ -1354,6 +1354,15 @@ internal static partial class Av1IntraSuperblockEncoder
             => speed < HeifEncodingSpeed.Level4 ||
                 (LumaDerivedChromaModeMasks[(int)lumaMode] & (1 << (int)chromaMode)) != 0;
 
+        /// <summary>
+        /// Returns the per-sample variance of a chroma source block around the mid-gray level.
+        /// </summary>
+        /// <param name="source">The chroma source plane.</param>
+        /// <param name="origin">The block origin in chroma samples.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="bitDepth">The coded sample precision.</param>
+        /// <returns>The rounded per-sample variance.</returns>
         private static int GetSourceVariance(
             Buffer2DRegion<TSample> source,
             Point origin,
@@ -1361,37 +1370,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             Av1BitDepth bitDepth)
         {
-            int shift = bitDepth.GetBitCount() - 8;
-            int midpoint = 128 << shift;
-
-            // Source ownership includes replicated edge padding. Candidates at the image boundary
-            // still cover their full block, so preserve the physical stride beyond the visible region.
-            ReadOnlySpan<TSample> sourceSamples = Av1TransformBlockEncoder.GetPlaneSpan(source, origin);
-            long sum = 0;
-            long sumOfSquares = 0;
-            for (int row = 0; row < height; row++)
-            {
-                ReadOnlySpan<TSample> sourceRow = sourceSamples.Slice(row * source.Stride, width);
-                for (int column = 0; column < width; column++)
-                {
-                    int sample = TOperator.GetSampleValue(sourceRow[column]) - midpoint;
-                    sum += sample;
-                    sumOfSquares += sample * sample;
-                }
-            }
-
-            // Round the accumulated difference and squared difference independently. Rounding each
-            // source sample first changes the variance and can incorrectly prune a chroma candidate.
-            if (shift != 0)
-            {
-                sum = (sum + (1L << (shift - 1))) >> shift;
-                int squaredShift = shift * 2;
-                sumOfSquares = (sumOfSquares + (1L << (squaredShift - 1))) >> squaredShift;
-            }
-
-            int sampleCount = width * height;
-            long variance = Math.Max(0, sumOfSquares - ((sum * sum) / sampleCount));
-            return (int)((variance + (sampleCount >> 1)) / sampleCount);
+            Span<TSample> midpoint = stackalloc TSample[width];
+            return GetPerPixelVariance(source, origin, width, height, bitDepth, midpoint);
         }
 
         private long GetTiledPlaneCost(

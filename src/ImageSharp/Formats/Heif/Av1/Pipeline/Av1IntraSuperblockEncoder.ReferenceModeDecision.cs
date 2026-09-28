@@ -2133,19 +2133,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     for (int x = 0; x < width; x += subWidth)
                     {
-                        int subSum = 0;
-                        long subSquaredSum = 0;
-                        for (int sampleY = 0; sampleY < subHeight; sampleY++)
-                        {
-                            ReadOnlySpan<short> samples = workspace.Residual.Slice(((y + sampleY) * width) + x, subWidth);
-                            for (int sampleX = 0; sampleX < samples.Length; sampleX++)
-                            {
-                                int sample = samples[sampleX];
-                                subSum += sample;
-                                subSquaredSum += sample * sample;
-                            }
-                        }
-
+                        // Reference: the aom_get_blk_sse_sum() call of get_blk_var_dev().
+                        long subSquaredSum = Av1ResidualBuilder.SumAndSumSquares(
+                            workspace.Residual[((y * width) + x)..], width, subWidth, subHeight, out long blockSum);
+                        int subSum = (int)blockSum;
                         sum += subSum;
                         squaredSum += subSquaredSum;
                         float mean = (float)subSum / subArea;

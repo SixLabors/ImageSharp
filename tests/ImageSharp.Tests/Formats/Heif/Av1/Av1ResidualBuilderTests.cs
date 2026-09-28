@@ -368,6 +368,13 @@ public class Av1ResidualBuilderTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSumSquares, ResidualConfigurations);
 
     /// <summary>
+    /// Verifies the neighbor correlation against av1_get_horver_correlation_full_c().
+    /// </summary>
+    [Fact]
+    public void HorizontalVerticalCorrelationMatchesReferenceAcrossHardwareWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateCorrelation, ResidualConfigurations);
+
+    /// <summary>
     /// Verifies the equal-weight and masked compound SAD and moments against the scalar libaom definitions.
     /// </summary>
     [Fact]
@@ -616,6 +623,18 @@ public class Av1ResidualBuilderTests
                 }
 
                 Assert.Equal(expectedRectangle, Av1ResidualBuilder.SumSquares(plane, stride, width, height));
+
+                long expectedRectangleSum = 0;
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        expectedRectangleSum += plane[(y * stride) + x];
+                    }
+                }
+
+                Assert.Equal(expectedRectangle, Av1ResidualBuilder.SumAndSumSquares(plane, stride, width, height, out long rectangleSum));
+                Assert.Equal(expectedRectangleSum, rectangleSum);
             }
         }
     }
@@ -922,5 +941,115 @@ public class Av1ResidualBuilderTests
         }
 
         return bytes;
+    }
+
+    private static void ValidateCorrelation()
+    {
+        Random random = new(0xC022);
+        foreach (int width in new[] { 4, 8, 16, 32, 64 })
+        {
+            foreach (int height in new[] { 4, 8, 16, 32, 64 })
+            {
+                foreach (int pattern in new[] { 0, 1, 2 })
+                {
+                    int stride = width + 3;
+                    short[] residual = new short[stride * height];
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            // Random noise, a smooth ramp with noise, and a constant block.
+                            residual[(y * stride) + x] = pattern switch
+                            {
+                                0 => (short)random.Next(-4095, 4096),
+                                1 => (short)((x * 37) - (y * 11) + random.Next(-8, 9)),
+                                _ => 17,
+                            };
+                        }
+                    }
+
+                    CorrelationReference(residual, stride, width, height, out float expectedHorizontal, out float expectedVertical);
+                    Av1ResidualBuilder.GetHorizontalVerticalCorrelation(residual, stride, width, height, out float horizontal, out float vertical);
+                    Assert.Equal(expectedHorizontal, horizontal);
+                    Assert.Equal(expectedVertical, vertical);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The scalar definition of av1_get_horver_correlation_full_c().
+    /// </summary>
+    private static void CorrelationReference(short[] diff, int stride, int width, int height, out float horizontal, out float vertical)
+    {
+        long sum = 0;
+        long squares = 0;
+        long leftProducts = 0;
+        long topProducts = 0;
+        long firstRow = 0;
+        long finalRow = 0;
+        long firstColumn = 0;
+        long finalColumn = 0;
+        long firstRowSquares = 0;
+        long finalRowSquares = 0;
+        long firstColumnSquares = 0;
+        long finalColumnSquares = 0;
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                long x = diff[(i * stride) + j];
+                sum += x;
+                squares += x * x;
+                if (j > 0)
+                {
+                    leftProducts += x * diff[(i * stride) + j - 1];
+                }
+
+                if (i > 0)
+                {
+                    topProducts += x * diff[((i - 1) * stride) + j];
+                }
+
+                if (i == 0)
+                {
+                    firstRow += x;
+                    firstRowSquares += x * x;
+                }
+
+                if (i == height - 1)
+                {
+                    finalRow += x;
+                    finalRowSquares += x * x;
+                }
+
+                if (j == 0)
+                {
+                    firstColumn += x;
+                    firstColumnSquares += x * x;
+                }
+
+                if (j == width - 1)
+                {
+                    finalColumn += x;
+                    finalColumnSquares += x * x;
+                }
+            }
+        }
+
+        long horizontalSum = sum - finalColumn;
+        long verticalSum = sum - finalRow;
+        long leftSum = sum - firstColumn;
+        long topSum = sum - firstRow;
+        float horizontalCount = height * (width - 1);
+        float verticalCount = (height - 1) * width;
+        float horizontalVariance = (squares - finalColumnSquares) - ((horizontalSum * horizontalSum) / horizontalCount);
+        float verticalVariance = (squares - finalRowSquares) - ((verticalSum * verticalSum) / verticalCount);
+        float leftVariance = (squares - firstColumnSquares) - ((leftSum * leftSum) / horizontalCount);
+        float topVariance = (squares - firstRowSquares) - ((topSum * topSum) / verticalCount);
+        float leftCovariance = leftProducts - ((horizontalSum * leftSum) / horizontalCount);
+        float topCovariance = topProducts - ((verticalSum * topSum) / verticalCount);
+        horizontal = horizontalVariance > 0 && leftVariance > 0 ? Math.Max(0, leftCovariance / MathF.Sqrt(horizontalVariance * leftVariance)) : 1;
+        vertical = verticalVariance > 0 && topVariance > 0 ? Math.Max(0, topCovariance / MathF.Sqrt(verticalVariance * topVariance)) : 1;
     }
 }

@@ -756,50 +756,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
         }
 
-        // Correlation uses adjacent residual pairs. Integer sums avoid cancellation until
-        // the covariance calculation; a constant signal supplies correlation one.
-        for (int axis = 0; axis < 2; axis++)
-        {
-            int pairWidth = axis == 0 ? width - 1 : width;
-            int pairHeight = axis == 0 ? height : height - 1;
-            int neighborOffset = axis == 0 ? 1 : stride;
-            long firstSum = 0;
-            long secondSum = 0;
-            long firstSquaredSum = 0;
-            long secondSquaredSum = 0;
-            long productSum = 0;
-            for (int y = 0; y < pairHeight; y++)
-            {
-                for (int x = 0; x < pairWidth; x++)
-                {
-                    int offset = (y * stride) + x;
-                    int first = residual[offset];
-                    int second = residual[offset + neighborOffset];
-                    firstSum += first;
-                    secondSum += second;
-                    firstSquaredSum += first * first;
-                    secondSquaredSum += second * second;
-                    productSum += first * second;
-                }
-            }
-
-            float count = pairWidth * pairHeight;
-            float firstVariance = firstSquaredSum - ((firstSum * firstSum) / count);
-            float secondVariance = secondSquaredSum - ((secondSum * secondSum) / count);
-            float covariance = productSum - ((firstSum * secondSum) / count);
-            float correlation = firstVariance > 0 && secondVariance > 0
-                ? MathF.Max(0, covariance / MathF.Sqrt(firstVariance * secondVariance))
-                : 1;
-
-            if (axis == 0)
-            {
-                horizontalFeatures[energyWidth - 1] = correlation;
-            }
-            else
-            {
-                verticalFeatures[energyHeight - 1] = correlation;
-            }
-        }
+        // The last feature of each axis is the correlation of adjacent residuals; a constant signal gives one.
+        Av1ResidualBuilder.GetHorizontalVerticalCorrelation(
+            residual, stride, width, height, out horizontalFeatures[energyWidth - 1], out verticalFeatures[energyHeight - 1]);
 
         InlineArray4<float> horizontalScores = default;
         InlineArray4<float> verticalScores = default;

@@ -775,7 +775,20 @@ internal static partial class Av1ResidualBuilder
     /// <param name="sum">The exact sum of the samples.</param>
     /// <returns>The exact sum of squared samples.</returns>
     public static long SumAndSumSquares(ReadOnlySpan<short> residual, out long sum)
-        => SumAndSumSquares<ResidualSquaresOperator>(residual, out sum);
+        => SumAndSumSquares<ResidualSquaresOperator>(residual, residual.Length, residual.Length, 1, out sum);
+
+    /// <summary>
+    /// Sums a rectangle of a signed residual plane and the squares of its samples. Reference:
+    /// aom_get_blk_sse_sum.
+    /// </summary>
+    /// <param name="residual">The residual samples at the rectangle origin.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="width">The rectangle width.</param>
+    /// <param name="height">The rectangle height.</param>
+    /// <param name="sum">The exact sum of the samples.</param>
+    /// <returns>The exact sum of squared samples.</returns>
+    public static long SumAndSumSquares(ReadOnlySpan<short> residual, int stride, int width, int height, out long sum)
+        => SumAndSumSquares<ResidualSquaresOperator>(residual, stride, width, height, out sum);
 
     /// <summary>
     /// Traverses the square sum of a residual rectangle at descending register widths.
@@ -833,13 +846,12 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Traverses the sum and the square sum of a contiguous residual block at descending register widths.
+    /// Traverses the sum and the square sum of a residual rectangle at descending register widths.
     /// </summary>
-    private static long SumAndSumSquares<TOperator>(ReadOnlySpan<short> residual, out long sum)
+    private static long SumAndSumSquares<TOperator>(ReadOnlySpan<short> residual, int stride, int width, int height, out long sum)
         where TOperator : struct, IResidualSquaresOperator
     {
-        ref short residualBase = ref MemoryMarshal.GetReference(residual);
-        int length = residual.Length;
+        ref short residualBase = ref MemoryMarshal.GetReference(residual[..(height == 0 ? 0 : ((height - 1) * stride) + width)]);
 
         // Both totals accumulate in 64-bit lanes and reduce once at the end, for the reason the
         // square sum gives: a reduction belongs outside the loop, and a 32-bit lane is too narrow
@@ -852,43 +864,46 @@ internal static partial class Av1ResidualBuilder
         Vector128<long> sum128 = Vector128<long>.Zero;
         long sumOfSquares = 0;
         long total = 0;
-        int offset = 0;
-
-        if (Vector512.IsHardwareAccelerated)
+        for (int y = 0; y < height; y++)
         {
-            for (; offset <= length - Vector512<short>.Count; offset += Vector512<short>.Count)
+            ref short rowBase = ref Unsafe.Add(ref residualBase, y * stride);
+            int x = 0;
+            if (Vector512.IsHardwareAccelerated)
             {
-                Vector512<short> values = Vector512.LoadUnsafe(ref residualBase, (nuint)offset);
-                sum512 = TOperator.AccumulateSum(values, sum512);
-                squares512 = TOperator.AccumulateSquares(values, squares512);
+                for (; x <= width - Vector512<short>.Count; x += Vector512<short>.Count)
+                {
+                    Vector512<short> values = Vector512.LoadUnsafe(ref rowBase, (nuint)x);
+                    sum512 = TOperator.AccumulateSum(values, sum512);
+                    squares512 = TOperator.AccumulateSquares(values, squares512);
+                }
             }
-        }
 
-        if (Vector256.IsHardwareAccelerated)
-        {
-            for (; offset <= length - Vector256<short>.Count; offset += Vector256<short>.Count)
+            if (Vector256.IsHardwareAccelerated)
             {
-                Vector256<short> values = Vector256.LoadUnsafe(ref residualBase, (nuint)offset);
-                sum256 = TOperator.AccumulateSum(values, sum256);
-                squares256 = TOperator.AccumulateSquares(values, squares256);
+                for (; x <= width - Vector256<short>.Count; x += Vector256<short>.Count)
+                {
+                    Vector256<short> values = Vector256.LoadUnsafe(ref rowBase, (nuint)x);
+                    sum256 = TOperator.AccumulateSum(values, sum256);
+                    squares256 = TOperator.AccumulateSquares(values, squares256);
+                }
             }
-        }
 
-        if (Vector128.IsHardwareAccelerated)
-        {
-            for (; offset <= length - Vector128<short>.Count; offset += Vector128<short>.Count)
+            if (Vector128.IsHardwareAccelerated)
             {
-                Vector128<short> values = Vector128.LoadUnsafe(ref residualBase, (nuint)offset);
-                sum128 = TOperator.AccumulateSum(values, sum128);
-                squares128 = TOperator.AccumulateSquares(values, squares128);
+                for (; x <= width - Vector128<short>.Count; x += Vector128<short>.Count)
+                {
+                    Vector128<short> values = Vector128.LoadUnsafe(ref rowBase, (nuint)x);
+                    sum128 = TOperator.AccumulateSum(values, sum128);
+                    squares128 = TOperator.AccumulateSquares(values, squares128);
+                }
             }
-        }
 
-        for (; offset < length; offset++)
-        {
-            short value = Unsafe.Add(ref residualBase, offset);
-            total = TOperator.AccumulateSum(value, total);
-            sumOfSquares = TOperator.AccumulateSquares(value, sumOfSquares);
+            for (; x < width; x++)
+            {
+                short value = Unsafe.Add(ref rowBase, x);
+                total = TOperator.AccumulateSum(value, total);
+                sumOfSquares = TOperator.AccumulateSquares(value, sumOfSquares);
+            }
         }
 
         sum256 += sum512.GetLower() + sum512.GetUpper();

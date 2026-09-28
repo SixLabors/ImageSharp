@@ -33,13 +33,38 @@ internal static partial class Av1IntraSuperblockEncoder
         private int GetSourceVariance(Point blockOrigin, Av1BlockSize blockSize)
         {
             int width = blockSize.GetWidth();
-            int height = blockSize.GetHeight();
-            Buffer2DRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
             Span<TSample> midpoint = this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0)[..width];
-            int sampleShift = this.bitDepth.GetBitCount() - 8;
+            return GetPerPixelVariance(this.source.GetPlane(Av1Plane.Y), blockOrigin, width, blockSize.GetHeight(), this.bitDepth, midpoint);
+        }
+
+        /// <summary>
+        /// Returns the per-sample variance of a source block around the mid-gray level. Reference:
+        /// av1_get_perpixel_variance(), which measures the source against a flat mid-gray block with the
+        /// variance function of the block size.
+        /// </summary>
+        /// <param name="source">The source plane.</param>
+        /// <param name="origin">The block origin in plane samples.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="bitDepth">The coded sample precision.</param>
+        /// <param name="midpoint">Scratch for one row of mid-gray samples, at least <paramref name="width"/> long.</param>
+        /// <returns>The rounded per-sample variance.</returns>
+        private static int GetPerPixelVariance(
+            Buffer2DRegion<TSample> source,
+            Point origin,
+            int width,
+            int height,
+            Av1BitDepth bitDepth,
+            Span<TSample> midpoint)
+        {
+            // Source ownership includes replicated edge padding. A block at the image boundary still
+            // covers its full size, so the physical stride holds beyond the visible region. A zero
+            // prediction stride repeats the one mid-gray row for every source row.
+            int sampleShift = bitDepth.GetBitCount() - 8;
+            midpoint = midpoint[..width];
             midpoint.Fill(TOperator.CreateSample(128 << sampleShift));
             TOperator.GetMoments(
-                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(source, origin),
                 source.Stride,
                 midpoint,
                 0,

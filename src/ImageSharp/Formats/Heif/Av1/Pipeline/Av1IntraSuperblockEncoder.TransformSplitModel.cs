@@ -804,19 +804,8 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             for (int x = 0; x < width; x += subWidth)
             {
-                int subSum = 0;
-                long subSquaredSum = 0;
-                for (int sampleY = 0; sampleY < subHeight; sampleY++)
-                {
-                    ReadOnlySpan<short> samples = residual.Slice(((y + sampleY) * width) + x, subWidth);
-                    for (int sampleX = 0; sampleX < samples.Length; sampleX++)
-                    {
-                        int sample = samples[sampleX];
-                        subSum += sample;
-                        subSquaredSum += sample * sample;
-                    }
-                }
-
+                long subSquaredSum = Av1ResidualBuilder.SumAndSumSquares(residual[((y * width) + x)..], width, subWidth, subHeight, out long blockSum);
+                int subSum = (int)blockSum;
                 sum += subSum;
                 squaredSum += subSquaredSum;
                 float mean = (float)subSum / subArea;

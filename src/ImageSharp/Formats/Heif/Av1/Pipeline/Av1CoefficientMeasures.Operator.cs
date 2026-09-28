@@ -84,6 +84,45 @@ internal static partial class Av1CoefficientMeasures
         /// <param name="maximum">The running maximum.</param>
         /// <returns>The updated maximum.</returns>
         public static abstract int AccumulateMaximumAbsolute(int value, int maximum);
+
+        /// <summary>
+        /// Keeps, in each lane, the largest one-based scan position of a nonzero coefficient over four coefficients.
+        /// </summary>
+        /// <param name="values">The raster-order quantized coefficients.</param>
+        /// <param name="inverseScan">The first scan position of the whole block.</param>
+        /// <param name="offset">The raster offset of <paramref name="values"/>.</param>
+        /// <param name="maximum">The running lane maxima.</param>
+        /// <returns>The updated lane maxima.</returns>
+        public static abstract Vector128<int> AccumulateEndOfBlock(Vector128<int> values, ref short inverseScan, nuint offset, Vector128<int> maximum);
+
+        /// <summary>
+        /// Keeps, in each lane, the largest one-based scan position of a nonzero coefficient over eight coefficients.
+        /// </summary>
+        /// <param name="values">The raster-order quantized coefficients.</param>
+        /// <param name="inverseScan">The first scan position of the whole block.</param>
+        /// <param name="offset">The raster offset of <paramref name="values"/>.</param>
+        /// <param name="maximum">The running lane maxima.</param>
+        /// <returns>The updated lane maxima.</returns>
+        public static abstract Vector256<int> AccumulateEndOfBlock(Vector256<int> values, ref short inverseScan, nuint offset, Vector256<int> maximum);
+
+        /// <summary>
+        /// Keeps, in each lane, the largest one-based scan position of a nonzero coefficient over sixteen coefficients.
+        /// </summary>
+        /// <param name="values">The raster-order quantized coefficients.</param>
+        /// <param name="inverseScan">The first scan position of the whole block.</param>
+        /// <param name="offset">The raster offset of <paramref name="values"/>.</param>
+        /// <param name="maximum">The running lane maxima.</param>
+        /// <returns>The updated lane maxima.</returns>
+        public static abstract Vector512<int> AccumulateEndOfBlock(Vector512<int> values, ref short inverseScan, nuint offset, Vector512<int> maximum);
+
+        /// <summary>
+        /// Keeps the larger of a running end position and the one-based scan position of a nonzero coefficient.
+        /// </summary>
+        /// <param name="value">The quantized coefficient.</param>
+        /// <param name="position">Its zero-based scan position.</param>
+        /// <param name="maximum">The running end position.</param>
+        /// <returns>The updated end position.</returns>
+        public static abstract int AccumulateEndOfBlock(int value, short position, int maximum);
     }
 
     /// <summary>
@@ -138,5 +177,35 @@ internal static partial class Av1CoefficientMeasures
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int AccumulateMaximumAbsolute(int value, int maximum) => Math.Max(Math.Abs(value), maximum);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<int> AccumulateEndOfBlock(Vector128<int> values, ref short inverseScan, nuint offset, Vector128<int> maximum)
+        {
+            // A zero coefficient masks its position to zero, which never raises the maximum.
+            Vector128<int> positions = Vector128.WidenLower(Vector64.LoadUnsafe(ref inverseScan, offset).ToVector128()) + Vector128<int>.One;
+            return Vector128.Max(maximum, positions & ~Vector128.Equals(values, Vector128<int>.Zero));
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<int> AccumulateEndOfBlock(Vector256<int> values, ref short inverseScan, nuint offset, Vector256<int> maximum)
+        {
+            Vector256<int> positions = Vector256.WidenLower(Vector128.LoadUnsafe(ref inverseScan, offset).ToVector256Unsafe()) + Vector256<int>.One;
+            return Vector256.Max(maximum, positions & ~Vector256.Equals(values, Vector256<int>.Zero));
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> AccumulateEndOfBlock(Vector512<int> values, ref short inverseScan, nuint offset, Vector512<int> maximum)
+        {
+            Vector512<int> positions = Vector512.WidenLower(Vector256.LoadUnsafe(ref inverseScan, offset).ToVector512Unsafe()) + Vector512<int>.One;
+            return Vector512.Max(maximum, positions & ~Vector512.Equals(values, Vector512<int>.Zero));
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int AccumulateEndOfBlock(int value, short position, int maximum)
+            => value != 0 ? Math.Max(maximum, position + 1) : maximum;
     }
 }

@@ -276,41 +276,7 @@ internal static partial class Av1ForwardQuantizer
     /// <param name="inverseScan">The scan position of each raster-order coefficient.</param>
     /// <returns>The one-based end position in coefficient scan order, or zero for an empty block.</returns>
     public static ushort GetEndOfBlock(ReadOnlySpan<int> quantized, ReadOnlySpan<short> inverseScan)
-    {
-        ref int quantizedBase = ref MemoryMarshal.GetReference(quantized);
-        ref short inverseScanBase = ref MemoryMarshal.GetReference(inverseScan);
-        int count = quantized.Length;
-        int i = 0;
-        int endOfBlock = 0;
-
-        if (Vector256.IsHardwareAccelerated && count >= Vector256<int>.Count)
-        {
-            Vector256<int> maximum = Vector256<int>.Zero;
-            Vector256<int> one = Vector256<int>.One;
-            for (; i <= count - Vector256<int>.Count; i += Vector256<int>.Count)
-            {
-                Vector256<int> values = Vector256.LoadUnsafe(ref quantizedBase, (nuint)i);
-                Vector256<int> positions = Vector256.WidenLower(Vector128.LoadUnsafe(ref inverseScanBase, (nuint)i).ToVector256Unsafe()) + one;
-                Vector256<int> nonzero = ~Vector256.Equals(values, Vector256<int>.Zero);
-                maximum = Vector256.Max(maximum, positions & nonzero);
-            }
-
-            Vector128<int> lower = Vector128.Max(maximum.GetLower(), maximum.GetUpper());
-            lower = Vector128.Max(lower, Vector128.Shuffle(lower, Vector128.Create(2, 3, 0, 1)));
-            lower = Vector128.Max(lower, Vector128.Shuffle(lower, Vector128.Create(1, 0, 3, 2)));
-            endOfBlock = lower.ToScalar();
-        }
-
-        for (; i < count; i++)
-        {
-            if (Unsafe.Add(ref quantizedBase, i) != 0)
-            {
-                endOfBlock = Math.Max(endOfBlock, Unsafe.Add(ref inverseScanBase, i) + 1);
-            }
-        }
-
-        return (ushort)endOfBlock;
-    }
+        => Av1CoefficientMeasures.GetEndOfBlock(quantized, inverseScan);
 
     /// <summary>
     /// Applies libaom's positive round-power-of-two operation to one quantizer constant.

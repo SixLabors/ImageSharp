@@ -49,7 +49,6 @@ and a `FeatureTestRunner` test against the scalar libaom definition. Hottest fir
 - Transform search: the sub-block statistics of the transform split model and the energy grid and correlations
   of `PruneInterTransformTypes`. (The residual square sums, `aom_satd` and the skip prediction scan use
   `Av1ResidualBuilder.ResidualSquaresOperator` and `Av1CoefficientMeasures`.)
-- `Av1ForwardQuantizer.GetEndOfBlock`: a Vector256-only specialization with no 128 or 512 overloads.
 - Intra estimation: the scaling and SSE of `Av1IntraModeEstimator.Estimate`, the scalar Hadamard of
   `GetHadamardCost`, `TransformForModeEstimation`, and the Vector128-only `HadamardEstimationColumns`.
 - `Av1MotionSearchBase.Projection.cs` (`aom_int_pro_row`, `aom_int_pro_col`, `aom_vector_var`).

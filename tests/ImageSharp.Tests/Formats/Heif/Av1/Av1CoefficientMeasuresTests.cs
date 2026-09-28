@@ -19,7 +19,7 @@ public class Av1CoefficientMeasuresTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies the sum of magnitudes (aom_satd) and the largest magnitude.
+    /// Verifies the sum of magnitudes (aom_satd), the largest magnitude and the end of block.
     /// </summary>
     [Fact]
     public void MeasuresMatchReference()
@@ -54,6 +54,33 @@ public class Av1CoefficientMeasuresTests
 
                 Assert.Equal(expectedSum, Av1CoefficientMeasures.SumAbsolute(coefficients));
                 Assert.Equal(expectedMaximum, Av1CoefficientMeasures.GetMaximumAbsolute(coefficients));
+
+                // A random scan order, with most coefficients zero, so the last nonzero position varies.
+                short[] inverseScan = new short[length];
+                for (int i = 0; i < length; i++)
+                {
+                    inverseScan[i] = (short)i;
+                }
+
+                random.Shuffle(inverseScan);
+                for (int i = 0; i < length; i++)
+                {
+                    if (random.Next(8) != 0)
+                    {
+                        coefficients[i] = 0;
+                    }
+                }
+
+                int expectedEnd = 0;
+                for (int i = 0; i < length; i++)
+                {
+                    if (coefficients[i] != 0)
+                    {
+                        expectedEnd = Math.Max(expectedEnd, inverseScan[i] + 1);
+                    }
+                }
+
+                Assert.Equal(expectedEnd, Av1CoefficientMeasures.GetEndOfBlock(coefficients, inverseScan));
             }
         }
     }

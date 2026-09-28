@@ -34,6 +34,16 @@ internal static partial class Av1CoefficientMeasures
         => GetMaximumAbsolute<CoefficientMeasureOperator>(coefficients);
 
     /// <summary>
+    /// Returns the one-based scan position of the last nonzero coefficient. Reference: the eob search of
+    /// av1_quantize_fp_avx2, which takes the largest inverse-scan index of a nonzero lane.
+    /// </summary>
+    /// <param name="quantized">The raster-order quantized coefficients.</param>
+    /// <param name="inverseScan">The scan position of each raster-order coefficient.</param>
+    /// <returns>The end position in scan order, or zero for an empty block.</returns>
+    public static ushort GetEndOfBlock(ReadOnlySpan<int> quantized, ReadOnlySpan<short> inverseScan)
+        => GetEndOfBlock<CoefficientMeasureOperator>(quantized, inverseScan);
+
+    /// <summary>
     /// Traverses <see cref="SumAbsolute(ReadOnlySpan{int})"/> at descending register widths.
     /// </summary>
     private static long SumAbsolute<TOperator>(ReadOnlySpan<int> coefficients)
@@ -131,5 +141,58 @@ internal static partial class Av1CoefficientMeasures
         }
 
         return maximum;
+    }
+
+    /// <summary>
+    /// Traverses <see cref="GetEndOfBlock(ReadOnlySpan{int}, ReadOnlySpan{short})"/> at descending register widths.
+    /// </summary>
+    private static ushort GetEndOfBlock<TOperator>(ReadOnlySpan<int> quantized, ReadOnlySpan<short> inverseScan)
+        where TOperator : struct, ICoefficientMeasureOperator
+    {
+        int length = quantized.Length;
+        ref int quantizedBase = ref MemoryMarshal.GetReference(quantized);
+        ref short inverseScanBase = ref MemoryMarshal.GetReference(inverseScan[..length]);
+        Vector512<int> maximum512 = Vector512<int>.Zero;
+        Vector256<int> maximum256 = Vector256<int>.Zero;
+        Vector128<int> maximum128 = Vector128<int>.Zero;
+        int endOfBlock = 0;
+        int i = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector512<int>.Count; i += Vector512<int>.Count)
+            {
+                maximum512 = TOperator.AccumulateEndOfBlock(Vector512.LoadUnsafe(ref quantizedBase, (nuint)i), ref inverseScanBase, (nuint)i, maximum512);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector256<int>.Count; i += Vector256<int>.Count)
+            {
+                maximum256 = TOperator.AccumulateEndOfBlock(Vector256.LoadUnsafe(ref quantizedBase, (nuint)i), ref inverseScanBase, (nuint)i, maximum256);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector128<int>.Count; i += Vector128<int>.Count)
+            {
+                maximum128 = TOperator.AccumulateEndOfBlock(Vector128.LoadUnsafe(ref quantizedBase, (nuint)i), ref inverseScanBase, (nuint)i, maximum128);
+            }
+        }
+
+        for (; i < length; i++)
+        {
+            endOfBlock = TOperator.AccumulateEndOfBlock(Unsafe.Add(ref quantizedBase, i), Unsafe.Add(ref inverseScanBase, i), endOfBlock);
+        }
+
+        maximum256 = Vector256.Max(maximum256, Vector256.Max(maximum512.GetLower(), maximum512.GetUpper()));
+        maximum128 = Vector128.Max(maximum128, Vector128.Max(maximum256.GetLower(), maximum256.GetUpper()));
+        for (int lane = 0; lane < Vector128<int>.Count; lane++)
+        {
+            endOfBlock = Math.Max(endOfBlock, maximum128[lane]);
+        }
+
+        return (ushort)endOfBlock;
     }
 }

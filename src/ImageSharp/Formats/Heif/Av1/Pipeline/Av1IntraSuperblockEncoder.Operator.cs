@@ -436,6 +436,22 @@ internal static partial class Av1IntraSuperblockEncoder
             int height);
 
         /// <summary>
+        /// Subtracts one packed prediction from another. Reference: aom_subtract_block and
+        /// aom_highbd_subtract_block with both inputs at the block width.
+        /// </summary>
+        /// <param name="minuend">The prediction to subtract from, packed at the block width.</param>
+        /// <param name="subtrahend">The prediction to subtract, packed at the block width.</param>
+        /// <param name="difference">The destination signed differences, packed at the block width.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        public static abstract void SubtractPackedPrediction(
+            ReadOnlySpan<TSample> minuend,
+            ReadOnlySpan<TSample> subtrahend,
+            Span<short> difference,
+            int width,
+            int height);
+
+        /// <summary>
         /// Predicts a block with an affine warped model. Reference: av1_warp_plane(), which
         /// av1_make_inter_predictor() calls for a warped block.
         /// </summary>
@@ -1323,6 +1339,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height);
+
+        /// <inheritdoc/>
+        public static void SubtractPackedPrediction(
+            ReadOnlySpan<byte> minuend,
+            ReadOnlySpan<byte> subtrahend,
+            Span<short> difference,
+            int width,
+            int height)
+            => Av1ResidualBuilder.Subtract(minuend, width, subtrahend, width, difference, width, width, height);
 
         /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(
@@ -2393,6 +2418,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height);
+
+        /// <inheritdoc/>
+        public static void SubtractPackedPrediction(
+            ReadOnlySpan<ushort> minuend,
+            ReadOnlySpan<ushort> subtrahend,
+            Span<short> difference,
+            int width,
+            int height)
+            => Av1ResidualBuilder.Subtract(minuend, width, subtrahend, width, difference, width, width, height);
 
         /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(

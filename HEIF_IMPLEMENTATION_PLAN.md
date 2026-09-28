@@ -43,9 +43,9 @@ The superblock rule in `Av1FrameEncoder.CreateSequenceHeader` equals `av1_select
 A read-only audit found these kernels outside the operator pattern. Each one gets an operator and a traversal,
 and a `FeatureTestRunner` test against the scalar libaom definition. Hottest first:
 
-- Compound and inter-intra mask search in `ReferenceModeDecision`: the residual energies, the quadrant sign
-  estimate, `av1_wedge_sign_from_residuals`, and `av1_wedge_sse_from_residuals` (16 wedges per candidate);
-  the mask inversion of `RefineCompoundVectors`; `Av1WedgeMask.Fill` and `Av1InterIntraMaskBuilder.FillInterIntraMask`.
+- Compound and inter-intra mask search: the mask inversion of `RefineCompoundVectors`, and the per-candidate
+  mask builders `Av1WedgeMask.Fill` and `Av1InterIntraMaskBuilder.FillInterIntraMask` (libaom reads precomputed
+  masks through `av1_get_contiguous_soft_mask`). The wedge measures use `Av1WedgeSearch`.
 - Transform search: the residual sum of squares and coefficient scan of `PredictSkipTransform`; the SATD sums of
   `Av1TransformBlockEncoder` (`skip_trellis_opt_based_on_satd`); the coefficient SSE of
   `EstimateTransformTypeCost`, which does not use `TransformErrorOperator`; the sub-block statistics of the

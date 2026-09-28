@@ -3889,23 +3889,17 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int modeIndex = firstMode; modeIndex <= lastMode; modeIndex++)
             {
                 Av1InterIntraMode mode = (Av1InterIntraMode)modeIndex;
-                _ = this.PrepareInterIntraPlane(macroBlock, blockOrigin, blockSize, Av1Plane.Y, mode);
+                Span<TSample> wedgeIntra = this.PrepareInterIntraPlane(macroBlock, blockOrigin, blockSize, Av1Plane.Y, mode);
+
+                // The inter prediction minus the intra prediction, over the intra residual that is not
+                // read again. Reference: the diff10 of pick_interintra_wedge().
+                TOperator.SubtractPackedPrediction(interPrediction, wedgeIntra, intraResidual, width, height);
                 long bestMaskCost = long.MaxValue;
                 int bestMaskIndex = 0;
                 for (int index = 0; index < 16; index++)
                 {
                     Av1WedgeMask.Fill(mask, width, blockSize, index, wedgeSign: false, 0, 0, invert: false);
-                    long squaredError = 0;
-                    for (int sample = 0; sample < sampleCount; sample++)
-                    {
-                        // Keep the blend in six-bit weight precision until the block sum is formed.
-                        // Saturation makes the scalar error arithmetic agree with packed signed lanes.
-                        int error = (interResidual[sample] * 64) + (mask[sample] * (intraResidual[sample] - interResidual[sample]));
-                        error = Math.Clamp(error, short.MinValue, short.MaxValue);
-                        squaredError += (long)error * error;
-                    }
-
-                    squaredError = (squaredError + 2048) >> 12;
+                    long squaredError = (long)Av1WedgeSearch.SumSquaredErrors(interResidual, intraResidual, mask);
                     if (shift != 0)
                     {
                         squaredError = (squaredError + (1L << (shift - 1))) >> shift;
@@ -6121,6 +6115,67 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Estimates the wedge sign of all masks from the errors of the two predictions over opposite quadrants.
+        /// Reference: estimate_wedge_sign().
+        /// </summary>
+        /// <param name="sourcePlane">The luma source plane.</param>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="firstPrediction">The first prediction, packed at the block width.</param>
+        /// <param name="secondPrediction">The second prediction, packed at the block width.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <returns><see langword="true"/> when the first prediction fits the bottom-right side better.</returns>
+        private readonly bool EstimateWedgeSign(
+            Buffer2DRegion<TSample> sourcePlane,
+            Point blockOrigin,
+            ReadOnlySpan<TSample> firstPrediction,
+            ReadOnlySpan<TSample> secondPrediction,
+            int width,
+            int height)
+        {
+            // A wedge divides the block, so the sign says which reference fills which side. The squared
+            // errors of the top-left and bottom-right quadrants come from the variance function of the
+            // quadrant size, which rounds each one to eight-bit precision on its own.
+            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+            int stride = sourcePlane.Stride;
+            int halfWidth = width >> 1;
+            int halfHeight = height >> 1;
+            int sourceOffset = (halfHeight * stride) + halfWidth;
+            int predictionOffset = (halfHeight * width) + halfWidth;
+            long firstTopLeft = this.GetQuadrantSquaredError(source, stride, firstPrediction, width, halfWidth, halfHeight);
+            long firstBottomRight = this.GetQuadrantSquaredError(source[sourceOffset..], stride, firstPrediction[predictionOffset..], width, halfWidth, halfHeight);
+            long secondTopLeft = this.GetQuadrantSquaredError(source, stride, secondPrediction, width, halfWidth, halfHeight);
+            long secondBottomRight = this.GetQuadrantSquaredError(source[sourceOffset..], stride, secondPrediction[predictionOffset..], width, halfWidth, halfHeight);
+            long topLeft = firstTopLeft - secondTopLeft;
+            long bottomRight = secondBottomRight - firstBottomRight;
+            return topLeft + bottomRight > 0;
+        }
+
+        /// <summary>
+        /// Returns the squared error of one quadrant, rounded to eight-bit precision. Reference: the sse output
+        /// of aom_variance and aom_highbd_{10,12}_variance.
+        /// </summary>
+        /// <param name="source">The source samples at the quadrant origin.</param>
+        /// <param name="sourceStride">The source row stride.</param>
+        /// <param name="prediction">The prediction samples at the quadrant origin.</param>
+        /// <param name="predictionStride">The prediction row stride.</param>
+        /// <param name="width">The quadrant width.</param>
+        /// <param name="height">The quadrant height.</param>
+        /// <returns>The rounded squared error.</returns>
+        private readonly long GetQuadrantSquaredError(
+            ReadOnlySpan<TSample> source,
+            int sourceStride,
+            ReadOnlySpan<TSample> prediction,
+            int predictionStride,
+            int width,
+            int height)
+        {
+            TOperator.GetMoments(source, sourceStride, prediction, predictionStride, width, height, out _, out long squares);
+            int shift = (this.bitDepth.GetBitCount() - 8) * 2;
+            return shift == 0 ? squares : (squares + (1L << (shift - 1))) >> shift;
+        }
+
+        /// <summary>
         /// Selects a mask from rounded single predictors while retaining six-bit blend precision in its error estimate.
         /// </summary>
         private long SelectCompoundMask(
@@ -6147,68 +6202,30 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(sourcePlane, blockOrigin, firstPrediction, firstResidual, width, height);
             TOperator.SubtractPrediction(sourcePlane, blockOrigin, secondPrediction, secondResidual, width, height);
-            long firstEnergy = 0;
-            long secondEnergy = 0;
-            for (int i = 0; i < count; i++)
-            {
-                int first = firstResidual[i];
-                int second = secondResidual[i];
-                firstEnergy += (long)first * first;
-                secondEnergy += (long)second * second;
-                difference[i] = (short)(first - second);
-            }
 
+            // The second prediction minus the first. Reference: the aom_subtract_block() call that fills
+            // diff10 in av1_compound_type_rd().
+            TOperator.SubtractPackedPrediction(secondPrediction, firstPrediction, difference, width, height);
+
+            bool fastSign = this.picture.Parent.SpeedSettings.FastWedgeSignEstimation;
             bool fixedSign = false;
+            long signLimit = 0;
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
-            if (compoundType == Av1CompoundType.Wedge && this.picture.Parent.SpeedSettings.FastWedgeSignEstimation)
+            if (compoundType == Av1CompoundType.Wedge && fastSign)
             {
-                // Opposite quadrants choose one orientation for all masks. Normalize each quadrant's
-                // squared error separately; rounding their signed difference would change boundary ties.
-                long topFirst = 0;
-                long topSecond = 0;
-                long bottomFirst = 0;
-                long bottomSecond = 0;
-                for (int y = 0; y < height / 2; y++)
-                {
-                    for (int x = 0; x < width / 2; x++)
-                    {
-                        int top = (y * width) + x;
-                        int bottom = ((y + (height / 2)) * width) + x + (width / 2);
-                        topFirst += (long)firstResidual[top] * firstResidual[top];
-                        topSecond += (long)secondResidual[top] * secondResidual[top];
-                        bottomFirst += (long)firstResidual[bottom] * firstResidual[bottom];
-                        bottomSecond += (long)secondResidual[bottom] * secondResidual[bottom];
-                    }
-                }
-
-                if (shift != 0)
-                {
-                    long rounding = 1L << (shift - 1);
-                    topFirst = (topFirst + rounding) >> shift;
-                    topSecond = (topSecond + rounding) >> shift;
-                    bottomFirst = (bottomFirst + rounding) >> shift;
-                    bottomSecond = (bottomSecond + rounding) >> shift;
-                }
-
-                // A wedge divides the block, so the sign says which reference fills which side.
-                // Comparing the two references over one diagonal half against the other tells which
-                // way round they fit, which removes the sign from the search below.
-                fixedSign = topFirst - topSecond + bottomSecond - bottomFirst > 0;
+                fixedSign = this.EstimateWedgeSign(sourcePlane, blockOrigin, firstPrediction, secondPrediction, width, height);
+            }
+            else if (compoundType == Av1CompoundType.Wedge)
+            {
+                // Each mask candidate is scored from how much better one reference predicts each
+                // sample than the other. Holding that difference per sample lets every candidate be
+                // scored by summing over the samples its mask selects, instead of forming a blended
+                // prediction for each one. Reference: the sign_limit and av1_wedge_compute_delta_squares()
+                // of pick_wedge(). The first residual buffer then holds the differences of squares.
+                signLimit = (Av1ResidualBuilder.SumSquares(firstResidual) - Av1ResidualBuilder.SumSquares(secondResidual)) * 32;
+                Av1WedgeSearch.ComputeDeltaSquares(firstResidual, firstResidual, secondResidual);
             }
 
-            // Each mask candidate is scored from how much better one reference predicts each
-            // sample than the other. Holding that difference per sample lets every candidate be
-            // scored by summing over the samples its mask selects, instead of forming a blended
-            // prediction for each one.
-            long signLimit = (firstEnergy - secondEnergy) * 32;
-            for (int i = 0; i < count; i++)
-            {
-                int delta = (firstResidual[i] * firstResidual[i]) - (secondResidual[i] * secondResidual[i]);
-                firstResidual[i] = (short)Math.Clamp(delta, short.MinValue, short.MaxValue);
-            }
-
-            // The first residual buffer now stores saturated differences of squared errors.
-            // It remains disjoint from the second residual and predictor difference used by the model.
             int acQuantizer = Av1QuantizationLookup.GetAcQuant(
                 this.quantization.QIndex[0], this.quantization.DeltaQAc[0], this.bitDepth);
 
@@ -6224,15 +6241,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (compoundType == Av1CompoundType.Wedge)
                 {
                     Av1WedgeMask.Fill(mask, width, blockSize, index, false, 0, 0, false);
-                    if (!this.picture.Parent.SpeedSettings.FastWedgeSignEstimation)
+                    if (!fastSign)
                     {
-                        long weightedDelta = 0;
-                        for (int i = 0; i < count; i++)
-                        {
-                            weightedDelta += (long)firstResidual[i] * mask[i];
-                        }
-
-                        sign = weightedDelta > signLimit;
+                        sign = Av1WedgeSearch.GetSign(firstResidual, mask, signLimit);
                     }
 
                     if (sign)
@@ -6251,15 +6262,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         (Av1DifferenceWeightedMaskType)index);
                 }
 
-                long error = 0;
-                for (int i = 0; i < count; i++)
-                {
-                    int weightedResidual = (secondResidual[i] * 64) + (difference[i] * mask[i]);
-                    weightedResidual = Math.Clamp(weightedResidual, short.MinValue, short.MaxValue);
-                    error += (long)weightedResidual * weightedResidual;
-                }
-
-                error = (error + 2048) >> 12;
+                long error = (long)Av1WedgeSearch.SumSquaredErrors(secondResidual, difference, mask);
                 if (shift != 0)
                 {
                     error = (error + (1L << (shift - 1))) >> shift;

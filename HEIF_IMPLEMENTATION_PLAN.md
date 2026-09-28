@@ -46,10 +46,9 @@ and a `FeatureTestRunner` test against the scalar libaom definition. Hottest fir
 - Compound and inter-intra mask search: the mask inversion of `RefineCompoundVectors`, and the per-candidate
   mask builders `Av1WedgeMask.Fill` and `Av1InterIntraMaskBuilder.FillInterIntraMask` (libaom reads precomputed
   masks through `av1_get_contiguous_soft_mask`). The wedge measures use `Av1WedgeSearch`.
-- Transform search: the residual sum of squares and coefficient scan of `PredictSkipTransform`; the SATD sums of
-  `Av1TransformBlockEncoder` (`skip_trellis_opt_based_on_satd`); the coefficient SSE of
-  `EstimateTransformTypeCost`, which does not use `TransformErrorOperator`; the sub-block statistics of the
-  transform split model and the energy grid and correlations of `PruneInterTransformTypes`.
+- Transform search: the sub-block statistics of the transform split model and the energy grid and correlations
+  of `PruneInterTransformTypes`. (The residual square sums, `aom_satd` and the skip prediction scan use
+  `Av1ResidualBuilder.ResidualSquaresOperator` and `Av1CoefficientMeasures`.)
 - `Av1ForwardQuantizer.GetEndOfBlock`: a Vector256-only specialization with no 128 or 512 overloads.
 - Intra estimation: the scaling and SSE of `Av1IntraModeEstimator.Estimate`, the scalar Hadamard of
   `GetHadamardCost`, `TransformForModeEstimation`, and the Vector128-only `HadamardEstimationColumns`.

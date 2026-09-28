@@ -584,6 +584,40 @@ public class Av1ResidualBuilderTests
         residual[0] = -4095;
         expected += 4095L * 4095;
         Assert.Equal(expected, Av1ResidualBuilder.SumSquares(residual));
+
+        long expectedSum = 0;
+        foreach (short value in residual)
+        {
+            expectedSum += value;
+        }
+
+        Assert.Equal(expected, Av1ResidualBuilder.SumAndSumSquares(residual, out long actualSum));
+        Assert.Equal(expectedSum, actualSum);
+
+        // A visible rectangle of a strided plane, including widths with a scalar tail. Values outside the
+        // rectangle are extreme, so any sample read past the rectangle changes the total.
+        Random random = new(0x5A5A);
+        foreach (int width in new[] { 1, 4, 7, 8, 13, 16, 31, 32, 33, 64, 128 })
+        {
+            foreach (int height in new[] { 1, 3, 8, 64 })
+            {
+                int stride = width + 9;
+                short[] plane = new short[stride * height];
+                plane.AsSpan().Fill(short.MinValue);
+                long expectedRectangle = 0;
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        short value = (short)random.Next(-32768, 32768);
+                        plane[(y * stride) + x] = value;
+                        expectedRectangle += (long)value * value;
+                    }
+                }
+
+                Assert.Equal(expectedRectangle, Av1ResidualBuilder.SumSquares(plane, stride, width, height));
+            }
+        }
     }
 
     private static void ValidateResiduals()

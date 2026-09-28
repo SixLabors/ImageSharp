@@ -2311,11 +2311,7 @@ internal static partial class Av1TransformBlockEncoder
         {
             // skip_trellis_opt_based_on_satd: the SATD of the coded coefficients, at transform scale one
             // and eight-bit precision, against the threshold times the quantizer step and sqrt(pixels).
-            long satd = 0;
-            foreach (int coefficient in transformed)
-            {
-                satd += Math.Abs((long)coefficient);
-            }
+            long satd = Av1CoefficientMeasures.SumAbsolute(transformed);
 
             int scaleShift = 1 - transformSize.GetScale();
             satd = scaleShift >= 0 ? satd >> scaleShift : satd << -scaleShift;
@@ -2416,11 +2412,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         out uint blockMseQ8)
     {
-        long sumOfSquares = 0;
-        for (int y = 0; y < visibleHeight; y++)
-        {
-            sumOfSquares += Av1ResidualBuilder.SumSquares(residual.Slice(y * residualStride, visibleWidth));
-        }
+        long sumOfSquares = Av1ResidualBuilder.SumSquares(residual, residualStride, visibleWidth, visibleHeight);
 
         blockMseQ8 = visibleWidth > 0 && visibleHeight > 0
             ? (uint)((256 * sumOfSquares) / (visibleWidth * visibleHeight))
@@ -2725,11 +2717,7 @@ internal static partial class Av1TransformBlockEncoder
             return true;
         }
 
-        long satd = 0;
-        foreach (int coefficient in transformed)
-        {
-            satd += Math.Abs((long)coefficient);
-        }
+        long satd = Av1CoefficientMeasures.SumAbsolute(transformed);
 
         // skip_trellis_opt_based_on_satd scales by MAX_TX_SCALE (one) minus the transform scale, so a
         // 64-point transform shifts left. The table is ceil(sqrt(coded transform pixels)) in enum order.

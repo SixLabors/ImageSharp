@@ -1777,11 +1777,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         bitDepth.GetBitCount(),
                         transformWorkspace);
 
-                    long cost = 0;
-                    for (int index = 0; index < sampleCount; index++)
-                    {
-                        cost += Math.Abs((long)coefficients[index]);
-                    }
+                    long cost = Av1CoefficientMeasures.SumAbsolute(coefficients[..sampleCount]);
 
                     if (cost >= bestCost)
                     {

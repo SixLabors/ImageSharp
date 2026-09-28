@@ -80,22 +80,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int rate = writer.EstimateLumaCoefficientRate(
                 quantized, endOfBlock, size, type, context, this.picture.Parent.FrameHeader.UseReducedTransformSet, filterMode, mode, isInter);
 
-            long error = 0;
-            for (int index = 0; index < count; index++)
-            {
-                long difference = (long)transformed[index] - dequantized[index];
-                error += difference * difference;
-            }
-
-            // First normalize coded precision with rounding, then remove the transform's scale.
-            // The resulting squared error has the same four fractional bits as pixel-domain distortion.
-            int precisionShift = (this.bitDepth.GetBitCount() - 8) * 2;
-            if (precisionShift != 0)
-            {
-                error = (error + (1L << (precisionShift - 1))) >> precisionShift;
-            }
-
-            error >>= (1 - size.GetScale()) * 2;
+            // The squared error is normalized to eight-bit precision with rounding, then loses the transform
+            // scale, so it has the same four fractional bits as pixel-domain distortion.
+            long error = Av1TransformBlockEncoder.GetTransformError(transformed, dequantized, size, this.bitDepth, out _);
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, error);
         }
 

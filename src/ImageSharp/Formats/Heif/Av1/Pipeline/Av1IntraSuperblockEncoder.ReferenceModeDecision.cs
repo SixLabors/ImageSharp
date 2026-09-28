@@ -1902,15 +1902,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Size visibleSize = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, width, height);
             int visibleWidth = visibleSize.Width;
             int visibleHeight = visibleSize.Height;
-            distortion = 0;
-            for (int y = 0; y < visibleHeight; y++)
-            {
-                ReadOnlySpan<short> row = residual.Slice(y * width, visibleWidth);
-                for (int x = 0; x < row.Length; x++)
-                {
-                    distortion += row[x] * row[x];
-                }
-            }
+            distortion = Av1ResidualBuilder.SumSquares(residual, width, visibleWidth, visibleHeight);
 
             int qIndex = this.quantization.QIndex[0];
             int dcQuantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, this.bitDepth);
@@ -1956,12 +1948,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         return false;
                     }
 
-                    for (int i = 1; i < coefficientCount; i++)
+                    // Any AC coefficient at or above its threshold fails, so the largest magnitude decides.
+                    if (((uint)Av1CoefficientMeasures.GetMaximumAbsolute(coefficients[1..coefficientCount]) << 7) >= acThreshold)
                     {
-                        if (((uint)Math.Abs(coefficients[i]) << 7) >= acThreshold)
-                        {
-                            return false;
-                        }
+                        return false;
                     }
                 }
             }
@@ -2588,11 +2578,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Math.Min(planeSize.GetHeight(), sourcePlane.Height - origin.Y));
                 int width = visibleSize.Width;
                 int height = visibleSize.Height;
-                long squaredError = 0;
-                for (int row = 0; row < height; row++)
-                {
-                    squaredError += Av1ResidualBuilder.SumSquares(workspace.Residual.Slice(row * planeSize.GetWidth(), width));
-                }
+                long squaredError = Av1ResidualBuilder.SumSquares(workspace.Residual, planeSize.GetWidth(), width, height);
 
                 exactPrediction &= squaredError == 0;
                 distortion += normalizationShift == 0
@@ -7264,21 +7250,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Size visible = simpleModel ? new Size(width, height) : this.GetPredictionModelSize(blockOrigin, blockSize, subsamplingX, subsamplingY);
                 int visibleWidth = visible.Width;
                 int visibleHeight = visible.Height;
-                long squaredError = 0;
 
-                // The source view includes samples extended to the coded dimensions. Reduce complete rows together;
-                // a partial right edge needs separate row reductions to exclude samples beyond the source view.
-                if (visibleWidth == width)
-                {
-                    squaredError = Av1ResidualBuilder.SumSquares(residual[..(width * visibleHeight)]);
-                }
-                else
-                {
-                    for (int row = 0; row < visibleHeight; row++)
-                    {
-                        squaredError += Av1ResidualBuilder.SumSquares(residual.Slice(row * width, visibleWidth));
-                    }
-                }
+                // The source view includes samples extended to the coded dimensions; only the visible
+                // rectangle counts.
+                long squaredError = Av1ResidualBuilder.SumSquares(residual, width, visibleWidth, visibleHeight);
 
                 int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
                 if (normalizationShift != 0)
@@ -8889,18 +8864,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Size visibleSize = this.blockWorkspace.GetVisibleSize(plane, planeOrigin, width, transformSize.GetHeight());
             int visibleWidth = visibleSize.Width;
             int visibleHeight = visibleSize.Height;
-            long predictionSquaredError = 0;
-            if (visibleWidth == inputStride)
-            {
-                predictionSquaredError = Av1ResidualBuilder.SumSquares(residual[..(width * visibleHeight)]);
-            }
-            else
-            {
-                for (int row = 0; row < visibleHeight; row++)
-                {
-                    predictionSquaredError += Av1ResidualBuilder.SumSquares(residual.Slice(row * inputStride, visibleWidth));
-                }
-            }
+            long predictionSquaredError = Av1ResidualBuilder.SumSquares(residual, inputStride, visibleWidth, visibleHeight);
 
             int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
             predictionDistortion = normalizationShift == 0

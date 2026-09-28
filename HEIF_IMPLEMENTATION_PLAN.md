@@ -9,6 +9,10 @@ Build and run the `FullyQualifiedName~Formats.Heif` tests after each change. Com
 previous run before the next change. Do not accumulate unverified edits. The earlier rule that delayed builds and
 tests until milestones 1 and 2 were complete is withdrawn: it let about 12,500 uncompiled lines accumulate.
 
+Write every new sample or coefficient kernel as an operator first: an interface with a scalar overload and one
+overload per register width, and one traversal that walks the widest width first. The scalar form exists only as
+the operator's scalar overload. A scalar-only kernel is a rule failure, not a later performance item.
+
 ## Authority
 
 libaom and libavif are the authority for every behavior. The managed decoder is a port and is not an oracle.
@@ -33,6 +37,38 @@ quality-to-quantizer table for `tune=iq` (`codec_aom.c:603-648`). The port imple
 quality with the non-IQ formula. Until this is ported, output matches libavif only for `tune=psnr` settings.
 The superblock rule in `Av1FrameEncoder.CreateSequenceHeader` equals `av1_select_sb_size`
 (`encoder_utils.c:1017-1039`) for one thread without delta-q modes.
+
+## SIMD operator-pattern gaps, found 2026-09-28
+
+A read-only audit found these kernels outside the operator pattern. Each one gets an operator and a traversal,
+and a `FeatureTestRunner` test against the scalar libaom definition. Hottest first:
+
+- Motion search compound measures: `SumCompoundAbsoluteDifferences` and `GetCompoundMoments` of
+  `Av1MotionSearchBase.ByteOperator` and `UInt16Operator`.
+- Compound and inter-intra mask search in `ReferenceModeDecision`: the residual energies, the quadrant sign
+  estimate, `av1_wedge_sign_from_residuals`, and `av1_wedge_sse_from_residuals` (16 wedges per candidate);
+  the mask inversion of `RefineCompoundVectors`; `Av1WedgeMask.Fill` and `Av1InterIntraMaskBuilder.FillInterIntraMask`.
+- Transform search: the residual sum of squares and coefficient scan of `PredictSkipTransform`; the SATD sums of
+  `Av1TransformBlockEncoder` (`skip_trellis_opt_based_on_satd`); the coefficient SSE of
+  `EstimateTransformTypeCost`, which does not use `TransformErrorOperator`; the sub-block statistics of the
+  transform split model and the energy grid and correlations of `PruneInterTransformTypes`.
+- `Av1ForwardQuantizer.GetEndOfBlock`: a Vector256-only specialization with no 128 or 512 overloads.
+- Intra estimation: the scaling and SSE of `Av1IntraModeEstimator.Estimate`, the scalar Hadamard of
+  `GetHadamardCost`, `TransformForModeEstimation`, and the Vector128-only `HadamardEstimationColumns`.
+- `Av1MotionSearchBase.Projection.cs` (`aom_int_pro_row`, `aom_int_pro_col`, `aom_vector_var`).
+- `GetDirectionalModeSkipMask` (Sobel and gradient histogram), the scalar copy of `GetSourceVariance` in
+  `ChromaModeDecision`, the chroma-from-luma alpha search sums, the palette k-means `Accumulate` members (they sum
+  lanes through scratch) and `CalculateCentroids`, and `CopyPaletteSamples`.
+- Per superblock: the Vector128-only `FilterTemporalSource` and `ConvolveIntraPartition`, and
+  `FillResidueOutsideFrame`.
+- Frame filters: the self-guided and Wiener statistics and errors of the loop restoration search, the shared
+  self-guided filter, and the CDEF `CopyPlane`, `FindDirection` and `FilterBlock` width variants.
+- Once per frame: the screen content detector moments and copy, the block-copy hash, and `Av1FlowField.Upscale`.
+- `Av1ChromaFromLumaPredictor.Operator.cs` names `AdvSimd` outside the vector shims.
+
+Test note: `HwIntrinsics.DisableAVX512F` does not clear `Vector512.IsHardwareAccelerated` on .NET 10, so a
+configuration with that flag still runs the 512-bit path. Tests cover the 256-bit path only through rows of eight
+32-bit lanes.
 
 ## Verified state, 2026-09-25
 
@@ -533,8 +569,9 @@ interval. The still-picture regression stays at 620/620.
     reference lists, the coded entropy context that the `zero_blk_rd` branch of `try_tx_block_no_split()` leaves
     for later transform blocks, and the entry budget for every motion-mode trial of the estimation path (only the
     full-search path of `motion_mode_rd()` lowers `ref_best_rd` between trials).
-    Remaining: the SIMD form
-    of the OBMC SAD and variance, and
+    The OBMC SAD, variance and search target use the operator pattern (`Av1ObmcSearch`): the
+    exact lane arithmetic of `obmc_sad_w8n()` and `obmc_variance_w8n()`, and of `calc_target_weighted_pred()`.
+    Remaining: the SIMD form of the compound SAD and moments of the motion search, and
     global motion (the estimator, and the writer that codes parameters against the primary reference).
   - [ ] The border padding of the inter paths (`rdopt` model cost and subtraction, the inter transform tree,
     skip mode distortion), and the predicted-skip context of the inter and chroma transform searches.

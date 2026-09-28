@@ -192,5 +192,77 @@ internal static partial class Av1MotionSearchBase
             int height,
             out int sum,
             out long squares);
+
+        /// <summary>
+        /// Measures the rounded OBMC absolute differences of a prediction against the OBMC search target.
+        /// </summary>
+        /// <param name="prediction">The prediction samples at the block origin.</param>
+        /// <param name="predictionStride">The prediction row stride.</param>
+        /// <param name="weightedSource">The weighted source, packed at the block width.</param>
+        /// <param name="mask">The prediction weights, packed at the block width.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <returns>The sum of the rounded absolute differences.</returns>
+        static abstract int SumObmcAbsoluteDifferences(
+            ReadOnlySpan<TSample> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height);
+
+        /// <summary>
+        /// Measures the signed and squared sums of the rounded OBMC differences of a prediction.
+        /// </summary>
+        /// <param name="prediction">The prediction samples at the block origin.</param>
+        /// <param name="predictionStride">The prediction row stride.</param>
+        /// <param name="weightedSource">The weighted source, packed at the block width.</param>
+        /// <param name="mask">The prediction weights, packed at the block width.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="sum">The signed sum of the rounded differences.</param>
+        /// <param name="squares">The sum of their squares.</param>
+        static abstract void GetObmcMoments(
+            ReadOnlySpan<TSample> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height,
+            out int sum,
+            out ulong squares);
+
+        /// <summary>
+        /// Writes one row of the above-neighbor term of the OBMC search target.
+        /// </summary>
+        /// <param name="prediction">The above-neighbor prediction row.</param>
+        /// <param name="weight">The weight of the block's own prediction on this row.</param>
+        /// <param name="weightedSource">The weighted source row to write.</param>
+        /// <param name="mask">The prediction weight row to write.</param>
+        /// <param name="width">The number of samples to write.</param>
+        static abstract void WeightObmcAbove(ReadOnlySpan<TSample> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width);
+
+        /// <summary>
+        /// Blends one row of the left-neighbor term into the OBMC search target.
+        /// </summary>
+        /// <param name="prediction">The left-neighbor prediction row.</param>
+        /// <param name="weights">The column weights of the block's own prediction, one per overlapped column.</param>
+        /// <param name="weightedSource">The weighted source row to update.</param>
+        /// <param name="mask">The prediction weight row to update.</param>
+        static abstract void WeightObmcLeft(ReadOnlySpan<TSample> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask);
+
+        /// <summary>
+        /// Scales the OBMC search target by the maximum blend weight.
+        /// </summary>
+        /// <param name="weightedSource">The weighted source to update.</param>
+        /// <param name="mask">The prediction weights to update.</param>
+        static abstract void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask);
+
+        /// <summary>
+        /// Replaces one row of OBMC neighbor terms with the scaled source minus the term.
+        /// </summary>
+        /// <param name="source">The source row.</param>
+        /// <param name="weightedSource">The weighted source row to update.</param>
+        static abstract void SubtractObmcSource(ReadOnlySpan<TSample> source, Span<int> weightedSource);
     }
 }

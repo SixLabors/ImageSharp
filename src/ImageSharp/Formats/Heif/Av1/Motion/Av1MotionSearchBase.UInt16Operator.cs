@@ -215,5 +215,43 @@ internal static partial class Av1MotionSearchBase
                 }
             }
         }
+
+        /// <inheritdoc/>
+        public static int SumObmcAbsoluteDifferences(
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height)
+            => Av1ObmcSearch.SumAbsoluteDifferences<ushort, Av1ObmcSearch.UInt16Operator>(prediction, predictionStride, weightedSource, mask, width, height);
+
+        /// <inheritdoc/>
+        public static void GetObmcMoments(
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height,
+            out int sum,
+            out ulong squares)
+            => Av1ObmcSearch.GetMoments<ushort, Av1ObmcSearch.UInt16Operator>(prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
+        public static void WeightObmcAbove(ReadOnlySpan<ushort> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width)
+            => Av1ObmcSearch.WeightAbove<ushort, Av1ObmcSearch.UInt16Operator>(prediction, weight, weightedSource, mask, width);
+
+        /// <inheritdoc/>
+        public static void WeightObmcLeft(ReadOnlySpan<ushort> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
+            => Av1ObmcSearch.WeightLeft<ushort, Av1ObmcSearch.UInt16Operator>(prediction, weights, weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
+            => Av1ObmcSearch.Scale<ushort, Av1ObmcSearch.UInt16Operator>(weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void SubtractObmcSource(ReadOnlySpan<ushort> source, Span<int> weightedSource)
+            => Av1ObmcSearch.SubtractFromSource<ushort, Av1ObmcSearch.UInt16Operator>(source, weightedSource);
     }
 }

@@ -864,6 +864,44 @@ internal static partial class Av1IntraSuperblockEncoder
                 source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
 
         /// <inheritdoc/>
+        public static int SumObmcAbsoluteDifferences(
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height)
+            => Av1MotionSearchBase.ByteOperator.SumObmcAbsoluteDifferences(prediction, predictionStride, weightedSource, mask, width, height);
+
+        /// <inheritdoc/>
+        public static void GetObmcMoments(
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height,
+            out int sum,
+            out ulong squares)
+            => Av1MotionSearchBase.ByteOperator.GetObmcMoments(prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
+        public static void WeightObmcAbove(ReadOnlySpan<byte> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width)
+            => Av1MotionSearchBase.ByteOperator.WeightObmcAbove(prediction, weight, weightedSource, mask, width);
+
+        /// <inheritdoc/>
+        public static void WeightObmcLeft(ReadOnlySpan<byte> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
+            => Av1MotionSearchBase.ByteOperator.WeightObmcLeft(prediction, weights, weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
+            => Av1MotionSearchBase.ByteOperator.ScaleObmcTarget(weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void SubtractObmcSource(ReadOnlySpan<byte> source, Span<int> weightedSource)
+            => Av1MotionSearchBase.ByteOperator.SubtractObmcSource(source, weightedSource);
+
+        /// <inheritdoc/>
         public static Span<byte> GetLeftReference(Span<short> residual, int length)
             => MemoryMarshal.AsBytes(residual)[..length];
 
@@ -1888,6 +1926,44 @@ internal static partial class Av1IntraSuperblockEncoder
             out long squares)
             => Av1MotionSearchBase.UInt16Operator.GetMoments(
                 source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
+        public static int SumObmcAbsoluteDifferences(
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height)
+            => Av1MotionSearchBase.UInt16Operator.SumObmcAbsoluteDifferences(prediction, predictionStride, weightedSource, mask, width, height);
+
+        /// <inheritdoc/>
+        public static void GetObmcMoments(
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height,
+            out int sum,
+            out ulong squares)
+            => Av1MotionSearchBase.UInt16Operator.GetObmcMoments(prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
+        public static void WeightObmcAbove(ReadOnlySpan<ushort> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width)
+            => Av1MotionSearchBase.UInt16Operator.WeightObmcAbove(prediction, weight, weightedSource, mask, width);
+
+        /// <inheritdoc/>
+        public static void WeightObmcLeft(ReadOnlySpan<ushort> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
+            => Av1MotionSearchBase.UInt16Operator.WeightObmcLeft(prediction, weights, weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
+            => Av1MotionSearchBase.UInt16Operator.ScaleObmcTarget(weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void SubtractObmcSource(ReadOnlySpan<ushort> source, Span<int> weightedSource)
+            => Av1MotionSearchBase.UInt16Operator.SubtractObmcSource(source, weightedSource);
 
         /// <inheritdoc/>
         public static Span<ushort> GetLeftReference(Span<short> residual, int length)

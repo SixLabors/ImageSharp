@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -384,19 +385,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height)
         {
             int index = referenceOrigin + (vector.Y * referenceStride) + vector.X;
-            uint sad = 0;
-            for (int row = 0; row < height; row++)
-            {
-                ReadOnlySpan<TSample> line = reference.Slice(index + (row * referenceStride), width);
-                for (int column = 0; column < width; column++)
-                {
-                    int position = (row * width) + column;
-                    int difference = Math.Abs(weightedSource[position] - (TOperator.GetSampleValue(line[column]) * mask[position]));
-                    sad += (uint)((difference + 2048) >> 12);
-                }
-            }
-
-            return (int)sad;
+            return TOperator.SumObmcAbsoluteDifferences(reference[index..], referenceStride, weightedSource, mask, width, height);
         }
 
         /// <summary>
@@ -411,25 +400,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int width,
             int height)
         {
-            long sum = 0;
-            ulong squares = 0;
-            for (int row = 0; row < height; row++)
-            {
-                for (int column = 0; column < width; column++)
-                {
-                    int position = (row * width) + column;
-                    int value = weightedSource[position] - (TOperator.GetSampleValue(prediction[(row * predictionStride) + column]) * mask[position]);
-                    int difference = value >= 0 ? (value + 2048) >> 12 : -((-value + 2048) >> 12);
-                    sum += difference;
-                    squares += (ulong)((long)difference * difference);
-                }
-            }
-
+            TOperator.GetObmcMoments(prediction, predictionStride, weightedSource, mask, width, height, out int sum, out ulong squares);
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
             if (shift == 0)
             {
                 uint sse = (uint)squares;
-                return (int)(sse - (uint)(sum * sum / (width * height)));
+                return (int)(sse - (uint)((long)sum * sum / (width * height)));
             }
 
             int normalizedSum = (int)((sum + (1L << ((shift >> 1) - 1))) >> (shift >> 1));
@@ -464,7 +440,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int overlap = Math.Min(height, 64) >> 1;
                 ReadOnlySpan<byte> weights = Av1ObmcMask.Get(overlap);
                 int endColumn = Math.Min(position.X + blockSize.Get4x4WideCount(), this.picture.Parent.FrameHeader.ModeInfoColumnCount);
-                int limit = maximumNeighbors[System.Numerics.BitOperations.Log2((uint)blockSize.Get4x4WideCount())];
+                int limit = maximumNeighbors[BitOperations.Log2((uint)blockSize.Get4x4WideCount())];
                 int count = 0;
                 int step;
                 for (int column = position.X; column < endColumn && count < limit; column += step)
@@ -503,29 +479,25 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     for (int row = 0; row < overlap; row++)
                     {
-                        int weight = weights[row];
-                        for (int x = 0; x < neighborWidth; x++)
-                        {
-                            int position2 = (row * width) + blockColumn + x;
-                            weightedSource[position2] = (BlendMaximumAlpha - weight) * TOperator.GetSampleValue(neighborPrediction[(row * neighborWidth) + x]);
-                            mask[position2] = weight;
-                        }
+                        int offset = (row * width) + blockColumn;
+                        TOperator.WeightObmcAbove(
+                            neighborPrediction[(row * neighborWidth)..],
+                            weights[row],
+                            weightedSource[offset..],
+                            mask[offset..],
+                            neighborWidth);
                     }
                 }
             }
 
-            for (int index = 0; index < weightedSource.Length; index++)
-            {
-                weightedSource[index] *= BlendMaximumAlpha;
-                mask[index] *= BlendMaximumAlpha;
-            }
+            TOperator.ScaleObmcTarget(weightedSource, mask);
 
             if (this.obmcLeftAvailable)
             {
                 int overlap = Math.Min(width, 64) >> 1;
                 ReadOnlySpan<byte> weights = Av1ObmcMask.Get(overlap);
                 int endRow = Math.Min(position.Y + blockSize.Get4x4HighCount(), this.picture.Parent.FrameHeader.ModeInfoRowCount);
-                int limit = maximumNeighbors[System.Numerics.BitOperations.Log2((uint)blockSize.Get4x4HighCount())];
+                int limit = maximumNeighbors[BitOperations.Log2((uint)blockSize.Get4x4HighCount())];
                 int count = 0;
                 int step;
                 for (int row = position.Y; row < endRow && count < limit; row += step)
@@ -564,27 +536,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     for (int y = 0; y < neighborHeight; y++)
                     {
-                        for (int x = 0; x < overlap; x++)
-                        {
-                            int weight = weights[x];
-                            int position2 = ((blockRow + y) * width) + x;
-                            weightedSource[position2] = ((weightedSource[position2] >> 6) * weight) +
-                                ((TOperator.GetSampleValue(neighborPrediction[(y * predictionWidth) + x]) << 6) * (BlendMaximumAlpha - weight));
-                            mask[position2] = (mask[position2] >> 6) * weight;
-                        }
+                        int offset = (blockRow + y) * width;
+                        TOperator.WeightObmcLeft(neighborPrediction[(y * predictionWidth)..], weights, weightedSource[offset..], mask[offset..]);
                     }
                 }
             }
 
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            ReadOnlySpan<TSample> sourceSamples = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, this.obmcBlockOrigin);
             for (int row = 0; row < height; row++)
             {
-                ReadOnlySpan<TSample> line = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, this.obmcBlockOrigin).Slice(row * sourcePlane.Stride, width);
-                for (int column = 0; column < width; column++)
-                {
-                    int position2 = (row * width) + column;
-                    weightedSource[position2] = (TOperator.GetSampleValue(line[column]) * BlendMaximumAlpha * BlendMaximumAlpha) - weightedSource[position2];
-                }
+                TOperator.SubtractObmcSource(sourceSamples[(row * sourcePlane.Stride)..], weightedSource.Slice(row * width, width));
             }
         }
     }

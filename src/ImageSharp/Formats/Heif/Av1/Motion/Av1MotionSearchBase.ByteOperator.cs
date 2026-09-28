@@ -214,5 +214,43 @@ internal static partial class Av1MotionSearchBase
                 }
             }
         }
+
+        /// <inheritdoc/>
+        public static int SumObmcAbsoluteDifferences(
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height)
+            => Av1ObmcSearch.SumAbsoluteDifferences<byte, Av1ObmcSearch.ByteOperator>(prediction, predictionStride, weightedSource, mask, width, height);
+
+        /// <inheritdoc/>
+        public static void GetObmcMoments(
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height,
+            out int sum,
+            out ulong squares)
+            => Av1ObmcSearch.GetMoments<byte, Av1ObmcSearch.ByteOperator>(prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
+        public static void WeightObmcAbove(ReadOnlySpan<byte> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width)
+            => Av1ObmcSearch.WeightAbove<byte, Av1ObmcSearch.ByteOperator>(prediction, weight, weightedSource, mask, width);
+
+        /// <inheritdoc/>
+        public static void WeightObmcLeft(ReadOnlySpan<byte> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
+            => Av1ObmcSearch.WeightLeft<byte, Av1ObmcSearch.ByteOperator>(prediction, weights, weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
+            => Av1ObmcSearch.Scale<byte, Av1ObmcSearch.ByteOperator>(weightedSource, mask);
+
+        /// <inheritdoc/>
+        public static void SubtractObmcSource(ReadOnlySpan<byte> source, Span<int> weightedSource)
+            => Av1ObmcSearch.SubtractFromSource<byte, Av1ObmcSearch.ByteOperator>(source, weightedSource);
     }
 }

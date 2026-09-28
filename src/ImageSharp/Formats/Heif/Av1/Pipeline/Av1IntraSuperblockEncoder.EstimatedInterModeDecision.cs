@@ -609,7 +609,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     width,
                     extent,
                     winner.TransformSize,
-                    this.quantization.QIndex[0],
+                    this.superblockQIndex,
                     this.quantization.DeltaQDc[0],
                     this.quantization.DeltaQAc[0],
                     this.bitDepth,
@@ -1278,10 +1278,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                     int countLog2 = BitOperations.Log2((uint)predictionSize.GetSize2d());
                                     long variance = Math.Max(0, squares - (((long)sum * sum) >> countLog2));
                                     int dcStep = Av1QuantizationLookup.GetDcQuant(
-                                        this.quantization.QIndex[0], this.quantization.DeltaQDc[planeIndex], this.bitDepth) >> 3;
+                                        this.superblockQIndex, this.quantization.DeltaQDc[planeIndex], this.bitDepth) >> 3;
 
                                     int acStep = Av1QuantizationLookup.GetAcQuant(
-                                        this.quantization.QIndex[0], this.quantization.DeltaQAc[planeIndex], this.bitDepth) >> 3;
+                                        this.superblockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth) >> 3;
 
                                     // Chroma is modeled per prediction unit. Summing its moments across
                                     // units first would change the DC energy and the skip comparison.
@@ -1321,7 +1321,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         width,
                         residualExtent,
                         transformSize,
-                        this.quantization.QIndex[0],
+                        this.superblockQIndex,
                         this.quantization.DeltaQDc[0],
                         this.quantization.DeltaQAc[0],
                         this.bitDepth,
@@ -1510,7 +1510,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformCoefficients,
                             transformSize,
                             planeTransformType,
-                            this.quantization.QIndex[0],
+                            this.superblockQIndex,
                             this.quantization.DeltaQDc[planeIndex],
                             this.quantization.DeltaQAc[planeIndex],
                             this.bitDepth,
@@ -1971,7 +1971,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     [],
                     [],
                     this.bitDepth,
-                    this.quantization.QIndex[0],
+                    this.superblockQIndex,
                     this.quantization.DeltaQDc[0],
                     0,
                     header.CodedLossless,
@@ -2337,7 +2337,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int sampleCountLog2 = BitOperations.Log2((uint)sampleCount);
             int normalizationShift = this.bitDepth.GetBitCount() - 8;
             int acQuantizer = Av1QuantizationLookup.GetAcQuant(
-                this.quantization.QIndex[0], this.quantization.DeltaQAc[0], this.bitDepth);
+                this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
 
             int context = Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo, macroBlock, 0);
             long bestCost = long.MaxValue;
@@ -2572,8 +2572,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
             int sizeLog2 = BitOperations.Log2((uint)width) + BitOperations.Log2((uint)height) - 4;
-            long dcQuant = Av1QuantizationLookup.GetDcQuant(this.quantization.QIndex[0], this.quantization.DeltaQDc[0], this.bitDepth);
-            long acQuant = Av1QuantizationLookup.GetAcQuant(this.quantization.QIndex[0], this.quantization.DeltaQAc[0], this.bitDepth);
+            long dcQuant = Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, this.quantization.DeltaQDc[0], this.bitDepth);
+            long acQuant = Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
             long dcThreshold = (dcQuant * dcQuant) >> 6;
             long acThreshold = (acQuant * acQuant) >> 6;
 
@@ -2644,8 +2644,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1Plane plane = (Av1Plane)planeIndex;
-                long chromaDc = Av1QuantizationLookup.GetDcQuant(this.quantization.QIndex[0], this.quantization.DeltaQDc[planeIndex], this.bitDepth);
-                long chromaAc = Av1QuantizationLookup.GetAcQuant(this.quantization.QIndex[0], this.quantization.DeltaQAc[planeIndex], this.bitDepth);
+                long chromaDc = Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, this.quantization.DeltaQDc[planeIndex], this.bitDepth);
+                long chromaAc = Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth);
                 long chromaDcThreshold = (chromaDc * chromaDc) >> 3;
                 long chromaAcThreshold = (chromaAc * chromaAc) >> 3;
                 Span<TSample> chromaPrediction = planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
@@ -2749,10 +2749,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 long variance = Math.Max(0, squaredError - (((long)sum * sum) >> sampleCountLog2));
                 predictionDistortion += squaredError << 4;
                 int dcStep = Av1QuantizationLookup.GetDcQuant(
-                    this.quantization.QIndex[0], this.quantization.DeltaQDc[planeIndex], this.bitDepth) >> 3;
+                    this.superblockQIndex, this.quantization.DeltaQDc[planeIndex], this.bitDepth) >> 3;
 
                 int acStep = Av1QuantizationLookup.GetAcQuant(
-                    this.quantization.QIndex[0], this.quantization.DeltaQAc[planeIndex], this.bitDepth) >> 3;
+                    this.superblockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth) >> 3;
 
                 // DC energy uses half the modeled rate and half the AC distortion scale.
                 // Removing the transform's factor of eight from both steps keeps the model in pixel units.
@@ -2849,7 +2849,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 extent,
                 transformSize,
-                this.quantization.QIndex[0],
+                this.superblockQIndex,
                 this.quantization.DeltaQDc[0],
                 this.quantization.DeltaQAc[0],
                 this.bitDepth,
@@ -2941,9 +2941,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 int level = this.picture.Parent.SpeedSettings.EstimatedTransformQuantizerLevel;
                 if (level != 0)
                 {
-                    multiplier -= (uint)this.quantization.QIndex[0] >> 6;
+                    multiplier -= (uint)this.superblockQIndex >> 6;
                     int step = Av1QuantizationLookup.GetAcQuant(
-                        this.quantization.QIndex[0], this.quantization.DeltaQAc[0], this.bitDepth) >> (this.bitDepth.GetBitCount() - 5);
+                        this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth) >> (this.bitDepth.GetBitCount() - 5);
 
                     uint squaredStep = (uint)(step * step);
                     varianceThreshold = 2 * squaredStep;

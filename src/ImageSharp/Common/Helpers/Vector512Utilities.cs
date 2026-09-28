@@ -432,4 +432,30 @@ internal static class Vector512_
         Vector512<float> vm0,
         Vector512<float> vm1)
         => Avx512F.FusedMultiplyAddNegated(vm0, vm1, va);
+
+    /// <summary>
+    /// Multiply the signed 32-bit integers in the even lanes of <paramref name="left"/> and <paramref name="right"/>,
+    /// and store the signed 64-bit products. The odd lanes are ignored.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the 64-bit products of the even lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<long> MultiplyWideningEven(Vector512<int> left, Vector512<int> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.Multiply(left, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.MultiplyWideningEven(left.GetLower(), right.GetLower()),
+            Vector256_.MultiplyWideningEven(left.GetUpper(), right.GetUpper()));
+    }
 }

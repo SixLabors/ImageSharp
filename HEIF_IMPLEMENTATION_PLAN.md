@@ -66,7 +66,34 @@ libavif path, then add aomenc reference cases with the same options (`--tune=iq`
    speed_features.c (1091, 1528, 2238, 2905), partition_search.c (632), picklpf.c (231), encoder.c (4313),
    encodeframe_utils.c (52), txb_rdopt.c (449).
 6. tune=ssim for color sequences (libaom av1_set_mb_ssim_rdmult_scaling and its uses).
-7. 12-bit: libavif disables loop restoration (AV1E_SET_ENABLE_RESTORATION 0); the port keeps the speed default.
+7. 12-bit: libavif disables loop restoration (AV1E_SET_ENABLE_RESTORATION 0). Done in c1de6fed4.
+
+Status 2026-09-28. Each feature is checked alone against `aomenc --usage=2` with the matching flag on bike512
+(4:2:0 8-bit, 4:4:4 10-bit, 4:0:0 8-bit; qindex 64 and 160; speeds 0-9):
+
+- `--sharpness=7` (quantizer rounding, trellis rules, loop filter sharpness): 60/60.
+- `--enable-qm=1 --qm-min=2 --qm-max=10`: 60/60. Two libaom facts were needed. The coefficients here are row-major
+  and libaom's are column-major, so the `wt_matrix_ref`/`iwt_matrix_ref` tables are stored transposed (the decoder
+  table was wrong for rectangular sizes). `skip_trellis_opt_based_on_satd()` calls `av1_setup_quant()`, which
+  clears the matrices, so a `search_tx_type()` candidate that runs the SATD gate is quantized and measured without
+  them while `av1_optimize_txb()` still reads the inverse matrix.
+- `--enable-adaptive-sharpness=1`, `--dist-metric=qm-psnr`, `--enable-cdef=3`, `--enable-chroma-deltaq=1`,
+  `--deltaq-mode=6` (Variance Boost), `--tune=ssim` and `--tune=iq`: 60/60 each.
+  - Variance Boost forces 64x64 superblocks. The non-RD path anchors at the base qindex, because `encode_b_nonrd()`
+    does not update `current_base_qindex`. Every `x->qindex` read, including `prune_rectangular_split_based_on_qidx`,
+    uses the superblock qindex.
+  - `setup_block_rdmult()` runs in `pick_sb_modes()`, `rd_pick_partition()`, `rd_try_subblock()` and `encode_b()`.
+    `pick_sb_modes()` measures the remaining bound again at the multiplier of the block. `rd_pick_rect_partition()`
+    stores `rect_part_rd` at the multiplier of the node, and the AB and 4-way pruning read those costs.
+  - QM-PSNR weights coefficient `i` with `qmatrix[scan[i]]` (`av1_block_error_qm()`). The weights in that order come
+    from `Av1QuantizationMatrixLookup.Distortion.tt`. The kernel uses 32-bit products and the even-lane 32 x 32 to
+    64 multiply; it takes 7-8% of the time of the scalar libaom loop.
+- The tune and quality selection of `aomCodecEncodeImage()`: tune=iq for lossy still color images with a
+  non-identity matrix, tune=ssim for color sequences, PSNR for alpha and lossless.
+- Open: color sequences at speed 7 and above. libavif uses realtime usage with CBR and a quantizer range of
+  quantizer +/- 4 (`rc_min_quantizer`, `rc_max_quantizer`); the port and its harness fix the quantizer.
+  `AV1E_SET_SKIP_POSTPROC_FILTERING` skips only filter application that no later stage reads, so it does not
+  change the stream.
 
 ## SIMD operator-pattern gaps, found 2026-09-28
 

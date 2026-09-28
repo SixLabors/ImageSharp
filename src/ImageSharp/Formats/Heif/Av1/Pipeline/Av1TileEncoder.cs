@@ -501,6 +501,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 ? 10240 - (((quantization.QIndex[0] * 6144) + 127) / 255) : 4096;
         }
 
+        // Variance Boost signals a superblock quantizer at the resolution the frame quantizer selects, and no loop
+        // filter deltas. The flag clears after analysis when no superblock moved. Reference: the delta_q_info setup of
+        // encode_frame_internal().
+        ObuDeltaParameters deltaQ = frameHeader.DeltaQParameters;
+        int baseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
+        bool varianceBoost = parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.VarianceBoost;
+        deltaQ.IsPresent = varianceBoost && baseQIndex > 0;
+        deltaQ.Resolution = varianceBoost ? Av1VarianceBoost.GetDeltaQResolution(baseQIndex) : 1;
+        frameHeader.DeltaLoopFilterParameters.IsPresent = false;
+        parent.DeltaQUsed = false;
+
         parent.TransformTypeCounts = blockWorkspace.TransformTypeCounts;
         parent.TransformTypeCounts.Span.Clear();
 
@@ -638,8 +649,23 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureParentControlSet parent = picture.Parent;
         ObuFrameHeader frameHeader = parent.FrameHeader;
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
+
+        // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate().
+        parent.SsimRateMultiplierFactors = null;
+        if (parent.EncoderOptions.Tuning is Av1Tuning.Ssim or Av1Tuning.Iq)
+        {
+            Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
+        }
+
         _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
             writer, source, references, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+
+        // A frame whose superblocks all kept the frame quantizer codes no delta quantizers. Reference: the deltaq_used
+        // test at the end of encode_frame_internal().
+        if (frameHeader.DeltaQParameters.IsPresent && !parent.DeltaQUsed)
+        {
+            frameHeader.DeltaQParameters.IsPresent = false;
+        }
 
         // A frame that allows intra block copy but never selects it stops allowing it, which also leaves the
         // in-loop filters free to run. Reference: the intrabc_used test at the end of encode_frame_internal().
@@ -759,7 +785,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         blockWorkspace.PreviousFrameRateMultiplier = Av1RateDistortion.GetRateMultiplier(
             frameHeader.QuantizationParameters.QIndex[0] + frameHeader.QuantizationParameters.DeltaQDc[0],
             picture.Sequence.SequenceHeader.ColorConfig.BitDepth,
-            parent.FrameUpdateType);
+            parent.FrameUpdateType,
+            parent.EncoderOptions.Tuning,
+            parent.SpeedSettings.IsRealtime);
         return encodedTiles;
     }
 
@@ -861,6 +889,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         int superblockRow = modeInfoRow >> superblockShift;
                         int superblockColumn = modeInfoColumn >> superblockShift;
                         superblock.Index = (superblockRow * coefficientBuffer.SuperblockColumnCount) + superblockColumn;
+                        superblock.TileIndex = tileIndex;
 
                         // Reference: the av1_zero(x->picked_ref_frames_mask) of init_encode_rd_sb().
                         Array.Clear(blockWorkspace.PickedReferenceFrameMasks);

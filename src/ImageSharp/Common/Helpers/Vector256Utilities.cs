@@ -757,4 +757,30 @@ internal static class Vector256_
 
         return Vector256.Create(lo, hi);
     }
+
+    /// <summary>
+    /// Multiply the signed 32-bit integers in the even lanes of <paramref name="left"/> and <paramref name="right"/>,
+    /// and store the signed 64-bit products. The odd lanes are ignored.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the 64-bit products of the even lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> MultiplyWideningEven(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Multiply(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.MultiplyWideningEven(left.GetLower(), right.GetLower()),
+            Vector128_.MultiplyWideningEven(left.GetUpper(), right.GetUpper()));
+    }
 }

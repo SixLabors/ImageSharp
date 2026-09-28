@@ -240,6 +240,7 @@ public class Av1PrimitiveBenchmarks
             false,
             false,
             this.endOfBlock8,
+            Av1CoefficientOptimizationWeights.Default,
             out _);
     }
 
@@ -323,7 +324,10 @@ public class Av1PrimitiveBenchmarks
             true,
             false,
             uint.MaxValue,
-            ref state);
+            false,
+            0,
+            ref state,
+            out _);
     }
 
     /// <summary>
@@ -358,7 +362,10 @@ public class Av1PrimitiveBenchmarks
             true,
             true,
             uint.MaxValue,
-            ref state);
+            false,
+            0,
+            ref state,
+            out _);
     }
 
     [Benchmark]

@@ -1097,4 +1097,36 @@ internal static class Vector128_
         Vector128<sbyte> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
         return Vector128.ShuffleNative(unpacked, Vector128.Create(0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
     }
+
+    /// <summary>
+    /// Multiply the signed 32-bit integers in the even lanes of <paramref name="left"/> and <paramref name="right"/>,
+    /// and store the signed 64-bit products. The odd lanes are ignored.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the 64-bit products of the even lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<long> MultiplyWideningEven(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse41.IsSupported)
+        {
+            return Sse41.Multiply(left, right);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.MultiplyWideningLower(
+                AdvSimd.Arm64.UnzipEven(left, left).GetLower(),
+                AdvSimd.Arm64.UnzipEven(right, right).GetLower());
+        }
+
+        // Sign-extend the even lanes in place, then multiply the 64-bit lanes.
+        return ((left.AsInt64() << 32) >> 32) * ((right.AsInt64() << 32) >> 32);
+    }
 }

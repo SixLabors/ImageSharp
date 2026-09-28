@@ -62,6 +62,20 @@ internal static partial class Av1CdefEncoder
             return;
         }
 
+        // Adaptive CDEF follows the constant-quality level, which every usage but real time codes with. It turns CDEF
+        // off up to quantizer index 32, which was best for still pictures; the damping keeps its earlier value.
+        // Reference: av1_cdef_search().
+        Av1EncoderOptions options = picture.Parent.EncoderOptions;
+        bool adaptive = options.CdefControl == Av1CdefControl.Adaptive && !picture.Parent.SpeedSettings.IsRealtime;
+        int qualityIndex = picture.Parent.ConstantQualityIndex;
+        if (adaptive && qualityIndex <= 32)
+        {
+            header.CdefParameters.BitCount = 0;
+            header.CdefParameters.YStrength[0] = 0;
+            header.CdefParameters.UvStrength[0] = 0;
+            return;
+        }
+
         header.CdefParameters.Damping = 3 + (header.QuantizationParameters.BaseQIndex >> 6);
         ReadOnlySpan<byte> candidates = GetCandidateStrengths(
             picture.Parent.EncodingSpeed,
@@ -71,7 +85,8 @@ internal static partial class Av1CdefEncoder
 
         if (candidates.IsEmpty)
         {
-            PredictStrengths(picture);
+            // Adaptive CDEF leaves chroma unfiltered to save decode time.
+            PredictStrengths(picture, avoidChroma: adaptive);
             if (header.CdefParameters.YStrength[0] == 0 && (source.IsMonochrome || header.CdefParameters.UvStrength[0] == 0))
             {
                 return;
@@ -148,9 +163,21 @@ internal static partial class Av1CdefEncoder
 
             int qIndex = header.QuantizationParameters.BaseQIndex + header.QuantizationParameters.DeltaQDc[0];
             int rateMultiplier = Av1RateDistortion.GetRateMultiplier(
-                qIndex, sequence.ColorConfig.BitDepth, picture.Parent.FrameUpdateType);
+                qIndex, sequence.ColorConfig.BitDepth, picture.Parent.FrameUpdateType, options.Tuning, picture.Parent.SpeedSettings.IsRealtime);
 
-            SelectStrengths(picture, candidates, lumaErrors, chromaErrors, indices[..count], errors[(2 * errorLength)..], rateMultiplier);
+            // Adaptive CDEF halves the strengths up to quantizer index 220, and at low quantizers also zeroes the low
+            // strengths, for which it searches at least one signaling bit. Reference: zero_low_cdef_strengths in
+            // av1_set_speed_features_qindex_dependent().
+            bool reduce = adaptive && qualityIndex <= 220;
+            bool zeroLowStrengths = reduce &&
+                (sequence.IsStillPicture || options.Tuning == Av1Tuning.Iq) &&
+                header.QuantizationParameters.BaseQIndex <= 140;
+            SelectStrengths(
+                picture, candidates, lumaErrors, chromaErrors, indices[..count], errors[(2 * errorLength)..], rateMultiplier, zeroLowStrengths);
+            if (reduce)
+            {
+                ReduceStrengths(header.CdefParameters, sequence.ColorConfig.PlaneCount > 1, zeroLowStrengths);
+            }
         }
 
         FilterFrame<TSample, TOperator>(allocator, picture, reconstruction, input, directions, variances, blocks);

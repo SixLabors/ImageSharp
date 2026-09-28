@@ -285,7 +285,7 @@ internal static partial class Av1TransformBlockEncoder
             visibleWidth,
             visibleHeight);
 
-        return BoundPixelDistortion(distortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
+        return BoundPixelDistortion(workspace, plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma, state.TransformType, distortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
     }
 
     /// <summary>
@@ -461,7 +461,7 @@ internal static partial class Av1TransformBlockEncoder
                 out sse);
         }
 
-        return BoundPixelDistortion(pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
+        return BoundPixelDistortion(workspace, plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma, state.TransformType, pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
     }
 
     /// <summary>
@@ -757,7 +757,7 @@ internal static partial class Av1TransformBlockEncoder
             visibleWidth,
             visibleHeight);
 
-        return BoundPixelDistortion(distortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
+        return BoundPixelDistortion(workspace, Av1ComponentType.Chroma, state.TransformType, distortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
     }
 
     /// <summary>
@@ -1023,7 +1023,7 @@ internal static partial class Av1TransformBlockEncoder
             ? distortion
             : (distortion + (1L << (shift - 1))) >> shift;
 
-        return BoundPixelDistortion(normalizedDistortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
+        return BoundPixelDistortion(workspace, plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma, state.TransformType, normalizedDistortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
     }
 
     /// <summary>
@@ -1202,7 +1202,7 @@ internal static partial class Av1TransformBlockEncoder
                 out sse);
         }
 
-        return BoundPixelDistortion(pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
+        return BoundPixelDistortion(workspace, plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma, state.TransformType, pixelDistortion, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
     }
 
     /// <summary>
@@ -1483,7 +1483,7 @@ internal static partial class Av1TransformBlockEncoder
             ? distortion
             : (distortion + (1L << (shift - 1))) >> shift;
 
-        return BoundPixelDistortion(normalizedDistortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
+        return BoundPixelDistortion(workspace, Av1ComponentType.Chroma, state.TransformType, normalizedDistortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
     }
 
     /// <summary>
@@ -1865,6 +1865,7 @@ internal static partial class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             Av1BitDepth.EightBit,
+            plane,
             ref state);
 
         if (state.EndOfBlock > 0)
@@ -1959,6 +1960,7 @@ internal static partial class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
+            plane,
             ref state);
 
         if (state.EndOfBlock > 0)
@@ -1989,6 +1991,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="plane">The component plane containing the block.</param>
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
     public static void EncodeLossy(
         Av1EncoderBlockWorkspace workspace,
@@ -1999,6 +2002,7 @@ internal static partial class Av1TransformBlockEncoder
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
+        Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
         => EncodeLossy(
             workspace,
@@ -2010,6 +2014,7 @@ internal static partial class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
+            plane,
             ref state);
 
     /// <summary>
@@ -2024,6 +2029,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="plane">The component plane containing the block.</param>
     /// <param name="state">The resulting transform type and end-of-block position.</param>
     public static void EncodeLossy(
         Av1EncoderBlockWorkspace workspace,
@@ -2035,6 +2041,7 @@ internal static partial class Av1TransformBlockEncoder
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
+        Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
     {
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
@@ -2065,6 +2072,7 @@ internal static partial class Av1TransformBlockEncoder
             bitDepth.GetBitCount(),
             workspace.TransformWorkspace);
 
+        Av1ComponentType componentType = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
         state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossy(
             transformed,
             quantized,
@@ -2074,7 +2082,9 @@ internal static partial class Av1TransformBlockEncoder
             qIndex,
             dcDeltaQ,
             acDeltaQ,
-            bitDepth);
+            bitDepth,
+            workspace.GetQuantizationMatrix(componentType, transformSize, transformType),
+            workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType));
 
         state.TransformType = transformType;
         state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
@@ -2157,6 +2167,7 @@ internal static partial class Av1TransformBlockEncoder
             _ => speedSettings.DefaultCoefficientOptimizationThresholds
         };
 
+        bool satdMeasured = false;
         bool optimize = speedSettings.EnableCoefficientOptimization && ShouldOptimizeCoefficients(
             blockMseQ8,
             transformed,
@@ -2164,7 +2175,8 @@ internal static partial class Av1TransformBlockEncoder
             acDequantizer,
             bitDepth,
             thresholds,
-            winnerEvaluation);
+            winnerEvaluation,
+            out satdMeasured);
         Av1WorkCounters.Stop(Av1WorkCounters.SatdGate, workSatd);
 
         long workQuant = Av1WorkCounters.Start();
@@ -2172,11 +2184,16 @@ internal static partial class Av1TransformBlockEncoder
         // Fast quantization is paired with trellis refinement. When normalized residual energy or
         // transformed SATD disables refinement, regular quantization supplies the stronger zero-bin and
         // reciprocal correction that the unrefined candidate requires.
+        // The SATD gate sets up the quantizer again, which drops the matrices of the candidate. Reference: the
+        // av1_setup_quant() call of skip_trellis_opt_based_on_satd().
+        workspace.CandidateMatricesDropped = satdMeasured;
+        ReadOnlySpan<byte> weights = satdMeasured ? default : workspace.GetQuantizationMatrix(componentType, transformSize, transformType);
+        ReadOnlySpan<byte> inverseWeights = satdMeasured ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
         state.EndOfBlock = optimize
             ? Av1ForwardQuantizer.QuantizeLossy(
-                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth)
+                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, weights, inverseWeights)
             : Av1ForwardQuantizer.QuantizeRegular(
-                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, 0);
+                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
         Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
 
         if (optimize && state.EndOfBlock > 0)
@@ -2196,6 +2213,7 @@ internal static partial class Av1TransformBlockEncoder
                 isInter,
                 useChromaWeights,
                 state.EndOfBlock,
+                workspace.GetCoefficientOptimizationWeights(componentType, transformSize, transformType),
                 out _);
         }
 
@@ -2238,6 +2256,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="dcOnly">Whether the block codes its residual mean as the DC coefficient alone.</param>
     /// <param name="perPixelMean">The signed transform-domain residual mean of a DC-only block.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <param name="matricesDropped">Whether the candidate was quantized without its quantization matrices.</param>
     /// <returns>The coefficient rate including the skip flag and the transform type.</returns>
     public static int EncodeTypeSearchCandidate(
         Av1EncoderBlockWorkspace workspace,
@@ -2265,7 +2284,8 @@ internal static partial class Av1TransformBlockEncoder
         uint satdThreshold,
         bool dcOnly,
         long perPixelMean,
-        ref Av1EncoderTransformBlockState state)
+        ref Av1EncoderTransformBlockState state,
+        out bool matricesDropped)
     {
         Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
@@ -2307,6 +2327,12 @@ internal static partial class Av1TransformBlockEncoder
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
         int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
         long workSatd = Av1WorkCounters.Start();
+
+        // The SATD gate sets up the quantizer again, which drops the matrices of the candidate for quantization
+        // and transform-domain distortion. Coefficient optimization still reads them from the block. Reference:
+        // the av1_setup_quant() call of skip_trellis_opt_based_on_satd().
+        matricesDropped = optimize && satdThreshold != uint.MaxValue;
+        workspace.CandidateMatricesDropped = matricesDropped;
         if (optimize && satdThreshold != uint.MaxValue)
         {
             // skip_trellis_opt_based_on_satd: the SATD of the coded coefficients, at transform scale one
@@ -2330,11 +2356,13 @@ internal static partial class Av1TransformBlockEncoder
 
             // Fast quantization is paired with trellis refinement. Without refinement, regular quantization
             // supplies the stronger zero-bin and reciprocal correction that the unrefined candidate requires.
+            ReadOnlySpan<byte> weights = matricesDropped ? default : workspace.GetQuantizationMatrix(componentType, transformSize, transformType);
+            ReadOnlySpan<byte> inverseWeights = matricesDropped ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
             state.EndOfBlock = optimize
                 ? Av1ForwardQuantizer.QuantizeLossy(
-                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth)
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, weights, inverseWeights)
                 : Av1ForwardQuantizer.QuantizeRegular(
-                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, 0);
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
 
             state.TransformType = transformType;
             Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
@@ -2372,6 +2400,7 @@ internal static partial class Av1TransformBlockEncoder
             isInter,
             useChromaWeights,
             state.EndOfBlock,
+            workspace.GetCoefficientOptimizationWeights(componentType, transformSize, transformType),
             out int coefficientRate);
 
         state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
@@ -2501,12 +2530,66 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="workspace">The workspace holding the speed settings and the evaluation stage.</param>
     /// <returns>The distortion type and its mean-error threshold.</returns>
     public static (int Type, uint Threshold) GetDistortionPolicy(Av1EncoderBlockWorkspace workspace)
-        => workspace.EvaluationStage switch
+        => GetDistortionPolicy(workspace, workspace.SpeedSettings);
+
+    /// <summary>
+    /// Gets the transform-domain distortion policy of the active evaluation stage. The QM-PSNR metric is measured
+    /// in the transform domain, so it always uses the transform domain. Reference: set_tx_domain_dist_params().
+    /// </summary>
+    /// <param name="workspace">The workspace holding the evaluation stage and the encoder configuration.</param>
+    /// <param name="speedSettings">The speed settings holding the stage policies.</param>
+    /// <returns>The distortion type and the mean squared error threshold.</returns>
+    public static (int Type, uint Threshold) GetDistortionPolicy(Av1EncoderBlockWorkspace workspace, Av1EncoderSpeedSettings speedSettings)
+    {
+        if (workspace.EncoderOptions.DistortionMetric == Av1DistortionMetric.QuantizationMatrixPsnr)
         {
-            Av1EncoderEvaluationStage.Candidate => workspace.SpeedSettings.ModeTransformDomainDistortion,
-            Av1EncoderEvaluationStage.Winner => workspace.SpeedSettings.WinnerTransformDomainDistortion,
-            _ => workspace.SpeedSettings.DefaultTransformDomainDistortion
+            return (1, 0);
+        }
+
+        return workspace.EvaluationStage switch
+        {
+            Av1EncoderEvaluationStage.Candidate => speedSettings.ModeTransformDomainDistortion,
+            Av1EncoderEvaluationStage.Winner => speedSettings.WinnerTransformDomainDistortion,
+            _ => speedSettings.DefaultTransformDomainDistortion
         };
+    }
+
+    /// <summary>
+    /// Measures the transform-domain distortion of a transform block, weighted by its quantization matrix under the
+    /// QM-PSNR metric. Reference: dist_block_tx_domain().
+    /// </summary>
+    /// <param name="workspace">The workspace holding the encoder configuration and the matrix levels.</param>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="coefficients">The original transform coefficients.</param>
+    /// <param name="dequantized">The reconstructed transform coefficients.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The transform type selecting the matrix and the scan.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="sumOfSquares">The normalized energy of the original coefficients.</param>
+    /// <param name="useMatrix">Whether the candidate kept its quantization matrix.</param>
+    /// <returns>The normalized squared quantization error.</returns>
+    public static long GetTransformError(
+        Av1EncoderBlockWorkspace workspace,
+        Av1ComponentType componentType,
+        ReadOnlySpan<int> coefficients,
+        ReadOnlySpan<int> dequantized,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1BitDepth bitDepth,
+        out long sumOfSquares,
+        bool useMatrix = true)
+    {
+        if (useMatrix && workspace.EncoderOptions.DistortionMetric == Av1DistortionMetric.QuantizationMatrixPsnr)
+        {
+            ReadOnlySpan<byte> weights = workspace.GetDistortionWeights(componentType, transformSize, transformType);
+            if (!weights.IsEmpty)
+            {
+                return GetWeightedTransformError(coefficients, dequantized, transformSize, bitDepth, weights, out sumOfSquares);
+            }
+        }
+
+        return GetTransformError(coefficients, dequantized, transformSize, bitDepth, out sumOfSquares);
+    }
 
     /// <summary>
     /// Fills the residual of a transform block beyond the frame edge when the picture pads its border.
@@ -2690,8 +2773,10 @@ internal static partial class Av1TransformBlockEncoder
         int acDequantizer,
         Av1BitDepth bitDepth,
         (uint Distortion, uint Satd) thresholds,
-        bool winnerEvaluation)
+        bool winnerEvaluation,
+        out bool satdMeasured)
     {
+        satdMeasured = false;
         if (winnerEvaluation)
         {
             // Final encoding has fixed mode and transform choices. Its trellis pass is independent
@@ -2717,6 +2802,7 @@ internal static partial class Av1TransformBlockEncoder
             return true;
         }
 
+        satdMeasured = true;
         long satd = Av1CoefficientMeasures.SumAbsolute(transformed);
 
         // skip_trellis_opt_based_on_satd scales by MAX_TX_SCALE (one) minus the transform scale, so a
@@ -2843,7 +2929,16 @@ internal static partial class Av1TransformBlockEncoder
                         workspace.TransformWorkspace);
 
                     endOfBlock = Av1ForwardQuantizer.QuantizeRegular(
-                        transformed, quantized, dequantized, transformSize, Av1TransformType.DctDct, qIndex, dcDeltaQ, 0, bitDepth, sharpness);
+                        transformed,
+                        quantized,
+                        dequantized,
+                        transformSize,
+                        Av1TransformType.DctDct,
+                        qIndex,
+                        dcDeltaQ,
+                        0,
+                        bitDepth,
+                        sharpness);
                 }
 
                 int transformRate = writer.GetCoefficientCost(
@@ -2919,6 +3014,9 @@ internal static partial class Av1TransformBlockEncoder
     /// quadrant is measured in the transform domain, with the energy it cannot code added back.
     /// Reference: the pixel-domain branch of the distortion step of search_tx_type().
     /// </summary>
+    /// <param name="workspace">The workspace holding the encoder configuration and the matrix levels.</param>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="transformType">The transform type of the candidate.</param>
     /// <param name="pixelDistortion">The pixel-domain distortion in AV1 transform units.</param>
     /// <param name="residualEnergy">The residual energy in the same units.</param>
     /// <param name="endOfBlock">The position after the final nonzero coefficient.</param>
@@ -2928,6 +3026,9 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <returns>The distortion the reference records for the block.</returns>
     private static long BoundPixelDistortion(
+        Av1EncoderBlockWorkspace workspace,
+        Av1ComponentType componentType,
+        Av1TransformType transformType,
         long pixelDistortion,
         long residualEnergy,
         int endOfBlock,
@@ -2944,12 +3045,19 @@ internal static partial class Av1TransformBlockEncoder
         }
 
         int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+
+        // The transform-domain bound uses the matrix-weighted error of the QM-PSNR metric when the candidate kept its
+        // matrices. Reference: the dist_block_tx_domain() calls of search_tx_type().
         long transformDistortion = GetTransformError(
+            workspace,
+            componentType,
             coefficients[..codedCoefficientCount],
             dequantized[..codedCoefficientCount],
             transformSize,
+            transformType,
             bitDepth,
-            out long transformEnergy);
+            out long transformEnergy,
+            useMatrix: !workspace.CandidateMatricesDropped);
 
         long energyDifference = residualEnergy - transformEnergy;
         if (!is64x64 || !isHighEnergy || energyDifference * 2 < transformEnergy)

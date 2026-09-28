@@ -1619,11 +1619,13 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <param name="screenContent">Whether the frame permits screen-content tools.</param>
     /// <param name="intraFrame">Whether the frame has no inter prediction.</param>
     /// <param name="updateType">The frame's reference-update role.</param>
+    /// <param name="blockQIndex">The quantizer index of the block, which differs from the frame's under delta q.</param>
     /// <returns>The inclusive minimum and maximum square parent sizes.</returns>
     public (Av1BlockSize Minimum, Av1BlockSize Maximum) GetRectangularPartitionRange(
         bool screenContent,
         bool intraFrame,
-        Av1FrameUpdateType updateType)
+        Av1FrameUpdateType updateType,
+        int blockQIndex)
     {
         Av1BlockSize minimum = Av1BlockSize.Block4x4;
         Av1BlockSize maximum = Av1BlockSize.Block128x128;
@@ -1647,9 +1649,9 @@ internal readonly struct Av1EncoderSpeedSettings
                 // Square sizes are three enum entries apart because rectangular sizes lie between them.
                 minimum = (Av1BlockSize)Math.Max(
                     (int)Av1BlockSize.Block4x4,
-                    (int)Av1BlockSize.Block32x32 - ((this.qIndex * 3 / 256) * 3));
+                    (int)Av1BlockSize.Block32x32 - ((blockQIndex * 3 / 256) * 3));
             }
-            else if (!this.allIntra && !intraFrame && this.Speed >= HeifEncodingSpeed.Level4 && this.qIndex < 35)
+            else if (!this.allIntra && !intraFrame && this.Speed >= HeifEncodingSpeed.Level4 && blockQIndex < 35)
             {
                 minimum = Av1BlockSize.Block16x16;
             }

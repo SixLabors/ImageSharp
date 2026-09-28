@@ -93,6 +93,25 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
+    /// Gets the external quantizer of each quality for the image tune: a piecewise linear curve that corrects for the
+    /// bit rate of that tune. Reference: tuneIqQualityToQuantizer.
+    /// </summary>
+    private static ReadOnlySpan<byte> ImageTuneQualityToQuantizer =>
+    [
+        63, 63, 63, 62, 62, 62, 61, 61, 60, 60,
+        59, 59, 58, 58, 57, 57, 56, 56, 55, 55,
+        54, 54, 53, 53, 52, 52, 51, 51, 50, 50,
+        49, 49, 48, 48, 47, 46, 46, 45, 45, 44,
+        43, 43, 42, 42, 41, 40, 40, 39, 39, 38,
+        37, 37, 36, 36, 35, 34, 33, 33, 32, 31,
+        30, 30, 29, 28, 27, 27, 26, 25, 24, 24,
+        23, 22, 21, 21, 20, 19, 18, 18, 17, 16,
+        15, 15, 14, 13, 12, 12, 11, 10, 9, 9,
+        8, 7, 6, 6, 5, 4, 3, 3, 2, 1,
+        0
+    ];
+
+    /// <summary>
     /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -113,7 +132,7 @@ internal sealed partial class HeifEncoderCore
         using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
         if (image.Frames.Count > 1)
         {
-            Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
+            Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: false);
             bool animateRootFrame = this.encoder.AnimateRootFrame
                 ?? image.Metadata.GetHeifMetadata().AnimateRootFrame;
 
@@ -965,13 +984,14 @@ internal sealed partial class HeifEncoderCore
 
     /// <summary>
     /// Maps the public lossy quality scale through libaom's external quantizer scale to its internal quantizer index.
+    /// Reference: aomQualityToQuantizer().
     /// </summary>
     /// <param name="quality">The lossy quality in the inclusive range zero through one hundred.</param>
+    /// <param name="imageTune">Whether the encoding uses the image tune, which has its own quality curve.</param>
     /// <returns>The AV1 quantizer index.</returns>
-    public static int GetAv1QuantizerIndex(int quality)
+    public static int GetAv1QuantizerIndex(int quality, bool imageTune = false)
     {
-        int scaledQuality = (100 - quality) * 63;
-        int quantizer = (scaledQuality + 50) / 100;
+        int quantizer = imageTune ? ImageTuneQualityToQuantizer[quality] : (((100 - quality) * 63) + 50) / 100;
 
         // External quantizer zero maps to the codec's lossless qindex. Keep quality 100 lossy as its public contract requires.
         quantizer = Math.Max(quantizer, 1);
@@ -995,7 +1015,7 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
+        Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: true);
         if (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
         {
             this.CompressAv1GridPixels(image, stream, settings, items, links, cancellationToken);

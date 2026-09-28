@@ -753,10 +753,6 @@ internal partial class Av1TileWriter
             return 0;
         }
 
-        if (blockOrigin.X == 0 && blockOrigin.Y == 0 && partitionType == Av1PartitionType.None)
-        {
-        }
-
         if (hasRows && hasColumns)
         {
             return writer.GetPartitionTypeCost(partitionType, context);

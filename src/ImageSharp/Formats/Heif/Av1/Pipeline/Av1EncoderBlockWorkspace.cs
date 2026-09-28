@@ -6,7 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -452,6 +454,29 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Av1EncoderSpeedSettings SpeedSettings { get; set; }
 
     /// <summary>
+    /// Gets or sets the encoder configuration of the current picture.
+    /// </summary>
+    public Av1EncoderOptions EncoderOptions { get; set; } = Av1EncoderOptions.Create(HeifEncodingSpeed.Level6);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the last transform candidate was quantized without its quantization
+    /// matrices. Reference: the av1_setup_quant() call of skip_trellis_opt_based_on_satd().
+    /// </summary>
+    public bool CandidateMatricesDropped { get; set; }
+
+    /// <summary>
+    /// Gets or sets the quantization matrix level of the luma plane; the flat level 15 turns the matrix off.
+    /// Reference: qmatrix_level_y, or NUM_QM_LEVELS - 1 when av1_use_qmatrix() is false.
+    /// </summary>
+    public int LumaQuantizationMatrixLevel { get; set; } = Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1;
+
+    /// <summary>
+    /// Gets or sets the quantization matrix level of the chroma planes, which share one level.
+    /// Reference: qmatrix_level_u.
+    /// </summary>
+    public int ChromaQuantizationMatrixLevel { get; set; } = Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1;
+
+    /// <summary>
     /// Gets or sets a value indicating whether the residual beyond the frame edge is filled from its visible part.
     /// Reference: cpi->do_border_pad.
     /// </summary>
@@ -523,6 +548,90 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the real-time candidate state owned by this worker.
     /// </summary>
     public ref Av1EstimatedInterSearchState EstimatedInterSearchState => ref this.estimatedInterSearchState;
+
+    /// <summary>
+    /// Selects the quantization matrix levels of a frame. Reference: set_qmatrix().
+    /// </summary>
+    /// <param name="quantization">The frame quantization parameters.</param>
+    public void SetQuantizationMatrixLevels(ObuQuantizationParameters quantization)
+    {
+        int flat = Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1;
+        bool useMatrix = quantization.IsUsingQMatrix && quantization.BaseQIndex != 0;
+        this.LumaQuantizationMatrixLevel = useMatrix ? quantization.QMatrix[(int)Av1Plane.Y] : flat;
+        this.ChromaQuantizationMatrixLevel = useMatrix ? quantization.QMatrix[(int)Av1Plane.U] : flat;
+    }
+
+    /// <summary>
+    /// Gets the forward quantization matrix of a transform block, or an empty span for a flat matrix.
+    /// Reference: av1_get_qmatrix().
+    /// </summary>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="transformType">The transform type; one-dimensional and identity transforms use a flat matrix.</param>
+    /// <returns>The raster-order weights.</returns>
+    public ReadOnlySpan<byte> GetQuantizationMatrix(Av1ComponentType componentType, Av1TransformSize transformSize, Av1TransformType transformType)
+    {
+        int level = componentType == Av1ComponentType.Luminance ? this.LumaQuantizationMatrixLevel : this.ChromaQuantizationMatrixLevel;
+        return level >= Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1 || transformType >= Av1TransformType.Identity
+            ? default
+            : Av1QuantizationMatrixLookup.GetQuantizationMatrix(level, componentType == Av1ComponentType.Luminance ? Av1Plane.Y : Av1Plane.U, transformSize);
+    }
+
+    /// <summary>
+    /// Gets the forward quantization matrix of a transform block in the order of the weighted distortion measure, or
+    /// an empty span for a flat matrix. Reference: the qmatrix and scan that av1_block_error_qm() reads.
+    /// </summary>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="transformType">The transform type; one-dimensional and identity transforms use a flat matrix.</param>
+    /// <returns>The weight of each raster coefficient.</returns>
+    public ReadOnlySpan<byte> GetDistortionWeights(Av1ComponentType componentType, Av1TransformSize transformSize, Av1TransformType transformType)
+    {
+        int level = componentType == Av1ComponentType.Luminance ? this.LumaQuantizationMatrixLevel : this.ChromaQuantizationMatrixLevel;
+        return level >= Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1 || transformType >= Av1TransformType.Identity
+            ? default
+            : Av1QuantizationMatrixLookup.GetDistortionWeights(level, componentType == Av1ComponentType.Luminance ? Av1Plane.Y : Av1Plane.U, transformSize);
+    }
+
+    /// <summary>
+    /// Gets the inverse quantization matrix of a transform block, or an empty span for a flat matrix.
+    /// Reference: av1_get_iqmatrix().
+    /// </summary>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="transformType">The transform type; one-dimensional and identity transforms use a flat matrix.</param>
+    /// <returns>The raster-order weights.</returns>
+    public ReadOnlySpan<byte> GetInverseQuantizationMatrix(Av1ComponentType componentType, Av1TransformSize transformSize, Av1TransformType transformType)
+    {
+        int level = componentType == Av1ComponentType.Luminance ? this.LumaQuantizationMatrixLevel : this.ChromaQuantizationMatrixLevel;
+        return level >= Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1 || transformType >= Av1TransformType.Identity
+            ? default
+            : Av1InverseQuantizationLookup.GetQuantizationMatrix(level, componentType == Av1ComponentType.Luminance ? Av1Plane.Y : Av1Plane.U, transformSize);
+    }
+
+    /// <summary>
+    /// Gets the coefficient optimization weights of a transform block. Reference: the configuration reads of
+    /// av1_optimize_txb().
+    /// </summary>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="transformType">The transform type.</param>
+    /// <returns>The sharpness, rate shift and matrices.</returns>
+    public Av1CoefficientOptimizationWeights GetCoefficientOptimizationWeights(
+        Av1ComponentType componentType,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType)
+    {
+        Av1EncoderOptions options = this.EncoderOptions;
+        ReadOnlySpan<byte> distortionWeights = options.DistortionMetric == Av1DistortionMetric.QuantizationMatrixPsnr
+            ? this.GetQuantizationMatrix(componentType, transformSize, transformType)
+            : default;
+        return new Av1CoefficientOptimizationWeights(
+            options.Sharpness,
+            options.Tuning == Av1Tuning.Iq ? 7 : 5,
+            distortionWeights,
+            this.GetInverseQuantizationMatrix(componentType, transformSize, transformType));
+    }
 
     /// <summary>
     /// Gets the trial reconstruction reused by restoration searches in this worker.

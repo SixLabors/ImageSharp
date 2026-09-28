@@ -106,6 +106,19 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
+    /// Recomputes the cost at another rate multiplier, keeping an invalid candidate invalid.
+    /// Reference: av1_rd_cost_update().
+    /// </summary>
+    /// <param name="rateMultiplier">The rate multiplier.</param>
+    public void UpdateCost(int rateMultiplier)
+    {
+        if (this.Rate < int.MaxValue && this.Distortion < long.MaxValue && this.Cost < long.MaxValue)
+        {
+            this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
+        }
+    }
+
+    /// <summary>
     /// Computes the rate and distortion remaining after a partial candidate.
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier for the remaining candidate.</param>

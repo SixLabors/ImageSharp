@@ -59,7 +59,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 frameSize,
                 Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y));
             Av1MotionVectorCosts costs = this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision);
-            int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(this.quantization.QIndex[0], this.bitDepth);
+            int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(this.superblockQIndex, this.bitDepth);
             Av1MotionVector integerReference = new(
                 ((referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3) * 8,
                 ((referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3) * 8);

@@ -15,7 +15,8 @@ internal static partial class Av1CdefEncoder
     /// Predicts the frame strengths from the quantizer. Reference: av1_pick_cdef_from_qp(), without its screen-content fit.
     /// </summary>
     /// <param name="picture">The frame receiving predicted strengths.</param>
-    private static void PredictStrengths(Av1PictureControlSet picture)
+    /// <param name="avoidChroma">Whether chroma stays unfiltered.</param>
+    private static void PredictStrengths(Av1PictureControlSet picture, bool avoidChroma)
     {
         ObuFrameHeader header = picture.Parent.FrameHeader;
         Av1BitDepth bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
@@ -49,7 +50,7 @@ internal static partial class Av1CdefEncoder
         int uvSecondary = Math.Clamp((int)MathF.Round(uvSecondaryEstimate, MidpointRounding.AwayFromZero), 0, 3);
 
         header.CdefParameters.YStrength[0] = (yPrimary << 2) + ySecondary;
-        header.CdefParameters.UvStrength[0] = (uvPrimary << 2) + uvSecondary;
+        header.CdefParameters.UvStrength[0] = avoidChroma ? 0 : (uvPrimary << 2) + uvSecondary;
         if (picture.Parent.SpeedSettings.SkipCdefSuperblock)
         {
             // A second, empty strength lets a 64x64 unit leave CDEF off. Mode decision already stored each

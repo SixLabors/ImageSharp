@@ -23,6 +23,8 @@ internal static partial class Av1ForwardQuantizer
     /// <param name="acDeltaQ">The AC index adjustment.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
     /// <param name="sharpness">The encoder sharpness setting from zero through seven.</param>
+    /// <param name="weights">The forward quantization matrix, or an empty span for a flat matrix.</param>
+    /// <param name="inverseWeights">The inverse quantization matrix, or an empty span for a flat matrix.</param>
     /// <returns>The one-based final nonzero scan position.</returns>
     public static ushort QuantizeRegular(
         ReadOnlySpan<int> coefficients,
@@ -34,8 +36,17 @@ internal static partial class Av1ForwardQuantizer
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
-        int sharpness)
+        int sharpness,
+        ReadOnlySpan<byte> weights = default,
+        ReadOnlySpan<byte> inverseWeights = default)
     {
+        // Reference: the matrix branch of av1_quantize_b_facade() and av1_highbd_quantize_b_facade().
+        if (!weights.IsEmpty)
+        {
+            return QuantizeWithMatrix(
+                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights, regular: true);
+        }
+
         if (bitDepth != Av1BitDepth.EightBit)
         {
             return QuantizeRegular<HighBitDepthRegularQuantizationOperator>(

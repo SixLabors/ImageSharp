@@ -944,7 +944,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int columns = (parent.FrameHeader.FrameSize.FrameWidth + 63) >> 6;
                 ulong sourceSad = parent.SourceBlockSad.Span[((superblockOrigin.Y >> 6) * columns) + (superblockOrigin.X >> 6)];
                 InlineArray4<long> thresholds = default;
-                this.GetInterVarianceThresholds(sourceSad, false, this.quantization.QIndex[0], thresholds);
+                this.GetInterVarianceThresholds(sourceSad, false, this.superblockQIndex, thresholds);
 
                 ReadOnlySpan<TSample> prediction = this.PrepareInterVariancePrediction(
                     macroBlock, superblockOrigin, out int predictionStride, out uint lastSad);
@@ -998,7 +998,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int speed = (int)this.picture.Parent.EncodingSpeed;
             int frameWidth = this.picture.Parent.FrameHeader.FrameSize.FrameWidth;
             int frameHeight = this.picture.Parent.FrameHeader.FrameSize.FrameHeight;
-            long threshold = 120L * Av1QuantizationLookup.GetAcQuant(this.quantization.QIndex[0], 0, this.bitDepth);
+            long threshold = 120L * Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, 0, this.bitDepth);
             bool stillPicture = this.picture.Sequence.SequenceHeader.IsStillPicture;
             bool largePartitions = stillPicture
                 ? speed >= 8 && Math.Min(frameWidth, frameHeight) >= 720

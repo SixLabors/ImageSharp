@@ -345,7 +345,7 @@ internal static class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
-        => CreateColorSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+        => CreateColorSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed, allIntra: false));
 
     /// <summary>
     /// Creates an encoder that retains reconstructed color frames for prediction by later samples in the sequence.
@@ -369,7 +369,7 @@ internal static class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
-        => CreateAlphaSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+        => CreateAlphaSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed, allIntra: false));
 
     /// <summary>
     /// Creates an encoder that retains reconstructed alpha frames for prediction by later samples in the sequence.
@@ -483,11 +483,12 @@ internal static class Av1FrameEncoder
         // Superblock geometry follows coding options and resolution. Reference: av1_select_sb_size(). Real-time
         // coding uses 128x128 only above 720p. Otherwise small frames use 64x64 above options zero, and the fastest
         // still-image mode also uses it below 4K.
+        // Variance Boost only supports 64x64 superblocks.
         int minimumDimension = Math.Min(width, height);
-        bool use128x128Superblock = speedSettings.IsRealtime
+        bool use128x128Superblock = options.DeltaQMode != Av1DeltaQMode.VarianceBoost && (speedSettings.IsRealtime
             ? minimumDimension > 720
             : !(options.Speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
-                !(isStillPicture && options.Speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160);
+                !(isStillPicture && options.Speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160));
 
         return new ObuSequenceHeader
         {
@@ -522,9 +523,9 @@ internal static class Av1FrameEncoder
             },
             EnableSuperResolution = false,
 
-            // The reference disables CDEF by default in all-intra mode because it blurs images.
-            // Every other mode keeps it enabled.
-            EnableCdef = !isStillPicture,
+            // All-intra usage turns CDEF off by default because it blurs images; the image tune turns it back on
+            // with adaptive strengths. Reference: the enable_cdef assignment of init_seq_coding_tools().
+            EnableCdef = options.CdefControl != Av1CdefControl.None,
             EnableRestoration = speedSettings.EnableRestoration && options.EnableRestoration,
             ColorConfig = colorConfig
         };
@@ -657,7 +658,7 @@ internal static class Av1FrameEncoder
             }
         };
 
-        ConfigureFrameHeader(frameHeader, qIndex, options, frameType);
+        ConfigureFrameHeader(frameHeader, sequenceHeader, qIndex, options, frameType);
         return frameHeader;
     }
 
@@ -666,6 +667,7 @@ internal static class Av1FrameEncoder
     /// </summary>
     private static void ConfigureFrameHeader(
         ObuFrameHeader frameHeader,
+        ObuSequenceHeader sequenceHeader,
         int qIndex,
         Av1EncoderOptions options,
         ObuFrameType frameType)
@@ -715,7 +717,12 @@ internal static class Av1FrameEncoder
             }
         }
 
-        frameHeader.QuantizationParameters.BaseQIndex = qIndex;
+        Av1FrameQuantizer.SetQuantizer(
+            frameHeader.QuantizationParameters,
+            sequenceHeader.ColorConfig,
+            qIndex,
+            options,
+            sequenceHeader.IsStillPicture);
         Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
     }
 
@@ -870,6 +877,8 @@ internal static class Av1FrameEncoder
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
         picture.Picture.Parent.EncodingSpeed = options.Speed;
+        picture.Picture.Parent.EncoderOptions = options;
+        picture.Picture.Parent.ConstantQualityIndex = frameHeader.QuantizationParameters.BaseQIndex;
         picture.Picture.Parent.SpeedSettings = speedSettings;
         Encode(
             obuWriter,
@@ -979,6 +988,8 @@ internal static class Av1FrameEncoder
 
         picture.Picture.Parent.IsScreenContent = isScreenContent;
         picture.Picture.Parent.EncodingSpeed = options.Speed;
+        picture.Picture.Parent.EncoderOptions = options;
+        picture.Picture.Parent.ConstantQualityIndex = frameHeader.QuantizationParameters.BaseQIndex;
         picture.Picture.Parent.SpeedSettings = speedSettings;
         Encode(
             obuWriter,
@@ -1980,6 +1991,8 @@ internal static class Av1FrameEncoder
                     height);
 
                 this.PictureBuffer.Picture.Parent.EncodingSpeed = options.Speed;
+                this.PictureBuffer.Picture.Parent.EncoderOptions = options;
+                this.PictureBuffer.Picture.Parent.ConstantQualityIndex = qIndex;
                 this.PictureBuffer.Picture.Parent.SpeedSettings = speedSettings;
                 this.PictureBuffer.Picture.Parent.ReferenceRefreshControl = this;
 
@@ -2099,7 +2112,7 @@ internal static class Av1FrameEncoder
 
         protected void ConfigureFrameHeader(ObuFrameType frameType)
         {
-            Av1FrameEncoder.ConfigureFrameHeader(this.FrameHeader, this.QIndex, this.Options, frameType);
+            Av1FrameEncoder.ConfigureFrameHeader(this.FrameHeader, this.SequenceHeader, this.QIndex, this.Options, frameType);
 
             // A sequence keeps backward adaptation, so every frame stores its final probabilities for later frames.
             // Reference: the REFRESH_FRAME_CONTEXT_BACKWARD default of refresh_frame_context, which the frame
@@ -2796,6 +2809,8 @@ internal static class Av1FrameEncoder
             parent.IsScreenContent = isScreenContent;
             parent.SpeedSettings = new(
                 this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+            parent.EncoderOptions = this.Options;
+            parent.ConstantQualityIndex = this.QIndex;
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
@@ -2997,6 +3012,8 @@ internal static class Av1FrameEncoder
             parent.IsScreenContent = isScreenContent;
             parent.SpeedSettings = new(
                 this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+            parent.EncoderOptions = this.Options;
+            parent.ConstantQualityIndex = this.QIndex;
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().

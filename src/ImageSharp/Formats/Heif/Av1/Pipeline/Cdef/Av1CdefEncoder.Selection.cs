@@ -88,6 +88,7 @@ internal static partial class Av1CdefEncoder
     /// <param name="unitIndices">The mode-grid index of each measured unit.</param>
     /// <param name="totals">The reusable accumulator for all candidate pairs.</param>
     /// <param name="rateMultiplier">The frame's rate weight.</param>
+    /// <param name="searchTwoStrengths">Whether the search starts at one signaling bit, when more are possible.</param>
     private static void SelectStrengths(
         Av1PictureControlSet picture,
         ReadOnlySpan<byte> candidates,
@@ -95,7 +96,8 @@ internal static partial class Av1CdefEncoder
         ReadOnlySpan<ulong> chromaErrors,
         ReadOnlySpan<int> unitIndices,
         Span<ulong> totals,
-        int rateMultiplier)
+        int rateMultiplier,
+        bool searchTwoStrengths)
     {
         ObuConstraintDirectionalEnhancementFilterParameters parameters = picture.Parent.FrameHeader.CdefParameters;
         bool color = picture.Sequence.SequenceHeader.ColorConfig.PlaneCount > 1;
@@ -106,7 +108,8 @@ internal static partial class Av1CdefEncoder
         Span<int> chroma = stackalloc int[8];
         long bestCost = long.MaxValue;
 
-        for (int bits = 0; bits <= maximumBits; bits++)
+        int minimumBits = searchTwoStrengths && maximumBits > 0 ? 1 : 0;
+        for (int bits = minimumBits; bits <= maximumBits; bits++)
         {
             int strengthCount = 1 << bits;
             ulong error = 0;
@@ -177,6 +180,49 @@ internal static partial class Av1CdefEncoder
             if (color)
             {
                 parameters.UvStrength[index] = candidates[parameters.UvStrength[index]];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Halves the primary and secondary strengths of every palette entry, and zeroes the low ones when asked. Chroma
+    /// is zeroed with a zeroed luma entry. Reference: the strength reduction of av1_cdef_search().
+    /// </summary>
+    /// <param name="parameters">The frame CDEF parameters holding packed strengths.</param>
+    /// <param name="color">Whether the frame codes chroma strengths.</param>
+    /// <param name="zeroLowStrengths">Whether low strengths turn off.</param>
+    private static void ReduceStrengths(ObuConstraintDirectionalEnhancementFilterParameters parameters, bool color, bool zeroLowStrengths)
+    {
+        const int secondaryCount = 4;
+        for (int index = 0; index < 1 << parameters.BitCount; index++)
+        {
+            int luma = parameters.YStrength[index];
+            int lumaPrimary = (luma / secondaryCount) >> 1;
+            int lumaSecondary = (luma % secondaryCount) >> 1;
+            parameters.YStrength[index] = (lumaPrimary * secondaryCount) + lumaSecondary;
+
+            int chromaPrimary = 0;
+            int chromaSecondary = 0;
+            if (color)
+            {
+                int chroma = parameters.UvStrength[index];
+                chromaPrimary = (chroma / secondaryCount) >> 1;
+                chromaSecondary = (chroma % secondaryCount) >> 1;
+                parameters.UvStrength[index] = (chromaPrimary * secondaryCount) + chromaSecondary;
+            }
+
+            if (zeroLowStrengths)
+            {
+                bool lowLuma = lumaPrimary <= 4 && lumaSecondary <= 1;
+                if (lowLuma)
+                {
+                    parameters.YStrength[index] = 0;
+                }
+
+                if (color && (lowLuma || (chromaPrimary <= 4 && chromaSecondary <= 1)))
+                {
+                    parameters.UvStrength[index] = 0;
+                }
             }
         }
     }

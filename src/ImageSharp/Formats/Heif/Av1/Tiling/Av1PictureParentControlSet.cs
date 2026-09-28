@@ -130,6 +130,28 @@ internal class Av1PictureParentControlSet
     public Av1EncoderSpeedSettings SpeedSettings { get; set; }
 
     /// <summary>
+    /// Gets or sets the encoder configuration of this picture.
+    /// </summary>
+    public Av1EncoderOptions EncoderOptions { get; set; } = Av1EncoderOptions.Create(HeifEncodingSpeed.Level6);
+
+    /// <summary>
+    /// Gets or sets the configured quantizer index of constant-quality rate control. Reference: rc_cfg.cq_level.
+    /// </summary>
+    public int ConstantQualityIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether any superblock used a quantizer other than the frame quantizer.
+    /// Reference: deltaq_used.
+    /// </summary>
+    public bool DeltaQUsed { get; set; }
+
+    /// <summary>
+    /// Gets or sets the rate multiplier scaling factor of each 16x16 luma block for the SSIM and image tunes, or
+    /// <see langword="null"/> for the other tunes. Reference: ssim_rdmult_scaling_factors.
+    /// </summary>
+    public double[]? SsimRateMultiplierFactors { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether source analysis classifies this frame as screen content.
     /// </summary>
     public bool IsScreenContent { get; set; }

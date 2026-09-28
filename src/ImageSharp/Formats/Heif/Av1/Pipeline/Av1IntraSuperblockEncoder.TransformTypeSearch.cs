@@ -71,18 +71,21 @@ internal static partial class Av1IntraSuperblockEncoder
                 dequantized,
                 size,
                 type,
-                this.quantization.QIndex[0],
+                this.superblockQIndex,
                 this.quantization.DeltaQDc[0],
                 this.quantization.DeltaQAc[0],
                 this.bitDepth,
-                0);
+                this.blockWorkspace.EncoderOptions.Sharpness,
+                this.blockWorkspace.GetQuantizationMatrix(Av1ComponentType.Luminance, size, type),
+                this.blockWorkspace.GetInverseQuantizationMatrix(Av1ComponentType.Luminance, size, type));
 
             int rate = writer.EstimateLumaCoefficientRate(
                 quantized, endOfBlock, size, type, context, this.picture.Parent.FrameHeader.UseReducedTransformSet, filterMode, mode, isInter);
 
             // The squared error is normalized to eight-bit precision with rounding, then loses the transform
             // scale, so it has the same four fractional bits as pixel-domain distortion.
-            long error = Av1TransformBlockEncoder.GetTransformError(transformed, dequantized, size, this.bitDepth, out _);
+            long error = Av1TransformBlockEncoder.GetTransformError(
+                this.blockWorkspace, Av1ComponentType.Luminance, transformed, dequantized, size, type, this.bitDepth, out _);
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, error);
         }
 

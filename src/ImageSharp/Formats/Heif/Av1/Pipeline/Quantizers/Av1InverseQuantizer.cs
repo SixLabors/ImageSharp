@@ -77,7 +77,7 @@ internal sealed class Av1InverseQuantizer
         private readonly int minimum;
         private readonly int maximum;
         private readonly int shift;
-        private readonly ReadOnlySpan<int> inverseMatrix;
+        private readonly ReadOnlySpan<byte> inverseMatrix;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TransformParameters"/> struct.
@@ -125,8 +125,13 @@ internal sealed class Av1InverseQuantizer
 
             // Matrix weights have five fractional bits. Round the weighted quantizer first, then retain the
             // normative 24-bit product before removing transform-size scaling. Sign and clipping follow the shift.
-            const int bias = 1 << (Av1Constants.QuantizationMatrixElementBitCount - 1);
-            dequant = ((this.inverseMatrix[coefficientIndex] * dequant) + bias) >> Av1Constants.QuantizationMatrixElementBitCount;
+            // The flat matrix has no table: its weight of 32 leaves the quantizer unchanged.
+            if (!this.inverseMatrix.IsEmpty)
+            {
+                const int bias = 1 << (Av1Constants.QuantizationMatrixElementBitCount - 1);
+                dequant = ((this.inverseMatrix[coefficientIndex] * dequant) + bias) >> Av1Constants.QuantizationMatrixElementBitCount;
+            }
+
             int coefficient = (int)(((long)magnitude * dequant) & 0xffffff) >> this.shift;
             coefficient = negative ? -coefficient : coefficient;
             return Av1Math.Clamp(coefficient, this.minimum, this.maximum);

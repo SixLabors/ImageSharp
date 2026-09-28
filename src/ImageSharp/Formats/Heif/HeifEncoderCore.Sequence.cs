@@ -113,7 +113,7 @@ internal sealed partial class HeifEncoderCore
         return HeifChromaSubsampling.Yuv444;
     }
 
-    private Av1EncodingSettings ResolveAv1Encoding<TPixel>(Image<TPixel> image)
+    private Av1EncodingSettings ResolveAv1Encoding<TPixel>(Image<TPixel> image, bool allIntra)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
@@ -221,9 +221,17 @@ internal sealed partial class HeifEncoderCore
             BitDepth = av1BitDepth
         };
 
+        // libavif picks the tune: lossless coding keeps the libaom default, alpha uses PSNR to limit ringing, and color
+        // uses the image tune for all-intra images whose matrix is not identity, else SSIM. Reference: the default
+        // tune metric of aomCodecEncodeImage().
+        Av1Tuning colorTuning = this.encoder.Lossless
+            ? Av1Tuning.Psnr
+            : allIntra && colorProfile.MatrixCoefficients != CicpMatrixCoefficients.Identity ? Av1Tuning.Iq : Av1Tuning.Ssim;
+        Av1Tuning alphaTuning = Av1Tuning.Psnr;
+
         // Reference: DEFAULT_QUALITY of avifenc.
         int quality = this.encoder.Quality ?? 60;
-        int colorQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality);
+        int colorQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuality = this.encoder.AlphaQuality ?? quality;
         int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality);
         bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
@@ -240,8 +248,8 @@ internal sealed partial class HeifEncoderCore
             colorQIndex,
             alphaQIndex,
             hasAlpha,
-            Av1EncoderOptions.Create(this.encoder.Speed, enableRestoration: enableRestoration),
-            Av1EncoderOptions.Create(this.encoder.Speed, enableRestoration: enableRestoration));
+            Av1EncoderOptions.Create(this.encoder.Speed, colorTuning, enableRestoration, allIntra),
+            Av1EncoderOptions.Create(this.encoder.Speed, alphaTuning, enableRestoration, allIntra));
     }
 
     private HeifSequenceEncoding CompressAv1Sequence<TPixel>(

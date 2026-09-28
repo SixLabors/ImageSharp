@@ -32,4 +32,9 @@ internal class Av1Superblock
     /// Gets or sets the superblock index within the picture.
     /// </summary>
     public int Index { get; set; }
+
+    /// <summary>
+    /// Gets or sets the index of the tile containing the superblock.
+    /// </summary>
+    public int TileIndex { get; set; }
 }

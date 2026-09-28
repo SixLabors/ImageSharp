@@ -209,8 +209,16 @@ internal static class Av1RateDistortion
     /// <param name="qIndex">The segment quantizer index including its luma DC delta.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="updateType">The frame's role in the reference update schedule.</param>
+    /// <param name="tuning">The tune metric.</param>
+    /// <param name="realtime">Whether the encoder runs in real-time usage.</param>
     /// <returns>The rate multiplier.</returns>
-    public static int GetRateMultiplier(int qIndex, Av1BitDepth bitDepth, Av1FrameUpdateType updateType)
+    /// <remarks>Reference: av1_compute_rd_mult_based_on_qindex().</remarks>
+    public static int GetRateMultiplier(
+        int qIndex,
+        Av1BitDepth bitDepth,
+        Av1FrameUpdateType updateType,
+        Av1Tuning tuning = Av1Tuning.Psnr,
+        bool realtime = false)
     {
         int quantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, bitDepth);
         double baseWeight = updateType switch
@@ -224,6 +232,15 @@ internal static class Av1RateDistortion
         // use the intermediate weight; overlay and intermediate-alternate roles retain the ordinary weight.
         // Truncate the weighted product before rounding high-bit-depth distortion into the eight-bit domain.
         long multiplier = (long)((quantizer * (long)quantizer) * (baseWeight + (0.0015 * quantizer)));
+
+        // The image tune scales the multiplier by up to 200/128, falling to unity at the highest quantizers, which
+        // favors larger transforms. Real-time usage uses a quarter instead.
+        if (tuning == Av1Tuning.Iq)
+        {
+            int weight = realtime ? 32 : Math.Clamp(((255 - qIndex) * 3) / 4, 0, 72) + 128;
+            multiplier = (long)(multiplier * (double)weight / 128.0);
+        }
+
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         if (shift > 0)
         {

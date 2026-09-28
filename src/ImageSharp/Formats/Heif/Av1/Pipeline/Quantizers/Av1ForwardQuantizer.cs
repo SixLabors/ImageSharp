@@ -25,6 +25,8 @@ internal static partial class Av1ForwardQuantizer
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="weights">The forward quantization matrix, or an empty span for a flat matrix.</param>
+    /// <param name="inverseWeights">The inverse quantization matrix, or an empty span for a flat matrix.</param>
     /// <returns>The one-based end position in coefficient scan order.</returns>
     public static ushort QuantizeLossy(
         ReadOnlySpan<int> coefficients,
@@ -35,8 +37,17 @@ internal static partial class Av1ForwardQuantizer
         int qIndex,
         int dcDeltaQ,
         int acDeltaQ,
-        Av1BitDepth bitDepth)
+        Av1BitDepth bitDepth,
+        ReadOnlySpan<byte> weights = default,
+        ReadOnlySpan<byte> inverseWeights = default)
     {
+        // Reference: the matrix branch of av1_quantize_fp_facade() and av1_highbd_quantize_fp_facade().
+        if (!weights.IsEmpty)
+        {
+            return QuantizeWithMatrix(
+                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, 0, weights, inverseWeights, regular: false);
+        }
+
         ReadOnlySpan<short> inverseScan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan;
         if (bitDepth != Av1BitDepth.EightBit)
         {

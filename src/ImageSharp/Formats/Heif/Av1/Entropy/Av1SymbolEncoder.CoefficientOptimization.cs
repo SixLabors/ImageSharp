@@ -96,6 +96,7 @@ internal sealed partial class Av1SymbolEncoder
     /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
     /// <param name="useChromaWeights">Whether to use the chroma-specific optimization weights.</param>
     /// <param name="endOfBlock">The nonzero input end position.</param>
+    /// <param name="weights">The sharpness, rate shift and quantization matrices of the trellis.</param>
     /// <param name="coefficientRate">
     /// The rate of the refined coefficients and end position, excluding the skip flag and the transform type.
     /// It is the rate that <c>av1_optimize_txb</c> accumulates, so the caller needs no second cost pass.
@@ -116,10 +117,11 @@ internal sealed partial class Av1SymbolEncoder
         bool isInter,
         bool useChromaWeights,
         ushort endOfBlock,
+        in Av1CoefficientOptimizationWeights weights,
         out int coefficientRate)
     {
         long workStart = Av1WorkCounters.Start();
-        ushort workResult = this.OptimizeCoefficientsCore(original, quantized, dequantized, transformSize, transformType, componentType, context, dcDequantizer, acDequantizer, rateMultiplier, bitDepth, isInter, useChromaWeights, endOfBlock, out coefficientRate);
+        ushort workResult = this.OptimizeCoefficientsCore(original, quantized, dequantized, transformSize, transformType, componentType, context, dcDequantizer, acDequantizer, rateMultiplier, bitDepth, isInter, useChromaWeights, endOfBlock, in weights, out coefficientRate);
         Av1WorkCounters.Stop(Av1WorkCounters.OptimizeB, workStart);
         return workResult;
     }
@@ -139,6 +141,7 @@ internal sealed partial class Av1SymbolEncoder
         bool isInter,
         bool useChromaWeights,
         ushort endOfBlock,
+        in Av1CoefficientOptimizationWeights weights,
         out int coefficientRate)
     {
         Av1TransformSize adjusted = transformSize.GetAdjusted();
@@ -169,8 +172,12 @@ internal sealed partial class Av1SymbolEncoder
 
         // Coefficient errors remain at their native precision. Scale the rate multiplier into that
         // domain once; each comparison retains the signed error change relative to a zero coefficient.
-        long multiplier = ((long)rateMultiplier * 8 * planeWeight) << (2 * (bitDepth.GetBitCount() - 8));
-        multiplier = (multiplier + 16) >> 5;
+        // Sharpness lowers the multiplier, and the image tunes shift it further. Reference: av1_optimize_txb().
+        int sharpness = weights.Sharpness;
+        long multiplier = (long)rateMultiplier * (8 - sharpness) * (planeWeight << (2 * (bitDepth.GetBitCount() - 8)));
+        multiplier = (multiplier + (1L << (weights.RateShift - 1))) >> weights.RateShift;
+        ReadOnlySpan<byte> distortionWeights = weights.DistortionWeights;
+        ReadOnlySpan<byte> inverseWeights = weights.InverseWeights;
         int accumulatedRate = GetOptimizationEndOfBlockRate(allCosts, endOfBlock, transformSize, componentType, transformClass, costs);
         long accumulatedDistortion = 0;
         int scanIndex = endOfBlock - 1;
@@ -202,6 +209,8 @@ internal sealed partial class Av1SymbolEncoder
                 acDequantizer,
                 multiplier,
                 shift,
+                distortionWeights,
+                inverseWeights,
                 ref accumulatedRate,
                 ref accumulatedDistortion);
         }
@@ -220,8 +229,8 @@ internal sealed partial class Av1SymbolEncoder
                 widthLog2,
                 transformClass);
 
-            long reconstructed = dequantized[coefficientIndex];
-            accumulatedDistortion = (reconstructed * (reconstructed - (2L * original[coefficientIndex]))) << (2 * shift);
+            accumulatedDistortion = GetDistortionDifference(
+                original[coefficientIndex], dequantized[coefficientIndex], shift, distortionWeights, coefficientIndex);
         }
 
         scanIndex--;
@@ -246,12 +255,13 @@ internal sealed partial class Av1SymbolEncoder
             magnitude = Math.Abs(coefficient);
             int sign = coefficient < 0 ? -1 : 1;
             int lowerMagnitude = magnitude - 1;
-            int dequantizer = coefficientIndex == 0 ? dcDequantizer : acDequantizer;
+            int dequantizer = GetDequantizer(coefficientIndex, dcDequantizer, acDequantizer, inverseWeights);
             int lowerReconstruction = sign * ((lowerMagnitude * dequantizer) >> shift);
-            long reconstruction = dequantized[coefficientIndex];
-            long twiceOriginal = 2L * original[coefficientIndex];
-            long distortion = (reconstruction * (reconstruction - twiceOriginal)) << (2 * shift);
-            long lowerDistortion = ((long)lowerReconstruction * (lowerReconstruction - twiceOriginal)) << (2 * shift);
+            int originalValue = original[coefficientIndex];
+            long distortion = GetDistortionDifference(originalValue, dequantized[coefficientIndex], shift, distortionWeights, coefficientIndex);
+            long lowerDistortion = lowerMagnitude == 0
+                ? 0
+                : GetDistortionDifference(originalValue, lowerReconstruction, shift, distortionWeights, coefficientIndex);
             int rate = GetOptimizationCoefficientRate(
                 false,
                 coefficientIndex,
@@ -280,7 +290,11 @@ internal sealed partial class Av1SymbolEncoder
 
             long cost = Av1RateDistortion.GetCost(multiplier, accumulatedRate + rate, accumulatedDistortion + distortion);
             long lowerCost = Av1RateDistortion.GetCost(multiplier, accumulatedRate + lowerRate, accumulatedDistortion + lowerDistortion);
-            bool lowerLevel = lowerCost < cost;
+            long newDistortion = distortion;
+
+            // Sharpness keeps the low levels of the first coefficients. Reference: update_coeff_eob().
+            bool allowLower = sharpness == 0 || magnitude > (scanIndex <= 5 ? 2 : 1);
+            bool lowerLevel = allowLower && lowerCost < cost;
             if (lowerLevel)
             {
                 cost = lowerCost;
@@ -303,7 +317,6 @@ internal sealed partial class Av1SymbolEncoder
                 widthLog2,
                 transformClass);
 
-            long newDistortion = (reconstruction * (reconstruction - twiceOriginal)) << (2 * shift);
             long newCost = Av1RateDistortion.GetCost(multiplier, newRate, newDistortion);
             bool lowerNewEnd = false;
             if (lowerMagnitude > 0)
@@ -330,7 +343,7 @@ internal sealed partial class Av1SymbolEncoder
                 }
             }
 
-            if (newCost < cost)
+            if ((sharpness == 0 || newEnd >= 5) && newCost < cost)
             {
                 // Only the sparse tail is considered for end-position removal. Clearing its retained
                 // nonzero entries also updates the forward-neighbor levels consumed by earlier positions.
@@ -367,7 +380,8 @@ internal sealed partial class Av1SymbolEncoder
             }
         }
 
-        if (scanIndex == -1 && nonzeroCount <= 2)
+        // Sharpness never replaces the block with a skip. Reference: the update_skip() call of av1_optimize_txb().
+        if (scanIndex == -1 && nonzeroCount <= 2 && sharpness == 0)
         {
             int nonSkipRate = Av1CoefficientCosts.GetSkip(costs, context.SkipContext, 0);
             int skipRate = Av1CoefficientCosts.GetSkip(costs, context.SkipContext, 1);
@@ -390,15 +404,15 @@ internal sealed partial class Av1SymbolEncoder
         {
             case Av1TransformClass.Class2D:
                 ReduceSimpleCoefficients<TwoDimensionalClass>(
-                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, ref accumulatedRate);
+                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, sharpness, distortionWeights, inverseWeights, ref accumulatedRate);
                 break;
             case Av1TransformClass.ClassHorizontal:
                 ReduceSimpleCoefficients<HorizontalClass>(
-                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, ref accumulatedRate);
+                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, sharpness, distortionWeights, inverseWeights, ref accumulatedRate);
                 break;
             default:
                 ReduceSimpleCoefficients<VerticalClass>(
-                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, ref accumulatedRate);
+                    original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, sharpness, distortionWeights, inverseWeights, ref accumulatedRate);
                 break;
         }
 
@@ -422,6 +436,8 @@ internal sealed partial class Av1SymbolEncoder
                 acDequantizer,
                 multiplier,
                 shift,
+                distortionWeights,
+                inverseWeights,
                 ref accumulatedRate,
                 ref accumulatedDistortion);
         }
@@ -451,6 +467,9 @@ internal sealed partial class Av1SymbolEncoder
         int acDequantizer,
         long multiplier,
         int shift,
+        int sharpness,
+        ReadOnlySpan<byte> distortionWeights,
+        ReadOnlySpan<byte> inverseWeights,
         ref int accumulatedRate)
         where TClass : struct, ITransformClass
     {
@@ -522,7 +541,8 @@ internal sealed partial class Av1SymbolEncoder
                 }
             }
 
-            if (reconstructionMagnitude < originalMagnitude)
+            // Sharpness keeps every level-one coefficient. Reference: the allow_lower_qc test of update_coeff_simple().
+            if (reconstructionMagnitude < originalMagnitude || (sharpness != 0 && magnitude == 1))
             {
                 rateSum += rate;
                 continue;
@@ -530,9 +550,21 @@ internal sealed partial class Av1SymbolEncoder
 
             int lowerMagnitude = magnitude - 1;
             int lowerRate = rate - rateDifference;
-            long lowerReconstruction = ((long)lowerMagnitude * acDequantizer) >> shift;
-            long distortion = (reconstructionMagnitude * (reconstructionMagnitude - (2 * originalMagnitude))) << distortionShift;
-            long lowerDistortion = (lowerReconstruction * (lowerReconstruction - (2 * originalMagnitude))) << distortionShift;
+            int dequantizer = GetDequantizer(coefficientIndex, acDequantizer, acDequantizer, inverseWeights);
+            long lowerReconstruction = ((long)lowerMagnitude * dequantizer) >> shift;
+            long distortion;
+            long lowerDistortion;
+            if (distortionWeights.IsEmpty)
+            {
+                distortion = (reconstructionMagnitude * (reconstructionMagnitude - (2 * originalMagnitude))) << distortionShift;
+                lowerDistortion = (lowerReconstruction * (lowerReconstruction - (2 * originalMagnitude))) << distortionShift;
+            }
+            else
+            {
+                distortion = GetDistortionDifference(originalMagnitude, reconstructionMagnitude, shift, distortionWeights, coefficientIndex);
+                lowerDistortion = GetDistortionDifference(originalMagnitude, lowerReconstruction, shift, distortionWeights, coefficientIndex);
+            }
+
             if (Av1RateDistortion.GetCost(multiplier, lowerRate, lowerDistortion) < Av1RateDistortion.GetCost(multiplier, rate, distortion))
             {
                 Unsafe.Add(ref quantizedBase, coefficientIndex) = (lowerMagnitude ^ signMask) - signMask;
@@ -568,6 +600,8 @@ internal sealed partial class Av1SymbolEncoder
         int acDequantizer,
         long multiplier,
         int shift,
+        ReadOnlySpan<byte> distortionWeights,
+        ReadOnlySpan<byte> inverseWeights,
         ref int accumulatedRate,
         ref long accumulatedDistortion)
     {
@@ -594,7 +628,7 @@ internal sealed partial class Av1SymbolEncoder
         int magnitude = Math.Abs(coefficient);
         int sign = coefficient < 0 ? -1 : 1;
         int lowerMagnitude = magnitude - 1;
-        int dequantizer = coefficientIndex == 0 ? dcDequantizer : acDequantizer;
+        int dequantizer = GetDequantizer(coefficientIndex, dcDequantizer, acDequantizer, inverseWeights);
         int lowerReconstruction = sign * ((lowerMagnitude * dequantizer) >> shift);
         int rate = GetOptimizationCoefficientRate(
             last,
@@ -622,10 +656,11 @@ internal sealed partial class Av1SymbolEncoder
                 widthLog2,
                 transformClass);
 
-        long reconstruction = dequantized[coefficientIndex];
-        long twiceOriginal = 2L * original[coefficientIndex];
-        long distortion = (reconstruction * (reconstruction - twiceOriginal)) << (2 * shift);
-        long lowerDistortion = ((long)lowerReconstruction * (lowerReconstruction - twiceOriginal)) << (2 * shift);
+        int originalValue = original[coefficientIndex];
+        long distortion = GetDistortionDifference(originalValue, dequantized[coefficientIndex], shift, distortionWeights, coefficientIndex);
+        long lowerDistortion = lowerMagnitude == 0
+            ? 0
+            : GetDistortionDifference(originalValue, lowerReconstruction, shift, distortionWeights, coefficientIndex);
         if (Av1RateDistortion.GetCost(multiplier, lowerRate, lowerDistortion) < Av1RateDistortion.GetCost(multiplier, rate, distortion))
         {
             quantized[coefficientIndex] = sign * lowerMagnitude;
@@ -639,6 +674,43 @@ internal sealed partial class Av1SymbolEncoder
             accumulatedRate += rate;
             accumulatedDistortion += distortion;
         }
+    }
+
+    /// <summary>
+    /// Gets the reconstruction step of one coefficient, weighted by the inverse quantization matrix when one applies.
+    /// Reference: get_dqv().
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetDequantizer(int coefficientIndex, int dcDequantizer, int acDequantizer, ReadOnlySpan<byte> inverseWeights)
+    {
+        int dequantizer = coefficientIndex == 0 ? dcDequantizer : acDequantizer;
+        if (!inverseWeights.IsEmpty)
+        {
+            const int bits = Av1Constants.QuantizationMatrixElementBitCount;
+            dequantizer = ((inverseWeights[coefficientIndex] * dequantizer) + (1 << (bits - 1))) >> bits;
+        }
+
+        return dequantizer;
+    }
+
+    /// <summary>
+    /// Gets the change in squared error from a zero coefficient to a reconstruction, weighted by the quantization
+    /// matrix of the QM-PSNR metric when one applies. Reference: get_coeff_dist().
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static long GetDistortionDifference(long original, long reconstruction, int shift, ReadOnlySpan<byte> distortionWeights, int coefficientIndex)
+    {
+        if (distortionWeights.IsEmpty)
+        {
+            return (reconstruction * (reconstruction - (2 * original))) << (2 * shift);
+        }
+
+        const int bits = Av1Constants.QuantizationMatrixElementBitCount;
+        const long rounding = 1L << ((2 * bits) - 1);
+        long weight = distortionWeights[coefficientIndex];
+        long difference = ((original - reconstruction) << shift) * weight;
+        long zero = (original << shift) * weight;
+        return (((difference * difference) + rounding) >> (2 * bits)) - (((zero * zero) + rounding) >> (2 * bits));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -158,7 +158,11 @@ internal static partial class Av1LoopRestorationEncoder
         Span<TSample> savedRows = MemoryMarshal.Cast<ushort, TSample>(boundary.GetStripeSaveBuffer());
         int rateQIndex = qIndex + header.QuantizationParameters.DeltaQDc[0];
         int rateMultiplier = Av1RateDistortion.GetRateMultiplier(
-            rateQIndex, sequence.ColorConfig.BitDepth, picture.Parent.FrameUpdateType);
+            rateQIndex,
+            sequence.ColorConfig.BitDepth,
+            picture.Parent.FrameUpdateType,
+            picture.Parent.EncoderOptions.Tuning,
+            picture.Parent.SpeedSettings.IsRealtime);
 
         int quantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, sequence.ColorConfig.BitDepth) >> 3;
         long varianceThreshold = ((long)quantizer * quantizer * settings.WienerVariancePruning) >> 4;

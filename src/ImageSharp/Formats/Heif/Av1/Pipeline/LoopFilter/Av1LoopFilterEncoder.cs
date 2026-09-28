@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 /// <remarks>
 /// The level selection ports libaom <c>av1_pick_filter_level</c>. The configurations this encoder
 /// exposes never enable two-pass statistics, screen-content cyclic refresh, selective loop filter control,
-/// adaptive sharpness, or the SSE-based skips, so those branches of the reference have no counterpart here.
+/// or the SSE-based skips, so those branches of the reference have no counterpart here.
 /// </remarks>
 internal static class Av1LoopFilterEncoder
 {
@@ -76,6 +76,19 @@ internal static class Av1LoopFilterEncoder
         {
             return;
         }
+
+        // All-intra usage and the image tune use the configured sharpness, which adaptive sharpness limits by the
+        // quantizer. Reference: the sharpness_level assignments of av1_pick_filter_level().
+        Av1EncoderOptions options = picture.Parent.EncoderOptions;
+        int sharpness = picture.Sequence.SequenceHeader.IsStillPicture || options.Tuning == Av1Tuning.Iq ? options.Sharpness : 0;
+        if (options.EnableAdaptiveSharpness)
+        {
+            int baseQIndex = header.QuantizationParameters.BaseQIndex;
+            int maximumSharpness = baseQIndex <= 112 ? 7 : baseQIndex <= 160 ? 1 : 0;
+            sharpness = Math.Min(sharpness, maximumSharpness);
+        }
+
+        parameters.SharpnessLevel = sharpness;
 
         Av1LoopFilterPickMethod method = picture.Parent.SpeedSettings.LoopFilterPickMethod;
         if (method == Av1LoopFilterPickMethod.FromQuantizer)

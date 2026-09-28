@@ -1626,7 +1626,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ConvolveIntraPartition(retained[356..], 8, 20, 2, 2, IntraPartitionCnnLayer2Kernel, IntraPartitionCnnLayer2Bias, retained[36..356]);
                 ConvolveIntraPartition(retained[36..356], 4, 20, 2, 2, IntraPartitionCnnLayer3Kernel, IntraPartitionCnnLayer3Bias, retained[20..36]);
                 ConvolveIntraPartition(retained[20..36], 2, 4, 2, 2, IntraPartitionCnnLayer4Kernel, IntraPartitionCnnLayer4Bias, retained[..20]);
-                int dcStep = Av1QuantizationLookup.GetDcQuant(this.quantization.QIndex[0], 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+                int dcStep = Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
                 this.intraPartitionLogQuantizer = (float.LogP1((dcStep * dcStep) / 256F) - IntraPartitionMean[0]) / IntraPartitionStd[0];
                 this.intraPartitionFeaturesValid = true;
             }

@@ -1541,7 +1541,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 transformSize,
                                 transformType,
                                 plane,
-                                this.quantization.QIndex[0],
+                                this.superblockQIndex,
                                 this.quantization.DeltaQDc[(int)plane],
                                 this.quantization.DeltaQAc[(int)plane],
                                 this.bitDepth,
@@ -1660,7 +1660,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 coefficients,
                 transformSize,
                 plane,
-                this.quantization.QIndex[0],
+                this.superblockQIndex,
                 this.quantization.DeltaQDc[(int)plane],
                 this.quantization.DeltaQAc[(int)plane],
                 this.bitDepth,
@@ -1901,13 +1901,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // search_tx_type is shared by both planes, so chroma follows the same distortion policy as luma.
             // The policy belongs to the active mode evaluation stage.
-            Av1EncoderSpeedSettings distortionSettings = this.picture.Parent.SpeedSettings;
-            (int Type, uint Threshold) distortionPolicy = this.blockWorkspace.EvaluationStage switch
-            {
-                Av1EncoderEvaluationStage.Candidate => distortionSettings.ModeTransformDomainDistortion,
-                Av1EncoderEvaluationStage.Winner => distortionSettings.WinnerTransformDomainDistortion,
-                _ => distortionSettings.DefaultTransformDomainDistortion
-            };
+            (int Type, uint Threshold) distortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(
+                this.blockWorkspace, this.picture.Parent.SpeedSettings);
 
             long distortion = TOperator.EncodeCandidate(
                 this.blockWorkspace,
@@ -1930,7 +1925,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 transformType,
                 Av1Plane.U,
-                this.quantization.QIndex[0],
+                this.superblockQIndex,
                 this.quantization.DeltaQDc[(int)Av1Plane.U],
                 this.quantization.DeltaQAc[(int)Av1Plane.U],
                 this.bitDepth,
@@ -1990,7 +1985,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 transformType,
                 Av1Plane.V,
-                this.quantization.QIndex[0],
+                this.superblockQIndex,
                 this.quantization.DeltaQDc[(int)Av1Plane.V],
                 this.quantization.DeltaQAc[(int)Av1Plane.V],
                 this.bitDepth,

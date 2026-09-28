@@ -187,7 +187,10 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly Av1EncoderBlockWorkspace blockWorkspace;
         private readonly ObuQuantizationParameters quantization;
         private readonly Av1BitDepth bitDepth;
-        private readonly int rateMultiplier;
+        private readonly int baseRateMultiplier;
+        private readonly int rateMultiplierModifier;
+        private readonly int superblockQIndex;
+        private int rateMultiplier;
         private int codedAreaLuma;
         private int codedAreaChroma;
         private int replayNodeIndex;
@@ -318,6 +321,8 @@ internal static partial class Av1IntraSuperblockEncoder
             this.coefficientBuffer = coefficientBuffer;
             this.blockWorkspace = blockWorkspace;
             blockWorkspace.SpeedSettings = picture.Parent.SpeedSettings;
+            blockWorkspace.EncoderOptions = picture.Parent.EncoderOptions;
+            blockWorkspace.SetQuantizationMatrixLevels(picture.Parent.FrameHeader.QuantizationParameters);
 
             // A partition never exceeds the superblock it sits in, so the speed cap comes down to the
             // superblock size before anything reads it. Reference: the second AOMMIN of
@@ -330,12 +335,51 @@ internal static partial class Av1IntraSuperblockEncoder
             blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
             this.quantization = picture.Parent.FrameHeader.QuantizationParameters;
             this.bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
-            this.rateMultiplier = Av1RateDistortion.GetRateMultiplier(
-                this.quantization.QIndex[0] + this.quantization.DeltaQDc[0], this.bitDepth, picture.Parent.FrameUpdateType);
+
+            // A delta quantizer mode picks the superblock quantizer, rounded to the delta resolution against the
+            // previous coded superblock of the tile. The full search also measures its rate multiplier at that
+            // quantizer; the estimated search keeps the frame multiplier. Reference: setup_delta_q(),
+            // setup_delta_q_nonrd() and the av1_get_cb_rdmult() call of setup_block_rdmult().
+            this.superblockQIndex = this.quantization.QIndex[0];
+            int rateQIndex = this.superblockQIndex;
+            ObuDeltaParameters deltaQ = picture.Parent.FrameHeader.DeltaQParameters;
+            if (deltaQ.IsPresent)
+            {
+                int superblockSize = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
+                Point superblockOrigin = new(
+                    (superblock.Index % coefficientBuffer.SuperblockColumnCount) * superblockSize,
+                    (superblock.Index / coefficientBuffer.SuperblockColumnCount) * superblockSize);
+                int baseQIndex = this.quantization.BaseQIndex;
+                int wantedQIndex = picture.Parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.VarianceBoost
+                    ? this.GetVarianceBoostQIndex(superblockOrigin, baseQIndex)
+                    : baseQIndex;
+
+                // Only the full search updates the anchor after each coded superblock; the estimated search keeps
+                // the frame quantizer as the anchor for the whole tile. Reference: the current_base_qindex update of
+                // encode_b(), which encode_b_nonrd() does not make.
+                bool estimated = picture.Sequence.SequenceHeader.IsStillPicture
+                    ? picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8
+                    : picture.Parent.SpeedSettings.IsRealtime;
+                int anchorQIndex = estimated ? baseQIndex : picture.Parent.PreviousQIndex.Span[superblock.TileIndex];
+                this.superblockQIndex = Av1VarianceBoost.AdjustToResolution(deltaQ.Resolution, anchorQIndex, wantedQIndex);
+                picture.Parent.DeltaQUsed |= this.superblockQIndex != baseQIndex;
+                if (!estimated)
+                {
+                    rateQIndex = this.superblockQIndex;
+                }
+            }
+
+            this.baseRateMultiplier = Av1RateDistortion.GetRateMultiplier(
+                rateQIndex + this.quantization.DeltaQDc[0],
+                this.bitDepth,
+                picture.Parent.FrameUpdateType,
+                picture.Parent.EncoderOptions.Tuning,
+                picture.Parent.SpeedSettings.IsRealtime);
 
             // rd_pick_partition measures the superblock at its root. The
             // variance-based partition search of the fastest speeds does not run it, so its rate weight
             // stays at 128 there.
+            this.rateMultiplierModifier = 128;
             if (picture.Sequence.SequenceHeader.IsStillPicture && !picture.Parent.SpeedSettings.UseVarianceBasedPartition)
             {
                 // Measure 4x4 source variation once for the entire superblock. Mixed flat and detailed
@@ -354,9 +398,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     modifier -= range > 8 ? 48 : (int)(range * 6);
                 }
 
-                // The reference widens the product before the shift.
-                this.rateMultiplier = (int)Math.Max(1, ((long)this.rateMultiplier * modifier) >> 7);
+                this.rateMultiplierModifier = modifier;
             }
+
+            int rootSize = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
+            this.rateMultiplier = this.GetBlockRateMultiplier(
+                new Point(
+                    (superblock.Index % coefficientBuffer.SuperblockColumnCount) * rootSize,
+                    (superblock.Index / coefficientBuffer.SuperblockColumnCount) * rootSize),
+                picture.Sequence.SequenceHeader.SuperblockSize);
 
             this.sourceSadLevel = Av1SourceSadLevel.Medium;
             if (picture.Parent.SpeedSettings.UseEstimatedInterModeDecision && !picture.Parent.FrameHeader.IsIntra)
@@ -756,7 +806,69 @@ internal static partial class Av1IntraSuperblockEncoder
             return doSplit;
         }
 
+        /// <summary>
+        /// Runs <see cref="SelectBestPartitionCore"/> at the rate multiplier of the block. Reference: the setup_block_rdmult() call of
+        /// rd_pick_partition().
+        /// </summary>
         private Av1PartitionType SelectBestPartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            Av1RateDistortionStatistics costLimit,
+            out Av1RateDistortionStatistics selectedStatistics,
+            out long noneCost,
+            out byte rectangleWins)
+        {
+            int savedRateMultiplier = this.rateMultiplier;
+            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize);
+
+            // The bound arrives at the multiplier of the parent. Reference: the av1_rd_cost_update() call of
+            // av1_rd_pick_partition().
+            costLimit.UpdateCost(this.rateMultiplier);
+            Av1PartitionType result = this.SelectBestPartitionCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, nodeIndex, costLimit, out selectedStatistics, out noneCost, out rectangleWins);
+            this.rateMultiplier = savedRateMultiplier;
+            return result;
+        }
+
+        /// <summary>
+        /// Gets the remaining cost bound of a partition leaf at the rate multiplier of the leaf.
+        /// </summary>
+        /// <param name="remainingCost">The remaining bound at the multiplier of the node.</param>
+        /// <param name="leafOrigin">The leaf origin in luma samples.</param>
+        /// <param name="leafSize">The leaf size.</param>
+        /// <returns>The remaining cost bound.</returns>
+        private readonly long GetLeafCostLimit(Av1RateDistortionStatistics remainingCost, Point leafOrigin, Av1BlockSize leafSize)
+        {
+            // The leaf search measures the remaining bound at its own multiplier. Reference: the av1_rd_cost_update()
+            // call of pick_sb_modes().
+            remainingCost.UpdateCost(this.GetBlockRateMultiplier(leafOrigin, leafSize));
+            return remainingCost.Cost;
+        }
+
+        /// <summary>
+        /// Gets the rate multiplier of a block: the superblock multiplier, scaled by the SSIM factors of the block for
+        /// the SSIM and image tunes, then by the all-intra superblock modifier. Reference: setup_block_rdmult().
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The rate multiplier, at least one.</returns>
+        private readonly int GetBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
+        {
+            int multiplier = this.baseRateMultiplier;
+            if (this.picture.Parent.SsimRateMultiplierFactors is not null)
+            {
+                multiplier = this.ScaleSsimRateMultiplier(multiplier, blockOrigin, blockSize);
+            }
+
+            // The reference widens the product before the shift.
+            multiplier = (int)(((long)multiplier * this.rateMultiplierModifier) >> 7);
+            return Math.Max(multiplier, 1);
+        }
+
+        private Av1PartitionType SelectBestPartitionCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -1079,7 +1191,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         if (partitionSettings.ChildPartitionPruningLevel != 0)
                         {
-                            int requiredWins = Math.Min((3 * (255 - this.quantization.QIndex[0]) / 255) + 1, 3);
+                            int requiredWins = Math.Min((3 * (255 - this.superblockQIndex) / 255) + 1, 3);
                             int horizontalWins = 0;
                             int verticalWins = 0;
                             for (int child = 0; child < 4; child++)
@@ -1229,7 +1341,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (partitionSettings.ChildPartitionPruningLevel >= 2)
                     {
-                        int requiredWins = Math.Min(3 * (2 * (255 - this.quantization.QIndex[0]) / 255), 3);
+                        int requiredWins = Math.Min(3 * (2 * (255 - this.superblockQIndex) / 255), 3);
                         for (int shape = 0; shape < 4; shape++)
                         {
                             int firstChild = shape < 2 ? shape * 2 : shape - 2;
@@ -1760,7 +1872,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // setting also excludes ordinary rectangles, but only for inherited motion at lower quantizers.
                 pruneExtendedPartitions = !this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 1 && noneModeInfo.Block.Skip;
                 if (!this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 2 && noneModeInfo.Block.Skip &&
-                    frameHeader.QuantizationParameters.QIndex[0] <= 200 &&
+                    this.superblockQIndex <= 200 &&
                     noneModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
                     noneModeInfo.Block.Mode is not (Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector or
                         Av1PredictionMode.NearestNewMotionVector or Av1PredictionMode.NewNearestMotionVector or
@@ -1838,7 +1950,27 @@ internal static partial class Av1IntraSuperblockEncoder
         /// their state before the subtree, so the writer encodes the superblock afresh afterwards.
         /// Reference: av1_rd_use_partition().
         /// </summary>
+        /// <summary>
+        /// Runs <see cref="SearchVariancePartitionCore"/> at the rate multiplier of the block. Reference: the setup_block_rdmult() call of
+        /// av1_rd_use_partition().
+        /// </summary>
         private bool SearchVariancePartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            bool reconstruct)
+        {
+            int savedRateMultiplier = this.rateMultiplier;
+            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize);
+            bool result = this.SearchVariancePartitionCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, nodeIndex, reconstruct);
+            this.rateMultiplier = savedRateMultiplier;
+            return result;
+        }
+
+        private bool SearchVariancePartitionCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -2098,6 +2230,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, 0);
             int leafCount = GetPartitionLeafCount(partitionType);
+
+            // The sub-blocks of the asymmetric and four-way partitions are costed at their own rate multipliers,
+            // and the sum returns to the multiplier of the node at the end. Reference: rd_try_subblock(),
+            // rd_test_partition3() and rd_pick_4partition().
+            bool asymmetric = partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.Vertical4;
+            int nodeRateMultiplier = this.rateMultiplier;
             stoppedAtLeaf = 0;
             accumulatedCost = statistics.Cost;
 
@@ -2111,7 +2249,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // other shape measures its first sub-block first and leaves those samples behind.
                 // Reference: the loop condition of split_partition_search(), against
                 // none_partition_search(), rectangular_partition_search() and rd_try_subblock().
-                if ((leafIndex > 0 || partitionType == Av1PartitionType.Split) &&
+                if (!asymmetric && (leafIndex > 0 || partitionType == Av1PartitionType.Split) &&
                     statistics.Cost >= costLimit.Cost)
                 {
                     return Av1RateDistortionStatistics.Invalid;
@@ -2130,7 +2268,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                Av1RateDistortionStatistics remainingCost = costLimit.Subtract(this.rateMultiplier, in statistics);
+                Av1RateDistortionStatistics leafLimit = costLimit;
+                if (asymmetric)
+                {
+                    this.rateMultiplier = this.GetBlockRateMultiplier(leafOrigin, leafSize);
+                    leafLimit.UpdateCost(this.rateMultiplier);
+                }
+
+                Av1RateDistortionStatistics remainingCost = leafLimit.Subtract(this.rateMultiplier, in statistics);
                 bool publishContexts = leafIndex < leafCount - 1 || publishFinalContexts;
                 this.activeModeCache = searchChildren && partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.VerticalB
                     ? this.asymmetricModeCache[leafIndex]
@@ -2144,6 +2289,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 // rectangular_partition_search() make after it, and the dry run encode_sb() of a 4x4 child.
                 bool encodeFollows = searchChildren && this.picture.Parent.FrameHeader.IsIntra &&
                     leafIndex + 1 < leafCount && (partitionType != Av1PartitionType.Split || blockSize <= Av1BlockSize.Block8x8);
+
+                // A replay of a finished subtree encodes every leaf at the multiplier of that leaf. Reference: the
+                // setup_block_rdmult() call of encode_b(), which encode_sb() reaches for each leaf.
+                if (!searchChildren && !(partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8))
+                {
+                    this.rateMultiplier = this.GetBlockRateMultiplier(leafOrigin, leafSize);
+                }
+
                 Av1RateDistortionStatistics childStatistics = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
                     ? this.EvaluateSelectedPartitionTree(
                         writer,
@@ -2167,7 +2320,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             leafSize,
                             partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType,
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
-                            remainingCost.Cost,
+                            this.GetLeafCostLimit(remainingCost, leafOrigin, leafSize),
                             publishContexts,
                             !encodeFollows)
                         : this.ReconstructPartitionLeaf(
@@ -2181,6 +2334,11 @@ internal static partial class Av1IntraSuperblockEncoder
                             encodeFollows);
 
                 this.activeModeCache = default;
+                if (!searchChildren)
+                {
+                    this.rateMultiplier = nodeRateMultiplier;
+                }
+
                 if (!childRectangleWins.IsEmpty)
                 {
                     childRectangleWins[leafIndex] = childWins;
@@ -2202,10 +2360,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!childCosts.IsEmpty)
                 {
                     // Split classification uses each child's unsplit cost, independently of its winner.
-                    // Rectangular leaves have no child partition search and retain their complete mode cost.
+                    // Rectangular leaves have no child partition search and retain their complete mode cost,
+                    // measured again at the multiplier of the node. Reference: the av1_rd_cost_update() call of
+                    // rd_pick_rect_partition() before it stores rect_part_rd.
+                    Av1RateDistortionStatistics nodeLeafCost = childStatistics;
+                    if (partitionType != Av1PartitionType.Split)
+                    {
+                        nodeLeafCost.UpdateCost(nodeRateMultiplier);
+                    }
+
                     childCosts[leafIndex] = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
                         ? childNoneCost
-                        : childStatistics.Cost;
+                        : nodeLeafCost.Cost;
                 }
 
                 // Every split child is searched as a partition of its own, and it reports a result only when
@@ -2216,12 +2382,18 @@ internal static partial class Av1IntraSuperblockEncoder
                     (partitionType == Av1PartitionType.Split && blockSize <= Av1BlockSize.Block8x8 &&
                     childStatistics.Cost >= remainingCost.Cost))
                 {
+                    this.rateMultiplier = nodeRateMultiplier;
                     accumulatedCost = long.MaxValue;
                     return Av1RateDistortionStatistics.Invalid;
                 }
 
                 statistics.Add(this.rateMultiplier, in childStatistics);
                 accumulatedCost = statistics.Cost;
+                if (asymmetric && statistics.Cost >= leafLimit.Cost)
+                {
+                    this.rateMultiplier = nodeRateMultiplier;
+                    return Av1RateDistortionStatistics.Invalid;
+                }
 
                 // A sibling predicts from the reconstruction this leaf leaves behind, so encode the leaf
                 // across every plane before moving on. The mode search alone leaves the last chroma
@@ -2241,7 +2413,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize <= Av1BlockSize.Block8x8 && leafIndex + 1 < leafCount;
 
                 bool reconstructSibling = partitionType != Av1PartitionType.Split && leafIndex + 1 < leafCount &&
-                    statistics.Cost < costLimit.Cost &&
+                    (asymmetric || statistics.Cost < costLimit.Cost) &&
                     this.IsPartitionSiblingInsideFrame(blockOrigin, blockSize, partitionType, leafIndex);
 
                 // An inter frame leaves the leaf's samples from its own search, but the encode it stands for
@@ -2295,6 +2467,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.codedAreaChroma = siblingChromaArea;
                 }
 
+                // The sub-block of an asymmetric partition encodes its sibling state before its multiplier returns
+                // to the node. Reference: the encode_superblock() call and the restore of rd_try_subblock().
+                this.rateMultiplier = nodeRateMultiplier;
+
                 bool reusableSplit = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8 && leafIndex < 2;
                 bool reusableRectangle = partitionType is Av1PartitionType.Horizontal or Av1PartitionType.Vertical &&
                     leafIndex == 0 && statistics.Cost < costLimit.Cost;
@@ -2314,6 +2490,12 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             stoppedAtLeaf = leafCount;
+            if (asymmetric)
+            {
+                statistics.UpdateCost(this.rateMultiplier);
+                accumulatedCost = statistics.Cost;
+            }
+
             return statistics.Cost < costLimit.Cost ? statistics : Av1RateDistortionStatistics.Invalid;
         }
 
@@ -2424,7 +2606,10 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
                 (Av1BlockSize minimum, Av1BlockSize maximum) = speedSettings.GetRectangularPartitionRange(
-                    frameHeader.AllowScreenContentTools, frameHeader.IsIntra, this.picture.Parent.FrameUpdateType);
+                    frameHeader.AllowScreenContentTools,
+                    frameHeader.IsIntra,
+                    this.picture.Parent.FrameUpdateType,
+                    this.superblockQIndex);
 
                 if (blockSize < minimum || blockSize > maximum)
                 {
@@ -2695,7 +2880,26 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        /// <summary>
+        /// Runs <see cref="EncodeSelectedBlock"/> at the rate multiplier of the block. Reference: the setup_block_rdmult() call of
+        /// encode_b().
+        /// </summary>
         public void EncodeBlock(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block,
+            ref Av1EncoderPaletteInfo paletteInfo)
+        {
+            int savedRateMultiplier = this.rateMultiplier;
+            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, modeInfo.Block.BlockSize);
+            this.EncodeSelectedBlock(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo);
+            this.rateMultiplier = savedRateMultiplier;
+        }
+
+        public void EncodeSelectedBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -2910,7 +3114,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1TransformSize.Size4x4
                 : blockSize.GetMaximumTransformSize();
 
-            int qIndex = this.quantization.QIndex[0];
+            int qIndex = this.superblockQIndex;
             modeInfo.Block = new Av1EncoderBlockModeInfo
             {
                 BlockSize = blockSize,
@@ -3174,8 +3378,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool bypassWinner = winnerSettings.GetInterWinnerPruningLevel(this.picture.Parent.FrameUpdateType) switch
                 {
                     2 => !hasNewMotion && interStatistics.AllTransformsEmpty,
-                    3 => !hasNewMotion && (interStatistics.AllTransformsEmpty || (this.quantization.QIndex[0] <= 127 && modeInfo.Block.Skip)),
-                    4 => !(winnerSettings.CoefficientOptimizationLevel >= 5 && this.quantization.QIndex[0] <= 70) &&
+                    3 => !hasNewMotion && (interStatistics.AllTransformsEmpty || (this.superblockQIndex <= 127 && modeInfo.Block.Skip)),
+                    4 => !(winnerSettings.CoefficientOptimizationLevel >= 5 && this.superblockQIndex <= 70) &&
                         (modeInfo.Block.Skip || interStatistics.AllTransformsEmpty),
                     _ => false
                 };
@@ -3513,7 +3717,30 @@ internal static partial class Av1IntraSuperblockEncoder
             this.codedAreaChroma += chromaArea;
         }
 
+        /// <summary>
+        /// Runs <see cref="EvaluatePartitionLeafCore"/> at the rate multiplier of the block. Reference: the setup_block_rdmult() call of
+        /// pick_sb_modes().
+        /// </summary>
         private Av1RateDistortionStatistics EvaluatePartitionLeaf(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            Av1PartitionType partitionType,
+            Av1EncoderPartitionTree.ModeContext context,
+            long costLimit,
+            bool publishContexts,
+            bool publishCoefficientContexts)
+        {
+            int savedRateMultiplier = this.rateMultiplier;
+            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize);
+            Av1RateDistortionStatistics result = this.EvaluatePartitionLeafCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, partitionType, context, costLimit, publishContexts, publishCoefficientContexts);
+            this.rateMultiplier = savedRateMultiplier;
+            return result;
+        }
+
+        private Av1RateDistortionStatistics EvaluatePartitionLeafCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -4939,7 +5166,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (refine && settings.PruneIntraWinnerByVariance)
             {
-                int varianceThreshold = 64 - (48 * this.quantization.QIndex[0] / 256);
+                int varianceThreshold = 64 - (48 * this.superblockQIndex / 256);
                 refine = this.GetSourceVariance(blockOrigin, blockSize) >= varianceThreshold;
             }
 
@@ -5364,7 +5591,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modelCost,
                         mode,
                         macroBlock,
-                        this.quantization.QIndex[0],
+                        this.superblockQIndex,
                         modelCosts,
                         settings.IntraModelCandidateCount,
                         settings.AdaptIntraModelCountToNeighbors,
@@ -5882,7 +6109,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 !codedLossless && this.bitDepth.GetBitCount() == 8 &&
                                 blockSize == Av1BlockSize.Block8x8 && transformSize == Av1TransformSize.Size8x8)
                             {
-                                int dcQuantizer = Av1QuantizationLookup.GetDcQuant(this.quantization.QIndex[0], 0, this.bitDepth);
+                                int dcQuantizer = Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, 0, this.bitDepth);
                                 int depthChoice = PredictIntraTransformDepth(residual, sourceVariance, dcQuantizer);
                                 skipSmallerTransforms = depthChoice < 0;
                                 if (depthChoice > 0)
@@ -5989,7 +6216,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     out blockMseQ8);
 
                             int acDequantizer = Av1QuantizationLookup.GetAcQuant(
-                                this.quantization.QIndex[0],
+                                this.superblockQIndex,
                                 this.quantization.DeltaQAc[(int)Av1Plane.Y],
                                 this.bitDepth);
 
@@ -6000,7 +6227,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             bool predictedSkip = predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
                                 transformSize,
                                 Av1QuantizationLookup.GetDcQuant(
-                                    this.quantization.QIndex[0],
+                                    this.superblockQIndex,
                                     this.quantization.DeltaQDc[(int)Av1Plane.Y],
                                     this.bitDepth),
                                 acDequantizer,
@@ -6021,12 +6248,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 _ => typeSettings.DefaultCoefficientOptimizationThresholds
                             };
 
-                            (int Type, uint Threshold) distortionPolicy = this.blockWorkspace.EvaluationStage switch
-                            {
-                                Av1EncoderEvaluationStage.Candidate => typeSettings.ModeTransformDomainDistortion,
-                                Av1EncoderEvaluationStage.Winner => typeSettings.WinnerTransformDomainDistortion,
-                                _ => typeSettings.DefaultTransformDomainDistortion
-                            };
+                            (int Type, uint Threshold) distortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(
+                                this.blockWorkspace, typeSettings);
 
                             int dequantShift = this.bitDepth == Av1BitDepth.EightBit ? 3 : this.bitDepth.GetBitCount() - 5;
                             ulong quantizerStep = (uint)(acDequantizer >> dequantShift);
@@ -6116,7 +6339,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     filterIntraMode,
                                     useReducedTransformSet,
                                     false,
-                                    this.quantization.QIndex[0],
+                                    this.superblockQIndex,
                                     this.quantization.DeltaQDc[(int)Av1Plane.Y],
                                     this.quantization.DeltaQAc[(int)Av1Plane.Y],
                                     this.bitDepth,
@@ -6128,7 +6351,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                     refinementThresholds.Satd,
                                     dcOnlyBlock,
                                     perPixelMean,
-                                    ref candidateState);
+                                    ref candidateState,
+                                    out bool candidateMatricesDropped);
 
                                 // Distortion is never negative. A candidate whose rate alone already costs more than
                                 // the current winner cannot replace it, so it needs no distortion measurement.
@@ -6147,11 +6371,15 @@ internal static partial class Av1IntraSuperblockEncoder
                                 else if (useTransformDomainDistortion)
                                 {
                                     candidateDistortion = Av1TransformBlockEncoder.GetTransformError(
+                                        this.blockWorkspace,
+                                        Av1ComponentType.Luminance,
                                         this.blockWorkspace.TransformCoefficients[..codedCoefficientCount],
                                         candidateDequantizedCoefficients[..codedCoefficientCount],
                                         transformSize,
+                                        transformType,
                                         this.bitDepth,
-                                        out _);
+                                        out _,
+                                        useMatrix: !candidateMatricesDropped);
                                 }
                                 else
                                 {
@@ -6165,11 +6393,15 @@ internal static partial class Av1IntraSuperblockEncoder
                                     if (is64x64 || isHighEnergy)
                                     {
                                         transformDomainDistortion = Av1TransformBlockEncoder.GetTransformError(
+                                            this.blockWorkspace,
+                                            Av1ComponentType.Luminance,
                                             this.blockWorkspace.TransformCoefficients[..codedCoefficientCount],
                                             candidateDequantizedCoefficients[..codedCoefficientCount],
                                             transformSize,
+                                            transformType,
                                             this.bitDepth,
-                                            out transformDomainEnergy);
+                                            out transformDomainEnergy,
+                                            useMatrix: !candidateMatricesDropped);
                                         energyDifference = blockError - transformDomainEnergy;
                                     }
 
@@ -6186,7 +6418,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             transformWidth,
                                             transformSize,
                                             Av1Plane.Y,
-                                            this.quantization.QIndex[0],
+                                            this.superblockQIndex,
                                             this.bitDepth,
                                             in candidateState);
                                         candidateReconstructed = true;
@@ -6259,7 +6491,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformWidth,
                                     transformSize,
                                     Av1Plane.Y,
-                                    this.quantization.QIndex[0],
+                                    this.superblockQIndex,
                                     this.bitDepth,
                                     in bestTransformState);
                                 Av1WorkCounters.Stop(Av1WorkCounters.ReconIntraInv, workRecon);
@@ -6996,7 +7228,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 coefficients,
                 transformSize,
                 selectedState.TransformType,
-                this.quantization.QIndex[0],
+                this.superblockQIndex,
                 this.quantization.DeltaQDc[planeIndex],
                 this.quantization.DeltaQAc[planeIndex],
                 this.bitDepth,
@@ -7017,7 +7249,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     plane,
                     this.bitDepth,
-                    this.quantization.QIndex[0] == 0,
+                    this.superblockQIndex == 0,
                     state);
             }
             else if (plane == Av1Plane.Y && !(isInter && this.keepSearchedZeroBlockTypes))

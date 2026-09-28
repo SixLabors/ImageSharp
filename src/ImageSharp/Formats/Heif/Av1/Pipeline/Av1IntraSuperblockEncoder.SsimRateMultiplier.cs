@@ -1,0 +1,132 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+
+/// <content>
+/// Scales the rate multiplier of each block by the luma activity of its 16x16 blocks, for the SSIM and image tunes.
+/// </content>
+internal static partial class Av1IntraSuperblockEncoder
+{
+    /// <summary>
+    /// Measures the rate multiplier scaling factor of every 16x16 luma block of a frame: the mean per-sample
+    /// variance of its 8x8 blocks, mapped through a fitted exponential curve and divided by the geometric mean of
+    /// the frame. Reference: av1_set_mb_ssim_rdmult_scaling().
+    /// </summary>
+    /// <typeparam name="TSample">The sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The closed sample operations.</typeparam>
+    /// <param name="picture">The frame receiving the factors.</param>
+    /// <param name="source">The source frame.</param>
+    public static void SetSsimRateMultiplierScaling<TSample, TOperator>(Av1PictureControlSet picture, Av1EncoderFrame<TSample> source)
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
+        Av1PictureParentControlSet parent = picture.Parent;
+        int modeInfoColumns = parent.Common.ModeInfoColumnCount;
+        int modeInfoRows = parent.Common.ModeInfoRowCount;
+        int columns = (modeInfoColumns + 3) / 4;
+        int rows = (modeInfoRows + 3) / 4;
+        double[] factors = new double[columns * rows];
+        Buffer2DRegion<TSample> luma = source.CodedView.GetPlane(Av1Plane.Y);
+        Av1BitDepth bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
+        int shift = bitDepth.GetBitCount() - 8;
+        Span<TSample> midpoint = stackalloc TSample[8];
+        midpoint.Fill(TOperator.CreateSample(128 << shift));
+        double logSum = 0.0;
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                double variance = 0.0;
+                double count = 0.0;
+                for (int modeInfoRow = row * 4; modeInfoRow < modeInfoRows && modeInfoRow < (row + 1) * 4; modeInfoRow += 2)
+                {
+                    for (int modeInfoColumn = column * 4; modeInfoColumn < modeInfoColumns && modeInfoColumn < (column + 1) * 4; modeInfoColumn += 2)
+                    {
+                        // Reference: av1_get_perpixel_variance_facade() for an 8x8 luma block.
+                        TOperator.GetMoments(
+                            Av1TransformBlockEncoder.GetPlaneSpan(luma, new Point(modeInfoColumn << 2, modeInfoRow << 2)),
+                            luma.Stride,
+                            midpoint,
+                            0,
+                            8,
+                            8,
+                            out int sum,
+                            out long squares);
+
+                        long normalizedSum = sum;
+                        long normalizedSquares = squares;
+                        if (shift > 0)
+                        {
+                            normalizedSum = (sum + (1 << (shift - 1))) >> shift;
+                            normalizedSquares = (squares + (1L << ((2 * shift) - 1))) >> (2 * shift);
+                        }
+
+                        long blockVariance = Math.Max(normalizedSquares - ((normalizedSum * normalizedSum) / 64), 0);
+                        variance += (uint)((blockVariance + 32) >> 6);
+                        count += 1.0;
+                    }
+                }
+
+                variance /= count;
+
+                // Curve fitted with an exponential model on the 16x16 blocks of the midres set.
+                variance = (67.035434 * (1 - Math.Exp(-0.0021489 * variance))) + 17.492222;
+                factors[(row * columns) + column] = variance;
+                logSum += Math.Log(variance);
+            }
+        }
+
+        logSum = Math.Exp(logSum / (rows * columns));
+        for (int index = 0; index < factors.Length; index++)
+        {
+            factors[index] /= logSum;
+        }
+
+        parent.SsimRateMultiplierFactors = factors;
+    }
+
+    internal partial struct ModeDecision<TSample, TOperator>
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
+        /// <summary>
+        /// Scales a rate multiplier by the geometric mean of the factors of the 16x16 blocks a block covers.
+        /// Reference: av1_set_ssim_rdmult().
+        /// </summary>
+        /// <param name="rateMultiplier">The rate multiplier.</param>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The scaled rate multiplier.</returns>
+        private readonly int ScaleSsimRateMultiplier(int rateMultiplier, Point blockOrigin, Av1BlockSize blockSize)
+        {
+            double[] factors = this.picture.Parent.SsimRateMultiplierFactors!;
+            int modeInfoColumns = this.picture.Parent.Common.ModeInfoColumnCount;
+            int modeInfoRows = this.picture.Parent.Common.ModeInfoRowCount;
+            int columns = (modeInfoColumns + 3) / 4;
+            int rows = (modeInfoRows + 3) / 4;
+            int blockColumns = (blockSize.Get4x4WideCount() + 3) / 4;
+            int blockRows = (blockSize.Get4x4HighCount() + 3) / 4;
+            int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+            double count = 0.0;
+            double product = 1.0;
+
+            // The reference steps rows by the 16x16 width and columns by its height; both are four here.
+            for (int row = modeInfoRow / 4; row < rows && row < (modeInfoRow / 4) + blockRows; row++)
+            {
+                for (int column = modeInfoColumn / 4; column < columns && column < (modeInfoColumn / 4) + blockColumns; column++)
+                {
+                    product *= factors[(row * columns) + column];
+                    count += 1.0;
+                }
+            }
+
+            product = Math.Pow(product, 1.0 / count);
+            return Math.Max((int)((rateMultiplier * product) + 0.5), 0);
+        }
+    }
+}

@@ -787,7 +787,9 @@ public class HeifEncoderTests
             colorImagePlanes.ColorConfig.ColorRange);
 
         ObuFrameHeader colorFrameHeader = Assert.IsType<ObuFrameHeader>(colorDecoder.FrameHeader);
-        Assert.Equal(64, colorFrameHeader.QuantizationParameters.BaseQIndex);
+
+        // Quality 75 maps to quantizer 19 through the image-tune curve, which is quantizer index 76.
+        Assert.Equal(76, colorFrameHeader.QuantizationParameters.BaseQIndex);
 
         using Av1Decoder alphaDecoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> alphaImagePlanes = alphaDecoder.DecodeFrameBuffer(alphaPayload, null, null, out _);
@@ -1590,6 +1592,7 @@ public class HeifEncoderTests
     /// </summary>
     /// <param name="quality">The encoder quality.</param>
     /// <returns>The comparer.</returns>
+    // The bounds allow for the image tune, whose quality curve quantizes more coarsely than the PSNR curve.
     private static ImageComparer GetLossyComparer(int quality)
-        => ImageComparer.Tolerant(quality >= 75 ? 0.01F : quality >= 50 ? 0.02F : 0.04F);
+        => ImageComparer.Tolerant(quality >= 75 ? 0.015F : quality >= 50 ? 0.02F : 0.04F);
 }

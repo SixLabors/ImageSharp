@@ -126,6 +126,7 @@ public class Av1TransformBlockEncoderTests
             -1,
             3,
             Av1BitDepth.EightBit,
+            Av1Plane.Y,
             ref expectedState);
 
         if (expectedState.EndOfBlock > 0)
@@ -251,6 +252,7 @@ public class Av1TransformBlockEncoderTests
             -2,
             4,
             bitDepth,
+            Av1Plane.Y,
             ref expectedState);
 
         if (expectedState.EndOfBlock > 0)
@@ -346,6 +348,7 @@ public class Av1TransformBlockEncoderTests
             -1,
             3,
             bitDepth,
+            Av1Plane.Y,
             ref actualState);
 
         AssertEqual(expectedTransformed, blockWorkspace.TransformCoefficients, coefficientCount);

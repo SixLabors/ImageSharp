@@ -93,52 +93,11 @@ internal static partial class Av1MotionSearchBase
         // Projection sums fit in signed sixteen-bit storage for blocks up to 128 samples.
         // Normalize only after summing an entire column or row; individual-sample rounding
         // would change both the projected variance and the selected displacement.
-        for (int x = 0; x < horizontalCount; x++)
-        {
-            int sum = 0;
-            int offset = referenceOrigin - left + x;
-            for (int y = 0; y < block.Height; y++)
-            {
-                sum += reference[offset + (y * referenceStride)];
-            }
-
-            horizontal[x] = (short)(sum >> horizontalShift);
-        }
-
-        for (int y = 0; y < verticalCount; y++)
-        {
-            int sum = 0;
-            ReadOnlySpan<byte> row = reference.Slice(referenceOrigin + ((y - top) * referenceStride), block.Width);
-            for (int x = 0; x < row.Length; x++)
-            {
-                sum += row[x];
-            }
-
-            vertical[y] = (short)(sum >> verticalShift);
-        }
-
-        for (int x = 0; x < block.Width; x++)
-        {
-            int sum = 0;
-            for (int y = 0; y < block.Height; y++)
-            {
-                sum += source[(y * sourceStride) + x];
-            }
-
-            sourceHorizontal[x] = (short)(sum >> horizontalShift);
-        }
-
-        for (int y = 0; y < block.Height; y++)
-        {
-            int sum = 0;
-            ReadOnlySpan<byte> row = source.Slice(y * sourceStride, block.Width);
-            for (int x = 0; x < row.Length; x++)
-            {
-                sum += row[x];
-            }
-
-            sourceVertical[y] = (short)(sum >> verticalShift);
-        }
+        // Reference: the aom_int_pro_row and aom_int_pro_col calls of av1_int_pro_motion_estimation().
+        Av1IntegralProjection.ProjectColumns(horizontal, reference[(referenceOrigin - left)..], referenceStride, horizontalCount, block.Height, horizontalShift);
+        Av1IntegralProjection.ProjectRows(vertical, reference[(referenceOrigin - (top * referenceStride))..], referenceStride, block.Width, verticalCount, verticalShift);
+        Av1IntegralProjection.ProjectColumns(sourceHorizontal, source, sourceStride, block.Width, block.Height, horizontalShift);
+        Av1IntegralProjection.ProjectRows(sourceVertical, source, sourceStride, block.Width, block.Height, verticalShift);
 
         int column = MatchProjection(horizontal, sourceHorizontal, left, right, screenContent, out int columnError);
         int rowOffset = MatchProjection(vertical, sourceVertical, top, bottom, screenContent, out int rowError);
@@ -298,18 +257,5 @@ internal static partial class Av1MotionSearchBase
     /// <param name="source">The source projection and its comparison length.</param>
     /// <returns>The squared error with its mean component removed.</returns>
     private static int GetProjectionVariance(ReadOnlySpan<short> reference, ReadOnlySpan<short> source)
-    {
-        int sum = 0;
-        int squares = 0;
-        for (int index = 0; index < source.Length; index++)
-        {
-            int difference = reference[index] - source[index];
-            sum += difference;
-            squares += difference * difference;
-        }
-
-        // A 128-sample projection can require all 32 bits for its squared sum.
-        // Widen before multiplying, then remove the mean at the exact power-of-two scale.
-        return squares - (int)(((long)sum * sum) >> BitOperations.Log2((uint)source.Length));
-    }
+        => Av1IntegralProjection.GetVariance(reference, source);
 }

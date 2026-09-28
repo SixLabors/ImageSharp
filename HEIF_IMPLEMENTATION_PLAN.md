@@ -49,9 +49,9 @@ and a `FeatureTestRunner` test against the scalar libaom definition. Hottest fir
 - Transform search: the energy grid of `PruneInterTransformTypes` (`get_energy_distribution_finer`, scalar C in
   libaom). The residual square sums, `aom_satd`, `aom_get_blk_sse_sum`, `av1_get_horver_correlation_full` and the
   skip prediction scan use `Av1ResidualBuilder.ResidualSquaresOperator` and `Av1CoefficientMeasures`.
-- Intra estimation: the scaling and SSE of `Av1IntraModeEstimator.Estimate`, the scalar Hadamard of
-  `GetHadamardCost`, `TransformForModeEstimation`, and the Vector128-only `HadamardEstimationColumns`.
-- `Av1MotionSearchBase.Projection.cs` (`aom_int_pro_row`, `aom_int_pro_col`, `aom_vector_var`).
+- Intra estimation: the scalar Hadamard of `GetHadamardCost`, `TransformForModeEstimation`, and the Vector128-only
+  `HadamardEstimationColumns`. (The identity scaling and the coefficient SSE of `Av1IntraModeEstimator.Estimate`
+  use `Av1CoefficientMeasures`; the motion projections use `Av1IntegralProjection`.)
 - `GetDirectionalModeSkipMask` (Sobel and gradient histogram), the palette k-means `Accumulate` members (they sum
   lanes through scratch) and `CalculateCentroids`, and `CopyPaletteSamples`.
 - Per superblock: the Vector128-only `FilterTemporalSource` and `ConvolveIntraPartition`, and

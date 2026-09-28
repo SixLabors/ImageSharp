@@ -121,13 +121,7 @@ internal static class Av1IntraModeEstimator
                 {
                     // Identity estimation keeps spatial sample order and scales each residual by eight,
                     // putting it in the same quantizer domain as the orthogonal estimation transform.
-                    for (int y = 0; y < width; y++)
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            coefficients[(y * width) + x] = transformResidual[(y * stride) + x] * 8;
-                        }
-                    }
+                    Av1CoefficientMeasures.ScaleResidual(coefficients, transformResidual, stride, width);
                 }
                 else
                 {
@@ -156,15 +150,10 @@ internal static class Av1IntraModeEstimator
                 skip &= endOfBlock == 0;
                 endOfBlockCost += BitOperations.Log2((uint)endOfBlock + 1);
                 magnitudeSum += TensorPrimitives.SumOfMagnitudes<int>(quantized);
-                long squaredError = 0;
-                for (int i = 0; i < sampleCount; i++)
-                {
-                    // Low-precision reconstruction retains the signed sixteen-bit coefficient representation.
-                    // High-bit-depth estimation retains int coefficients and normalizes only after accumulation.
-                    int reconstructedCoefficient = highBitDepth ? reconstructed[i] : (short)reconstructed[i];
-                    long difference = coefficients[i] - reconstructedCoefficient;
-                    squaredError += difference * difference;
-                }
+
+                // Low-precision reconstruction retains the signed sixteen-bit coefficient representation.
+                // High-bit-depth estimation retains int coefficients and normalizes only after accumulation.
+                long squaredError = Av1CoefficientMeasures.SumSquaredDifferences(coefficients, reconstructed, !highBitDepth);
 
                 if (normalizationShift != 0)
                 {

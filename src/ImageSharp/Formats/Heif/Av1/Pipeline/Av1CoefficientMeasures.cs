@@ -44,6 +44,27 @@ internal static partial class Av1CoefficientMeasures
         => GetEndOfBlock<CoefficientMeasureOperator>(quantized, inverseScan);
 
     /// <summary>
+    /// Returns the squared error between original and reconstructed coefficients. Reference: av1_block_error_lp,
+    /// which holds the reconstruction as int16, and av1_highbd_block_error.
+    /// </summary>
+    /// <param name="coefficients">The original coefficients.</param>
+    /// <param name="reconstructed">The reconstructed coefficients.</param>
+    /// <param name="reconstructedIsInt16">Whether the reconstruction is kept in int16 storage, which wraps it.</param>
+    /// <returns>The exact sum of the squared differences.</returns>
+    public static long SumSquaredDifferences(ReadOnlySpan<int> coefficients, ReadOnlySpan<int> reconstructed, bool reconstructedIsInt16)
+        => SumSquaredDifferences<CoefficientMeasureOperator>(coefficients, reconstructed, reconstructedIsInt16);
+
+    /// <summary>
+    /// Scales a square residual block by eight into coefficients. Reference: scale_square_buf_vals().
+    /// </summary>
+    /// <param name="destination">Receives the coefficients, packed at the block width.</param>
+    /// <param name="residual">The residual samples at the block origin.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="width">The block width and height.</param>
+    public static void ScaleResidual(Span<int> destination, ReadOnlySpan<short> residual, int stride, int width)
+        => ScaleResidual<CoefficientMeasureOperator>(destination, residual, stride, width);
+
+    /// <summary>
     /// Traverses <see cref="SumAbsolute(ReadOnlySpan{int})"/> at descending register widths.
     /// </summary>
     private static long SumAbsolute<TOperator>(ReadOnlySpan<int> coefficients)
@@ -194,5 +215,106 @@ internal static partial class Av1CoefficientMeasures
         }
 
         return (ushort)endOfBlock;
+    }
+
+    /// <summary>
+    /// Traverses <see cref="SumSquaredDifferences(ReadOnlySpan{int}, ReadOnlySpan{int}, bool)"/> at descending register widths.
+    /// </summary>
+    private static long SumSquaredDifferences<TOperator>(ReadOnlySpan<int> coefficients, ReadOnlySpan<int> reconstructed, bool reconstructedIsInt16)
+        where TOperator : struct, ICoefficientMeasureOperator
+    {
+        int length = coefficients.Length;
+        ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
+        ref int reconstructedBase = ref MemoryMarshal.GetReference(reconstructed[..length]);
+        Vector512<long> total512 = Vector512<long>.Zero;
+        Vector256<long> total256 = Vector256<long>.Zero;
+        Vector128<long> total128 = Vector128<long>.Zero;
+        long total = 0;
+        int i = 0;
+
+        // The storage choice is the same for every coefficient of the block, so its branch always predicts.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector512<int>.Count; i += Vector512<int>.Count)
+            {
+                Vector512<int> values = Vector512.LoadUnsafe(ref reconstructedBase, (nuint)i);
+                values = reconstructedIsInt16 ? TOperator.TruncateToInt16(values) : values;
+                total512 = TOperator.AccumulateSquaredDifferences(Vector512.LoadUnsafe(ref coefficientBase, (nuint)i), values, total512);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector256<int>.Count; i += Vector256<int>.Count)
+            {
+                Vector256<int> values = Vector256.LoadUnsafe(ref reconstructedBase, (nuint)i);
+                values = reconstructedIsInt16 ? TOperator.TruncateToInt16(values) : values;
+                total256 = TOperator.AccumulateSquaredDifferences(Vector256.LoadUnsafe(ref coefficientBase, (nuint)i), values, total256);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector128<int>.Count; i += Vector128<int>.Count)
+            {
+                Vector128<int> values = Vector128.LoadUnsafe(ref reconstructedBase, (nuint)i);
+                values = reconstructedIsInt16 ? TOperator.TruncateToInt16(values) : values;
+                total128 = TOperator.AccumulateSquaredDifferences(Vector128.LoadUnsafe(ref coefficientBase, (nuint)i), values, total128);
+            }
+        }
+
+        for (; i < length; i++)
+        {
+            int value = Unsafe.Add(ref reconstructedBase, i);
+            total = TOperator.AccumulateSquaredDifferences(Unsafe.Add(ref coefficientBase, i), reconstructedIsInt16 ? (short)value : value, total);
+        }
+
+        total256 += total512.GetLower() + total512.GetUpper();
+        total128 += total256.GetLower() + total256.GetUpper();
+        return total + Vector128.Sum(total128);
+    }
+
+    /// <summary>
+    /// Traverses <see cref="ScaleResidual(Span{int}, ReadOnlySpan{short}, int, int)"/> at descending register widths.
+    /// </summary>
+    private static void ScaleResidual<TOperator>(Span<int> destination, ReadOnlySpan<short> residual, int stride, int width)
+        where TOperator : struct, ICoefficientMeasureOperator
+    {
+        ref int destinationBase = ref MemoryMarshal.GetReference(destination[..(width * width)]);
+        ref short residualBase = ref MemoryMarshal.GetReference(residual[..(((width - 1) * stride) + width)]);
+        for (int y = 0; y < width; y++)
+        {
+            ref short row = ref Unsafe.Add(ref residualBase, y * stride);
+            ref int destinationRow = ref Unsafe.Add(ref destinationBase, y * width);
+            int x = 0;
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector512<short>.Count; x += Vector512<short>.Count)
+                {
+                    TOperator.StoreScaledResidual(Vector512.LoadUnsafe(ref row, (nuint)x), ref Unsafe.Add(ref destinationRow, x));
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<short>.Count; x += Vector256<short>.Count)
+                {
+                    TOperator.StoreScaledResidual(Vector256.LoadUnsafe(ref row, (nuint)x), ref Unsafe.Add(ref destinationRow, x));
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<short>.Count; x += Vector128<short>.Count)
+                {
+                    TOperator.StoreScaledResidual(Vector128.LoadUnsafe(ref row, (nuint)x), ref Unsafe.Add(ref destinationRow, x));
+                }
+            }
+
+            for (; x < width; x++)
+            {
+                Unsafe.Add(ref destinationRow, x) = TOperator.ScaleResidual(Unsafe.Add(ref row, x));
+            }
+        }
     }
 }

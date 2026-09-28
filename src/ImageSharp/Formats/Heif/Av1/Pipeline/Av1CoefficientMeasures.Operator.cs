@@ -123,6 +123,91 @@ internal static partial class Av1CoefficientMeasures
         /// <param name="maximum">The running end position.</param>
         /// <returns>The updated end position.</returns>
         public static abstract int AccumulateEndOfBlock(int value, short position, int maximum);
+
+        /// <summary>
+        /// Adds the squared differences of four coefficient pairs to a running total.
+        /// </summary>
+        /// <param name="coefficients">The original coefficients.</param>
+        /// <param name="reconstructed">The reconstructed coefficients.</param>
+        /// <param name="total">The running total.</param>
+        /// <returns>The updated running total.</returns>
+        public static abstract Vector128<long> AccumulateSquaredDifferences(Vector128<int> coefficients, Vector128<int> reconstructed, Vector128<long> total);
+
+        /// <summary>
+        /// Adds the squared differences of eight coefficient pairs to a running total.
+        /// </summary>
+        /// <param name="coefficients">The original coefficients.</param>
+        /// <param name="reconstructed">The reconstructed coefficients.</param>
+        /// <param name="total">The running total.</param>
+        /// <returns>The updated running total.</returns>
+        public static abstract Vector256<long> AccumulateSquaredDifferences(Vector256<int> coefficients, Vector256<int> reconstructed, Vector256<long> total);
+
+        /// <summary>
+        /// Adds the squared differences of sixteen coefficient pairs to a running total.
+        /// </summary>
+        /// <param name="coefficients">The original coefficients.</param>
+        /// <param name="reconstructed">The reconstructed coefficients.</param>
+        /// <param name="total">The running total.</param>
+        /// <returns>The updated running total.</returns>
+        public static abstract Vector512<long> AccumulateSquaredDifferences(Vector512<int> coefficients, Vector512<int> reconstructed, Vector512<long> total);
+
+        /// <summary>
+        /// Adds the squared difference of one coefficient pair to a running total.
+        /// </summary>
+        /// <param name="coefficient">The original coefficient.</param>
+        /// <param name="reconstructed">The reconstructed coefficient.</param>
+        /// <param name="total">The running total.</param>
+        /// <returns>The updated running total.</returns>
+        public static abstract long AccumulateSquaredDifferences(int coefficient, int reconstructed, long total);
+
+        /// <summary>
+        /// Keeps the low sixteen bits of four coefficients as signed values, as an int16 store does.
+        /// </summary>
+        /// <param name="values">The coefficients.</param>
+        /// <returns>The sign-extended low sixteen bits.</returns>
+        public static abstract Vector128<int> TruncateToInt16(Vector128<int> values);
+
+        /// <summary>
+        /// Keeps the low sixteen bits of eight coefficients as signed values, as an int16 store does.
+        /// </summary>
+        /// <param name="values">The coefficients.</param>
+        /// <returns>The sign-extended low sixteen bits.</returns>
+        public static abstract Vector256<int> TruncateToInt16(Vector256<int> values);
+
+        /// <summary>
+        /// Keeps the low sixteen bits of sixteen coefficients as signed values, as an int16 store does.
+        /// </summary>
+        /// <param name="values">The coefficients.</param>
+        /// <returns>The sign-extended low sixteen bits.</returns>
+        public static abstract Vector512<int> TruncateToInt16(Vector512<int> values);
+
+        /// <summary>
+        /// Scales eight residuals by eight into thirty-two-bit coefficients.
+        /// </summary>
+        /// <param name="values">The residuals.</param>
+        /// <param name="destination">The first coefficient to write.</param>
+        public static abstract void StoreScaledResidual(Vector128<short> values, ref int destination);
+
+        /// <summary>
+        /// Scales sixteen residuals by eight into thirty-two-bit coefficients.
+        /// </summary>
+        /// <param name="values">The residuals.</param>
+        /// <param name="destination">The first coefficient to write.</param>
+        public static abstract void StoreScaledResidual(Vector256<short> values, ref int destination);
+
+        /// <summary>
+        /// Scales thirty-two residuals by eight into thirty-two-bit coefficients.
+        /// </summary>
+        /// <param name="values">The residuals.</param>
+        /// <param name="destination">The first coefficient to write.</param>
+        public static abstract void StoreScaledResidual(Vector512<short> values, ref int destination);
+
+        /// <summary>
+        /// Scales one residual by eight.
+        /// </summary>
+        /// <param name="value">The residual.</param>
+        /// <returns>The coefficient.</returns>
+        public static abstract int ScaleResidual(short value);
     }
 
     /// <summary>
@@ -207,5 +292,84 @@ internal static partial class Av1CoefficientMeasures
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int AccumulateEndOfBlock(int value, short position, int maximum)
             => value != 0 ? Math.Max(maximum, position + 1) : maximum;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<long> AccumulateSquaredDifferences(Vector128<int> coefficients, Vector128<int> reconstructed, Vector128<long> total)
+        {
+            // A high-bit-depth difference can exceed sixteen bits, so the square needs sixty-four-bit lanes.
+            (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(coefficients - reconstructed);
+            return total + (lower * lower) + (upper * upper);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<long> AccumulateSquaredDifferences(Vector256<int> coefficients, Vector256<int> reconstructed, Vector256<long> total)
+        {
+            (Vector256<long> lower, Vector256<long> upper) = Vector256.Widen(coefficients - reconstructed);
+            return total + (lower * lower) + (upper * upper);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<long> AccumulateSquaredDifferences(Vector512<int> coefficients, Vector512<int> reconstructed, Vector512<long> total)
+        {
+            (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(coefficients - reconstructed);
+            return total + (lower * lower) + (upper * upper);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long AccumulateSquaredDifferences(int coefficient, int reconstructed, long total)
+        {
+            long difference = (long)coefficient - reconstructed;
+            return total + (difference * difference);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<int> TruncateToInt16(Vector128<int> values)
+            => Vector128.ShiftRightArithmetic(Vector128.ShiftLeft(values, 16), 16);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<int> TruncateToInt16(Vector256<int> values)
+            => Vector256.ShiftRightArithmetic(Vector256.ShiftLeft(values, 16), 16);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> TruncateToInt16(Vector512<int> values)
+            => Vector512.ShiftRightArithmetic(Vector512.ShiftLeft(values, 16), 16);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void StoreScaledResidual(Vector128<short> values, ref int destination)
+        {
+            (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(values);
+            Vector128.ShiftLeft(lower, 3).StoreUnsafe(ref destination);
+            Vector128.ShiftLeft(upper, 3).StoreUnsafe(ref destination, (nuint)Vector128<int>.Count);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void StoreScaledResidual(Vector256<short> values, ref int destination)
+        {
+            (Vector256<int> lower, Vector256<int> upper) = Vector256.Widen(values);
+            Vector256.ShiftLeft(lower, 3).StoreUnsafe(ref destination);
+            Vector256.ShiftLeft(upper, 3).StoreUnsafe(ref destination, (nuint)Vector256<int>.Count);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void StoreScaledResidual(Vector512<short> values, ref int destination)
+        {
+            (Vector512<int> lower, Vector512<int> upper) = Vector512.Widen(values);
+            Vector512.ShiftLeft(lower, 3).StoreUnsafe(ref destination);
+            Vector512.ShiftLeft(upper, 3).StoreUnsafe(ref destination, (nuint)Vector512<int>.Count);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ScaleResidual(short value) => value * 8;
     }
 }

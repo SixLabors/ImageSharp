@@ -16,7 +16,7 @@ public class Av1CoefficientMeasuresTests
     /// The hardware configurations that run every register width and the scalar overloads.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies the sum of magnitudes (aom_satd), the largest magnitude and the end of block.
@@ -27,6 +27,30 @@ public class Av1CoefficientMeasuresTests
 
     private static void ValidateMeasures()
     {
+        Random scaleRandom = new(0x5CA1);
+        foreach (int width in new[] { 4, 8, 16, 32 })
+        {
+            int stride = width + 5;
+            short[] residual = new short[stride * width];
+            for (int i = 0; i < residual.Length; i++)
+            {
+                residual[i] = (short)scaleRandom.Next(-4095, 4096);
+            }
+
+            int[] expected = new int[width * width];
+            for (int y = 0; y < width; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    expected[(y * width) + x] = residual[(y * stride) + x] * 8;
+                }
+            }
+
+            int[] actual = new int[width * width];
+            Av1CoefficientMeasures.ScaleResidual(actual, residual, stride, width);
+            Assert.Equal(expected, actual);
+        }
+
         Random random = new(0xC0EF);
         foreach (int length in new[] { 0, 1, 3, 4, 15, 16, 17, 63, 64, 1023, 1024, 4096 })
         {
@@ -81,6 +105,26 @@ public class Av1CoefficientMeasuresTests
                 }
 
                 Assert.Equal(expectedEnd, Av1CoefficientMeasures.GetEndOfBlock(coefficients, inverseScan));
+
+                // The reconstruction wraps to int16 in low precision, as av1_block_error_lp stores it.
+                int[] reconstructed = new int[length];
+                for (int i = 0; i < length; i++)
+                {
+                    reconstructed[i] = coefficients[i] + random.Next(-70000, 70001);
+                }
+
+                long expectedWide = 0;
+                long expectedNarrow = 0;
+                for (int i = 0; i < length; i++)
+                {
+                    long wide = (long)coefficients[i] - reconstructed[i];
+                    long narrow = (long)coefficients[i] - (short)reconstructed[i];
+                    expectedWide += wide * wide;
+                    expectedNarrow += narrow * narrow;
+                }
+
+                Assert.Equal(expectedWide, Av1CoefficientMeasures.SumSquaredDifferences(coefficients, reconstructed, false));
+                Assert.Equal(expectedNarrow, Av1CoefficientMeasures.SumSquaredDifferences(coefficients, reconstructed, true));
             }
         }
     }

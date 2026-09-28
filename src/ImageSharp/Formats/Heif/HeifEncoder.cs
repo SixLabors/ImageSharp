@@ -19,12 +19,12 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private int? alphaQuality;
 
     /// <summary>
-    /// The AV1 encoding speed.
+    /// The AV1 encoding speed. Reference: the default speed of avifenc.
     /// </summary>
-    private HeifEncodingSpeed speed;
+    private HeifEncodingSpeed speed = HeifEncodingSpeed.Level6;
 
     /// <summary>
-    /// Gets the lossy compression quality, or <see langword="null"/> to use the compression method's default quality.
+    /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60, as avifenc does.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
     /// enable <see cref="Lossless"/> encoding.
     /// </summary>
@@ -72,7 +72,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets the AV1 encoding speed. Higher levels prioritize speed over compression efficiency.
-    /// The default is <see cref="HeifEncodingSpeed.Level0"/>.
+    /// The default is <see cref="HeifEncodingSpeed.Level6"/>, as avifenc uses.
     /// </summary>
     /// <exception cref="ArgumentException">The speed is outside the range 0 to 9.</exception>
     public HeifEncodingSpeed Speed
@@ -96,10 +96,11 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     public HeifBitDepth? BitDepth { get; init; }
 
     /// <summary>
-    /// Gets the encoded chroma sampling, or <see langword="null"/> to use <see cref="HeifChromaSubsampling.Yuv420"/>
-    /// for lossy encoding and <see cref="HeifChromaSubsampling.Yuv444"/> for lossless encoding. Oversized still
-    /// images use <see cref="HeifChromaSubsampling.Yuv444"/> when a subsampled AVIF grid cannot represent an odd
-    /// output dimension.
+    /// Gets the encoded chroma sampling, or <see langword="null"/> to choose it as avifenc does:
+    /// <see cref="HeifChromaSubsampling.Monochrome"/> for a luminance source, the source's own sampling for a
+    /// 4:2:0, 4:2:2 or 4:4:4 JPEG source, and <see cref="HeifChromaSubsampling.Yuv444"/> otherwise, including all
+    /// lossless encoding. Oversized still images use <see cref="HeifChromaSubsampling.Yuv444"/> when a subsampled
+    /// AVIF grid cannot represent an odd output dimension.
     /// </summary>
     public HeifChromaSubsampling? ChromaSubsampling { get; init; }
 

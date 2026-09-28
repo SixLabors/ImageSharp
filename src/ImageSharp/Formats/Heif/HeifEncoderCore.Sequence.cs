@@ -7,6 +7,7 @@ using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -71,6 +72,36 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     private const ushort VisualSampleDepth = 24;
 
+    /// <summary>
+    /// Chooses the chroma sampling of an encoding that does not request one. Reference: the automatic format of
+    /// avifenc, which avifReadImage() resolves: 4:0:0 for a grayscale source, the JPEG's internal 4:2:0, 4:2:2 or
+    /// 4:4:4 sampling for a JPEG source (avifJPEGReadCopy()), and 4:4:4 otherwise.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <param name="image">The source image.</param>
+    /// <param name="metadata">The HEIF view of the source metadata.</param>
+    /// <returns>The chroma sampling to encode.</returns>
+    private HeifChromaSubsampling GetDefaultChromaSubsampling<TPixel>(Image<TPixel> image, HeifMetadata metadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (metadata.IsMonochrome)
+        {
+            return HeifChromaSubsampling.Monochrome;
+        }
+
+        if (!this.encoder.Lossless && image.Metadata.DecodedImageFormat == JpegFormat.Instance)
+        {
+            return image.Metadata.GetJpegMetadata().ColorType switch
+            {
+                JpegColorType.YCbCrRatio420 => HeifChromaSubsampling.Yuv420,
+                JpegColorType.YCbCrRatio422 => HeifChromaSubsampling.Yuv422,
+                _ => HeifChromaSubsampling.Yuv444,
+            };
+        }
+
+        return HeifChromaSubsampling.Yuv444;
+    }
+
     private Av1EncodingSettings ResolveAv1Encoding<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -84,12 +115,7 @@ internal sealed partial class HeifEncoderCore
             _ => throw new NotSupportedException($"HEIF bit depth '{bitDepth}' is not supported.")
         };
 
-        HeifChromaSubsampling defaultChromaSubsampling = this.encoder.Lossless
-            ? HeifChromaSubsampling.Yuv444
-            : HeifChromaSubsampling.Yuv420;
-
-        HeifChromaSubsampling chromaSubsampling = this.encoder.ChromaSubsampling ??
-            (metadata.IsMonochrome ? HeifChromaSubsampling.Monochrome : defaultChromaSubsampling);
+        HeifChromaSubsampling chromaSubsampling = this.encoder.ChromaSubsampling ?? this.GetDefaultChromaSubsampling(image, metadata);
 
         if (image.Frames.Count == 1
             && (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
@@ -115,11 +141,13 @@ internal sealed partial class HeifEncoderCore
         CicpProfile colorProfile;
         if (sourceColorProfile is null)
         {
+            // Without a source description, use the avifenc defaults: unspecified primaries and transfer, BT.601
+            // matrix, full range. Reference: the initial settings and requestedRange of avifenc main().
             colorProfile = new CicpProfile(
                 (byte)CicpColorPrimaries.Unspecified,
                 (byte)CicpTransferCharacteristics.Unspecified,
                 (byte)CicpMatrixCoefficients.ItuRBt601_7_525,
-                false);
+                true);
         }
         else
         {
@@ -182,7 +210,8 @@ internal sealed partial class HeifEncoderCore
             BitDepth = av1BitDepth
         };
 
-        int quality = this.encoder.Quality ?? 75;
+        // Reference: DEFAULT_QUALITY of avifenc.
+        int quality = this.encoder.Quality ?? 60;
         int colorQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality);
         int alphaQuality = this.encoder.AlphaQuality ?? quality;
         int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality);

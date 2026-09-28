@@ -385,6 +385,32 @@ public class HeifEncoderTests
         reference.DebugSave(provider, extension: "png", encoder: new PngEncoder());
     }
 
+    /// <summary>
+    /// Verifies that an encoding without options uses the avifenc defaults: full range, and the automatic format of
+    /// avifReadImage(), which is 4:0:0 for a grayscale source, the internal sampling of a JPEG source, and 4:4:4
+    /// otherwise.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, false, false, false)]
+    [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgba32, false, true, true)]
+    [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, false, false, false)]
+    [WithFile(TestImages.Jpeg.Baseline.HistogramEqImage, PixelTypes.L8, true, true, true)]
+    public void EncodeWithoutOptionsUsesAvifencDefaults<TPixel>(TestImageProvider<TPixel> provider, bool monochrome, bool subsamplingX, bool subsamplingY)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder());
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
+        ObuColorConfig colorConfig = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).ColorConfig;
+        Assert.Equal(monochrome, colorConfig.IsMonochrome);
+        Assert.Equal(subsamplingX, colorConfig.SubSamplingX);
+        Assert.Equal(subsamplingY, colorConfig.SubSamplingY);
+        Assert.True(colorConfig.ColorRange);
+    }
+
     [Theory]
     [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, 90)]
     [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, 40)]
@@ -694,7 +720,9 @@ public class HeifEncoderTests
         Assert.False(metadata.HasAlpha);
         CicpProfile colorProfile = Assert.IsType<CicpProfile>(info.Metadata.CicpProfile);
         Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, colorProfile.MatrixCoefficients);
-        Assert.False(colorProfile.FullRange);
+
+        // A source without a color description gets the avifenc default: full range.
+        Assert.True(colorProfile.FullRange);
     }
 
     [Fact]
@@ -990,7 +1018,7 @@ public class HeifEncoderTests
 
     [Theory]
     [InlineData(CicpMatrixCoefficients.Identity, HeifChromaSubsampling.Yuv420)]
-    [InlineData(CicpMatrixCoefficients.YCgCoRe, null)]
+    [InlineData(CicpMatrixCoefficients.YCgCoRe, HeifChromaSubsampling.Yuv422)]
     public void Av1SanitizesIncompatibleMatrixWithoutMutatingSourceMetadata(
         CicpMatrixCoefficients matrix,
         HeifChromaSubsampling? subsampling)

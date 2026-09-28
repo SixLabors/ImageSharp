@@ -38,6 +38,14 @@ quality with the non-IQ formula. Until this is ported, output matches libavif on
 The superblock rule in `Av1FrameEncoder.CreateSequenceHeader` equals `av1_select_sb_size`
 (`encoder_utils.c:1017-1039`) for one thread without delta-q modes.
 
+## Encoder defaults, aligned with avifenc 2026-09-28
+
+Without options, `HeifEncoder` now uses the avifenc defaults: quality 60, speed 6, full range, unspecified primaries
+and transfer with the BT.601 matrix, and the automatic format of `avifReadImage()` (4:0:0 for grayscale, the JPEG's
+4:2:0, 4:2:2 or 4:4:4 sampling, 4:4:4 otherwise). Known difference: ImageSharp's JPEG decoder reports an unusual
+sampling layout as `YCbCrRatio420`, where libavif falls back to 4:4:4. The parity harness builds `ObuColorConfig`
+directly, so these container and color defaults are checked only by `EncodeWithoutOptionsUsesAvifencDefaults`.
+
 ## SIMD operator-pattern gaps, found 2026-09-28
 
 A read-only audit found these kernels outside the operator pattern. Each one gets an operator and a traversal,

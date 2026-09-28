@@ -26,6 +26,7 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     {
         this.BitDepth = other.BitDepth;
         this.IsMonochrome = other.IsMonochrome;
+        this.ChromaSubsampling = other.ChromaSubsampling;
         this.HasAlpha = other.HasAlpha;
         this.RepeatCount = other.RepeatCount;
         this.AnimateRootFrame = other.AnimateRootFrame;
@@ -46,6 +47,12 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// Gets or sets a value indicating whether the primary image contains a single luminance component.
     /// </summary>
     public bool IsMonochrome { get; set; }
+
+    /// <summary>
+    /// Gets or sets the chroma sampling of the primary image, or <see langword="null"/> when the source was not a HEIF
+    /// image. The HEIF encoder keeps this sampling when no chroma sampling is requested.
+    /// </summary>
+    public HeifChromaSubsampling? ChromaSubsampling { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the primary image has an alpha channel.

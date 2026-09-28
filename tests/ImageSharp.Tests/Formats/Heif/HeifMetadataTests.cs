@@ -17,6 +17,7 @@ public class HeifMetadataTests
         {
             BitDepth = HeifBitDepth.Bit12,
             IsMonochrome = true,
+            ChromaSubsampling = HeifChromaSubsampling.Monochrome,
             HasAlpha = true,
             RepeatCount = 3,
             AnimateRootFrame = false
@@ -26,6 +27,7 @@ public class HeifMetadataTests
 
         Assert.Equal(metadata.BitDepth, clone.BitDepth);
         Assert.Equal(metadata.IsMonochrome, clone.IsMonochrome);
+        Assert.Equal(metadata.ChromaSubsampling, clone.ChromaSubsampling);
         Assert.Equal(metadata.HasAlpha, clone.HasAlpha);
         Assert.Equal(metadata.RepeatCount, clone.RepeatCount);
         Assert.Equal(metadata.AnimateRootFrame, clone.AnimateRootFrame);

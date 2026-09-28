@@ -75,7 +75,8 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Chooses the chroma sampling of an encoding that does not request one. Reference: the automatic format of
     /// avifenc, which avifReadImage() resolves: 4:0:0 for a grayscale source, the JPEG's internal 4:2:0, 4:2:2 or
-    /// 4:4:4 sampling for a JPEG source (avifJPEGReadCopy()), and 4:4:4 otherwise.
+    /// 4:4:4 sampling for a JPEG source (avifJPEGReadCopy()), and 4:4:4 otherwise. A decoded HEIF source keeps its own
+    /// sampling in the same way as a JPEG source, and lossless encoding always uses 4:4:4.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
@@ -89,7 +90,17 @@ internal sealed partial class HeifEncoderCore
             return HeifChromaSubsampling.Monochrome;
         }
 
-        if (!this.encoder.Lossless && image.Metadata.DecodedImageFormat == JpegFormat.Instance)
+        if (this.encoder.Lossless)
+        {
+            return HeifChromaSubsampling.Yuv444;
+        }
+
+        if (metadata.ChromaSubsampling is HeifChromaSubsampling heifSubsampling)
+        {
+            return heifSubsampling;
+        }
+
+        if (image.Metadata.DecodedImageFormat == JpegFormat.Instance)
         {
             return image.Metadata.GetJpegMetadata().ColorType switch
             {

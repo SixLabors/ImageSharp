@@ -194,6 +194,17 @@ internal sealed class Av1CodecConfiguration
     public byte ChromaSamplePosition { get; }
 
     /// <summary>
+    /// Gets the chroma sampling that the configuration describes.
+    /// </summary>
+    /// <returns>The chroma sampling.</returns>
+    public HeifChromaSubsampling GetChromaSubsampling()
+        => this.IsMonochrome
+            ? HeifChromaSubsampling.Monochrome
+            : this.ChromaSubsamplingX
+                ? this.ChromaSubsamplingY ? HeifChromaSubsampling.Yuv420 : HeifChromaSubsampling.Yuv422
+                : HeifChromaSubsampling.Yuv444;
+
+    /// <summary>
     /// Writes the fixed AV1 codec-configuration record without optional configuration OBUs.
     /// </summary>
     /// <param name="destination">The destination receiving the four-byte record.</param>

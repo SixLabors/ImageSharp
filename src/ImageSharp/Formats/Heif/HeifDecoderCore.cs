@@ -720,6 +720,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 {
                     heifMetadata.BitDepth = av1Configuration.BitDepth;
                     heifMetadata.IsMonochrome = av1Configuration.IsMonochrome;
+                    heifMetadata.ChromaSubsampling = av1Configuration.GetChromaSubsampling();
                 }
 
                 break;
@@ -882,6 +883,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             meta.BitDepth = codecConfiguration.BitDepth;
             meta.IsMonochrome = codecConfiguration.IsMonochrome;
+            meta.ChromaSubsampling = codecConfiguration.GetChromaSubsampling();
         }
         else
         {

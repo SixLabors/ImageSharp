@@ -100,6 +100,7 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
         HeifMetadata heifMetadata = metadata.GetHeifMetadata();
         heifMetadata.BitDepth = codecConfiguration.BitDepth;
         heifMetadata.IsMonochrome = codecConfiguration.IsMonochrome;
+        heifMetadata.ChromaSubsampling = codecConfiguration.GetChromaSubsampling();
         heifMetadata.ContentLightLevel = item.ContentLightLevel ?? obuContentLightLevel;
         heifMetadata.MasteringDisplayColorVolume = item.MasteringDisplayColorVolume ?? obuMasteringDisplayColorVolume;
     }

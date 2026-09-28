@@ -391,24 +391,38 @@ public class HeifEncoderTests
     /// otherwise.
     /// </summary>
     [Theory]
-    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, false, false, false)]
-    [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgba32, false, true, true)]
-    [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, false, false, false)]
-    [WithFile(TestImages.Jpeg.Baseline.HistogramEqImage, PixelTypes.L8, true, true, true)]
-    public void EncodeWithoutOptionsUsesAvifencDefaults<TPixel>(TestImageProvider<TPixel> provider, bool monochrome, bool subsamplingX, bool subsamplingY)
+    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, HeifChromaSubsampling.Yuv444)]
+    [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgba32, HeifChromaSubsampling.Yuv420)]
+    [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, HeifChromaSubsampling.Yuv444)]
+    [WithFile(TestImages.Jpeg.Baseline.HistogramEqImage, PixelTypes.L8, HeifChromaSubsampling.Monochrome)]
+    public void EncodeWithoutOptionsUsesAvifencDefaults<TPixel>(TestImageProvider<TPixel> provider, HeifChromaSubsampling expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
         using MemoryStream stream = new();
         image.Save(stream, new HeifEncoder());
+        stream.Position = 0;
 
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
-        ObuColorConfig colorConfig = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).ColorConfig;
-        Assert.Equal(monochrome, colorConfig.IsMonochrome);
-        Assert.Equal(subsamplingX, colorConfig.SubSamplingX);
-        Assert.Equal(subsamplingY, colorConfig.SubSamplingY);
-        Assert.True(colorConfig.ColorRange);
+        using Image<TPixel> encoded = Image.Load<TPixel>(stream);
+        Assert.Equal(expected, encoded.Metadata.GetHeifMetadata().ChromaSubsampling);
+        Assert.True(Assert.IsType<CicpProfile>(encoded.Metadata.CicpProfile).FullRange);
+    }
+
+    /// <summary>
+    /// Verifies that a decoded HEIF image keeps its chroma sampling when it is encoded again without options.
+    /// </summary>
+    [Fact]
+    public void EncodeWithoutOptionsKeepsDecodedHeifChromaSubsampling()
+    {
+        using Image<Rgba64> image = Image.Load<Rgba64>(TestFile.GetInputFileFullPath(TestImages.Heif.Av1Profile10Bit420Avif));
+        Assert.Equal(HeifChromaSubsampling.Yuv420, image.Metadata.GetHeifMetadata().ChromaSubsampling);
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder());
+        stream.Position = 0;
+
+        using Image<Rgba64> encoded = Image.Load<Rgba64>(stream);
+        Assert.Equal(HeifChromaSubsampling.Yuv420, encoded.Metadata.GetHeifMetadata().ChromaSubsampling);
     }
 
     [Theory]

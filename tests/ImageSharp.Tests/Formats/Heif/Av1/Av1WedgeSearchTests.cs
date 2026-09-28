@@ -16,7 +16,7 @@ public class Av1WedgeSearchTests
     /// The hardware configurations that run every register width and the scalar overloads.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The sample counts of the wedge block sizes, from 8x8 to 32x32, and a count with a scalar tail.

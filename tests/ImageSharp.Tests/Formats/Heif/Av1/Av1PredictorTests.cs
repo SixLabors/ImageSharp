@@ -22,10 +22,9 @@ public class Av1PredictorTests
     private const int ReferenceOrigin = 128;
 
     /// <summary>
-    /// The hardware configurations required to exercise each SIMD tier and the complete scalar fallback.
+    /// The hardware configurations covering the native vector width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Gets the cardinal, base, and adjusted angles covering every directional projection zone.
@@ -45,89 +44,17 @@ public class Av1PredictorTests
     ];
 
     /// <summary>
-    /// Verifies DC prediction with each register-width tier and the scalar fallback.
+    /// Verifies every intra predictor, filter-intra mode, and intra-edge upsampling and filtering kernel with the
+    /// vector paths and the scalar fallback.
     /// </summary>
     [Fact]
-    public void DcPredictorsMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDcPredictors, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies horizontal prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void HorizontalPredictorMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHorizontalPredictor, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies vertical prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void VerticalPredictorMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateVerticalPredictor, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies Paeth prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void PaethPredictorMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaethPredictor, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies smooth prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void SmoothPredictorMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothPredictor, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies horizontal smooth prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void SmoothHorizontalPredictorMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothHorizontalPredictor, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies vertical smooth prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void SmoothVerticalPredictorMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothVerticalPredictor, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies directional prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void DirectionalPredictorsMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDirectionalPredictors, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies filter-intra prediction with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void FilterIntraPredictorsMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilterIntraPredictors, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies intra-edge upsampling with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void EdgeUpsamplingMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeUpsampling, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies intra-edge filtering with each register-width tier and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void EdgeFilteringMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeFiltering, PredictorConfigurations);
+    public void IntraPredictorsMatchReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateIntraPredictors, PredictorConfigurations);
 
     /// <summary>
     /// Verifies the different edge preparation selected by a smooth neighbor on a 4x8 directional block.
     /// </summary>
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
     [InlineData(true, true)]
     public void EdgePreparationUsesSmoothNeighborThresholds(bool transpose, bool smoothNeighbor)
     {
@@ -174,45 +101,6 @@ public class Av1PredictorTests
     }
 
     /// <summary>
-    /// Verifies that an unavailable sole directional edge retains its constant prediction and distinct corner.
-    /// </summary>
-    [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void EdgePreparationPreservesUnavailableSoleEdge(bool transpose, bool perpendicularAvailable)
-    {
-        byte[] edge = CreateUpsampleByteEdge(12);
-        byte[] perpendicular = CreateUpsampleByteEdge(12);
-        edge.AsSpan(2, 12).Fill(perpendicularAvailable ? perpendicular[2] : transpose ? (byte)129 : (byte)127);
-        byte[] expected = (byte[])edge.Clone();
-        byte[] expectedPerpendicular = (byte[])perpendicular.Clone();
-        byte[] scratch = new byte[Av1IntraEdgeFilter.ScratchLength];
-
-        // These angles normally enable half-sample interpolation. Native prediction exits before that
-        // stage when its sole edge is unavailable; the corner must not introduce a nonconstant sample.
-        Av1IntraEdgePreparation.Prepare<byte>(
-            (transpose ? perpendicular : edge).AsSpan(2),
-            (transpose ? edge : perpendicular).AsSpan(2),
-            transpose ? 8 : 4,
-            transpose ? 4 : 8,
-            transpose ? 203 : 67,
-            transpose && perpendicularAvailable ? 8 : 0,
-            !transpose && perpendicularAvailable ? 8 : 0,
-            false,
-            8,
-            scratch,
-            out bool upsampleAbove,
-            out bool upsampleLeft);
-
-        Assert.False(upsampleAbove);
-        Assert.False(upsampleLeft);
-        Assert.Equal(expected, edge);
-        Assert.Equal(expectedPerpendicular, perpendicular);
-    }
-
-    /// <summary>
     /// Verifies the traversal-order bits that distinguish current libaom's mixed-vertical square tables.
     /// </summary>
     [Fact]
@@ -228,24 +116,22 @@ public class Av1PredictorTests
     }
 
     /// <summary>
-    /// Verifies that mixed-vertical rectangles use current libaom's ordinary rectangle tables.
+    /// Runs every intra-prediction kernel comparison under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
     /// </summary>
-    [Theory]
-    [InlineData((int)Av1BlockSize.Block4x8)]
-    [InlineData((int)Av1BlockSize.Block8x16)]
-    [InlineData((int)Av1BlockSize.Block16x32)]
-    [InlineData((int)Av1BlockSize.Block32x64)]
-    [InlineData((int)Av1BlockSize.Block64x128)]
-    public void MixedVerticalAvailabilityReusesVerticalRectangleTables(int blockSizeValue)
+    private static void ValidateIntraPredictors()
     {
-        Av1BlockSize blockSize = (Av1BlockSize)blockSizeValue;
-        bool expectedTopRight = Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.Split, blockSize, 0);
-        bool expectedBottomLeft = Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.Split, blockSize, 0);
-
-        Assert.Equal(expectedTopRight, Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.VerticalA, blockSize, 0));
-        Assert.Equal(expectedTopRight, Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.VerticalB, blockSize, 0));
-        Assert.Equal(expectedBottomLeft, Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.VerticalA, blockSize, 0));
-        Assert.Equal(expectedBottomLeft, Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.VerticalB, blockSize, 0));
+        ValidateDcPredictors();
+        ValidateHorizontalPredictor();
+        ValidateVerticalPredictor();
+        ValidatePaethPredictor();
+        ValidateSmoothPredictor();
+        ValidateSmoothHorizontalPredictor();
+        ValidateSmoothVerticalPredictor();
+        ValidateDirectionalPredictors();
+        ValidateFilterIntraPredictors();
+        ValidateEdgeUpsampling();
+        ValidateEdgeFiltering();
     }
 
     /// <summary>

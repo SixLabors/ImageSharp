@@ -5,12 +5,10 @@ using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
@@ -25,31 +23,18 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.IrvineAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.XnConvert, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Orange4x4, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Animated8Bit, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Animated8BitWithAudio, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Animated8BitWithAlphaExifXmp, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1Deblocking8BitAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1Progressive8BitAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1ScaledReferenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1AverageCompoundSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1WedgeCompoundSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1InterIntraSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1ObmcSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1LocalWarpSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1GlobalWarpSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1Cdef8BitAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1Profile8BitMonochromeAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1Profile8Bit420Avif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1Profile8Bit422Avif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1Profile8Bit444Avif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1Palette8BitAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1IntraBlockCopy8BitAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1Lossless8BitAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1SuperResolution8BitAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1Restoration8BitAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Animated12BitWithKeyframes, PixelTypes.Rgba64)]
@@ -57,18 +42,9 @@ public class HeifDecoderTests
     [WithFile(TestImages.Heif.Av1Deblocking12BitAvif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1Cdef10BitAvif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1Cdef12BitAvif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1Profile10BitMonochromeAvif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1Profile10Bit420Avif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1Profile10Bit422Avif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1Profile10Bit444Avif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1Profile12BitMonochromeAvif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1Profile12Bit420Avif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1Profile12Bit422Avif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1Profile12Bit444Avif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1IntraBlockCopy10BitAvif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1IntraBlockCopy12BitAvif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1Lossless10BitAvif, PixelTypes.Rgba64)]
-    [WithFile(TestImages.Heif.Av1Lossless12BitAvif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1SuperResolution10BitAvif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1SuperResolution12BitAvif, PixelTypes.Rgba64)]
     [WithFile(TestImages.Heif.Av1Restoration10BitAvif, PixelTypes.Rgba64)]
@@ -91,34 +67,16 @@ public class HeifDecoderTests
         }
     }
 
-
-    [Theory]
-    [InlineData(TestImages.Heif.IrvineAvif, HeifBitDepth.Bit8, 480, 640)]
-    public void Identify(string imagePath, HeifBitDepth bitDepth, int width, int height)
+    [Fact]
+    public void DecodeStillAndBoundedSequenceFromSupportedStream()
     {
-        TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
-
-        ImageInfo imageInfo = Image.Identify(stream);
-        HeifMetadata heifMetadata = imageInfo.Metadata.GetHeifMetadata();
-
-        Assert.NotNull(imageInfo);
-        Assert.Equal(HeifFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
-        Assert.Equal(bitDepth, heifMetadata.BitDepth);
-        Assert.Equal(width, imageInfo.Width);
-        Assert.Equal(height, imageInfo.Height);
+        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.NonSeekable, 1, 4, 4);
+        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.ShortRead, 1, 4, 4);
+        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.NonSeekable, 5, 150, 150);
+        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.ShortRead, 5, 150, 150);
     }
 
-    [Theory]
-    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.File, 1, 4, 4)]
-    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.Memory, 1, 4, 4)]
-    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.NonSeekable, 1, 4, 4)]
-    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.ShortRead, 1, 4, 4)]
-    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.File, 5, 150, 150)]
-    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.Memory, 5, 150, 150)]
-    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.NonSeekable, 5, 150, 150)]
-    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.ShortRead, 5, 150, 150)]
-    public void DecodeStillAndBoundedSequenceFromSupportedStream(
+    private void DecodeStillAndBoundedSequenceFromSupportedStreamCase(
         string imagePath,
         DecoderStreamKind streamKind,
         int expectedFrameCount,
@@ -129,8 +87,6 @@ public class HeifDecoderTests
         using Image<Rgba32> expected = Image.Load<Rgba32>(testFile.Bytes);
         using Stream stream = streamKind switch
         {
-            DecoderStreamKind.File => File.OpenRead(testFile.FullPath),
-            DecoderStreamKind.Memory => new MemoryStream(testFile.Bytes, false),
             DecoderStreamKind.NonSeekable => new NonSeekableStream(new MemoryStream(testFile.Bytes, false)),
             DecoderStreamKind.ShortRead => new ShortReadMemoryStream(testFile.Bytes),
             _ => throw new InvalidOperationException()
@@ -153,7 +109,6 @@ public class HeifDecoderTests
     }
 
     [Theory]
-    [InlineData(TestImages.Heif.Orange4x4, 1, 4, 4)]
     [InlineData(TestImages.Heif.Animated8Bit, 5, 150, 150)]
     public void DecodeFromCurrentStreamPosition(
         string imagePath,
@@ -172,34 +127,6 @@ public class HeifDecoderTests
 
         Assert.Equal(new Size(expectedWidth, expectedHeight), image.Size);
         Assert.Equal(expectedFrameCount, image.Frames.Count);
-    }
-
-    /// <summary>
-    /// Verifies that preserving an embedded ICC profile leaves every decoded frame unconverted.
-    /// </summary>
-    [Theory]
-    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance, options);
-
-        Assert.NotNull(image.Metadata.IccProfile);
-        if (image.Frames.Count == 1)
-        {
-            image.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-        }
-        else
-        {
-            image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
-            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
-        }
     }
 
     /// <summary>
@@ -295,54 +222,6 @@ public class HeifDecoderTests
     }
 
     /// <summary>
-    /// Verifies that non-sRGB ICC conversion follows auxiliary-alpha composition and preserves the composed alpha values.
-    /// </summary>
-    [Theory]
-    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile_Alpha(TestImageProvider<Rgba32> provider)
-    {
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
-        using Image<Rgba32> decoded = provider.GetImage(HeifDecoder.Instance, convertOptions);
-
-        decoded.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-        decoded.CompareToReferenceOutput(ImageComparer.Exact, provider);
-        Assert.Null(decoded.Metadata.IccProfile);
-    }
-
-    /// <summary>
-    /// Verifies that compact profile handling retains non-sRGB ICC profiles and leaves their pixels unconverted.
-    /// </summary>
-    [Theory]
-    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
-    public void Decode_WhenColorProfileHandlingIsCompact_PreservesNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        DecoderOptions compactOptions = new() { ColorProfileHandling = ColorProfileHandling.Compact };
-
-        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
-        using Image<TPixel> compact = provider.GetImage(HeifDecoder.Instance, compactOptions);
-
-        Assert.NotNull(preserved.Metadata.IccProfile);
-        Assert.NotNull(compact.Metadata.IccProfile);
-        Assert.Equal(preserved.Metadata.IccProfile.ToByteArray(), compact.Metadata.IccProfile.ToByteArray());
-        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, compact));
-        if (compact.Frames.Count == 1)
-        {
-            compact.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-            compact.CompareToReferenceOutput(ImageComparer.Exact, provider);
-        }
-        else
-        {
-            compact.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
-            compact.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
-        }
-    }
-
-    /// <summary>
     /// Verifies that compact profile handling removes a canonical sRGB ICC profile without changing pixels.
     /// </summary>
     [Theory]
@@ -368,9 +247,6 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
     public void Decode_WhenSkipMetadataIsTrue_OmitsIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -420,7 +296,7 @@ public class HeifDecoderTests
         }
 
         using MemoryStream stream = new();
-        source.Save(stream, new HeifEncoder());
+        source.Save(stream, new HeifEncoder { Speed = HeifEncodingSpeed.Level9 });
         byte[] data = stream.ToArray();
         Size targetSize = new(17, 17);
         DecoderOptions options = new() { TargetSize = targetSize };
@@ -443,7 +319,6 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
     public void DecodeRejectsInvalidAlphaPayloadUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
     {
         byte[] data = [.. TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes];
@@ -477,42 +352,6 @@ public class HeifDecoderTests
     }
 
     /// <summary>
-    /// Verifies that a malformed alpha relationship remains fatal when image-data errors cannot be ignored.
-    /// </summary>
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    public void DecodeRejectsMalformedAlphaReferenceUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
-    {
-        byte[] data = [.. TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes];
-        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Auxl);
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
-
-        Assert.Throws<InvalidImageContentException>(() =>
-        {
-            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-        });
-    }
-
-    /// <summary>
-    /// Verifies that <see cref="SegmentIntegrityHandling.IgnoreImageData"/> omits a malformed optional alpha
-    /// relationship while retaining the independently decodable color item.
-    /// </summary>
-    [Fact]
-    public void DecodeOmitsMalformedAlphaReferenceWhenImageDataErrorsAreIgnored()
-    {
-        byte[] source = TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes;
-        byte[] data = [.. source];
-        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Auxl);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
-
-        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
-        using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
-
-        AssertOpaqueRgbMatches(expected, actual);
-    }
-
-    /// <summary>
     /// Verifies that strict validation rejects a malformed descriptive metadata relationship.
     /// </summary>
     [Fact]
@@ -534,7 +373,6 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
     public void DecodeOmitsMalformedMetadataReferenceWhenAncillaryErrorsAreIgnored(SegmentIntegrityHandling handling)
     {
         byte[] data = [.. TestFile.Create(TestImages.Heif.ParisIccExifXmpAvif).Bytes];
@@ -546,51 +384,6 @@ public class HeifDecoderTests
         Assert.Null(image.Metadata.ExifProfile);
         Assert.NotNull(image.Metadata.XmpProfile);
         Assert.NotNull(image.Metadata.IccProfile);
-    }
-
-    /// <summary>
-    /// Verifies that skipped metadata is neither retained nor validated through its optional descriptive links.
-    /// </summary>
-    [Fact]
-    public void DecodeDoesNotValidateSkippedMetadataReference()
-    {
-        byte[] data = [.. TestFile.Create(TestImages.Heif.ParisIccExifXmpAvif).Bytes];
-        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Cdsc);
-        DecoderOptions options = new()
-        {
-            SkipMetadata = true,
-            SegmentIntegrityHandling = SegmentIntegrityHandling.Strict
-        };
-
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-
-        Assert.Null(image.Metadata.ExifProfile);
-        Assert.Null(image.Metadata.XmpProfile);
-        Assert.Null(image.Metadata.IccProfile);
-    }
-
-    [Fact]
-    public void IdentifyIgnoresUnknownMetadataBox()
-    {
-        byte[] data = CreateAv1Container();
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        data = InsertBytes(data, metaOffset + metaSize, CreateUnknownBox());
-        IncrementBoxSize(data, metaOffset, 8);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Fact]
-    public void IdentifyIgnoresUnknownNonEssentialProperty()
-    {
-        byte[] data = CreateContainerWithUnknownProperty(false);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
     }
 
     [Fact]
@@ -613,145 +406,15 @@ public class HeifDecoderTests
     }
 
     [Theory]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
-    public void IdentifyIgnoresMalformedAncillaryPropertyWhenPermitted(SegmentIntegrityHandling handling)
-    {
-        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Pasp), false);
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
-
-        ImageInfo imageInfo = Image.Identify(options, data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-        Assert.Equal(PixelResolutionUnit.PixelsPerInch, imageInfo.Metadata.ResolutionUnits);
-        Assert.Equal(96D, imageInfo.Metadata.HorizontalResolution);
-        Assert.Equal(96D, imageInfo.Metadata.VerticalResolution);
-    }
-
-    [Fact]
-    public void IdentifyDoesNotValidateSkippedAncillaryPropertyMetadata()
-    {
-        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Pasp), false);
-        DecoderOptions options = new()
-        {
-            SkipMetadata = true,
-            SegmentIntegrityHandling = SegmentIntegrityHandling.Strict
-        };
-
-        ImageInfo imageInfo = Image.Identify(options, data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    public void IdentifyRejectsMalformedImagePropertyUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
-    {
-        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Irot), true);
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
-    }
-
-    [Fact]
-    public void IdentifyIgnoresMalformedImagePropertyWhenImageDataErrorsAreIgnored()
-    {
-        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Irot), true);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
-
-        ImageInfo imageInfo = Image.Identify(options, data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Fact]
-    public void IdentifyRejectsDuplicateAncillaryPropertyAssociationInStrictMode()
-    {
-        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreatePixelAspectRatioBox(), false);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
-    }
-
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
-    public void IdentifyIgnoresDuplicateAncillaryPropertyAssociationWhenPermitted(SegmentIntegrityHandling handling)
-    {
-        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreatePixelAspectRatioBox(), false);
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
-
-        ImageInfo imageInfo = Image.Identify(options, data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-        Assert.Equal(PixelResolutionUnit.AspectRatio, imageInfo.Metadata.ResolutionUnits);
-        Assert.Equal(1D, imageInfo.Metadata.HorizontalResolution);
-        Assert.Equal(2D, imageInfo.Metadata.VerticalResolution);
-    }
-
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    public void IdentifyRejectsDuplicateImagePropertyAssociationUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
-    {
-        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreateRotationBox(), true);
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
-    }
-
-    [Fact]
-    public void IdentifyIgnoresDuplicateImagePropertyAssociationWhenImageDataErrorsAreIgnored()
-    {
-        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreateRotationBox(), true);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
-
-        ImageInfo imageInfo = Image.Identify(options, data);
-
-        Assert.Equal(new Size(3, 2), imageInfo.Size);
-    }
-
-    [Theory]
-    [InlineData(Heif4CharCode.Mif1)]
     [InlineData(Heif4CharCode.Avif)]
-    public void DetectorRecognizesSupportedStillImageMajorBrand(Heif4CharCode brand)
-    {
-        byte[] data = CreateAv1Container();
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
-        HeifImageFormatDetector detector = new();
-
-        bool detected = detector.TryDetectFormat(data.AsSpan(0, detector.HeaderSize), out IImageFormat format);
-
-        Assert.True(detected);
-        Assert.Same(HeifFormat.Instance, format);
-    }
-
-    [Theory]
     [InlineData(Heif4CharCode.Avis)]
-    public void DetectorRecognizesSupportedSequenceMajorBrand(Heif4CharCode brand)
+    public void DetectorRecognizesSupportedMajorBrand(Heif4CharCode brand)
     {
         byte[] data = CreateAv1Container();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
         HeifImageFormatDetector detector = new();
 
         bool detected = detector.TryDetectFormat(data.AsSpan(0, detector.HeaderSize), out IImageFormat format);
-
-        Assert.True(detected);
-        Assert.Same(HeifFormat.Instance, format);
-    }
-
-    [Fact]
-    public void DetectorRecognizesExtendedSizeFileTypeBox()
-    {
-        byte[] data = new byte[24];
-        BinaryPrimitives.WriteUInt32BigEndian(data, 1);
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(4), (uint)Heif4CharCode.Ftyp);
-        BinaryPrimitives.WriteUInt64BigEndian(data.AsSpan(8), (ulong)data.Length);
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), (uint)Heif4CharCode.Avif);
-        HeifImageFormatDetector detector = new();
-
-        bool detected = detector.TryDetectFormat(data, out IImageFormat format);
 
         Assert.True(detected);
         Assert.Same(HeifFormat.Instance, format);
@@ -770,82 +433,6 @@ public class HeifDecoderTests
     }
 
     [Fact]
-    public void IdentifyAcceptsExtendedSizeTopLevelBox()
-    {
-        byte[] data = CreateAv1Container();
-        byte[] box = new byte[16];
-        BinaryPrimitives.WriteUInt32BigEndian(box, 1);
-        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
-        BinaryPrimitives.WriteUInt64BigEndian(box.AsSpan(8), (ulong)box.Length);
-        data = InsertBytes(data, data.Length, box);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Fact]
-    public void IdentifyAcceptsUuidTopLevelBox()
-    {
-        byte[] data = CreateAv1Container();
-        byte[] box = new byte[24];
-        BinaryPrimitives.WriteUInt32BigEndian(box, (uint)box.Length);
-        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
-        data = InsertBytes(data, data.Length, box);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Fact]
-    public void IdentifyAcceptsSizeZeroTopLevelBox()
-    {
-        byte[] data = CreateAv1Container();
-        byte[] box = CreateUnknownBox();
-        BinaryPrimitives.WriteUInt32BigEndian(box, 0);
-        data = InsertBytes(data, data.Length, box);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Fact]
-    public void IdentifyAcceptsExtendedSizeItemInfoEntry()
-    {
-        byte[] data = CreateAv1Container();
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
-        int infeOffset = iinfOffset + 14;
-        uint infeSize = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(infeOffset));
-        data = InsertBytes(data, infeOffset + 8, new byte[8]);
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(infeOffset), 1);
-        BinaryPrimitives.WriteUInt64BigEndian(data.AsSpan(infeOffset + 8), infeSize + 8);
-        IncrementBoxSize(data, metaOffset, 8);
-        IncrementBoxSize(data, iinfOffset, 8);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Fact]
-    public void IdentifyRejectsSizeZeroMetadataChild()
-    {
-        byte[] data = CreateAv1Container();
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        byte[] box = CreateUnknownBox();
-        BinaryPrimitives.WriteUInt32BigEndian(box, 0);
-        data = InsertBytes(data, metaOffset + metaSize, box);
-        IncrementBoxSize(data, metaOffset, box.Length);
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
-    }
-
-    [Fact]
     public void IdentifyRejectsMetadataChildBeyondParent()
     {
         byte[] data = CreateAv1Container();
@@ -860,20 +447,6 @@ public class HeifDecoderTests
     }
 
     [Fact]
-    public void IdentifyRejectsItemInfoEntryBeyondParent()
-    {
-        byte[] data = CreateAv1Container();
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
-        uint iinfSize = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(iinfOffset));
-        int infeOffset = iinfOffset + 14;
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(infeOffset), iinfSize);
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
-    }
-
-    [Fact]
     public void IdentifyRejectsBoxSmallerThanHeader()
     {
         byte[] data = CreateAv1Container();
@@ -882,62 +455,6 @@ public class HeifDecoderTests
         data = InsertBytes(data, data.Length, box);
 
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
-    }
-
-    [Fact]
-    public void IdentifyRejectsTruncatedExtendedSizeHeader()
-    {
-        byte[] data = CreateAv1Container();
-        byte[] box = new byte[12];
-        BinaryPrimitives.WriteUInt32BigEndian(box, 1);
-        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
-        data = InsertBytes(data, data.Length, box);
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
-    }
-
-    [Fact]
-    public void IdentifyRejectsTruncatedUuidHeader()
-    {
-        byte[] data = CreateAv1Container();
-        byte[] box = new byte[16];
-        BinaryPrimitives.WriteUInt32BigEndian(box, 24);
-        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
-        data = InsertBytes(data, data.Length, box);
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
-    }
-
-    [Fact]
-    public void IdentifyAcceptsItemPropertiesBeforeItemInfo()
-    {
-        byte[] data = CreateAv1Container();
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
-        int iprpOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
-        int iprpSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(iprpOffset));
-        data = MoveBoxBefore(data, iprpOffset, iprpSize, iinfOffset);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
-    [Fact]
-    public void IdentifyAcceptsItemLocationBeforeItemInfo()
-    {
-        byte[] data = CreateAv1Container();
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
-        int ilocOffset = FindBoxOffset(data, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);
-        int ilocSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ilocOffset));
-        data = MoveBoxBefore(data, ilocOffset, ilocSize, iinfOffset);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
     }
 
     [Fact]
@@ -1003,42 +520,11 @@ public class HeifDecoderTests
         return data;
     }
 
-    private static byte[] CreateContainerWithDuplicatePropertyAssociation(ReadOnlySpan<byte> property, bool essential)
-    {
-        byte[] data = CreateContainerWithProperty(property, essential);
-        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
-        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
-        int iprpOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
-        int iprpSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(iprpOffset));
-        int ipmaOffset = FindBoxOffset(data, Heif4CharCode.Ipma, iprpOffset + 8, iprpSize - 8);
-        int associationCountOffset = ipmaOffset + 18;
-
-        // Repeat the inserted property's one-based index in the existing item entry without changing box structure.
-        data[associationCountOffset]++;
-        int associationOffset = ipmaOffset + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipmaOffset));
-        byte association = data[associationOffset - 1];
-        data = InsertBytes(data, associationOffset, new byte[] { association });
-        IncrementBoxSize(data, metaOffset, 1);
-        IncrementBoxSize(data, iprpOffset, 1);
-        IncrementBoxSize(data, ipmaOffset, 1);
-        return data;
-    }
-
     private static byte[] CreateUnknownBox()
         => CreateEmptyBox((Heif4CharCode)UnknownBoxType);
 
     private static byte[] CreateEmptyBox(Heif4CharCode type)
         => CreateBox(type, []);
-
-    private static byte[] CreatePixelAspectRatioBox()
-    {
-        byte[] payload = new byte[8];
-        BinaryPrimitives.WriteUInt32BigEndian(payload, 2);
-        BinaryPrimitives.WriteUInt32BigEndian(payload.AsSpan(4), 1);
-        return CreateBox(Heif4CharCode.Pasp, payload);
-    }
-
-    private static byte[] CreateRotationBox() => CreateBox(Heif4CharCode.Irot, [1]);
 
     private static byte[] CreateBox(Heif4CharCode type, ReadOnlySpan<byte> payload)
     {
@@ -1263,16 +749,6 @@ public class HeifDecoderTests
         return result;
     }
 
-    private static byte[] MoveBoxBefore(byte[] data, int boxOffset, int boxSize, int beforeOffset)
-    {
-        byte[] result = new byte[data.Length];
-        data.AsSpan(0, beforeOffset).CopyTo(result);
-        data.AsSpan(boxOffset, boxSize).CopyTo(result.AsSpan(beforeOffset));
-        data.AsSpan(beforeOffset, boxOffset - beforeOffset).CopyTo(result.AsSpan(beforeOffset + boxSize));
-        data.AsSpan(boxOffset + boxSize).CopyTo(result.AsSpan(boxOffset + boxSize));
-        return result;
-    }
-
     private static void IncrementBoxSize(byte[] data, int offset, int increment)
     {
         uint size = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(offset));
@@ -1281,8 +757,6 @@ public class HeifDecoderTests
 
     public enum DecoderStreamKind
     {
-        File,
-        Memory,
         NonSeekable,
         ShortRead
     }

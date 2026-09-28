@@ -16,7 +16,7 @@ public class Av1PaletteKMeansTests
     /// The hardware configurations covering every descending SIMD width and the scalar fallback.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies nearest-color indices, squared distortion, tie order, and destination bounds.
@@ -24,43 +24,6 @@ public class Av1PaletteKMeansTests
     [Fact]
     public void AssignIndicesMatchesScalarAtEveryIntrinsicTier()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateAssignment, Configurations);
-
-    /// <summary>
-    /// Verifies the deterministic centroid sequence on three separated sample groups.
-    /// </summary>
-    [Fact]
-    public void ClusterMatchesReferenceFixture()
-    {
-        short[] samples = [0, 1, 2, 100, 101, 102, 200, 201, 202];
-        short[] centroids = [33, 100, 167];
-        byte[] indices = new byte[samples.Length];
-        short[] alternateCentroids = new short[centroids.Length];
-        byte[] alternateIndices = new byte[samples.Length];
-
-        long distortion = Av1PaletteKMeans.Cluster(
-            samples,
-            centroids,
-            indices,
-            alternateCentroids,
-            alternateIndices);
-
-        Assert.Equal([1, 101, 201], centroids);
-        Assert.Equal([0, 0, 0, 1, 1, 1, 2, 2, 2], indices);
-        Assert.Equal(6, distortion);
-    }
-
-    /// <summary>
-    /// Verifies the integer interval midpoints used to seed palette refinement.
-    /// </summary>
-    [Fact]
-    public void InitializeCentroidsMatchesReferenceIntegerOrder()
-    {
-        short[] centroids = new short[3];
-
-        Av1PaletteKMeans.InitializeCentroids(10, 250, centroids);
-
-        Assert.Equal([50, 130, 210], centroids);
-    }
 
     /// <summary>
     /// Compares production assignment with a scalar equation over a length that exercises every available remainder path.

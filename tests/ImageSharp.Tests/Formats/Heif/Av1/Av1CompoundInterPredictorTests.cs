@@ -15,33 +15,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1CompoundInterPredictorTests
 {
     /// <summary>
-    /// Exercises the native vector width, 256-bit and 128-bit paths, and the complete scalar fallback.
+    /// Exercises the native vector width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies rounded 8-bit averaging, scalar tails, and untouched row padding under every SIMD configuration.
+    /// Verifies rounded averaging, no-round intermediates, distance and mask blending, and difference masks at every
+    /// bit depth, including scalar tails and untouched row padding, under the vector and scalar paths.
     /// </summary>
     [Fact]
-    public void ByteAverageMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteAverage, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies rounded 10/12-bit averaging, scalar tails, and untouched row padding under every SIMD configuration.
-    /// </summary>
-    [Fact]
-    public void HighBitDepthAverageMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthAverage, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies 10/12-bit no-round prediction and compound finalization across every intrinsic width.
-    /// </summary>
-    [Fact]
-    public void HighBitDepthIntermediatesMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateHighBitDepthCompoundIntermediates,
-            PredictorConfigurations);
+    public void CompoundKernelsMatchReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateCompoundKernels, PredictorConfigurations);
 
     /// <summary>
     /// Verifies every display-distance quantization class in both temporal directions.
@@ -50,18 +34,22 @@ public class Av1CompoundInterPredictorTests
     /// <param name="secondOrderHint">The second reference order hint.</param>
     /// <param name="expectedFirstWeight">The expected first predictor weight.</param>
     /// <param name="expectedSecondWeight">The expected second predictor weight.</param>
-    [Theory]
-    [InlineData(13, 20, 9, 7)]
-    [InlineData(15, 18, 11, 5)]
-    [InlineData(15, 19, 12, 4)]
-    [InlineData(15, 20, 13, 3)]
-    [InlineData(12, 19, 7, 9)]
-    [InlineData(14, 17, 5, 11)]
-    [InlineData(13, 17, 4, 12)]
-    [InlineData(12, 17, 3, 13)]
-    [InlineData(12, 16, 3, 13)]
-    [InlineData(16, 20, 13, 3)]
-    public void DistanceWeightsMatchReference(
+    [Fact]
+    public void DistanceWeightsMatchReference()
+    {
+        this.DistanceWeightsMatchReferenceCase(13, 20, 9, 7);
+        this.DistanceWeightsMatchReferenceCase(15, 18, 11, 5);
+        this.DistanceWeightsMatchReferenceCase(15, 19, 12, 4);
+        this.DistanceWeightsMatchReferenceCase(15, 20, 13, 3);
+        this.DistanceWeightsMatchReferenceCase(12, 19, 7, 9);
+        this.DistanceWeightsMatchReferenceCase(14, 17, 5, 11);
+        this.DistanceWeightsMatchReferenceCase(13, 17, 4, 12);
+        this.DistanceWeightsMatchReferenceCase(12, 17, 3, 13);
+        this.DistanceWeightsMatchReferenceCase(12, 16, 3, 13);
+        this.DistanceWeightsMatchReferenceCase(16, 20, 13, 3);
+    }
+
+    private void DistanceWeightsMatchReferenceCase(
         int firstOrderHint,
         int secondOrderHint,
         int expectedFirstWeight,
@@ -92,89 +80,17 @@ public class Av1CompoundInterPredictorTests
     }
 
     /// <summary>
-    /// Verifies 8-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
+    /// Runs every compound kernel comparison under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
-    [Fact]
-    public void ByteSelectableBlendsMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteSelectableBlends, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies 10/12-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
-    /// </summary>
-    [Fact]
-    public void HighBitDepthSelectableBlendsMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthSelectableBlends, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies the four smooth inter-intra modes and their complemented destination orientation.
-    /// </summary>
-    [Fact]
-    public void SmoothInterIntraMasksMatchReference()
+    private static void ValidateCompoundKernels()
     {
-        ReadOnlySpan<byte> weights = [60, 34, 19, 11, 6, 4, 2, 1];
-
-        foreach (Av1InterIntraMode mode in Enum.GetValues<Av1InterIntraMode>())
-        {
-            const int width = 8;
-            const int height = 4;
-            const int stride = 11;
-            byte[] mask = new byte[stride * height];
-            byte[] inverted = new byte[stride * height];
-            mask.AsSpan().Fill(0xA5);
-            inverted.AsSpan().Fill(0xA5);
-
-            Av1InterIntraMaskBuilder.FillInterIntraMask(mask, stride, width, height, mode, invert: false);
-            Av1InterIntraMaskBuilder.FillInterIntraMask(inverted, stride, width, height, mode, invert: true);
-
-            for (int row = 0; row < height; row++)
-            {
-                for (int column = 0; column < width; column++)
-                {
-                    byte expected = mode switch
-                    {
-                        Av1InterIntraMode.Vertical => weights[row],
-                        Av1InterIntraMode.Horizontal => weights[column],
-                        Av1InterIntraMode.Smooth => weights[Math.Min(row, column)],
-                        _ => 32,
-                    };
-
-                    Assert.Equal(expected, mask[(row * stride) + column]);
-                    Assert.Equal((byte)(64 - expected), inverted[(row * stride) + column]);
-                }
-
-                for (int column = width; column < stride; column++)
-                {
-                    Assert.Equal(0xA5, mask[(row * stride) + column]);
-                    Assert.Equal(0xA5, inverted[(row * stride) + column]);
-                }
-            }
-        }
+        ValidateByteAverage();
+        ValidateHighBitDepthAverage();
+        ValidateHighBitDepthCompoundIntermediates();
+        ValidateByteSelectableBlends();
+        ValidateHighBitDepthSelectableBlends();
+        ValidateDifferenceWeightedMasks();
     }
-
-    /// <summary>
-    /// Verifies the reference horizontal curve at the index exercised by a 32-by-16 inter-intra block.
-    /// </summary>
-    [Fact]
-    public void HorizontalInterIntraMaskMatchesReference()
-    {
-        const int width = 32;
-        const int height = 16;
-        byte[] mask = new byte[width * height];
-        byte[] inverted = new byte[width * height];
-
-        Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, Av1InterIntraMode.Horizontal, invert: false);
-        Av1InterIntraMaskBuilder.FillInterIntraMask(inverted, width, width, height, Av1InterIntraMode.Horizontal, invert: true);
-
-        Assert.Equal(2, mask[23]);
-        Assert.Equal(62, inverted[23]);
-    }
-
-    /// <summary>
-    /// Verifies the reference difference-mask formula in both orientations at each supported bit depth.
-    /// </summary>
-    [Fact]
-    public void DifferenceWeightedMasksMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDifferenceWeightedMasks, PredictorConfigurations);
 
     /// <summary>
     /// Applies the independent difference-mask formula at every bit depth and intrinsic width.

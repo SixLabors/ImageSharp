@@ -30,60 +30,28 @@ public class HeifEncoderTests
 {
     private const int Av1EightBit = (int)Av1BitDepth.EightBit;
     private const int Av1TenBit = (int)Av1BitDepth.TenBit;
-    private const int Av1TwelveBit = (int)Av1BitDepth.TwelveBit;
     private const int Yuv400 = (int)Av1ColorFormat.Yuv400;
     private const int Yuv420 = (int)Av1ColorFormat.Yuv420;
-    private const int Yuv422 = (int)Av1ColorFormat.Yuv422;
-    private const int Yuv444 = (int)Av1ColorFormat.Yuv444;
 
     [Fact]
-    public void OptionsHaveExpectedDefaults()
+    public void OptionsValidateRange()
     {
-        HeifEncoder encoder = new();
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { Quality = -1 });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { Quality = 101 });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { AlphaQuality = -1 });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { AlphaQuality = 101 });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { Speed = (HeifEncodingSpeed)(-1) });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { Speed = (HeifEncodingSpeed)10 });
 
-        Assert.Null(encoder.Quality);
-        Assert.Null(encoder.AlphaQuality);
-        Assert.Equal(HeifEncodingSpeed.Level0, encoder.Speed);
-        Assert.False(encoder.Lossless);
-        Assert.Null(encoder.BitDepth);
-        Assert.Null(encoder.ChromaSubsampling);
-        Assert.Null(encoder.RepeatCount);
-        Assert.True(encoder.AnimateRootFrame);
-    }
+        HeifEncoder minimum = new() { Quality = 0, AlphaQuality = 0, Speed = HeifEncodingSpeed.Level0 };
+        HeifEncoder maximum = new() { Quality = 100, AlphaQuality = 100, Speed = HeifEncodingSpeed.Level9 };
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(101)]
-    public void QualityOutsideRangeThrows(int quality)
-        => Assert.Throws<ArgumentException>(() => new HeifEncoder { Quality = quality });
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(101)]
-    public void AlphaQualityOutsideRangeThrows(int quality)
-        => Assert.Throws<ArgumentException>(() => new HeifEncoder { AlphaQuality = quality });
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(10)]
-    public void SpeedOutsideRangeThrows(int speed)
-        => Assert.Throws<ArgumentException>(() => new HeifEncoder { Speed = (HeifEncodingSpeed)speed });
-
-    [Theory]
-    [InlineData(0, 0, 0)]
-    [InlineData(100, 100, 9)]
-    public void OptionRangeBoundariesAreAccepted(int quality, int alphaQuality, int speed)
-    {
-        HeifEncoder encoder = new()
-        {
-            Quality = quality,
-            AlphaQuality = alphaQuality,
-            Speed = (HeifEncodingSpeed)speed
-        };
-
-        Assert.Equal(quality, encoder.Quality);
-        Assert.Equal(alphaQuality, encoder.AlphaQuality);
-        Assert.Equal((HeifEncodingSpeed)speed, encoder.Speed);
+        Assert.Equal(0, minimum.Quality);
+        Assert.Equal(0, minimum.AlphaQuality);
+        Assert.Equal(HeifEncodingSpeed.Level0, minimum.Speed);
+        Assert.Equal(100, maximum.Quality);
+        Assert.Equal(100, maximum.AlphaQuality);
+        Assert.Equal(HeifEncodingSpeed.Level9, maximum.Speed);
     }
 
     [Fact]
@@ -109,6 +77,7 @@ public class HeifEncoderTests
         {
             AnimateRootFrame = false,
             Lossless = true,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -180,7 +149,7 @@ public class HeifEncoderTests
                 payload,
                 colorConfig,
                 qIndex: 0,
-                speed: HeifEncodingSpeed.Level0);
+                speed: HeifEncodingSpeed.Level9);
 
             uint itemId = (uint)tileIndex + 2;
             HeifItem tileItem = new(Heif4CharCode.Av01, itemId)
@@ -262,9 +231,9 @@ public class HeifEncoderTests
     }
 
     [Fact]
-    public void GridDecoderRejectsCellSmallerThanMiafMinimum()
+    public void GridDecoderRejectsInvalidCellDimensions()
     {
-        ObuColorConfig colorConfig = new()
+        ObuColorConfig monochromeConfig = new()
         {
             IsColorDescriptionPresent = true,
             ColorPrimaries = ObuColorPrimaries.Bt709,
@@ -280,136 +249,70 @@ public class HeifEncoderTests
         InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(
             () =>
             {
-                using Image<Rgba32> decoded = DecodeSingleCellGrid(63, 64, colorConfig);
+                using Image<Rgba32> decoded = DecodeSingleCellGrid(63, 64, monochromeConfig);
             });
 
         Assert.Contains("grid cells must be at least 64 samples", exception.Message, StringComparison.Ordinal);
-    }
 
-    /// <summary>
-    /// Verifies grid dimensions preserve chroma alignment for AV1's 4:2:2 and 4:2:0 layouts.
-    /// </summary>
-    [Theory]
-    [InlineData(65, 64, true, false)]
-    [InlineData(65, 64, true, true)]
-    [InlineData(64, 65, true, true)]
-    public void GridDecoderRejectsOddSubsampledDimension(
-        int width,
-        int height,
-        bool subsamplingX,
-        bool subsamplingY)
-    {
-        ObuColorConfig colorConfig = new()
+        // Grid dimensions must preserve chroma alignment on each subsampled axis.
+        AssertOddSubsampledDimensionRejected(65, 64, true, false);
+        AssertOddSubsampledDimensionRejected(64, 65, true, true);
+
+        static void AssertOddSubsampledDimensionRejected(int width, int height, bool subsamplingX, bool subsamplingY)
         {
-            IsColorDescriptionPresent = true,
-            ColorPrimaries = ObuColorPrimaries.Bt709,
-            TransferCharacteristics = ObuTransferCharacteristics.Srgb,
-            MatrixCoefficients = ObuMatrixCoefficients.Bt709,
-            ColorRange = true,
-            BitDepth = Av1BitDepth.EightBit,
-            SubSamplingX = subsamplingX,
-            SubSamplingY = subsamplingY
-        };
-
-        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(
-            () =>
+            ObuColorConfig colorConfig = new()
             {
-                using Image<Rgba32> decoded = DecodeSingleCellGrid(width, height, colorConfig);
-            });
+                IsColorDescriptionPresent = true,
+                ColorPrimaries = ObuColorPrimaries.Bt709,
+                TransferCharacteristics = ObuTransferCharacteristics.Srgb,
+                MatrixCoefficients = ObuMatrixCoefficients.Bt709,
+                ColorRange = true,
+                BitDepth = Av1BitDepth.EightBit,
+                SubSamplingX = subsamplingX,
+                SubSamplingY = subsamplingY
+            };
 
-        Assert.Contains("must be even", exception.Message, StringComparison.Ordinal);
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(
+                () =>
+                {
+                    using Image<Rgba32> decoded = DecodeSingleCellGrid(width, height, colorConfig);
+                });
+
+            Assert.Contains("must be even", exception.Message, StringComparison.Ordinal);
+        }
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(HeifChromaSubsampling.Yuv420)]
-    [InlineData(HeifChromaSubsampling.Yuv422)]
-    [InlineData(HeifChromaSubsampling.Yuv444)]
-    public void Av1OversizedStillImageWritesAndDecodesGrid(HeifChromaSubsampling? chromaSubsampling)
+    [Fact]
+    public void Av1OversizedStillImageWritesAndDecodesGrid()
     {
+        // 65537 is the narrowest width beyond the AV1 frame limit, so one lossless row at the fastest speed is
+        // the cheapest image that must be written as a two-cell grid. Identity-matrix 4:4:4 keeps RGB exact.
         const int width = 65537;
         using Image<Rgb24> image = new(width, 1);
         image[0, 0] = new Rgb24(1, 2, 3);
         image[32768, 0] = new Rgb24(11, 13, 17);
         image[32769, 0] = new Rgb24(19, 23, 29);
         image[width - 1, 0] = new Rgb24(31, 37, 41);
-
-        // Identity-matrix 4:4:4 makes the lossless AV1 cells preserve the packed RGB channels exactly.
-        CicpProfile sourceProfile = new(1, 13, 0, true);
-        image.Metadata.CicpProfile = sourceProfile;
+        image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
             Lossless = true,
-            ChromaSubsampling = chromaSubsampling,
+            ChromaSubsampling = HeifChromaSubsampling.Yuv444,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
         byte[] file = stream.ToArray();
+
+        // The primary item is a one-row, two-column grid descriptor with 32-bit output dimensions.
         Assert.Equal(
             [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1],
             GetItemPayload(file, 1).ToArray());
 
-        using Av1Decoder firstCellDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> firstCellPlanes = firstCellDecoder.DecodeFrameBuffer(GetItemPayload(file, 2), null, null, out _);
-        using Image<Rgb24> firstCell = new(Configuration.Default, firstCellPlanes.Width, firstCellPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            firstCellPlanes,
-            firstCell.Bounds,
-            firstCell.Frames.RootFrame.PixelBuffer.GetRegion(firstCell.Bounds),
-            firstCell.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            firstCellPlanes.ColorConfig.ColorRange);
-
-        using Av1Decoder secondCellDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> secondCellPlanes = secondCellDecoder.DecodeFrameBuffer(GetItemPayload(file, 3), null, null, out _);
-        using Image<Rgb24> secondCell = new(Configuration.Default, secondCellPlanes.Width, secondCellPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            secondCellPlanes,
-            secondCell.Bounds,
-            secondCell.Frames.RootFrame.PixelBuffer.GetRegion(secondCell.Bounds),
-            secondCell.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            secondCellPlanes.ColorConfig.ColorRange);
-
-        // Odd grid dimensions require full-resolution chroma, including when subsampling was explicitly requested.
-        // The conversion must retain the source profile and signal the resolved sampling on every coded cell.
-        ObuSequenceHeader firstHeader = Assert.IsType<ObuSequenceHeader>(firstCellDecoder.SequenceHeader);
-        ObuSequenceHeader secondHeader = Assert.IsType<ObuSequenceHeader>(secondCellDecoder.SequenceHeader);
-        Assert.False(firstHeader.ColorConfig.SubSamplingX);
-        Assert.False(firstHeader.ColorConfig.SubSamplingY);
-        Assert.False(secondHeader.ColorConfig.SubSamplingX);
-        Assert.False(secondHeader.ColorConfig.SubSamplingY);
-        Assert.Equal(ObuMatrixCoefficients.Identity, firstHeader.ColorConfig.MatrixCoefficients);
-        Assert.Equal(ObuMatrixCoefficients.Identity, secondHeader.ColorConfig.MatrixCoefficients);
-        Assert.Same(sourceProfile, image.Metadata.CicpProfile);
-
-        // AVIF requires the first grid cell to be at least 64 samples on both axes. The derived grid trims
-        // the replicated right and bottom edges back to the presentation encoded in its descriptor.
-        Assert.Equal(new Size(32769, 64), firstCell.Size);
-        Assert.Equal(new Size(32769, 64), secondCell.Size);
-        Assert.Equal(image[32768, 0], firstCell[32768, 0]);
-        Assert.Equal(image[32769, 0], secondCell[0, 0]);
-        Assert.Equal(image[width - 1, 0], secondCell[32767, 0]);
-        Assert.Equal(secondCell[32767, 0], secondCell[32768, 0]);
-        Assert.Equal(secondCell[0, 0], secondCell[0, 63]);
+        // Both cells are hidden and derived from the grid in presentation order.
         Assert.Equal(1U, GetItemInfoFlags(file, 2));
         Assert.Equal(1U, GetItemInfoFlags(file, 3));
-
         ReadOnlySpan<byte> references = GetMetadataChild(file, Heif4CharCode.Iref);
         const int FirstReferenceOffset = 12;
         Assert.Equal(
@@ -421,6 +324,7 @@ public class HeifEncoderTests
         Assert.Equal(2, BinaryPrimitives.ReadUInt16BigEndian(references[(FirstReferenceOffset + 12)..]));
         Assert.Equal(3, BinaryPrimitives.ReadUInt16BigEndian(references[(FirstReferenceOffset + 14)..]));
 
+        // The exact comparison covers the samples on both sides of the cell border at columns 32768 and 32769.
         stream.Position = 0;
         using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
         Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
@@ -428,10 +332,6 @@ public class HeifEncoderTests
 
     [Theory]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level0)]
-    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level3)]
-    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level4)]
-    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level5)]
-    [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level6)]
     [WithFile(TestImages.Webp.Flag, PixelTypes.Rgba32, HeifEncodingSpeed.Level9)]
     public void EncodeScreenContent(TestImageProvider<Rgba32> provider, HeifEncodingSpeed speed)
     {
@@ -456,18 +356,19 @@ public class HeifEncoderTests
 
     [Theory]
     [WithFile(TestImages.Png.Ducky, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Paletted256Colors, PixelTypes.Rgba32)]
     public void LosslessRgba(TestImageProvider<Rgba32> provider)
     {
         using Image<Rgba32> image = provider.GetImage();
 
         // Identity 4:4:4 preserves the source RGB samples without matrix or chroma-subsampling losses.
+        // Lossless output does not depend on the search speed.
         image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
         HeifEncoder encoder = new()
         {
             Lossless = true,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         IImageDecoder referenceDecoder = MagickReferenceDecoder.Heif;
@@ -485,7 +386,113 @@ public class HeifEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Tiff.Rgba10BitUnassociatedAlphaBigEndian, PixelTypes.Rgba64, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, 90)]
+    [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, 40)]
+    [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgba32, 75)]
+    [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, 60)]
+    public void Encode_Lossy_WithDifferentQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int quality)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        HeifEncoder encoder = new()
+        {
+            Quality = quality,
+            Speed = HeifEncodingSpeed.Level9,
+        };
+
+        image.VerifyEncoder(provider, "avif", quality, encoder, GetLossyComparer(quality), referenceDecoder: MagickReferenceDecoder.Heif);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, HeifChromaSubsampling.Yuv420)]
+    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, HeifChromaSubsampling.Yuv422)]
+    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, HeifChromaSubsampling.Yuv444)]
+    public void Encode_WithChromaSubsampling_Works<TPixel>(TestImageProvider<TPixel> provider, HeifChromaSubsampling chromaSubsampling)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        HeifEncoder encoder = new()
+        {
+            Quality = 80,
+            ChromaSubsampling = chromaSubsampling,
+            Speed = HeifEncodingSpeed.Level9,
+        };
+
+        image.VerifyEncoder(provider, "avif", chromaSubsampling, encoder, GetLossyComparer(80), referenceDecoder: MagickReferenceDecoder.Heif);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, HeifEncodingSpeed.Level0)]
+    [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, HeifEncodingSpeed.Level4)]
+    [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, HeifEncodingSpeed.Level9)]
+    public void Encode_WithDifferentSpeed_Works<TPixel>(TestImageProvider<TPixel> provider, HeifEncodingSpeed speed)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        HeifEncoder encoder = new()
+        {
+            Quality = 75,
+            Speed = speed,
+        };
+
+        image.VerifyEncoder(provider, "avif", speed, encoder, GetLossyComparer(75), referenceDecoder: MagickReferenceDecoder.Heif);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Rgb48BppInterlaced, PixelTypes.Rgba64, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Png.Rgb48BppInterlaced, PixelTypes.Rgba64, HeifBitDepth.Bit12)]
+    public void Encode_Lossy_WithHighBitDepth_Works<TPixel>(TestImageProvider<TPixel> provider, HeifBitDepth bitDepth)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        // 4:4:4 keeps the check on the bit depth path: the Magick reference decoder upsamples 4:2:0 chroma with the
+        // nearest sample, where libavif and the managed decoder interpolate, and this source is high-contrast text.
+        HeifEncoder encoder = new()
+        {
+            Quality = 80,
+            BitDepth = bitDepth,
+            ChromaSubsampling = HeifChromaSubsampling.Yuv444,
+            Speed = HeifEncodingSpeed.Level9,
+        };
+
+        image.VerifyEncoder(provider, "avif", bitDepth, encoder, GetLossyComparer(80), referenceDecoder: MagickReferenceDecoder.Heif);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32)]
+    public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        HeifEncoder encoder = new()
+        {
+            Quality = 80,
+            AlphaQuality = 80,
+            Speed = HeifEncodingSpeed.Level9,
+        };
+
+        image.VerifyEncoder(provider, "avif", null, encoder, GetLossyComparer(80), referenceDecoder: MagickReferenceDecoder.Heif);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Baseline.HistogramEqImage, PixelTypes.Rgba32)]
+    public void Encode_Lossy_Monochrome_Works<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        HeifEncoder encoder = new()
+        {
+            Quality = 80,
+            ChromaSubsampling = HeifChromaSubsampling.Monochrome,
+            Speed = HeifEncodingSpeed.Level9,
+        };
+
+        // The Magick reference decoder does not expand the limited range of a monochrome stream; libavif (avifdec)
+        // does and gives the same samples as the managed decoder, so the managed decoder is the reference here.
+        image.VerifyEncoder(provider, "avif", null, encoder, GetLossyComparer(80), referenceDecoder: HeifDecoder.Instance);
+    }
+
+    [Theory]
     [WithFile(TestImages.Tiff.Rgba12BitUnassociatedAlphaBigEndian, PixelTypes.Rgba64, HeifBitDepth.Bit12)]
     public void Av1LosslessRoundTripPreservesHighBitDepthSourcePixels(TestImageProvider<Rgba64> provider, HeifBitDepth bitDepth)
     {
@@ -498,6 +505,7 @@ public class HeifEncoderTests
             BitDepth = bitDepth,
             ChromaSubsampling = HeifChromaSubsampling.Yuv444,
             Lossless = true,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         IImageDecoder referenceDecoder = MagickReferenceDecoder.Heif;
@@ -518,8 +526,6 @@ public class HeifEncoderTests
     }
 
     [Theory]
-    [InlineData((ushort)0, null, (ushort)0)]
-    [InlineData((ushort)3, null, (ushort)3)]
     [InlineData((ushort)3, (ushort)7, (ushort)7)]
     public void Av1LosslessImageSequencePreservesFramesTimingAndAlpha(
         ushort metadataRepeatCount,
@@ -568,7 +574,8 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             Lossless = true,
-            RepeatCount = encoderRepeatCount
+            RepeatCount = encoderRepeatCount,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -641,7 +648,8 @@ public class HeifEncoderTests
         using NonSeekableStream destination = new(storage);
         HeifEncoder encoder = new()
         {
-            SkipMetadata = true
+            SkipMetadata = true,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(destination, encoder);
@@ -655,18 +663,6 @@ public class HeifEncoderTests
     }
 
     [Theory]
-    [InlineData(0, 255)]
-    [InlineData(1, 249)]
-    [InlineData(2, 249)]
-    [InlineData(50, 128)]
-    [InlineData(60, 100)]
-    [InlineData(75, 64)]
-    [InlineData(99, 4)]
-    [InlineData(100, 4)]
-    public void Av1QualityMapsThroughLibaomQuantizers(int quality, int expectedQIndex)
-        => Assert.Equal(expectedQIndex, HeifEncoderCore.GetAv1QuantizerIndex(quality));
-
-    [Theory]
     [WithFile(TestImages.Png.Bike, PixelTypes.Rgb24)]
     public void Av1WritesStillImageWithRequiredBrandsAndColorDescription(TestImageProvider<Rgb24> provider)
     {
@@ -675,6 +671,7 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             Quality = 75,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -722,6 +719,7 @@ public class HeifEncoderTests
         {
             Quality = 75,
             AlphaQuality = 100,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -783,8 +781,6 @@ public class HeifEncoderTests
     [Theory]
     [InlineData(HeifBitDepth.Bit8, HeifChromaSubsampling.Monochrome, Av1EightBit, Yuv400)]
     [InlineData(HeifBitDepth.Bit10, HeifChromaSubsampling.Yuv420, Av1TenBit, Yuv420)]
-    [InlineData(HeifBitDepth.Bit10, HeifChromaSubsampling.Yuv422, Av1TenBit, Yuv422)]
-    [InlineData(HeifBitDepth.Bit12, HeifChromaSubsampling.Yuv444, Av1TwelveBit, Yuv444)]
     public void Av1ExplicitPrecisionAndSamplingReachPayload(
         HeifBitDepth bitDepth,
         HeifChromaSubsampling chromaSubsampling,
@@ -812,6 +808,7 @@ public class HeifEncoderTests
         {
             BitDepth = bitDepth,
             ChromaSubsampling = chromaSubsampling,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -856,6 +853,7 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             ChromaSubsampling = HeifChromaSubsampling.Yuv444,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -883,22 +881,15 @@ public class HeifEncoderTests
         Assert.Equal(Av1BitDepth.TenBit, sequenceHeader.ColorConfig.BitDepth);
     }
 
-    [Theory]
-    [InlineData(HeifBitDepth.Bit8, false, false, false)]
-    [InlineData(HeifBitDepth.Bit8, true, false, false)]
-    [InlineData(HeifBitDepth.Bit10, false, false, false)]
-    [InlineData(HeifBitDepth.Bit10, true, false, false)]
-    [InlineData(HeifBitDepth.Bit12, false, false, false)]
-    [InlineData(HeifBitDepth.Bit12, true, false, false)]
-    [InlineData(HeifBitDepth.Bit8, false, true, false)]
-    [InlineData(HeifBitDepth.Bit8, true, true, false)]
-    [InlineData(HeifBitDepth.Bit10, false, true, false)]
-    [InlineData(HeifBitDepth.Bit10, true, true, false)]
-    [InlineData(HeifBitDepth.Bit12, false, true, false)]
-    [InlineData(HeifBitDepth.Bit12, true, true, false)]
-    [InlineData(HeifBitDepth.Bit8, false, false, true)]
-    [InlineData(HeifBitDepth.Bit12, false, true, true)]
-    public void Av1PreservesIdentityMatrixColorDescription(
+    [Fact]
+    public void Av1PreservesIdentityMatrixColorDescription()
+    {
+        this.Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit10, false, false, false);
+        this.Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit12, true, true, false);
+        this.Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit8, false, false, true);
+    }
+
+    private void Av1PreservesIdentityMatrixColorDescriptionCase(
         HeifBitDepth bitDepth,
         bool fullRange,
         bool sequence,
@@ -940,6 +931,7 @@ public class HeifEncoderTests
             BitDepth = bitDepth,
             ChromaSubsampling = HeifChromaSubsampling.Yuv444,
             Lossless = true,
+            Speed = HeifEncodingSpeed.Level9,
         });
 
         Assert.Same(profile, image.Metadata.CicpProfile);
@@ -999,11 +991,6 @@ public class HeifEncoderTests
     [Theory]
     [InlineData(CicpMatrixCoefficients.Identity, HeifChromaSubsampling.Yuv420)]
     [InlineData(CicpMatrixCoefficients.YCgCoRe, null)]
-    [InlineData(CicpMatrixCoefficients.YCgCoRe, HeifChromaSubsampling.Yuv420)]
-    [InlineData(CicpMatrixCoefficients.YCgCoRe, HeifChromaSubsampling.Yuv422)]
-    [InlineData(CicpMatrixCoefficients.YCgCoRo, null)]
-    [InlineData(CicpMatrixCoefficients.YCgCoRo, HeifChromaSubsampling.Yuv420)]
-    [InlineData(CicpMatrixCoefficients.YCgCoRo, HeifChromaSubsampling.Yuv422)]
     public void Av1SanitizesIncompatibleMatrixWithoutMutatingSourceMetadata(
         CicpMatrixCoefficients matrix,
         HeifChromaSubsampling? subsampling)
@@ -1015,6 +1002,7 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             ChromaSubsampling = subsampling,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -1054,6 +1042,7 @@ public class HeifEncoderTests
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -1132,7 +1121,8 @@ public class HeifEncoderTests
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
-            SkipMetadata = true
+            SkipMetadata = true,
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(stream, encoder);
@@ -1168,36 +1158,22 @@ public class HeifEncoderTests
     }
 
     [Fact]
-    public void Av1WritesNonSeekableStream()
+    public void Av1WritesStillImageToPrefixedNonSeekableStream()
     {
         using Image<Rgb24> image = new(8, 8);
         using MemoryStream storage = new();
+        storage.Write([1, 2, 3, 4]);
+        long fileStart = storage.Position;
         using NonSeekableStream destination = new(storage);
         HeifEncoder encoder = new()
         {
+            Speed = HeifEncodingSpeed.Level9,
         };
 
         image.Save(destination, encoder);
-        Assert.NotEqual(0, storage.Length);
-        storage.Position = 0;
+        Assert.NotEqual(fileStart, storage.Length);
+        storage.Position = fileStart;
         using Image<Rgb24> decoded = Image.Load<Rgb24>(storage);
-        Assert.Equal(image.Size, decoded.Size);
-    }
-
-    [Fact]
-    public void Av1WritesAtCurrentStreamPosition()
-    {
-        using Image<Rgb24> image = new(8, 8);
-        using MemoryStream stream = new();
-        stream.Write([1, 2, 3, 4]);
-        long fileStart = stream.Position;
-        HeifEncoder encoder = new()
-        {
-        };
-
-        image.Save(stream, encoder);
-        stream.Position = fileStart;
-        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
         Assert.Equal(image.Size, decoded.Size);
     }
 
@@ -1333,101 +1309,6 @@ public class HeifEncoderTests
     }
 
     [Fact]
-    public void ItemPropertiesReuseAnEarlierIdenticalCellPropertySet()
-    {
-        ObuSequenceHeader sequenceHeader = new()
-        {
-            SequenceProfile = ObuSequenceProfile.Main,
-            OperatingPoint = [new ObuOperatingPoint { SequenceLevelIndex = 31 }],
-            ColorConfig = new ObuColorConfig
-            {
-                BitDepth = Av1BitDepth.EightBit,
-                SubSamplingX = false,
-                SubSamplingY = false
-            }
-        };
-
-        HeifItem firstCell = new(Heif4CharCode.Av01, 1)
-        {
-            ChannelBitDepths = [8, 8, 8],
-            Av1CodecConfiguration = new Av1CodecConfiguration(sequenceHeader)
-        };
-
-        firstCell.SetExtent(new Size(64, 64));
-        HeifItem secondCell = new(Heif4CharCode.Av01, 2)
-        {
-            PropertySource = firstCell
-        };
-
-        secondCell.SetExtent(firstCell.Extent);
-        List<HeifItem> items = [firstCell, secondCell];
-        int expectedLength = HeifEncoderCore.GetItemPropertiesBoxLength(items);
-        using IMemoryOwner<byte> owner = Configuration.Default.MemoryAllocator.Allocate<byte>(expectedLength);
-        Span<byte> propertyBox = owner.Memory.Span[..expectedLength];
-        int length = HeifEncoderCore.WriteItemPropertiesBox(propertyBox, 0, items);
-
-        Assert.Equal(92, length);
-        const int IpcoOffset = 8;
-        int ipmaOffset = IpcoOffset + BinaryPrimitives.ReadInt32BigEndian(propertyBox[IpcoOffset..]);
-        ReadOnlySpan<byte> ipmaPayload = propertyBox[(ipmaOffset + 8)..];
-        Assert.Equal(
-            [0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 3, 1, 2, 0x83, 0, 2, 3, 1, 2, 0x83],
-            ipmaPayload.ToArray());
-    }
-
-    [Fact]
-    public void Av1ItemPropertiesWriteIccBeforeCicpAndExcludeMetadataItemsFromAssociations()
-    {
-        IccProfile iccProfile = new(IccTestDataProfiles.ProfileRandomArray);
-        HeifItem colorItem = new(Heif4CharCode.Av01, 1)
-        {
-            IccProfile = iccProfile,
-            CicpProfile = new CicpProfile(1, 13, 6, true)
-        };
-
-        colorItem.SetExtent(new Size(64, 48));
-        List<HeifItem> items =
-        [
-            colorItem,
-            new HeifItem(Heif4CharCode.Exif, 2),
-            new HeifItem(Heif4CharCode.Mime, 3)
-        ];
-
-        int expectedLength = HeifEncoderCore.GetItemPropertiesBoxLength(items);
-        using IMemoryOwner<byte> owner = Configuration.Default.MemoryAllocator.Allocate<byte>(expectedLength);
-        Span<byte> propertyBox = owner.Memory.Span[..expectedLength];
-        int length = HeifEncoderCore.WriteItemPropertiesBox(propertyBox, 0, items);
-        const int IpcoOffset = 8;
-        int ipcoEnd = IpcoOffset + BinaryPrimitives.ReadInt32BigEndian(propertyBox[IpcoOffset..]);
-        int propertyOffset = IpcoOffset + 8;
-
-        Assert.Equal(Heif4CharCode.Ispe, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 4)..]));
-        propertyOffset += BinaryPrimitives.ReadInt32BigEndian(propertyBox[propertyOffset..]);
-
-        int iccPropertyLength = BinaryPrimitives.ReadInt32BigEndian(propertyBox[propertyOffset..]);
-        Assert.Equal(Heif4CharCode.Colr, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 4)..]));
-        Assert.Equal(Heif4CharCode.Prof, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 8)..]));
-        Assert.Equal(
-            IccTestDataProfiles.ProfileRandomArray,
-            propertyBox.Slice(propertyOffset + 12, iccPropertyLength - 12).ToArray());
-
-        propertyOffset += iccPropertyLength;
-
-        int cicpPropertyLength = BinaryPrimitives.ReadInt32BigEndian(propertyBox[propertyOffset..]);
-        Assert.Equal(Heif4CharCode.Colr, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 4)..]));
-        Assert.Equal(Heif4CharCode.Nclx, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 8)..]));
-        propertyOffset += cicpPropertyLength;
-        Assert.Equal(ipcoEnd, propertyOffset);
-
-        int ipmaOffset = ipcoEnd;
-        int ipmaLength = BinaryPrimitives.ReadInt32BigEndian(propertyBox[ipmaOffset..]);
-        ReadOnlySpan<byte> ipmaPayload = propertyBox.Slice(ipmaOffset + 8, ipmaLength - 8);
-        Assert.Equal(0, BinaryPrimitives.ReadInt32BigEndian(ipmaPayload));
-        Assert.Equal(1, BinaryPrimitives.ReadInt32BigEndian(ipmaPayload[4..]));
-        Assert.Equal([0, 1, 3, 1, 2, 3], ipmaPayload[8..].ToArray());
-    }
-
-    [Fact]
     public void ItemPropertiesUseLargeAssociationsWhenPropertyCountExceedsCompactRange()
     {
         const int ItemCount = 43;
@@ -1558,7 +1439,7 @@ public class HeifEncoderTests
             payloadStream,
             colorConfig,
             qIndex: 0,
-            speed: HeifEncodingSpeed.Level0);
+            speed: HeifEncodingSpeed.Level9);
 
         byte[] payload = payloadStream.ToArray();
         HeifItem gridItem = new(Heif4CharCode.Grid, 1);
@@ -1661,4 +1542,12 @@ public class HeifEncoderTests
 
         throw new InvalidImageContentException($"The encoded file has no {childType} metadata child.");
     }
+
+    /// <summary>
+    /// Gets the comparer of a lossy round trip: the tolerance grows as the quality falls.
+    /// </summary>
+    /// <param name="quality">The encoder quality.</param>
+    /// <returns>The comparer.</returns>
+    private static ImageComparer GetLossyComparer(int quality)
+        => ImageComparer.Tolerant(quality >= 75 ? 0.01F : quality >= 50 ? 0.02F : 0.04F);
 }

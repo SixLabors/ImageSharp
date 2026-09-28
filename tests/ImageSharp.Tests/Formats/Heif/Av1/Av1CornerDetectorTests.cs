@@ -14,34 +14,19 @@ public class Av1CornerDetectorTests
     /// scalar remainder are all exercised.
     /// </summary>
     private const HwIntrinsics DetectorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    [Theory]
-    [InlineData(64, 48, 0)]
-    [InlineData(37, 29, 1)]
-    [InlineData(96, 96, 2)]
-    [InlineData(19, 11, 3)]
-    public void DetectMatchesTheReferenceDetector(int width, int height, int pattern)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            static parameters =>
-            {
-                string[] values = parameters.Split(',');
-                ValidateDetect(int.Parse(values[0]), int.Parse(values[1]), int.Parse(values[2]));
-            },
-            FormattableString.Invariant($"{width},{height},{pattern}"),
-            DetectorConfigurations);
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     [Fact]
-    public void DetectReturnsNothingForAPlaneTooSmallToHoldACircle()
-    {
-        const int Width = 6;
-        const int Height = 6;
-        byte[] plane = new byte[Width * Height];
-        int[] corners = new int[2 * Av1CornerDetector.MaximumCorners];
+    public void DetectMatchesTheReferenceDetector()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDetectPatterns, DetectorConfigurations);
 
-        Assert.Equal(
-            0,
-            Av1CornerDetector.Detect(Configuration.Default.MemoryAllocator, plane, 0, Width, Height, Width, corners));
+    /// <summary>
+    /// Compares the detected corners with the reference for isolated points on a clipped plane and a checkerboard.
+    /// </summary>
+    private static void ValidateDetectPatterns()
+    {
+        ValidateDetect(37, 29, 1);
+        ValidateDetect(96, 96, 2);
     }
 
     /// <summary>

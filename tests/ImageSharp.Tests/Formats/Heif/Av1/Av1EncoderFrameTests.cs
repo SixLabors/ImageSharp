@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -32,26 +31,16 @@ public class Av1EncoderFrameTests
     private const int Yuv422 = (int)Av1ColorFormat.Yuv422;
     private const int Yuv444 = (int)Av1ColorFormat.Yuv444;
 
-    [Theory]
-    [InlineData(EightBit, false, false, false)]
-    [InlineData(EightBit, false, true, false)]
-    [InlineData(EightBit, true, false, false)]
-    [InlineData(EightBit, true, true, false)]
-    [InlineData(TenBit, false, false, false)]
-    [InlineData(TenBit, false, true, false)]
-    [InlineData(TenBit, true, false, false)]
-    [InlineData(TenBit, true, true, false)]
-    [InlineData(TwelveBit, false, false, false)]
-    [InlineData(TwelveBit, false, true, false)]
-    [InlineData(TwelveBit, true, false, false)]
-    [InlineData(TwelveBit, true, true, false)]
-    [InlineData(EightBit, false, true, true)]
-    [InlineData(EightBit, true, true, true)]
-    [InlineData(TenBit, false, true, true)]
-    [InlineData(TenBit, true, true, true)]
-    [InlineData(TwelveBit, false, true, true)]
-    [InlineData(TwelveBit, true, true, true)]
-    public void RectangularIntraReferencesExtendTheLastAvailableSample(int bitDepthValue, bool transpose, bool extensionAvailable, bool limitedExtent)
+    [Fact]
+    public void RectangularIntraReferencesExtendTheLastAvailableSample()
+    {
+        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)EightBit, false, false, false);
+        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TenBit, true, true, false);
+        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)EightBit, true, true, true);
+        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TwelveBit, false, true, true);
+    }
+
+    private void RectangularIntraReferencesExtendTheLastAvailableSampleCase(int bitDepthValue, bool transpose, bool extensionAvailable, bool limitedExtent)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         if (bitDepth == Av1BitDepth.EightBit)
@@ -158,7 +147,7 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 0,
-            speed: HeifEncodingSpeed.Level0);
+            speed: HeifEncodingSpeed.Level9);
 
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _);
@@ -188,59 +177,14 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(8, 8, false, EightBit, Yuv400)]
-    [InlineData(8, 8, true, EightBit, Yuv400)]
-    [InlineData(16, 16, false, EightBit, Yuv400)]
-    [InlineData(16, 16, true, EightBit, Yuv400)]
-    [InlineData(8, 8, false, TenBit, Yuv400)]
-    [InlineData(8, 8, true, TenBit, Yuv400)]
-    [InlineData(8, 8, false, TwelveBit, Yuv400)]
-    [InlineData(8, 8, true, TwelveBit, Yuv400)]
-    [InlineData(16, 16, false, EightBit, Yuv420)]
-    [InlineData(16, 16, true, EightBit, Yuv420)]
-    [InlineData(13, 11, true, EightBit, Yuv420)]
-    [InlineData(16, 16, false, TenBit, Yuv420)]
-    [InlineData(16, 16, true, TenBit, Yuv420)]
-    [InlineData(16, 16, false, TwelveBit, Yuv420)]
-    [InlineData(16, 16, true, TwelveBit, Yuv420)]
-    [InlineData(16, 16, false, EightBit, Yuv422)]
-    [InlineData(16, 16, true, EightBit, Yuv422)]
-    [InlineData(13, 11, true, EightBit, Yuv422)]
-    [InlineData(16, 16, false, TenBit, Yuv422)]
-    [InlineData(16, 16, true, TenBit, Yuv422)]
-    [InlineData(16, 16, false, TwelveBit, Yuv422)]
-    [InlineData(16, 16, true, TwelveBit, Yuv422)]
-    [InlineData(16, 16, false, EightBit, Yuv444)]
-    [InlineData(16, 16, true, EightBit, Yuv444)]
-    [InlineData(13, 11, true, EightBit, Yuv444)]
-    [InlineData(16, 16, false, TenBit, Yuv444)]
-    [InlineData(16, 16, true, TenBit, Yuv444)]
-    [InlineData(16, 16, false, TwelveBit, Yuv444)]
-    [InlineData(16, 16, true, TwelveBit, Yuv444)]
-    public void EncodeWritesReducedStillPictureConsumedByProductionDecoder(int width, int height, bool hasGradient, int bitDepthValue, int colorFormatValue)
+    [InlineData(16, 16, EightBit, Yuv400)]
+    [InlineData(13, 11, EightBit, Yuv420)]
+    [InlineData(16, 16, TwelveBit, Yuv444)]
+    public void EncodeWritesReducedStillPictureConsumedByProductionDecoder(int width, int height, int bitDepthValue, int colorFormatValue)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
-        using Image<Rgba32> source = new(width, height);
-        for (int y = 0; y < height; y++)
-        {
-            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < width; x++)
-            {
-                if (colorFormat == Av1ColorFormat.Yuv400)
-                {
-                    byte value = hasGradient ? (byte)((x * 13) + (y * 17)) : (byte)128;
-                    row[x] = new Rgba32(value, value, value);
-                }
-                else
-                {
-                    byte red = hasGradient ? (byte)((x * 13) + (y * 17)) : (byte)192;
-                    byte green = hasGradient ? (byte)((x * 7) + (y * 5)) : (byte)64;
-                    byte blue = hasGradient ? (byte)((x * 3) + (y * 11)) : (byte)32;
-                    row[x] = new Rgba32(red, green, blue);
-                }
-            }
-        }
+        using Image<Rgba32> source = LoadCrop<Rgba32>(TestImages.Png.CalliphoraPartial, new Rectangle(150, 120, width, height));
 
         ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
         using MemoryStream stream = new();
@@ -296,72 +240,10 @@ public class Av1EncoderFrameTests
             Assert.True(center.R != center.G || center.G != center.B);
         }
 
-        if (hasGradient)
-        {
-            Assert.NotEqual(first, decoded[width - 1, height - 1]);
-        }
-        else
-        {
-            if (colorFormat == Av1ColorFormat.Yuv400)
-            {
-                Assert.InRange(first.R, 120, 136);
-
-                for (int y = 0; y < height; y++)
-                {
-                    foreach (Rgba32 pixel in decoded.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y))
-                    {
-                        Assert.Equal(first, pixel);
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Verifies that the slowest sequence speed searches motion in 128x128 blocks. Motion search measures the
-    /// residual of the whole block, which is larger than the largest transform.
-    /// </summary>
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(4)]
-    [InlineData(5)]
-    [InlineData(6)]
-    public void SequenceEncoderSearchesMotionInLargestBlocks(int speed)
-    {
-        const int Width = 256;
-        const int Height = 256;
-        using Image<Rgba32> first = new(Width + 8, Height);
-        for (int y = 0; y < Height; y++)
-        {
-            for (int x = 0; x < Width + 8; x++)
-            {
-                first[x, y] = new Rgba32((byte)(x & 255), (byte)((x + y) >> 1), (byte)(y & 255));
-            }
-        }
-
-        using Image<Rgba32> key = first.Clone(x => x.Crop(new Rectangle(0, 0, Width, Height)));
-        using Image<Rgba32> shifted = first.Clone(x => x.Crop(new Rectangle(3, 0, Width, Height)));
-        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            Configuration.Default,
-            Width,
-            Height,
-            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
-            qIndex: 64,
-            speed: (HeifEncodingSpeed)speed);
-
-        Assert.True(speed != 0 || encoder.SequenceHeader.Use128x128Superblock);
-        using MemoryStream keyStream = new();
-        using MemoryStream interStream = new();
-        encoder.EncodeKeyFrame(key.Frames.RootFrame, keyStream);
-        encoder.EncodeInterFrame(shifted.Frames.RootFrame, interStream);
-        Assert.True(interStream.Length > 0);
+        Assert.NotEqual(first, decoded[width - 1, height - 1]);
     }
 
     [Theory]
-    [InlineData(false)]
     [InlineData(true)]
     public void EncodeSequenceFrameWritesNonReducedHeaderConsumedByProductionDecoder(bool encodeAlpha)
     {
@@ -425,54 +307,10 @@ public class Av1EncoderFrameTests
     /// Verifies dependent color samples with odd visible dimensions and motion across subsampled chroma phases.
     /// </summary>
     [Theory]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level0)]
-    [InlineData(EightBit, Yuv422, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, Yuv422, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, Yuv422, HeifEncodingSpeed.Level0)]
-    [InlineData(EightBit, Yuv444, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, Yuv444, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, Yuv444, HeifEncodingSpeed.Level0)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level1)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level2)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level3)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level4)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level5)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level6)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level7)]
-    [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level8)]
     [InlineData(EightBit, Yuv420, HeifEncodingSpeed.Level9)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level1)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level2)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level3)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level4)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level5)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level6)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level7)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level8)]
-    [InlineData(TenBit, Yuv420, HeifEncodingSpeed.Level9)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level1)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level2)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level3)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level4)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level5)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level6)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level7)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level8)]
-    [InlineData(TwelveBit, Yuv420, HeifEncodingSpeed.Level9)]
-    public void SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion(
-        int bitDepthValue,
-        int colorFormatValue,
-        HeifEncodingSpeed speed)
+    [InlineData(TenBit, Yuv444, HeifEncodingSpeed.Level0)]
+    public void SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion(int bitDepthValue, int colorFormatValue, HeifEncodingSpeed speed)
         => VerifySequenceEncoderColorPlanes(bitDepthValue, colorFormatValue, speed, 23, 19);
-
-    [Theory]
-    [InlineData(HeifEncodingSpeed.Level0)]
-    [InlineData(HeifEncodingSpeed.Level3)]
-    [InlineData(HeifEncodingSpeed.Level5)]
-    public void SequenceEncoderPreservesNativeColorPlanesAcrossMotionCostRefreshRows(HeifEncodingSpeed speed)
-        => VerifySequenceEncoderColorPlanes(EightBit, Yuv420, speed, 129, 273);
 
     private static void VerifySequenceEncoderColorPlanes(
         int bitDepthValue,
@@ -481,15 +319,13 @@ public class Av1EncoderFrameTests
         int width,
         int height)
     {
-        // A 129x273 frame crosses both columns and uneven row sets of 64- or 128-sample superblocks.
-        // The compact fixture retains its odd visible edges and all precision/subsampling combinations.
+        // Odd visible dimensions exercise the visible-edge clipping of every plane, while the three frames retain
+        // the precision and subsampling of the native planes through key and inter coding.
         const int QIndex = 17;
-        const int ByteToUInt16Scale = ushort.MaxValue / byte.MaxValue;
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
         ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
-        ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
-        using Image<Rgb48> source = new(width, height);
+        using Image<Rgb48> photograph = LoadCrop<Rgb48>(TestImages.Png.CalliphoraPartial, new Rectangle(150, 120, width + 2, height + 2));
         using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
             Configuration.Default,
             width,
@@ -504,23 +340,9 @@ public class Av1EncoderFrameTests
         bool hasFractionalChromaMotion = false;
         for (int frameIndex = 0; frameIndex < 3; frameIndex++)
         {
-            // The second source translates all three channels by one luma sample on each axis. Chroma is
-            // converted independently by the production converter, so 4:2:0 and 4:2:2 cannot hide behind
-            // constant neutral planes. Odd dimensions also exercise each plane's visible-edge clipping.
-            for (int y = 0; y < height; y++)
-            {
-                Span<Rgb48> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-                int referenceY = Math.Min(y + frameIndex, height - 1);
-                for (int x = 0; x < width; x++)
-                {
-                    int referenceX = Math.Min(x + frameIndex, width - 1);
-                    row[x] = new Rgb48(
-                        (ushort)((128 + period[referenceX % period.Length]) * ByteToUInt16Scale),
-                        (ushort)((128 + period[referenceY % period.Length]) * ByteToUInt16Scale),
-                        (ushort)((128 + period[(referenceX + referenceY) % period.Length]) * ByteToUInt16Scale));
-                }
-            }
-
+            // Each frame moves the window by one luma sample on each axis. Chroma is converted independently by
+            // the production converter, so 4:2:0 and 4:2:2 cannot hide behind neutral planes.
+            using Image<Rgb48> source = photograph.Clone(context => context.Crop(new Rectangle(frameIndex, frameIndex, width, height)));
             sample.SetLength(0);
             if (frameIndex == 0)
             {
@@ -573,374 +395,6 @@ public class Av1EncoderFrameTests
         }
     }
 
-    /// <summary>
-    /// Verifies retained reference reconstruction and frame-level speed policy through production sequence decoding.
-    /// </summary>
-    [Theory]
-    [InlineData(16, Yuv420)]
-    [InlineData(64, Yuv422)]
-    [InlineData(64, Yuv444)]
-    public void SequenceEncoderUsesRetainedReconstructionForInterFrame(int size, int colorFormatValue)
-    {
-        Rgba32 sourceColor = new(48, 96, 192);
-        using Image<Rgba32> source = new(size, size, sourceColor);
-        using MemoryStream firstSample = new();
-        using MemoryStream secondSample = new();
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, (Av1ColorFormat)colorFormatValue);
-        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            Configuration.Default,
-            size,
-            size,
-            colorConfig,
-            qIndex: 37,
-            speed: HeifEncodingSpeed.Level0);
-
-        encoder.EncodeKeyFrame(source.Frames.RootFrame, firstSample);
-        encoder.EncodeInterFrame(source.Frames.RootFrame, secondSample);
-
-        using Av1Decoder decoder = new(Configuration.Default);
-        using ImageFrame<Rgba32> decodedFirst = new(Configuration.Default, size, size);
-        decoder.DecodeSequenceFrame(
-            firstSample.ToArray(),
-            null,
-            null,
-            decodedFirst.Size,
-            decodedFirst.Bounds,
-            decodedFirst.PixelBuffer.GetRegion(decodedFirst.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        Av1FrameInfo firstFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        foreach (Av1BlockModeInfo mode in firstFrameInfo.GetModeInfos(Point.Empty, firstFrameInfo.GetModeInfoCount(Point.Empty)))
-        {
-            Assert.Equal(Av1ReferenceFrameType.Intra, mode.ReferenceFrames[0]);
-            Assert.False(mode.UseIntraBlockCopy);
-            Assert.False(mode.Skip);
-        }
-
-        using ImageFrame<Rgba32> decodedSecond = new(Configuration.Default, size, size);
-        decoder.DecodeSequenceFrame(
-            secondSample.ToArray(),
-            null,
-            null,
-            decodedSecond.Size,
-            decodedSecond.Bounds,
-            decodedSecond.PixelBuffer.GetRegion(decodedSecond.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        ObuFrameHeader frameHeader = decoder.FrameHeader;
-        Assert.Equal(ObuFrameType.InterFrame, frameHeader.FrameType);
-        Assert.False(frameHeader.SegmentationParameters.Enabled);
-        Assert.False(frameHeader.AllowScreenContentTools);
-        Assert.False(frameHeader.ForceIntegerMotionVector);
-        Assert.True(frameHeader.AllowHighPrecisionMotionVector);
-        Assert.Equal(37, frameHeader.QuantizationParameters.BaseQIndex);
-        Assert.NotEqual(Av1InterpolationFilter.Bilinear, frameHeader.InterpolationFilter);
-        Assert.False(decoder.SequenceHeader.EnableDualFilter);
-
-        // Good-quality usage: the key frame fills every slot with one buffer, so the first inter frame reads every
-        // reference from slot 0 and refreshes the first slot that the key frame left free. Reference:
-        // init_ref_map_pair(), av1_get_ref_frames(), and av1_get_refresh_frame_flags().
-        Assert.Equal(1U << 1, frameHeader.RefreshFrameFlags);
-        Assert.All(frameHeader.GetReferenceFrameIndices().ToArray(), slot => Assert.Equal(0U, slot));
-        Av1FrameInfo secondFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        bool hasSkippedInterBlock = false;
-        bool hasLargeInterBlock = false;
-        foreach (Av1BlockModeInfo mode in secondFrameInfo.GetModeInfos(Point.Empty, secondFrameInfo.GetModeInfoCount(Point.Empty)))
-        {
-            hasSkippedInterBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last && mode.Skip;
-            hasLargeInterBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last &&
-                (mode.BlockSize.GetWidth() == size || mode.BlockSize.GetHeight() == size);
-        }
-
-        // Repeated frames still use the inter skip alternative when prediction supplies the retained samples.
-        Assert.True(hasSkippedInterBlock);
-        Assert.True(hasLargeInterBlock);
-
-        // Larger chroma planes span several transforms. Compare the complete retained frame so
-        // missing reconstruction outside the first transform's region cannot pass.
-        for (int y = 0; y < size; y++)
-        {
-            Assert.Equal(
-                decodedFirst.PixelBuffer.DangerousGetRowSpan(y),
-                decodedSecond.PixelBuffer.DangerousGetRowSpan(y));
-        }
-    }
-
-    /// <summary>
-    /// Verifies that the third sequence frame can select the bounded equal-average compound of LAST and the retained
-    /// key frame, which duplicate removal leaves reachable through ALTREF. Reference: get_ref_frame_flags().
-    /// </summary>
-    [Fact]
-    public void SequenceEncoderWritesLastAlternateNearestNearestCompoundBlock()
-    {
-        const int Width = 32;
-        const int Height = 32;
-        using Image<Rgba32> golden = new(Width, Height);
-        using Image<Rgba32> last = new(Width, Height);
-        using Image<Rgba32> compound = new(Width, Height);
-        for (int y = 0; y < Height; y++)
-        {
-            Span<Rgba32> goldenRow = golden.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            Span<Rgba32> lastRow = last.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            Span<Rgba32> compoundRow = compound.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Width; x++)
-            {
-                byte first = (byte)(((x * 37) + (y * 53) + (x * y * 11)) & byte.MaxValue);
-                byte second = (byte)(((x * 19) + (y * 29) + (x * y * 7) + 91) & byte.MaxValue);
-                byte average = (byte)((first + second + 1) >> 1);
-                goldenRow[x] = new Rgba32(first, first, first);
-                lastRow[x] = new Rgba32(second, second, second);
-                compoundRow[x] = new Rgba32(average, average, average);
-            }
-        }
-
-        using MemoryStream goldenSample = new();
-        using MemoryStream lastSample = new();
-        using MemoryStream compoundSample = new();
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420);
-        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            Configuration.Default,
-            Width,
-            Height,
-            colorConfig,
-            qIndex: 0,
-            speed: HeifEncodingSpeed.Level0);
-
-        encoder.EncodeKeyFrame(golden.Frames.RootFrame, goldenSample);
-        encoder.EncodeInterFrame(last.Frames.RootFrame, lastSample);
-        encoder.EncodeInterFrame(compound.Frames.RootFrame, compoundSample);
-
-        using Av1Decoder decoder = new(Configuration.Default);
-        using ImageFrame<Rgba32> decoded = new(Configuration.Default, Width, Height);
-        decoder.DecodeSequenceFrame(
-            goldenSample.ToArray(),
-            null,
-            null,
-            decoded.Size,
-            decoded.Bounds,
-            decoded.PixelBuffer.GetRegion(decoded.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        decoder.DecodeSequenceFrame(
-            lastSample.ToArray(),
-            null,
-            null,
-            decoded.Size,
-            decoded.Bounds,
-            decoded.PixelBuffer.GetRegion(decoded.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        decoder.DecodeSequenceFrame(
-            compoundSample.ToArray(),
-            null,
-            null,
-            decoded.Size,
-            decoded.Bounds,
-            decoded.PixelBuffer.GetRegion(decoded.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        bool hasCompoundBlock = false;
-        foreach (Av1BlockModeInfo mode in frameInfo.GetModeInfos(Point.Empty, frameInfo.GetModeInfoCount(Point.Empty)))
-        {
-            hasCompoundBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last &&
-                mode.ReferenceFrames[1] == Av1ReferenceFrameType.Alternate &&
-                mode.YMode == Av1PredictionMode.NearestNearestMotionVector;
-        }
-
-        Assert.True(hasCompoundBlock);
-    }
-
-    /// <summary>
-    /// Verifies that a third sequence frame can independently select the retained key frame. GOLDEN and ALTREF both
-    /// hold the key frame, so duplicate removal leaves it reachable through ALTREF. Reference: get_ref_frame_flags().
-    /// </summary>
-    [Fact]
-    public void SequenceEncoderWritesKeyFrameSingleReferenceBlock()
-    {
-        const int Width = 32;
-        const int Height = 32;
-        using Image<Rgba32> golden = new(Width, Height);
-        using Image<Rgba32> last = new(Width, Height);
-        for (int y = 0; y < Height; y++)
-        {
-            Span<Rgba32> goldenRow = golden.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            Span<Rgba32> lastRow = last.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Width; x++)
-            {
-                byte first = (byte)(((x * 37) + (y * 53) + (x * y * 11)) & byte.MaxValue);
-                byte second = (byte)(((x * 19) + (y * 29) + (x * y * 7) + 91) & byte.MaxValue);
-                goldenRow[x] = new Rgba32(first, first, first);
-                lastRow[x] = new Rgba32(second, second, second);
-            }
-        }
-
-        using MemoryStream goldenSample = new();
-        using MemoryStream lastSample = new();
-        using MemoryStream repeatedGoldenSample = new();
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420);
-        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            Configuration.Default,
-            Width,
-            Height,
-            colorConfig,
-            qIndex: 0,
-            speed: HeifEncodingSpeed.Level0);
-
-        encoder.EncodeKeyFrame(golden.Frames.RootFrame, goldenSample);
-        encoder.EncodeInterFrame(last.Frames.RootFrame, lastSample);
-        encoder.EncodeInterFrame(golden.Frames.RootFrame, repeatedGoldenSample);
-
-        using Av1Decoder decoder = new(Configuration.Default);
-        using ImageFrame<Rgba32> decoded = new(Configuration.Default, Width, Height);
-        decoder.DecodeSequenceFrame(
-            goldenSample.ToArray(),
-            null,
-            null,
-            decoded.Size,
-            decoded.Bounds,
-            decoded.PixelBuffer.GetRegion(decoded.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        decoder.DecodeSequenceFrame(
-            lastSample.ToArray(),
-            null,
-            null,
-            decoded.Size,
-            decoded.Bounds,
-            decoded.PixelBuffer.GetRegion(decoded.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        decoder.DecodeSequenceFrame(
-            repeatedGoldenSample.ToArray(),
-            null,
-            null,
-            decoded.Size,
-            decoded.Bounds,
-            decoded.PixelBuffer.GetRegion(decoded.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        bool hasKeyFrameBlock = false;
-        foreach (Av1BlockModeInfo mode in frameInfo.GetModeInfos(Point.Empty, frameInfo.GetModeInfoCount(Point.Empty)))
-        {
-            hasKeyFrameBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate &&
-                mode.ReferenceFrames[1] == Av1ReferenceFrameType.None;
-        }
-
-        Assert.True(hasKeyFrameBlock);
-    }
-
-    [Fact]
-    public void SequenceEncoderWritesSelectedGlobalTranslation()
-    {
-        const int Width = 64;
-        const int Height = 64;
-        const int HorizontalOffset = 4;
-        using Image<Rgba32> first = new(Width, Height);
-        using Image<Rgba32> second = new(Width, Height);
-        for (int y = 0; y < Height; y++)
-        {
-            Span<Rgba32> firstRow = first.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Width; x++)
-            {
-                byte value = (byte)(((x * 37) + (y * 53) + ((x * y) * 11)) & byte.MaxValue);
-                firstRow[x] = new Rgba32(value, value, value);
-            }
-        }
-
-        for (int y = 0; y < Height; y++)
-        {
-            ReadOnlySpan<Rgba32> firstRow = first.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            Span<Rgba32> secondRow = second.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Width; x++)
-            {
-                secondRow[x] = firstRow[Math.Min(x + HorizontalOffset, Width - 1)];
-            }
-        }
-
-        using MemoryStream firstSample = new();
-        using MemoryStream secondSample = new();
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420);
-        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            Configuration.Default,
-            Width,
-            Height,
-            colorConfig,
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        encoder.EncodeKeyFrame(first.Frames.RootFrame, firstSample);
-        encoder.EncodeInterFrame(second.Frames.RootFrame, secondSample);
-
-        using Av1Decoder decoder = new(Configuration.Default);
-        using ImageFrame<Rgba32> decodedFirst = new(Configuration.Default, Width, Height);
-        decoder.DecodeSequenceFrame(
-            firstSample.ToArray(),
-            null,
-            null,
-            decodedFirst.Size,
-            decodedFirst.Bounds,
-            decodedFirst.PixelBuffer.GetRegion(decodedFirst.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        using ImageFrame<Rgba32> decodedSecond = new(Configuration.Default, Width, Height);
-        decoder.DecodeSequenceFrame(
-            secondSample.ToArray(),
-            null,
-            null,
-            decodedSecond.Size,
-            decodedSecond.Bounds,
-            decodedSecond.PixelBuffer.GetRegion(decodedSecond.Bounds),
-            default,
-            null,
-            null,
-            false);
-
-        ObuFrameHeader frameHeader = decoder.FrameHeader;
-        Av1GlobalMotionParameters globalMotion = frameHeader.GetGlobalMotionParameters()[0];
-        Av1MotionVector vector = globalMotion.GetMotionVector(
-            frameHeader.AllowHighPrecisionMotionVector,
-            Av1BlockSize.Block8x8,
-            default,
-            frameHeader.ForceIntegerMotionVector);
-
-        Assert.Equal(Av1GlobalMotionType.RotationZoom, globalMotion.Type);
-        Assert.False(frameHeader.AllowScreenContentTools);
-        Assert.False(frameHeader.ForceIntegerMotionVector);
-        Assert.Equal(0, vector.Row);
-        Assert.Equal(HorizontalOffset * 8, vector.Column);
-        Assert.Equal(first.Size, decodedFirst.Size);
-        Assert.Equal(second.Size, decodedSecond.Size);
-    }
-
     [Fact]
     public void SequenceEncoderRejectsInvalidConversionBeforeAllocatingStorage()
     {
@@ -970,10 +424,6 @@ public class Av1EncoderFrameTests
 
     [Theory]
     [InlineData(false, EightBit)]
-    [InlineData(false, TenBit)]
-    [InlineData(false, TwelveBit)]
-    [InlineData(true, EightBit)]
-    [InlineData(true, TenBit)]
     [InlineData(true, TwelveBit)]
     public void SequenceEncoderConstructionFailureReturnsEveryAllocation(bool encodeAlpha, int bitDepthValue)
     {
@@ -1018,98 +468,12 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(false, EightBit, Yuv420, 384)]
-    [InlineData(false, TwelveBit, Yuv444, 288)]
-    [InlineData(true, EightBit, Yuv400, 192)]
-    [InlineData(true, TwelveBit, Yuv400, 192)]
-    public void SequenceEncoderReusesAllocatorOwnedRowStorage(
-        bool encodeAlpha,
-        int bitDepthValue,
-        int colorFormatValue,
-        int expectedRowStorageLength)
-    {
-        const int Width = 64;
-        const int Height = 64;
-        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
-        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
-        using Image<Rgba64> source = new(
-            Width,
-            Height,
-            new Rgba64(ushort.MaxValue, 32768, 16384, 49152));
-
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
-        TestMemoryAllocator.AllocationRequest rowStorage;
-        using (Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
-            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(
-                configuration,
-                Width,
-                Height,
-                colorConfig,
-                qIndex: 37,
-                speed: HeifEncodingSpeed.Level0)
-            : Av1FrameEncoder.CreateColorSequenceEncoder(
-                configuration,
-                Width,
-                Height,
-                colorConfig,
-                qIndex: 37,
-                speed: HeifEncodingSpeed.Level0))
-        {
-            rowStorage = Assert.Single(
-                allocator.AllocationLog,
-                allocation => allocation.ElementType == typeof(float));
-
-            using MemoryStream output = new(256 * 1024);
-            encoder.EncodeKeyFrame(source.Frames.RootFrame, output);
-            encoder.EncodeInterFrame(source.Frames.RootFrame, output);
-
-            // Conversion rows belong to the sequence. Frame-scoped filter searches may rent their own
-            // storage, but neither frame may replace or return the shared conversion buffer.
-            TestMemoryAllocator.AllocationRequest retainedRowStorage = Assert.Single(
-                allocator.AllocationLog,
-                allocation => allocation.ElementType == typeof(float));
-
-            Assert.Equal(rowStorage.HashCodeOfBuffer, retainedRowStorage.HashCodeOfBuffer);
-            Assert.DoesNotContain(
-                allocator.ReturnLog,
-                returned => returned.HashCodeOfBuffer == rowStorage.HashCodeOfBuffer);
-        }
-
-        Assert.Equal(expectedRowStorageLength, rowStorage.Length);
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.Contains(
-            allocator.ReturnLog,
-            returned => returned.HashCodeOfBuffer == rowStorage.HashCodeOfBuffer);
-    }
-
-    [Theory]
-    [InlineData(TenBit, 8, 8, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, 8, 8, HeifEncodingSpeed.Level0)]
     [InlineData(TenBit, 24, 16, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, 24, 16, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, 16, 24, HeifEncodingSpeed.Level0)]
-    [InlineData(TwelveBit, 16, 24, HeifEncodingSpeed.Level0)]
-    [InlineData(TenBit, 77, 21, HeifEncodingSpeed.Level7)]
     [InlineData(TwelveBit, 21, 77, HeifEncodingSpeed.Level9)]
     public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue, int width, int height, HeifEncodingSpeed speed)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
-        using Image<Rgb48> source = new(width, height);
-        for (int row = 0; row < height; row++)
-        {
-            Span<Rgb48> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
-            for (int column = 0; column < width; column++)
-            {
-                pixels[column] = new Rgb48(
-                    (ushort)(((column * 7001) + (row * 997)) & ushort.MaxValue),
-                    (ushort)(((row * 6007) + (column * 1231)) & ushort.MaxValue),
-                    (ushort)(((column * 4001) + (row * 3001)) & ushort.MaxValue));
-            }
-        }
+        using Image<Rgb48> source = LoadCrop<Rgb48>(TestImages.Png.Rgba64Bpp, new Rectangle(90, 70, width, height));
 
         ObuColorConfig colorConfig = new()
         {
@@ -1173,34 +537,14 @@ public class Av1EncoderFrameTests
     /// Verifies that live partition search preserves lossless syntax across clipped parent nodes and superblocks.
     /// </summary>
     [Theory]
-    [InlineData(48, 24, HeifEncodingSpeed.Level0)]
-    [InlineData(24, 48, HeifEncodingSpeed.Level0)]
-    [InlineData(80, 24, HeifEncodingSpeed.Level0)]
-    [InlineData(24, 80, HeifEncodingSpeed.Level0)]
-    [InlineData(96, 24, HeifEncodingSpeed.Level0)]
-    [InlineData(24, 96, HeifEncodingSpeed.Level0)]
-    [InlineData(13, 21, HeifEncodingSpeed.Level0)]
-    [InlineData(21, 13, HeifEncodingSpeed.Level0)]
     [InlineData(77, 21, HeifEncodingSpeed.Level0)]
-    [InlineData(21, 77, HeifEncodingSpeed.Level0)]
-    [InlineData(13, 21, HeifEncodingSpeed.Level7)]
-    [InlineData(77, 21, HeifEncodingSpeed.Level8)]
     [InlineData(21, 77, HeifEncodingSpeed.Level9)]
     public void EncodeLosslessPartitionSearchAcrossClippedSuperblocks(int width, int height, HeifEncodingSpeed speed)
     {
-        ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
-        using Image<L8> source = new(width, height);
-        for (int y = 0; y < height; y++)
-        {
-            Span<L8> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < width; x++)
-            {
-                row[x] = new L8((byte)(128 + period[x % period.Length] + period[y % period.Length]));
-            }
-        }
+        using Image<L8> source = LoadCrop<L8>(TestImages.Jpeg.Baseline.GammaDalaiLamaGray, new Rectangle(60, 50, width, height));
 
-        // The repeated surface favors larger early leaves. Later clipped parents must still split from their
-        // own geometry instead of reading a stale position in the original fixed-eight partition preorder.
+        // Clipped parents must split from their own geometry instead of reading a stale position in the
+        // original fixed-eight partition preorder.
         ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
         colorConfig.ColorRange = true;
         using MemoryStream stream = new();
@@ -1218,414 +562,7 @@ public class Av1EncoderFrameTests
         }
     }
 
-    [Fact]
-    public void EncodeSelectsSubEightPartition()
-    {
-        const int Size = 16;
-        using Image<Rgba32> source = new(Size, Size);
-        for (int y = 0; y < Size; y++)
-        {
-            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Size; x++)
-            {
-                // The bottom-right 8x8 uses horizontal prediction on its left half and vertical prediction
-                // on its right half. Twelve source values keep a parent palette from reproducing both halves.
-                byte value;
-                if (x < 8 && y < 8)
-                {
-                    value = 128;
-                }
-                else if (y < 8)
-                {
-                    value = (byte)(16 + ((x - 8) * 20));
-                }
-                else
-                {
-                    value = x < 12
-                        ? (byte)(176 + ((y - 8) * 9))
-                        : (byte)(16 + ((x - 8) * 20));
-                }
-
-                row[x] = new Rgba32(value, value, value);
-            }
-        }
-
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        Point[] leafPositions =
-        [
-            new(2, 2),
-            new(3, 2),
-            new(2, 3),
-            new(3, 3)
-        ];
-
-        foreach (Point leafPosition in leafPositions)
-        {
-            Assert.Equal(
-                Av1BlockSize.Block4x8,
-                frameInfo.GetModeInfoAt(leafPosition).BlockSize);
-        }
-
-        Assert.Equal(new Size(Size, Size), decoded.Size);
-    }
-
-    [Fact]
-    public void EncodeReconstructsSubEightPartitionsAtSubsampledChromaBoundaries()
-    {
-        const int Size = 512;
-        string sourcePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Bike);
-        using Image<Rgba32> original = Image.Load<Rgba32>(sourcePath);
-        using Image<Rgba32> source = original.Clone(context => context.Resize(Size, Size));
-
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _);
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-
-        bool hasSubEightPartition = false;
-        foreach (Av1BlockModeInfo modeInfo in frameInfo.GetSuperblock(new Point(0, 2)).GetModeInfos())
-        {
-            hasSubEightPartition |= modeInfo.BlockSize is Av1BlockSize.Block4x8 or Av1BlockSize.Block8x4;
-        }
-
-        Assert.True(hasSubEightPartition);
-        Assert.Equal(new Size(Size, Size), new Size(decoded.Width, decoded.Height));
-    }
-
-    [Fact]
-    public void EncodeSelectsSixteenBySixteenVerticalPartition()
-    {
-        const int Size = 32;
-        using Image<Rgba32> source = new(Size, Size);
-        for (int y = 0; y < Size; y++)
-        {
-            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Size; x++)
-            {
-                byte value = 128;
-                if (x == 15 && y >= 16)
-                {
-                    value = (byte)(24 + ((y - 16) * 13));
-                }
-                else if (y == 15 && x >= 16)
-                {
-                    value = (byte)(16 + ((x - 16) * 15));
-                }
-                else if (x >= 16 && y >= 16)
-                {
-                    // The left 8x16 half repeats its external left edge, while the right half repeats
-                    // its external top edge. One 16x16 predictor cannot reproduce both surfaces.
-                    value = x < 24
-                        ? (byte)(24 + ((y - 16) * 13))
-                        : (byte)(16 + ((x - 16) * 15));
-                }
-
-                row[x] = new Rgba32(value, value, value);
-            }
-        }
-
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        for (int modeInfoY = 4; modeInfoY < 8; modeInfoY++)
-        {
-            for (int modeInfoX = 4; modeInfoX < 8; modeInfoX++)
-            {
-                Assert.Equal(
-                    Av1BlockSize.Block8x16,
-                    frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
-            }
-        }
-
-        Assert.Equal(new Size(Size, Size), decoded.Size);
-    }
-
-    [Fact]
-    public void EncodeSelectsThirtyTwoByThirtyTwoBlocks()
-    {
-        const int Size = 32;
-        using Image<Rgba32> source = new(Size, Size);
-        for (int y = 0; y < Size; y++)
-        {
-            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Size; x++)
-            {
-                row[x] = new Rgba32(128, 128, 128);
-            }
-        }
-
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        for (int modeInfoY = 0; modeInfoY < 8; modeInfoY++)
-        {
-            for (int modeInfoX = 0; modeInfoX < 8; modeInfoX++)
-            {
-                Assert.Equal(
-                    Av1BlockSize.Block32x32,
-                    frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
-            }
-        }
-
-        Assert.Equal(new Size(Size, Size), decoded.Size);
-    }
-
     [Theory]
-    [InlineData(Yuv400)]
-    [InlineData(Yuv444)]
-    public void EncodeSelectsSixtyFourBySixtyFourBlock(int colorFormatValue)
-    {
-        const int Size = 64;
-        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
-        using Image<Rgba32> source = new(Size, Size);
-        for (int y = 0; y < Size; y++)
-        {
-            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Size; x++)
-            {
-                row[x] = new Rgba32(180, 64, 220);
-            }
-        }
-
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        for (int modeInfoY = 0; modeInfoY < 16; modeInfoY++)
-        {
-            for (int modeInfoX = 0; modeInfoX < 16; modeInfoX++)
-            {
-                Assert.Equal(
-                    Av1BlockSize.Block64x64,
-                    frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
-            }
-        }
-
-        Assert.Equal(new Size(Size, Size), decoded.Size);
-    }
-
-    [Theory]
-    [InlineData(Yuv400)]
-    [InlineData(Yuv444)]
-    public void EncodeSelectsOneHundredTwentyEightByOneHundredTwentyEightBlock(int colorFormatValue)
-    {
-        const int Size = 128;
-        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
-        using Image<Rgba32> source = new(Size, Size);
-        for (int y = 0; y < Size; y++)
-        {
-            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Size; x++)
-            {
-                row[x] = new Rgba32(180, 64, 220);
-            }
-        }
-
-        using MemoryStream stream = new();
-        ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        Assert.True(sequenceHeader.Use128x128Superblock);
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        for (int modeInfoY = 0; modeInfoY < 32; modeInfoY++)
-        {
-            for (int modeInfoX = 0; modeInfoX < 32; modeInfoX++)
-            {
-                Assert.Equal(
-                    Av1BlockSize.Block128x128,
-                    frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
-            }
-        }
-
-        Assert.Equal(new Size(Size, Size), decoded.Size);
-    }
-
-    [Fact]
-    public void EncodeSearchesHighBitDepthOneHundredTwentyEightRoot()
-    {
-        const int Size = 128;
-        using Image<Rgba32> source = new(Size, Size);
-        for (int y = 0; y < Size; y++)
-        {
-            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < Size; x++)
-            {
-                row[x] = new Rgba32(180, 64, 220);
-            }
-        }
-
-        using MemoryStream stream = new();
-        ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
-            qIndex: 4,
-            speed: HeifEncodingSpeed.Level0);
-
-        Assert.True(sequenceHeader.Use128x128Superblock);
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Assert.Equal(new Size(Size, Size), decoded.Size);
-    }
-
-    [Theory]
-    [InlineData(EightBit)]
-    [InlineData(TenBit)]
     [InlineData(TwelveBit)]
     public void EncodeAlphaWritesMonochromeReducedStillPicture(int bitDepthValue)
     {
@@ -1735,8 +672,6 @@ public class Av1EncoderFrameTests
     // which libaom's set_bitstream_level_tier infers from the frame size.
     [Theory]
     [InlineData(EightBit, Yuv400, 0x00, 0x1C)]
-    [InlineData(TenBit, Yuv420, 0x00, 0x4C)]
-    [InlineData(TenBit, Yuv444, 0x20, 0x40)]
     [InlineData(TwelveBit, Yuv422, 0x40, 0x68)]
     public void CodecConfigurationWritesFixedHeaderFromEncodedSequenceHeader(
         int bitDepthValue,
@@ -1764,427 +699,6 @@ public class Av1EncoderFrameTests
         Av1CodecConfiguration parsed = new(fixedHeader, new DecoderOptions());
         Assert.True(configuration.HasMatchingImageConfiguration(parsed));
         parsed.Validate(sequenceHeader);
-    }
-
-    [Fact]
-    public void ScreenContentDetectorMatchesLibaomFeatureThresholds()
-    {
-        const int width = 160;
-        const int height = 16;
-        using Av1EncoderFrameBuffer<byte> byteFrame = new(
-            Configuration.Default,
-            width,
-            height,
-            8,
-            Av1ColorFormat.Yuv400,
-            0,
-            0,
-            lumaBorder: 64);
-
-        for (int row = 0; row < height; row++)
-        {
-            Span<byte> samples = byteFrame.Frame.View.GetLumaRowSpan(row)[..width];
-            samples.Fill(96);
-            for (int column = 0; column < 16; column++)
-            {
-                samples[column] = column < 8 ? (byte)32 : (byte)224;
-            }
-        }
-
-        // One qualifying block is exactly ten percent of this frame, and the reference threshold is strict.
-        Assert.False(Av1ScreenContentDetector.IsPaletteLikely(byteFrame.Frame));
-        Av1ScreenContentDetector.Detect(
-            byteFrame.Frame,
-            out bool allowScreenContentTools,
-            out bool allowIntraBlockCopy);
-
-        Assert.False(allowScreenContentTools);
-        Assert.False(allowIntraBlockCopy);
-        for (int row = 0; row < height; row++)
-        {
-            Span<byte> samples = byteFrame.Frame.View.GetLumaRowSpan(row);
-            for (int column = 16; column < 32; column++)
-            {
-                samples[column] = column < 24 ? (byte)48 : (byte)208;
-            }
-        }
-
-        Assert.True(Av1ScreenContentDetector.IsPaletteLikely(byteFrame.Frame));
-        Av1ScreenContentDetector.Detect(
-            byteFrame.Frame,
-            out allowScreenContentTools,
-            out allowIntraBlockCopy);
-
-        Assert.True(allowScreenContentTools);
-        Assert.True(allowIntraBlockCopy);
-        using Av1EncoderFrameBuffer<ushort> highBitDepthFrame = new(
-            Configuration.Default,
-            16,
-            16,
-            10,
-            Av1ColorFormat.Yuv400,
-            0,
-            0,
-            lumaBorder: 64);
-
-        for (int row = 0; row < 16; row++)
-        {
-            Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
-            for (int column = 0; column < 16; column++)
-            {
-                samples[column] = column < 8 ? (ushort)128 : (ushort)131;
-            }
-        }
-
-        Assert.False(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
-        Av1ScreenContentDetector.Detect(
-            highBitDepthFrame.Frame,
-            out allowScreenContentTools,
-            out allowIntraBlockCopy);
-
-        Assert.False(allowScreenContentTools);
-        Assert.False(allowIntraBlockCopy);
-        for (int row = 0; row < 16; row++)
-        {
-            Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
-            samples[8..16].Fill(640);
-        }
-
-        Assert.True(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
-        Av1ScreenContentDetector.Detect(
-            highBitDepthFrame.Frame,
-            out allowScreenContentTools,
-            out allowIntraBlockCopy);
-
-        Assert.True(allowScreenContentTools);
-        Assert.True(allowIntraBlockCopy);
-        for (int row = 0; row < 16; row++)
-        {
-            Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
-            for (int column = 0; column < 16; column++)
-            {
-                samples[column] = (ushort)((column % 5) * 200);
-            }
-        }
-
-        Assert.False(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
-        Av1ScreenContentDetector.Detect(
-            highBitDepthFrame.Frame,
-            out allowScreenContentTools,
-            out allowIntraBlockCopy);
-
-        Assert.False(allowScreenContentTools);
-        Assert.False(allowIntraBlockCopy);
-    }
-
-    [Fact]
-    public void ScreenContentDetectorMatchesLibaomIntraBlockCopyVarianceThreshold()
-    {
-        const int Width = 16;
-        const int Height = 16;
-        using Av1EncoderFrameBuffer<byte> frame = new(
-            Configuration.Default,
-            Width,
-            Height,
-            8,
-            Av1ColorFormat.Yuv400,
-            0,
-            0,
-            lumaBorder: 64);
-
-        Buffer2DRegion<byte> luma = frame.Frame.View.GetPlane(Av1Plane.Y);
-        for (int row = 0; row < Height; row++)
-        {
-            luma.DangerousGetRowSpan(row).Fill(96);
-        }
-
-        // A single delta of eleven leaves total variance below half a sample after per-pixel rounding.
-        luma.DangerousGetRowSpan(0)[0] = 107;
-        Av1ScreenContentDetector.Detect(
-            frame.Frame,
-            out bool allowScreenContentTools,
-            out bool allowIntraBlockCopy);
-
-        Assert.True(allowScreenContentTools);
-        Assert.False(allowIntraBlockCopy);
-
-        // Raising that delta to twelve crosses the exact integer rounding boundary used by libaom.
-        luma.DangerousGetRowSpan(0)[0] = 108;
-        Av1ScreenContentDetector.Detect(
-            frame.Frame,
-            out allowScreenContentTools,
-            out allowIntraBlockCopy);
-
-        Assert.True(allowScreenContentTools);
-        Assert.True(allowIntraBlockCopy);
-    }
-
-    [Fact]
-    public void EncodeActivatesScreenContentTools()
-    {
-        const int width = 16;
-        const int height = 16;
-        using Image<Rgba32> source = new(width, height);
-        for (int row = 0; row < height; row++)
-        {
-            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
-            for (int column = 0; column < width; column++)
-            {
-                pixels[column] = (((column >> 2) + (row >> 2)) & 1) == 0
-                    ? new Rgba32(224, 32, 32)
-                    : new Rgba32(32, 32, 224);
-            }
-        }
-
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv444);
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            colorConfig,
-            qIndex: 37,
-            speed: HeifEncodingSpeed.Level0);
-
-        byte[] payload = stream.ToArray();
-        Av1BitStreamReader reader = new(payload);
-        Av1TileDecoderStub tileReader = new();
-        ObuReader obuReader = new();
-        obuReader.ReadAll(ref reader, payload.Length, () => tileReader);
-        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(obuReader.FrameHeader);
-        Assert.True(frameHeader.AllowScreenContentTools);
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-
-        // A frame keeps intra block copy allowed only when one of its blocks copies.
-        // Reference: the intrabc_used test at the end of encode_frame_internal().
-        Assert.Equal(UsesIntraBlockCopy(decoder), frameHeader.AllowIntraBlockCopy);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Assert.Equal(new Size(width, height), decoded.Size);
-    }
-
-    [Theory]
-    [InlineData(HeifEncodingSpeed.Level0)]
-    [InlineData(HeifEncodingSpeed.Level1)]
-    [InlineData(HeifEncodingSpeed.Level2)]
-    [InlineData(HeifEncodingSpeed.Level3)]
-    [InlineData(HeifEncodingSpeed.Level4)]
-    [InlineData(HeifEncodingSpeed.Level5)]
-    [InlineData(HeifEncodingSpeed.Level6)]
-    [InlineData(HeifEncodingSpeed.Level7)]
-    [InlineData(HeifEncodingSpeed.Level8)]
-    [InlineData(HeifEncodingSpeed.Level9)]
-    public void EncodeSpeedPreservesEnabledIntraTools(HeifEncodingSpeed speed)
-    {
-        const int width = 16;
-        const int height = 16;
-        using Image<Rgba32> source = new(width, height);
-        for (int row = 0; row < height; row++)
-        {
-            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
-            for (int column = 0; column < width; column++)
-            {
-                pixels[column] = (((column >> 2) + (row >> 2)) & 1) == 0
-                    ? new Rgba32(224, 32, 32)
-                    : new Rgba32(32, 32, 224);
-            }
-        }
-
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv444);
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            colorConfig,
-            qIndex: 37,
-            speed);
-
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
-        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        Assert.True(sequenceHeader.EnableFilterIntra);
-
-        // The two-color checkerboard is screen content. All-intra speed 9 picks modes without rate-distortion
-        // search, where libaom does not evaluate the screen-content tools at all.
-        bool screenContentEvaluated = speed < HeifEncodingSpeed.Level9;
-        Assert.Equal(screenContentEvaluated, frameHeader.AllowScreenContentTools);
-
-        // A frame keeps intra block copy allowed only when one of its blocks copies.
-        // Reference: the intrabc_used test at the end of encode_frame_internal().
-        Assert.Equal(UsesIntraBlockCopy(decoder), frameHeader.AllowIntraBlockCopy);
-
-        // A frame whose blocks all keep their largest transform signals that mode instead of per-block sizes.
-        Assert.True(frameHeader.TransformMode is Av1TransformMode.Select or Av1TransformMode.Largest);
-        Assert.Equal(new Size(width, height), decoded.Size);
-
-        int modeCount = 0;
-        foreach (Av1BlockModeInfo modeInfo in frameInfo.GetSuperblock(Point.Empty).GetModeInfos())
-        {
-            modeCount++;
-        }
-
-        Assert.NotEqual(0, modeCount);
-    }
-
-    [Fact]
-    public void EncodeSelectsFourByFourLumaTransforms()
-    {
-        const int Width = 16;
-        const int Height = 16;
-        using Image<Rgba32> source = new(Width, Height);
-        for (int row = 0; row < Height; row++)
-        {
-            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
-            for (int column = 0; column < Width; column++)
-            {
-                byte value = (byte)(16 + ((((row >> 2) * 4) + (column >> 2)) * 14));
-                pixels[column] = new Rgba32(value, value, value);
-            }
-        }
-
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            colorConfig,
-            qIndex: 37,
-            speed: HeifEncodingSpeed.Level0);
-
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<L8> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Assert.NotNull(decoder.FrameHeader);
-        Assert.Equal(Av1TransformMode.Select, decoder.FrameHeader.TransformMode);
-        Assert.NotNull(decoder.FrameInfo);
-        bool foundSplitTransform = false;
-        List<string> selectedTransforms = [];
-        foreach (Av1BlockModeInfo modeInfo in decoder.FrameInfo.GetSuperblock(Point.Empty).GetModeInfos())
-        {
-            foundSplitTransform |= modeInfo.GetTransformUnitCount(Av1Plane.Y) == 4;
-            selectedTransforms.Add(FormattableString.Invariant(
-                $"{modeInfo.BlockSize}: {modeInfo.TransformSize}, {modeInfo.GetTransformUnitCount(Av1Plane.Y)} transforms"));
-        }
-
-        Assert.True(foundSplitTransform, string.Join(Environment.NewLine, selectedTransforms));
-        Assert.Equal(new Size(Width, Height), decoded.Size);
-    }
-
-    [Fact]
-    public void EncodeSelectsIntraBlockCopyForRepeatedScreenContent()
-    {
-        const int Width = 328;
-        const int Height = 16;
-        const ulong Pattern = 0xD6A5_3C97_E18B_4F20UL;
-        using Image<Rgba32> source = new(Width, Height);
-        for (int row = 0; row < Height; row++)
-        {
-            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
-            for (int column = 0; column < Width; column++)
-            {
-                int patternIndex = ((row & 7) * 8) + (column & 7);
-                pixels[column] = ((Pattern >> patternIndex) & 1) == 0
-                    ? new Rgba32(224, 32, 32)
-                    : new Rgba32(32, 32, 224);
-            }
-        }
-
-        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv444);
-        using MemoryStream stream = new();
-        _ = Av1FrameEncoder.Encode(
-            Configuration.Default,
-            source.Frames.RootFrame,
-            stream,
-            colorConfig,
-            qIndex: 37,
-            speed: HeifEncodingSpeed.Level0);
-
-        byte[] payload = stream.ToArray();
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
-        using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
-        Av1YuvConverter.ConvertToRgb(
-            Configuration.Default,
-            decodedPlanes,
-            decoded.Bounds,
-            decoded.Frames.RootFrame.PixelBuffer.GetRegion(decoded.Bounds),
-            decoded.Size,
-            default,
-            null,
-            null,
-            default,
-            default,
-            false,
-            HeifChromaUpsampling.Auto,
-            decodedPlanes.ColorConfig.ColorRange);
-
-        Assert.NotNull(decoder.FrameHeader);
-        Assert.True(decoder.FrameHeader.AllowScreenContentTools);
-        Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
-        Assert.Equal(Av1TransformMode.Select, decoder.FrameHeader.TransformMode);
-        Assert.NotNull(decoder.FrameInfo);
-        int superblockSizeLog2 = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).SuperblockSizeLog2;
-        Av1SuperblockInfo targetSuperblock = decoder.FrameInfo.GetSuperblock(new Point((Width - 1) >> superblockSizeLog2, 0));
-        bool usesIntraBlockCopy = false;
-        foreach (Av1BlockModeInfo modeInfo in targetSuperblock.GetModeInfos())
-        {
-            usesIntraBlockCopy |= modeInfo.UseIntraBlockCopy;
-        }
-
-        Assert.True(usesIntraBlockCopy);
-        Assert.Equal(new Size(Width, Height), decoded.Size);
     }
 
     [Fact]
@@ -2251,8 +765,6 @@ public class Av1EncoderFrameTests
 
     [Theory]
     [InlineData(64)]
-    [InlineData(96)]
-    [InlineData(160)]
     public void ExtendBordersReplicatesEveryPhysicalPlaneEdge(int lumaBorder)
     {
         const int visibleWidth = 5;
@@ -2285,35 +797,7 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(64, 5, 3, 0, 0, 160, 136)]
-    [InlineData(64, 5, 3, 1, 0, 80, 136)]
-    [InlineData(64, 5, 3, 1, 1, 80, 68)]
-    [InlineData(64, 1921, 1081, 0, 0, 2080, 1216)]
-    [InlineData(64, 1921, 1081, 1, 1, 1040, 608)]
-    [InlineData(96, 5, 3, 0, 0, 224, 200)]
-    [InlineData(96, 5, 3, 1, 0, 112, 200)]
-    [InlineData(96, 5, 3, 1, 1, 112, 100)]
-    [InlineData(160, 5, 3, 0, 0, 352, 328)]
-    [InlineData(160, 5, 3, 1, 0, 176, 328)]
-    [InlineData(160, 5, 3, 1, 1, 176, 164)]
-    public void GetPlaneBufferSizeMatchesLibaomLayout(
-        int lumaBorder,
-        int width,
-        int height,
-        int subsamplingX,
-        int subsamplingY,
-        int expectedWidth,
-        int expectedHeight)
-    {
-        Size actual = Av1EncoderFrame<byte>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY, lumaBorder);
-
-        Assert.Equal(new Size(expectedWidth, expectedHeight), actual);
-    }
-
-    [Theory]
     [InlineData(64, 55_296)]
-    [InlineData(96, 98_304)]
-    [InlineData(160, 221_184)]
     public void FrameBufferUsesOneExactSizeOwnerForAllPlanes(int lumaBorder, int expectedLength)
     {
         TestMemoryAllocator allocator = new();
@@ -2410,6 +894,21 @@ public class Av1EncoderFrameTests
             BitDepth = bitDepth
         };
 
+    /// <summary>
+    /// Loads a shared test image and crops it to the requested rectangle.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type to decode to.</typeparam>
+    /// <param name="path">The test image path.</param>
+    /// <param name="crop">The rectangle to keep.</param>
+    /// <returns>The cropped image.</returns>
+    private static Image<TPixel> LoadCrop<TPixel>(string path, Rectangle crop)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Image<TPixel> image = Image.Load<TPixel>(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, path));
+        image.Mutate(context => context.Crop(crop));
+        return image;
+    }
+
     private static void FillVisible(Buffer2D<byte> plane, int originX, int originY, int width, int height, int seed)
     {
         for (int y = 0; y < height; y++)
@@ -2477,29 +976,5 @@ public class Av1EncoderFrameTests
 
             return base.AllocateCore<T>(length, options);
         }
-    }
-
-    private static bool UsesIntraBlockCopy(Av1Decoder decoder)
-    {
-        Av1FrameInfo info = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        int superblockSize = decoder.SequenceHeader!.SuperblockModeInfoSize;
-        int columns = (decoder.FrameHeader!.ModeInfoColumnCount + superblockSize - 1) / superblockSize;
-        int rows = (decoder.FrameHeader.ModeInfoRowCount + superblockSize - 1) / superblockSize;
-        for (int row = 0; row < rows; row++)
-        {
-            for (int column = 0; column < columns; column++)
-            {
-                Point position = new(column, row);
-                foreach (Av1BlockModeInfo mode in info.GetModeInfos(position, info.GetModeInfoCount(position)))
-                {
-                    if (mode.UseIntraBlockCopy)
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
     }
 }

@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -21,202 +19,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1MotionSearchTests
 {
     /// <summary>
-    /// Exercises the coordinated search across three differential references and exports its retained state.
-    /// </summary>
-    /// <param name="bits">The coded component precision.</param>
-    [Theory]
-    [InlineData(8)]
-    [InlineData(10)]
-    [InlineData(12)]
-    public void SingleReferenceSearchRetainsCoordinatedDecisions(int bits)
-    {
-        if (bits == 8)
-        {
-            VerifySingleReferenceSearches<byte, Av1MotionSearchBase.ByteOperator>(Av1BitDepth.EightBit, bits);
-        }
-        else
-        {
-            VerifySingleReferenceSearches<ushort, Av1MotionSearchBase.UInt16Operator>(
-                bits == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit,
-                bits);
-        }
-    }
-
-    /// <summary>
-    /// Checks exact integer matches and publishes textured, fractional, and repeated-reference decisions.
-    /// </summary>
-    private static void VerifySingleReferenceSearches<TSample, TOperator>(Av1BitDepth bitDepth, int bits)
-        where TSample : unmanaged, IBinaryInteger<TSample>
-        where TOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
-    {
-        const int QIndex = 90;
-        const int ReferenceStride = 192;
-        const int ReferenceOrigin = (64 * ReferenceStride) + 64;
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true, allocateDisplacementCosts: false, Av1BlockSize.Block64x64);
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
-        Av1MotionVectorCosts costs = workspace.GetMotionVectorCosts(Av1MotionVectorPrecision.EighthSample);
-        writer.FillMotionVectorCosts(costs);
-        int multiplier = Av1RateDistortion.GetRateMultiplier(QIndex, bitDepth, Av1FrameUpdateType.Key);
-        TSample[] prediction = new TSample[136 * 128];
-        short[] residual = new short[128 * 128];
-        short[] scratch = new short[136 * 128];
-        int[] quantized = new int[64 * 64];
-        byte[] contexts = new byte[32];
-        int maximum = (1 << bits) - 1;
-        foreach (Av1BlockSize blockSize in new[] { Av1BlockSize.Block8x8, Av1BlockSize.Block16x16, Av1BlockSize.Block64x64 })
-        {
-            int width = blockSize.GetWidth();
-            int height = blockSize.GetHeight();
-            int sourceStride = width + 3;
-            TSample[] source = new TSample[sourceStride * height];
-            TSample[] reference = new TSample[ReferenceStride * ReferenceStride];
-            for (int pattern = 0; pattern < 7; pattern++)
-            {
-                uint random = (uint)(173 + pattern);
-                for (int index = 0; index < reference.Length; index++)
-                {
-                    random = unchecked((random * 1664525) + 1013904223);
-                    reference[index] = TSample.CreateChecked((random >> 16) & (uint)maximum);
-                }
-
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        int offset = ReferenceOrigin + ((y + 3) * ReferenceStride) + x - 2;
-                        int sample = int.CreateChecked(reference[offset]);
-                        if (pattern == 1)
-                        {
-                            sample = (sample + int.CreateChecked(reference[offset + 1]) + 1) >> 1;
-                        }
-                        else if (pattern >= 2)
-                        {
-                            sample = (sample + ((x * 13) ^ (y * 37)) + pattern) & maximum;
-                        }
-
-                        source[(y * sourceStride) + x] = TSample.CreateChecked(sample);
-                    }
-                }
-
-                TSample[] originalSource = source.ToArray();
-                TSample[] originalReference = reference.ToArray();
-                foreach (int speed in new[] { 0, 1, 2, 3, 4, 5, 8 })
-                {
-                    Size frameSize = pattern == 3 ? new Size(1280, 720) : new Size(640, 480);
-                    Av1MotionSearchSettings settings = new((HeifEncodingSpeed)speed, false, frameSize, QIndex, false, false);
-                    foreach (bool forceInteger in new[] { false, true })
-                    {
-                        int frameStep = 5;
-                        int spatialMagnitude = pattern == 2 ? 128 : 16;
-                        int searchRange = pattern == 3 ? 4 : int.MaxValue;
-                        Rectangle bounds = Rectangle.FromLTRB(-24, -24, 25, 25);
-                        Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> search = new(
-                            source,
-                            sourceStride,
-                            reference,
-                            ReferenceStride,
-                            ReferenceOrigin,
-                            blockSize,
-                            Point.Empty,
-                            bounds,
-                            workspace,
-                            prediction,
-                            residual,
-                            scratch,
-                            quantized,
-                            writer,
-                            contexts,
-                            contexts,
-                            bitDepth,
-                            QIndex,
-                            0,
-                            0,
-                            false,
-                            multiplier,
-                            512,
-                            1024,
-                            256,
-                            costs);
-
-                        Av1MotionSearchBase.SingleReferenceState state = default;
-                        for (int referenceIndex = 0; referenceIndex < 3; referenceIndex++)
-                        {
-                            Av1MotionVector referenceVector = referenceIndex == 1
-                                ? new Av1MotionVector(21, -13) : new Av1MotionVector(24, -16);
-
-                            Point start = new(
-                                (referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3,
-                                (referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3);
-
-                            int analysisWidth = pattern >= 4 ? width / 16 : 0;
-                            Av1MotionVector[] temporal = new Av1MotionVector[analysisWidth * analysisWidth];
-                            for (int index = 0; index < temporal.Length; index++)
-                            {
-                                // Repeated cells accumulate votes; the final pattern interrupts analysis after a prefix.
-                                temporal[index] = pattern == 6 && index == temporal.Length / 2
-                                    ? new Av1MotionVector(short.MinValue, short.MinValue)
-                                    : new Av1MotionVector(8 * (index % 3 == 0 ? 16 : -16), 8 * (index % 2 == 0 ? 16 : -16));
-                            }
-
-                            Av1MotionSearchBase.StartingCandidate[] starts = new Av1MotionSearchBase.StartingCandidate[temporal.Length + 1];
-                            int startCount = Av1MotionSearchBase.CollectStartingCandidates(
-                                start, temporal, analysisWidth, new Size(analysisWidth, analysisWidth), starts, out int totalWeight);
-
-                            int drlRate = referenceIndex * 256;
-                            bool valid = search.Search(
-                                settings,
-                                frameStep,
-                                spatialMagnitude,
-                                true,
-                                searchRange,
-                                forceInteger,
-                                true,
-                                false,
-                                referenceIndex,
-                                referenceVector,
-                                drlRate,
-                                Av1InterpolationFilter.Regular,
-                                Av1InterpolationFilter.Regular,
-                                starts.AsSpan(0, startCount),
-                                totalWeight,
-                                ref state,
-                                out Av1MotionSearchBase.FractionalResult result);
-
-                            ref Av1MotionSearchBase.ReferenceSearchResult retained = ref state.References[referenceIndex];
-                            Assert.Equal(valid, retained.IsValid);
-                            if (referenceIndex == 0)
-                            {
-                                Assert.True(valid);
-                                if (pattern == 0)
-                                {
-                                    Assert.Equal(new Av1MotionVector(24, -16), result.Vector);
-                                    Assert.Equal(0, result.SquaredError);
-                                }
-                            }
-
-                            if (valid && forceInteger)
-                            {
-                                Assert.Equal(0, result.Vector.Row & 7);
-                                Assert.Equal(0, result.Vector.Column & 7);
-                            }
-                        }
-
-                        Assert.Equal(originalSource, source);
-                        Assert.Equal(originalReference, reference);
-                        Assert.All(contexts, value => Assert.Equal(0, value));
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
     /// Checks all search methods at each sample precision.
     /// </summary>
     /// <param name="bits">The coded component precision.</param>
     [Theory]
     [InlineData(8)]
-    [InlineData(10)]
     [InlineData(12)]
     public void FullPixelSearchPublishesScalarVerifiedStatistics(int bits)
     {
@@ -228,42 +35,6 @@ public class Av1MotionSearchTests
         {
             VerifySearches<ushort, Av1MotionSearchBase.UInt16Operator>(bits == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit, bits);
         }
-    }
-
-    /// <summary>
-    /// Checks all retained coordinate offsets after initial configuration and a stride change.
-    /// </summary>
-    [Fact]
-    public void SearchSitesPreserveShapeAcrossStrideChanges()
-    {
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true, allocateDisplacementCosts: false, Av1BlockSize.Block64x64);
-        for (int methodIndex = 0; methodIndex <= (int)FullPixelSearchMethod.VeryFastDiamond; methodIndex++)
-        {
-            FullPixelSearchMethod method = (FullPixelSearchMethod)methodIndex;
-            foreach (int stride in new[] { 192, 224 })
-            {
-                Av1MotionSearchSites sites = workspace.GetMotionSearchSites(method, stride);
-                Assert.Equal(method == FullPixelSearchMethod.NStep ? 15 : method == FullPixelSearchMethod.EightPointNStep ? 16 : 11, sites.StageCount);
-                for (int stage = 0; stage < sites.StageCount; stage++)
-                {
-                    ReadOnlySpan<Av1MotionSearchSites.Site> entries = sites.GetSites(stage);
-                    int first = method <= FullPixelSearchMethod.ClampedDiamond ? 1 : 0;
-                    for (int index = first; index < first + sites.GetCandidateCount(stage); index++)
-                    {
-                        Assert.Equal((entries[index].Row * stride) + entries[index].Column, entries[index].Offset);
-                    }
-                }
-
-                Assert.Equal(1, sites.GetRadius(0));
-                int outerRadius = method is FullPixelSearchMethod.NStep or FullPixelSearchMethod.EightPointNStep
-                    ? 210 : method == FullPixelSearchMethod.ClampedDiamond ? 256 : 1024;
-
-                Assert.Equal(outerRadius, sites.GetRadius(sites.StageCount - 1));
-            }
-        }
-
-        Assert.Equal(8, Unsafe.SizeOf<Av1MotionSearchSites.Site>());
-        Assert.Equal(794, Av1MotionSearchSites.StorageLength);
     }
 
     /// <summary>

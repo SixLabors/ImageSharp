@@ -16,7 +16,7 @@ public class Av1CdefFilterTests
     /// <summary>
     /// The hardware configurations required to exercise packed filtering and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The row stride of the bordered source plane used by the filter tests.
@@ -29,25 +29,12 @@ public class Av1CdefFilterTests
     private const int SourceBorder = 2;
 
     /// <summary>
-    /// Verifies direction selection and variance against an independent scalar definition.
+    /// Verifies direction selection and variance, every CDEF block geometry and strength mode, and eight-bit widening
+    /// and 16-bit plane copies against independent scalar definitions across packed and scalar execution tiers.
     /// </summary>
     [Fact]
-    public void FindDirectionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDirections, Configurations);
-
-    /// <summary>
-    /// Verifies every CDEF block geometry and strength mode against an independent scalar definition.
-    /// </summary>
-    [Fact]
-    public void FilterBlockMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
-
-    /// <summary>
-    /// Verifies eight-bit widening and 16-bit copying across packed and scalar execution tiers.
-    /// </summary>
-    [Fact]
-    public void CopyPlaneMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePlaneCopies, Configurations);
+    public void CdefKernelsMatchReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateCdefKernels, Configurations);
 
     /// <summary>
     /// Verifies the complete asymmetric chroma direction mappings and the unchanged symmetric mappings.
@@ -67,42 +54,13 @@ public class Av1CdefFilterTests
     }
 
     /// <summary>
-    /// Verifies luma strength adjustment at zero, logarithmic-class boundaries, and the capped variance class.
+    /// Runs every CDEF kernel comparison under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
-    [Fact]
-    public void AdjustStrengthMatchesIndependentDefinition()
+    private static void ValidateCdefKernels()
     {
-        foreach (int strength in new[] { 0, 4, 15, 60 })
-        {
-            foreach (int variance in new[] { 0, 1, 63, 64, 255, 4096, 1 << 20 })
-            {
-                int varianceClass = variance >> 6;
-                int adjustment = varianceClass == 0 ? 0 : Math.Min(BitOperations.Log2((uint)varianceClass), 12);
-                int expected = variance == 0 ? 0 : ((strength * (4 + adjustment)) + 8) >> 4;
-                Assert.Equal(expected, Av1CdefFilter.AdjustStrength(strength, variance));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Verifies that the deterministic direction corpus exercises every selected-direction branch.
-    /// </summary>
-    [Fact]
-    public void DirectionCorpusCoversEveryDirection()
-    {
-        const int stride = 32;
-        const int sourceOffset = (4 * stride) + 5;
-        int secondSourceOffset = sourceOffset + 8;
-        HashSet<int> observedDirections = [];
-        for (int pattern = 0; pattern < 8; pattern++)
-        {
-            ushort[] source = new ushort[stride * 16];
-            PopulateDirectionSource(source, sourceOffset, stride, pattern, 8);
-            observedDirections.Add(FindDirectionReference(source, sourceOffset, stride, 0, out _));
-            observedDirections.Add(FindDirectionReference(source, secondSourceOffset, stride, 0, out _));
-        }
-
-        Assert.Equal(Enumerable.Range(0, 8), observedDirections.Order());
+        ValidateDirections();
+        ValidateFilters();
+        ValidatePlaneCopies();
     }
 
     /// <summary>

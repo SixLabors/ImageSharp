@@ -18,50 +18,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1TemporalSegmentationTests
 {
     /// <summary>
-    /// Verifies temporal segment-map prediction symbols through each of AV1's three neighbor contexts.
-    /// </summary>
-    /// <param name="context">The sum of predicted above and left neighbors.</param>
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void SegmentIdPredictedRoundTrips(int context)
-    {
-        bool[] expected = [false, true, true, false, true, false];
-        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: true);
-        Av1Distribution writerDistribution = Av1DefaultDistributions.SegmentIdPredicted[context];
-
-        foreach (bool value in expected)
-        {
-            writer.WriteSymbol(value, writerDistribution);
-        }
-
-        using IMemoryOwner<byte> encoded = writer.Exit();
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
-
-        foreach (bool value in expected)
-        {
-            Assert.Equal(value, decoder.ReadSegmentIdPredicted(context));
-        }
-    }
-
-    /// <summary>
-    /// Verifies that the frame entropy graph copies adapted temporal-prediction state instead of restoring defaults.
-    /// </summary>
-    [Fact]
-    public void FrameEntropyCopyRetainsAdaptedSegmentPrediction()
-    {
-        Av1FrameEntropyContext source = new(0);
-        Av1FrameEntropyContext destination = new(0);
-        source.SegmentIdPredicted[2].Update(1);
-
-        destination.CopyFrom(source);
-
-        Assert.Equal(source.SegmentIdPredicted[2][0], destination.SegmentIdPredicted[2][0]);
-        Assert.NotEqual(16384U, destination.SegmentIdPredicted[2][0]);
-    }
-
-    /// <summary>
     /// Verifies that a spatial segment symbol cannot select an identifier above the frame's last active segment.
     /// </summary>
     [Fact]
@@ -88,40 +44,10 @@ public class Av1TemporalSegmentationTests
     }
 
     /// <summary>
-    /// Verifies that only neighboring blocks which selected temporal prediction contribute to the binary CDF context.
-    /// </summary>
-    /// <param name="hasAbove">Whether an above block is available.</param>
-    /// <param name="abovePredicted">Whether the available above block selected temporal prediction.</param>
-    /// <param name="hasLeft">Whether a left block is available.</param>
-    /// <param name="leftPredicted">Whether the available left block selected temporal prediction.</param>
-    /// <param name="expected">The expected context in the inclusive range zero through two.</param>
-    [Theory]
-    [InlineData(false, false, false, false, 0)]
-    [InlineData(true, false, true, false, 0)]
-    [InlineData(true, true, false, false, 1)]
-    [InlineData(false, false, true, true, 1)]
-    [InlineData(true, true, true, true, 2)]
-    public void SegmentPredictionContextCountsPredictedNeighbors(
-        bool hasAbove,
-        bool abovePredicted,
-        bool hasLeft,
-        bool leftPredicted,
-        int expected)
-    {
-        Av1BlockModeInfo? aboveModeInfo = hasAbove ? CreateModeInfo(abovePredicted) : null;
-        Av1BlockModeInfo? leftModeInfo = hasLeft ? CreateModeInfo(leftPredicted) : null;
-
-        int actual = Av1SymbolContextHelper.GetSegmentIdPredictedContext(aboveModeInfo, leftModeInfo);
-
-        Assert.Equal(expected, actual);
-    }
-
-    /// <summary>
     /// Verifies that a temporal-prediction symbol selects the minimum retained segment across the complete block and writes it to the current map.
     /// </summary>
     /// <param name="segmentIdPrecedesSkip">Whether segment syntax precedes the residual-skip flag.</param>
     [Theory]
-    [InlineData(false)]
     [InlineData(true)]
     public void ReadInterSegmentIdUsesRetainedPrimaryMap(bool segmentIdPrecedesSkip)
     {

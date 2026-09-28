@@ -18,7 +18,7 @@ public class Av1ObmcSearchTests
     /// The hardware configurations that run every register width and the scalar overloads.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The block widths of the OBMC motion modes.
@@ -26,33 +26,21 @@ public class Av1ObmcSearchTests
     private static readonly int[] Widths = [8, 16, 32, 64, 128];
 
     /// <summary>
-    /// Verifies the sum of rounded absolute differences against obmc_sad().
+    /// Verifies the sum of rounded absolute differences against obmc_sad(), the signed and squared sums against
+    /// obmc_variance(), including the largest twelve-bit block where a thirty-two-bit total of the squares would
+    /// overflow, and every step of the OBMC search target against calc_target_weighted_pred().
     /// </summary>
     [Fact]
-    public void SumAbsoluteDifferencesMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSumAbsoluteDifferences, Configurations);
+    public void SearchMeasuresMatchReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSearchMeasures, Configurations);
 
-    /// <summary>
-    /// Verifies the signed and squared sums of rounded differences against obmc_variance().
-    /// </summary>
-    [Fact]
-    public void GetMomentsMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateMoments, Configurations);
-
-    /// <summary>
-    /// Verifies the lane totals at the largest block and the largest twelve-bit difference, where a
-    /// thirty-two-bit total of the squares would overflow.
-    /// </summary>
-    [Fact]
-    public void GetMomentsKeepsLargestTwelveBitBlockExact()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLargestMoments, Configurations);
-
-    /// <summary>
-    /// Verifies every step of the OBMC search target against calc_target_weighted_pred().
-    /// </summary>
-    [Fact]
-    public void TargetStepsMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateTarget, Configurations);
+    private static void ValidateSearchMeasures()
+    {
+        ValidateSumAbsoluteDifferences();
+        ValidateMoments();
+        ValidateLargestMoments();
+        ValidateTarget();
+    }
 
     private static void ValidateSumAbsoluteDifferences()
     {

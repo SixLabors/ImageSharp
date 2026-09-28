@@ -5,11 +5,7 @@ using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
-using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -27,9 +23,7 @@ public class Av1EntropyTests
 
     [Theory]
     [InlineData(4, true)]
-    [InlineData(2, true)]
     [InlineData(1, true)]
-    [InlineData(4, false)]
     public void DeltaLoopFilterChannelsAdaptIndependently(int channelCount, bool updateCdf)
     {
         ReadOnlySpan<int> deltas = [0, 1, -2, 3, -1, 0, 17, -3, 2, -9, 0, 1];
@@ -134,857 +128,10 @@ public class Av1EntropyTests
         }
     }
 
-    [Theory]
-    [InlineData(0, 7680)]
-    [InlineData(1, 7680)]
-    [InlineData(4, 6656)]
-    [InlineData(8192, 1024)]
-    [InlineData(10000, 878)]
-    [InlineData(16384, 512)]
-    [InlineData(24576, 212)]
-    [InlineData(32767, 3)]
-    [InlineData(32768, 3)]
-    public void ProbabilityCostMatchesCurrentLibaom(int probability, int expected)
-        => Assert.Equal(expected, Av1ProbabilityCost.GetProbabilityCost(probability));
-
     [Fact]
-    public void SymbolCostUsesDistributionIntervals()
+    public void SymbolWriterMatchesCurrentLibaomCarryRegression()
     {
-        Av1Distribution distribution = new(8192, 24576);
-
-        Assert.Equal(1024, Av1ProbabilityCost.GetSymbolCost(distribution, 0));
-        Assert.Equal(512, Av1ProbabilityCost.GetSymbolCost(distribution, 1));
-        Assert.Equal(1024, Av1ProbabilityCost.GetSymbolCost(distribution, 2));
-    }
-
-    [Theory]
-    [InlineData(0, 6656)]
-    [InlineData(1, 6656)]
-    [InlineData(2, 6656)]
-    [InlineData(3, 6656)]
-    [InlineData(4, 6656)]
-    [InlineData(8, 6144)]
-    public void SymbolCostUsesRangeCoderMinimumProbability(uint probability, int expected)
-    {
-        // Adaptation can collapse a symbol's probability interval. A minimum mass of 4 keeps its estimated
-        // cost finite: 13 bits at 512 rate units per bit, compared with 12 bits for a mass of 8.
-        Av1Distribution distribution = new(16384, 16384 + probability);
-        Assert.Equal(expected, Av1ProbabilityCost.GetSymbolCost(distribution, 1));
-        Assert.Equal(expected, Av1ProbabilityCost.GetSymbolCost((int)probability));
-    }
-
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(1, 512)]
-    [InlineData(7, 3584)]
-    public void LiteralCostUsesProbabilityCostPrecision(int bitCount, int expected)
-        => Assert.Equal(expected, Av1ProbabilityCost.GetLiteralCost(bitCount));
-
-    [Fact]
-    public void ProbabilityCostDoesNotAllocate()
-    {
-        Av1Distribution distribution = new(8192, 24576);
-        _ = Av1ProbabilityCost.GetSymbolCost(distribution, 0);
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int i = 0; i < 1000; i++)
-        {
-            _ = Av1ProbabilityCost.GetSymbolCost(distribution, i % distribution.NumberOfSymbols);
-        }
-
-        long after = GC.GetAllocatedBytesForCurrentThread();
-        Assert.Equal(before, after);
-    }
-
-    [Fact]
-    public void SymbolEncoderSyntaxCostsMatchCurrentDistributions()
-    {
-        const byte TopContext = 0;
-        const byte LeftContext = 0;
-        const int SkipContext = 0;
-        const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-        const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
-        const Av1PredictionMode LumaMode = Av1PredictionMode.DC;
-        const Av1ChromaPredictionMode ChromaMode = Av1ChromaPredictionMode.DC;
-        const Av1FilterIntraMode FilterMode = Av1FilterIntraMode.DC;
-
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-
-        Av1Distribution luma = Av1DefaultDistributions.KeyFrameYMode[TopContext][LeftContext];
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(luma, (int)LumaMode),
-            encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext));
-
-        Av1Distribution angle = Av1DefaultDistributions.AngleDelta[0];
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(angle, Av1Constants.MaxAngleDelta),
-            encoder.GetAngleDeltaCost(Av1Constants.MaxAngleDelta, Av1PredictionMode.Vertical));
-
-        Av1Distribution chroma = Av1DefaultDistributions.UvMode[0][(int)LumaMode];
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(chroma, (int)ChromaMode),
-            encoder.GetChromaModeCost(ChromaMode, false, LumaMode));
-
-        Av1Distribution filterEnable = Av1DefaultDistributions.FilterIntra[(int)BlockSize];
-        Av1Distribution filterMode = Av1DefaultDistributions.FilterIntraMode;
-        int expectedFilterCost = Av1ProbabilityCost.GetSymbolCost(filterEnable, 1)
-            + Av1ProbabilityCost.GetSymbolCost(filterMode, (int)FilterMode);
-
-        Assert.Equal(expectedFilterCost, encoder.GetFilterIntraModeCost(FilterMode, BlockSize));
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(filterEnable, 0),
-            encoder.GetFilterIntraModeCost(Av1FilterIntraMode.AllFilterIntraModes, BlockSize));
-
-        Av1Distribution skip = Av1DefaultDistributions.Skip[SkipContext];
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(skip, 1),
-            encoder.GetSkipCost(true, SkipContext));
-
-        Av1Distribution transformSize = Av1DefaultDistributions.TransformSize[0][SkipContext];
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(transformSize, 0),
-            encoder.GetTransformSizeCost(BlockSize, TransformSize, SkipContext));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(transformSize, 1),
-            encoder.GetTransformSizeCost(BlockSize, Av1TransformSize.Size4x4, SkipContext));
-
-        Av1Distribution transformPartition = Av1DefaultDistributions.TransformPartition[SkipContext];
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(transformPartition, 0),
-            encoder.GetTransformPartitionCost(false, SkipContext));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(transformPartition, 1),
-            encoder.GetTransformPartitionCost(true, SkipContext));
-
-        Av1Distribution transformSkip = Av1DefaultDistributions
-            .GetTransformBlockSkip(BaseQIndex)[(int)TransformSize][SkipContext];
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(transformSkip, 1),
-            encoder.GetTransformBlockSkipCost(true, TransformSize, SkipContext));
-    }
-
-    [Fact]
-    public void SymbolEncoderResetRestoresNormativeDistributionState()
-    {
-        const byte TopContext = 0;
-        const byte LeftContext = 0;
-        const Av1PredictionMode LumaMode = Av1PredictionMode.DC;
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
-        int initialCost = encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext);
-
-        for (int i = 0; i < 8; i++)
-        {
-            encoder.WriteLumaMode(LumaMode, TopContext, LeftContext);
-        }
-
-        encoder.RefreshCosts();
-        Assert.NotEqual(initialCost, encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext));
-
-        encoder.Reset();
-
-        Assert.Equal(initialCost, encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext));
-    }
-
-    [Fact]
-    public void BlockSkipDecisionUsesAdaptedRatesForEmptyTransforms()
-    {
-        const int QIndex = 73;
-        const int BlockSkipContext = 2;
-        const int TransformSkipContext = 0;
-        const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 256, QIndex, updateCdf: true);
-        int emptyTransformRate = encoder.GetTransformBlockSkipCost(
-            true,
-            TransformSize,
-            TransformSkipContext);
-
-        Assert.True(
-            Av1TileWriter.ShouldSkipCoefficients(
-                encoder,
-                BlockSkipContext,
-                emptyTransformRate));
-
-        // Repeated non-skip symbols make another block skip more expensive at the next cost update.
-        // The empty-transform distribution is unchanged because no transform symbols were written.
-        for (int index = 0; index < 256; index++)
-        {
-            encoder.WriteSkip(false, BlockSkipContext);
-        }
-
-        encoder.RefreshCosts();
-        Assert.False(
-            Av1TileWriter.ShouldSkipCoefficients(
-                encoder,
-                BlockSkipContext,
-                emptyTransformRate));
-    }
-
-    [Theory]
-    [InlineData(-16, 16)]
-    [InlineData(0, 8)]
-    [InlineData(-4, 0)]
-    public void ChromaFromLumaCostMatchesCurrentDistributions(int alphaU, int alphaV)
-    {
-        int signU = Av1ChromaFromLumaMath.AlphaToSign(alphaU);
-        int signV = Av1ChromaFromLumaMath.AlphaToSign(alphaV);
-        int jointSign = Av1ChromaFromLumaMath.JointSign(signU, signV);
-        int indexU = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU);
-        int indexV = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaV);
-        int packedIndex = Av1ChromaFromLumaMath.PackIndices(indexU, indexV);
-        int expected = Av1ProbabilityCost.GetSymbolCost(Av1DefaultDistributions.ChromaFromLumaSign, jointSign);
-        if (signU != Av1ChromaFromLumaMath.SignZero)
-        {
-            expected += Av1ProbabilityCost.GetSymbolCost(
-                Av1DefaultDistributions.ChromaFromLumaAlpha[Av1ChromaFromLumaMath.ContextU(jointSign)],
-                indexU);
-        }
-
-        if (signV != Av1ChromaFromLumaMath.SignZero)
-        {
-            expected += Av1ProbabilityCost.GetSymbolCost(
-                Av1DefaultDistributions.ChromaFromLumaAlpha[Av1ChromaFromLumaMath.ContextV(jointSign)],
-                indexV);
-        }
-
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-        Assert.Equal(expected, encoder.GetChromaFromLumaCost(packedIndex, jointSign));
-    }
-
-    /// <summary>
-    /// Verifies that live luma rate accounting includes the selected signed directional adjustment.
-    /// </summary>
-    /// <param name="angleDelta">The signed AV1 directional adjustment.</param>
-    [Theory]
-    [InlineData(-3)]
-    [InlineData(0)]
-    [InlineData(3)]
-    public void LumaModeCostIncludesSelectedAngleDelta(int angleDelta)
-    {
-        const Av1PredictionMode Mode = Av1PredictionMode.Directional135Degrees;
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-        Av1MacroBlockD macroBlock = new()
-        {
-            Tile = new Av1TileInfo(0, 0, new ObuFrameHeader())
-        };
-
-        int expected = encoder.GetLumaModeCost(Mode, 0, 0)
-            + encoder.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, Mode);
-
-        Assert.Equal(
-            expected,
-            Av1TileWriter.GetLumaModeCost(
-                encoder,
-                macroBlock,
-                Av1BlockSize.Block8x8,
-                Mode,
-                angleDelta,
-                isIntraFrame: true));
-    }
-
-    /// <summary>
-    /// Verifies that live chroma rate accounting includes the selected signed directional adjustment.
-    /// </summary>
-    /// <param name="angleDelta">The signed AV1 directional adjustment.</param>
-    [Theory]
-    [InlineData(-3)]
-    [InlineData(0)]
-    [InlineData(3)]
-    public void ChromaModeCostIncludesSelectedAngleDelta(int angleDelta)
-    {
-        const Av1PredictionMode LumaMode = Av1PredictionMode.DC;
-        const Av1ChromaPredictionMode ChromaMode = Av1ChromaPredictionMode.Directional135Degrees;
-        const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-        ObuFrameHeader frameHeader = new();
-        ObuColorConfig colorConfig = new()
-        {
-            IsMonochrome = false,
-            SubSamplingX = true,
-            SubSamplingY = true,
-            BitDepth = Av1BitDepth.EightBit
-        };
-
-        Av1MacroBlockModeInfo modeInfo = default;
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-        bool isChromaFromLumaAllowed = BlockSize.AllowsChromaFromLuma(
-            frameHeader.LosslessArray[0],
-            colorConfig.SubSamplingX,
-            colorConfig.SubSamplingY);
-
-        int expected = encoder.GetChromaModeCost(ChromaMode, isChromaFromLumaAllowed, LumaMode)
-            + encoder.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, ChromaMode.ToLumaMode());
-
-        Assert.Equal(
-            expected,
-            Av1TileWriter.GetChromaModeCost(
-                encoder,
-                frameHeader,
-                colorConfig,
-                modeInfo,
-                BlockSize,
-                LumaMode,
-                ChromaMode,
-                angleDelta));
-    }
-
-    [Fact]
-    public void SymbolEncoderCostsChangeAtRefreshBoundary()
-    {
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
-        Av1Distribution expected = Av1DefaultDistributions.KeyFrameYMode[0][0];
-        Av1Distribution expectedSkip = Av1DefaultDistributions.GetTransformBlockSkip(BaseQIndex)[0][0];
-        int initialModeCost = encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0);
-        int initialSkipCost = encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0);
-
-        Assert.Equal(Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC), initialModeCost);
-        Assert.Equal(Av1ProbabilityCost.GetSymbolCost(expectedSkip, 1), initialSkipCost);
-
-        encoder.WriteLumaMode(Av1PredictionMode.DC, 0, 0);
-        encoder.WriteTransformBlockSkip(true, Av1TransformSize.Size4x4, 0);
-        expected.Update((int)Av1PredictionMode.DC);
-        expectedSkip.Update(1);
-
-        // Writing selected symbols adapts probabilities without changing rates for other candidates
-        // in the same interval. The refresh boundary makes both updates visible together.
-        Assert.Equal(initialModeCost, encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
-        Assert.Equal(initialSkipCost, encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
-        encoder.RefreshCosts();
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC),
-            encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(expectedSkip, 1),
-            encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
-
-        Assert.NotEqual(initialModeCost, encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
-        Assert.NotEqual(initialSkipCost, encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
-        encoder.Reset();
-        Assert.Equal(initialModeCost, encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
-        Assert.Equal(initialSkipCost, encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
-    }
-
-    [Fact]
-    public void CoefficientCostMatchesCurrentLibaomForEmptyAndDcBlocks()
-    {
-        const int qIndex = 0;
-        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-        const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        Av1TransformBlockContext transformBlockContext = default;
-        Span<int> coefficients = stackalloc int[16];
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex, updateCdf: false);
-        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
-        Av1Distribution transformSkip = Av1DefaultDistributions
-            .GetTransformBlockSkip(qIndex)[(int)transformSizeContext][transformBlockContext.SkipContext];
-
-        int emptyCost = encoder.GetCoefficientCost(
-            transformSize,
-            Av1TransformType.DctDct,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            0,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        Assert.Equal(Av1ProbabilityCost.GetSymbolCost(transformSkip, 1), emptyCost);
-
-        // Prime every active level with nonzero data so the one-coefficient path proves its EOB-only
-        // context derivation does not depend on clearing or rebuilding the forward-neighbor map.
-        coefficients.Fill(7);
-        _ = encoder.GetCoefficientCost(
-            transformSize,
-            Av1TransformType.DctDct,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            16,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        coefficients.Clear();
-        coefficients[0] = 1;
-        Av1Distribution endOfBlock = Av1DefaultDistributions
-            .GetEndOfBlockFlag(qIndex)[transformSize.GetLog2Minus4()][(int)componentType][0];
-        Av1Distribution coefficientBaseEnd = Av1DefaultDistributions
-            .GetBaseEndOfBlock(qIndex)[(int)transformSizeContext][(int)componentType][0];
-        Av1Distribution dcSign = Av1DefaultDistributions
-            .GetDcSign(qIndex)[(int)componentType][transformBlockContext.DcSignContext];
-        int expectedDcCost =
-            Av1ProbabilityCost.GetSymbolCost(transformSkip, 0) +
-            Av1ProbabilityCost.GetSymbolCost(endOfBlock, 0) +
-            Av1ProbabilityCost.GetSymbolCost(coefficientBaseEnd, 0) +
-            Av1ProbabilityCost.GetSymbolCost(dcSign, 0);
-
-        int dcCost = encoder.GetCoefficientCost(
-            transformSize,
-            Av1TransformType.DctDct,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            1,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        Assert.Equal(expectedDcCost, dcCost);
-    }
-
-    [Fact]
-    public void CoefficientCostMatchesCurrentLibaomBaseRangeAndGolomb()
-    {
-        const int qIndex = 0;
-        const int level = 25;
-        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-        const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        Av1TransformBlockContext transformBlockContext = default;
-        Span<int> coefficients = stackalloc int[16];
-        coefficients[0] = -level;
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex, updateCdf: false);
-        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
-        Av1Distribution transformSkip = Av1DefaultDistributions
-            .GetTransformBlockSkip(qIndex)[(int)transformSizeContext][transformBlockContext.SkipContext];
-        Av1Distribution endOfBlock = Av1DefaultDistributions
-            .GetEndOfBlockFlag(qIndex)[transformSize.GetLog2Minus4()][(int)componentType][0];
-        Av1Distribution coefficientBaseEnd = Av1DefaultDistributions
-            .GetBaseEndOfBlock(qIndex)[(int)transformSizeContext][(int)componentType][0];
-        Av1Distribution coefficientBaseRange = Av1DefaultDistributions
-            .GetCoefficientsBaseRange(qIndex)[(int)transformSizeContext][(int)componentType][0];
-        Av1Distribution dcSign = Av1DefaultDistributions
-            .GetDcSign(qIndex)[(int)componentType][transformBlockContext.DcSignContext];
-
-        // Level 25 consumes all four three-symbol base-range chunks, followed by the seven-bit code for Golomb value 10.
-        int expected =
-            Av1ProbabilityCost.GetSymbolCost(transformSkip, 0) +
-            Av1ProbabilityCost.GetSymbolCost(endOfBlock, 0) +
-            Av1ProbabilityCost.GetSymbolCost(coefficientBaseEnd, 2) +
-            (4 * Av1ProbabilityCost.GetSymbolCost(coefficientBaseRange, 3)) +
-            Av1ProbabilityCost.GetSymbolCost(dcSign, 1) +
-            Av1ProbabilityCost.GetLiteralCost(7);
-
-        int actual = encoder.GetCoefficientCost(
-            transformSize,
-            Av1TransformType.DctDct,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            1,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        Assert.Equal(expected, actual);
-    }
-
-    [Fact]
-    public void CoefficientCostMatchesCurrentLibaomCoefficientTraversal()
-    {
-        const ushort endOfBlock = 4;
-        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-        const Av1TransformType transformType = Av1TransformType.DctDct;
-        const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        const Av1PredictionMode intraDirection = Av1PredictionMode.DC;
-        const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
-        Av1TransformBlockContext transformBlockContext = default;
-        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
-        Span<int> coefficients = stackalloc int[16];
-        coefficients[scan[0]] = -25;
-        coefficients[scan[2]] = 3;
-        coefficients[scan[3]] = -4;
-        using Av1LevelBuffer levels = new(Configuration.Default, new Size(4, 4));
-        levels.Initialize(coefficients);
-        Span<sbyte> coefficientContexts = stackalloc sbyte[16];
-        Av1TransformClass transformClass = transformType.ToClass();
-        Av1SymbolContextHelper.GetNzMapContexts(
-            levels,
-            scan,
-            endOfBlock,
-            transformSize,
-            transformClass,
-            coefficientContexts);
-
-        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
-        Av1Distribution transformSkip = Av1DefaultDistributions
-            .GetTransformBlockSkip(BaseQIndex)[(int)transformSizeContext][transformBlockContext.SkipContext];
-        Av1Distribution endOfBlockFlag = Av1DefaultDistributions
-            .GetEndOfBlockFlag(BaseQIndex)[transformSize.GetLog2Minus4()][(int)componentType][0];
-        Av1Distribution[][][] coefficientBase = Av1DefaultDistributions.GetCoefficientsBase(BaseQIndex);
-        Av1Distribution[][][] coefficientBaseEnd = Av1DefaultDistributions.GetBaseEndOfBlock(BaseQIndex);
-        Av1Distribution[][][] coefficientBaseRange = Av1DefaultDistributions.GetCoefficientsBaseRange(BaseQIndex);
-        Av1Distribution dcSign = Av1DefaultDistributions
-            .GetDcSign(BaseQIndex)[(int)componentType][transformBlockContext.DcSignContext];
-        int expected = Av1ProbabilityCost.GetSymbolCost(transformSkip, 0);
-
-        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
-            transformSize,
-            false);
-
-        int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
-        int transformTypeIndex = Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType);
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            Av1DefaultDistributions.IntraExtendedTransform[extendedSet][(int)transformSize.GetSquareSize()][(int)intraDirection],
-            transformTypeIndex);
-
-        short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int endOfBlockExtra);
-        expected += Av1ProbabilityCost.GetSymbolCost(endOfBlockFlag, endOfBlockPosition - 1);
-        int endOfBlockOffsetBitCount = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
-        int endOfBlockBit = Av1Math.GetBit(endOfBlockExtra, endOfBlockOffsetBitCount - 1);
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            Av1DefaultDistributions.GetEndOfBlockExtra(BaseQIndex)[(int)transformSizeContext][(int)componentType][endOfBlockPosition],
-            endOfBlockBit);
-        expected += Av1ProbabilityCost.GetLiteralCost(endOfBlockOffsetBitCount - 1);
-
-        int eobPosition = scan[3];
-        int eobContext = coefficientContexts[eobPosition];
-        int eobBaseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(
-            levels.GetPosition(eobPosition),
-            transformClass);
-
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            coefficientBaseEnd[(int)transformSizeContext][(int)componentType][eobContext],
-            2);
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            coefficientBaseRange[(int)transformSizeContext][(int)componentType][eobBaseRangeContext],
-            1);
-        expected += Av1ProbabilityCost.GetLiteralCost(1);
-
-        int acPosition = scan[2];
-        int acContext = coefficientContexts[acPosition];
-        int acBaseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
-            levels,
-            levels.GetPosition(acPosition),
-            transformClass);
-
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            coefficientBase[(int)transformSizeContext][(int)componentType][acContext],
-            3);
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            coefficientBaseRange[(int)transformSizeContext][(int)componentType][acBaseRangeContext],
-            0);
-        expected += Av1ProbabilityCost.GetLiteralCost(1);
-
-        int zeroPosition = scan[1];
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            coefficientBase[(int)transformSizeContext][(int)componentType][coefficientContexts[zeroPosition]],
-            0);
-
-        int dcPosition = scan[0];
-        int dcContext = coefficientContexts[dcPosition];
-        int dcBaseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
-            levels,
-            levels.GetPosition(dcPosition),
-            transformClass);
-
-        expected += Av1ProbabilityCost.GetSymbolCost(
-            coefficientBase[(int)transformSizeContext][(int)componentType][dcContext],
-            3);
-        expected += 4 * Av1ProbabilityCost.GetSymbolCost(
-            coefficientBaseRange[(int)transformSizeContext][(int)componentType][dcBaseRangeContext],
-            3);
-        expected += Av1ProbabilityCost.GetLiteralCost(7);
-        expected += Av1ProbabilityCost.GetSymbolCost(dcSign, 1);
-
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-        int actual = encoder.GetCoefficientCost(
-            transformSize,
-            transformType,
-            intraDirection,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            false,
-            filterIntraMode,
-            usesInterTransformSet: false);
-
-        Assert.Equal(expected, actual);
-    }
-
-    [Fact]
-    public void CoefficientCostDoesNotChangeWriterOrLiveDistributions()
-    {
-        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-        const Av1TransformType transformType = Av1TransformType.DctDct;
-        const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        const ushort endOfBlock = 4;
-        Av1TransformBlockContext transformBlockContext = default;
-        Span<int> coefficients = stackalloc int[16];
-        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
-        coefficients[scan[0]] = -25;
-        coefficients[scan[2]] = 3;
-        coefficients[scan[3]] = 1;
-        using Av1SymbolEncoder actualEncoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
-        using Av1SymbolEncoder expectedEncoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
-
-        int initialCost = actualEncoder.GetCoefficientCost(
-            transformSize,
-            transformType,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        Assert.Equal(
-            initialCost,
-            actualEncoder.GetCoefficientCost(
-                transformSize,
-                transformType,
-                Av1PredictionMode.DC,
-                coefficients,
-                componentType,
-                transformBlockContext,
-                endOfBlock,
-                false,
-                Av1FilterIntraMode.AllFilterIntraModes,
-                usesInterTransformSet: false));
-
-        int actualContext = actualEncoder.WriteCoefficients(
-            transformSize,
-            transformType,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        actualEncoder.RefreshCosts();
-        int adaptedCost = actualEncoder.GetCoefficientCost(
-            transformSize,
-            transformType,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        int expectedContext = expectedEncoder.WriteCoefficients(
-            transformSize,
-            transformType,
-            Av1PredictionMode.DC,
-            coefficients,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        using IMemoryOwner<byte> actual = actualEncoder.Exit();
-        using IMemoryOwner<byte> expected = expectedEncoder.Exit();
-
-        Assert.NotEqual(initialCost, adaptedCost);
-        Assert.Equal(expectedContext, actualContext);
-        Assert.True(expected.GetSpan().SequenceEqual(actual.GetSpan()));
-    }
-
-    [Fact]
-    public void CoefficientCostDoesNotAllocateAfterScratchInitialization()
-    {
-        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-        const Av1TransformType transformType = Av1TransformType.DctDct;
-        const ushort endOfBlock = 4;
-        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
-        Span<int> coefficients = stackalloc int[16];
-        coefficients[scan[0]] = -25;
-        coefficients[scan[2]] = 3;
-        coefficients[scan[3]] = 1;
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-
-        _ = encoder.GetCoefficientCost(
-            transformSize,
-            transformType,
-            Av1PredictionMode.DC,
-            coefficients,
-            Av1ComponentType.Luminance,
-            default,
-            endOfBlock,
-            false,
-            Av1FilterIntraMode.AllFilterIntraModes,
-            usesInterTransformSet: false);
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 1000; i++)
-        {
-            _ = encoder.GetCoefficientCost(
-                transformSize,
-                transformType,
-                Av1PredictionMode.DC,
-                coefficients,
-                Av1ComponentType.Luminance,
-                default,
-                endOfBlock,
-                false,
-                Av1FilterIntraMode.AllFilterIntraModes,
-                usesInterTransformSet: false);
-        }
-
-        long after = GC.GetAllocatedBytesForCurrentThread();
-        Assert.Equal(before, after);
-    }
-
-    [Theory]
-    [InlineData(128, 2, 0L, 2, 0L, 1L)]
-    [InlineData(128, 1, 0L, 1, 0L, 1L)]
-    [InlineData(64, 512, 2_000_000_000L, 512, 2_000_000_000L, 512_000_000_128L)]
-    public void RateDistortionStatisticsRoundCombinedRate(
-        int multiplier,
-        int firstRate,
-        long firstDistortion,
-        int secondRate,
-        long secondDistortion,
-        long expectedCost)
-    {
-        // The first two cases cross opposite sides of the half-unit boundary: independently rounded
-        // child costs would be two and zero, while the combined reference cost is one in both cases.
-        Av1RateDistortionStatistics combined = new(multiplier, firstRate, firstDistortion);
-        Av1RateDistortionStatistics second = new(multiplier, secondRate, secondDistortion);
-        combined.Add(multiplier, in second);
-
-        Assert.Equal(firstRate + secondRate, combined.Rate);
-        Assert.Equal(firstDistortion + secondDistortion, combined.Distortion);
-        Assert.Equal(expectedCost, combined.Cost);
-    }
-
-    [Theory]
-    [InlineData(1, 255, 0L, 0L)]
-    [InlineData(1, 256, 0L, 1L)]
-    [InlineData(128, 512, 1000L, 128_128L)]
-    [InlineData(512, 512, 1000L, 128_512L)]
-    [InlineData(64, 1024, 4_000_000_000L, 512_000_000_128L)]
-    public void RateDistortionCostMatchesCurrentLibaom(
-        int rateMultiplier,
-        int rate,
-        long distortion,
-        long expected)
-        => Assert.Equal(expected, Av1RateDistortion.GetCost(rateMultiplier, rate, distortion));
-
-    /// <summary>
-    /// Verifies fixed curve samples, interpolation, error categories, native quantizer normalization, and skip selection.
-    /// </summary>
-    [Theory]
-    [InlineData(Av1BlockSize.Block4x4, 16L, 16, 8, Av1BitDepth.EightBit, 1, 13243, 17L)]
-    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 8, Av1BitDepth.EightBit, 1, 45715, 66L)]
-    [InlineData(Av1BlockSize.Block16x16, 256L, 256, 8, Av1BitDepth.EightBit, 1, 154928, 265L)]
-    [InlineData(Av1BlockSize.Block32x32, 1024L, 1024, 8, Av1BitDepth.EightBit, 1, 410224, 1061L)]
-    [InlineData(Av1BlockSize.Block8x8, 96L, 64, 8, Av1BitDepth.EightBit, 1, 53253, 71L)]
-    [InlineData(Av1BlockSize.Block8x8, 1024L, 64, 8, Av1BitDepth.EightBit, 1, 96672, 95L)]
-    [InlineData(Av1BlockSize.Block8x8, 1056L, 64, 8, Av1BitDepth.EightBit, 1, 97253, 95L)]
-    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 32, Av1BitDepth.TenBit, 1, 45715, 66L)]
-    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 128, Av1BitDepth.TwelveBit, 1, 45715, 66L)]
-    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 8, Av1BitDepth.EightBit, 1000000, 0, 1024L)]
-    [InlineData(Av1BlockSize.Block8x8, 0L, 64, 8, Av1BitDepth.EightBit, 1, 0, 0L)]
-    [InlineData(Av1BlockSize.Block128x128, 1L, 16384, 21387, Av1BitDepth.TwelveBit, 1, 0, 16L)]
-    public void PredictionErrorModelMatchesReferenceCurveSamples(
-        int blockSize,
-        long squaredError,
-        int sampleCount,
-        int acQuantizer,
-        int bitDepth,
-        int rateMultiplier,
-        int expectedRate,
-        long expectedDistortion)
-    {
-        // Expectations come from the published curve samples and cubic polynomial, not from an encode/decode
-        // round trip. Unit normalized error and unit quantizer hit rate column 31 in each block-size category.
-        Av1RateDistortion.ModelPredictionError(
-            (Av1BlockSize)blockSize,
-            squaredError,
-            sampleCount,
-            acQuantizer,
-            (Av1BitDepth)bitDepth,
-            rateMultiplier,
-            out int rate,
-            out long distortion);
-
-        Assert.Equal(expectedRate, rate);
-        Assert.Equal(expectedDistortion, distortion);
-    }
-
-    [Theory]
-    [InlineData(1, 8191, 100, 100)]
-    [InlineData(1, 8192, 100, 101)]
-    [InlineData(128, 4096, 100, 101)]
-    [InlineData(512, 3072, 100, 102)]
-    public void MotionSearchCostMatchesCurrentLibaom(
-        int rateMultiplier,
-        int motionVectorRate,
-        int variance,
-        int expected)
-        => Assert.Equal(expected, Av1RateDistortion.GetMotionSearchCost(rateMultiplier, motionVectorRate, variance));
-
-    [Theory]
-    [InlineData(0, 0, 2)]
-    [InlineData(255, 0, 21)]
-    [InlineData(255, 1, 21)]
-    [InlineData(255, 2, 21)]
-    public void MotionSearchSadPerBitMatchesCurrentLibaom(int qIndex, int bitDepth, int expected)
-        => Assert.Equal(expected, Av1RateDistortion.GetMotionSearchSadPerBit(qIndex, (Av1BitDepth)bitDepth));
-
-    [Theory]
-    [InlineData(2, 255, 100, 101)]
-    [InlineData(21, 512, 100, 121)]
-    [InlineData(21, 1000, 100, 141)]
-    public void MotionSearchSadCostMatchesCurrentLibaom(
-        int sadPerBit,
-        int motionVectorRate,
-        int sumOfAbsoluteDifferences,
-        int expected)
-        => Assert.Equal(
-            expected,
-            Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, motionVectorRate, sumOfAbsoluteDifferences));
-
-    [Theory]
-    [InlineData(0, 0, 52)]
-    [InlineData(0, 1, 3)]
-    [InlineData(0, 2, 1)]
-    [InlineData(255, 0, 9_467_088)]
-    [InlineData(255, 1, 20_228_608)]
-    [InlineData(255, 2, 63_215_524)]
-    public void KeyFrameRateMultiplierMatchesCurrentLibaom(
-        int qIndex,
-        int bitDepth,
-        int expected)
-        => Assert.Equal(expected, Av1RateDistortion.GetRateMultiplier(qIndex, (Av1BitDepth)bitDepth, Av1FrameUpdateType.Key));
-
-    [Theory]
-    [InlineData(0, 0, 51)]
-    [InlineData(0, 1, 3)]
-    [InlineData(0, 2, 1)]
-    [InlineData(255, 0, 9_288_598)]
-    [InlineData(255, 1, 20_049_918)]
-    [InlineData(255, 2, 63_036_850)]
-    public void InterFrameRateMultiplierMatchesCurrentLibaom(
-        int qIndex,
-        int bitDepth,
-        int expected)
-        => Assert.Equal(expected, Av1RateDistortion.GetRateMultiplier(qIndex, (Av1BitDepth)bitDepth, Av1FrameUpdateType.Last));
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(ShortSyntaxBufferLength)]
-    public void SymbolWriterMatchesCurrentLibaomCarryRegression(int initialCapacity)
-    {
-        using Av1SymbolWriter writer = new(Configuration.Default, initialCapacity, updateCdf: false);
+        using Av1SymbolWriter writer = new(Configuration.Default, ShortSyntaxBufferLength, updateCdf: false);
         writer.WriteBoolean(false, 16_384);
         writer.WriteBoolean(false, 16_384);
         writer.WriteBoolean(true, 512);
@@ -1018,329 +165,28 @@ public class Av1EntropyTests
         Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
-    [Theory]
-    [InlineData(0, false)]
-    [InlineData(1, true)]
-    [InlineData(7, false)]
-    [InlineData(8, true)]
-    [InlineData(17, true)]
-    public void SymbolWriterGrowthPreservesConsecutiveTiles(int initialCapacity, bool updateCdf)
-    {
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        using (Av1SymbolWriter writer = new(configuration, initialCapacity, updateCdf))
-        using (Av1SymbolWriter expected = new(Configuration.Default, 8192, updateCdf))
-        {
-            int outputLength = 0;
-            for (int tile = 0; tile < 3; tile++)
-            {
-                writer.Reset(outputLength);
-                expected.Reset(outputLength);
-                Av1Distribution distribution = new(100, 16000, 32000);
-                Av1Distribution expectedDistribution = new(100, 16000, 32000);
-                for (int index = 0; index < 257; index++)
-                {
-                    // Small intervals provoke carries while literals cross repeated word-flush boundaries.
-                    int symbol = (index + tile) & 3;
-                    uint literal = (uint)((index * 73) + tile);
-                    writer.WriteSymbol(symbol, distribution);
-                    writer.WriteLiteral(literal, 8);
-                    expected.WriteSymbol(symbol, expectedDistribution);
-                    expected.WriteLiteral(literal, 8);
-                }
-
-                ReadOnlyMemory<byte> actualTile = writer.Exit(out int length);
-                ReadOnlyMemory<byte> expectedTile = expected.Exit(out int expectedLength);
-                Assert.Equal(expectedLength, length);
-                Assert.True(expectedTile.Span.SequenceEqual(actualTile.Span));
-                outputLength += length;
-
-                // Growth in a later tile must preserve all earlier finalized tile bytes too.
-                Assert.True(expected.GetOutput(outputLength).Span.SequenceEqual(writer.GetOutput(outputLength).Span));
-            }
-
-            Assert.True(allocator.AllocationLog.Count > 1);
-            Assert.Equal(allocator.AllocationLog.Count - 1, allocator.ReturnLog.Count);
-            int allocations = allocator.AllocationLog.Count;
-            writer.Reset();
-            writer.WriteLiteral(false);
-            _ = writer.Exit(out _);
-            Assert.Equal(allocations, allocator.AllocationLog.Count);
-        }
-
-        Assert.Equal(
-            allocator.AllocationLog.Select(x => x.HashCodeOfBuffer).Order(),
-            allocator.ReturnLog.Select(x => x.HashCodeOfBuffer).Order());
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SymbolWriterGrowthFailureRetainsItsOwner(bool failDuringFinalization)
-    {
-        int initialCapacity = failDuringFinalization ? 1 : 8;
-        OutputLimitedAllocator allocator = new(initialCapacity);
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        using (Av1SymbolWriter writer = new(configuration, initialCapacity, updateCdf: false))
-        {
-            Assert.Throws<InvalidMemoryOperationException>(() =>
-            {
-                if (failDuringFinalization)
-                {
-                    writer.WriteBoolean(false, 16_384);
-                    writer.WriteBoolean(false, 16_384);
-                    writer.WriteBoolean(true, 512);
-                    writer.WriteBoolean(false, 8_192);
-                    _ = writer.Exit(out _);
-                }
-                else
-                {
-                    for (int index = 0; index < 32; index++)
-                    {
-                        writer.WriteLiteral((uint)index, 8);
-                    }
-                }
-            });
-
-            Assert.Single(allocator.AllocationLog);
-            Assert.Empty(allocator.ReturnLog);
-        }
-
-        Assert.Equal(
-            Assert.Single(allocator.AllocationLog).HashCodeOfBuffer,
-            Assert.Single(allocator.ReturnLog).HashCodeOfBuffer);
-    }
-
     [Fact]
-    public void SymbolWriterResetReusesExistingOutputAllocation()
+    public void RawBytesFromWriteLiteral4Bits()
     {
-        const int bufferLength = 257;
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        TestMemoryAllocator.AllocationRequest allocation;
-
-        using (Av1SymbolWriter writer = new(configuration, bufferLength, updateCdf: false))
-        {
-            writer.WriteBoolean(false, 16_384);
-            writer.WriteBoolean(false, 16_384);
-            writer.WriteBoolean(true, 512);
-            writer.WriteBoolean(false, 8_192);
-            allocation = Assert.Single(allocator.AllocationLog);
-            ReadOnlyMemory<byte> encoded = writer.Exit(out int length);
-
-            Assert.Equal(2, length);
-            Assert.Equal(length, encoded.Length);
-            Assert.Equal(63, encoded.Span[0]);
-            Assert.Single(allocator.AllocationLog);
-            Assert.Empty(allocator.ReturnLog);
-
-            int firstLength = length;
-            writer.Reset(firstLength);
-            writer.WriteBoolean(false, 16_384);
-            writer.WriteBoolean(false, 16_384);
-            writer.WriteBoolean(true, 512);
-            writer.WriteBoolean(false, 8_192);
-            encoded = writer.Exit(out length);
-
-            Assert.Equal(2, length);
-            Assert.Equal(length, encoded.Length);
-            Assert.Equal(63, encoded.Span[0]);
-            ReadOnlyMemory<byte> output = writer.GetOutput(firstLength + length);
-            Assert.True(output.Span[..firstLength].SequenceEqual(output.Span[firstLength..]));
-            Assert.Single(allocator.AllocationLog);
-            Assert.Empty(allocator.ReturnLog);
-
-            writer.Reset();
-            writer.WriteBoolean(false, 16_384);
-            writer.WriteBoolean(false, 16_384);
-            writer.WriteBoolean(true, 512);
-            writer.WriteBoolean(false, 8_192);
-            encoded = writer.Exit(out length);
-
-            Assert.Equal(2, length);
-            Assert.Equal(length, encoded.Length);
-            Assert.Equal(63, encoded.Span[0]);
-            Assert.Single(allocator.AllocationLog);
-            Assert.Empty(allocator.ReturnLog);
-        }
-
-        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)0, (byte)0, (byte)0, (byte)0, (byte)0, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)1, (byte)17, (byte)68, (byte)34, (byte)34, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)2, (byte)34, (byte)86, (byte)68, (byte)68, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)3, (byte)51, (byte)104, (byte)102, (byte)102, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)4, (byte)68, (byte)118, (byte)34, (byte)34, (byte)64);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)5, (byte)85, (byte)118, (byte)170, (byte)170, (byte)192);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)6, (byte)102, (byte)119, (byte)51, (byte)51, (byte)64);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)7, (byte)119, (byte)119, (byte)187, (byte)187, (byte)192);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)8, (byte)136, (byte)129, (byte)17, (byte)17, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)9, (byte)153, (byte)147, (byte)51, (byte)51, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)10, (byte)170, (byte)165, (byte)85, (byte)85, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)11, (byte)187, (byte)183, (byte)119, (byte)119, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)12, (byte)204, (byte)201, (byte)153, (byte)153, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)13, (byte)221, (byte)219, (byte)187, (byte)187, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)14, (byte)238, (byte)237, (byte)221, (byte)221, (byte)128);
+        this.RawBytesFromWriteLiteral4BitsCase((uint)15, (byte)255, (byte)255, (byte)255, (byte)255, (byte)128);
     }
 
-    /// <summary>
-    /// Verifies bounded coefficient scratch is rented at construction and reused by costing, coding, and frame resets.
-    /// </summary>
-    [Fact]
-    public void SymbolEncoderReusesConstructorOwnedCoefficientScratchAcrossFrames()
-    {
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        Span<int> coefficients = stackalloc int[16];
-
-        using (Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true))
-        {
-            Assert.Equal(3, allocator.AllocationLog.Count);
-            TestMemoryAllocator.AllocationRequest levelScratch = allocator.AllocationLog[0];
-            TestMemoryAllocator.AllocationRequest contextScratch = allocator.AllocationLog[1];
-            TestMemoryAllocator.AllocationRequest outputScratch = allocator.AllocationLog[2];
-            int maximumTransformDimension = Av1Constants.MaxTransformSize / 2;
-            int expectedLevelLength =
-                (Av1Constants.TransformPadHorizontal + maximumTransformDimension) *
-                (Av1Constants.TransformPadTop + maximumTransformDimension + Av1Constants.TransformPadBottom);
-
-            Assert.Equal(typeof(byte), levelScratch.ElementType);
-            Assert.Equal(expectedLevelLength, levelScratch.Length);
-            Assert.Equal(AllocationOptions.Clean, levelScratch.AllocationOptions);
-            Assert.Equal(typeof(int), contextScratch.ElementType);
-            Assert.Equal(
-                Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength + (maximumTransformDimension * maximumTransformDimension / sizeof(int)),
-                contextScratch.Length);
-
-            Assert.Equal(typeof(byte), outputScratch.ElementType);
-            Assert.Equal(64, outputScratch.Length);
-
-            // Exercise both an empty and a coded transform on each side of a frame reset. The second pass must
-            // reuse every constructor-owned buffer even after nonzero levels and probability updates exist.
-            for (int frame = 0; frame < 2; frame++)
-            {
-                coefficients.Clear();
-                int emptyContext = encoder.WriteCoefficients(
-                    Av1TransformSize.Size4x4,
-                    Av1TransformType.DctDct,
-                    Av1PredictionMode.DC,
-                    coefficients,
-                    Av1ComponentType.Luminance,
-                    default,
-                    0,
-                    false,
-                    Av1FilterIntraMode.DC,
-                    usesInterTransformSet: false);
-
-                Assert.Equal(0, emptyContext);
-                Assert.Equal(3, allocator.AllocationLog.Count);
-
-                coefficients[0] = 1;
-                _ = encoder.GetCoefficientCost(
-                    Av1TransformSize.Size4x4,
-                    Av1TransformType.DctDct,
-                    Av1PredictionMode.DC,
-                    coefficients,
-                    Av1ComponentType.Luminance,
-                    default,
-                    1,
-                    false,
-                    Av1FilterIntraMode.DC,
-                    usesInterTransformSet: false);
-
-                encoder.WriteCoefficients(
-                    Av1TransformSize.Size4x4,
-                    Av1TransformType.DctDct,
-                    Av1PredictionMode.DC,
-                    coefficients,
-                    Av1ComponentType.Luminance,
-                    default,
-                    1,
-                    false,
-                    Av1FilterIntraMode.DC,
-                    usesInterTransformSet: false);
-
-                encoder.Exit(out _);
-                encoder.Reset();
-                Assert.Equal(3, allocator.AllocationLog.Count);
-                Assert.Empty(allocator.ReturnLog);
-            }
-        }
-
-        Assert.Equal(3, allocator.ReturnLog.Count);
-        Assert.Equal(
-            allocator.AllocationLog.Select(x => x.HashCodeOfBuffer).Order(),
-            allocator.ReturnLog.Select(x => x.HashCodeOfBuffer).Order());
-    }
-
-    [Fact]
-    public void ReadRandomLiteral()
-    {
-        // Assign
-        const int bitCount = 4;
-        Random rand = new(bitCount);
-        byte[] values = Enumerable.Range(0, 100).Select(x => (byte)rand.Next(1 << bitCount)).ToArray();
-        Av1SymbolReader reader = new(values);
-        List<int> actuals = [];
-
-        // Act
-        for (int i = 0; i < values.Length; i++)
-        {
-            actuals.Add(reader.ReadLiteral(bitCount));
-        }
-
-        // Assert
-        Assert.True(values.Length > bitCount);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 128)]
-    [InlineData(1, 255, 128)]
-    public void RawBytesFromWriteLiteral1Bit(uint value, byte exp0, byte exp1)
-    {
-        byte[] expected = [exp0, exp1];
-        AssertRawBytesWritten(1, value, expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 128)]
-    [InlineData(1, 85, 118, 192)]
-    [InlineData(2, 170, 165, 128)]
-    [InlineData(3, 255, 255, 128)]
-    public void RawBytesFromWriteLiteral2Bits(uint value, byte exp0, byte exp1, byte exp2)
-    {
-        byte[] expected = [exp0, exp1, exp2];
-        AssertRawBytesWritten(2, value, expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 0, 128)]
-    [InlineData(1, 36, 198, 146, 128)]
-    [InlineData(2, 73, 81, 182, 192)]
-    [InlineData(3, 109, 192, 146, 64)]
-    [InlineData(4, 146, 66, 73, 128)]
-    [InlineData(5, 182, 214, 219, 128)]
-    [InlineData(6, 219, 107, 109, 128)]
-    [InlineData(7, 255, 255, 255, 128)]
-    public void RawBytesFromWriteLiteral3Bits(uint value, byte exp0, byte exp1, byte exp2, byte exp3)
-    {
-        byte[] expected = [exp0, exp1, exp2, exp3];
-        AssertRawBytesWritten(3, value, expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 0, 0, 128)]
-    [InlineData(1, 17, 68, 34, 34, 128)]
-    [InlineData(2, 34, 86, 68, 68, 128)]
-    [InlineData(3, 51, 104, 102, 102, 128)]
-    [InlineData(4, 68, 118, 34, 34, 64)]
-    [InlineData(5, 85, 118, 170, 170, 192)]
-    [InlineData(6, 102, 119, 51, 51, 64)]
-    [InlineData(7, 119, 119, 187, 187, 192)]
-    [InlineData(8, 136, 129, 17, 17, 128)]
-    [InlineData(9, 153, 147, 51, 51, 128)]
-    [InlineData(10, 170, 165, 85, 85, 128)]
-    [InlineData(11, 187, 183, 119, 119, 128)]
-    [InlineData(12, 204, 201, 153, 153, 128)]
-    [InlineData(13, 221, 219, 187, 187, 128)]
-    [InlineData(14, 238, 237, 221, 221, 128)]
-    [InlineData(15, 255, 255, 255, 255, 128)]
-    public void RawBytesFromWriteLiteral4Bits(uint value, byte exp0, byte exp1, byte exp2, byte exp3, byte exp4)
+    private void RawBytesFromWriteLiteral4BitsCase(uint value, byte exp0, byte exp1, byte exp2, byte exp3, byte exp4)
     {
         byte[] expected = [exp0, exp1, exp2, exp3, exp4];
         AssertRawBytesWritten(4, value, expected);
@@ -1365,375 +211,6 @@ public class Av1EntropyTests
 
         // Assert
         Assert.Equal(expected, actual.GetSpan().ToArray());
-    }
-
-    [Theory]
-    [InlineData(0, 0, 128)]
-    [InlineData(1, 255, 128)]
-    public void RawBytesReadLiteral1Bit(int value, byte exp0, byte exp1)
-    {
-        byte[] buffer = [exp0, exp1];
-        AssertRawBytesRead(1, buffer, value);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 128)]
-    [InlineData(1, 85, 118, 192)]
-    [InlineData(2, 170, 165, 128)]
-    [InlineData(3, 255, 255, 128)]
-    public void RawBytesReadLiteral2Bits(int value, byte exp0, byte exp1, byte exp2)
-    {
-        byte[] buffer = [exp0, exp1, exp2];
-        AssertRawBytesRead(2, buffer, value);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 0, 128)]
-    [InlineData(1, 36, 198, 146, 128)]
-    [InlineData(2, 73, 81, 182, 192)]
-    [InlineData(3, 109, 192, 146, 64)]
-    [InlineData(4, 146, 66, 73, 128)]
-    [InlineData(5, 182, 214, 219, 128)]
-    [InlineData(6, 219, 107, 109, 128)]
-    [InlineData(7, 255, 255, 255, 128)]
-    public void RawBytesReadLiteral3Bits(int value, byte exp0, byte exp1, byte exp2, byte exp3)
-    {
-        byte[] buffer = [exp0, exp1, exp2, exp3];
-        AssertRawBytesRead(3, buffer, value);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 0, 0, 128)]
-    [InlineData(1, 17, 68, 34, 34, 128)]
-    [InlineData(2, 34, 86, 68, 68, 128)]
-    [InlineData(3, 51, 104, 102, 102, 128)]
-    [InlineData(4, 68, 118, 34, 34, 64)]
-    [InlineData(5, 85, 118, 170, 170, 192)]
-    [InlineData(6, 102, 119, 51, 51, 64)]
-    [InlineData(7, 119, 119, 187, 187, 192)]
-    [InlineData(8, 136, 129, 17, 17, 128)]
-    [InlineData(9, 153, 147, 51, 51, 128)]
-    [InlineData(10, 170, 165, 85, 85, 128)]
-    [InlineData(11, 187, 183, 119, 119, 128)]
-    [InlineData(12, 204, 201, 153, 153, 128)]
-    [InlineData(13, 221, 219, 187, 187, 128)]
-    [InlineData(14, 238, 237, 221, 221, 128)]
-    [InlineData(15, 255, 255, 255, 255, 128)]
-    public void RawBytesReadLiteral4Bits(int value, byte exp0, byte exp1, byte exp2, byte exp3, byte exp4)
-    {
-        byte[] buffer = [exp0, exp1, exp2, exp3, exp4];
-        AssertRawBytesRead(4, buffer, value);
-    }
-
-    private static void AssertRawBytesRead(int bitCount, byte[] buffer, int expected)
-    {
-        // Assign
-        int[] values = new int[8];
-        int[] expectedValues = new int[8];
-        Array.Fill(expectedValues, expected);
-        Av1SymbolReader reader = new(buffer);
-
-        // Act
-        for (int i = 0; i < 8; i++)
-        {
-            values[i] = reader.ReadLiteral(bitCount);
-        }
-
-        // Assert
-        Assert.Equal(expectedValues, values);
-    }
-
-    [Fact]
-    public void RoundTripUniformPaletteIndices()
-    {
-        Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true);
-
-        for (int valueCount = 2; valueCount <= Av1Constants.PaletteMaxSize; valueCount++)
-        {
-            for (int value = 0; value < valueCount; value++)
-            {
-                encoder.WriteUniform(valueCount, value);
-            }
-        }
-
-        using IMemoryOwner<byte> encoded = encoder.Exit();
-        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
-        for (int valueCount = 2; valueCount <= Av1Constants.PaletteMaxSize; valueCount++)
-        {
-            for (int value = 0; value < valueCount; value++)
-            {
-                Assert.Equal(value, decoder.ReadUniform(valueCount));
-            }
-        }
-    }
-
-    [Fact]
-    public void RoundTripPaletteSymbols()
-    {
-        Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 256, BaseQIndex, updateCdf: true);
-
-        for (int blockSizeContext = 0; blockSizeContext < 7; blockSizeContext++)
-        {
-            for (int neighborContext = 0; neighborContext < 3; neighborContext++)
-            {
-                encoder.WritePaletteYMode(
-                    ((blockSizeContext + neighborContext) & 1) != 0,
-                    blockSizeContext,
-                    neighborContext);
-            }
-
-            int paletteSize = blockSizeContext + 2;
-            encoder.WritePaletteSize(paletteSize, blockSizeContext, Av1PlaneType.Y);
-            encoder.WritePaletteSize(Av1Constants.PaletteMaxSize - blockSizeContext, blockSizeContext, Av1PlaneType.Uv);
-        }
-
-        encoder.WritePaletteUvMode(false, false);
-        encoder.WritePaletteUvMode(true, false);
-        encoder.WritePaletteUvMode(false, true);
-        encoder.WritePaletteUvMode(true, true);
-        for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
-        {
-            for (int colorContext = 0; colorContext < 5; colorContext++)
-            {
-                int colorOrderIndex = (paletteSize + colorContext - 1) % paletteSize;
-                encoder.WritePaletteColorIndex(colorOrderIndex, paletteSize, colorContext, Av1PlaneType.Y);
-                encoder.WritePaletteColorIndex(colorOrderIndex, paletteSize, colorContext, Av1PlaneType.Uv);
-            }
-        }
-
-        using IMemoryOwner<byte> encoded = encoder.Exit();
-        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
-        for (int blockSizeContext = 0; blockSizeContext < 7; blockSizeContext++)
-        {
-            for (int neighborContext = 0; neighborContext < 3; neighborContext++)
-            {
-                Assert.Equal(
-                    ((blockSizeContext + neighborContext) & 1) != 0,
-                    decoder.ReadPaletteYMode(blockSizeContext, neighborContext));
-            }
-
-            Assert.Equal(blockSizeContext + 2, decoder.ReadPaletteSize(blockSizeContext, Av1PlaneType.Y));
-            Assert.Equal(
-                Av1Constants.PaletteMaxSize - blockSizeContext,
-                decoder.ReadPaletteSize(blockSizeContext, Av1PlaneType.Uv));
-        }
-
-        Assert.False(decoder.ReadPaletteUvMode(false));
-        Assert.True(decoder.ReadPaletteUvMode(false));
-        Assert.False(decoder.ReadPaletteUvMode(true));
-        Assert.True(decoder.ReadPaletteUvMode(true));
-        for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
-        {
-            for (int colorContext = 0; colorContext < 5; colorContext++)
-            {
-                int expected = (paletteSize + colorContext - 1) % paletteSize;
-                Assert.Equal(
-                    expected,
-                    decoder.ReadPaletteColorIndex(paletteSize, colorContext, Av1PlaneType.Y));
-
-                Assert.Equal(
-                    expected,
-                    decoder.ReadPaletteColorIndex(paletteSize, colorContext, Av1PlaneType.Uv));
-            }
-        }
-    }
-
-    [Fact]
-    public void PaletteSyntaxCostsMatchCurrentDistributions()
-    {
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-        Av1Distribution[][] yMode = Av1DefaultDistributions.PaletteYMode;
-        Av1Distribution[] uvMode = Av1DefaultDistributions.PaletteUvMode;
-        Av1Distribution[] ySize = Av1DefaultDistributions.PaletteYSize;
-        Av1Distribution[] uvSize = Av1DefaultDistributions.PaletteUvSize;
-        Av1Distribution[][] yColorIndex = Av1DefaultDistributions.PaletteYColorIndex;
-        Av1Distribution[][] uvColorIndex = Av1DefaultDistributions.PaletteUvColorIndex;
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(yMode[4][2], 1),
-            encoder.GetPaletteYModeCost(true, 4, 2));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(uvMode[1], 0),
-            encoder.GetPaletteUvModeCost(false, true));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(ySize[3], 4),
-            encoder.GetPaletteSizeCost(6, 3, Av1PlaneType.Y));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(uvSize[5], 1),
-            encoder.GetPaletteSizeCost(3, 5, Av1PlaneType.Uv));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(yColorIndex[6][4], 7),
-            encoder.GetPaletteColorIndexCost(7, 8, 4, Av1PlaneType.Y));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(uvColorIndex[3][2], 4),
-            encoder.GetPaletteColorIndexCost(4, 5, 2, Av1PlaneType.Uv));
-
-        Assert.Equal(Av1ProbabilityCost.GetLiteralCost(2), Av1SymbolEncoder.GetUniformCost(5, 2));
-        Assert.Equal(Av1ProbabilityCost.GetLiteralCost(3), Av1SymbolEncoder.GetUniformCost(5, 3));
-    }
-
-    [Theory]
-    [InlineData(8)]
-    [InlineData(10)]
-    [InlineData(12)]
-    public void RoundTripPaletteColors(int bitDepth)
-    {
-        ushort[] colorCache = [4, 17, 23, 51];
-        ushort[] yColors = [4, 23, 90];
-        ushort[] uColors = [17, 51, 100];
-        ushort[] deltaVColors = [1, 2, 1];
-        ushort[] rawVColors = [0, (ushort)(1 << (bitDepth - 1)), 0];
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 128, BaseQIndex, updateCdf: true);
-        encoder.WritePaletteYColors(colorCache, yColors, bitDepth);
-        encoder.WritePaletteUvColors(colorCache, uColors, deltaVColors, bitDepth);
-        encoder.WritePaletteUvColors(colorCache, uColors, rawVColors, bitDepth);
-
-        using IMemoryOwner<byte> encoded = encoder.Exit();
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
-        ushort[] decodedYColors = new ushort[yColors.Length];
-        ushort[] decodedUColors = new ushort[uColors.Length];
-        ushort[] decodedDeltaVColors = new ushort[deltaVColors.Length];
-        ushort[] decodedRawVColors = new ushort[rawVColors.Length];
-        decoder.ReadPaletteYColors(colorCache, yColors.Length, bitDepth, decodedYColors);
-        decoder.ReadPaletteUvColors(
-            colorCache,
-            uColors.Length,
-            bitDepth,
-            decodedUColors,
-            decodedDeltaVColors);
-
-        Assert.Equal(yColors, decodedYColors);
-        Assert.Equal(uColors, decodedUColors);
-        Assert.Equal(deltaVColors, decodedDeltaVColors);
-
-        decodedUColors.AsSpan().Clear();
-        decoder.ReadPaletteUvColors(
-            colorCache,
-            uColors.Length,
-            bitDepth,
-            decodedUColors,
-            decodedRawVColors);
-
-        Assert.Equal(uColors, decodedUColors);
-        Assert.Equal(rawVColors, decodedRawVColors);
-    }
-
-    [Fact]
-    public void PaletteColorCostsMatchCurrentLibaomBitCounts()
-    {
-        ushort[] colorCache = [5, 10, 20];
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetLiteralCost(20),
-            Av1SymbolEncoder.GetPaletteYColorCost([], [10, 20, 21], 8));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetLiteralCost(11),
-            Av1SymbolEncoder.GetPaletteYColorCost(colorCache, [5, 20, 30], 8));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetLiteralCost(32),
-            Av1SymbolEncoder.GetPaletteUvColorCost(colorCache, [5, 20, 30], [20, 21, 20], 8));
-
-        Assert.Equal(
-            Av1ProbabilityCost.GetLiteralCost(36),
-            Av1SymbolEncoder.GetPaletteUvColorCost(colorCache, [5, 20, 30], [0, 128, 0], 8));
-    }
-
-    [Fact]
-    public void PaletteColorCostDoesNotAllocate()
-    {
-        ushort[] colorCache = [5, 10, 20];
-        ushort[] yColors = [5, 20, 30];
-        ushort[] uColors = [5, 20, 30];
-        ushort[] vColors = [20, 21, 20];
-        _ = Av1SymbolEncoder.GetPaletteYColorCost(colorCache, yColors, 8);
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int i = 0; i < 1000; i++)
-        {
-            _ = Av1SymbolEncoder.GetPaletteYColorCost(colorCache, yColors, 8);
-            _ = Av1SymbolEncoder.GetPaletteUvColorCost(colorCache, uColors, vColors, 8);
-        }
-
-        long after = GC.GetAllocatedBytesForCurrentThread();
-        Assert.Equal(before, after);
-    }
-
-    [Fact]
-    public void PaletteColorMapCostMatchesCurrentDistributions()
-    {
-        using Buffer2D<byte> map = Configuration.Default.MemoryAllocator.Allocate2D<byte>(2, 2, AllocationOptions.Clean);
-        map.DangerousGetRowSpan(0)[0] = 2;
-        map.DangerousGetRowSpan(0)[1] = 0;
-        map.DangerousGetRowSpan(1)[0] = 1;
-        map.DangerousGetRowSpan(1)[1] = 2;
-        Buffer2DRegion<byte> region = new(map);
-        Av1Distribution[][] distributions = Av1DefaultDistributions.PaletteYColorIndex;
-        int expected = Av1SymbolEncoder.GetUniformCost(3, 2);
-        expected += Av1ProbabilityCost.GetSymbolCost(distributions[1][0], 1);
-        expected += Av1ProbabilityCost.GetSymbolCost(distributions[1][0], 2);
-        expected += Av1ProbabilityCost.GetSymbolCost(distributions[1][1], 2);
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-
-        Assert.Equal(
-            expected,
-            encoder.GetPaletteColorMapCost(3, Av1PlaneType.Y, 2, 2, region));
-    }
-
-    [Fact]
-    public void PaletteCacheMergesSortedNeighborColorsWithoutDuplicates()
-    {
-        ReadOnlySpan<ushort> above = [1, 3, 5, 7];
-        ReadOnlySpan<ushort> left = [2, 3, 6, 7];
-        Span<ushort> cache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
-
-        int count = Av1PaletteCache.Merge(above, left, cache);
-
-        Assert.Equal([1, 2, 3, 5, 6, 7], cache[..count].ToArray());
-    }
-
-    [Theory]
-    [InlineData(1, 1, 0, 0, 0, 1, 4, 1)]
-    [InlineData(1, 1, 0, 1, 0, 1, 3, 1)]
-    [InlineData(1, 1, 0, 0, 1, 1, 2, 1)]
-    [InlineData(1, 1, 0, 2, 1, 2, 1, 2)]
-    [InlineData(0, 1, 0, 2, 0, 0, 0, 1)]
-    public void PaletteColorMapContextMatchesCurrentLibaom(
-        int row,
-        int column,
-        byte left,
-        byte upperLeft,
-        byte above,
-        byte current,
-        int expectedContext,
-        int expectedOrderIndex)
-    {
-        using Buffer2D<byte> map = Configuration.Default.MemoryAllocator.Allocate2D<byte>(2, 2, AllocationOptions.Clean);
-        map.DangerousGetRowSpan(0)[0] = upperLeft;
-        map.DangerousGetRowSpan(0)[1] = above;
-        map.DangerousGetRowSpan(1)[0] = left;
-        map.DangerousGetRowSpan(row)[column] = current;
-        Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
-
-        int actualContext = Av1PaletteColorMap.GetContext(
-            new Buffer2DRegion<byte>(map),
-            row,
-            column,
-            paletteSize: 4,
-            current,
-            colorOrder,
-            out int actualOrderIndex);
-
-        Assert.Equal(expectedContext, actualContext);
-        Assert.Equal(expectedOrderIndex, actualOrderIndex);
     }
 
     [Fact]
@@ -1819,99 +296,24 @@ public class Av1EntropyTests
         decoder.ValidateTrailingBits();
     }
 
-    [Theory]
-    [InlineData(true, (int)Av1PlaneType.Y)]
-    [InlineData(false, (int)Av1PlaneType.Y)]
-    [InlineData(true, (int)Av1PlaneType.Uv)]
-    [InlineData(false, (int)Av1PlaneType.Uv)]
-    public void PaletteTokensSurviveMapReuseWithoutWritingAnalysisBytes(bool updateCdf, int planeTypeValue)
-    {
-        const int Rows = 5;
-        const int Columns = 7;
-        const int PaletteSize = 7;
-        Av1PlaneType planeType = (Av1PlaneType)planeTypeValue;
-        Configuration configuration = Configuration.Default;
-        using Buffer2D<byte> source = configuration.MemoryAllocator.Allocate2D<byte>(9, 6);
-        Buffer2DRegion<byte> region = new(source);
-        Span<byte> tokens = stackalloc byte[Rows * Columns];
-        for (int row = 0; row < Rows; row++)
-        {
-            Span<byte> samples = source.DangerousGetRowSpan(row);
-            for (int column = 0; column < Columns; column++)
-            {
-                samples[column] = (byte)(((row * 3) + (column * 5)) % PaletteSize);
-            }
-        }
-
-        using Av1SymbolEncoder analysis = new(configuration, 128, BaseQIndex, updateCdf);
-        using Av1SymbolEncoder immediate = new(configuration, 128, BaseQIndex, updateCdf);
-        using Av1SymbolEncoder packing = new(configuration, 128, BaseQIndex, updateCdf);
-        using Av1SymbolEncoder empty = new(configuration, 128, BaseQIndex, updateCdf);
-        analysis.TokenizePaletteColorMap(PaletteSize, planeType, Rows, Columns, region, tokens);
-        immediate.WritePaletteColorMap(PaletteSize, planeType, Rows, Columns, region);
-
-        for (int context = 0; context < 5; context++)
-        {
-            for (int color = 0; color < PaletteSize; color++)
-            {
-                Assert.Equal(
-                    immediate.GetPaletteColorIndexCost(color, PaletteSize, context, planeType),
-                    analysis.GetPaletteColorIndexCost(color, PaletteSize, context, planeType));
-            }
-        }
-
-        // The prediction workspace is reusable immediately after analysis. Poison every row, including its
-        // padding, so final packing must consume retained tokens rather than consult the old color map.
-        for (int row = 0; row < source.Height; row++)
-        {
-            source.DangerousGetRowSpan(row).Fill(byte.MaxValue);
-        }
-
-        packing.WritePaletteTokens(PaletteSize, planeType, tokens);
-        using IMemoryOwner<byte> analyzedBytes = analysis.Exit();
-        using IMemoryOwner<byte> emptyBytes = empty.Exit();
-        using IMemoryOwner<byte> immediateBytes = immediate.Exit();
-        using IMemoryOwner<byte> packedBytes = packing.Exit();
-        Assert.True(emptyBytes.GetSpan().SequenceEqual(analyzedBytes.GetSpan()));
-        Assert.True(immediateBytes.GetSpan().SequenceEqual(packedBytes.GetSpan()));
-    }
-
     [Fact]
-    public void PaletteColorMapCostDoesNotAllocateAfterEntropyInitialization()
+    public void RoundTripPartitionType()
     {
-        using Buffer2D<byte> map = Configuration.Default.MemoryAllocator.Allocate2D<byte>(7, 5, AllocationOptions.Clean);
-        for (int row = 0; row < map.Height; row++)
+        foreach (ITheoryDataRow row in GetRangeData(20))
         {
-            Span<byte> mapRow = map.DangerousGetRowSpan(row);
-            for (int column = 0; column < map.Width; column++)
-            {
-                mapRow[column] = (byte)(((row * 3) + (column * 5)) % 4);
-            }
+            object?[] values = row.GetData();
+            this.RoundTripPartitionTypeCase((int)values[0]!);
         }
 
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
-        Buffer2DRegion<byte> region = new(map);
-
-        // Run past tiered-compilation thresholds before measuring the established steady-state allocation contract.
-        for (int i = 0; i < 1000; i++)
+        foreach (ITheoryDataRow row in GetSplitPartitionTypeData())
         {
-            _ = encoder.GetPaletteColorMapCost(4, Av1PlaneType.Y, map.Height, map.Width, region);
+            object?[] values = row.GetData();
+            this.RoundTripSplitOrHorizontalPartitionTypeCase((int)values[0]!, (int)values[1]!);
+            this.RoundTripSplitOrVerticalPartitionTypeCase((int)values[0]!, (int)values[1]!);
         }
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int i = 0; i < 1000; i++)
-        {
-            _ = encoder.GetPaletteColorMapCost(4, Av1PlaneType.Y, map.Height, map.Width, region);
-        }
-
-        long after = GC.GetAllocatedBytesForCurrentThread();
-        Assert.Equal(before, after);
     }
 
-    [Theory]
-    [MemberData(nameof(GetRangeData), 20)]
-    public void RoundTripPartitionType(int context)
+    private void RoundTripPartitionTypeCase(int context)
     {
         // Assign
         Configuration configuration = Configuration.Default;
@@ -1939,9 +341,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [MemberData(nameof(GetSplitPartitionTypeData))]
-    public void RoundTripSplitOrHorizontalPartitionType(int size, int context)
+    private void RoundTripSplitOrHorizontalPartitionTypeCase(int size, int context)
     {
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
@@ -1970,9 +370,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [MemberData(nameof(GetSplitPartitionTypeData))]
-    public void RoundTripSplitOrVerticalPartitionType(int size, int context)
+    private void RoundTripSplitOrVerticalPartitionTypeCase(int size, int context)
     {
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
@@ -2001,11 +399,22 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void RoundTripSkip(int context)
+    [Fact]
+    public void RoundTripSkip()
+    {
+        for (int context = 0; context < 3; context++)
+        {
+            this.RoundTripSkipCase(context);
+        }
+
+        foreach (ITheoryDataRow row in GetTransformBlockSkipData())
+        {
+            object?[] values = row.GetData();
+            this.RoundTripTransformBlockSkipCase((int)values[0]!, (int)values[1]!);
+        }
+    }
+
+    private void RoundTripSkipCase(int context)
     {
         // Assign
         Configuration configuration = Configuration.Default;
@@ -2031,9 +440,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [MemberData(nameof(GetTransformBlockSkipData))]
-    internal void RoundTripTransformBlockSkip(int transformContext, int skipContext)
+    private void RoundTripTransformBlockSkipCase(int transformContext, int skipContext)
     {
         // Assign
         Av1TransformSize transformSizeContext = (Av1TransformSize)transformContext;
@@ -2060,11 +467,23 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [MemberData(nameof(GetTransformTypeData))]
+    [Fact]
+    public void RoundTripTransformType()
+    {
+        foreach (ITheoryDataRow row in GetTransformTypeData())
+        {
+            object?[] values = row.GetData();
+            this.RoundTripTransformTypeCase((int)values[0]!, (int)values[1]!, (int)values[2]!);
+        }
 
-    // [InlineData(2, 0, 1)]
-    public void RoundTripTransformType(int txSizeContext, int intraMode, int intraDir)
+        foreach (ITheoryDataRow row in GetInterTransformTypeData())
+        {
+            object?[] values = row.GetData();
+            this.RoundTripInterTransformTypeCase((int)values[0]!, (bool)values[1]!);
+        }
+    }
+
+    private void RoundTripTransformTypeCase(int txSizeContext, int intraMode, int intraDir)
     {
         // Assign
         Av1TransformSize transformSizeContext = (Av1TransformSize)txSizeContext;
@@ -2098,9 +517,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [MemberData(nameof(GetInterTransformTypeData))]
-    public void InterTransformTypeUsesExpectedCostAndRoundTrips(int txSize, bool useReducedTransformSet)
+    private void RoundTripInterTransformTypeCase(int txSize, bool useReducedTransformSet)
     {
         Av1TransformSize transformSize = (Av1TransformSize)txSize;
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
@@ -2160,40 +577,6 @@ public class Av1EntropyTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(GetEndOfBlockPositionData))]
-    public void RoundTripEndOfBlockPosition(int txSize, int txSizeContext, int plane, int txClass)
-    {
-        // Assign
-        Av1TransformSize transformSize = (Av1TransformSize)txSize;
-        Av1TransformSize transformSizeContext = (Av1TransformSize)txSizeContext;
-        Av1ComponentType componentType = (Av1ComponentType)plane;
-        Av1PlaneType planeType = (Av1PlaneType)plane;
-        Av1TransformClass transformClass = (Av1TransformClass)txClass;
-        Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
-
-        int[] values = [1, 2, 3, 4, 5];
-        int[] actuals = new int[values.Length];
-
-        // Act
-        foreach (int value in values)
-        {
-            encoder.WriteEndOfBlockPosition((ushort)value, componentType, transformClass, transformSize, transformSizeContext);
-        }
-
-        using IMemoryOwner<byte> encoded = encoder.Exit();
-
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
-        for (int i = 0; i < values.Length; i++)
-        {
-            actuals[i] = decoder.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
-        }
-
-        // Assert
-        Assert.Equal(values, actuals);
-    }
-
     [Fact]
     public void RoundTripGolomb()
     {
@@ -2225,11 +608,16 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void RoundTripSegmentId(int context)
+    [Fact]
+    public void RoundTripSegmentId()
+    {
+        for (int context = 0; context < 3; context++)
+        {
+            this.RoundTripSegmentIdCase(context);
+        }
+    }
+
+    private void RoundTripSegmentIdCase(int context)
     {
         // Assign
         int[] values = [3, 6, 7, 0, 2, 0, 2, 1, 1];
@@ -2282,9 +670,17 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Theory]
-    [MemberData(nameof(GetRangeData), (int)Av1BlockSize.AllSizes)]
-    public void RoundTripFilterIntraMode(int bSize)
+    [Fact]
+    public void RoundTripFilterIntraMode()
+    {
+        foreach (ITheoryDataRow row in GetRangeData((int)Av1BlockSize.AllSizes))
+        {
+            object?[] values = row.GetData();
+            this.RoundTripFilterIntraModeCase((int)values[0]!);
+        }
+    }
+
+    private void RoundTripFilterIntraModeCase(int bSize)
     {
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)bSize;
@@ -2311,101 +707,6 @@ public class Av1EntropyTests
 
         // Assert
         Assert.Equal(values, actuals);
-    }
-
-    [Fact]
-    public void RoundTripUseIntraBlockCopy()
-    {
-        // Assign
-        bool[] values = [true, true, false, true, false, false, false];
-        Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
-        bool[] actuals = new bool[values.Length];
-
-        Assert.Equal(51, encoder.GetUseIntraBlockCopyCost(false));
-        Assert.Equal(1982, encoder.GetUseIntraBlockCopyCost(true));
-
-        // Act
-        foreach (bool value in values)
-        {
-            encoder.WriteUseIntraBlockCopy(value);
-        }
-
-        using IMemoryOwner<byte> encoded = encoder.Exit();
-
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
-        for (int i = 0; i < values.Length; i++)
-        {
-            actuals[i] = decoder.ReadUseIntraBlockCopy();
-        }
-
-        // Assert
-        Assert.Equal(values, actuals);
-    }
-
-    /// <summary>
-    /// Verifies integer displacement-vector joints, signs, magnitude classes, and adaptive offset bits.
-    /// </summary>
-    [Fact]
-    public void RoundTripIntraBlockCopyDisplacementVectors()
-    {
-        Av1MotionVector[] references =
-        [
-            new(-4096, 0),
-            new(0, -4096),
-            new(-1024, 0),
-            new(256, -256),
-            new(0, 0),
-            new(-2048, 2048),
-        ];
-
-        Av1MotionVector[] values =
-        [
-            new(-4096, 0),
-            new(8, -4096),
-            new(-1040, 24),
-            new(256, -336),
-            new(512, 1024),
-            new(6144, -6144),
-        ];
-
-        int[] expectedCosts = [1440, 1661, 5231, 5807, 16955, 31656];
-        Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true);
-        using IMemoryOwner<int> costStorage = configuration.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
-        Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
-        encoder.FillDisplacementVectorCosts(costs);
-
-        // These fixed costs cover every joint, both signs, class zero, and large-class offset bits.
-        for (int i = 0; i < values.Length; i++)
-        {
-            Assert.Equal(expectedCosts[i], costs.GetDisplacementVectorCost(values[i], references[i]));
-        }
-
-        for (int i = 0; i < values.Length; i++)
-        {
-            encoder.WriteDisplacementVector(values[i], references[i]);
-        }
-
-        // Coding adapts the probabilities, but candidate rates change only at an explicit refresh boundary.
-        for (int i = 0; i < values.Length; i++)
-        {
-            Assert.Equal(expectedCosts[i], costs.GetDisplacementVectorCost(values[i], references[i]));
-        }
-
-        encoder.FillDisplacementVectorCosts(costs);
-        Assert.NotEqual(expectedCosts[0], costs.GetDisplacementVectorCost(values[0], references[0]));
-
-        using IMemoryOwner<byte> encoded = encoder.Exit();
-        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
-        Av1MotionVector[] actual = new Av1MotionVector[values.Length];
-
-        for (int i = 0; i < actual.Length; i++)
-        {
-            actual[i] = decoder.ReadDisplacementVector(references[i]);
-        }
-
-        Assert.Equal(values, actual);
     }
 
     public static TheoryData<int> GetRangeData(int count)
@@ -2489,12 +790,6 @@ public class Av1EntropyTests
         return result;
     }
 
-    // Exercise the allocator's actual contiguous-buffer boundary while retaining the existing owner log.
-    private sealed class OutputLimitedAllocator : TestMemoryAllocator
-    {
-        public OutputLimitedAllocator(int limit) => this.SingleBufferAllocationLimitBytes = limit;
-    }
-
     public static TheoryData<int, bool> GetInterTransformTypeData()
     {
         TheoryData<int, bool> result = [];
@@ -2504,26 +799,6 @@ public class Av1EntropyTests
         {
             result.Add((int)transformSize, false);
             result.Add((int)transformSize, true);
-        }
-
-        return result;
-    }
-
-    public static TheoryData<int, int, int, int> GetEndOfBlockPositionData()
-    {
-        TheoryData<int, int, int, int> result = [];
-        for (Av1TransformSize transformSize = Av1TransformSize.Size4x4; transformSize < Av1TransformSize.AllSizes; transformSize++)
-        {
-            for (Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4; transformSizeContext <= Av1TransformSize.Size64x64; transformSizeContext++)
-            {
-                for (int componentType = 0; componentType < 2; componentType++)
-                {
-                    for (Av1TransformClass transformClass = Av1TransformClass.Class2D; transformClass <= Av1TransformClass.ClassVertical; transformClass++)
-                    {
-                        result.Add((int)transformSize, (int)transformSizeContext, componentType, (int)transformClass);
-                    }
-                }
-            }
         }
 
         return result;

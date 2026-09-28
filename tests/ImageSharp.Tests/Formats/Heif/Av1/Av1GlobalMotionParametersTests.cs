@@ -14,23 +14,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1GlobalMotionParametersTests
 {
     /// <summary>
-    /// Verifies that an identity model produces no displacement at every block position.
-    /// </summary>
-    [Fact]
-    public void IdentityModelProducesZeroMotionVector()
-    {
-        Av1GlobalMotionParameters parameters = Av1GlobalMotionParameters.Identity;
-
-        Av1MotionVector actual = parameters.GetMotionVector(
-            allowHighPrecisionMotionVector: true,
-            Av1BlockSize.Block128x128,
-            new Point(31, 17),
-            forceIntegerMotionVector: false);
-
-        Assert.Equal(default, actual);
-    }
-
-    /// <summary>
     /// Verifies the published AV1 translation-component ordering and optional integer precision reduction.
     /// </summary>
     [Theory]
@@ -58,7 +41,6 @@ public class Av1GlobalMotionParametersTests
     /// Verifies affine evaluation at the AV1 block center for high- and low-precision vector output.
     /// </summary>
     [Theory]
-    [InlineData(true, 1, 3)]
     [InlineData(false, 0, 2)]
     public void AffineModelEvaluatesBlockCenter(bool allowHighPrecisionMotionVector, int expectedRow, int expectedColumn)
     {

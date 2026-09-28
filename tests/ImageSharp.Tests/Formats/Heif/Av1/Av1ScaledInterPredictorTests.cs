@@ -65,7 +65,7 @@ public class Av1ScaledInterPredictorTests
     /// <summary>
     /// Exercises the native vector path and the complete scalar fallback in separate processes.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies the reference decoder's Q14 scale factors, Q10 steps, and signed coordinate rounding.
@@ -98,32 +98,23 @@ public class Av1ScaledInterPredictorTests
     }
 
     /// <summary>
-    /// Verifies exact scaled 8-bit output, variable filter phases, vector tails, and untouched destination padding.
+    /// Verifies exact scaled 8-, 10-, and 12-bit output and no-round compound intermediates, variable filter phases, vector
+    /// tails, and untouched destination padding under the native vector and scalar configurations.
     /// </summary>
     [Fact]
-    public void BytePredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePredictions, PredictorConfigurations);
+    public void PredictionMatchesReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePredictions, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies exact scaled 8-, 10-, and 12-bit output under the native vector and scalar configurations.
+    /// Runs every scaled prediction comparison under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
-    [Fact]
-    public void HighBitDepthPredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPredictions, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies exact scaled 8-bit no-round compound intermediates under native vector and scalar configurations.
-    /// </summary>
-    [Fact]
-    public void ByteCompoundPredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteCompoundPredictions, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies exact scaled 8-, 10-, and 12-bit no-round compound intermediates under native vector and scalar configurations.
-    /// </summary>
-    [Fact]
-    public void HighBitDepthCompoundPredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthCompoundPredictions, PredictorConfigurations);
+    private static void ValidatePredictions()
+    {
+        ValidateBytePredictions();
+        ValidateHighBitDepthPredictions();
+        ValidateByteCompoundPredictions();
+        ValidateHighBitDepthCompoundPredictions();
+    }
 
     /// <summary>
     /// Applies each scaled-prediction scenario to byte storage.

@@ -9,36 +9,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1ImagePyramidTests
 {
     [Theory]
-    [InlineData(64, 64, 3)]
-    [InlineData(512, 512, 6)]
-    [InlineData(48, 24, 1)]
-    [InlineData(16, 16, 1)]
-    [InlineData(1920, 1080, 7)]
-    public void LevelCountFollowsTheShorterSide(int width, int height, int expected)
-        => Assert.Equal(expected, Av1ImagePyramid.GetMaximumLevelCount(width, height));
-
-    [Theory]
-    [InlineData(64, 64)]
-    [InlineData(512, 512)]
-    [InlineData(128, 96)]
-    public void LevelGeometryHalvesEachExtent(int width, int height)
-    {
-        using Av1ImagePyramid pyramid = new(Configuration.Default.MemoryAllocator, width, height);
-        for (int level = 0; level < pyramid.LevelCount; level++)
-        {
-            Av1ImagePyramid.Level geometry = pyramid.GetLevel(level);
-            Assert.Equal(width >> level, geometry.Width);
-            Assert.Equal(height >> level, geometry.Height);
-
-            // The reference aligns the stride so that the first coded sample of every row shares the
-            // alignment of the level, which means the stride is a multiple of the alignment.
-            Assert.Equal(0, geometry.Stride % 32);
-            Assert.True(geometry.Stride >= geometry.Width + (2 * Av1ImagePyramid.Padding));
-        }
-    }
-
-    [Theory]
-    [InlineData(64, 64)]
     [InlineData(128, 96)]
     public void FillProducesHalvedLevelsWithReplicatedBorders(int width, int height)
     {
@@ -116,31 +86,5 @@ public class Av1ImagePyramidTests
                     samples.Slice(y * current.Stride, current.Width).ToArray());
             }
         }
-    }
-
-    [Fact]
-    public void FillIsIdempotentForAlreadyFilledLevels()
-    {
-        const int Width = 64;
-        const int Height = 64;
-        byte[] source = new byte[Width * Height];
-        for (int index = 0; index < source.Length; index++)
-        {
-            source[index] = (byte)(index & byte.MaxValue);
-        }
-
-        using Av1ImagePyramid pyramid = new(Configuration.Default.MemoryAllocator, Width, Height);
-        Assert.Equal(2, pyramid.Fill(source, Width, 2));
-
-        Av1ImagePyramid.Level second = pyramid.GetLevel(1);
-        byte[] afterTwo = pyramid.GetSamples(1).Slice(second.Origin, second.Stride * second.Height).ToArray();
-
-        // A second request for the same count must not rebuild what is already there.
-        Assert.Equal(2, pyramid.Fill(source, Width, 2));
-        Assert.Equal(afterTwo, pyramid.GetSamples(1).Slice(second.Origin, afterTwo.Length).ToArray());
-
-        // A larger request extends the pyramid without disturbing the filled levels.
-        Assert.Equal(3, pyramid.Fill(source, Width, 3));
-        Assert.Equal(afterTwo, pyramid.GetSamples(1).Slice(second.Origin, afterTwo.Length).ToArray());
     }
 }

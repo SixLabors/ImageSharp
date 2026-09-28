@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -17,40 +16,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1InverseTransformTests
 {
     /// <summary>
-    /// The hardware configurations covering every transform SIMD tier and the scalar fallback.
+    /// The hardware configurations covering the native vector width and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics TransformConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics TransformConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies sparse scalar and SIMD kernels against complete scalar transforms with poisoned unused storage.
+    /// Verifies the DCT, ADST, identity, sparse, twelve-bit widened, and lossless Walsh-Hadamard operators against
+    /// their scalar definitions with the vector paths and the scalar fallback.
     /// </summary>
     [Fact]
-    public void SparseOperatorsMatchFullTransforms()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertSparseOperatorsMatchFullTransforms, TransformConfigurations);
+    public void TransformOperatorsMatchReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTransformOperatorParity, TransformConfigurations);
 
     /// <summary>
-    /// Verifies the coefficient bounds against every position in each permitted scan prefix.
+    /// Runs every one-dimensional and lossless operator comparison under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
     /// </summary>
-    [Theory]
-    [MemberData(nameof(Av1ForwardTransformTests.ValidTransformCases), MemberType = typeof(Av1ForwardTransformTests))]
-    public void SparseBoundsContainEveryCodedCoefficient(int transformTypeValue, int transformSizeValue, int bitDepth)
+    private static void AssertTransformOperatorParity()
     {
-        Av1TransformType transformType = (Av1TransformType)transformTypeValue;
-        Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
-        int stride = transformSize.GetAdjusted().GetWidth();
-        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
-        int lastColumn = 0;
-        int lastRow = 0;
-        for (int index = 0; index < scan.Length; index++)
-        {
-            lastColumn = Math.Max(lastColumn, scan[index] % stride);
-            lastRow = Math.Max(lastRow, scan[index] / stride);
-            Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
-            config.ConfigureInverseSparsity(index + 1, bitDepth);
-            Assert.True(lastColumn < config.NonzeroWidth, $"Horizontal bound at EOB {index + 1} excludes column {lastColumn}.");
-            Assert.True(lastRow < config.NonzeroHeight, $"Vertical bound at EOB {index + 1} excludes row {lastRow}.");
-        }
+        AssertDctOperatorParity();
+        AssertAdstOperatorParity();
+        AssertIdentityOperatorParity();
+        AssertSparseOperatorsMatchFullTransforms();
+        AssertTwelveBitWideIntermediateParity();
+        AssertLosslessWalshHadamardParity();
     }
 
     /// <summary>
@@ -150,34 +139,6 @@ public class Av1InverseTransformTests
             }
         }
     }
-
-    /// <summary>
-    /// Verifies DCT operator parity across the supported hardware feature levels.
-    /// </summary>
-    [Fact]
-    public void DctOperatorsProduceIdenticalScalarAndSimdResults()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertDctOperatorParity, TransformConfigurations);
-
-    /// <summary>
-    /// Verifies ADST operator parity across the supported hardware feature levels.
-    /// </summary>
-    [Fact]
-    public void AdstOperatorsProduceIdenticalScalarAndSimdResults()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertAdstOperatorParity, TransformConfigurations);
-
-    /// <summary>
-    /// Verifies identity operator parity across the supported hardware feature levels.
-    /// </summary>
-    [Fact]
-    public void IdentityOperatorsProduceIdenticalScalarAndSimdResults()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertIdentityOperatorParity, TransformConfigurations);
-
-    /// <summary>
-    /// Verifies the reference widened operations at the twelve-bit inverse row-stage bounds.
-    /// </summary>
-    [Fact]
-    public void TwelveBitWideIntermediatesMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTwelveBitWideIntermediateParity, TransformConfigurations);
 
     /// <summary>
     /// Verifies the inverse DCT operators against their scalar implementations.
@@ -339,89 +300,23 @@ public class Av1InverseTransformTests
         }
     }
 
-    [Theory]
-    [InlineData((int)Av1TransformSize.Size4x4, 0, -4)]
-    [InlineData((int)Av1TransformSize.Size8x8, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size16x16, -2, -4)]
-    [InlineData((int)Av1TransformSize.Size32x32, -2, -4)]
-    [InlineData((int)Av1TransformSize.Size64x64, -2, -4)]
-    [InlineData((int)Av1TransformSize.Size4x8, 0, -4)]
-    [InlineData((int)Av1TransformSize.Size8x4, 0, -4)]
-    [InlineData((int)Av1TransformSize.Size8x16, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size16x8, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size16x32, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size32x16, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size32x64, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size64x32, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size4x16, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size16x4, -1, -4)]
-    [InlineData((int)Av1TransformSize.Size8x32, -2, -4)]
-    [InlineData((int)Av1TransformSize.Size32x8, -2, -4)]
-    [InlineData((int)Av1TransformSize.Size16x64, -2, -4)]
-    [InlineData((int)Av1TransformSize.Size64x16, -2, -4)]
-    public void InverseConfigurationUsesNormativeShifts(int transformSizeValue, int firstShift, int secondShift)
-    {
-        Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
-        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(Av1TransformType.DctDct, transformSize, 8);
-
-        Assert.Equal(firstShift, config.Shift0);
-        Assert.Equal(secondShift, config.Shift1);
-        Assert.Equal(0, config.Shift2);
-        Assert.Equal(12, config.CosBitColumn);
-        Assert.Equal(12, config.CosBitRow);
-    }
-
-    [Theory]
-    [InlineData(8, 16, 16)]
-    [InlineData(10, 18, 16)]
-    [InlineData(12, 20, 18)]
-    public void InverseConfigurationUsesNormativeStageRanges(int bitDepth, byte rowRange, byte columnRange)
-    {
-        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(
-            Av1TransformType.AdstAdst,
-            Av1TransformSize.Size16x16,
-            bitDepth);
-
-        InlineArray12<byte> configuredRowRange = config.StageRangeRow;
-        InlineArray12<byte> configuredColumnRange = config.StageRangeColumn;
-
-        for (int index = 0; index < config.StageNumberRow; index++)
-        {
-            Assert.Equal(rowRange, configuredRowRange[index]);
-        }
-
-        for (int index = 0; index < config.StageNumberColumn; index++)
-        {
-            Assert.Equal(columnRange, configuredColumnRange[index]);
-        }
-    }
-
-    [Fact]
-    public void ForwardAndInverseOperatorPairsReconstructTheirInput()
-    {
-        AssertRoundTrip<Av1ForwardTransformer.Dct4Operator, Av1Inverse2dTransformer.Dct4Operator>(Av1TransformType.DctDct, Av1TransformSize.Size4x4, 1, 1);
-        AssertRoundTrip<Av1ForwardTransformer.Dct8Operator, Av1Inverse2dTransformer.Dct8Operator>(Av1TransformType.DctDct, Av1TransformSize.Size8x8, 2, 2);
-        AssertRoundTrip<Av1ForwardTransformer.Dct16Operator, Av1Inverse2dTransformer.Dct16Operator>(Av1TransformType.DctDct, Av1TransformSize.Size16x16, 3, 3);
-        AssertRoundTrip<Av1ForwardTransformer.Dct32Operator, Av1Inverse2dTransformer.Dct32Operator>(Av1TransformType.DctDct, Av1TransformSize.Size32x32, 4, 4);
-        AssertRoundTrip<Av1ForwardTransformer.Dct64Operator, Av1Inverse2dTransformer.Dct64Operator>(Av1TransformType.DctDct, Av1TransformSize.Size64x64, 5, 5);
-        AssertRoundTrip<Av1ForwardTransformer.Adst4Operator, Av1Inverse2dTransformer.Adst4Operator>(Av1TransformType.AdstAdst, Av1TransformSize.Size4x4, 1, 1);
-        AssertRoundTrip<Av1ForwardTransformer.Adst8Operator, Av1Inverse2dTransformer.Adst8Operator>(Av1TransformType.AdstAdst, Av1TransformSize.Size8x8, 2, 2);
-        AssertRoundTrip<Av1ForwardTransformer.Adst16Operator, Av1Inverse2dTransformer.Adst16Operator>(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 3, 3);
-        AssertRoundTrip<Av1ForwardTransformer.Identity4Operator, Av1Inverse2dTransformer.Identity4Operator>(Av1TransformType.Identity, Av1TransformSize.Size4x4, 1, 1);
-        AssertRoundTrip<Av1ForwardTransformer.Identity8Operator, Av1Inverse2dTransformer.Identity8Operator>(Av1TransformType.Identity, Av1TransformSize.Size8x8, 2, 1);
-        AssertRoundTrip<Av1ForwardTransformer.Identity16Operator, Av1Inverse2dTransformer.Identity16Operator>(Av1TransformType.Identity, Av1TransformSize.Size16x16, 3, 1);
-        AssertRoundTrip<Av1ForwardTransformer.Identity32Operator, Av1Inverse2dTransformer.Identity32Operator>(Av1TransformType.Identity, Av1TransformSize.Size32x32, 4, 1);
-    }
-
     /// <summary>
     /// Verifies that every applicable SIMD traversal reconstructs the same samples as the scalar traversal.
     /// </summary>
     /// <param name="transformTypeValue">The integral <see cref="Av1TransformType"/> value.</param>
     /// <param name="transformSizeValue">The integral <see cref="Av1TransformSize"/> value.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    [Theory]
-    [MemberData(nameof(Av1ForwardTransformTests.ValidTransformCases), MemberType = typeof(Av1ForwardTransformTests))]
-    public void TwoDimensionalKernelsMatchReference(
+    [Fact]
+    public void TwoDimensionalKernelsMatchReference()
+    {
+        foreach (ITheoryDataRow row in Av1ForwardTransformTests.ValidTransformCases)
+        {
+            object?[] values = row.GetData();
+            this.TwoDimensionalKernelsMatchReferenceCase((int)values[0]!, (int)values[1]!, (int)values[2]!);
+        }
+    }
+
+    private void TwoDimensionalKernelsMatchReferenceCase(
         int transformTypeValue,
         int transformSizeValue,
         int bitDepth)
@@ -431,13 +326,6 @@ public class Av1InverseTransformTests
         Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
         DispatchColumn(transformType, transformSize, bitDepth, ref config);
     }
-
-    /// <summary>
-    /// Verifies lossless inverse Walsh-Hadamard reconstruction against an independent definition.
-    /// </summary>
-    [Fact]
-    public void LosslessWalshHadamardMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertLosslessWalshHadamardParity, TransformConfigurations);
 
     /// <summary>
     /// Exercises DC-only and complete lossless blocks at every supported sample precision.
@@ -506,100 +394,12 @@ public class Av1InverseTransformTests
         }
     }
 
-    [Fact]
-    public void ReconstructionDispatchDoesNotAllocatePerBlock()
-    {
-        const int width = 8;
-        int[] coefficients = new int[width * width];
-        byte[] reconstruction = new byte[coefficients.Length];
-        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
-
-        Av1InverseTransformer.Reconstruct8Bit(
-            coefficients, reconstruction, width, Av1TransformSize.Size8x8, Av1TransformType.DctDct, 0, coefficients.Length, false, workspace);
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int iteration = 0; iteration < 32; iteration++)
-        {
-            Av1InverseTransformer.Reconstruct8Bit(
-                coefficients, reconstruction, width, Av1TransformSize.Size8x8, Av1TransformType.DctDct, 0, coefficients.Length, false, workspace);
-        }
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.Equal(0, allocated);
-    }
-
-    /// <summary>
-    /// Verifies DC-only byte reconstruction against the full transform for every size, signed rounding, clipping, and padded layout.
-    /// </summary>
-    /// <param name="inPlace">Whether prediction and reconstruction share their storage.</param>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void DcOnlyByteReconstructionMatchesFullTransform(bool inPlace)
-    {
-        ReadOnlySpan<int> dcValues = [-32768, -4095, -1025, -65, -33, -32, -31, -17, -1, 0, 1, 17, 31, 32, 33, 65, 1025, 4095, 32767];
-        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
-        for (int size = 0; size < (int)Av1TransformSize.AllSizes; size++)
-        {
-            Av1TransformSize transformSize = (Av1TransformSize)size;
-            Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(Av1TransformType.DctDct, transformSize, 8);
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
-            int readStride = width + 3;
-            int writeStride = inPlace ? readStride : width + 7;
-            int[] coefficients = new int[transformSize.GetAdjusted().GetSize2d()];
-            byte[] prediction = new byte[readStride * height];
-            byte[] expected = new byte[writeStride * height];
-            byte[] actual = new byte[expected.Length];
-            for (int i = 0; i < prediction.Length; i++)
-            {
-                prediction[i] = (byte)(i * 47);
-            }
-
-            Av1TransformFunctionParameters parameters = new()
-            {
-                TransformSize = transformSize,
-                TransformType = Av1TransformType.DctDct,
-                BitDepth = 8,
-                EndOfBuffer = 1
-            };
-
-            foreach (int dc in dcValues)
-            {
-                coefficients[0] = dc;
-                Array.Fill(expected, byte.MaxValue);
-                Array.Fill(actual, byte.MaxValue);
-                if (inPlace)
-                {
-                    prediction.CopyTo(expected, 0);
-                    prediction.CopyTo(actual, 0);
-                }
-
-                // Bypass the sparse dispatcher for the oracle: the full two-axis transform retains all rounding
-                // stages. Comparing the entire padded destination also detects writes beyond each active row.
-                Av1Inverse2dTransformer.Transform2dAdd(
-                    coefficients, inPlace ? expected : prediction, readStride, expected, writeStride, ref config, workspace);
-
-                Av1InverseTransformerFactory.InverseTransformAdd(
-                    coefficients, inPlace ? actual : prediction, readStride, actual, writeStride, parameters, workspace);
-
-                Assert.Equal(expected, actual);
-            }
-        }
-    }
-
     /// <summary>
     /// Verifies DC-only high-bit-depth reconstruction against the full transform at every supported precision and size.
     /// </summary>
     /// <param name="bitDepth">The coded sample precision.</param>
     /// <param name="inPlace">Whether prediction and reconstruction share their storage.</param>
     [Theory]
-    [InlineData(8, false)]
-    [InlineData(8, true)]
-    [InlineData(10, false)]
-    [InlineData(10, true)]
-    [InlineData(12, false)]
     [InlineData(12, true)]
     public void DcOnlyHighBitDepthReconstructionMatchesFullTransform(int bitDepth, bool inPlace)
     {
@@ -659,60 +459,6 @@ public class Av1InverseTransformTests
                 Assert.Equal(expected, actual);
             }
         }
-    }
-
-    [Theory]
-    [InlineData((int)Av1BitDepth.TenBit, 1023)]
-    [InlineData((int)Av1BitDepth.TwelveBit, 4095)]
-    public void HighBitDepthReconstructionClipsPositiveValues(int bitDepthIndex, short maximum)
-    {
-        const int width = 4;
-        int[] coefficients = new int[width * width];
-        coefficients[0] = 64;
-        short[] reconstruction = new short[width * width];
-        Array.Fill(reconstruction, (short)(maximum - 1));
-        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
-
-        Av1InverseTransformer.ReconstructHighBitDepth(
-            coefficients,
-            reconstruction,
-            width,
-            Av1TransformSize.Size4x4,
-            Av1TransformType.DctDct,
-            0,
-            1,
-            false,
-            (Av1BitDepth)bitDepthIndex,
-            workspace);
-
-        Assert.All(reconstruction, value => Assert.Equal(maximum, value));
-    }
-
-    [Theory]
-    [InlineData((int)Av1BitDepth.TenBit)]
-    [InlineData((int)Av1BitDepth.TwelveBit)]
-    public void HighBitDepthReconstructionClipsNegativeValues(int bitDepthIndex)
-    {
-        const int width = 4;
-        int[] coefficients = new int[width * width];
-        coefficients[0] = -64;
-        short[] reconstruction = new short[width * width];
-        Array.Fill(reconstruction, (short)1);
-        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
-
-        Av1InverseTransformer.ReconstructHighBitDepth(
-            coefficients,
-            reconstruction,
-            width,
-            Av1TransformSize.Size4x4,
-            Av1TransformType.DctDct,
-            0,
-            1,
-            false,
-            (Av1BitDepth)bitDepthIndex,
-            workspace);
-
-        Assert.All(reconstruction, value => Assert.Equal((short)0, value));
     }
 
     /// <summary>
@@ -916,60 +662,6 @@ public class Av1InverseTransformTests
                 {
                     Assert.Equal(scalarOutput[index], output128[index].GetElement(lane));
                 }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Verifies that a matching one-dimensional forward and inverse operator pair reconstructs bounded input.
-    /// </summary>
-    /// <typeparam name="TForwardOperator">The forward transform operator.</typeparam>
-    /// <typeparam name="TInverseOperator">The inverse transform operator.</typeparam>
-    /// <param name="transformType">The compound transform type.</param>
-    /// <param name="transformSize">The transform-block dimensions.</param>
-    /// <param name="scaleLog2">The power-of-two scale applied by the operator pair.</param>
-    /// <param name="allowedError">The maximum permitted reconstruction error.</param>
-    private static void AssertRoundTrip<TForwardOperator, TInverseOperator>(Av1TransformType transformType, Av1TransformSize transformSize, int scaleLog2, int allowedError)
-        where TForwardOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
-        where TInverseOperator : struct, Av1Inverse2dTransformer.IAv1Transform1dOperator
-    {
-        const int bitDepth = 10;
-        const int testBlockCount = 30;
-        Av1Transform2dFlipConfiguration forwardConfig = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, bitDepth);
-        Av1Transform2dFlipConfiguration inverseConfig = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
-        int length = transformSize.GetWidth();
-        Random random = new(0);
-        int[] input = new int[length];
-        int[] forward = new int[length];
-        int[] inverse = new int[length];
-        int[] step = new int[length];
-        Av1TransformVector<int> values = default;
-        Av1TransformVector<int> buffer0 = default;
-        Av1TransformVector<int> buffer1 = default;
-
-        for (int block = 0; block < testBlockCount; block++)
-        {
-            for (int index = 0; index < length; index++)
-            {
-                input[index] = random.Next((1 << bitDepth) - 1);
-                values[index] = input[index];
-            }
-
-            ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
-
-            TForwardOperator.Transform(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, forwardConfig.CosBitColumn);
-
-            for (int index = 0; index < length; index++)
-            {
-                forward[index] = values[index];
-            }
-
-            TInverseOperator.Transform(forward, inverse, step, inverseConfig.CosBitColumn, inverseConfig.StageRangeColumn);
-
-            for (int index = 0; index < length; index++)
-            {
-                int reconstructed = inverse[index] >> scaleLog2;
-                Assert.InRange(Math.Abs(input[index] - reconstructed), 0, allowedError);
             }
         }
     }

@@ -14,31 +14,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1IntraBlockCopyPredictorTests
 {
     /// <summary>
-    /// Exercises each SIMD register-width tier and the complete scalar fallback.
+    /// Exercises the native SIMD width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies all four source phases for 8-bit samples at every AV1 transform size.
+    /// Verifies all four source phases for 8-bit and high-bit-depth samples at every AV1 transform size, and the four
+    /// normative interpolation equations against independently calculated sample blocks.
     /// </summary>
     [Fact]
-    public void EightBitPredictionMatchesScalar()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEightBitPrediction, PredictorConfigurations);
+    public void PredictionMatchesReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePredictions, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies all four source phases for high-bit-depth samples at every AV1 transform size.
+    /// Runs every intra-block-copy comparison under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
-    [Fact]
-    public void HighBitDepthPredictionMatchesScalar()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPrediction, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies the four normative interpolation equations against independently calculated sample blocks.
-    /// </summary>
-    [Fact]
-    public void PredictionMatchesKnownInterpolationValues()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateKnownInterpolationValues, PredictorConfigurations);
+    private static void ValidatePredictions()
+    {
+        ValidateEightBitPrediction();
+        ValidateHighBitDepthPrediction();
+        ValidateKnownInterpolationValues();
+    }
 
     /// <summary>
     /// Compares the SIMD-first 8-bit implementation with its scalar definition and verifies that row padding is unchanged.

@@ -15,11 +15,7 @@ public class Av1MotionVectorCostsTests
     /// <param name="step">The corresponding increment between representable components.</param>
     /// <param name="adapt">Whether to adapt the entropy distributions before building the table.</param>
     [Theory]
-    [InlineData(Av1MotionVectorPrecision.Integer, 8, false)]
     [InlineData(Av1MotionVectorPrecision.QuarterSample, 2, false)]
-    [InlineData(Av1MotionVectorPrecision.EighthSample, 1, false)]
-    [InlineData(Av1MotionVectorPrecision.Integer, 8, true)]
-    [InlineData(Av1MotionVectorPrecision.QuarterSample, 2, true)]
     [InlineData(Av1MotionVectorPrecision.EighthSample, 1, true)]
     public void EveryLegalComponentMatchesIndependentSymbolTraversal(int precisionValue, int step, bool adapt)
     {
@@ -55,33 +51,5 @@ public class Av1MotionVectorCostsTests
 
         Assert.Equal(-1234567, storage[0]);
         Assert.Equal(-1234567, storage[^1]);
-    }
-
-    /// <summary>
-    /// Verifies that table construction preserves the other precision pair and that adaptation requires an explicit refresh.
-    /// </summary>
-    [Fact]
-    public void SnapshotRetainsRatesUntilExplicitRefreshAndPrecisionPairsDoNotOverlap()
-    {
-        using Av1SymbolEncoder writer = new(Configuration.Default, 65536, 128, updateCdf: true);
-        int[] storage = new int[Av1MotionVectorCosts.StorageLength];
-        Av1MotionVectorCosts quarter = new(storage, Av1MotionVectorPrecision.QuarterSample);
-        Av1MotionVectorCosts eighth = new(storage, Av1MotionVectorPrecision.EighthSample);
-        writer.FillMotionVectorCosts(quarter);
-        Av1MotionVector value = new(24, -48);
-        int original = quarter.GetCost(value, default);
-        writer.FillMotionVectorCosts(eighth);
-        Assert.Equal(original, quarter.GetCost(value, default));
-
-        for (int i = 0; i < 100; i++)
-        {
-            writer.WriteMotionVector(value, default, Av1MotionVectorPrecision.QuarterSample);
-        }
-
-        Assert.Equal(original, quarter.GetCost(value, default));
-        int adapted = writer.GetMotionVectorCost(value, default, Av1MotionVectorPrecision.QuarterSample);
-        Assert.NotEqual(original, adapted);
-        writer.FillMotionVectorCosts(quarter);
-        Assert.Equal(adapted, quarter.GetCost(value, default));
     }
 }

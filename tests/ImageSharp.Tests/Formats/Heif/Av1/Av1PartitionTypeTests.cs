@@ -9,9 +9,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1PartitionTypeTests
 {
-    [Theory]
-    [MemberData(nameof(GetAllCombinations))]
-    internal void GetSubBlockSizeReturnsCorrectRatio(int t, int s)
+    [Fact]
+    public void GetSubBlockSizeReturnsCorrectRatio()
+    {
+        foreach (ITheoryDataRow row in GetAllCombinations())
+        {
+            object?[] values = row.GetData();
+            this.GetSubBlockSizeReturnsCorrectRatioCase((int)values[0]!, (int)values[1]!);
+        }
+    }
+
+    private void GetSubBlockSizeReturnsCorrectRatioCase(int t, int s)
     {
         // Assign
         Av1PartitionType partitionType = (Av1PartitionType)t;

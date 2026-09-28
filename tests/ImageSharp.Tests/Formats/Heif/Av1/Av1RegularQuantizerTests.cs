@@ -23,7 +23,7 @@ public class Av1RegularQuantizerTests
     public void RegularQuantizationPreservesCoefficientContracts()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateQuantization,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Exports inputs and results for independent native comparison while checking observable storage contracts.

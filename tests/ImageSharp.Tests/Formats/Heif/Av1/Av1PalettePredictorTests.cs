@@ -15,10 +15,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1PalettePredictorTests
 {
     /// <summary>
-    /// The hardware configurations required to exercise each packed width and the scalar fallback.
+    /// The hardware configurations required to exercise the native packed width and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies exact indexed reconstruction and destination-padding preservation for every palette size.

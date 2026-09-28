@@ -12,236 +12,63 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1MotionVectorTests
 {
     /// <summary>
-    /// Checks frame-relative displacement limits and their inclusive last candidate.
-    /// </summary>
-    /// <param name="x">The block column.</param>
-    /// <param name="y">The block row.</param>
-    /// <param name="width">The block width.</param>
-    /// <param name="height">The block height.</param>
-    /// <param name="border">The allocated luma border.</param>
-    /// <param name="minimumColumn">The first legal horizontal displacement.</param>
-    /// <param name="minimumRow">The first legal vertical displacement.</param>
-    /// <param name="maximumColumn">The last legal horizontal displacement.</param>
-    /// <param name="maximumRow">The last legal vertical displacement.</param>
-    [Theory]
-    [InlineData(0, 0, 8, 8, 96, -16, -16, 264, 264)]
-    [InlineData(128, 64, 8, 8, 96, -144, -80, 136, 200)]
-    [InlineData(252, 252, 8, 8, 96, -268, -268, 12, 12)]
-    [InlineData(0, 0, 128, 128, 96, -88, -88, 216, 216)]
-    [InlineData(0, 0, 128, 128, 160, -136, -136, 264, 264)]
-    public void FrameSearchBoundsIncludePositionBlockExtentAndInterpolation(
-        int x,
-        int y,
-        int width,
-        int height,
-        int border,
-        int minimumColumn,
-        int minimumRow,
-        int maximumColumn,
-        int maximumRow)
-    {
-        Rectangle bounds = Av1MotionVector.GetFrameSearchBounds(new Rectangle(x, y, width, height), new Size(256, 256), border);
-        Assert.Equal(Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1), bounds);
-        Assert.True(bounds.Contains(minimumColumn, minimumRow));
-        Assert.True(bounds.Contains(maximumColumn, maximumRow));
-        Assert.False(bounds.Contains(maximumColumn + 1, maximumRow));
-        Assert.False(bounds.Contains(maximumColumn, maximumRow + 1));
-    }
-
-    /// <summary>
-    /// Checks inward rounding around fractional references and exclusion of reserved vector endpoints.
-    /// </summary>
-    /// <param name="row">The reference row in eighth-sample units.</param>
-    /// <param name="column">The reference column in eighth-sample units.</param>
-    /// <param name="fullMinimumColumn">The first full-pixel column.</param>
-    /// <param name="fullMinimumRow">The first full-pixel row.</param>
-    /// <param name="fullMaximumColumn">The last full-pixel column.</param>
-    /// <param name="fullMaximumRow">The last full-pixel row.</param>
-    /// <param name="fractionalMinimumColumn">The first eighth-sample column.</param>
-    /// <param name="fractionalMinimumRow">The first eighth-sample row.</param>
-    /// <param name="fractionalMaximumColumn">The last eighth-sample column.</param>
-    /// <param name="fractionalMaximumRow">The last eighth-sample row.</param>
-    [Theory]
-    [InlineData(1, -1, -1023, -1022, 1022, 1023, -8185, -8183, 8183, 8185)]
-    [InlineData(-1, 1, -1022, -1023, 1023, 1022, -8183, -8185, 8185, 8183)]
-    [InlineData(16376, -16376, -2047, 1024, -1024, 2047, -16383, 8192, -8192, 16383)]
-    [InlineData(-16376, 16376, 1024, -2047, 2047, -1024, 8192, -16383, 16383, -8192)]
-    public void SearchBoundsRoundInwardAndExcludeReservedVectorEndpoints(
-        int row,
-        int column,
-        int fullMinimumColumn,
-        int fullMinimumRow,
-        int fullMaximumColumn,
-        int fullMaximumRow,
-        int fractionalMinimumColumn,
-        int fractionalMinimumRow,
-        int fractionalMaximumColumn,
-        int fractionalMaximumRow)
-    {
-        Av1MotionVector reference = new(row, column);
-        Rectangle frameBounds = Rectangle.FromLTRB(-4000, -4000, 4001, 4001);
-        Rectangle full = reference.GetFullPixelSearchBounds(frameBounds);
-        Rectangle fractional = reference.GetSubpixelSearchBounds(frameBounds);
-        Assert.Equal(Rectangle.FromLTRB(fullMinimumColumn, fullMinimumRow, fullMaximumColumn + 1, fullMaximumRow + 1), full);
-        Assert.Equal(Rectangle.FromLTRB(fractionalMinimumColumn, fractionalMinimumRow, fractionalMaximumColumn + 1, fractionalMaximumRow + 1), fractional);
-        Assert.True(fractional.Contains(full.Left * 8, full.Top * 8));
-        Assert.True(fractional.Contains((full.Right - 1) * 8, (full.Bottom - 1) * 8));
-    }
-
-    /// <summary>
-    /// Verifies that reference-centered limits cannot widen a tighter padded-frame region.
+    /// Verifies search bounds, precision reduction, validity, spatial clamping, and temporal projection against
+    /// independently derived reference values.
     /// </summary>
     [Fact]
-    public void FullAndFractionalSearchRetainTighterFrameBounds()
+    public void MotionVectorOperationsMatchReference()
     {
-        Rectangle frameBounds = Rectangle.FromLTRB(-17, -29, 32, 44);
-        Av1MotionVector reference = new(1, -1);
-        Assert.Equal(frameBounds, reference.GetFullPixelSearchBounds(frameBounds));
-        Assert.Equal(Rectangle.FromLTRB(-136, -232, 249, 345), reference.GetSubpixelSearchBounds(frameBounds));
-    }
+        // Frame-relative displacement limits include the block extent, the allocated border, and the interpolation
+        // margin; the maximum candidate is inclusive.
+        AssertFrameSearchBounds(new Rectangle(0, 0, 8, 8), 96, Rectangle.FromLTRB(-16, -16, 265, 265));
+        AssertFrameSearchBounds(new Rectangle(252, 252, 8, 8), 96, Rectangle.FromLTRB(-268, -268, 13, 13));
+        AssertFrameSearchBounds(new Rectangle(0, 0, 128, 128), 160, Rectangle.FromLTRB(-136, -136, 265, 265));
 
-    /// <summary>
-    /// Verifies that high-precision vectors retain their one-eighth-sample components unchanged.
-    /// </summary>
-    [Fact]
-    public void LowerPrecisionRetainsHighPrecisionComponents()
-    {
-        Av1MotionVector vector = new(15, -15);
+        // Reference-centered limits round inward around fractional references, exclude the reserved endpoints,
+        // and never widen a tighter padded-frame region.
+        Rectangle wideFrame = Rectangle.FromLTRB(-4000, -4000, 4001, 4001);
+        Av1MotionVector fractionalReference = new(1, -1);
+        Assert.Equal(Rectangle.FromLTRB(-1023, -1022, 1023, 1024), fractionalReference.GetFullPixelSearchBounds(wideFrame));
+        Assert.Equal(Rectangle.FromLTRB(-8185, -8183, 8184, 8186), fractionalReference.GetSubpixelSearchBounds(wideFrame));
+        Av1MotionVector extremeReference = new(16376, -16376);
+        Assert.Equal(Rectangle.FromLTRB(-2047, 1024, -1023, 2048), extremeReference.GetFullPixelSearchBounds(wideFrame));
+        Assert.Equal(Rectangle.FromLTRB(-16383, 8192, -8191, 16384), extremeReference.GetSubpixelSearchBounds(wideFrame));
+        Rectangle tightFrame = Rectangle.FromLTRB(-17, -29, 32, 44);
+        Assert.Equal(tightFrame, fractionalReference.GetFullPixelSearchBounds(tightFrame));
+        Assert.Equal(Rectangle.FromLTRB(-136, -232, 249, 345), fractionalReference.GetSubpixelSearchBounds(tightFrame));
 
-        Assert.Equal(vector, vector.LowerPrecision(allowHighPrecision: true, forceInteger: false));
-    }
+        // High precision keeps one-eighth-sample components, low precision drops odd components toward zero, and
+        // integer precision rounds half-sample ties toward zero on both signs.
+        Av1MotionVector odd = new(15, -15);
+        Assert.Equal(odd, odd.LowerPrecision(allowHighPrecision: true, forceInteger: false));
+        Assert.Equal(new Av1MotionVector(14, -14), odd.LowerPrecision(allowHighPrecision: false, forceInteger: false));
+        Assert.Equal(new Av1MotionVector(0, 0), new Av1MotionVector(1, -1).LowerPrecision(allowHighPrecision: false, forceInteger: false));
+        Assert.Equal(new Av1MotionVector(0, 0), new Av1MotionVector(4, -4).LowerPrecision(allowHighPrecision: true, forceInteger: true));
+        Assert.Equal(new Av1MotionVector(8, -8), new Av1MotionVector(5, -5).LowerPrecision(allowHighPrecision: true, forceInteger: true));
+        Assert.Equal(new Av1MotionVector(8, -8), new Av1MotionVector(12, -12).LowerPrecision(allowHighPrecision: true, forceInteger: true));
+        Assert.Equal(new Av1MotionVector(-8, 8), new Av1MotionVector(-5, 5).LowerPrecision(allowHighPrecision: true, forceInteger: true));
+        Assert.Equal(new Av1MotionVector(-8, 8), new Av1MotionVector(-12, 12).LowerPrecision(allowHighPrecision: true, forceInteger: true));
 
-    /// <summary>
-    /// Verifies that low precision removes odd one-eighth-sample components toward zero.
-    /// </summary>
-    /// <param name="row">The original vertical component.</param>
-    /// <param name="column">The original horizontal component.</param>
-    /// <param name="expectedRow">The expected low-precision vertical component.</param>
-    /// <param name="expectedColumn">The expected low-precision horizontal component.</param>
-    [Theory]
-    [InlineData(15, -15, 14, -14)]
-    [InlineData(14, -14, 14, -14)]
-    [InlineData(1, -1, 0, 0)]
-    public void LowerPrecisionReducesOddComponentsTowardZero(int row, int column, int expectedRow, int expectedColumn)
-    {
-        Av1MotionVector actual = new Av1MotionVector(row, column).LowerPrecision(allowHighPrecision: false, forceInteger: false);
+        // Both signed endpoints are reserved.
+        Assert.True(new Av1MotionVector(-16383, 16383).IsValid);
+        Assert.False(new Av1MotionVector(-16384, 0).IsValid);
+        Assert.False(new Av1MotionVector(16384, 0).IsValid);
+        Assert.False(new Av1MotionVector(0, -16384).IsValid);
+        Assert.False(new Av1MotionVector(0, 16384).IsValid);
 
-        Assert.Equal(new Av1MotionVector(expectedRow, expectedColumn), actual);
-    }
+        // Spatial candidates clamp to the complete block plus a sixteen-sample border.
+        Assert.Equal(new Av1MotionVector(576, 768), new Av1MotionVector(1000, 1000).ClampReference(16, 8, -256, 512, -128, 384));
+        Assert.Equal(new Av1MotionVector(-320, -512), new Av1MotionVector(-1000, -1000).ClampReference(16, 8, -256, 512, -128, 384));
+        Assert.Equal(new Av1MotionVector(48, -64), new Av1MotionVector(48, -64).ClampReference(16, 8, -256, 512, -128, 384));
 
-    /// <summary>
-    /// Verifies AV1 integer-sample rounding, including half-sample ties toward zero on both signs.
-    /// </summary>
-    /// <param name="component">The original component in one-eighth-sample units.</param>
-    /// <param name="expected">The expected integer-precision component.</param>
-    [Theory]
-    [InlineData(3, 0)]
-    [InlineData(4, 0)]
-    [InlineData(5, 8)]
-    [InlineData(11, 8)]
-    [InlineData(12, 8)]
-    [InlineData(13, 16)]
-    [InlineData(16, 16)]
-    [InlineData(-3, 0)]
-    [InlineData(-4, 0)]
-    [InlineData(-5, -8)]
-    [InlineData(-11, -8)]
-    [InlineData(-12, -8)]
-    [InlineData(-13, -16)]
-    [InlineData(-16, -16)]
-    public void LowerPrecisionRoundsIntegerHalfTiesTowardZero(int component, int expected)
-    {
-        Av1MotionVector actual = new Av1MotionVector(component, -component).LowerPrecision(
-            allowHighPrecision: true,
-            forceInteger: true);
+        // Temporal projection uses fixed-point distance scaling, symmetric rounding, distance limiting, and clamping.
+        Assert.Equal(new Av1MotionVector(32, -48), new Av1MotionVector(64, -96).ProjectTemporal(2, 4));
+        Assert.Equal(new Av1MotionVector(-32, 48), new Av1MotionVector(64, -96).ProjectTemporal(-2, 4));
+        Assert.Equal(new Av1MotionVector(1, -1), new Av1MotionVector(2, -2).ProjectTemporal(1, 3));
+        Assert.Equal(new Av1MotionVector(31, -31), new Av1MotionVector(31, -31).ProjectTemporal(40, 40));
+        Assert.Equal(new Av1MotionVector(16383, -16383), new Av1MotionVector(4095, -4095).ProjectTemporal(31, 1));
 
-        Assert.Equal(new Av1MotionVector(expected, -expected), actual);
-    }
-
-    /// <summary>
-    /// Verifies that AV1 reserves both signed motion-vector endpoints.
-    /// </summary>
-    /// <param name="row">The vertical component.</param>
-    /// <param name="column">The horizontal component.</param>
-    /// <param name="expected">The expected validity.</param>
-    [Theory]
-    [InlineData(-16383, 16383, true)]
-    [InlineData(-16384, 0, false)]
-    [InlineData(-16385, 0, false)]
-    [InlineData(16384, 0, false)]
-    [InlineData(16385, 0, false)]
-    [InlineData(0, -16384, false)]
-    [InlineData(0, 16384, false)]
-    public void IsValidUsesExclusiveMotionVectorEndpoints(int row, int column, bool expected)
-        => Assert.Equal(expected, new Av1MotionVector(row, column).IsValid);
-
-    /// <summary>
-    /// Verifies the complete-block and sixteen-sample borders used to clamp spatial reference candidates.
-    /// </summary>
-    [Fact]
-    public void ClampReferenceMatchesSpatialLimits()
-    {
-        const int blockWidth = 16;
-        const int blockHeight = 8;
-        const int blockToLeftEdge = -256;
-        const int blockToRightEdge = 512;
-        const int blockToTopEdge = -128;
-        const int blockToBottomEdge = 384;
-
-        Av1MotionVector upper = new Av1MotionVector(1000, 1000).ClampReference(
-            blockWidth,
-            blockHeight,
-            blockToLeftEdge,
-            blockToRightEdge,
-            blockToTopEdge,
-            blockToBottomEdge);
-
-        Av1MotionVector lower = new Av1MotionVector(-1000, -1000).ClampReference(
-            blockWidth,
-            blockHeight,
-            blockToLeftEdge,
-            blockToRightEdge,
-            blockToTopEdge,
-            blockToBottomEdge);
-
-        Av1MotionVector inside = new Av1MotionVector(48, -64).ClampReference(
-            blockWidth,
-            blockHeight,
-            blockToLeftEdge,
-            blockToRightEdge,
-            blockToTopEdge,
-            blockToBottomEdge);
-
-        Assert.Equal(new Av1MotionVector(576, 768), upper);
-        Assert.Equal(new Av1MotionVector(-320, -512), lower);
-        Assert.Equal(new Av1MotionVector(48, -64), inside);
-    }
-
-    /// <summary>
-    /// Verifies AV1 fixed-point temporal projection, distance limiting, symmetric rounding, and endpoint clamping.
-    /// </summary>
-    /// <param name="row">The source vertical component.</param>
-    /// <param name="column">The source horizontal component.</param>
-    /// <param name="numerator">The signed source-to-target frame distance.</param>
-    /// <param name="denominator">The positive source-to-reference frame distance.</param>
-    /// <param name="expectedRow">The expected projected vertical component.</param>
-    /// <param name="expectedColumn">The expected projected horizontal component.</param>
-    [Theory]
-    [InlineData(64, -96, 2, 4, 32, -48)]
-    [InlineData(64, -96, -2, 4, -32, 48)]
-    [InlineData(2, -2, 1, 3, 1, -1)]
-    [InlineData(31, -31, 40, 40, 31, -31)]
-    [InlineData(4095, -4095, 31, 1, 16383, -16383)]
-    public void ProjectTemporalMatchesReference(
-        int row,
-        int column,
-        int numerator,
-        int denominator,
-        int expectedRow,
-        int expectedColumn)
-    {
-        Av1MotionVector actual = new Av1MotionVector(row, column).ProjectTemporal(numerator, denominator);
-
-        Assert.Equal(new Av1MotionVector(expectedRow, expectedColumn), actual);
+        static void AssertFrameSearchBounds(Rectangle block, int border, Rectangle expected)
+            => Assert.Equal(expected, Av1MotionVector.GetFrameSearchBounds(block, new Size(256, 256), border));
     }
 }

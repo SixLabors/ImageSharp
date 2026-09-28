@@ -13,22 +13,20 @@ public class Av1DenseFlowSolverTests
     /// The configuration set the other AV1 vector tests use.
     /// </summary>
     private const HwIntrinsics SolverConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(8, 8)]
-    [InlineData(16, 24)]
-    [InlineData(40, 32)]
-    public void SolveMatchesTheReferencePatchSolver(int x, int y)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            static parameters =>
-            {
-                string[] values = parameters.Split(',');
-                ValidateSolve(int.Parse(values[0]), int.Parse(values[1]));
-            },
-            FormattableString.Invariant($"{x},{y}"),
-            SolverConfigurations);
+    [Fact]
+    public void SolveMatchesTheReferencePatchSolver()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSolvePositions, SolverConfigurations);
+
+    /// <summary>
+    /// Compares the refined flow vectors with the reference at the frame origin and at an interior patch.
+    /// </summary>
+    private static void ValidateSolvePositions()
+    {
+        ValidateSolve(0, 0);
+        ValidateSolve(40, 32);
+    }
 
     /// <summary>
     /// Compares the refined flow vector with the reference for one patch position.

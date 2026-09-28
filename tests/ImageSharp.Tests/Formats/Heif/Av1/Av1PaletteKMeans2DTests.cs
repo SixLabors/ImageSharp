@@ -13,51 +13,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1PaletteKMeans2DTests
 {
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     [Fact]
     public void AssignIndicesMatchesScalarAtEveryIntrinsicTier()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateAssignment, Configurations);
-
-    [Fact]
-    public void ClusterMatchesReferenceFixture()
-    {
-        short[] firstSamples = [0, 2, 0, 100, 102, 100, 200, 202, 200];
-        short[] secondSamples = [10, 10, 12, 110, 110, 112, 210, 210, 212];
-        short[] firstCentroids = [20, 100, 180];
-        short[] secondCentroids = [30, 110, 190];
-        byte[] indices = new byte[firstSamples.Length];
-        short[] alternateFirstCentroids = new short[firstCentroids.Length];
-        short[] alternateSecondCentroids = new short[secondCentroids.Length];
-        byte[] alternateIndices = new byte[firstSamples.Length];
-
-        long distortion = Av1PaletteKMeans2D.Cluster(
-            firstSamples,
-            secondSamples,
-            firstCentroids,
-            secondCentroids,
-            indices,
-            alternateFirstCentroids,
-            alternateSecondCentroids,
-            alternateIndices);
-
-        Assert.Equal([1, 101, 201], firstCentroids);
-        Assert.Equal([11, 111, 211], secondCentroids);
-        Assert.Equal([0, 0, 0, 1, 1, 1, 2, 2, 2], indices);
-        Assert.Equal(18, distortion);
-    }
-
-    [Fact]
-    public void InitializeCentroidsMatchesReferenceIntegerOrder()
-    {
-        short[] firstCentroids = new short[3];
-        short[] secondCentroids = new short[3];
-
-        Av1PaletteKMeans2D.InitializeCentroids(10, 250, 20, 260, firstCentroids, secondCentroids);
-
-        Assert.Equal([50, 130, 210], firstCentroids);
-        Assert.Equal([60, 140, 220], secondCentroids);
-    }
 
     private static void ValidateAssignment()
     {

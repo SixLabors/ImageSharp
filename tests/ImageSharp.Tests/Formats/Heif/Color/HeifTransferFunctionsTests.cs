@@ -61,9 +61,17 @@ public class HeifTransferFunctionsTests
     /// Verifies that every SIMD width matches the scalar inverse transfer function at curve transitions, extrema, and extended-range values.
     /// </summary>
     /// <param name="transferCharacteristicsValue">The transfer-characteristic code point under test.</param>
-    [Theory]
-    [MemberData(nameof(TransferCharacteristics))]
-    public void ToLinearSimdMatchesScalar(int transferCharacteristicsValue)
+    [Fact]
+    public void ToLinearSimdMatchesScalar()
+    {
+        foreach (ITheoryDataRow row in TransferCharacteristics)
+        {
+            object?[] values = row.GetData();
+            this.ToLinearSimdMatchesScalarCase((int)values[0]!);
+        }
+    }
+
+    private void ToLinearSimdMatchesScalarCase(int transferCharacteristicsValue)
     {
         CicpTransferCharacteristics transferCharacteristics = (CicpTransferCharacteristics)transferCharacteristicsValue;
         float[] expected = SignalValues.Select(value => HeifTransferFunctions.ToLinear(transferCharacteristics, value)).ToArray();
@@ -81,9 +89,17 @@ public class HeifTransferFunctionsTests
     /// Verifies that every SIMD width matches the scalar forward transfer function at curve transitions, extrema, and extended-range values.
     /// </summary>
     /// <param name="transferCharacteristicsValue">The transfer-characteristic code point under test.</param>
-    [Theory]
-    [MemberData(nameof(TransferCharacteristics))]
-    public void ToGammaSimdMatchesScalar(int transferCharacteristicsValue)
+    [Fact]
+    public void ToGammaSimdMatchesScalar()
+    {
+        foreach (ITheoryDataRow row in TransferCharacteristics)
+        {
+            object?[] values = row.GetData();
+            this.ToGammaSimdMatchesScalarCase((int)values[0]!);
+        }
+    }
+
+    private void ToGammaSimdMatchesScalarCase(int transferCharacteristicsValue)
     {
         CicpTransferCharacteristics transferCharacteristics = (CicpTransferCharacteristics)transferCharacteristicsValue;
         float[] expected = SignalValues.Select(value => HeifTransferFunctions.ToGamma(transferCharacteristics, value)).ToArray();

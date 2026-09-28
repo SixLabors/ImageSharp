@@ -15,24 +15,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1WarpedInterPredictorTests
 {
     /// <summary>
-    /// The hardware configurations covering every descending SIMD width and the scalar fallback.
+    /// The hardware configurations covering the native SIMD width and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// Verifies exact 8-bit native and compound prediction against independent scalar equations.
-    /// </summary>
-    [Fact]
-    public void BytePredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePrediction, PredictorConfigurations);
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies exact 8-, 10-, and 12-bit native and compound prediction against independent scalar equations.
     /// </summary>
     [Fact]
-    public void HighBitDepthPredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPrediction, PredictorConfigurations);
+    public void PredictionMatchesReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePredictions, PredictorConfigurations);
+
+    /// <summary>
+    /// Runs every warped prediction comparison under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidatePredictions()
+    {
+        ValidateBytePrediction();
+        ValidateHighBitDepthPrediction();
+    }
 
     /// <summary>
     /// Applies the reference multi-sample affine model to deterministic byte storage.

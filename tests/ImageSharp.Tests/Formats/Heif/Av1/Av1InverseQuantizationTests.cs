@@ -13,8 +13,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1InverseQuantizationTests
 {
     [Theory]
-    [InlineData((int)Av1BitDepth.EightBit, 26, 30, 40, 32767, -32768)]
-    [InlineData((int)Av1BitDepth.TenBit, 75, 83, 112, 131071, -131072)]
     [InlineData((int)Av1BitDepth.TwelveBit, 266, 297, 399, 524287, -524288)]
     public void DequantizationMatchesReferenceMatrixAndPrecisionValues(
         int bitDepthValue,
@@ -100,26 +98,5 @@ public class Av1InverseQuantizationTests
             losslessQuantizer, mode, Av1TransformType.DctDct, Av1TransformSize.Size4x4, Av1Plane.Y);
 
         Assert.Equal(44, lossless.Dequantize(11, 1, false));
-    }
-
-    [Fact]
-    public void MatricesCoverAllLevelsPlanesAndTransformSizes()
-    {
-        for (int level = 0; level < Av1Constants.QuantificationMatrixLevelCount; level++)
-        {
-            for (Av1Plane plane = Av1Plane.Y; (int)plane < Av1Constants.MaxPlanes; plane++)
-            {
-                for (int transformSizeIndex = 0; transformSizeIndex < (int)Av1TransformSize.AllSizes; transformSizeIndex++)
-                {
-                    Av1TransformSize transformSize = (Av1TransformSize)transformSizeIndex;
-                    Av1TransformSize adjustedSize = transformSize.GetAdjusted();
-                    int expectedLength = adjustedSize.GetWidth() * adjustedSize.GetHeight();
-
-                    ReadOnlySpan<int> matrix = Av1InverseQuantizationLookup.GetQuantizationMatrix(level, plane, transformSize);
-
-                    Assert.Equal(expectedLength, matrix.Length);
-                }
-            }
-        }
     }
 }

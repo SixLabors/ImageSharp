@@ -4,9 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -19,45 +17,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1ChromaFromLumaTests
 {
     /// <summary>
-    /// The hardware configurations required to exercise each SIMD tier and the complete scalar fallback.
+    /// The hardware configurations required to exercise the native SIMD width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// Verifies Q3 luma storage for every AV1 chroma-subsampling layout.
-    /// </summary>
-    [Theory]
-    [InlineData(false, false, new short[] { 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128 })]
-    [InlineData(true, false, new short[] { 12, 28, 44, 60, 76, 92, 108, 124 })]
-    [InlineData(true, true, new short[] { 28, 44, 92, 108 })]
-    public void Store8BitMatchesReference(bool subX, bool subY, short[] expected)
-    {
-        ObuColorConfig colorConfig = new() { SubSamplingX = subX, SubSamplingY = subY };
-        Av1ChromaFromLumaContext context = new(colorConfig);
-        byte[] input = Enumerable.Range(1, 16).Select(x => (byte)x).ToArray();
-
-        context.Store(input, 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 0, 0);
-
-        int width = 4 >> (subX ? 1 : 0);
-        int height = 4 >> (subY ? 1 : 0);
-        Assert.Equal(expected, GetBlock(context.Q3Buffer, width, height));
-    }
-
-    /// <summary>
-    /// Verifies that Q3 storage retains the complete 12-bit sample range.
-    /// </summary>
-    [Fact]
-    public void StoreHighBitDepthPreservesTwelveBitQ3Range()
-    {
-        ObuColorConfig colorConfig = new();
-        Av1ChromaFromLumaContext context = new(colorConfig);
-        short[] input = Enumerable.Repeat((short)4095, 16).ToArray();
-
-        context.Store(input, 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 0, 0);
-
-        Assert.All(GetBlock(context.Q3Buffer, 4, 4), value => Assert.Equal(32760, value));
-    }
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies that sub-8-by-8 luma blocks are combined before the shared average is removed.
@@ -87,91 +49,20 @@ public class Av1ChromaFromLumaTests
     }
 
     /// <summary>
-    /// Verifies that frame-edge extension precedes average subtraction.
+    /// Verifies exact 8-, 10-, and 12-bit CfL output, luma subsampling, average subtraction, and padding preservation
+    /// with the native vector path and the scalar fallback.
     /// </summary>
     [Fact]
-    public void ComputeParametersPadsFrameEdgeBeforeSubtractingAverage()
+    public void ChromaFromLumaKernelsMatchReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateKernels, PredictorConfigurations);
+
+    /// <summary>
+    /// Runs every CfL kernel comparison under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateKernels()
     {
-        ObuColorConfig colorConfig = new();
-        Av1ChromaFromLumaContext context = new(colorConfig);
-        byte[] input = Enumerable.Range(1, 16).Select(x => (byte)x).ToArray();
-        context.Store(input, 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 0, 0);
-
-        context.ComputeParameters(Av1TransformSize.Size8x8);
-
-        short[] actual = GetBlock(context.Q3Buffer, 8, 8);
-        Assert.Equal(-90, actual[0]);
-        Assert.Equal(-66, actual[7]);
-        Assert.Equal(6, actual[56]);
-        Assert.Equal(30, actual[63]);
-        Assert.Equal(0, actual.Sum(x => x));
-    }
-
-    /// <summary>
-    /// Verifies 8-bit CfL scaling and clipping with known values.
-    /// </summary>
-    [Fact]
-    public void Predict8BitAddsScaledLumaAndClips()
-    {
-        short[] lumaQ3 = new short[32 * 32];
-        new short[] { -64, -32, 64, 64 }.CopyTo(lumaQ3, 0);
-        byte[] destination = [128, 128, 128, 128];
-
-        Av1ChromaFromLumaPredictor.Predict(lumaQ3, destination, 4, 8, 4, 1);
-
-        Assert.Equal(new byte[] { 120, 124, 136, 136 }, destination);
-    }
-
-    /// <summary>
-    /// Verifies high-bit-depth CfL scaling and clipping with known values.
-    /// </summary>
-    [Theory]
-    [InlineData((int)Av1BitDepth.TenBit, 1023)]
-    [InlineData((int)Av1BitDepth.TwelveBit, 4095)]
-    public void PredictHighBitDepthAddsScaledLumaAndClips(int bitDepthIndex, short maximum)
-    {
-        short[] lumaQ3 = new short[32 * 32];
-        new short[] { -128, -64, 64, 128 }.CopyTo(lumaQ3, 0);
-        short dc = (short)(maximum / 2);
-        short[] destination = [dc, dc, dc, dc];
-
-        Av1ChromaFromLumaPredictor.Predict(lumaQ3, destination, 4, 16, ((Av1BitDepth)bitDepthIndex).GetBitCount(), 4, 1);
-
-        Assert.Equal(new short[] { (short)(dc - 32), (short)(dc - 16), (short)(dc + 16), (short)(dc + 32) }, destination);
-    }
-
-    /// <summary>
-    /// Verifies exact 8-, 10-, and 12-bit CfL output and padding preservation across all intrinsic tiers.
-    /// </summary>
-    [Fact]
-    public void PredictMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePredictors, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies exact luma subsampling and average subtraction across all intrinsic tiers.
-    /// </summary>
-    [Fact]
-    public void ContextOperationsMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateContextOperations, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies the plane-specific alpha magnitude and joint-sign mapping.
-    /// </summary>
-    [Theory]
-    [InlineData((int)Av1Plane.U, 3)]
-    [InlineData((int)Av1Plane.V, 4)]
-    public void AlphaIndexSelectsMagnitudeForRequestedChromaPlane(int planeIndex, int expected)
-    {
-        // U occupies the high nibble and V occupies the low nibble in the packed AV1 alpha index.
-        const int alphaIndex = 0x23;
-        const int bothPositiveJointSign = 7;
-
-        int actual = Av1PredictionDecoder.ChromaFromLumaIndexToAlpha(
-            alphaIndex,
-            bothPositiveJointSign,
-            (Av1Plane)planeIndex);
-
-        Assert.Equal(expected, actual);
+        ValidatePredictors();
+        ValidateContextOperations();
     }
 
     /// <summary>

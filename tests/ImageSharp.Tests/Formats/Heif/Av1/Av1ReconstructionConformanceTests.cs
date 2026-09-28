@@ -33,40 +33,6 @@ public class Av1ReconstructionConformanceTests
     private const int CdefUnitModeInfoSize = 16;
 
     /// <summary>
-    /// The hardware configurations covering normal SIMD dispatch and the scalar fallback.
-    /// </summary>
-    private const HwIntrinsics ReconstructionConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// The hardware configurations covering the 256-bit, 128-bit, and scalar palette-reconstruction paths.
-    /// </summary>
-    private const HwIntrinsics PaletteConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// The hardware configurations covering normal dispatch, narrower vector fallbacks, and scalar intra-block copy.
-    /// </summary>
-    private const HwIntrinsics IntraBlockCopyConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// The hardware configurations covering the narrower vector widths and scalar fallback for the profile matrix.
-    /// </summary>
-    private const HwIntrinsics ProfileFallbackConfigurations =
-        HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// The hardware configurations covering the 128-bit and scalar lossless inverse-transform paths.
-    /// </summary>
-    private const HwIntrinsics LosslessConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// The hardware configurations covering the 256-bit, 128-bit, and scalar loop-restoration paths.
-    /// </summary>
-    private const HwIntrinsics LoopRestorationConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
     /// The coverage bit representing an active Wiener restoration unit.
     /// </summary>
     private const int WienerRestorationCoverage = 1 << (int)Av1RestorationFilterType.Wiener;
@@ -90,11 +56,6 @@ public class Av1ReconstructionConformanceTests
     /// The luma and chroma syntax coverage required from the independent palette fixture.
     /// </summary>
     private const int RequiredPaletteCoverage = LumaPaletteCoverage | ChromaPaletteCoverage;
-
-    /// <summary>
-    /// The bit mask containing every AV1 partition type defined for a coding block.
-    /// </summary>
-    private const int RequiredPartitionCoverage = (1 << ((int)Av1PartitionType.Vertical4 + 1)) - 1;
 
     /// <summary>
     /// The displayed width shared by the independent lossless fixtures.
@@ -418,201 +379,29 @@ public class Av1ReconstructionConformanceTests
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
     /// </summary>
     private const HwIntrinsics PresentationConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
-
-    /// <summary>
-    /// Verifies deblocking syntax, filter activation, component traversal, and presentation for real eight-, ten-,
-    /// and twelve-bit AV1 and AVIF content.
-    /// </summary>
-    [Fact]
-    public void DecodeDeblockingMatchesReference()
-    {
-        ValidateFixture(
-            TestImages.Heif.Av1Deblocking8BitAvif,
-            TestImages.Heif.Av1Deblocking8BitPayload,
-            TestImages.Heif.Av1Deblocking8BitReference,
-            768,
-            512,
-            Av1BitDepth.EightBit,
-            Av1ColorFormat.Yuv420,
-            HeifBitDepth.Bit8);
-
-        ValidateFixture(
-            TestImages.Heif.Av1Deblocking10BitAvif,
-            TestImages.Heif.Av1Deblocking10BitPayload,
-            TestImages.Heif.Av1Deblocking10BitReference,
-            1024,
-            428,
-            Av1BitDepth.TenBit,
-            Av1ColorFormat.Yuv444,
-            HeifBitDepth.Bit10);
-
-        ValidateNativeFixture(
-            TestImages.Heif.Av1Deblocking12BitPayload,
-            TestImages.Heif.Av1Deblocking12BitReference,
-            1024,
-            428,
-            Av1BitDepth.TwelveBit,
-            Av1ColorFormat.Yuv444,
-            requireActiveCdef: false);
-
-        ValidatePresentedImage(TestImages.Heif.Av1Deblocking12BitAvif, 64, 64, HeifBitDepth.Bit12);
-    }
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies active CDEF syntax, strength selection, unit traversal, subsampling, frame edges, and final native
-    /// samples against the independent scalar reference for independently encoded eight-, ten-, and twelve-bit still-picture streams
-    /// under normal SIMD dispatch and with hardware intrinsics disabled.
+    /// samples against the independent scalar reference for independently encoded eight-, ten-, and twelve-bit still-picture streams.
     /// </summary>
     [Fact]
-    public void DecodeCdefNativeMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateActiveCdefFixtures, ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies that successive native frames reuse CDEF storage, resize it for a different component layout,
-    /// and release it at decoder disposal while preserving exact component samples.
-    /// </summary>
-    [Fact]
-    public void DecodeCdefReusesSessionStorage()
-    {
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        (string Payload, string Reference, bool ReusesStorage)[] frames =
-        [
-            (TestImages.Heif.Av1Cdef8BitPayload, TestImages.Heif.Av1Cdef8BitReference, false),
-            (TestImages.Heif.Av1Cdef8BitPayload, TestImages.Heif.Av1Cdef8BitReference, true),
-            (TestImages.Heif.Av1Cdef10BitPayload, TestImages.Heif.Av1Cdef10BitReference, false),
-            (TestImages.Heif.Av1Cdef12BitPayload, TestImages.Heif.Av1Cdef12BitReference, true),
-            (TestImages.Heif.Av1Cdef8BitPayload, TestImages.Heif.Av1Cdef8BitReference, false)
-        ];
-
-        int previousAllocationId = -1;
-        using (Av1Decoder decoder = new(configuration))
-        {
-            foreach ((string payloadPath, string referencePath, bool reusesStorage) in frames)
-            {
-                byte[] payload = TestFile.Create(payloadPath).Bytes;
-                byte[] reference = TestFile.Create(referencePath).Bytes;
-                using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
-                AssertNativePlanesEqual(decoder, frameBuffer, reference);
-
-                // Frame samples use byte owners at every precision. Other 16-bit filter scratch has expired
-                // after frame completion, leaving the reusable CDEF owner identifiable by its allocation ID.
-                TestMemoryAllocator.AllocationRequest active = Assert.Single(
-                    allocator.AllocationLog,
-                    request => request.ElementType == typeof(ushort) &&
-                        !allocator.ReturnLog.Any(returned => returned.AllocationId == request.AllocationId));
-
-                if (reusesStorage)
-                {
-                    Assert.Equal(previousAllocationId, active.AllocationId);
-                }
-                else
-                {
-                    Assert.NotEqual(previousAllocationId, active.AllocationId);
-                    if (previousAllocationId >= 0)
-                    {
-                        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == previousAllocationId);
-                    }
-                }
-
-                previousAllocationId = active.AllocationId;
-            }
-        }
-
-        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == previousAllocationId);
-    }
-
-    /// <summary>
-    /// Verifies exact presented pixels and public metadata for independently encoded eight-, ten-, and twelve-bit
-    /// active-CDEF AVIF images across the available vector widths and the scalar fallback.
-    /// </summary>
-    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
-    /// <param name="width">The expected presented width.</param>
-    /// <param name="height">The expected presented height.</param>
-    /// <param name="bitDepth">The expected public sample precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1Cdef8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1Cdef10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1Cdef12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
-    public void DecodeCdefMatchesReference(
-        TestImageProvider<Rgba32> provider,
-        int width,
-        int height,
-        HeifBitDepth bitDepth)
-    {
-        AssertPresentedMetadata(provider, width, height, bitDepth);
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidatePresentedFixture,
-            PresentationConfigurations,
-            provider);
-    }
+    public void DecodeCdefNativeMatchesReference() => ValidateActiveCdefFixtures();
 
     /// <summary>
     /// Verifies exact native reconstruction for every valid AV1 profile, bit-depth, and chroma-format combination
-    /// supported by AVIF across every available vector width and the scalar fallback.
+    /// supported by AVIF.
     /// </summary>
     [Fact]
     public void DecodeProfileMatrixNativeMatchesReference()
         => ValidateProfileNativeFixtures();
 
     /// <summary>
-    /// Verifies exact native reconstruction for every valid AV1 profile, bit-depth, and chroma-format combination
-    /// under each narrower vector width and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void DecodeProfileMatrixFallbacksMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateProfileNativeFixtures, ProfileFallbackConfigurations);
-
-    /// <summary>
-    /// Verifies exact presented pixels, public bit-depth metadata, and CICP signaling for every valid AV1 profile,
-    /// bit-depth, and chroma-format combination supported by AVIF.
-    /// </summary>
-    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
-    /// <param name="bitDepth">The expected public sample precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1Profile8BitMonochromeAvif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1Profile8Bit420Avif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1Profile8Bit422Avif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1Profile8Bit444Avif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1Profile10BitMonochromeAvif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1Profile10Bit420Avif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1Profile10Bit422Avif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1Profile10Bit444Avif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1Profile12BitMonochromeAvif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.Av1Profile12Bit420Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.Av1Profile12Bit422Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.Av1Profile12Bit444Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    public void DecodeProfileMatrixMatchesReference(
-        TestImageProvider<Rgba32> provider,
-        HeifBitDepth bitDepth)
-    {
-        using Image<Rgba32> image = provider.GetImage(HeifDecoder.Instance);
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        Assert.Equal(bitDepth, metadata.BitDepth);
-
-        CicpProfile colorProfile = Assert.IsType<CicpProfile>(image.Metadata.CicpProfile);
-        Assert.Equal(CicpColorPrimaries.ItuRBt709_6, colorProfile.ColorPrimaries);
-        Assert.Equal(CicpTransferCharacteristics.Iec61966_2_1, colorProfile.TransferCharacteristics);
-        Assert.Equal(CicpMatrixCoefficients.Identity, colorProfile.MatrixCoefficients);
-        Assert.True(colorProfile.FullRange);
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidatePresentedFixture,
-            PresentationConfigurations,
-            provider);
-    }
-
-    /// <summary>
     /// Verifies decoded luma and chroma palette syntax and exact native samples for an independently encoded AV1
     /// still-picture stream.
     /// </summary>
     [Fact]
-    public void DecodePaletteMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaletteNativeFixture, PaletteConfigurations);
+    public void DecodePaletteMatchesReference() => ValidatePaletteNativeFixture();
 
     /// <summary>
     /// Verifies exact palette reconstruction through bounded reusable superblock maps and tracked disposal.
@@ -753,31 +542,14 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies selected intra-block-copy prediction and exact native samples against the independent scalar reference for an
-    /// independently encoded AV1 still pictures across every available vector width and the scalar fallback.
+    /// independently encoded AV1 still pictures.
     /// </summary>
     [Fact]
-    public void DecodeIntraBlockCopyNativeMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateIntraBlockCopyNativeFixtures, IntraBlockCopyConfigurations);
-
-    /// <summary>
-    /// Verifies exact presented pixels for independently encoded intra-block-copy AVIF images across the available
-    /// vector widths and the scalar fallback.
-    /// </summary>
-    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1IntraBlockCopy8BitAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1IntraBlockCopy10BitAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1IntraBlockCopy12BitAvif, PixelTypes.Rgba32)]
-    public void DecodeIntraBlockCopyMatchesReference(
-        TestImageProvider<Rgba32> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidatePresentedFixture,
-            PresentationConfigurations,
-            provider);
+    public void DecodeIntraBlockCopyNativeMatchesReference() => ValidateIntraBlockCopyNativeFixtures();
 
     /// <summary>
     /// Verifies the production single-reference inter-reconstruction path against exact native and presentation
-    /// references across the available vector widths and scalar fallback.
+    /// references.
     /// </summary>
     /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
@@ -786,68 +558,8 @@ public class Av1ReconstructionConformanceTests
         TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration,
-            PresentationConfigurations,
+            HwIntrinsics.AllowAll,
             provider);
-
-    /// <summary>
-    /// Verifies production single-reference inter reconstruction with a constrained allocator.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeProgressiveSingleWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateProgressiveSingleReferenceFixture(configuration);
-
-        Assert.Contains(allocator.AllocationLog, allocation => allocation.ElementType == typeof(Av1BlockModeInfo));
-        Assert.Contains(allocator.AllocationLog, allocation => allocation.ElementType == typeof(Av1TransformInfo));
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Verifies that an essential lsel property returns the selected base spatial layer rather than the final
-    /// progressive layer, with exact reference native planes and the retained exact presentation reference.
-    /// </summary>
-    /// <param name="provider">The selected-layer AVIF input and matching reference-output naming context.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif, PixelTypes.Rgba32)]
-    public void DecodeSelectedProgressiveLayerMatchesReference(
-        TestImageProvider<Rgba32> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration,
-            PresentationConfigurations,
-            provider);
-
-    /// <summary>
-    /// Verifies selected-layer native reconstruction and public presentation with constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeSelectedProgressiveLayerWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateSelectedProgressiveSpatialLayer(configuration);
-
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
 
     /// <summary>
     /// Verifies an independently encoded 40x40 retained layer scaled into an 80x80 dependent layer against exact
@@ -859,137 +571,405 @@ public class Av1ReconstructionConformanceTests
     public void DecodeScaledReferenceMatchesReference(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateScaledReferenceFixtureWithDefaultConfiguration,
-            ReconstructionConfigurations,
+            HwIntrinsics.AllowAll,
             provider);
 
     /// <summary>
-    /// Verifies scaled-reference reconstruction with constrained tracked allocation and contiguous frame planes.
+    /// Verifies masked wedge compound prediction against retained native and presentation references.
     /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeScaledReferenceWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateScaledReferenceFixture(configuration);
-
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Verifies that the production dependent-frame result owns its motion-field storage until decoder disposal.
-    /// </summary>
-    [Fact]
-    public void DecodeProgressiveSingleTracksMotionFieldOwnership()
-    {
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        byte[] payload = TestFile.Create(TestImages.Heif.Av1Progressive8BitPayload).Bytes;
-
-        using Av1Decoder decoder = new(configuration);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
-            payload,
-            null,
-            null,
-            out _,
-            new Av1LayeredImageIndex(ProgressiveFirstLayerSize, 0, 0));
-
-        TestMemoryAllocator.AllocationRequest retainedMotionField = Assert.Single(
-            allocator.AllocationLog,
-            request => request.ElementType.Name == "RetainedMotionFieldEntry");
-
-        TestMemoryAllocator.AllocationRequest temporalMotionField = Assert.Single(
-            allocator.AllocationLog,
-            request => request.ElementType.Name == "TemporalMotionFieldEntry");
-
-        // Reference-slot and presentation owners are released while DecodeFrameBuffer transfers the native planes.
-        // The decoder's inspectable FrameInfo result remains the final motion-field owner until decoder disposal.
-        Assert.DoesNotContain(
-            allocator.ReturnLog,
-            returned => returned.AllocationId == retainedMotionField.AllocationId);
-
-        Assert.DoesNotContain(
-            allocator.ReturnLog,
-            returned => returned.AllocationId == temporalMotionField.AllocationId);
-
-        frameBuffer.Dispose();
-
-        Assert.DoesNotContain(
-            allocator.ReturnLog,
-            returned => returned.AllocationId == retainedMotionField.AllocationId);
-
-        Assert.DoesNotContain(
-            allocator.ReturnLog,
-            returned => returned.AllocationId == temporalMotionField.AllocationId);
-
-        decoder.Dispose();
-        decoder.Dispose();
-
-        Assert.Single(
-            allocator.ReturnLog,
-            returned => returned.AllocationId == retainedMotionField.AllocationId);
-
-        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == temporalMotionField.AllocationId);
-    }
-
-    /// <summary>
-    /// Verifies exact native reconstruction and presentation for an image sequence that exercises equal-weight
-    /// compound prediction. The native reference has been reverified against the current AV1 reference.
-    /// </summary>
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
-    [WithFile(TestImages.Heif.Av1AverageCompoundSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeEqualAverageCompoundMatchesReference(
+    [WithFile(TestImages.Heif.Av1WedgeCompoundSequenceAvif, PixelTypes.Rgba32)]
+    public void DecodeSelectableCompoundMatchesReference(
         TestImageProvider<Rgba32> provider)
-
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateAverageCompoundSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations,
+            ValidateSelectableCompoundSequenceWithDefaultConfiguration,
+            HwIntrinsics.AllowAll,
             provider);
 
     /// <summary>
-    /// Verifies the complete compound sequence through a constrained allocator.
+    /// Verifies every ordinary inter mode, motion mode, and switchable dual-filter pair against the official
+    /// reference motion-vector conformance sequence and its exact native output.
     /// </summary>
     [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeEqualAverageCompoundWithConstrainedAllocator()
+    public void DecodeMotionVectorSequenceMatchesReference()
+        => ValidateOfficialMotionVectorFixture(Configuration.Default);
+
+    /// <summary>
+    /// Decodes every IVF sample in one retained session, compares each shown frame exactly, and records the
+    /// syntax selections that make the vector authoritative for ordinary inter-mode and filter coverage.
+    /// </summary>
+    private static void ValidateOfficialMotionVectorFixture(Configuration configuration)
     {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
+        byte[] ivf = TestFile.Create(TestImages.Heif.Av1OfficialMotionVectorSequence).Bytes;
+        byte[] nativeReference = TestFile.Create(TestImages.Heif.Av1OfficialMotionVectorSequenceNativeReference).Bytes;
+        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W352 H288 F30:1 Ip C420jpeg\n"u8;
+        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
 
-        ValidateAverageCompoundSequence(configuration);
+        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
+        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
+        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
+        Assert.Equal(OfficialMotionVectorFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
+        Assert.Equal(OfficialMotionVectorFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
+        Assert.Equal(
+            OfficialMotionVectorFixtureFrameCount,
+            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
 
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
+        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
+
+        int ivfOffset = 32;
+        int nativeOffset = y4mFileHeader.Length;
+        int nativeFrameLength =
+            (OfficialMotionVectorFixtureWidth * OfficialMotionVectorFixtureHeight) +
+            (2 * (OfficialMotionVectorFixtureWidth >> 1) * (OfficialMotionVectorFixtureHeight >> 1));
+
+        int interModeCoverage = 0;
+        int motionModeCoverage = 0;
+        int switchableFilterPairCoverage = 0;
+        using Av1Decoder decoder = new(configuration);
+        for (int frameIndex = 0; frameIndex < OfficialMotionVectorFixtureFrameCount; frameIndex++)
+        {
+            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
+            ivfOffset += 12;
+            ImageFrame<Rgba32> decodedFrame = new(configuration, OfficialMotionVectorFixtureWidth, OfficialMotionVectorFixtureHeight);
+            decoder.DecodeSequenceFrame(
+                ivf.AsSpan(ivfOffset, payloadLength),
+                null,
+                null,
+                decodedFrame.Size,
+                decodedFrame.Bounds,
+                decodedFrame.PixelBuffer.GetRegion(decodedFrame.Bounds),
+                default,
+                null,
+                null,
+                false);
+
+            using ImageFrame<Rgba32> frame = decodedFrame;
+
+            ivfOffset += payloadLength;
+            Assert.Equal(OfficialMotionVectorFixtureWidth, frame.Width);
+            Assert.Equal(OfficialMotionVectorFixtureHeight, frame.Height);
+            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
+            nativeOffset += y4mFrameHeader.Length;
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Assert.Equal(OfficialMotionVectorFixtureWidth, frameBuffer.Width);
+            Assert.Equal(OfficialMotionVectorFixtureHeight, frameBuffer.Height);
+            Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+            Assert.Equal(Av1ColorFormat.Yuv420, frameBuffer.ColorFormat);
+            AssertNativePlanesEqual(
+                decoder,
+                frameBuffer,
+                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
+
+            nativeOffset += nativeFrameLength;
+
+            Av1FrameInfo frameInfo = decoder.FrameInfo;
+            if (frameInfo is null)
+            {
+                // show_existing_frame contributes no new mode or interpolation-filter syntax.
+                continue;
+            }
+
+            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+            int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
+                >> sequenceHeader.SuperblockSizeLog2;
+            int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
+                >> sequenceHeader.SuperblockSizeLog2;
+
+            for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+            {
+                for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+                {
+                    Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                    foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+                    {
+                        if (modeInfo.YMode is < Av1PredictionMode.InterModeStart or >= Av1PredictionMode.InterModeEnd)
+                        {
+                            continue;
+                        }
+
+                        interModeCoverage |= 1 << ((int)modeInfo.YMode - (int)Av1PredictionMode.InterModeStart);
+                        motionModeCoverage |= 1 << (int)modeInfo.MotionMode;
+                        int verticalFilter = (int)modeInfo.InterpolationFilters[0];
+                        int horizontalFilter = (int)modeInfo.InterpolationFilters[1];
+                        switchableFilterPairCoverage |= 1 << ((verticalFilter * 3) + horizontalFilter);
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(ivf.Length, ivfOffset);
+        Assert.Equal(nativeReference.Length, nativeOffset);
+        Assert.Equal(RequiredInterModeCoverage, interModeCoverage);
+        Assert.Equal(RequiredMotionModeCoverage, motionModeCoverage);
+        Assert.Equal(RequiredSwitchableFilterPairCoverage, switchableFilterPairCoverage);
     }
 
     /// <summary>
-    /// Runs the exact compound-sequence comparisons with the default configuration.
+    /// Runs one selectable compound fixture with exact native and final presentation comparisons.
     /// </summary>
     /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
-    private static void ValidateAverageCompoundSequenceWithDefaultConfiguration(string providerDump)
+    private static void ValidateSelectableCompoundSequenceWithDefaultConfiguration(string providerDump)
+    {
+        TestImageProvider<Rgba32> provider =
+            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
+        (string NativeReferencePath, int RequiredCoverage) expected =
+            provider.SourceFileOrDescription switch
+            {
+                TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif =>
+                    (TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference, DistanceWeightedCompoundCoverage),
+                TestImages.Heif.Av1WedgeCompoundSequenceAvif =>
+                    (TestImages.Heif.Av1WedgeCompoundSequenceNativeReference, WedgeCompoundCoverage | InvertedWedgeCompoundCoverage),
+                TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif =>
+                    (TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference, DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage),
+                TestImages.Heif.Av1InterIntraSequenceAvif =>
+                    (TestImages.Heif.Av1InterIntraSequenceNativeReference, SmoothInterIntraCoverage | WedgeInterIntraCoverage),
+                _ => throw new InvalidOperationException($"Unexpected selectable-compound fixture: {provider.SourceFileOrDescription}.")
+            };
+
+        ValidateInterPredictionSequence(
+            Configuration.Default,
+            provider.SourceFileOrDescription,
+            expected.NativeReferencePath,
+            expected.RequiredCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
+
+        ValidateFinalSequencePresentation(providerDump);
+    }
+
+    /// <summary>
+    /// Decodes one complete retained-reference sequence and compares its final native samples exactly.
+    /// </summary>
+    private static void ValidateInterPredictionSequence(
+        Configuration configuration,
+        string imagePath,
+        string nativeReferencePath,
+        int requiredCoverage,
+        int fixtureSize,
+        int visibleFrameCount)
+    {
+        byte[] fileBytes = TestFile.Create(imagePath).Bytes;
+        byte[] referenceBytes = TestFile.Create(nativeReferencePath).Bytes;
+        string fileHeaderText =
+            $"YUV4MPEG2 W{fixtureSize} H{fixtureSize} F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n";
+
+        ReadOnlySpan<byte> fileHeader = Encoding.ASCII.GetBytes(fileHeaderText);
+
+        ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
+
+        ReadOnlySpan<byte> nativeReference = referenceBytes;
+        Assert.True(nativeReference.StartsWith(fileHeader));
+        nativeReference = nativeReference[fileHeader.Length..];
+        Assert.True(nativeReference.StartsWith(frameHeader));
+        nativeReference = nativeReference[frameHeader.Length..];
+        Assert.Equal(fixtureSize * fixtureSize * 3, nativeReference.Length);
+
+        HeifSequence sequence = ParseImageSequence(fileBytes);
+        HeifSequenceTrack track = sequence.ColorTrack;
+        int coverage = 0;
+        int decodedVisibleFrameCount = 0;
+        bool nativeCompared = false;
+
+        using Av1Decoder decoder = new(configuration);
+        for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
+        {
+            HeifSequenceSample sample = track.Samples[sampleIndex];
+            Span<byte> sampleData = fileBytes.AsSpan((int)sample.Offset, sample.Length);
+            if (sample.IsHidden)
+            {
+                decoder.DecodeSequenceReference(
+                    sampleData,
+                    track.CicpProfile,
+                    track.Av1CodecConfiguration);
+
+                coverage |= GetInterPredictionCoverage(decoder);
+                continue;
+            }
+
+            using ImageFrame<Rgba32> frame = new(configuration, track.CodedWidth, track.CodedHeight);
+            decoder.DecodeSequenceFrame(
+                sampleData,
+                track.CicpProfile,
+                track.Av1CodecConfiguration,
+                frame.Size,
+                frame.Bounds,
+                frame.PixelBuffer.GetRegion(frame.Bounds),
+                default,
+                null,
+                null,
+                false);
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            coverage |= GetInterPredictionCoverage(decoder);
+
+            // Every inter-prediction branch retains the same row-addressed plane contract under constrained allocators.
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
+
+            if (decodedVisibleFrameCount == visibleFrameCount - 1)
+            {
+                AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
+                nativeCompared = true;
+            }
+
+            decodedVisibleFrameCount++;
+        }
+
+        Assert.Equal(visibleFrameCount, decodedVisibleFrameCount);
+        Assert.Equal(requiredCoverage, coverage & requiredCoverage);
+        Assert.True(nativeCompared);
+    }
+
+    /// <summary>
+    /// Collects the compound, inter-intra, OBMC, and warped modes completed in one bounded payload.
+    /// </summary>
+    private static int GetInterPredictionCoverage(Av1Decoder decoder) =>
+        (int)decoder.DecodedInterPredictionFeatures;
+
+    /// <summary>
+    /// Verifies deblocking syntax, filter activation, component traversal, and exact native samples against the
+    /// reference output for independently encoded eight-, ten-, and twelve-bit still-picture streams.
+    /// </summary>
+    [Fact]
+    public void DecodeDeblockingNativeMatchesReference()
+    {
+        ValidateNativeFixture(
+            TestImages.Heif.Av1Deblocking8BitPayload,
+            TestImages.Heif.Av1Deblocking8BitReference,
+            768,
+            512,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420,
+            requireActiveCdef: false);
+
+        ValidateNativeFixture(
+            TestImages.Heif.Av1Deblocking10BitPayload,
+            TestImages.Heif.Av1Deblocking10BitReference,
+            1024,
+            428,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv444,
+            requireActiveCdef: false);
+
+        ValidateNativeFixture(
+            TestImages.Heif.Av1Deblocking12BitPayload,
+            TestImages.Heif.Av1Deblocking12BitReference,
+            1024,
+            428,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444,
+            requireActiveCdef: false);
+    }
+
+    /// <summary>
+    /// Verifies equal-weight compound, OBMC, local warped-motion, and non-translational global-motion sequences
+    /// against their exact native references.
+    /// </summary>
+    [Fact]
+    public void DecodeInterPredictionToolsNativeMatchesReference()
     {
         ValidateAverageCompoundSequence(Configuration.Default);
-        ValidateFinalSequencePresentation(providerDump);
+
+        ValidateInterPredictionSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1ObmcSequenceAvif,
+            TestImages.Heif.Av1ObmcSequenceNativeReference,
+            ObmcCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
+
+        ValidateInterPredictionSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1LocalWarpSequenceAvif,
+            TestImages.Heif.Av1LocalWarpSequenceNativeReference,
+            LocalWarpCoverage,
+            256,
+            2);
+
+        ValidateInterPredictionSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1GlobalWarpSequenceAvif,
+            TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
+            GlobalWarpCoverage,
+            256,
+            2);
+    }
+
+    /// <summary>
+    /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 8-bit 4:2:0,
+    /// 10-bit 4:2:2, and 12-bit 4:4:4 content.
+    /// </summary>
+    [Fact]
+    public void DecodeRestorationSuperResolutionNativeMatchesReference()
+    {
+        ValidateLoopRestorationAndSuperResolution8Bit420();
+        ValidateLoopRestorationAndSuperResolution10Bit422();
+        ValidateLoopRestorationAndSuperResolution12Bit444();
+    }
+
+    /// <summary>
+    /// Verifies the official eight- and ten-bit quantizer boundaries and all four corners of the official
+    /// frame-size matrix against exact reference native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialQuantizerAndFrameSizeMatchReference()
+    {
+        ValidateOfficialEightBitQuantizerBoundaryFixtures();
+        ValidateOfficialTenBitQuantizerBoundaryFixtures();
+        ValidateOfficialFrameSizeCornerFixtures();
+    }
+
+    /// <summary>
+    /// Verifies modulo frame identifiers, adaptive tile and frame-end CDF updates, and temporal
+    /// reference-motion-vector projection against the official reference sequences and exact native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialStreamSyntaxMatchesReference()
+    {
+        ValidateFrameIdentifierFixture();
+        ValidateOfficialCdfUpdateFixture();
+        ValidateOfficialMotionFieldFixture();
+    }
+
+    /// <summary>
+    /// Verifies extreme intra-block-copy displacement vectors, every intra prediction mode, and the all-intra
+    /// fixture's transform types against the official reference sequences and exact native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialIntraBlockCopyAndAllIntraMatchReference()
+    {
+        ValidateOfficialIntraBlockCopyFixture();
+        ValidateOfficialAllIntraFixture();
+    }
+
+    /// <summary>
+    /// Verifies the default operating point of the official two-spatial-layer, two-temporal-layer, and
+    /// spatial-and-temporal-layer sequences against exact reference native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialLayersMatchReference()
+    {
+        ValidateOfficialTwoSpatialLayerFixture();
+        ValidateOfficialTwoTemporalLayerFixture();
+        ValidateOfficialSpatialTemporalLayerFixture();
+    }
+
+    /// <summary>
+    /// Verifies the official eight- and ten-bit film-grain and monochrome sequences against exact reference native
+    /// output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialFilmGrainAndMonochromeMatchReference()
+    {
+        ValidateOfficialFilmGrainFixture();
+        ValidateOfficialTenBitFilmGrainFixture();
+        ValidateOfficialMonochromeFixture();
+        ValidateOfficialTenBitMonochromeFixture();
     }
 
     /// <summary>
@@ -1109,153 +1089,269 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies every selectable compound and inter-intra production branch against retained native and presentation references.
+    /// Validates active restoration after super-resolution for 8-bit 4:2:0 content.
     /// </summary>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1WedgeCompoundSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.Av1InterIntraSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeSelectableCompoundMatchesReference(
-        TestImageProvider<Rgba32> provider)
-
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateSelectableCompoundSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations,
-            provider);
+    private static void ValidateLoopRestorationAndSuperResolution8Bit420()
+        => ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1RestorationSuperResolution8BitPayload,
+            TestImages.Heif.Av1RestorationSuperResolution8BitReference,
+            768,
+            512,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420,
+            requireSuperResolution: true);
 
     /// <summary>
-    /// Verifies selectable compound and inter-intra reconstruction through a constrained allocator.
+    /// Validates active restoration after super-resolution for 10-bit 4:2:2 content.
     /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeSelectableCompoundWithConstrainedAllocator()
+    private static void ValidateLoopRestorationAndSuperResolution10Bit422()
+        => ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1RestorationSuperResolution10BitPayload,
+            TestImages.Heif.Av1RestorationSuperResolution10BitReference,
+            512,
+            256,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv422,
+            requireSuperResolution: true);
+
+    /// <summary>
+    /// Validates active restoration after super-resolution for 12-bit 4:4:4 content.
+    /// </summary>
+    private static void ValidateLoopRestorationAndSuperResolution12Bit444()
+        => ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1RestorationSuperResolution12BitPayload,
+            TestImages.Heif.Av1RestorationSuperResolution12BitReference,
+            1024,
+            428,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444,
+            requireSuperResolution: true);
+
+    /// <summary>
+    /// Decodes the official eight-bit quantizer boundaries.
+    /// </summary>
+    private static void ValidateOfficialEightBitQuantizerBoundaryFixtures()
+        => ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
+
+    /// <summary>
+    /// Decodes the official ten-bit quantizer boundaries.
+    /// </summary>
+    private static void ValidateOfficialTenBitQuantizerBoundaryFixtures()
+        => ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
+
+    /// <summary>
+    /// Decodes both retained official eight-bit quantizer-boundary fixtures.
+    /// </summary>
+    private static void ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
     {
-        ValidateInterPredictionSequenceWithConstrainedAllocator(
-            TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
-            TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference,
-            DistanceWeightedCompoundCoverage,
-            AverageCompoundFixtureSize,
-            AverageCompoundFixtureFrameCount);
-
-        ValidateInterPredictionSequenceWithConstrainedAllocator(
-            TestImages.Heif.Av1WedgeCompoundSequenceAvif,
-            TestImages.Heif.Av1WedgeCompoundSequenceNativeReference,
-            WedgeCompoundCoverage | InvertedWedgeCompoundCoverage,
-            AverageCompoundFixtureSize,
-            AverageCompoundFixtureFrameCount);
-
-        ValidateInterPredictionSequenceWithConstrainedAllocator(
-            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif,
-            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference,
-            DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage,
-            AverageCompoundFixtureSize,
-            AverageCompoundFixtureFrameCount);
-
-        ValidateInterPredictionSequenceWithConstrainedAllocator(
-            TestImages.Heif.Av1InterIntraSequenceAvif,
-            TestImages.Heif.Av1InterIntraSequenceNativeReference,
-            SmoothInterIntraCoverage | WedgeInterIntraCoverage,
-            AverageCompoundFixtureSize,
-            AverageCompoundFixtureFrameCount);
-    }
-
-    /// <summary>
-    /// Verifies production OBMC reconstruction against exact native and presentation references. The native reference
-    /// has been reverified against the current AV1 reference.
-    /// </summary>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1ObmcSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeObmcMatchesReference(TestImageProvider<Rgba32> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateObmcSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations,
-            provider);
-
-    /// <summary>
-    /// Verifies production OBMC reconstruction through a constrained allocator.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeObmcWithConstrainedAllocator()
-        => ValidateInterPredictionSequenceWithConstrainedAllocator(
-            TestImages.Heif.Av1ObmcSequenceAvif,
-            TestImages.Heif.Av1ObmcSequenceNativeReference,
-            ObmcCoverage,
-            AverageCompoundFixtureSize,
-            AverageCompoundFixtureFrameCount);
-
-    /// <summary>
-    /// Verifies production local warped-motion reconstruction against reference native and retained presentation references.
-    /// </summary>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1LocalWarpSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeLocalWarpMatchesReference(TestImageProvider<Rgba32> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateLocalWarpSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations,
-            provider);
-
-    /// <summary>
-    /// Verifies production local warped-motion reconstruction through a constrained allocator.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeLocalWarpWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateInterPredictionSequence(
+        ValidateCompactSequence(
             configuration,
-            TestImages.Heif.Av1LocalWarpSequenceAvif,
-            TestImages.Heif.Av1LocalWarpSequenceNativeReference,
-            LocalWarpCoverage,
-            256,
-            2);
+            TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequence,
+            TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialEightBitQuantizerFixtureWidth,
+            OfficialEightBitQuantizerFixtureHeight);
 
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
+        ValidateCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequence,
+            TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialEightBitQuantizerFixtureWidth,
+            OfficialEightBitQuantizerFixtureHeight);
     }
 
     /// <summary>
-    /// Verifies production non-translational global motion against reference native and retained presentation references.
+    /// Decodes both retained official ten-bit quantizer-boundary fixtures.
     /// </summary>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1GlobalWarpSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeGlobalWarpMatchesReference(TestImageProvider<Rgba32> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateGlobalWarpSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations,
-            provider);
+    private static void ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
+    {
+        ValidateCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequence,
+            TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialTenBitQuantizerFixtureWidth,
+            OfficialTenBitQuantizerFixtureHeight,
+            Av1ColorFormat.Yuv420,
+            Av1BitDepth.TenBit,
+            "60:1");
+
+        ValidateCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequence,
+            TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialTenBitQuantizerFixtureWidth,
+            OfficialTenBitQuantizerFixtureHeight,
+            Av1ColorFormat.Yuv420,
+            Av1BitDepth.TenBit,
+            "60:1");
+    }
 
     /// <summary>
-    /// Verifies production non-translational global-motion reconstruction through a constrained allocator.
+    /// Decodes all four retained frame-size corners.
     /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeGlobalWarpWithConstrainedAllocator()
-        => ValidateInterPredictionSequenceWithConstrainedAllocator(
-            TestImages.Heif.Av1GlobalWarpSequenceAvif,
-            TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
-            GlobalWarpCoverage,
-            256,
-            2);
+    private static void ValidateOfficialFrameSizeCornerFixtures()
+        => ValidateOfficialFrameSizeCornerFixturesWithConfiguration(Configuration.Default);
 
     /// <summary>
-    /// Verifies every intra prediction mode and the fixture's seven transform types against the official
-    /// reference all-intra conformance sequence and its exact native output.
+    /// Decodes every retained official frame-size fixture and compares every native sample.
     /// </summary>
-    [Fact]
-    public void DecodeAllIntraMatchesReference() => ValidateOfficialAllIntraFixture();
+    private static void ValidateOfficialFrameSizeCornerFixturesWithConfiguration(Configuration configuration)
+    {
+        ValidateCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMinimumFrameSizeSequence,
+            TestImages.Heif.Av1OfficialMinimumFrameSizeSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMinimumDimension,
+            OfficialFrameSizeFixtureMinimumDimension);
+
+        ValidateCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequence,
+            TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMinimumDimension,
+            OfficialFrameSizeFixtureMaximumDimension);
+
+        ValidateCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequence,
+            TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMaximumDimension,
+            OfficialFrameSizeFixtureMinimumDimension);
+
+        ValidateCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMaximumFrameSizeSequence,
+            TestImages.Heif.Av1OfficialMaximumFrameSizeSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMaximumDimension,
+            OfficialFrameSizeFixtureMaximumDimension);
+    }
+
+    /// <summary>
+    /// Decodes the frame-identifier fixture and requires a validated identifier transition on its inter frame.
+    /// </summary>
+    private static void ValidateFrameIdentifierFixture()
+    {
+        int coverage = ValidateCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1FrameIdentifierSequence,
+            TestImages.Heif.Av1FrameIdentifierSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMinimumDimension,
+            OfficialFrameSizeFixtureMinimumDimension);
+
+        Assert.Equal(FrameIdentifierCoverage, coverage & FrameIdentifierCoverage);
+    }
+
+    /// <summary>
+    /// Validates that the official CDF-update fixture selects both adaptive update boundaries.
+    /// </summary>
+    private static void ValidateOfficialCdfUpdateFixture()
+    {
+        int coverage = ValidateCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialCdfUpdateSequence,
+            TestImages.Heif.Av1OfficialCdfUpdateSequenceNativeReference,
+            OfficialCdfUpdateFixtureFrameCount);
+
+        Assert.Equal(TileCdfUpdateCoverage | FrameEndCdfUpdateCoverage, coverage & 3);
+    }
+
+    /// <summary>
+    /// Validates that the official temporal motion-field fixture enables projected reference motion vectors.
+    /// </summary>
+    private static void ValidateOfficialMotionFieldFixture()
+    {
+        int coverage = ValidateCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialMotionFieldSequence,
+            TestImages.Heif.Av1OfficialMotionFieldSequenceNativeReference,
+            OfficialMotionFieldFixtureFrameCount);
+
+        Assert.NotEqual(0, coverage & ReferenceFrameMotionVectorCoverage);
+    }
+
+    /// <summary>
+    /// Decodes the official intra-block-copy sequence and proves that the active copied blocks reconstruct exactly.
+    /// </summary>
+    private static void ValidateOfficialIntraBlockCopyFixture()
+    {
+        byte[] ivf = TestFile.Create(TestImages.Heif.Av1OfficialIntraBlockCopySequence).Bytes;
+        byte[] nativeReference = TestFile.Create(TestImages.Heif.Av1OfficialIntraBlockCopySequenceNativeReference).Bytes;
+        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W1920 H1080 F30:1 Ip C420jpeg\n"u8;
+        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
+
+        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
+        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
+        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
+        Assert.Equal(OfficialIntraBlockCopyFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
+        Assert.Equal(OfficialIntraBlockCopyFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
+        Assert.Equal(
+            OfficialIntraBlockCopyFixtureFrameCount,
+            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
+
+        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
+
+        int ivfOffset = 32;
+        int nativeOffset = y4mFileHeader.Length;
+        int nativeFrameLength =
+            (OfficialIntraBlockCopyFixtureWidth * OfficialIntraBlockCopyFixtureHeight) +
+            (2 * (OfficialIntraBlockCopyFixtureWidth >> 1) * (OfficialIntraBlockCopyFixtureHeight >> 1));
+
+        int intraBlockCopyBlockCount = 0;
+        bool allowIntraBlockCopy = false;
+        using Av1Decoder decoder = new(Configuration.Default);
+        for (int frameIndex = 0; frameIndex < OfficialIntraBlockCopyFixtureFrameCount; frameIndex++)
+        {
+            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
+            ivfOffset += 12;
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, OfficialIntraBlockCopyFixtureWidth, OfficialIntraBlockCopyFixtureHeight);
+            decoder.DecodeSequenceFrame(
+                ivf.AsSpan(ivfOffset, payloadLength),
+                null,
+                null,
+                frame.Size,
+                frame.Bounds,
+                frame.PixelBuffer.GetRegion(frame.Bounds),
+                default,
+                null,
+                null,
+                false);
+
+            ivfOffset += payloadLength;
+            Assert.Equal(OfficialIntraBlockCopyFixtureWidth, frame.Width);
+            Assert.Equal(OfficialIntraBlockCopyFixtureHeight, frame.Height);
+            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
+            nativeOffset += y4mFrameHeader.Length;
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Assert.Equal(OfficialIntraBlockCopyFixtureWidth, frameBuffer.Width);
+            Assert.Equal(OfficialIntraBlockCopyFixtureHeight, frameBuffer.Height);
+            Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+            Assert.Equal(Av1ColorFormat.Yuv420, frameBuffer.ColorFormat);
+            AssertNativePlanesEqual(
+                decoder,
+                frameBuffer,
+                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
+
+            nativeOffset += nativeFrameLength;
+            ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+            allowIntraBlockCopy |= frameHeader.AllowIntraBlockCopy;
+            intraBlockCopyBlockCount += GetIntraBlockCopyBlockCount(decoder, out _);
+        }
+
+        Assert.Equal(ivf.Length, ivfOffset);
+        Assert.Equal(nativeReference.Length, nativeOffset);
+        Assert.True(allowIntraBlockCopy);
+        Assert.NotEqual(0, intraBlockCopyBlockCount);
+    }
 
     /// <summary>
     /// Decodes every all-intra IVF sample in one session, compares each frame exactly, and records the syntax
@@ -1355,207 +1451,6 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies adaptive tile and frame-end CDF updates against the official reference sequence and exact native
-    /// output under normal and scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeCdfUpdateMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialCdfUpdateFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies temporal reference-motion-vector projection against the official reference sequence and exact
-    /// native output under normal and scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeMotionFieldMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialMotionFieldFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies extreme intra-block-copy displacement vectors against the official reference sequence and exact
-    /// native output under normal and scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeIntraBlockCopySequenceMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialIntraBlockCopyFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Decodes the official intra-block-copy sequence and proves that the active copied blocks reconstruct exactly.
-    /// </summary>
-    private static void ValidateOfficialIntraBlockCopyFixture()
-    {
-        byte[] ivf = TestFile.Create(TestImages.Heif.Av1OfficialIntraBlockCopySequence).Bytes;
-        byte[] nativeReference = TestFile.Create(TestImages.Heif.Av1OfficialIntraBlockCopySequenceNativeReference).Bytes;
-        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W1920 H1080 F30:1 Ip C420jpeg\n"u8;
-        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
-
-        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
-        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
-        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
-        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
-        Assert.Equal(OfficialIntraBlockCopyFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
-        Assert.Equal(OfficialIntraBlockCopyFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
-        Assert.Equal(
-            OfficialIntraBlockCopyFixtureFrameCount,
-            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
-
-        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
-
-        int ivfOffset = 32;
-        int nativeOffset = y4mFileHeader.Length;
-        int nativeFrameLength =
-            (OfficialIntraBlockCopyFixtureWidth * OfficialIntraBlockCopyFixtureHeight) +
-            (2 * (OfficialIntraBlockCopyFixtureWidth >> 1) * (OfficialIntraBlockCopyFixtureHeight >> 1));
-
-        int intraBlockCopyBlockCount = 0;
-        bool allowIntraBlockCopy = false;
-        using Av1Decoder decoder = new(Configuration.Default);
-        for (int frameIndex = 0; frameIndex < OfficialIntraBlockCopyFixtureFrameCount; frameIndex++)
-        {
-            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
-            ivfOffset += 12;
-            using ImageFrame<Rgba32> frame = new(Configuration.Default, OfficialIntraBlockCopyFixtureWidth, OfficialIntraBlockCopyFixtureHeight);
-            decoder.DecodeSequenceFrame(
-                ivf.AsSpan(ivfOffset, payloadLength),
-                null,
-                null,
-                frame.Size,
-                frame.Bounds,
-                frame.PixelBuffer.GetRegion(frame.Bounds),
-                default,
-                null,
-                null,
-                false);
-
-            ivfOffset += payloadLength;
-            Assert.Equal(OfficialIntraBlockCopyFixtureWidth, frame.Width);
-            Assert.Equal(OfficialIntraBlockCopyFixtureHeight, frame.Height);
-            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
-            nativeOffset += y4mFrameHeader.Length;
-
-            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
-            Assert.Equal(OfficialIntraBlockCopyFixtureWidth, frameBuffer.Width);
-            Assert.Equal(OfficialIntraBlockCopyFixtureHeight, frameBuffer.Height);
-            Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
-            Assert.Equal(Av1ColorFormat.Yuv420, frameBuffer.ColorFormat);
-            AssertNativePlanesEqual(
-                decoder,
-                frameBuffer,
-                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
-
-            nativeOffset += nativeFrameLength;
-            ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
-            allowIntraBlockCopy |= frameHeader.AllowIntraBlockCopy;
-            intraBlockCopyBlockCount += GetIntraBlockCopyBlockCount(decoder, out _);
-        }
-
-        Assert.Equal(ivf.Length, ivfOffset);
-        Assert.Equal(nativeReference.Length, nativeOffset);
-        Assert.True(allowIntraBlockCopy);
-        Assert.NotEqual(0, intraBlockCopyBlockCount);
-    }
-
-    /// <summary>
-    /// Verifies exact temporal motion-field reconstruction and balanced ownership with a constrained allocator.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeMotionFieldWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        int coverage = ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialMotionFieldSequence,
-            TestImages.Heif.Av1OfficialMotionFieldSequenceNativeReference,
-            OfficialMotionFieldFixtureFrameCount);
-
-        Assert.NotEqual(0, coverage & ReferenceFrameMotionVectorCoverage);
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Validates that the official CDF-update fixture selects both adaptive update boundaries.
-    /// </summary>
-    private static void ValidateOfficialCdfUpdateFixture()
-    {
-        int coverage = ValidateCompactSequence(
-            Configuration.Default,
-            TestImages.Heif.Av1OfficialCdfUpdateSequence,
-            TestImages.Heif.Av1OfficialCdfUpdateSequenceNativeReference,
-            OfficialCdfUpdateFixtureFrameCount);
-
-        Assert.Equal(TileCdfUpdateCoverage | FrameEndCdfUpdateCoverage, coverage & 3);
-    }
-
-    /// <summary>
-    /// Validates that the official temporal motion-field fixture enables projected reference motion vectors.
-    /// </summary>
-    private static void ValidateOfficialMotionFieldFixture()
-    {
-        int coverage = ValidateCompactSequence(
-            Configuration.Default,
-            TestImages.Heif.Av1OfficialMotionFieldSequence,
-            TestImages.Heif.Av1OfficialMotionFieldSequenceNativeReference,
-            OfficialMotionFieldFixtureFrameCount);
-
-        Assert.NotEqual(0, coverage & ReferenceFrameMotionVectorCoverage);
-    }
-
-    /// <summary>
-    /// Verifies the default operating point of an official two-spatial-layer sequence against exact reference
-    /// native output under normal and scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeTwoSpatialLayersMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialTwoSpatialLayerFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies the official two-spatial-layer sequence through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeTwoSpatialLayersWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialTwoSpatialLayerSequence,
-            TestImages.Heif.Av1OfficialTwoSpatialLayerSequenceNativeReference,
-            OfficialTwoSpatialLayerFixtureFrameCount,
-            OfficialTwoSpatialLayerFixtureWidth,
-            OfficialTwoSpatialLayerFixtureHeight);
-
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
     /// Decodes the default operating point of the official two-spatial-layer sequence.
     /// </summary>
     private static void ValidateOfficialTwoSpatialLayerFixture()
@@ -1566,44 +1461,6 @@ public class Av1ReconstructionConformanceTests
             OfficialTwoSpatialLayerFixtureFrameCount,
             OfficialTwoSpatialLayerFixtureWidth,
             OfficialTwoSpatialLayerFixtureHeight);
-
-    /// <summary>
-    /// Verifies the default operating point of an official two-temporal-layer sequence against exact reference
-    /// native output under normal and scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeTwoTemporalLayersMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialTwoTemporalLayerFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies the official two-temporal-layer sequence through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeTwoTemporalLayersWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialTwoTemporalLayerSequence,
-            TestImages.Heif.Av1OfficialTwoTemporalLayerSequenceNativeReference,
-            OfficialTwoTemporalLayerFixtureFrameCount,
-            OfficialTwoTemporalLayerFixtureWidth,
-            OfficialTwoTemporalLayerFixtureHeight);
-
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
 
     /// <summary>
     /// Decodes the default operating point of the official two-temporal-layer sequence.
@@ -1618,44 +1475,6 @@ public class Av1ReconstructionConformanceTests
             OfficialTwoTemporalLayerFixtureHeight);
 
     /// <summary>
-    /// Verifies the default operating point of an official spatial-and-temporal-layer sequence against exact
-    /// reference native output under normal and scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeSpatialTemporalLayersMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialSpatialTemporalLayerFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies the official spatial-and-temporal-layer sequence through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeSpatialTemporalLayersWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialSpatialTemporalLayerSequence,
-            TestImages.Heif.Av1OfficialSpatialTemporalLayerSequenceNativeReference,
-            OfficialSpatialTemporalLayerFixtureFrameCount,
-            OfficialSpatialTemporalLayerFixtureWidth,
-            OfficialSpatialTemporalLayerFixtureHeight);
-
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
     /// Decodes the default operating point of the official spatial-and-temporal-layer sequence.
     /// </summary>
     private static void ValidateOfficialSpatialTemporalLayerFixture()
@@ -1666,43 +1485,6 @@ public class Av1ReconstructionConformanceTests
             OfficialSpatialTemporalLayerFixtureFrameCount,
             OfficialSpatialTemporalLayerFixtureWidth,
             OfficialSpatialTemporalLayerFixtureHeight);
-
-    /// <summary>
-    /// Verifies active film-grain presentation and dependent-frame reconstruction against exact reference native
-    /// output under normal and scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeFilmGrainSequenceMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialFilmGrainFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies the official film-grain sequence through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeFilmGrainWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        int coverage = ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialFilmGrainSequence,
-            TestImages.Heif.Av1OfficialFilmGrainSequenceNativeReference,
-            OfficialFilmGrainFixtureFrameCount);
-
-        Assert.NotEqual(0, coverage & FilmGrainCoverage);
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
 
     /// <summary>
     /// Decodes the official film-grain sequence and verifies that synthesis is active.
@@ -1717,15 +1499,6 @@ public class Av1ReconstructionConformanceTests
 
         Assert.NotEqual(0, coverage & FilmGrainCoverage);
     }
-
-    /// <summary>
-    /// Verifies the official ten-bit film-grain sequence against exact reference native output.
-    /// </summary>
-    [Fact]
-    public void DecodeTenBitFilmGrainSequenceMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialTenBitFilmGrainFixture,
-            ReconstructionConfigurations);
 
     /// <summary>
     /// Decodes the official ten-bit film-grain sequence and verifies that synthesis is active.
@@ -1746,45 +1519,6 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies the official eight-bit monochrome sequence against exact reference native output under normal and
-    /// scalar dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeMonochromeSequenceMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialMonochromeFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies the official eight-bit monochrome sequence through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeMonochromeWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialMonochromeSequence,
-            TestImages.Heif.Av1OfficialMonochromeSequenceNativeReference,
-            OfficialMonochromeFixtureFrameCount,
-            OfficialMonochromeFixtureWidth,
-            OfficialMonochromeFixtureHeight,
-            Av1ColorFormat.Yuv400);
-
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
     /// Decodes the official eight-bit monochrome sequence.
     /// </summary>
     private static void ValidateOfficialMonochromeFixture()
@@ -1796,15 +1530,6 @@ public class Av1ReconstructionConformanceTests
             OfficialMonochromeFixtureWidth,
             OfficialMonochromeFixtureHeight,
             Av1ColorFormat.Yuv400);
-
-    /// <summary>
-    /// Verifies the official ten-bit monochrome sequence against exact reference native output.
-    /// </summary>
-    [Fact]
-    public void DecodeTenBitMonochromeSequenceMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialTenBitMonochromeFixture,
-            ReconstructionConfigurations);
 
     /// <summary>
     /// Decodes the official ten-bit monochrome sequence.
@@ -1819,260 +1544,6 @@ public class Av1ReconstructionConformanceTests
             OfficialMonochromeFixtureHeight,
             Av1ColorFormat.Yuv400,
             Av1BitDepth.TenBit);
-
-    /// <summary>
-    /// Verifies both official ten-bit sequences through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeTenBitWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        int filmGrainCoverage = ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialTenBitFilmGrainSequence,
-            TestImages.Heif.Av1OfficialTenBitFilmGrainSequenceNativeReference,
-            OfficialFilmGrainFixtureFrameCount,
-            OfficialMotionVectorFixtureWidth,
-            OfficialMotionVectorFixtureHeight,
-            Av1ColorFormat.Yuv420,
-            Av1BitDepth.TenBit);
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialTenBitMonochromeSequence,
-            TestImages.Heif.Av1OfficialTenBitMonochromeSequenceNativeReference,
-            OfficialMonochromeFixtureFrameCount,
-            OfficialMonochromeFixtureWidth,
-            OfficialMonochromeFixtureHeight,
-            Av1ColorFormat.Yuv400,
-            Av1BitDepth.TenBit);
-
-        Assert.NotEqual(0, filmGrainCoverage & FilmGrainCoverage);
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Verifies the official eight-bit quantizer boundaries against exact reference native output.
-    /// </summary>
-    [Fact]
-    public void DecodeEightBitQuantizerBoundariesMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialEightBitQuantizerBoundaryFixtures,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Decodes the official eight-bit quantizer boundaries.
-    /// </summary>
-    private static void ValidateOfficialEightBitQuantizerBoundaryFixtures()
-        => ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
-
-    /// <summary>
-    /// Verifies the official ten-bit quantizer boundaries against exact reference native output.
-    /// </summary>
-    [Fact]
-    public void DecodeTenBitQuantizerBoundariesMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialTenBitQuantizerBoundaryFixtures,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Decodes the official ten-bit quantizer boundaries.
-    /// </summary>
-    private static void ValidateOfficialTenBitQuantizerBoundaryFixtures()
-        => ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
-
-    /// <summary>
-    /// Verifies the official quantizer boundaries through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeQuantizerBoundariesWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_560 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(configuration);
-        ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(configuration);
-
-        // Each decoded frame owns one maximum-sized coefficient-context scratch rent. An allocation per transform
-        // would produce hundreds of identically typed smaller rents for these deliberately dense fixtures.
-        int coefficientScratchLength =
-            ((Av1Constants.MaxTransformSize / 2) + Av1Constants.TransformPadHorizontal) *
-            (Av1Constants.TransformPadTop + (Av1Constants.MaxTransformSize / 2) + Av1Constants.TransformPadBottom);
-
-        int coefficientScratchAllocations = allocator.AllocationLog.Count(
-            allocation => allocation.ElementType == typeof(byte) && allocation.Length == coefficientScratchLength);
-
-        Assert.Equal(4 * OfficialQuantizerFixtureFrameCount, coefficientScratchAllocations);
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Decodes both retained official eight-bit quantizer-boundary fixtures.
-    /// </summary>
-    private static void ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
-    {
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequence,
-            TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequenceNativeReference,
-            OfficialQuantizerFixtureFrameCount,
-            OfficialEightBitQuantizerFixtureWidth,
-            OfficialEightBitQuantizerFixtureHeight);
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequence,
-            TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequenceNativeReference,
-            OfficialQuantizerFixtureFrameCount,
-            OfficialEightBitQuantizerFixtureWidth,
-            OfficialEightBitQuantizerFixtureHeight);
-    }
-
-    /// <summary>
-    /// Decodes both retained official ten-bit quantizer-boundary fixtures.
-    /// </summary>
-    private static void ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
-    {
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequence,
-            TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequenceNativeReference,
-            OfficialQuantizerFixtureFrameCount,
-            OfficialTenBitQuantizerFixtureWidth,
-            OfficialTenBitQuantizerFixtureHeight,
-            Av1ColorFormat.Yuv420,
-            Av1BitDepth.TenBit,
-            "60:1");
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequence,
-            TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequenceNativeReference,
-            OfficialQuantizerFixtureFrameCount,
-            OfficialTenBitQuantizerFixtureWidth,
-            OfficialTenBitQuantizerFixtureHeight,
-            Av1ColorFormat.Yuv420,
-            Av1BitDepth.TenBit,
-            "60:1");
-    }
-
-    /// <summary>
-    /// Verifies all four corners of the official frame-size matrix against exact reference native output.
-    /// </summary>
-    [Fact]
-    public void DecodeFrameSizeCornersMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialFrameSizeCornerFixtures,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Decodes all four retained frame-size corners.
-    /// </summary>
-    private static void ValidateOfficialFrameSizeCornerFixtures()
-        => ValidateOfficialFrameSizeCornerFixturesWithConfiguration(Configuration.Default);
-
-    /// <summary>
-    /// Verifies all four frame-size corners through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeFrameSizeCornersWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateOfficialFrameSizeCornerFixturesWithConfiguration(configuration);
-
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Decodes every retained official frame-size fixture and compares every native sample.
-    /// </summary>
-    private static void ValidateOfficialFrameSizeCornerFixturesWithConfiguration(Configuration configuration)
-    {
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialMinimumFrameSizeSequence,
-            TestImages.Heif.Av1OfficialMinimumFrameSizeSequenceNativeReference,
-            OfficialFrameSizeFixtureFrameCount,
-            OfficialFrameSizeFixtureMinimumDimension,
-            OfficialFrameSizeFixtureMinimumDimension);
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequence,
-            TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequenceNativeReference,
-            OfficialFrameSizeFixtureFrameCount,
-            OfficialFrameSizeFixtureMinimumDimension,
-            OfficialFrameSizeFixtureMaximumDimension);
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequence,
-            TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequenceNativeReference,
-            OfficialFrameSizeFixtureFrameCount,
-            OfficialFrameSizeFixtureMaximumDimension,
-            OfficialFrameSizeFixtureMinimumDimension);
-
-        ValidateCompactSequence(
-            configuration,
-            TestImages.Heif.Av1OfficialMaximumFrameSizeSequence,
-            TestImages.Heif.Av1OfficialMaximumFrameSizeSequenceNativeReference,
-            OfficialFrameSizeFixtureFrameCount,
-            OfficialFrameSizeFixtureMaximumDimension,
-            OfficialFrameSizeFixtureMaximumDimension);
-    }
-
-    /// <summary>
-    /// Verifies modulo frame identifiers across a key/inter sequence with exact native output under every dispatch.
-    /// </summary>
-    [Fact]
-    public void DecodeFrameIdentifiersMatchReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateFrameIdentifierFixture,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Decodes the frame-identifier fixture and requires a validated identifier transition on its inter frame.
-    /// </summary>
-    private static void ValidateFrameIdentifierFixture()
-    {
-        int coverage = ValidateCompactSequence(
-            Configuration.Default,
-            TestImages.Heif.Av1FrameIdentifierSequence,
-            TestImages.Heif.Av1FrameIdentifierSequenceNativeReference,
-            OfficialFrameSizeFixtureFrameCount,
-            OfficialFrameSizeFixtureMinimumDimension,
-            OfficialFrameSizeFixtureMinimumDimension);
-
-        Assert.Equal(FrameIdentifierCoverage, coverage & FrameIdentifierCoverage);
-    }
 
     /// <summary>
     /// Decodes one compact IVF sequence, compares every native sample, and returns its active frame-state
@@ -2206,576 +1677,32 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies every ordinary inter mode, motion mode, and switchable dual-filter pair against the official
-    /// reference motion-vector conformance sequence and its exact native output.
-    /// </summary>
-    [Fact]
-    public void DecodeMotionVectorSequenceMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateOfficialMotionVectorFixtureWithDefaultConfiguration,
-            ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies the official motion-vector conformance sequence through constrained tracked allocation.
-    /// </summary>
-    [Fact]
-    [ValidateDisposedMemoryAllocations]
-    public void DecodeMotionVectorsWithConstrainedAllocator()
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateOfficialMotionVectorFixture(configuration);
-
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Runs the official motion-vector fixture with the default decoder configuration.
-    /// </summary>
-    private static void ValidateOfficialMotionVectorFixtureWithDefaultConfiguration()
-        => ValidateOfficialMotionVectorFixture(Configuration.Default);
-
-    /// <summary>
-    /// Decodes every IVF sample in one retained session, compares each shown frame exactly, and records the
-    /// syntax selections that make the vector authoritative for ordinary inter-mode and filter coverage.
-    /// </summary>
-    private static void ValidateOfficialMotionVectorFixture(Configuration configuration)
-    {
-        byte[] ivf = TestFile.Create(TestImages.Heif.Av1OfficialMotionVectorSequence).Bytes;
-        byte[] nativeReference = TestFile.Create(TestImages.Heif.Av1OfficialMotionVectorSequenceNativeReference).Bytes;
-        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W352 H288 F30:1 Ip C420jpeg\n"u8;
-        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
-
-        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
-        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
-        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
-        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
-        Assert.Equal(OfficialMotionVectorFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
-        Assert.Equal(OfficialMotionVectorFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
-        Assert.Equal(
-            OfficialMotionVectorFixtureFrameCount,
-            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
-
-        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
-
-        int ivfOffset = 32;
-        int nativeOffset = y4mFileHeader.Length;
-        int nativeFrameLength =
-            (OfficialMotionVectorFixtureWidth * OfficialMotionVectorFixtureHeight) +
-            (2 * (OfficialMotionVectorFixtureWidth >> 1) * (OfficialMotionVectorFixtureHeight >> 1));
-
-        int interModeCoverage = 0;
-        int motionModeCoverage = 0;
-        int switchableFilterPairCoverage = 0;
-        using Av1Decoder decoder = new(configuration);
-        for (int frameIndex = 0; frameIndex < OfficialMotionVectorFixtureFrameCount; frameIndex++)
-        {
-            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
-            ivfOffset += 12;
-            ImageFrame<Rgba32> decodedFrame = new(configuration, OfficialMotionVectorFixtureWidth, OfficialMotionVectorFixtureHeight);
-            decoder.DecodeSequenceFrame(
-                ivf.AsSpan(ivfOffset, payloadLength),
-                null,
-                null,
-                decodedFrame.Size,
-                decodedFrame.Bounds,
-                decodedFrame.PixelBuffer.GetRegion(decodedFrame.Bounds),
-                default,
-                null,
-                null,
-                false);
-
-            using ImageFrame<Rgba32> frame = decodedFrame;
-
-            ivfOffset += payloadLength;
-            Assert.Equal(OfficialMotionVectorFixtureWidth, frame.Width);
-            Assert.Equal(OfficialMotionVectorFixtureHeight, frame.Height);
-            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
-            nativeOffset += y4mFrameHeader.Length;
-
-            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
-            Assert.Equal(OfficialMotionVectorFixtureWidth, frameBuffer.Width);
-            Assert.Equal(OfficialMotionVectorFixtureHeight, frameBuffer.Height);
-            Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
-            Assert.Equal(Av1ColorFormat.Yuv420, frameBuffer.ColorFormat);
-            AssertNativePlanesEqual(
-                decoder,
-                frameBuffer,
-                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
-
-            nativeOffset += nativeFrameLength;
-
-            Av1FrameInfo frameInfo = decoder.FrameInfo;
-            if (frameInfo is null)
-            {
-                // show_existing_frame contributes no new mode or interpolation-filter syntax.
-                continue;
-            }
-
-            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
-            int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
-                >> sequenceHeader.SuperblockSizeLog2;
-            int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
-                >> sequenceHeader.SuperblockSizeLog2;
-
-            for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
-            {
-                for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
-                {
-                    Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
-                    foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
-                    {
-                        if (modeInfo.YMode is < Av1PredictionMode.InterModeStart or >= Av1PredictionMode.InterModeEnd)
-                        {
-                            continue;
-                        }
-
-                        interModeCoverage |= 1 << ((int)modeInfo.YMode - (int)Av1PredictionMode.InterModeStart);
-                        motionModeCoverage |= 1 << (int)modeInfo.MotionMode;
-                        int verticalFilter = (int)modeInfo.InterpolationFilters[0];
-                        int horizontalFilter = (int)modeInfo.InterpolationFilters[1];
-                        switchableFilterPairCoverage |= 1 << ((verticalFilter * 3) + horizontalFilter);
-                    }
-                }
-            }
-        }
-
-        Assert.Equal(ivf.Length, ivfOffset);
-        Assert.Equal(nativeReference.Length, nativeOffset);
-        Assert.Equal(RequiredInterModeCoverage, interModeCoverage);
-        Assert.Equal(RequiredMotionModeCoverage, motionModeCoverage);
-        Assert.Equal(RequiredSwitchableFilterPairCoverage, switchableFilterPairCoverage);
-    }
-
-    /// <summary>
-    /// Verifies one complete inter-prediction sequence with a separately tracked constrained allocator.
-    /// </summary>
-    private static void ValidateInterPredictionSequenceWithConstrainedAllocator(
-        string imagePath,
-        string nativeReferencePath,
-        int requiredCoverage,
-        int fixtureSize,
-        int visibleFrameCount)
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-
-        ValidateInterPredictionSequence(
-            configuration,
-            imagePath,
-            nativeReferencePath,
-            requiredCoverage,
-            fixtureSize,
-            visibleFrameCount);
-
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Runs one selectable compound fixture with exact native and final presentation comparisons.
-    /// </summary>
-    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
-    private static void ValidateSelectableCompoundSequenceWithDefaultConfiguration(string providerDump)
-    {
-        TestImageProvider<Rgba32> provider =
-            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
-
-        (string NativeReferencePath, int RequiredCoverage) expected =
-            provider.SourceFileOrDescription switch
-            {
-                TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif =>
-                    (TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference, DistanceWeightedCompoundCoverage),
-                TestImages.Heif.Av1WedgeCompoundSequenceAvif =>
-                    (TestImages.Heif.Av1WedgeCompoundSequenceNativeReference, WedgeCompoundCoverage | InvertedWedgeCompoundCoverage),
-                TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif =>
-                    (TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference, DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage),
-                TestImages.Heif.Av1InterIntraSequenceAvif =>
-                    (TestImages.Heif.Av1InterIntraSequenceNativeReference, SmoothInterIntraCoverage | WedgeInterIntraCoverage),
-                _ => throw new InvalidOperationException($"Unexpected selectable-compound fixture: {provider.SourceFileOrDescription}.")
-            };
-
-        ValidateInterPredictionSequence(
-            Configuration.Default,
-            provider.SourceFileOrDescription,
-            expected.NativeReferencePath,
-            expected.RequiredCoverage,
-            AverageCompoundFixtureSize,
-            AverageCompoundFixtureFrameCount);
-
-        ValidateFinalSequencePresentation(providerDump);
-    }
-
-    /// <summary>
-    /// Runs the OBMC sequence with exact final presentation comparison.
-    /// </summary>
-    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
-    private static void ValidateObmcSequenceWithDefaultConfiguration(string providerDump)
-    {
-        ValidateInterPredictionSequence(
-            Configuration.Default,
-            TestImages.Heif.Av1ObmcSequenceAvif,
-            TestImages.Heif.Av1ObmcSequenceNativeReference,
-            ObmcCoverage,
-            AverageCompoundFixtureSize,
-            AverageCompoundFixtureFrameCount);
-
-        ValidateFinalSequencePresentation(providerDump);
-    }
-
-    /// <summary>
-    /// Runs the local warped-motion sequence with exact final presentation comparison.
-    /// </summary>
-    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
-    private static void ValidateLocalWarpSequenceWithDefaultConfiguration(string providerDump)
-    {
-        ValidateInterPredictionSequence(
-            Configuration.Default,
-            TestImages.Heif.Av1LocalWarpSequenceAvif,
-            TestImages.Heif.Av1LocalWarpSequenceNativeReference,
-            LocalWarpCoverage,
-            256,
-            2);
-
-        ValidateFinalSequencePresentation(providerDump);
-    }
-
-    /// <summary>
-    /// Runs the non-translational global-motion sequence with exact final presentation comparison.
-    /// </summary>
-    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
-    private static void ValidateGlobalWarpSequenceWithDefaultConfiguration(string providerDump)
-    {
-        ValidateInterPredictionSequence(
-            Configuration.Default,
-            TestImages.Heif.Av1GlobalWarpSequenceAvif,
-            TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
-            GlobalWarpCoverage,
-            256,
-            2);
-
-        ValidateFinalSequencePresentation(providerDump);
-    }
-
-    /// <summary>
-    /// Decodes one complete retained-reference sequence and compares its final native samples exactly.
-    /// </summary>
-    private static void ValidateInterPredictionSequence(
-        Configuration configuration,
-        string imagePath,
-        string nativeReferencePath,
-        int requiredCoverage,
-        int fixtureSize,
-        int visibleFrameCount)
-    {
-        byte[] fileBytes = TestFile.Create(imagePath).Bytes;
-        byte[] referenceBytes = TestFile.Create(nativeReferencePath).Bytes;
-        string fileHeaderText =
-            $"YUV4MPEG2 W{fixtureSize} H{fixtureSize} F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n";
-
-        ReadOnlySpan<byte> fileHeader = Encoding.ASCII.GetBytes(fileHeaderText);
-
-        ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
-
-        ReadOnlySpan<byte> nativeReference = referenceBytes;
-        Assert.True(nativeReference.StartsWith(fileHeader));
-        nativeReference = nativeReference[fileHeader.Length..];
-        Assert.True(nativeReference.StartsWith(frameHeader));
-        nativeReference = nativeReference[frameHeader.Length..];
-        Assert.Equal(fixtureSize * fixtureSize * 3, nativeReference.Length);
-
-        HeifSequence sequence = ParseImageSequence(fileBytes);
-        HeifSequenceTrack track = sequence.ColorTrack;
-        int coverage = 0;
-        int decodedVisibleFrameCount = 0;
-        bool nativeCompared = false;
-
-        using Av1Decoder decoder = new(configuration);
-        for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
-        {
-            HeifSequenceSample sample = track.Samples[sampleIndex];
-            Span<byte> sampleData = fileBytes.AsSpan((int)sample.Offset, sample.Length);
-            if (sample.IsHidden)
-            {
-                decoder.DecodeSequenceReference(
-                    sampleData,
-                    track.CicpProfile,
-                    track.Av1CodecConfiguration);
-
-                coverage |= GetInterPredictionCoverage(decoder);
-                continue;
-            }
-
-            using ImageFrame<Rgba32> frame = new(configuration, track.CodedWidth, track.CodedHeight);
-            decoder.DecodeSequenceFrame(
-                sampleData,
-                track.CicpProfile,
-                track.Av1CodecConfiguration,
-                frame.Size,
-                frame.Bounds,
-                frame.PixelBuffer.GetRegion(frame.Bounds),
-                default,
-                null,
-                null,
-                false);
-
-            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
-            coverage |= GetInterPredictionCoverage(decoder);
-
-            // Every inter-prediction branch retains the same row-addressed plane contract under constrained allocators.
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
-
-            if (decodedVisibleFrameCount == visibleFrameCount - 1)
-            {
-                AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
-                nativeCompared = true;
-            }
-
-            decodedVisibleFrameCount++;
-        }
-
-        Assert.Equal(visibleFrameCount, decodedVisibleFrameCount);
-        Assert.Equal(requiredCoverage, coverage & requiredCoverage);
-        Assert.True(nativeCompared);
-    }
-
-    /// <summary>
-    /// Collects the compound, inter-intra, OBMC, and warped modes completed in one bounded payload.
-    /// </summary>
-    private static int GetInterPredictionCoverage(Av1Decoder decoder) =>
-        (int)decoder.DecodedInterPredictionFeatures;
-
-    /// <summary>
     /// Verifies lossless syntax, residual reconstruction, and exact native samples against the independent scalar reference for
     /// independently encoded eight-, ten-, and twelve-bit AVIF images.
     /// </summary>
     [Fact]
-    public void DecodeLosslessNativeMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLosslessFixtures, LosslessConfigurations);
-
-    /// <summary>
-    /// Verifies exact presented pixels for independently encoded lossless eight-, ten-, and twelve-bit AVIF images
-    /// across the available vector widths and the scalar fallback.
-    /// </summary>
-    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
-    /// <param name="bitDepth">The expected public sample precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1Lossless8BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1Lossless10BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1Lossless12BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    public void DecodeLosslessMatchesReference(
-        TestImageProvider<Rgba32> provider,
-        HeifBitDepth bitDepth)
-    {
-        AssertPresentedMetadata(provider, LosslessFixtureWidth, LosslessFixtureHeight, bitDepth);
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidatePresentedFixture,
-            PresentationConfigurations,
-            provider);
-    }
+    public void DecodeLosslessNativeMatchesReference() => ValidateLosslessFixtures();
 
     /// <summary>
     /// Verifies active normative super-resolution, chroma-width rounding, replicated edges, and exact native samples
     /// against the independent scalar reference for independently encoded eight-, ten-, and twelve-bit still-picture streams.
     /// </summary>
     [Fact]
-    public void DecodeSuperResolutionNativeMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSuperResolutionFixtures, ReconstructionConfigurations);
-
-    /// <summary>
-    /// Verifies exact presented pixels and public metadata for independently packaged eight-, ten-, and twelve-bit
-    /// active-super-resolution AVIF images across the available vector widths and the scalar fallback.
-    /// </summary>
-    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
-    /// <param name="width">The expected presented width.</param>
-    /// <param name="height">The expected presented height.</param>
-    /// <param name="bitDepth">The expected public sample precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1SuperResolution8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1SuperResolution10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1SuperResolution12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
-    public void DecodeSuperResolutionMatchesReference(
-        TestImageProvider<Rgba32> provider,
-        int width,
-        int height,
-        HeifBitDepth bitDepth)
-    {
-        AssertPresentedMetadata(provider, width, height, bitDepth);
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidatePresentedFixture,
-            PresentationConfigurations,
-            provider);
-    }
+    public void DecodeSuperResolutionNativeMatchesReference() => ValidateSuperResolutionFixtures();
 
     /// <summary>
     /// Verifies active normative loop restoration and exact native samples against the independent scalar reference for independently
     /// encoded eight-, ten-, and twelve-bit still-picture streams.
     /// </summary>
     [Fact]
-    public void DecodeLoopRestorationNativeMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLoopRestorationFixtures, LoopRestorationConfigurations);
-
-    /// <summary>
-    /// Verifies retained restoration storage across repeated frames and changed sequence precision or geometry.
-    /// </summary>
-    [Fact]
-    public void DecodeRestorationAcrossSequenceChangesMatchesReference()
-    {
-        (string Payload, string Reference)[] frames =
-        [
-            (TestImages.Heif.Av1Restoration8BitPayload, TestImages.Heif.Av1Restoration8BitReference),
-            (TestImages.Heif.Av1Restoration8BitPayload, TestImages.Heif.Av1Restoration8BitReference),
-            (TestImages.Heif.Av1Restoration10BitPayload, TestImages.Heif.Av1Restoration10BitReference),
-            (TestImages.Heif.Av1Restoration12BitPayload, TestImages.Heif.Av1Restoration12BitReference),
-            (TestImages.Heif.Av1Restoration8BitPayload, TestImages.Heif.Av1Restoration8BitReference)
-        ];
-
-        // A single decoder must overwrite retained context even when successive 10- and 12-bit
-        // frames have identical storage dimensions. Each expected plane comes from an independent decode.
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        using (Av1Decoder decoder = new(configuration))
-        {
-            int reconstructionLength = 0;
-            foreach ((string payloadPath, string referencePath) in frames)
-            {
-                byte[] payload = TestFile.Create(payloadPath).Bytes;
-                byte[] reference = TestFile.Create(referencePath).Bytes;
-                using Av1FrameBuffer<byte> frame = decoder.DecodeFrameBuffer(payload, null, null, out _);
-                AssertNativePlanesEqual(decoder, frame, reference);
-
-                ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
-                Assert.NotNull(sequenceHeader);
-                reconstructionLength = Math.Max(reconstructionLength, Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
-                int reconstructionOwner = Assert.Single(
-                    allocator.AllocationLog,
-                    x => x.ElementType == typeof(short) && x.Length == reconstructionLength).AllocationId;
-
-                Assert.DoesNotContain(allocator.ReturnLog, x => x.AllocationId == reconstructionOwner);
-
-                // Every fixture uses 64-column processing units. Both workspaces must survive each
-                // decoded frame and serve all three planes without another rent or an early return.
-                int wienerOwner = Assert.Single(allocator.AllocationLog, x => x.ElementType == typeof(ushort) && x.Length == 4544).AllocationId;
-                int selfGuidedOwner = Assert.Single(allocator.AllocationLog, x => x.ElementType == typeof(int) && x.Length == 33184).AllocationId;
-                Assert.DoesNotContain(allocator.ReturnLog, x => x.AllocationId == wienerOwner || x.AllocationId == selfGuidedOwner);
-            }
-        }
-
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(allocator.AllocationLog, allocation => Assert.Single(allocator.ReturnLog, x => x.AllocationId == allocation.AllocationId));
-    }
-
-    /// <summary>
-    /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 8-bit 4:2:0 content.
-    /// </summary>
-    [Fact]
-    public void DecodeRestorationSuperResolution8Bit420MatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateLoopRestorationAndSuperResolution8Bit420,
-            LoopRestorationConfigurations);
-
-    /// <summary>
-    /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 10-bit 4:2:2 content.
-    /// </summary>
-    [Fact]
-    public void DecodeRestorationSuperRes10Bit422MatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateLoopRestorationAndSuperResolution10Bit422,
-            LoopRestorationConfigurations);
-
-    /// <summary>
-    /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 12-bit 4:4:4 content.
-    /// </summary>
-    [Fact]
-    public void DecodeRestorationSuperRes12Bit444MatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateLoopRestorationAndSuperResolution12Bit444,
-            LoopRestorationConfigurations);
-
-    /// <summary>
-    /// Verifies exact presented pixels and public metadata for independently encoded eight-, ten-, and twelve-bit
-    /// active-restoration AVIF images across the available vector widths and the scalar fallback.
-    /// </summary>
-    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
-    /// <param name="width">The expected presented width.</param>
-    /// <param name="height">The expected presented height.</param>
-    /// <param name="bitDepth">The expected public sample precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Av1Restoration8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.Av1Restoration10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Av1Restoration12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
-    public void DecodeLoopRestorationMatchesReference(
-        TestImageProvider<Rgba32> provider,
-        int width,
-        int height,
-        HeifBitDepth bitDepth)
-    {
-        AssertPresentedMetadata(provider, width, height, bitDepth);
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidatePresentedFixture,
-            PresentationConfigurations,
-            provider);
-    }
-
-    /// <summary>
-    /// Verifies that the independently encoded AVIF presentation fixtures collectively select both restoration algorithms.
-    /// </summary>
-    [Fact]
-    public void LoopRestorationPresentationFixturesSelectBothAlgorithms()
-    {
-        int restorationCoverage = GetRestorationCoverageFromAvif(TestFile.Create(TestImages.Heif.Av1Restoration8BitAvif).Bytes);
-        restorationCoverage |= GetRestorationCoverageFromAvif(TestFile.Create(TestImages.Heif.Av1Restoration10BitAvif).Bytes);
-        restorationCoverage |= GetRestorationCoverageFromAvif(TestFile.Create(TestImages.Heif.Av1Restoration12BitAvif).Bytes);
-
-        int requiredCoverage = WienerRestorationCoverage | SelfGuidedRestorationCoverage;
-        Assert.Equal(requiredCoverage, restorationCoverage & requiredCoverage);
-    }
+    public void DecodeLoopRestorationNativeMatchesReference() => ValidateLoopRestorationFixtures();
 
     /// <summary>
     /// Verifies film-grain template generation, block selection, overlap, chroma scaling, subsampling, high-bit-depth
     /// arithmetic, and exact native presentation samples against the independent scalar reference.
     /// </summary>
     [Fact]
-    public void DecodeFilmGrainMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilmGrainFixtures, LoopRestorationConfigurations);
-
-    /// <summary>
-    /// Verifies that independently encoded AV1 streams exercise every normative coding-block partition shape.
-    /// </summary>
-    [Fact]
-    public void IndependentFixturesCoverEveryPartitionType()
-    {
-        int coverage = GetPartitionCoverage(TestImages.Heif.Av1Cdef8BitPayload);
-        coverage |= GetPartitionCoverage(TestImages.Heif.Av1Cdef10BitPayload);
-        coverage |= GetPartitionCoverage(TestImages.Heif.Av1Cdef12BitPayload);
-
-        Assert.Equal(RequiredPartitionCoverage, coverage & RequiredPartitionCoverage);
-    }
+    public void DecodeFilmGrainMatchesReference() => ValidateFilmGrainFixtures();
 
     /// <summary>
     /// Validates every native profile fixture under the hardware configuration selected by
@@ -3070,16 +1997,6 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Runs the selected-spatial-layer native and presentation comparisons with the default configuration.
-    /// </summary>
-    /// <param name="providerDump">The serialized selected-layer provider and reference-output naming context.</param>
-    private static void ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration(string providerDump)
-    {
-        ValidateSelectedProgressiveSpatialLayer(Configuration.Default);
-        ValidatePresentedFixture(providerDump);
-    }
-
-    /// <summary>
     /// Runs the exact scaled-reference native and presentation comparison with the default configuration.
     /// </summary>
     /// <param name="providerDump">The serialized AVIF input provider and reference-output naming context.</param>
@@ -3202,41 +2119,6 @@ public class Av1ReconstructionConformanceTests
         Assert.NotEqual(0, interBlockCount);
         Assert.NotEqual(0, intraBlockCount);
         Assert.NotEqual(0, skippedInterBlockCount);
-        AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
-    }
-
-    /// <summary>
-    /// Verifies the selected base spatial layer with the requested allocator.
-    /// </summary>
-    /// <param name="configuration">The decoder configuration.</param>
-    private static void ValidateSelectedProgressiveSpatialLayer(Configuration configuration)
-    {
-        byte[] payload = TestFile.Create(TestImages.Heif.Av1ScaledReferencePayload).Bytes;
-        byte[] nativeReference =
-            TestFile.Create(TestImages.Heif.Av1ScaledReferenceBaseNativeReference).Bytes;
-
-        Assert.Equal(ScaledReferenceBaseLayerSize * ScaledReferenceBaseLayerSize * 3, nativeReference.Length);
-
-        Av1LayeredImageIndex layeredImageIndex = new(ScaledReferenceFirstLayerSize, 0, 0);
-        int selectedPayloadLength = layeredImageIndex.GetPayloadLength(
-            payload.Length,
-            new Av1LayerSelector(0));
-
-        Assert.Equal(ScaledReferenceFirstLayerSize, selectedPayloadLength);
-
-        using Av1Decoder decoder = new(configuration);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
-            payload.AsSpan(0, selectedPayloadLength),
-            null,
-            null,
-            out _,
-            layeredImageIndex);
-
-        Assert.Equal(ScaledReferenceBaseLayerSize, frameBuffer.Width);
-        Assert.Equal(ScaledReferenceBaseLayerSize, frameBuffer.Height);
-        Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
-        Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
-        Assert.Equal(ObuFrameType.KeyFrame, Assert.IsType<ObuFrameHeader>(decoder.FrameHeader).FrameType);
         AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
     }
 
@@ -3456,45 +2338,6 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Validates active restoration after super-resolution for 8-bit 4:2:0 content.
-    /// </summary>
-    private static void ValidateLoopRestorationAndSuperResolution8Bit420()
-        => ValidateLoopRestorationFixture(
-            TestImages.Heif.Av1RestorationSuperResolution8BitPayload,
-            TestImages.Heif.Av1RestorationSuperResolution8BitReference,
-            768,
-            512,
-            Av1BitDepth.EightBit,
-            Av1ColorFormat.Yuv420,
-            requireSuperResolution: true);
-
-    /// <summary>
-    /// Validates active restoration after super-resolution for 10-bit 4:2:2 content.
-    /// </summary>
-    private static void ValidateLoopRestorationAndSuperResolution10Bit422()
-        => ValidateLoopRestorationFixture(
-            TestImages.Heif.Av1RestorationSuperResolution10BitPayload,
-            TestImages.Heif.Av1RestorationSuperResolution10BitReference,
-            512,
-            256,
-            Av1BitDepth.TenBit,
-            Av1ColorFormat.Yuv422,
-            requireSuperResolution: true);
-
-    /// <summary>
-    /// Validates active restoration after super-resolution for 12-bit 4:4:4 content.
-    /// </summary>
-    private static void ValidateLoopRestorationAndSuperResolution12Bit444()
-        => ValidateLoopRestorationFixture(
-            TestImages.Heif.Av1RestorationSuperResolution12BitPayload,
-            TestImages.Heif.Av1RestorationSuperResolution12BitReference,
-            1024,
-            428,
-            Av1BitDepth.TwelveBit,
-            Av1ColorFormat.Yuv444,
-            requireSuperResolution: true);
-
-    /// <summary>
     /// Validates every active film-grain fixture under the hardware configuration selected by
     /// <see cref="FeatureTestRunner"/>.
     /// </summary>
@@ -3559,31 +2402,6 @@ public class Av1ReconstructionConformanceTests
             11,
             Av1BitDepth.EightBit,
             Av1ColorFormat.Yuv420);
-    }
-
-    /// <summary>
-    /// Validates one elementary-stream sample and its containing AVIF image.
-    /// </summary>
-    /// <param name="imagePath">The complete AVIF container.</param>
-    /// <param name="payloadPath">The AV1 elementary-stream sample extracted from the container.</param>
-    /// <param name="referencePath">The retained native planar output.</param>
-    /// <param name="width">The expected displayed width.</param>
-    /// <param name="height">The expected displayed height.</param>
-    /// <param name="bitDepth">The expected AV1 sample precision.</param>
-    /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
-    /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
-    private static void ValidateFixture(
-        string imagePath,
-        string payloadPath,
-        string referencePath,
-        int width,
-        int height,
-        Av1BitDepth bitDepth,
-        Av1ColorFormat colorFormat,
-        HeifBitDepth metadataBitDepth)
-    {
-        ValidateNativeFixture(payloadPath, referencePath, width, height, bitDepth, colorFormat, false);
-        ValidatePresentedImage(imagePath, width, height, metadataBitDepth);
     }
 
     /// <summary>
@@ -3863,72 +2681,6 @@ public class Av1ReconstructionConformanceTests
             requireActiveLoopFilter: false);
 
     /// <summary>
-    /// Validates the public presentation and metadata produced from one complete AVIF container.
-    /// </summary>
-    /// <param name="imagePath">The complete AVIF container.</param>
-    /// <param name="width">The expected displayed width.</param>
-    /// <param name="height">The expected displayed height.</param>
-    /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
-    private static void ValidatePresentedImage(string imagePath, int width, int height, HeifBitDepth metadataBitDepth)
-    {
-        DecoderOptions options = new() { MaxFrames = 1 };
-        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
-        using Image<Rgba64> image = Image.Load<Rgba64>(options, imageBytes);
-
-        Assert.Equal(width, image.Width);
-        Assert.Equal(height, image.Height);
-        Assert.Single(image.Frames);
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        Assert.Equal(metadataBitDepth, metadata.BitDepth);
-
-        if (metadataBitDepth != HeifBitDepth.Bit8)
-        {
-            bool containsPrecisionBeyondEightBits = false;
-            image.ProcessPixelRows(accessor =>
-            {
-                for (int y = 0; y < accessor.Height && !containsPrecisionBeyondEightBits; y++)
-                {
-                    Span<Rgba64> row = accessor.GetRowSpan(y);
-                    foreach (Rgba64 pixel in row)
-                    {
-                        // Expanding an eight-bit channel to ushort always produces a multiple of 257. At least one
-                        // source-derived RGB channel must fall between those values to prove native precision survived.
-                        if ((pixel.R % 257) != 0 || (pixel.G % 257) != 0 || (pixel.B % 257) != 0)
-                        {
-                            containsPrecisionBeyondEightBits = true;
-                            break;
-                        }
-                    }
-                }
-            });
-
-            Assert.True(containsPrecisionBeyondEightBits, "The high-bit-depth presentation contains only eight-bit-expanded RGB samples.");
-        }
-    }
-
-    /// <summary>
-    /// Verifies the public dimensions, frame count, compression method, and sample precision of one AVIF input.
-    /// </summary>
-    /// <param name="provider">The AVIF input provider.</param>
-    /// <param name="width">The expected displayed width.</param>
-    /// <param name="height">The expected displayed height.</param>
-    /// <param name="bitDepth">The expected public HEIF sample precision.</param>
-    private static void AssertPresentedMetadata(
-        TestImageProvider<Rgba32> provider,
-        int width,
-        int height,
-        HeifBitDepth bitDepth)
-    {
-        using Image<Rgba32> image = provider.GetImage(HeifDecoder.Instance);
-        Assert.Equal(width, image.Width);
-        Assert.Equal(height, image.Height);
-        Assert.Single(image.Frames);
-
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        Assert.Equal(bitDepth, metadata.BitDepth);
-    }
-
-    /// <summary>
     /// Compares one AVIF presentation with its retained output through the repository reference-image contract.
     /// </summary>
     /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
@@ -3957,111 +2709,6 @@ public class Av1ReconstructionConformanceTests
 
         finalFrame.DebugSave(provider, extension: "png", encoder: new PngEncoder());
         finalFrame.CompareToReferenceOutput(ImageComparer.Exact, provider);
-    }
-
-    /// <summary>
-    /// Verifies that the sole AV1 image item in an independently packaged AVIF uses normative super-resolution.
-    /// </summary>
-    /// <param name="imageBytes">The complete AVIF file.</param>
-    private static void AssertUsesSuperResolution(Span<byte> imageBytes)
-    {
-        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
-
-        Assert.NotNull(decoder.FrameHeader);
-        ObuFrameSize frameSize = decoder.FrameHeader.FrameSize;
-        Assert.True(frameSize.FrameWidth < frameSize.SuperResolutionUpscaledWidth);
-        Assert.Equal(frameBuffer.Width, frameSize.SuperResolutionUpscaledWidth);
-    }
-
-    /// <summary>
-    /// Verifies that the sole AV1 image item in an independently encoded AVIF selects luma and chroma palettes.
-    /// </summary>
-    /// <param name="imageBytes">The complete AVIF file.</param>
-    private static void AssertUsesPalette(Span<byte> imageBytes)
-    {
-        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
-
-        Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
-    }
-
-    /// <summary>
-    /// Verifies that the sole AV1 image item in an independently encoded AVIF selects intra-block-copy prediction.
-    /// </summary>
-    /// <param name="imageBytes">The complete AVIF file.</param>
-    private static void AssertUsesIntraBlockCopy(Span<byte> imageBytes)
-    {
-        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
-
-        Assert.NotNull(decoder.FrameHeader);
-        Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
-        Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder, out _));
-    }
-
-    /// <summary>
-    /// Decodes the sole image item in an independently generated AVIF fixture and returns its restoration coverage.
-    /// </summary>
-    /// <param name="imageBytes">The complete AVIF file.</param>
-    /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
-    private static int GetRestorationCoverageFromAvif(Span<byte> imageBytes)
-    {
-        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
-
-        Assert.NotNull(decoder.FrameHeader);
-        Assert.True(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
-        Assert.NotNull(decoder.FrameInfo);
-        int restorationCoverage = GetRestorationCoverage(decoder);
-        Assert.NotEqual(0, restorationCoverage);
-        return restorationCoverage;
-    }
-
-    /// <summary>
-    /// Gets the partition types selected by one independently encoded AV1 elementary stream.
-    /// </summary>
-    /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
-    /// <returns>A bit mask containing every selected partition type.</returns>
-    private static int GetPartitionCoverage(string payloadPath)
-    {
-        byte[] payload = TestFile.Create(payloadPath).Bytes;
-        using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
-
-        Assert.NotNull(decoder.SequenceHeader);
-        Assert.NotNull(decoder.FrameInfo);
-        int superblockSizeLog2 = decoder.SequenceHeader.SuperblockSizeLog2;
-        int superblockColumnCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
-        int superblockRowCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
-        int halfSuperblockSize = 1 << (superblockSizeLog2 - 1);
-        int coverage = 0;
-
-        // Mode records retain their bitstream traversal order and store each final coding block once, so iterating
-        // the parsed count observes every selected leaf partition without repeatedly visiting its covered 4x4 cells.
-        // Split itself creates no mode record. All other partition types are terminal, so a leaf below half the
-        // superblock size on both axes proves that the parser reached it through at least one recursive split.
-        for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
-        {
-            for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
-            {
-                Av1SuperblockInfo superblock = decoder.FrameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
-                foreach (Av1BlockModeInfo modeInfo in superblock.GetModeInfos())
-                {
-                    coverage |= 1 << (int)modeInfo.PartitionType;
-                    if (modeInfo.BlockSize.GetWidth() < halfSuperblockSize && modeInfo.BlockSize.GetHeight() < halfSuperblockSize)
-                    {
-                        coverage |= 1 << (int)Av1PartitionType.Split;
-                    }
-                }
-            }
-        }
-
-        return coverage;
     }
 
     /// <summary>

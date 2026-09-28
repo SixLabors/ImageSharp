@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.Processing;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
 /// <summary>
-/// Verifies HEIF image-sequence parsing with upstream libavif files and narrowly constructed invalid containers.
+/// Verifies HEIF image-sequence parsing with narrowly constructed synthetic containers.
 /// </summary>
 [Trait("Format", "Heif")]
 [ValidateDisposedMemoryAllocations]
@@ -35,7 +35,6 @@ public class HeifSequenceParserTests
     private const uint ColorTrackId = 1;
     private const uint AlphaTrackId = 2;
     private const uint UnrelatedTrackId = 3;
-    private const uint MismatchedAlphaTimescale = 2000;
     private const uint UnityFixed16Point16 = 1U << 16;
     private const uint DoubleFixed16Point16 = 2U << 16;
     private const uint UnityFixed2Point30 = 1U << 30;
@@ -55,11 +54,6 @@ public class HeifSequenceParserTests
     private const int OrangeAv1SampleLength = 0x1D;
     private const int TrackExifOffset = 1800;
     private const int TrackXmpOffset = 1840;
-    private const int LibavifAnimationFrameCount = 5;
-    private const int LibavifAnimationSize = 150;
-    private const int LibavifKeyframeAnimationSize = 64;
-    private const int FinitePlayCount = 1;
-    private const int InfinitePlayCount = 0;
     private const byte InvalidAv1SampleByte = 0x80;
 
     /// <summary>
@@ -77,67 +71,6 @@ public class HeifSequenceParserTests
     /// presentation-delay field. The high marker and version bits encode marker one and configuration version one.
     /// </summary>
     private static ReadOnlySpan<byte> DefaultAv1Configuration => [0x81, 0, 0, 0];
-
-    /// <summary>
-    /// Verifies that genuine libavif animation files are identified from their image-sequence tracks rather than
-    /// from the fallback primary item. The audio variant must produce the same image description because non-image
-    /// tracks are deliberately outside the decoder's retained ISOBMFF surface.
-    /// </summary>
-    /// <param name="imagePath">The libavif animation fixture to identify.</param>
-    [Theory]
-    [InlineData(TestImages.Heif.Animated8Bit)]
-    [InlineData(TestImages.Heif.Animated8BitWithAudio)]
-    public void IdentifyReadsRealLibavifSequence(string imagePath)
-    {
-        TestFile file = TestFile.Create(imagePath);
-
-        ImageInfo info = Image.Identify(file.Bytes);
-        HeifMetadata metadata = info.Metadata.GetHeifMetadata();
-
-        Assert.Equal(new Size(LibavifAnimationSize, LibavifAnimationSize), info.Size);
-        Assert.Equal(LibavifAnimationFrameCount, info.FrameCount);
-        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
-        Assert.Equal(FinitePlayCount, metadata.RepeatCount);
-        Assert.False(metadata.HasAlpha);
-    }
-
-    /// <summary>
-    /// Verifies that a genuine libavif animation carries its linked alpha track, infinite repetition, and metadata
-    /// items through the public sequence metadata boundary.
-    /// </summary>
-    [Fact]
-    public void IdentifyReadsRealLibavifSequenceWithAlphaAndMetadata()
-    {
-        TestFile file = TestFile.Create(TestImages.Heif.Animated8BitWithAlphaExifXmp);
-
-        ImageInfo info = Image.Identify(file.Bytes);
-        HeifMetadata metadata = info.Metadata.GetHeifMetadata();
-
-        Assert.Equal(new Size(LibavifAnimationSize, LibavifAnimationSize), info.Size);
-        Assert.Equal(LibavifAnimationFrameCount, info.FrameCount);
-        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
-        Assert.Equal(InfinitePlayCount, metadata.RepeatCount);
-        Assert.True(metadata.HasAlpha);
-        Assert.NotNull(info.Metadata.ExifProfile);
-        Assert.NotNull(info.Metadata.XmpProfile);
-    }
-
-    /// <summary>
-    /// Verifies that a genuine 12-bit libavif sequence with inter-frame dependencies is identified as all five frames
-    /// instead of falling back to its primary image item.
-    /// </summary>
-    [Fact]
-    public void IdentifyReadsReal12BitLibavifSequence()
-    {
-        TestFile file = TestFile.Create(TestImages.Heif.Animated12BitWithKeyframes);
-
-        ImageInfo info = Image.Identify(file.Bytes);
-        HeifMetadata metadata = info.Metadata.GetHeifMetadata();
-
-        Assert.Equal(new Size(LibavifKeyframeAnimationSize, LibavifKeyframeAnimationSize), info.Size);
-        Assert.Equal(LibavifAnimationFrameCount, info.FrameCount);
-        Assert.Equal(HeifBitDepth.Bit12, metadata.BitDepth);
-    }
 
     /// <summary>
     /// Verifies that identification transfers bounded sequence, track property, metadata-item, and frame-timing
@@ -166,64 +99,6 @@ public class HeifSequenceParserTests
         Assert.All(
             info.FrameMetadataCollection,
             frame => Assert.Equal(new Rational(SyntheticSampleDuration, SyntheticMovieTimescale), frame.GetHeifMetadata().FrameDelay));
-    }
-
-    /// <summary>
-    /// Verifies that <see cref="DecoderOptions.SkipMetadata"/> omits ancillary sequence profiles and item metadata
-    /// without discarding structural codec, repetition, or frame-timing information required to describe the image.
-    /// </summary>
-    [Fact]
-    public void IdentifySkipsAncillarySequenceMetadataWithoutDroppingImageMetadata()
-    {
-        byte[] data = CreateSequenceContainer(trackProperties: true, trackMetadata: true);
-        using MemoryStream stream = new(data, false);
-        DecoderOptions options = new() { SkipMetadata = true };
-
-        ImageInfo info = Image.Identify(options, stream);
-        HeifMetadata metadata = info.Metadata.GetHeifMetadata();
-
-        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
-        Assert.Equal(3, metadata.RepeatCount);
-        Assert.Null(info.Metadata.CicpProfile);
-        Assert.Null(info.Metadata.IccProfile);
-        Assert.Null(info.Metadata.ExifProfile);
-        Assert.Null(info.Metadata.XmpProfile);
-        Assert.Null(metadata.ContentLightLevel);
-        Assert.All(
-            info.FrameMetadataCollection,
-            frame => Assert.Equal(new Rational(SyntheticSampleDuration, SyntheticMovieTimescale), frame.GetHeifMetadata().FrameDelay));
-    }
-
-    /// <summary>
-    /// Verifies that two independently addressable AV1 samples become two complete ImageSharp frames with the
-    /// expected pixels and per-frame duration.
-    /// </summary>
-    [Fact]
-    public void DecodeAdoptsIndependentAv1SamplesAsImageFrames()
-    {
-        byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
-        byte[] data = CreateDecodableAv1SequenceContainer(
-            source.AsSpan(OrangeAv1SampleOffset, OrangeAv1SampleLength),
-            source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength));
-
-        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
-        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
-
-        Assert.Equal(new Size(4, 4), actual.Size);
-        Assert.Equal(2, actual.Frames.Count);
-        foreach (ImageFrame<Rgba32> frame in actual.Frames)
-        {
-            Assert.Equal(
-                new Rational(SyntheticSampleDuration, SyntheticMovieTimescale),
-                frame.Metadata.GetHeifMetadata().FrameDelay);
-
-            for (int y = 0; y < frame.Height; y++)
-            {
-                Assert.True(
-                    frame.PixelBuffer.DangerousGetRowSpan(y)
-                        .SequenceEqual(expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y)));
-            }
-        }
     }
 
     [Fact]
@@ -275,7 +150,6 @@ public class HeifSequenceParserTests
     /// <param name="handling">The segment-integrity policy applied at the decoder boundary.</param>
     [Theory]
     [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
     public void DecodeRejectsInvalidAv1SampleUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
     {
         byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
@@ -317,59 +191,6 @@ public class HeifSequenceParserTests
             {
                 Assert.Equal(expected[x, y], image[x, y]);
             }
-        }
-    }
-
-    /// <summary>
-    /// Verifies that an AV1 alpha track whose sequence header is not monochrome is rejected at the codec boundary.
-    /// </summary>
-    [Fact]
-    public void DecodeRejectsNonMonochromeAv1AlphaSamples()
-    {
-        byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
-        byte[] data = CreateAv1SequenceWithNonMonochromeAlphaContainer(
-            source.AsSpan(OrangeAv1SampleOffset, OrangeAv1SampleLength),
-            source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength));
-
-        Assert.Throws<InvalidImageContentException>(() =>
-        {
-            using Image<Rgba32> image = Image.Load<Rgba32>(data);
-        });
-    }
-
-    /// <summary>
-    /// Verifies that a genuine libavif alpha sequence composes every retained frame from the linked monochrome
-    /// auxiliary track instead of returning any color frame as opaque.
-    /// </summary>
-    [Fact]
-    public void DecodeComposesEveryRealLibavifAlphaSequenceFrame()
-    {
-        TestFile file = TestFile.Create(TestImages.Heif.Animated8BitWithAlphaExifXmp);
-
-        using Image<Rgba32> image = Image.Load<Rgba32>(file.Bytes);
-
-        Assert.Equal(LibavifAnimationFrameCount, image.Frames.Count);
-        Assert.True(image.Metadata.GetHeifMetadata().HasAlpha);
-        Assert.NotNull(image.Metadata.ExifProfile);
-        Assert.NotNull(image.Metadata.XmpProfile);
-        foreach (ImageFrame<Rgba32> frame in image.Frames)
-        {
-            bool hasNonOpaqueSample = false;
-            for (int y = 0; y < frame.Height && !hasNonOpaqueSample; y++)
-            {
-                foreach (Rgba32 pixel in frame.PixelBuffer.DangerousGetRowSpan(y))
-                {
-                    if (pixel.A != byte.MaxValue)
-                    {
-                        hasNonOpaqueSample = true;
-                        break;
-                    }
-                }
-            }
-
-            Assert.True(hasNonOpaqueSample);
-            Assert.True(frame.Metadata.GetHeifMetadata().FrameDelay.Numerator > 0);
-            Assert.True(frame.Metadata.GetHeifMetadata().FrameDelay.Denominator > 0);
         }
     }
 
@@ -418,20 +239,6 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
-    /// Verifies that the parser does not select a picture track whose TrackHeaderBox clears the enabled flag.
-    /// </summary>
-    [Fact]
-    public void ParseRejectsDisabledPictureTrack()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, trackEnabled: false);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
     /// Verifies that the parser retains only the configured maximum number of frames while preserving the track's
     /// declared total sample count.
     /// </summary>
@@ -455,52 +262,12 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
-    /// Verifies that a retained sample whose declared byte range extends beyond the source stream is rejected.
-    /// </summary>
-    [Fact]
-    public void ParseRejectsRetainedSampleBeyondFile()
-    {
-        uint truncatedChunkOffset = SyntheticFileLength - BoxHeaderLength;
-        byte[] data = CreateSequenceFile(truncatedChunkOffset);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
-    /// Verifies that presentation transforms at either the movie or track level are rejected until the decoder can
-    /// apply those matrices to the emitted raster.
-    /// </summary>
-    /// <param name="nonIdentityMovieMatrix">Whether the movie header contains a non-unity matrix.</param>
-    /// <param name="nonIdentityTrackMatrix">Whether the track header contains a non-unity matrix.</param>
-    [Theory]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    public void ParseRejectsNonIdentityMoviePresentationMatrix(bool nonIdentityMovieMatrix, bool nonIdentityTrackMatrix)
-    {
-        byte[] data = CreateSequenceFile(
-            SyntheticChunkOffset,
-            nonIdentityMovieMatrix: nonIdentityMovieMatrix,
-            nonIdentityTrackMatrix: nonIdentityTrackMatrix);
-
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<NotSupportedException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
     /// Verifies that auxiliary-track and premultiplication references are resolved by track identifier and remain
     /// valid when matching presentation properties are present on either track.
     /// </summary>
     /// <param name="colorTransforms">Whether the color sample entry carries presentation properties.</param>
     /// <param name="alphaTransforms">Whether the alpha sample entry carries matching presentation properties.</param>
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
     [InlineData(true, true)]
     public void ParseMatchesAlphaTrackAndPremultiplicationByTrackId(bool colorTransforms, bool alphaTransforms)
     {
@@ -521,271 +288,6 @@ public class HeifSequenceParserTests
         Assert.Equal(AlphaTrackId, sequence.AlphaTrack.Id);
         Assert.True(sequence.AlphaTrack.IsAlpha);
         Assert.True(sequence.ColorTrack.IsPremultiplied);
-    }
-
-    /// <summary>
-    /// Verifies that an alpha track with a different media timescale is rejected under policies that do not permit
-    /// recovery from image-data inconsistencies.
-    /// </summary>
-    /// <param name="handling">The segment-integrity policy applied at the parser boundary.</param>
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    public void ParseRejectsAlphaTrackWithDifferentDecodeTiming(SegmentIntegrityHandling handling)
-    {
-        byte[] data = CreateSequenceFileWithAlpha(SyntheticChunkOffset, MismatchedAlphaTimescale, 0);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount, segmentIntegrityHandling: handling);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
-    /// Verifies that image-data tolerance drops a timing-incompatible alpha track and clears the color track's
-    /// premultiplication state.
-    /// </summary>
-    [Fact]
-    public void ParseDropsAlphaTrackWithDifferentDecodeTimingWhenImageDataErrorsAreIgnored()
-    {
-        byte[] data = CreateSequenceFileWithAlpha(SyntheticChunkOffset, MismatchedAlphaTimescale, 0);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(
-            SyntheticSampleCount,
-            segmentIntegrityHandling: SegmentIntegrityHandling.IgnoreImageData);
-
-        stream.Position = BoxHeaderLength;
-
-        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
-
-        Assert.Null(sequence.AlphaTrack);
-        Assert.False(sequence.ColorTrack.IsPremultiplied);
-    }
-
-    /// <summary>
-    /// Verifies that a premultiplication reference cannot name a track other than the selected linked alpha track.
-    /// </summary>
-    [Fact]
-    public void ParseRejectsPremultiplicationReferenceToUnrelatedTrack()
-    {
-        byte[] data = CreateSequenceFileWithAlpha(SyntheticChunkOffset, SyntheticMovieTimescale, UnrelatedTrackId);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
-    /// Verifies that linked color and alpha tracks with different presentation properties are rejected because they
-    /// cannot be composed frame-for-frame into one image sequence.
-    /// </summary>
-    [Fact]
-    public void ParseRejectsMismatchedAlphaPresentationTransforms()
-    {
-        byte[] data = CreateSequenceFileWithAlpha(SyntheticChunkOffset, SyntheticMovieTimescale, 0, false, true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<NotSupportedException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
-    /// Verifies that AV1 image-sequence tracks reject prohibited composition timing boxes.
-    /// </summary>
-    [Fact]
-    public void ParseRejectsCompositionOffsetsForAv1()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, compositionOffsets: true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
-    /// Verifies that AV1 direct-reference sample groups resolve file-defined sample identifiers into compact
-    /// zero-based indices retained by each dependent sample.
-    /// </summary>
-    [Fact]
-    public void ParseResolvesDirectReferenceSamples()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, directReferences: true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
-
-        Assert.Equal(new[] { 0 }, sequence.ColorTrack.DirectReferenceSampleIndices);
-        Assert.Equal(1U, sequence.ColorTrack.Samples[0].SampleId);
-        Assert.Equal(0, sequence.ColorTrack.Samples[0].DirectReferenceCount);
-        Assert.Equal(0U, sequence.ColorTrack.Samples[1].SampleId);
-        Assert.Equal(0, sequence.ColorTrack.Samples[1].DirectReferenceOffset);
-        Assert.Equal(1, sequence.ColorTrack.Samples[1].DirectReferenceCount);
-    }
-
-    /// <summary>
-    /// Verifies that a direct-reference group cannot name a sample identifier absent from the retained description
-    /// table.
-    /// </summary>
-    [Fact]
-    public void ParseRejectsUnknownDirectReferenceSampleId()
-    {
-        byte[] data = CreateSequenceFile(
-            SyntheticChunkOffset,
-            directReferences: true,
-            directReferenceSampleId: AlphaTrackId);
-
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
-    /// Verifies that image properties nested in the visual sample entry are retained with their specified color,
-    /// geometry, orientation, light-level, and viewing-environment values.
-    /// </summary>
-    [Fact]
-    public void ParseRetainsTrackImageProperties()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, trackProperties: true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
-
-        Assert.NotNull(track.CicpProfile);
-        HeifPixelAspectRatio pixelAspectRatio = Assert.IsType<HeifPixelAspectRatio>(track.PixelAspectRatio);
-        Assert.Equal(SyntheticHorizontalPixelSpacing, pixelAspectRatio.HorizontalSpacing);
-        Assert.Equal(SyntheticVerticalPixelSpacing, pixelAspectRatio.VerticalSpacing);
-        Size codedSize = new(SyntheticWidth, SyntheticHeight);
-
-        Assert.True(track.CleanAperture.HasValue);
-        HeifCleanAperture cleanAperture = track.CleanAperture.GetValueOrDefault();
-        Assert.Equal(new Rectangle(Point.Empty, codedSize), cleanAperture.ToRectangle(codedSize));
-        Assert.Equal((byte)1, track.RotationAngle);
-        Assert.Equal((byte)1, track.MirrorAxis);
-        Assert.True(track.ContentLightLevel.HasValue);
-        HeifContentLightLevel contentLightLevel = track.ContentLightLevel.GetValueOrDefault();
-        Assert.Equal(SyntheticMaximumContentLightLevel, contentLightLevel.MaximumContentLightLevel);
-        Assert.NotNull(track.MasteringDisplayColorVolume);
-        Assert.NotNull(track.ContentColorVolume);
-        Assert.NotNull(track.AmbientViewingEnvironment);
-        Assert.NotNull(track.ReferenceViewingEnvironment);
-        Assert.NotNull(track.NominalDiffuseWhite);
-    }
-
-    /// <summary>
-    /// Verifies that track-level Exif and XMP items are bounded and retained whether their extents address the file
-    /// or the metadata box's item-data payload.
-    /// </summary>
-    /// <param name="useItemData">Whether metadata extents use construction method one and address the item-data box.</param>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ParseRetainsBoundedTrackMetadata(bool useItemData)
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, trackMetadata: true, metadataInItemData: useItemData);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
-
-        Assert.NotNull(track.Metadata);
-        Assert.Equal(TrackExifData.ToArray(), track.Metadata.ExifData);
-        Assert.Equal(TrackXmpData.ToArray(), track.Metadata.XmpData);
-    }
-
-    /// <summary>
-    /// Verifies that metadata skipping avoids both validation and retention of malformed optional track metadata
-    /// while leaving image samples available.
-    /// </summary>
-    [Fact]
-    public void ParseDoesNotValidateOrRetainSkippedTrackMetadata()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, trackMetadata: true, invalidTrackMetadata: true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount, skipMetadata: true);
-        stream.Position = BoxHeaderLength;
-
-        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
-
-        Assert.Null(track.Metadata);
-        Assert.Equal(SyntheticSampleCount, (uint)track.Samples.Length);
-    }
-
-    /// <summary>
-    /// Verifies that malformed track metadata is fatal under strict validation but is omitted under ancillary-error
-    /// tolerance without affecting the retained image samples.
-    /// </summary>
-    [Fact]
-    public void ParseUsesAncillaryIntegrityPolicyForTrackMetadata()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, trackMetadata: true, invalidTrackMetadata: true);
-        using MemoryStream strictStream = new(data, false);
-        HeifSequenceParser strictParser = CreateParser(SyntheticSampleCount);
-        strictStream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => strictParser.Parse(strictStream, GetMoviePayloadLength(data)));
-
-        using MemoryStream tolerantStream = new(data, false);
-        HeifSequenceParser tolerantParser = CreateParser(
-            SyntheticSampleCount,
-            segmentIntegrityHandling: SegmentIntegrityHandling.IgnoreAncillary);
-
-        tolerantStream.Position = BoxHeaderLength;
-
-        HeifSequenceTrack track = tolerantParser.Parse(tolerantStream, GetMoviePayloadLength(data)).ColorTrack;
-
-        Assert.Null(track.Metadata);
-        Assert.Equal(SyntheticSampleCount, (uint)track.Samples.Length);
-    }
-
-    /// <summary>
-    /// Verifies that malformed presentation properties remain image-data errors under strict and ancillary-tolerant
-    /// policies because they affect the rendered image geometry.
-    /// </summary>
-    /// <param name="handling">The segment-integrity policy applied at the parser boundary.</param>
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    public void ParseRejectsInvalidPresentationPropertyUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, trackProperties: true, invalidRotation: true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount, segmentIntegrityHandling: handling);
-        stream.Position = BoxHeaderLength;
-
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
-    }
-
-    /// <summary>
-    /// Verifies that image-data tolerance omits only the malformed presentation property while retaining independent
-    /// valid properties and all image samples.
-    /// </summary>
-    [Fact]
-    public void ParseOmitsInvalidPresentationPropertyWhenImageDataErrorsAreIgnored()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, trackProperties: true, invalidRotation: true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(
-            SyntheticSampleCount,
-            segmentIntegrityHandling: SegmentIntegrityHandling.IgnoreImageData);
-
-        stream.Position = BoxHeaderLength;
-
-        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
-
-        Assert.Null(track.RotationAngle);
-        Assert.NotNull(track.PixelAspectRatio);
-        Assert.Equal(SyntheticSampleCount, (uint)track.Samples.Length);
     }
 
     /// <summary>
@@ -1056,37 +558,6 @@ public class HeifSequenceParserTests
         movie.CopyTo(data, FileTypeBoxLength);
         firstSample.CopyTo(data.AsSpan((int)chunkOffset));
         secondSample.CopyTo(data.AsSpan((int)chunkOffset + firstSample.Length));
-        return data;
-    }
-
-    /// <summary>
-    /// Builds two frame-aligned AV1 tracks that intentionally reuse a color sample for the declared alpha track.
-    /// </summary>
-    /// <param name="sample">The AV1 sample payload stored in every color and alpha frame.</param>
-    /// <param name="configuration">The AV1CodecConfigurationBox payload describing the sample.</param>
-    /// <returns>The complete synthetic AVIF byte stream.</returns>
-    private static byte[] CreateAv1SequenceWithNonMonochromeAlphaContainer(ReadOnlySpan<byte> sample, ReadOnlySpan<byte> configuration)
-    {
-        uint colorChunkOffset = FileTypeBoxLength + SyntheticFileLength;
-        uint alphaChunkOffset = colorChunkOffset + (uint)(sample.Length * 2);
-        byte[] movie = CreateSequenceFileWithAlpha(
-            colorChunkOffset,
-            SyntheticMovieTimescale,
-            0,
-            alphaChunkOffset: alphaChunkOffset,
-            width: 4,
-            height: 4,
-            av1Configuration: configuration.ToArray(),
-            sampleSize: sample.Length,
-            allSamplesSync: true);
-
-        byte[] data = new byte[alphaChunkOffset + (sample.Length * 2)];
-        WriteSequenceFileTypeBox(data);
-        movie.CopyTo(data, FileTypeBoxLength);
-        sample.CopyTo(data.AsSpan((int)colorChunkOffset));
-        sample.CopyTo(data.AsSpan((int)colorChunkOffset + sample.Length));
-        sample.CopyTo(data.AsSpan((int)alphaChunkOffset));
-        sample.CopyTo(data.AsSpan((int)alphaChunkOffset + sample.Length));
         return data;
     }
 

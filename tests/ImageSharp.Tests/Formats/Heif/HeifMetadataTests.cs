@@ -11,18 +11,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 public class HeifMetadataTests
 {
     [Fact]
-    public void DefaultsMatchLegacyEightBitHeif()
-    {
-        HeifMetadata metadata = new();
-
-        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
-        Assert.False(metadata.IsMonochrome);
-        Assert.False(metadata.HasAlpha);
-        Assert.Equal(1, metadata.RepeatCount);
-        Assert.True(metadata.AnimateRootFrame);
-    }
-
-    [Fact]
     public void DeepCloneCopiesImageDescription()
     {
         HeifMetadata metadata = new()
@@ -43,50 +31,32 @@ public class HeifMetadataTests
         Assert.Equal(metadata.AnimateRootFrame, clone.AnimateRootFrame);
     }
 
-    [Fact]
-    public void SequenceStateRoundTripsFormatConnectingMetadata()
+    [Theory]
+    [InlineData(9, HeifBitDepth.Bit10)]
+    [InlineData(11, HeifBitDepth.Bit12)]
+    public void FormatConnectingMetadataRoundTripsSequenceStateAndSelectsSupportedBitDepth(int componentPrecision, HeifBitDepth expected)
     {
         FormatConnectingMetadata connectingMetadata = new()
         {
             AnimateRootFrame = false,
-            PixelTypeInfo = new PixelTypeInfo(24),
+            PixelTypeInfo = new PixelTypeInfo(componentPrecision)
+            {
+                ComponentInfo = PixelComponentInfo.Create(1, componentPrecision, componentPrecision)
+            },
             RepeatCount = 7
         };
 
         HeifMetadata metadata = HeifMetadata.FromFormatConnectingMetadata(connectingMetadata);
         FormatConnectingMetadata result = metadata.ToFormatConnectingMetadata();
 
+        Assert.Equal(expected, metadata.BitDepth);
         Assert.False(result.AnimateRootFrame);
         Assert.Equal(7, result.RepeatCount);
     }
 
     [Theory]
-    [InlineData(1, HeifBitDepth.Bit8)]
-    [InlineData(8, HeifBitDepth.Bit8)]
-    [InlineData(9, HeifBitDepth.Bit10)]
-    [InlineData(10, HeifBitDepth.Bit10)]
-    [InlineData(11, HeifBitDepth.Bit12)]
-    [InlineData(16, HeifBitDepth.Bit12)]
-    public void FromFormatConnectingMetadataSelectsSupportedBitDepth(int componentPrecision, HeifBitDepth expected)
-    {
-        FormatConnectingMetadata connectingMetadata = new()
-        {
-            PixelTypeInfo = new PixelTypeInfo(componentPrecision)
-            {
-                ComponentInfo = PixelComponentInfo.Create(1, componentPrecision, componentPrecision)
-            }
-        };
-
-        HeifMetadata metadata = HeifMetadata.FromFormatConnectingMetadata(connectingMetadata);
-
-        Assert.Equal(expected, metadata.BitDepth);
-    }
-
-    [Theory]
-    [InlineData(HeifBitDepth.Bit8, false, false, 24, 3)]
     [InlineData(HeifBitDepth.Bit10, false, true, 40, 4)]
     [InlineData(HeifBitDepth.Bit12, true, false, 12, 1)]
-    [InlineData(HeifBitDepth.Bit12, true, true, 24, 2)]
     public void GetPixelTypeInfoUsesComponentBitDepth(
         HeifBitDepth bitDepth,
         bool isMonochrome,

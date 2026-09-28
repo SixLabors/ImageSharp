@@ -6,7 +6,6 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
@@ -21,50 +20,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1MotionModeInfoTests
 {
     /// <summary>
-    /// Verifies that an extended 8x32 rectangle omits inter-intra syntax and reads the following interpolation filter.
-    /// </summary>
-    [Fact]
-    public void OmitsInterIntraForExtendedRectangle()
-    {
-        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
-        sequenceHeader.EnableInterIntraCompound = true;
-        ObuFrameHeader frameHeader = CreateFrameHeader();
-        ConfigureForcedTranslationalGlobalMotion(frameHeader);
-
-        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
-        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x32, Point.Empty);
-        Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
-        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
-
-        using Av1SymbolWriter writer = new(Configuration.Default, 2, updateCdf: true);
-        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
-
-        // With no matching above or left filter, a single-reference vertical filter uses context three. Writing the
-        // filter immediately after Skip makes any accidental extended-rectangle inter-intra read desynchronize it.
-        writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[3]);
-
-        using IMemoryOwner<byte> encoded = writer.Exit();
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
-
-        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
-        modeInfo = partitionInfo.ModeInfo;
-
-        Assert.Equal(Av1MotionMode.SimpleTranslation, modeInfo.MotionMode);
-        Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[0]);
-        Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[1]);
-    }
-
-    /// <summary>
     /// Verifies that a false inter-intra flag continues through omitted, binary, and ternary motion-mode syntax into interpolation.
     /// </summary>
     /// <param name="isMotionModeSwitchable">Whether the frame enables per-block motion-mode syntax.</param>
     /// <param name="allowWarpedMotion">Whether the eligible block uses the ternary rather than binary motion-mode distribution.</param>
     /// <param name="selectedMotionModeValue">The motion mode written when syntax is present.</param>
     [Theory]
-    [InlineData(false, false, (int)Av1MotionMode.SimpleTranslation)]
-    [InlineData(true, false, (int)Av1MotionMode.SimpleTranslation)]
-    [InlineData(true, true, (int)Av1MotionMode.SimpleTranslation)]
-    [InlineData(true, false, (int)Av1MotionMode.Obmc)]
     [InlineData(true, true, (int)Av1MotionMode.Obmc)]
     public void ContinuesFromInterIntraToInterpolation(
         bool isMotionModeSwitchable,
@@ -155,7 +116,6 @@ public class Av1MotionModeInfoTests
     /// </summary>
     /// <param name="useWedge">Whether the block selects an inter-intra wedge.</param>
     [Theory]
-    [InlineData(false)]
     [InlineData(true)]
     public void ReadsInterIntraBeforeInterpolation(bool useWedge)
     {

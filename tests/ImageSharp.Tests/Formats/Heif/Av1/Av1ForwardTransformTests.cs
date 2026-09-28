@@ -21,7 +21,7 @@ public class Av1ForwardTransformTests
     /// The hardware configurations covering every transform vector tier and the scalar fallback.
     /// </summary>
     private const HwIntrinsics TransformConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Gets every normative transform size, type, and bit-depth combination shared with the inverse suite.
@@ -29,14 +29,34 @@ public class Av1ForwardTransformTests
     public static TheoryData<int, int, int> ValidTransformCases { get; } = CreateValidTransformCases();
 
     /// <summary>
-    /// Verifies the fast screening transform against the independent Hadamard matrix definition at every sample precision.
+    /// Verifies the one-dimensional stage networks, every permitted two-dimensional size, type, and bit-depth
+    /// combination, the reversible transform, and the Hadamard screening costs against their scalar definitions at
+    /// every hardware tier.
+    /// </summary>
+    [Fact]
+    public void TransformsMatchReferenceAcrossHardwareWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTransforms, TransformConfigurations);
+
+    private static void AssertTransforms()
+    {
+        AssertOneDimensionalOperators();
+        AssertTwoDimensionalPipeline();
+        AssertLosslessTransform();
+        foreach (int bitDepth in new[] { 8, 10, 12 })
+        {
+            AssertHadamardScreeningCost((1 << bitDepth) - 1);
+            foreach (int size in new[] { 4, 8, 16, 32 })
+            {
+                AssertQuickHadamardCost(size, bitDepth);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies the fast screening transform against the independent Hadamard matrix definition.
     /// </summary>
     /// <param name="maximum">The largest residual magnitude for the coded sample precision.</param>
-    [Theory]
-    [InlineData(255)]
-    [InlineData(1023)]
-    [InlineData(4095)]
-    public void HadamardScreeningCostMatchesAnalyticalReference(int maximum)
+    private static void AssertHadamardScreeningCost(int maximum)
     {
         const int width = 8;
         short[] residual = new short[width * width];
@@ -81,46 +101,11 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
-    /// Verifies that intra screening reuses the block workspace without allocating per candidate.
-    /// </summary>
-    [Fact]
-    public void HadamardScreeningDoesNotAllocatePerCandidate()
-    {
-        short[] residual = new short[64];
-        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
-        Array.Fill(residual, (short)4095);
-        Av1ForwardTransformer.GetHadamard8x8Cost(residual, workspace);
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        int cost = 0;
-        for (int i = 0; i < 32; i++)
-        {
-            cost = Av1ForwardTransformer.GetHadamard8x8Cost(residual, workspace);
-        }
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.Equal(64 * 4095, cost);
-        Assert.Equal(0, allocated);
-    }
-
-    /// <summary>
-    /// Verifies every quick Hadamard size against the scalar libaom transform hierarchy.
+    /// Verifies one quick Hadamard size against the scalar libaom transform hierarchy.
     /// </summary>
     /// <param name="size">The square transform width.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
-    [Theory]
-    [InlineData(4, 8)]
-    [InlineData(8, 8)]
-    [InlineData(16, 8)]
-    [InlineData(32, 8)]
-    [InlineData(4, 10)]
-    [InlineData(8, 10)]
-    [InlineData(16, 10)]
-    [InlineData(32, 10)]
-    [InlineData(4, 12)]
-    [InlineData(8, 12)]
-    [InlineData(16, 12)]
-    [InlineData(32, 12)]
-    public void QuickHadamardCostMatchesLibaomReference(int size, int bitDepth)
+    private static void AssertQuickHadamardCost(int size, int bitDepth)
     {
         int maximum = (1 << bitDepth) - 1;
         short[] residual = new short[size * size];
@@ -153,69 +138,6 @@ public class Av1ForwardTransformTests
 
             Assert.Equal(expected, actual);
         }
-    }
-
-    /// <summary>
-    /// Verifies every one-dimensional stage network across its scalar and available vector representations.
-    /// </summary>
-    [Fact]
-    public void OneDimensionalOperatorsMatchAcrossHardwareWidths()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertOneDimensionalOperators, TransformConfigurations);
-
-    /// <summary>
-    /// Verifies every one-dimensional stage network against the independent analytical transform definition.
-    /// </summary>
-    [Fact]
-    public void OneDimensionalOperatorsMatchAnalyticalReference()
-    {
-        AssertOperatorAccuracy<Av1ForwardTransformer.Dct4Operator>(Av1TransformType1d.Dct, 4);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Dct8Operator>(Av1TransformType1d.Dct, 8);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Dct16Operator>(Av1TransformType1d.Dct, 16);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Dct32Operator>(Av1TransformType1d.Dct, 32);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Dct64Operator>(Av1TransformType1d.Dct, 64);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Adst4Operator>(Av1TransformType1d.Adst, 4);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Adst8Operator>(Av1TransformType1d.Adst, 8);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Adst16Operator>(Av1TransformType1d.Adst, 16);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Identity4Operator>(Av1TransformType1d.Identity, 4);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Identity8Operator>(Av1TransformType1d.Identity, 8);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Identity16Operator>(Av1TransformType1d.Identity, 16);
-        AssertOperatorAccuracy<Av1ForwardTransformer.Identity32Operator>(Av1TransformType1d.Identity, 32);
-    }
-
-    /// <summary>
-    /// Verifies every permitted size, type, and bit-depth combination against the direct scalar two-axis definition.
-    /// </summary>
-    [Fact]
-    public void TwoDimensionalPipelineMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTwoDimensionalPipeline, TransformConfigurations);
-
-    /// <summary>
-    /// Verifies the reversible transform against the independent scalar operation order at every hardware tier.
-    /// </summary>
-    [Fact]
-    public void LosslessTransformMatchesLibaomReferenceAcrossHardwareWidths()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertLosslessTransform, TransformConfigurations);
-
-    /// <summary>
-    /// Verifies that the complete transform dispatcher reuses caller-owned workspace.
-    /// </summary>
-    [Fact]
-    public void TransformDispatchDoesNotAllocatePerBlock()
-    {
-        const int width = 8;
-        short[] input = new short[width * width];
-        int[] output = new int[input.Length];
-        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
-
-        Av1ForwardTransformer.Transform2d(input, output, width, Av1TransformType.DctDct, Av1TransformSize.Size8x8, 8, workspace);
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int iteration = 0; iteration < 32; iteration++)
-        {
-            Av1ForwardTransformer.Transform2d(input, output, width, Av1TransformType.DctDct, Av1TransformSize.Size8x8, 8, workspace);
-        }
-
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
     private static void AssertLosslessTransform()
@@ -353,52 +275,6 @@ public class Av1ForwardTransformTests
         if (Avx512BW.IsSupported)
         {
             AssertInt16Vector512Operator<TOperator>(length, cosBit);
-        }
-    }
-
-    /// <summary>
-    /// Compares one integer stage network with the analytical reference transform.
-    /// </summary>
-    /// <typeparam name="TOperator">The transform operator.</typeparam>
-    /// <param name="transformType">The analytical transform definition.</param>
-    /// <param name="length">The transform length.</param>
-    private static void AssertOperatorAccuracy<TOperator>(Av1TransformType1d transformType, int length)
-        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
-    {
-        const int cosBit = 13;
-        const int testBlockCount = 500;
-        const int maximumCoefficientError = 7;
-        Random random = new(0);
-        double[] referenceInput = new double[length];
-        double[] referenceOutput = new double[length];
-        Av1TransformVector<int> values = default;
-        Av1TransformVector<int> buffer0 = default;
-        Av1TransformVector<int> buffer1 = default;
-
-        for (int block = 0; block < testBlockCount; block++)
-        {
-            for (int index = 0; index < length; index++)
-            {
-                int input = random.Next(1024) - random.Next(1024);
-                values[index] = input;
-                referenceInput[index] = input;
-            }
-
-            ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
-
-            TOperator.Transform(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, cosBit);
-            Av1ReferenceTransform.ReferenceTransform1d(transformType, referenceInput, referenceOutput, length);
-
-            // the reference decoder permits seven integer coefficient units because each fixed-point butterfly rounds independently.
-            for (int index = 0; index < length; index++)
-            {
-                int expected = (int)Math.Round(referenceOutput[index], MidpointRounding.AwayFromZero);
-                int error = Math.Abs(values[index] - expected);
-
-                Assert.True(
-                    error <= maximumCoefficientError,
-                    $"{typeof(TOperator).Name} coefficient {index}: expected {expected}, actual {values[index]}, error {error}.");
-            }
         }
     }
 

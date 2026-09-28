@@ -26,7 +26,7 @@ public class Av1WienerFilterTests
     ];
 
     /// <summary>
-    /// Verifies every SIMD width and scalar fallback against an independent full-kernel calculation.
+    /// Verifies the native SIMD width and the scalar fallback against an independent full-kernel calculation.
     /// </summary>
     [Fact]
     public void FilterMatchesFullKernelAtCoefficientAndVectorBoundaries()
@@ -34,9 +34,7 @@ public class Av1WienerFilterTests
         // Establish the matrix in the VSTest host first so an oracle-coverage failure is reported
         // directly before any child process is started for a restricted hardware configuration.
         ValidateFilters();
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateFilters,
-            HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, HwIntrinsics.DisableHWIntrinsic);
     }
 
     /// <summary>

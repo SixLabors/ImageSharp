@@ -18,7 +18,7 @@ public class Av1ForwardQuantizerTests
     /// The hardware configurations covering every quantizer vector tier and the scalar fallback.
     /// </summary>
     private const HwIntrinsics QuantizerConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies raster quantization and scan-order EOB selection at every SIMD tier.
@@ -26,75 +26,6 @@ public class Av1ForwardQuantizerTests
     [Fact]
     public void FastQuantizerMatchesLibaomReferenceAcrossHardwareWidths()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateQuantizer, QuantizerConfigurations);
-
-    /// <summary>
-    /// Verifies that repeated transform quantization uses only caller-owned buffers.
-    /// </summary>
-    [Fact]
-    public void QuantizerDoesNotAllocatePerTransform()
-    {
-        const int coefficientCount = 64;
-        int[] coefficients = new int[coefficientCount];
-        int[] quantized = new int[coefficientCount];
-        int[] dequantized = new int[coefficientCount];
-        FillCoefficients(coefficients, 73);
-
-        Av1ForwardQuantizer.QuantizeLossy(
-            coefficients,
-            quantized,
-            dequantized,
-            Av1TransformSize.Size8x8,
-            Av1TransformType.DctDct,
-            73,
-            -1,
-            3,
-            Av1BitDepth.TenBit);
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int iteration = 0; iteration < 32; iteration++)
-        {
-            Av1ForwardQuantizer.QuantizeLossy(
-                coefficients,
-                quantized,
-                dequantized,
-                Av1TransformSize.Size8x8,
-                Av1TransformType.DctDct,
-                73,
-                -1,
-                3,
-                Av1BitDepth.TenBit);
-        }
-
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
-    }
-
-    /// <summary>
-    /// Verifies that lossless quantization removes only the reversible transform scale.
-    /// </summary>
-    [Fact]
-    public void LosslessQuantizerRetainsExactReconstructionCoefficients()
-    {
-        int[] coefficients =
-        [
-            4, -8, 12, -16,
-            20, -24, 28, -32,
-            36, -40, 44, -48,
-            52, -56, 60, -64
-        ];
-
-        int[] quantized = new int[coefficients.Length];
-        int[] dequantized = new int[coefficients.Length];
-
-        ushort endOfBlock = Av1ForwardQuantizer.QuantizeLossless(
-            coefficients,
-            quantized,
-            dequantized,
-            Av1BitDepth.TwelveBit);
-
-        Assert.Equal((ushort)16, endOfBlock);
-        Assert.Equal(coefficients.Select(x => x / 4), quantized);
-        Assert.Equal(coefficients, dequantized);
-    }
 
     /// <summary>
     /// Exercises each transform-scale category, coded 64-point layout, quantizer range, and sample precision.

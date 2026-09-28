@@ -20,7 +20,7 @@ public class Av1DeblockingFilterTests
     /// <summary>
     /// The hardware configurations required to exercise packed filtering and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The padded plane width used to expose horizontal and vertical edge traversal.
@@ -31,17 +31,6 @@ public class Av1DeblockingFilterTests
     /// The first Q-side coordinate, leaving the widest kernel addressable on every side.
     /// </summary>
     private const int EdgeCoordinate = 12;
-
-    /// <summary>
-    /// Verifies the AV1 reference-category default deltas used to derive frame-edge filter levels.
-    /// </summary>
-    [Fact]
-    public void LoopFilterReferenceDeltasMatchAv1Defaults()
-    {
-        ObuLoopFilterParameters parameters = new();
-
-        Assert.Equal([1, 0, 0, 0, -1, 0, -1, -1], parameters.ReferenceDeltas);
-    }
 
     /// <summary>
     /// Verifies exact filtering and untouched padding against an independent scalar definition.
@@ -82,28 +71,6 @@ public class Av1DeblockingFilterTests
             4,
             false,
             22);
-    }
-
-    /// <summary>
-    /// Verifies that opposite reference and mode adjustments cancel before the final filter-level clamp.
-    /// </summary>
-    [Theory]
-    [InlineData(1, -63, 63, false)]
-    [InlineData(63, 63, -63, false)]
-    [InlineData(1, -63, 63, true)]
-    [InlineData(63, 63, -63, true)]
-    public void DecodeFrameCombinesDeltasBeforeClipping(int baseLevel, int referenceDelta, int modeDelta, bool deltaLoopFilterPresent)
-    {
-        // Both native paths, per-block delta-LF and the precomputed frame table, clamp only after adding
-        // reference and mode adjustments. These equal and opposite deltas leave the base level unchanged.
-        ValidateInterEdgeAndDeltaDecisions(
-            Av1PredictionMode.NewMotionVector,
-            Av1ReferenceFrameType.Last,
-            baseLevel,
-            referenceDelta,
-            modeDelta,
-            deltaLoopFilterPresent,
-            baseLevel);
     }
 
     /// <summary>

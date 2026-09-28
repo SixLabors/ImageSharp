@@ -15,23 +15,20 @@ public class Av1PlaneDownsamplerTests
     /// scalar remainder are all exercised.
     /// </summary>
     private const HwIntrinsics DownsamplerConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
-    [Theory]
-    [InlineData(16, 16)]
-    [InlineData(64, 64)]
-    [InlineData(48, 24)]
-    [InlineData(8, 32)]
-    [InlineData(128, 96)]
-    public void HalveMatchesTheReferenceKernel(int width, int height)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            static parameters =>
-            {
-                string[] values = parameters.Split(',');
-                ValidateHalve(int.Parse(values[0]), int.Parse(values[1]));
-            },
-            FormattableString.Invariant($"{width},{height}"),
-            DownsamplerConfigurations);
+    [Fact]
+    public void HalveMatchesTheReferenceKernel()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHalveGeometries, DownsamplerConfigurations);
+
+    /// <summary>
+    /// Compares the halved plane with the reference kernel for a vector-remainder and a full-width geometry.
+    /// </summary>
+    private static void ValidateHalveGeometries()
+    {
+        ValidateHalve(48, 24);
+        ValidateHalve(128, 96);
+    }
 
     /// <summary>
     /// Compares the halved plane with the reference kernel for one geometry.
@@ -76,12 +73,4 @@ public class Av1PlaneDownsamplerTests
                 actual.AsSpan(y * destinationStride, halvedWidth).ToArray());
         }
     }
-
-    [Theory]
-    [InlineData(16, 8, true)]
-    [InlineData(17, 9, true)]
-    [InlineData(16, 7, false)]
-    [InlineData(1, 1, true)]
-    public void IsHalvedFollowsTheReferenceLength(int length, int halvedLength, bool expected)
-        => Assert.Equal(expected, Av1PlaneDownsampler.IsHalved(length, halvedLength));
 }

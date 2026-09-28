@@ -78,35 +78,27 @@ public class Av1TranslationalInterPredictorTests
     private const ushort HighBitDepthDestinationSentinel = 0xDEAD;
 
     /// <summary>
-    /// Exercises the native vector width, the 256-bit path, the 128-bit path, and the complete scalar fallback.
+    /// Exercises the native vector width and the complete scalar fallback.
     /// </summary>
-    /// <remarks>
-    /// Disabling AVX also disables AVX2 and leaves the x86 128-bit vector tier enabled, which is the established
-    /// <see cref="FeatureTestRunner"/> configuration used by the other AV1 SIMD tests.
-    /// </remarks>
-    private const HwIntrinsics PredictorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies exact 8-bit copy and convolution output, scalar tails, and untouched destination padding under every SIMD configuration.
+    /// Verifies exact 8-, 10-, and 12-bit copy and convolution output, compound intermediates, scalar tails, and untouched
+    /// destination padding under the native vector and scalar configurations.
     /// </summary>
     [Fact]
-    public void BytePredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePredictions, PredictorConfigurations);
+    public void PredictionMatchesReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePredictions, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies exact 8-, 10-, and 12-bit ushort output, scalar tails, and untouched destination padding under every SIMD configuration.
+    /// Runs every translational prediction comparison under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
-    [Fact]
-    public void HighBitDepthPredictionMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPredictions, PredictorConfigurations);
-
-    /// <summary>
-    /// Verifies that SIMD compound intermediates retain scalar-equivalent values and untouched destination padding.
-    /// </summary>
-    [Fact]
-    public void CompoundPredictionMatchesScalarAcrossIntrinsicWidths()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateCompoundPredictions, PredictorConfigurations);
+    private static void ValidatePredictions()
+    {
+        ValidateBytePredictions();
+        ValidateHighBitDepthPredictions();
+        ValidateCompoundPredictions();
+    }
 
     /// <summary>
     /// Applies every byte prediction scenario to the SIMD-first and explicitly scalar entry points.

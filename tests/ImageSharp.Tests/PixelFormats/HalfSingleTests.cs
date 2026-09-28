@@ -42,29 +42,29 @@ public class HalfSingleTests
     [Fact]
     public void HalfSingle_ToScaledVector4()
     {
-        Assert.Equal(new Vector4(0F, 0F, 0F, 1F), new HalfSingle((float)Half.MinValue).ToScaledVector4());
-        Assert.Equal(new Vector4(.5F, 0F, 0F, 1F), new HalfSingle(0F).ToScaledVector4());
-        Assert.Equal(new Vector4(1F, 0F, 0F, 1F), new HalfSingle((float)Half.MaxValue).ToScaledVector4());
+        Assert.Equal(new Vector4((float)Half.MinValue, 0F, 0F, 1F), new HalfSingle((float)Half.MinValue).ToScaledVector4());
+        Assert.Equal(new Vector4(0F, 0F, 0F, 1F), new HalfSingle(0F).ToScaledVector4());
+        Assert.Equal(new Vector4((float)Half.MaxValue, 0F, 0F, 1F), new HalfSingle((float)Half.MaxValue).ToScaledVector4());
     }
 
     [Fact]
     public void HalfSingle_FromScaledVector4()
     {
-        Assert.Equal((ushort)0xFBFF, HalfSingle.FromScaledVector4(new Vector4(0F, 0F, 0F, 1F)).PackedValue);
-        Assert.Equal((ushort)0, HalfSingle.FromScaledVector4(new Vector4(.5F, 0F, 0F, 1F)).PackedValue);
-        Assert.Equal((ushort)0x7BFF, HalfSingle.FromScaledVector4(new Vector4(1F, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0xFBFF, HalfSingle.FromScaledVector4(new Vector4((float)Half.MinValue, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0, HalfSingle.FromScaledVector4(new Vector4(0F, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0x7BFF, HalfSingle.FromScaledVector4(new Vector4((float)Half.MaxValue, 0F, 0F, 1F)).PackedValue);
     }
 
     [Fact]
-    public void HalfSingle_BulkScaledConversionsCoverFiniteRange() =>
+    public void HalfSingle_BulkScaledConversionsPreserveFiniteRange() =>
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            AssertHalfSingleBulkScaledConversionsCoverFiniteRange,
+            AssertHalfSingleBulkScaledConversionsPreserveFiniteRange,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
-    private static void AssertHalfSingleBulkScaledConversionsCoverFiniteRange()
+    private static void AssertHalfSingleBulkScaledConversionsPreserveFiniteRange()
     {
         ushort[] packedValues = [0xFBFF, 0, 0x7BFF];
-        Vector4[] scaledValues = [new(0F, 0F, 0F, 1F), new(.5F, 0F, 0F, 1F), new(1F, 0F, 0F, 1F)];
+        Vector4[] scaledValues = [new((float)Half.MinValue, 0F, 0F, 1F), new(0F, 0F, 0F, 1F), new((float)Half.MaxValue, 0F, 0F, 1F)];
         HalfSingle[] source = new HalfSingle[17];
         Vector4[] expectedVectors = new Vector4[source.Length];
 

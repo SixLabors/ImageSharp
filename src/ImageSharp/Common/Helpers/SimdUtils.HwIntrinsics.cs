@@ -940,16 +940,20 @@ internal static partial class SimdUtils
                 ref Vector512<byte> destinationBase = ref Unsafe.As<byte, Vector512<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector512<float> scale = Vector512.Create(scaleFactor);
+                Vector512<float> lowerBound = Vector512<float>.Zero;
+                Vector512<float> upperBound = Vector512.Create(byte.MaxValue / scaleFactor);
                 Vector512<int> mask = PermuteMaskDeinterleave16x32();
 
                 for (nuint i = 0; i < n; i++)
                 {
                     ref Vector512<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector512<float> f0 = scale * s;
-                    Vector512<float> f1 = scale * Unsafe.Add(ref s, 1);
-                    Vector512<float> f2 = scale * Unsafe.Add(ref s, 2);
-                    Vector512<float> f3 = scale * Unsafe.Add(ref s, 3);
+                    // Float-to-int conversion maps infinities and overflow to an invalid integer.
+                    // Clamp in the float domain first so SIMD agrees with the scalar byte saturation rule.
+                    Vector512<float> f0 = scale * Numerics.Clamp(s, lowerBound, upperBound);
+                    Vector512<float> f1 = scale * Numerics.Clamp(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector512<float> f2 = scale * Numerics.Clamp(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector512<float> f3 = scale * Numerics.Clamp(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector512<int> w0 = Vector512_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector512<int> w1 = Vector512_.ConvertToInt32RoundAwayFromZero(f1);
@@ -974,16 +978,19 @@ internal static partial class SimdUtils
                 ref Vector256<byte> destinationBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector256<float> scale = Vector256.Create(scaleFactor);
+                Vector256<float> lowerBound = Vector256<float>.Zero;
+                Vector256<float> upperBound = Vector256.Create(byte.MaxValue / scaleFactor);
                 Vector256<int> mask = PermuteMaskDeinterleave8x32();
 
                 for (nuint i = 0; i < n; i++)
                 {
                     ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector256<float> f0 = scale * s;
-                    Vector256<float> f1 = scale * Unsafe.Add(ref s, 1);
-                    Vector256<float> f2 = scale * Unsafe.Add(ref s, 2);
-                    Vector256<float> f3 = scale * Unsafe.Add(ref s, 3);
+                    // Clamp before integer conversion so infinity and overflow reach the byte endpoint.
+                    Vector256<float> f0 = scale * Numerics.Clamp(s, lowerBound, upperBound);
+                    Vector256<float> f1 = scale * Numerics.Clamp(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector256<float> f2 = scale * Numerics.Clamp(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector256<float> f3 = scale * Numerics.Clamp(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector256<int> w0 = Vector256_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector256<int> w1 = Vector256_.ConvertToInt32RoundAwayFromZero(f1);
@@ -1009,27 +1016,23 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destinationBase = ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector128<float> scale = Vector128.Create(scaleFactor);
-                Vector128<int> min = Vector128<int>.Zero;
-                Vector128<int> max = Vector128.Create((int)byte.MaxValue);
+                Vector128<float> lowerBound = Vector128<float>.Zero;
+                Vector128<float> upperBound = Vector128.Create(byte.MaxValue / scaleFactor);
 
                 for (nuint i = 0; i < n; i++)
                 {
                     ref Vector128<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector128<float> f0 = scale * s;
-                    Vector128<float> f1 = scale * Unsafe.Add(ref s, 1);
-                    Vector128<float> f2 = scale * Unsafe.Add(ref s, 2);
-                    Vector128<float> f3 = scale * Unsafe.Add(ref s, 3);
+                    // Clamp before integer conversion so infinity and overflow reach the byte endpoint.
+                    Vector128<float> f0 = scale * Numerics.Clamp(s, lowerBound, upperBound);
+                    Vector128<float> f1 = scale * Numerics.Clamp(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector128<float> f2 = scale * Numerics.Clamp(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector128<float> f3 = scale * Numerics.Clamp(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector128<int> w0 = Vector128_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector128<int> w1 = Vector128_.ConvertToInt32RoundAwayFromZero(f1);
                     Vector128<int> w2 = Vector128_.ConvertToInt32RoundAwayFromZero(f2);
                     Vector128<int> w3 = Vector128_.ConvertToInt32RoundAwayFromZero(f3);
-
-                    w0 = Vector128.Clamp(w0, min, max);
-                    w1 = Vector128.Clamp(w1, min, max);
-                    w2 = Vector128.Clamp(w2, min, max);
-                    w3 = Vector128.Clamp(w3, min, max);
 
                     Vector128<ushort> u0 = Vector128.Narrow(w0, w1).AsUInt16();
                     Vector128<ushort> u1 = Vector128.Narrow(w2, w3).AsUInt16();

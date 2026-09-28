@@ -235,6 +235,7 @@ public class Bgr565Tests
     {
         Assert.Equal(Vector3.Zero, new Bgr565(Vector3.One * -1234F).ToVector3());
         Assert.Equal(Vector3.One, new Bgr565(Vector3.One * 1234F).ToVector3());
+        Assert.Equal((ushort)0x07E0, Bgr565.FromScaledVector4(new Vector4(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1F)).PackedValue);
     }
 
     [Fact]

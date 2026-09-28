@@ -66,7 +66,7 @@ internal static class TiffColorDecoderFactory<TPixel>
             case TiffColorType.WhiteIsZero32Float:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 32, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero32FloatTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new WhiteIsZero32FloatTiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian);
 
             case TiffColorType.BlackIsZero:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1, "bitsPerSample");
@@ -106,7 +106,7 @@ internal static class TiffColorDecoderFactory<TPixel>
             case TiffColorType.BlackIsZero32Float:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 32, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new BlackIsZero32FloatTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new BlackIsZero32FloatTiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian);
 
             case TiffColorType.Rgb:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
@@ -372,7 +372,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbFloat323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+                return new RgbFloat323232TiffColor<TPixel>(configuration, isBigEndian: byteOrder == ByteOrder.BigEndian);
 
             case TiffColorType.RgbaFloat32323232:
                 DebugGuard.IsTrue(
@@ -383,7 +383,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaFloat32323232TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian, extraSampleType);
+                return new RgbaFloat32323232TiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian, extraSampleType);
 
             case TiffColorType.PaletteColor:
                 DebugGuard.NotNull(colorMap, "colorMap");

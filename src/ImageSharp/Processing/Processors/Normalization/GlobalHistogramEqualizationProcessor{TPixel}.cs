@@ -131,7 +131,10 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
             for (int x = 0; x < this.bounds.Width; x++)
             {
                 Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-                int luminance = ColorNumerics.GetBT709Luminance(vector, levels);
+
+                // Keep the CDF offset within the histogram even for HDR or nonfinite samples.
+                float boundedLuminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+                int luminance = (int)MathF.Round(boundedLuminance * (levels - 1));
                 float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
             }

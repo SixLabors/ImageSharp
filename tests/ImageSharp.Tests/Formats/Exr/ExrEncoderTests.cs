@@ -46,9 +46,8 @@ public class ExrEncoderTests
     public void Encode_PixelFormatWithNonUnitNativeRange_WritesScaledValues(ExrPixelType pixelType)
     {
         // arrange
-        // HalfVector4 stores the scaled range [0, 1] as the native range [-65504, 65504], so its native and scaled
-        // vectors differ. The alpha of 0.5 makes the test sensitive to the alpha channel too: a wrong alpha value
-        // larger than 1 would otherwise be hidden by the clamp in the decoder.
+        // The source's native and scaled vectors now carry the same numeric values. A half alpha
+        // keeps this sensitive to association when the encoder writes EXR's associated channels.
         Vector4 expected = new(0.25F, 0.5F, 0.75F, 0.5F);
         ExrEncoder exrEncoder = new() { PixelType = pixelType };
         using Image<HalfVector4> input = new(2, 2, HalfVector4.FromScaledVector4(expected));
@@ -61,6 +60,100 @@ public class ExrEncoderTests
         memStream.Position = 0;
         using Image<RgbaVector> output = Image.Load<RgbaVector>(memStream);
         Assert.Equal(expected, output[0, 0].ToScaledVector4(), new ApproximateFloatComparer(1e-4F));
+    }
+
+    [Theory]
+    [InlineData(ExrCompression.None)]
+    [InlineData(ExrCompression.Zip)]
+    [InlineData(ExrCompression.Zips)]
+    public void FloatDefaultLoad_RetainsAssociatedColorAtZeroAlpha(ExrCompression compression)
+    {
+        using Image<RgbaVectorP> input = new(65, 1);
+        RgbaVectorP pixel = new(2.500123F, -.50001F, .250001F, 0F);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = pixel;
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new ExrEncoder { PixelType = ExrPixelType.Float, Compression = compression });
+
+        stream.Position = 0;
+        using Image decoded = Image.Load(stream);
+        Image<RgbaVectorP> output = Assert.IsType<Image<RgbaVectorP>>(decoded);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            Assert.Equal(pixel.ToVector4(), output[x, 0].ToVector4());
+        }
+
+        using MemoryStream second = new();
+        decoded.Save(second, new ExrEncoder());
+
+        second.Position = 0;
+        using Image reloaded = Image.Load(second);
+        Image<RgbaVectorP> reloadedPixels = Assert.IsType<Image<RgbaVectorP>>(reloaded);
+        Assert.Equal(ExrPixelType.Float, reloaded.Metadata.GetExrMetadata().PixelType);
+        Assert.Equal(pixel.ToVector4(), reloadedPixels[0, 0].ToVector4());
+    }
+
+    [Theory]
+    [InlineData(ExrCompression.None)]
+    [InlineData(ExrCompression.Zip)]
+    [InlineData(ExrCompression.Zips)]
+    public void HalfDefaultLoad_RetainsAssociatedColorAtZeroAlpha(ExrCompression compression)
+    {
+        using Image<RgbaHalfP> input = new(65, 1);
+        RgbaHalfP pixel = new(2.5F, -.5F, .25F, 0F);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = pixel;
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new ExrEncoder { PixelType = ExrPixelType.Half, Compression = compression });
+
+        stream.Position = 0;
+        using Image decoded = Image.Load(stream);
+        Image<RgbaHalfP> output = Assert.IsType<Image<RgbaHalfP>>(decoded);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            Assert.Equal(pixel.ToVector4(), output[x, 0].ToVector4());
+        }
+    }
+
+    [Theory]
+    [InlineData(ExrCompression.None)]
+    [InlineData(ExrCompression.Zip)]
+    [InlineData(ExrCompression.Zips)]
+    public void FloatDefaultLoad_PreservesNonfiniteSamplesAndSignedZero(ExrCompression compression)
+    {
+        using Image<RgbaVectorP> input = new(65, 1);
+        RgbaVectorP pixel = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, -0F);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = pixel;
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new ExrEncoder { PixelType = ExrPixelType.Float, Compression = compression });
+
+        stream.Position = 0;
+        using Image decoded = Image.Load(stream);
+        Image<RgbaVectorP> output = Assert.IsType<Image<RgbaVectorP>>(decoded);
+
+        for (int x = 0; x < output.Width; x++)
+        {
+            RgbaVectorP actual = output[x, 0];
+            Assert.True(float.IsNaN(actual.R));
+            Assert.True(float.IsPositiveInfinity(actual.G));
+            Assert.True(float.IsNegativeInfinity(actual.B));
+            Assert.Equal(BitConverter.SingleToInt32Bits(-0F), BitConverter.SingleToInt32Bits(actual.A));
+        }
     }
 
     [Theory]

@@ -20,6 +20,36 @@ public partial class PixelOperationsTests
     [WithBlankImages(1, 1, PixelTypes.All)]
     public void GetGlobalInstance<T>(TestImageProvider<T> _)
         where T : unmanaged, IPixel<T> => Assert.NotNull(PixelOperations<T>.Instance);
+
+    /// <summary>
+    /// Exercises the shared pixel operations for 32-bit unsigned three-component storage.
+    /// </summary>
+    public sealed class Rgb96_OperationsTests : PixelOperationsTests<Rgb96>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgb96_OperationsTests"/> class.
+        /// </summary>
+        /// <param name="output">The test output.</param>
+        public Rgb96_OperationsTests(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Exercises the shared pixel operations for 32-bit unsigned four-component storage.
+    /// </summary>
+    public sealed class Rgba128_OperationsTests : PixelOperationsTests<Rgba128>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba128_OperationsTests"/> class.
+        /// </summary>
+        /// <param name="output">The test output.</param>
+        public Rgba128_OperationsTests(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+    }
 }
 
 public abstract class PixelOperationsTests<TPixel> : MeasureFixture
@@ -348,7 +378,9 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             new TestPixel<Rg32>(),
             new TestPixel<Rgb24>(),
             new TestPixel<Rgb48>(),
+            new TestPixel<Rgb96>(),
             new TestPixel<Rgba1010102>(),
+            new TestPixel<Rgba128>(),
             new TestPixel<Rgba32>(),
             new TestPixel<Rgba32P>(),
             new TestPixel<Rgba64>(),
@@ -367,6 +399,28 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         const int count = 2134;
         TPixel[] source = CreatePixelTestData(count);
         TDestPixel[] expected = new TDestPixel[count];
+
+        // These samples retain HDR and IEEE values in floating-point sources while bounded sources saturate at construction.
+        Vector4[] boundaryValues =
+        [
+            new(0F, .4F, 1F, 1F),
+            new(2.5F, -1F, .5F, 1F),
+            new(float.NaN, float.NegativeInfinity, float.PositiveInfinity, 1F),
+            new(-0F, 0F, 1F, 0F),
+            new(1F, 1F, 1F, float.PositiveInfinity),
+            new(0F, 0F, 0F, float.NaN)
+        ];
+
+        for (int i = 0; i < boundaryValues.Length; i++)
+        {
+            source[i] = TPixel.FromUnassociatedScaledVector4(boundaryValues[i]);
+        }
+
+        if (this.HasAssociatedAlpha)
+        {
+            // Associated floating-point formats can store color with zero alpha; matching destinations must retain it.
+            source[boundaryValues.Length] = TPixel.FromAssociatedScaledVector4(new Vector4(2F, -1F, .5F, 0F));
+        }
 
         PixelConverterTests.ReferenceImplementations.To<TPixel, TDestPixel>(source, expected);
 

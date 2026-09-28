@@ -16,17 +16,15 @@ internal static class ColorNumerics
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
     /// </summary>
-    private static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
+    public static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
 
     /// <summary>
-    /// Convert a pixel value to grayscale using ITU-R Recommendation BT.709.
+    /// Gets unrounded, unsaturated luminance using ITU-R Recommendation BT.709.
     /// </summary>
     /// <param name="vector">The vector to get the luminance from.</param>
-    /// <param name="luminanceLevels">
-    /// The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images).
-    /// </param>
+    /// <returns>The unrounded luminance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetBT709Luminance(Vector4 vector, int luminanceLevels) => (int)MathF.Round(Vector4.Dot(vector, Bt709) * (luminanceLevels - 1));
+    public static float GetBT709Luminance(Vector4 vector) => Vector4.Dot(vector, Bt709);
 
     /// <summary>
     /// Gets the luminance from the rgb components using the formula

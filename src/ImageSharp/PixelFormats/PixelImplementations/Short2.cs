@@ -232,7 +232,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Pack(Vector2 vector)
     {
-        vector = Vector2.Clamp(vector, Min, Max);
+        vector = Numerics.Clamp(vector, Min, Max);
         uint word2 = (uint)Convert.ToInt32(Math.Round(vector.X)) & 0xFFFF;
         uint word1 = ((uint)Convert.ToInt32(Math.Round(vector.Y)) & 0xFFFF) << 0x10;
 

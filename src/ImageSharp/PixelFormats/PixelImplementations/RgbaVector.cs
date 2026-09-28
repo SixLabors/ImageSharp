@@ -9,11 +9,9 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Unpacked pixel type containing four 32-bit floating-point values typically ranging from 0 to 1.
+/// Unpacked pixel type containing four 32-bit floating-point values.
 /// The color components are stored in red, green, blue, and alpha order.
-/// <para>
-/// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
-/// </para>
+/// Native and scaled vectors preserve floating-point component values.
 /// </summary>
 /// <remarks>
 /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
@@ -125,7 +123,12 @@ public partial struct RgbaVector : IPixel<RgbaVector>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedVector4() => this.ToAssociatedScaledVector4();
+    public readonly Vector4 ToAssociatedVector4()
+    {
+        Vector4 vector = this.ToVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -145,7 +148,11 @@ public partial struct RgbaVector : IPixel<RgbaVector>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaVector FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
+    public static RgbaVector FromAssociatedVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return FromVector4(source);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -153,11 +160,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaVector FromVector4(Vector4 source)
-    {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
-        return new RgbaVector(source.X, source.Y, source.Z, source.W);
-    }
+    public static RgbaVector FromVector4(Vector4 source) => new(source.X, source.Y, source.Z, source.W);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -57,8 +57,22 @@ internal readonly struct GrayscaleLevelsRowOperation<TPixel> : IRowOperation<Vec
         for (int x = 0; x < this.bounds.Width; x++)
         {
             Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-            int luminance = ColorNumerics.GetBT709Luminance(vector, levels);
+            int luminance = GetLuminanceIndex(vector, levels);
             Interlocked.Increment(ref Unsafe.Add(ref histogramBase, (uint)luminance));
         }
+    }
+
+    /// <summary>
+    /// Gets a histogram index from BT.709 luminance, saturating out-of-range values and mapping NaN to zero.
+    /// </summary>
+    /// <param name="vector">The source color.</param>
+    /// <param name="levels">The number of histogram bins.</param>
+    /// <returns>The bounded histogram index.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static int GetLuminanceIndex(Vector4 vector, int levels)
+    {
+        // A floating-point pixel can exceed the histogram range or produce NaN.
+        float luminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+        return (int)MathF.Round(luminance * (levels - 1));
     }
 }

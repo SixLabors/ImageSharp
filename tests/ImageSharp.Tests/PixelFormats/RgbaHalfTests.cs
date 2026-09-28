@@ -10,13 +10,13 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
 /// <summary>
-/// Tests the unit-range binary16 RGBA pixel formats.
+/// Tests the half-precision RGBA pixel formats.
 /// </summary>
 [Trait("Category", "PixelFormats")]
 public class RgbaHalfTests
 {
     /// <summary>
-    /// Verifies that the unassociated format has the native layout required by RGBA binary16 surfaces.
+    /// Verifies that the unassociated format has the native layout required by RGBA half-precision surfaces.
     /// </summary>
     [Fact]
     public void RgbaHalfHasRgbaBinary16Layout()
@@ -34,7 +34,7 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that zero-filled binary16 storage represents transparent black without affine remapping.
+    /// Verifies that zero-filled half-precision storage represents transparent black without affine remapping.
     /// </summary>
     [Fact]
     public void RgbaHalfDefaultIsTransparentBlack()
@@ -46,18 +46,18 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that scaled input is clamped to the pixel format's unit color range.
+    /// Verifies that scaled input retains finite values outside the unit interval.
     /// </summary>
     [Fact]
-    public void RgbaHalfFromScaledVector4ClampsToUnitRange()
+    public void RgbaHalfFromScaledVector4PreservesHdrValues()
     {
         RgbaHalf pixel = RgbaHalf.FromScaledVector4(new Vector4(-1F, .5F, 2F, 1F));
 
-        Assert.Equal(new Vector4(0F, .5F, 1F, 1F), pixel.ToScaledVector4());
+        Assert.Equal(new Vector4(-1F, .5F, 2F, 1F), pixel.ToScaledVector4());
     }
 
     /// <summary>
-    /// Verifies that the associated format stores associated binary16 components in the same RGBA order.
+    /// Verifies that the associated format stores associated half-precision components in the same RGBA order.
     /// </summary>
     [Fact]
     public void RgbaHalfPHasAssociatedRgbaBinary16Layout()
@@ -74,7 +74,7 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that zero-filled associated binary16 storage represents transparent black.
+    /// Verifies that zero-filled associated half-precision storage represents transparent black.
     /// </summary>
     [Fact]
     public void RgbaHalfPDefaultIsTransparentBlack()
@@ -87,7 +87,7 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that association uses the alpha value that survives binary16 quantization.
+    /// Verifies that association uses the alpha value that survives half-precision quantization.
     /// </summary>
     [Fact]
     public void RgbaHalfPQuantizesAlphaBeforeAssociation()
@@ -135,7 +135,7 @@ public class RgbaHalfTests
     /// <summary>
     /// Compares bulk conversions with the corresponding scalar pixel operations for representative vector widths and remainders.
     /// </summary>
-    /// <typeparam name="TPixel">The binary16 pixel format to test.</typeparam>
+    /// <typeparam name="TPixel">The half-precision pixel format to test.</typeparam>
     private static void AssertBulkConversionsMatchScalar<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -252,7 +252,7 @@ public class RgbaHalfTests
         };
 
     /// <summary>
-    /// Verifies the component layout and alpha metadata exposed by a binary16 pixel format.
+    /// Verifies the component layout and alpha metadata exposed by a half-precision pixel format.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format to inspect.</typeparam>
     /// <param name="alphaRepresentation">The expected alpha representation.</param>

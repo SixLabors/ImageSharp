@@ -93,6 +93,14 @@ public class NormalizedShort4Tests
         NormalizedShort4[] actualPixels = new NormalizedShort4[source.Length];
         PixelOperations<NormalizedShort4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
         Assert.All(actualPixels, actual => Assert.Equal(0x8001800180018001UL, actual.PackedValue));
+
+        Vector4 special = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 2F);
+        const ulong expectedSpecial = 0x7FFF80017FFF8001UL;
+        Assert.Equal(expectedSpecial, NormalizedShort4.FromScaledVector4(special).PackedValue);
+
+        Array.Fill(destructiveSource, special);
+        PixelOperations<NormalizedShort4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        Assert.All(actualPixels, actual => Assert.Equal(expectedSpecial, actual.PackedValue));
     }
 
     [Fact]

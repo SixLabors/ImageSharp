@@ -367,7 +367,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
             float lower = (float)BitConverter.UInt16BitsToHalf((ushort)bits);
             float upper = (float)BitConverter.UInt16BitsToHalf((ushort)(bits + 1));
 
-            // Every midpoint exercises binary16 round-to-nearest-even; negating it covers the symmetric sign path.
+            // Every midpoint exercises half-precision round-to-nearest-even; negating it covers the symmetric sign path.
             float midpoint = (lower + upper) * .5F;
             components[index++] = midpoint;
             components[index++] = -midpoint;
@@ -443,8 +443,8 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
                 unassociatedScaled[i] = new Vector4(((i * 37) % 4093) / 4092F, ((i * 73) % 4093) / 4092F, ((i * 109) % 4093) / 4092F, alpha);
                 associatedScaled[i] = new Vector4(unassociatedScaled[i].X * alpha, unassociatedScaled[i].Y * alpha, unassociatedScaled[i].Z * alpha, alpha);
 
-                unassociatedNative[i] = (unassociatedScaled[i] * 131008F) - new Vector4(65504F);
-                associatedNative[i] = (associatedScaled[i] * 131008F) - new Vector4(65504F);
+                unassociatedNative[i] = unassociatedScaled[i];
+                associatedNative[i] = associatedScaled[i];
                 expectedFromUnassociatedNative[i] = HalfVector4P.FromUnassociatedVector4(unassociatedNative[i]);
                 expectedFromAssociatedNative[i] = HalfVector4P.FromAssociatedVector4(associatedNative[i]);
                 expectedFromUnassociatedScaled[i] = HalfVector4P.FromUnassociatedScaledVector4(unassociatedScaled[i]);
@@ -845,10 +845,7 @@ public class AssociatedToUnassociatedPackedPixelConversionTests
         const int pairCount = 65536;
         const int channelCount = 3;
 
-        const float finiteMinimum = -65504F;
-        const float finiteRange = 131008F;
-        const float inverseFiniteRange = (float)(1D / finiteRange);
-        const ulong zeroComponentBits = 0xFBFF;
+        const ulong zeroComponentBits = 0;
         Rgba32[] source = new Rgba32[pairCount * channelCount];
         HalfVector4P[] expected = new HalfVector4P[source.Length];
         HalfVector4P[] actualBulk = new HalfVector4P[source.Length];
@@ -858,14 +855,14 @@ public class AssociatedToUnassociatedPackedPixelConversionTests
         {
             // Association must use the alpha value recovered from the destination half, rather than the higher-precision source alpha.
             float normalizedAlpha = (float)(alpha / (double)byte.MaxValue);
-            ushort alphaBits = BitConverter.HalfToUInt16Bits((Half)((normalizedAlpha * finiteRange) + finiteMinimum));
-            float destinationAlpha = ((float)BitConverter.UInt16BitsToHalf(alphaBits) * inverseFiniteRange) + .5F;
+            ushort alphaBits = BitConverter.HalfToUInt16Bits((Half)normalizedAlpha);
+            float destinationAlpha = (float)BitConverter.UInt16BitsToHalf(alphaBits);
 
             for (int unassociated = 0; unassociated <= byte.MaxValue; unassociated++)
             {
                 float normalizedComponent = (float)(unassociated / (double)byte.MaxValue);
                 float associated = normalizedComponent * destinationAlpha;
-                ushort associatedBits = BitConverter.HalfToUInt16Bits((Half)((associated * finiteRange) + finiteMinimum));
+                ushort associatedBits = BitConverter.HalfToUInt16Bits((Half)associated);
                 ulong alphaPacked = (ulong)alphaBits << 48;
 
                 source[index] = new Rgba32((byte)unassociated, 0, 0, (byte)alpha);
@@ -1205,9 +1202,6 @@ public class AssociatedDestinationAlphaQuantizationTests
     [Fact]
     public void HalfVector4PQuantizesDestinationAlphaBeforeAssociation()
     {
-        const float finiteMinimum = -65504F;
-        const float finiteRange = 131008F;
-        const float inverseFiniteRange = (float)(1D / finiteRange);
         ReadOnlySpan<byte> components = [64, 127, 191];
         Rgba64[] source = new Rgba64[(ushort.MaxValue + 1) * components.Length];
         HalfVector4P[] actualBulk = new HalfVector4P[source.Length];
@@ -1227,13 +1221,13 @@ public class AssociatedDestinationAlphaQuantizationTests
         for (int alpha = 0; alpha <= ushort.MaxValue; alpha++)
         {
             float normalizedAlpha = alpha / (float)ushort.MaxValue;
-            ushort expectedAlpha = BitConverter.HalfToUInt16Bits((Half)((normalizedAlpha * finiteRange) + finiteMinimum));
-            float storedAlpha = ((float)BitConverter.UInt16BitsToHalf(expectedAlpha) * inverseFiniteRange) + .5F;
+            ushort expectedAlpha = BitConverter.HalfToUInt16Bits((Half)normalizedAlpha);
+            float storedAlpha = (float)BitConverter.UInt16BitsToHalf(expectedAlpha);
 
             foreach (byte component in components)
             {
                 float associatedRed = (component / (float)byte.MaxValue) * storedAlpha;
-                ushort expectedRed = BitConverter.HalfToUInt16Bits((Half)((associatedRed * finiteRange) + finiteMinimum));
+                ushort expectedRed = BitConverter.HalfToUInt16Bits((Half)associatedRed);
                 HalfVector4P actualScalar = HalfVector4P.FromRgba64(source[index]);
 
                 Assert.Equal(expectedRed, (ushort)actualScalar.PackedValue);

@@ -101,6 +101,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadExrHeader(stream);
+
         if (!this.IsSupportedCompression())
         {
             ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
@@ -165,6 +166,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         int width = this.Width;
         int height = this.Height;
         int channelCount = this.Channels.Count;
+        PixelConversionModifiers modifiers = PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale;
 
         // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
         using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
@@ -217,13 +219,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     offset += ReadFloatChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
-                for (int x = 0; x < width; x++)
-                {
-                    Vector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1F);
-
-                    // OpenEXR channels are associated color values, not values in the destination pixel format's native numeric range.
-                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(pixelValue);
-                }
+                PixelOperations<TPixel>.Instance.PackFromFloatPlanes(
+                    this.configuration,
+                    redPixelData,
+                    greenPixelData,
+                    bluePixelData,
+                    hasAlpha ? alphaPixelData : Span<float>.Empty,
+                    pixelRow,
+                    modifiers);
 
                 decodedRows++;
             }

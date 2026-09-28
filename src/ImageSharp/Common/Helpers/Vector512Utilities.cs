@@ -21,6 +21,56 @@ internal static class Vector512_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Average packed unsigned 8-bit integers in <paramref name="left"/> and <paramref name="right"/>, rounding up, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing (<paramref name="left"/> + <paramref name="right"/> + 1) &gt;&gt; 1 in each of its 64 lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> Average(Vector512<byte> left, Vector512<byte> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.Average(left, right);
+        }
+
+        // (a | b) - ((a ^ b) >> 1) equals (a + b + 1) >> 1 without the carry into a wider lane:
+        // a + b = 2 * (a & b) + (a ^ b), and the shared and differing bits round up together.
+        return (left | right) - ((left ^ right) >>> 1);
+    }
+
+    /// <summary>
+    /// Average packed unsigned 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, rounding up, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing (<paramref name="left"/> + <paramref name="right"/> + 1) &gt;&gt; 1 in each of its 32 lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<ushort> Average(Vector512<ushort> left, Vector512<ushort> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.Average(left, right);
+        }
+
+        // (a | b) - ((a ^ b) >> 1) equals (a + b + 1) >> 1 without the carry into a wider lane:
+        // a + b = 2 * (a & b) + (a ^ b), and the shared and differing bits round up together.
+        return (left | right) - ((left ^ right) >>> 1);
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

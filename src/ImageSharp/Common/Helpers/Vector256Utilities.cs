@@ -22,6 +22,56 @@ internal static class Vector256_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Average packed unsigned 8-bit integers in <paramref name="left"/> and <paramref name="right"/>, rounding up, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing (<paramref name="left"/> + <paramref name="right"/> + 1) &gt;&gt; 1 in each of its 32 lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Average(Vector256<byte> left, Vector256<byte> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Average(left, right);
+        }
+
+        // (a | b) - ((a ^ b) >> 1) equals (a + b + 1) >> 1 without the carry into a wider lane:
+        // a + b = 2 * (a & b) + (a ^ b), and the shared and differing bits round up together.
+        return (left | right) - ((left ^ right) >>> 1);
+    }
+
+    /// <summary>
+    /// Average packed unsigned 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, rounding up, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing (<paramref name="left"/> + <paramref name="right"/> + 1) &gt;&gt; 1 in each of its 16 lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<ushort> Average(Vector256<ushort> left, Vector256<ushort> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Average(left, right);
+        }
+
+        // (a | b) - ((a ^ b) >> 1) equals (a + b + 1) >> 1 without the carry into a wider lane:
+        // a + b = 2 * (a & b) + (a ^ b), and the shared and differing bits round up together.
+        return (left | right) - ((left ^ right) >>> 1);
+    }
+
+    /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>

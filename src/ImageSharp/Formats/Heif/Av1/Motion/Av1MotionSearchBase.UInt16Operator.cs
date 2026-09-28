@@ -126,43 +126,8 @@ internal static partial class Av1MotionSearchBase
             int width,
             int height,
             int rowStep)
-        {
-            // An absent mask selects equal weights. Keep this branch outside the pixel traversal.
-            if (mask.IsEmpty)
-            {
-                int averageSum = 0;
-                for (int y = 0; y < height; y += rowStep)
-                {
-                    int packedOffset = y * width;
-                    ReadOnlySpan<ushort> sourceRow = source.Slice(y * sourceStride, width);
-                    ReadOnlySpan<ushort> predictionRow = prediction.Slice(y * predictionStride, width);
-                    for (int x = 0; x < width; x++)
-                    {
-                        int blended = (predictionRow[x] + secondPrediction[packedOffset + x] + 1) >> 1;
-                        averageSum += Math.Abs(sourceRow[x] - blended);
-                    }
-                }
-
-                return averageSum * rowStep;
-            }
-
-            int sum = 0;
-            for (int y = 0; y < height; y += rowStep)
-            {
-                int packedOffset = y * width;
-                ReadOnlySpan<ushort> sourceRow = source.Slice(y * sourceStride, width);
-                ReadOnlySpan<ushort> predictionRow = prediction.Slice(y * predictionStride, width);
-                for (int x = 0; x < width; x++)
-                {
-                    int weight = mask[packedOffset + x];
-                    int blended = ((weight * predictionRow[x]) + ((64 - weight) * secondPrediction[packedOffset + x]) + 32) >> 6;
-                    sum += Math.Abs(sourceRow[x] - blended);
-                }
-            }
-
-            // Alternate-row sampling represents the full block. Normalize bit depth only after this scaling.
-            return sum * rowStep;
-        }
+            => Av1ResidualBuilder.SumCompoundAbsoluteDifferences(
+                source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
 
         /// <inheritdoc/>
         public static void GetCompoundMoments(
@@ -176,45 +141,8 @@ internal static partial class Av1MotionSearchBase
             int height,
             out int sum,
             out long squares)
-        {
-            sum = 0;
-            squares = 0;
-            if (mask.IsEmpty)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    int packedOffset = y * width;
-                    ReadOnlySpan<ushort> sourceRow = source.Slice(y * sourceStride, width);
-                    ReadOnlySpan<ushort> predictionRow = prediction.Slice(y * predictionStride, width);
-                    for (int x = 0; x < width; x++)
-                    {
-                        int blended = (predictionRow[x] + secondPrediction[packedOffset + x] + 1) >> 1;
-                        int difference = sourceRow[x] - blended;
-                        sum += difference;
-                        squares += (long)difference * difference;
-                    }
-                }
-
-                return;
-            }
-
-            for (int y = 0; y < height; y++)
-            {
-                int packedOffset = y * width;
-                ReadOnlySpan<ushort> sourceRow = source.Slice(y * sourceStride, width);
-                ReadOnlySpan<ushort> predictionRow = prediction.Slice(y * predictionStride, width);
-                for (int x = 0; x < width; x++)
-                {
-                    // The mask weights sum to 64. Round the blend before subtraction; squaring an
-                    // unrounded weighted residual would give a different motion-search objective.
-                    int weight = mask[packedOffset + x];
-                    int blended = ((weight * predictionRow[x]) + ((64 - weight) * secondPrediction[packedOffset + x]) + 32) >> 6;
-                    int difference = sourceRow[x] - blended;
-                    sum += difference;
-                    squares += (long)difference * difference;
-                }
-            }
-        }
+            => Av1ResidualBuilder.GetCompoundMoments(
+                source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, out sum, out squares);
 
         /// <inheritdoc/>
         public static int SumObmcAbsoluteDifferences(

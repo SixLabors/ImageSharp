@@ -43,8 +43,6 @@ The superblock rule in `Av1FrameEncoder.CreateSequenceHeader` equals `av1_select
 A read-only audit found these kernels outside the operator pattern. Each one gets an operator and a traversal,
 and a `FeatureTestRunner` test against the scalar libaom definition. Hottest first:
 
-- Motion search compound measures: `SumCompoundAbsoluteDifferences` and `GetCompoundMoments` of
-  `Av1MotionSearchBase.ByteOperator` and `UInt16Operator`.
 - Compound and inter-intra mask search in `ReferenceModeDecision`: the residual energies, the quadrant sign
   estimate, `av1_wedge_sign_from_residuals`, and `av1_wedge_sse_from_residuals` (16 wedges per candidate);
   the mask inversion of `RefineCompoundVectors`; `Av1WedgeMask.Fill` and `Av1InterIntraMaskBuilder.FillInterIntraMask`.
@@ -571,7 +569,8 @@ interval. The still-picture regression stays at 620/620.
     full-search path of `motion_mode_rd()` lowers `ref_best_rd` between trials).
     The OBMC SAD, variance and search target use the operator pattern (`Av1ObmcSearch`): the
     exact lane arithmetic of `obmc_sad_w8n()` and `obmc_variance_w8n()`, and of `calc_target_weighted_pred()`.
-    Remaining: the SIMD form of the compound SAD and moments of the motion search, and
+    The compound SAD and moments of the motion search use `Av1ResidualBuilder` operator members for the
+    rounded average and the six-bit mask blend. Remaining: the other kernels in "SIMD operator-pattern gaps", and
     global motion (the estimator, and the writer that codes parameters against the primary reference).
   - [ ] The border padding of the inter paths (`rdopt` model cost and subtraction, the inter transform tree,
     skip mode distortion), and the predicted-skip context of the inter and chroma transform searches.

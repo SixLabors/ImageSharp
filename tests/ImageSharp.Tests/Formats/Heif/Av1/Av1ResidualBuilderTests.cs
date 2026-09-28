@@ -368,6 +368,13 @@ public class Av1ResidualBuilderTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSumSquares, ResidualConfigurations);
 
     /// <summary>
+    /// Verifies the equal-weight and masked compound SAD and moments against the scalar libaom definitions.
+    /// </summary>
+    [Fact]
+    public void CompoundSearchMetricsMatchScalarAcrossHardwareWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateCompoundSearchMetrics, ResidualConfigurations);
+
+    /// <summary>
     /// Verifies that repeated maximum-transform residual and squared-error processing uses only caller-owned buffers.
     /// </summary>
     [Fact]
@@ -768,5 +775,118 @@ public class Av1ResidualBuilderTests
         {
             Assert.Equal(expected[i], actual[i]);
         }
+    }
+
+    private static void ValidateCompoundSearchMetrics()
+    {
+        Random random = new(0x2C0D);
+        foreach (int bitDepth in new[] { 8, 10, 12 })
+        {
+            int maximum = (1 << bitDepth) - 1;
+            foreach (int width in new[] { 8, 16, 32, 64, 128 })
+            {
+                foreach (int height in new[] { 8, 16, width })
+                {
+                    foreach (bool masked in new[] { false, true })
+                    {
+                        int sourceStride = width + 5;
+                        int predictionStride = width + 11;
+                        ushort[] source = new ushort[sourceStride * height];
+                        ushort[] prediction = new ushort[predictionStride * height];
+                        ushort[] second = new ushort[width * height];
+                        byte[] mask = masked ? new byte[width * height] : [];
+                        for (int i = 0; i < source.Length; i++)
+                        {
+                            source[i] = (ushort)random.Next(0, maximum + 1);
+                        }
+
+                        for (int i = 0; i < prediction.Length; i++)
+                        {
+                            prediction[i] = (ushort)random.Next(0, maximum + 1);
+                        }
+
+                        for (int i = 0; i < second.Length; i++)
+                        {
+                            // Every tenth pair is extreme, to reach the largest blend and difference.
+                            second[i] = i % 10 == 0 ? (ushort)maximum : (ushort)random.Next(0, maximum + 1);
+                        }
+
+                        for (int i = 0; i < mask.Length; i++)
+                        {
+                            mask[i] = (byte)random.Next(0, 65);
+                        }
+
+                        foreach (int rowStep in new[] { 1, 2 })
+                        {
+                            int expectedSad = 0;
+                            for (int y = 0; y < height; y += rowStep)
+                            {
+                                for (int x = 0; x < width; x++)
+                                {
+                                    int blended = CompoundBlendReference(prediction[(y * predictionStride) + x], second[(y * width) + x], mask, (y * width) + x);
+                                    expectedSad += Math.Abs(source[(y * sourceStride) + x] - blended);
+                                }
+                            }
+
+                            expectedSad *= rowStep;
+                            int actualSad = bitDepth == 8
+                                ? Av1ResidualBuilder.SumCompoundAbsoluteDifferences(
+                                    ToBytes(source), sourceStride, ToBytes(prediction), predictionStride, ToBytes(second), mask, width, height, rowStep)
+                                : Av1ResidualBuilder.SumCompoundAbsoluteDifferences(
+                                    source, sourceStride, prediction, predictionStride, second, mask, width, height, rowStep);
+                            Assert.Equal(expectedSad, actualSad);
+                        }
+
+                        int expectedSum = 0;
+                        long expectedSquares = 0;
+                        for (int y = 0; y < height; y++)
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                int blended = CompoundBlendReference(prediction[(y * predictionStride) + x], second[(y * width) + x], mask, (y * width) + x);
+                                int difference = source[(y * sourceStride) + x] - blended;
+                                expectedSum += difference;
+                                expectedSquares += (long)difference * difference;
+                            }
+                        }
+
+                        int actualSum;
+                        long actualSquares;
+                        if (bitDepth == 8)
+                        {
+                            Av1ResidualBuilder.GetCompoundMoments(
+                                ToBytes(source), sourceStride, ToBytes(prediction), predictionStride, ToBytes(second), mask, width, height, out actualSum, out actualSquares);
+                        }
+                        else
+                        {
+                            Av1ResidualBuilder.GetCompoundMoments(
+                                source, sourceStride, prediction, predictionStride, second, mask, width, height, out actualSum, out actualSquares);
+                        }
+
+                        Assert.Equal(expectedSum, actualSum);
+                        Assert.Equal(expectedSquares, actualSquares);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The scalar compound blend: comp_avg_pred() for equal weights, AOM_BLEND_A64() for mask weights.
+    /// </summary>
+    private static int CompoundBlendReference(int searched, int second, byte[] mask, int index)
+        => mask.Length == 0
+            ? (searched + second + 1) >> 1
+            : ((mask[index] * searched) + ((64 - mask[index]) * second) + 32) >> 6;
+
+    private static byte[] ToBytes(ushort[] samples)
+    {
+        byte[] bytes = new byte[samples.Length];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            bytes[i] = (byte)samples[i];
+        }
+
+        return bytes;
     }
 }

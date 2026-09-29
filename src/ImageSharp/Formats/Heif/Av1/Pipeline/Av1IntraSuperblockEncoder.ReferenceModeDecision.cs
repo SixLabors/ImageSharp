@@ -1896,6 +1896,35 @@ internal static partial class Av1IntraSuperblockEncoder
 
             stateCount = 0;
 
+            // A block inside the tile reuses the result of an earlier search of the same residual in the superblock,
+            // unless the search has no cost bound. Reference: the use_mb_rd_hash lookup of
+            // av1_pick_recursive_tx_size_type_yrd() and av1_pick_uniform_tx_size_type_yrd().
+            Av1MacroblockRateDistortionRecord record = this.blockWorkspace.MacroblockRateDistortionRecord;
+            bool useRecord = this.picture.Parent.SpeedSettings.UseMacroblockRateDistortionHash &&
+                macroBlock.ToBottomEdge > 0 && macroBlock.ToRightEdge > 0;
+
+            uint hash = 0;
+            if (useRecord)
+            {
+                int width = modeInfo.BlockSize.GetWidth();
+                int height = modeInfo.BlockSize.GetHeight();
+                Span<short> residual = workspace.Residual[..(width * height)];
+                TOperator.SubtractPrediction(
+                    this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, width, height);
+
+                hash = Av1MacroblockRateDistortionRecord.GetHash(residual, modeInfo.BlockSize);
+                int match = record.Find(costLimit, hash);
+                if (match >= 0)
+                {
+                    ref readonly Av1MacroblockRateDistortionRecord.Entry entry = ref record.Get(match);
+                    modeInfo.TransformSize = entry.TransformSize;
+                    ((ReadOnlySpan<Av1TransformSize>)entry.InterTransformSizes).CopyTo(modeInfo.InterTransformSizes);
+                    stateCount = entry.StateCount;
+                    ((ReadOnlySpan<Av1EncoderTransformBlockState>)entry.States)[..stateCount].CopyTo(states);
+                    return entry.Statistics;
+                }
+            }
+
             // A residual predicted to quantize to nothing takes the largest transforms with every coefficient
             // zero, and the transform search is not run. Reference: the predict_skip_txfm() and set_skip_txfm()
             // step that opens av1_pick_recursive_tx_size_type_yrd() and av1_pick_uniform_tx_size_type_yrd().
@@ -1903,7 +1932,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (skipPredictionLevel != 0 && !this.picture.Parent.FrameHeader.CodedLossless &&
                 this.PredictSkipTransform(macroBlock, blockOrigin, modeInfo.BlockSize, skipPredictionLevel, out long predictedDistortion))
             {
-                return this.SetSkipTransform(
+                Av1RateDistortionStatistics skipStatistics = this.SetSkipTransform(
                     writer,
                     macroBlock,
                     blockOrigin,
@@ -1915,6 +1944,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformLeft,
                     predictedDistortion,
                     out stateCount);
+
+                if (useRecord)
+                {
+                    record.Save(hash, skipStatistics, states[..stateCount], in modeInfo);
+                }
+
+                return skipStatistics;
             }
 
             int initialDepth = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
@@ -1957,9 +1993,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 int column = offset.X >> Av1Constants.ModeInfoSizeLog2;
                 if (row < visibleHeight4 && column < visibleWidth4)
                 {
-                    // A block that follows the end of the uniform search leaves the plane incomplete.
+                    // A block that follows the end of the uniform search leaves the plane incomplete. The uniform
+                    // search records even an incomplete result. Reference: save_mb_rd_info() in
+                    // av1_pick_uniform_tx_size_type_yrd().
                     if (uniformExited)
                     {
+                        if (useRecord)
+                        {
+                            record.Save(hash, Av1RateDistortionStatistics.Invalid, states[..stateCount], in modeInfo);
+                        }
+
                         return Av1RateDistortionStatistics.Invalid;
                     }
 
@@ -1988,6 +2031,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (rootStatistics.Rate == int.MaxValue)
                     {
+                        // Only the uniform search records a failed result. Reference: the rd == INT64_MAX return of
+                        // av1_pick_recursive_tx_size_type_yrd(), before save_mb_rd_info().
+                        if (useRecord && uniformSearch)
+                        {
+                            record.Save(hash, Av1RateDistortionStatistics.Invalid, states[..stateCount], in modeInfo);
+                        }
+
                         return Av1RateDistortionStatistics.Invalid;
                     }
 
@@ -2003,6 +2053,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         uniformExited = costLimit != long.MaxValue && uniformCurrentCost > costLimit;
                     }
                 }
+            }
+
+            if (useRecord)
+            {
+                record.Save(hash, statistics, states[..stateCount], in modeInfo);
             }
 
             return statistics;

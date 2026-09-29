@@ -936,7 +936,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         superblock.Index = (superblockRow * coefficientBuffer.SuperblockColumnCount) + superblockColumn;
                         superblock.TileIndex = tileIndex;
 
-                        // Reference: the av1_zero(x->picked_ref_frames_mask) of init_encode_rd_sb().
+                        // Reference: the reset_mb_rd_record() and av1_zero(x->picked_ref_frames_mask) of
+                        // init_encode_rd_sb().
+                        blockWorkspace.MacroblockRateDistortionRecord.Reset();
                         Array.Clear(blockWorkspace.PickedReferenceFrameMasks);
                         entropyContext.SuperblockOrigin = new Point(
                             modeInfoColumn << Av1Constants.ModeInfoSizeLog2,

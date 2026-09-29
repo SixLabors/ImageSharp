@@ -367,6 +367,9 @@ internal readonly struct Av1EncoderSpeedSettings
             : speed >= HeifEncodingSpeed.Level1 ? 2 : 1;
 
         this.UseLumaCostForChromaBound = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level3;
+
+        // use_mb_rd_hash: good quality from speed 2.
+        this.UseMacroblockRateDistortionHash = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level2;
         this.InterTransformNoSplitCandidateCount = allIntra || realtime || speed == HeifEncodingSpeed.Level0
             ? 0
             : speed == HeifEncodingSpeed.Level1 ? 4 : 3;
@@ -1327,6 +1330,12 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets a value indicating whether candidate evaluation defers transform-size selection to winner evaluation.
     /// </summary>
     public bool DeferTransformSizeSearch { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether an inter luma transform search reuses the result of an earlier search of the
+    /// same residual in the superblock. Reference: use_mb_rd_hash.
+    /// </summary>
+    public bool UseMacroblockRateDistortionHash { get; }
 
     /// <summary>
     /// Gets the number of intra candidates retained for winner evaluation.

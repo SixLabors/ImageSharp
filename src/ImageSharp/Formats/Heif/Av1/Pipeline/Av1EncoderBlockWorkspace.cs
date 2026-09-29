@@ -387,6 +387,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public int[] ReferenceBaseQIndices { get; } = new int[Av1Constants.ReferenceFrameCount];
 
     /// <summary>
+    /// Gets the luma transform search results of the recent inter blocks of the superblock. Reference:
+    /// x->txfm_search_info.mb_rd_record.
+    /// </summary>
+    public Av1MacroblockRateDistortionRecord MacroblockRateDistortionRecord { get; } = new();
+
+    /// <summary>
     /// Gets the references that the square blocks of the current superblock picked, one bit per reference type,
     /// for each 4x4 position in a 32 by 32 grid. Reference: x->picked_ref_frames_mask.
     /// </summary>

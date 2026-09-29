@@ -151,6 +151,11 @@ internal static partial class Av1MotionSearchBase
         /// <param name="intraBlockCopy">Whether the search uses same-frame displacement and its mesh policy.</param>
         /// <param name="costList">Five costs: center, left, down, right, and up; empty when neighborhood publication is disabled.</param>
         /// <param name="secondBest">The preceding integer winner, when the selected traversal supplies one.</param>
+        /// <param name="forceMesh">Whether the mesh search runs whatever the winner's variance. Reference: a preset
+        /// run_mesh_search, as tf_motion_search() sets it.</param>
+        /// <param name="meshPruneDistance">The largest winner distance from the start that skips the mesh search, -1 to
+        /// never skip it, or <see langword="null"/> for the frame motion policy. Reference: prune_mesh_search with
+        /// mesh_search_mv_diff_threshold.</param>
         /// <returns>The integer winner with its retained variance, squared error, and motion cost.</returns>
         public FullPixelResult Search(
             Point start,
@@ -162,7 +167,9 @@ internal static partial class Av1MotionSearchBase
             bool fineMeshInterval,
             bool intraBlockCopy,
             Span<int> costList,
-            out Point? secondBest)
+            out Point? secondBest,
+            bool forceMesh = false,
+            int? meshPruneDistance = null)
         {
             Point clampedStart = this.Clamp(start);
             int rowStep = 1;
@@ -212,13 +219,14 @@ internal static partial class Av1MotionSearchBase
                 }
 
                 int areaLog2 = BitOperations.Log2((uint)(this.blockSize.Width * this.blockSize.Height));
-                bool runMesh = this.secondPrediction.IsEmpty &&
+                bool runMesh = forceMesh || (this.secondPrediction.IsEmpty &&
                     method is FullPixelSearchMethod.NStep or FullPixelSearchMethod.EightPointNStep &&
-                    best.Cost > (settings.MeshErrorThreshold >> (14 - areaLog2));
+                    best.Cost > (settings.MeshErrorThreshold >> (14 - areaLog2)));
 
                 // Distance is measured from the caller's original start, before range clamping.
-                if (!intraBlockCopy && settings.MeshPruningLevel == 2 &&
-                    Math.Max(Math.Abs(start.X - best.Vector.X), Math.Abs(start.Y - best.Vector.Y)) <= 4)
+                int pruneDistance = meshPruneDistance ?? (settings.MeshPruningLevel == 2 ? 4 : -1);
+                if (!intraBlockCopy && pruneDistance >= 0 &&
+                    Math.Max(Math.Abs(start.X - best.Vector.X), Math.Abs(start.Y - best.Vector.Y)) <= pruneDistance)
                 {
                     runMesh = false;
                 }

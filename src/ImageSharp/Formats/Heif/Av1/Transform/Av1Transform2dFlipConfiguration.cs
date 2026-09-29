@@ -533,6 +533,7 @@ internal ref struct Av1Transform2dFlipConfiguration
         rowType = HorizontalType[(int)transformType];
         flipUpsideDown = transformType is Av1TransformType.FlipAdstDct or Av1TransformType.FlipAdstAdst
             or Av1TransformType.VerticalFlipAdst or Av1TransformType.FlipAdstFlipAdst;
+
         flipLeftToRight = transformType is Av1TransformType.DctFlipAdst or Av1TransformType.AdstFlipAdst
             or Av1TransformType.HorizontalFlipAdst or Av1TransformType.FlipAdstFlipAdst;
     }

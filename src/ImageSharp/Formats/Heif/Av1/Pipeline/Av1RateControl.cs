@@ -360,6 +360,7 @@ internal sealed class Av1RateControl
                     64,
                     out _,
                     out long squares);
+
                 total += (ulong)squares;
             }
         }
@@ -387,6 +388,7 @@ internal sealed class Av1RateControl
         int ambientQuantizer = frameNumber < keyWeightFrames
             ? Math.Min(this.averageInterFrameQIndex, this.averageKeyFrameQIndex)
             : this.averageInterFrameQIndex;
+
         ambientQuantizer = Math.Min(this.worstQuality, ambientQuantizer);
 
         int activeWorstQuality;
@@ -470,6 +472,59 @@ internal sealed class Av1RateControl
         }
 
         return activeBestQuality;
+    }
+
+    /// <summary>
+    /// Returns the quantizer index of a key frame in one-pass constant-quality coding without lookahead: the key
+    /// frame floor of the good-quality tables at the default boost, lowered for small formats. Reference:
+    /// get_intra_q_and_bounds() for a key frame the interval did not force, with rc_pick_q_and_bounds_q_mode(),
+    /// DEFAULT_KF_BOOST and the cq_level active_worst_quality of av1_get_second_pass_params().
+    /// </summary>
+    /// <param name="cqLevel">The constant-quality index. Reference: cq_level.</param>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+    /// <returns>The key frame quantizer index.</returns>
+    public static int GetConstantQualityKeyFrameQIndex(
+        int cqLevel,
+        int width,
+        int height,
+        Av1BitDepth bitDepth,
+        bool screenContent,
+        int bestAllowedQIndex,
+        int worstAllowedQIndex)
+    {
+        const int defaultKeyFrameBoost = 2300;
+        const int keyFrameLow = 553;
+        const int keyFrameHigh = 8000;
+
+        // Good-quality tables of the 608-line and larger class, else of the smaller class. Reference: x1[0] with
+        // the res_idx > 1 selection of ASSIGN_MINQ_TABLE_2().
+        bool large = Math.Min(width, height) >= 608;
+        double maximumQ = ConvertQIndexToQ(cqLevel, bitDepth);
+        int lowMotion = GetMinimumQIndex(maximumQ, 0.000001, -0.0004, large ? 0.1917 : 0.1771, bitDepth);
+        int highMotion = GetMinimumQIndex(maximumQ, 0.0000021, -0.00125, large ? 0.3760 : 0.379, bitDepth);
+        int activeBestQuality = GetActiveQuality(defaultKeyFrameBoost, keyFrameLow, keyFrameHigh, lowMotion, highMotion);
+        if (screenContent)
+        {
+            activeBestQuality /= 2;
+        }
+
+        // Small formats allow a somewhat lower key frame quantizer.
+        double adjustmentFactor = width * height <= 352 * 288 ? 0.75 : 1.0;
+        double q = ConvertQIndexToQ(activeBestQuality, bitDepth);
+        activeBestQuality += FindQIndex(q * adjustmentFactor, bitDepth, bestAllowedQIndex, worstAllowedQIndex) -
+            FindQIndex(q, bitDepth, bestAllowedQIndex, worstAllowedQIndex);
+
+        if (cqLevel > 0)
+        {
+            activeBestQuality = Math.Max(1, activeBestQuality);
+        }
+
+        return Av1Math.Clamp(activeBestQuality, bestAllowedQIndex, worstAllowedQIndex);
     }
 
     /// <summary>
@@ -667,6 +722,7 @@ internal sealed class Av1RateControl
             sourceSad.FrameSad > 1000 &&
             this.bufferLevel < (this.optimalBufferLevel >> 1) &&
             this.framesSinceKey > 4;
+
         int maximumDeltaUp = overshootBufferLow ? 120 : 20;
         bool bandwidthChanged = Math.Abs(this.averageFrameBandwidth - this.previousAverageFrameBandwidth) > 0.1 * this.averageFrameBandwidth;
         int maximumDeltaDown = screenContent

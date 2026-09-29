@@ -295,6 +295,7 @@ internal static partial class Av1DeblockingFilter
                     IsChromaFlat(ref samples, flatnessThresholdVector),
                     varianceThresholdVector,
                     bitDepth);
+
                 break;
             case 8:
                 Filter8(
@@ -303,6 +304,7 @@ internal static partial class Av1DeblockingFilter
                     IsFlat(ref samples, flatnessThresholdVector),
                     varianceThresholdVector,
                     bitDepth);
+
                 break;
             case 14:
                 Filter14(
@@ -312,6 +314,7 @@ internal static partial class Av1DeblockingFilter
                     IsOuterFlat(ref samples, flatnessThresholdVector),
                     varianceThresholdVector,
                     bitDepth);
+
                 break;
         }
     }
@@ -349,6 +352,7 @@ internal static partial class Av1DeblockingFilter
                     IsChromaFlat(samples, thresholdScale),
                     highEdgeVarianceThreshold * thresholdScale,
                     bitDepth);
+
                 break;
             case 8:
                 Filter8(
@@ -357,6 +361,7 @@ internal static partial class Av1DeblockingFilter
                     IsFlat(samples, thresholdScale),
                     highEdgeVarianceThreshold * thresholdScale,
                     bitDepth);
+
                 break;
             case 14:
                 Filter14(
@@ -366,6 +371,7 @@ internal static partial class Av1DeblockingFilter
                     IsOuterFlat(samples, thresholdScale),
                     highEdgeVarianceThreshold * thresholdScale,
                     bitDepth);
+
                 break;
         }
     }

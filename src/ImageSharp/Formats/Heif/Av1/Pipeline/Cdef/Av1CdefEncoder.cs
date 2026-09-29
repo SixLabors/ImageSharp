@@ -172,8 +172,10 @@ internal static partial class Av1CdefEncoder
             bool zeroLowStrengths = reduce &&
                 (sequence.IsStillPicture || options.Tuning == Av1Tuning.Iq) &&
                 header.QuantizationParameters.BaseQIndex <= 140;
+
             SelectStrengths(
                 picture, candidates, lumaErrors, chromaErrors, indices[..count], errors[(2 * errorLength)..], rateMultiplier, zeroLowStrengths);
+
             if (reduce)
             {
                 ReduceStrengths(header.CdefParameters, sequence.ColorConfig.PlaneCount > 1, zeroLowStrengths);

@@ -462,6 +462,7 @@ internal sealed class Av1BlockDecoder
                     int destinationStride = useCompoundIntermediates
                         ? predictionWidth
                         : referenceIndex == 0 ? reconstructionStride : predictionWidth;
+
                     bool isScaledReference = activeReferenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
                         activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
 

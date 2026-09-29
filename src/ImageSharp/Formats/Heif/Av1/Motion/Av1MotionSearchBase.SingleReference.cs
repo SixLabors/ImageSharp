@@ -312,6 +312,7 @@ internal static partial class Av1MotionSearchBase
             Point start = new(
                 (referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3,
                 (referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3);
+
             FullPixelSearchMethod method = settings.GetEstimatedFullPixelMethod(this.blockSize, sourceSad);
             FullPixelSearch<TSample, TOperator> fullSearch = new(
                 this.source,
@@ -734,8 +735,10 @@ internal static partial class Av1MotionSearchBase
                         {
                             long firstRateDistortion = this.EstimateCandidate(
                                 result.Vector, referenceVector, horizontalFilter, verticalFilter);
+
                             long secondRateDistortion = this.EstimateCandidate(
                                 secondResult.Vector, referenceVector, horizontalFilter, verticalFilter);
+
                             if (secondRateDistortion < firstRateDistortion)
                             {
                                 result = secondResult;

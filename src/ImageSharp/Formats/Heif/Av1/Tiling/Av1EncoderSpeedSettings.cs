@@ -89,9 +89,11 @@ internal readonly struct Av1EncoderSpeedSettings
             speed >= HeifEncodingSpeed.Level2 && !intraFrame ? 2 : 1;
         this.MaximumIntraBlockSize = realtime || (!allIntra && speed >= HeifEncodingSpeed.Level3 && minimumDimension < 720)
             ? Av1BlockSize.Block32x32 : Av1BlockSize.Block128x128;
+
         this.IntraModeMotionRangePruneLevel = !realtime ? 0 : minimumDimension < 360 ? 1 : 2;
         this.UseHighResolutionPartitionBreakout = minimumDimension >= 720 &&
             speed is >= HeifEncodingSpeed.Level1 and < HeifEncodingSpeed.Level3;
+
         this.PartitionBreakoutHighBitDepthLevel = speed >= HeifEncodingSpeed.Level4 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 2 : 1;
         this.EnablePartitionBreakoutModel = !allIntra && !realtime;
         this.FourStripPartitionMinimumScale = realtime ? 0 : speed >= HeifEncodingSpeed.Level6 ? 3 : 2;
@@ -101,14 +103,17 @@ internal readonly struct Av1EncoderSpeedSettings
         this.SimpleMotionStepReduction = !realtime && speed >= HeifEncodingSpeed.Level4 ? 4 : 0;
         this.AfterSplitTerminationLevel = allIntra || realtime || speed >= HeifEncodingSpeed.Level3
             ? 0 : speed >= HeifEncodingSpeed.Level1 ? 2 : minimumDimension < 720 ? 1 : 0;
+
         this.FourStripPartitionResolutionIndex = minimumDimension >= 720 ? 2 : minimumDimension >= 480 ? 1 : 0;
         this.MaximumPartitionPredictionMode = realtime || (speed >= HeifEncodingSpeed.Level5 && minimumDimension >= 720)
             ? MaximumPartitionPrediction.Disabled
             : minimumDimension < 480 || (speed >= HeifEncodingSpeed.Level6 && minimumDimension < 720)
                 ? MaximumPartitionPrediction.Direct
                 : minimumDimension >= 720 ? MaximumPartitionPrediction.Adaptive : MaximumPartitionPrediction.Relaxed;
+
         this.EnableRectanglePartitionModel = !allIntra &&
             (realtime || speed >= HeifEncodingSpeed.Level3 || (speed == HeifEncodingSpeed.Level0 && minimumDimension >= 720));
+
         this.SquareOnlyPartitionThreshold = realtime ? Av1BlockSize.Block128x128 : speed >= HeifEncodingSpeed.Level6
             ? !allIntra && minimumDimension >= 720 ? Av1BlockSize.Block32x32 : Av1BlockSize.Block16x16
             : speed >= HeifEncodingSpeed.Level2
@@ -170,6 +175,7 @@ internal readonly struct Av1EncoderSpeedSettings
             speed >= HeifEncodingSpeed.Level1 ? intraFrame ? 2 : 1 : 0;
         this.SkipMixedNearCompound = !allIntra && !realtime &&
             (speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && minimumDimension <= 480));
+
         this.CompoundNeighborPruningLevel = allIntra || realtime ? 0 : speed >= HeifEncodingSpeed.Level6 ? 3 :
             speed >= HeifEncodingSpeed.Level4 ? 2 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0;
         this.PruneMixedCompoundBySingleWinner = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level1;
@@ -314,6 +320,7 @@ internal readonly struct Av1EncoderSpeedSettings
         int defaultInterTypePruning = realtime || speed >= HeifEncodingSpeed.Level3
             ? 3
             : speed >= HeifEncodingSpeed.Level1 || (minimumDimension >= 1080 && qIndex <= 108) ? 2 : 1;
+
         int winnerTypePruning = realtime || speed >= HeifEncodingSpeed.Level6 ? 4
             : speed >= HeifEncodingSpeed.Level4 ? 2
             : speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && !intraFrame && minimumDimension < 480) ? 1 : 0;
@@ -376,6 +383,7 @@ internal readonly struct Av1EncoderSpeedSettings
             HeifEncodingSpeed.Level1 => 2,
             _ => minimumDimension >= 1080 && qIndex <= 108 ? 2 : 1
         };
+
         this.EnableWinnerCoefficientOptimization = !realtime &&
             speed >= (allIntra ? HeifEncodingSpeed.Level4 : HeifEncodingSpeed.Level3);
 
@@ -457,6 +465,7 @@ internal readonly struct Av1EncoderSpeedSettings
         int distortionThresholdLevel = realtime ? 3 : allIntra
             ? speed >= HeifEncodingSpeed.Level4 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? 1 : 0;
+
         bool winnerDistortionStages = !realtime && speed >= (allIntra ? HeifEncodingSpeed.Level4 : HeifEncodingSpeed.Level3);
         uint distortionThreshold = distortionThresholdLevel switch
         {
@@ -479,9 +488,11 @@ internal readonly struct Av1EncoderSpeedSettings
         this.ModeTransformDomainDistortion = winnerDistortionStages
             ? (distortionTypes.Mode, distortionThreshold)
             : this.DefaultTransformDomainDistortion;
+
         this.WinnerTransformDomainDistortion = winnerDistortionStages
             ? (distortionTypes.Winner, distortionThreshold)
             : this.DefaultTransformDomainDistortion;
+
         this.SkipTransformSearchAfterEmptyBlock = realtime || speed >= HeifEncodingSpeed.Level1 || (!allIntra && largeLowQuantizer);
 
         // Skip and DC-only block prediction follows dc_blk_pred_level and the predict_dc_levels rows.
@@ -1357,6 +1368,7 @@ internal readonly struct Av1EncoderSpeedSettings
         bool dcOnly = screenChange
             ? blockSize > Av1BlockSize.Block32x32
             : this.Speed >= HeifEncodingSpeed.Level9 || blockSize >= Av1BlockSize.Block32x32;
+
         return dcOnly ? 1 << (int)Av1PredictionMode.DC
             : (1 << (int)Av1PredictionMode.DC) | (1 << (int)Av1PredictionMode.Vertical) | (1 << (int)Av1PredictionMode.Horizontal);
     }

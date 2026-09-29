@@ -1853,6 +1853,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         this.levels.Reset(new Size(width, height), clear: false);
         coefficientContexts = MemoryMarshal.Cast<int, sbyte>(
             this.entropyWorkspace.Memory.Span[(Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength)..])[..(width * height)];
+
         return this.levels;
     }
 
@@ -2650,6 +2651,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         int rate = this.ModeCosts.GetCompInter(referenceModeContext, 1) +
             this.ModeCosts.GetCompoundReferenceType(compoundTypeContext, isUnidirectional ? 0 : 1);
+
         if (isUnidirectional)
         {
             bool isBackwardPair = primaryReference == Av1ReferenceFrameType.Backward;
@@ -2758,6 +2760,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         _ = TOperation.ProcessSymbol(ref w, true, this.compoundInter[referenceModeContext]);
         bool isUnidirectional = (primaryReference < Av1ReferenceFrameType.Backward) ==
             (secondaryReference < Av1ReferenceFrameType.Backward);
+
         _ = TOperation.ProcessSymbol(ref w, !isUnidirectional, this.compoundReferenceType[compoundTypeContext]);
         if (isUnidirectional)
         {
@@ -2782,6 +2785,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 ref w,
                 secondaryReference == Av1ReferenceFrameType.Golden,
                 this.unidirectionalCompoundReference[context][2]);
+
             return;
         }
 
@@ -2931,6 +2935,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int rate = maskedCompoundEnabled
             ? this.ModeCosts.GetCompoundGroupIndex(compoundGroupContext, masked ? 1 : 0)
             : 0;
+
         if (!masked)
         {
             // The average and distance-weighted types pay the compound index even in a sequence that does not code
@@ -2941,6 +2946,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         rate += this.ModeCosts.GetCompoundType(
             blockSize,
             compoundType == Av1CompoundType.DifferenceWeighted ? 1 : 0);
+
         if (compoundType == Av1CompoundType.Wedge)
         {
             rate += this.ModeCosts.GetWedgeIndex(blockSize, wedgeIndex) + 512;
@@ -2992,6 +2998,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             ref w,
             compoundType == Av1CompoundType.DifferenceWeighted,
             this.compoundType[(int)blockSize]);
+
         if (compoundType == Av1CompoundType.Wedge)
         {
             _ = TOperation.ProcessSymbol(ref w, wedgeIndex, this.wedgeIndex[(int)blockSize]);

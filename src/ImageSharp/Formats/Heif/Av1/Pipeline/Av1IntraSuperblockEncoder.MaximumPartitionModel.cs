@@ -269,6 +269,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 int variance = mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Adaptive
                     ? this.GetSourceVariance(blockOrigin, Av1BlockSize.Block128x128) : 0;
+
                 if (mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Relaxed || variance > 16)
                 {
                     double threshold = mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Relaxed ? 0.2 : variance < 128 ? 0.05 : 0.1;

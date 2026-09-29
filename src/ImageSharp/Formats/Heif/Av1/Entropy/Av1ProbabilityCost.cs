@@ -90,6 +90,7 @@ internal static class Av1ProbabilityCost
         // covers one binary order of magnitude, while the shift contributes the exact number of whole bits.
         int normalizedProbability = (((probability << shift) * 256) + (Av1Distribution.ProbabilityTop >> 1))
             / Av1Distribution.ProbabilityTop;
+
         normalizedProbability = Math.Min(normalizedProbability, 255);
 
         return ProbabilityCosts[normalizedProbability - 128] + (shift << CostShift);

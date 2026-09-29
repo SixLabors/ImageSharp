@@ -57,6 +57,7 @@ internal static class Av1InverseTransformerFactory
                 writeStride,
                 transformFunctionParameters.TransformType,
                 transformFunctionParameters.EndOfBuffer);
+
             return;
         }
 
@@ -69,6 +70,7 @@ internal static class Av1InverseTransformerFactory
                 writeBuffer,
                 writeStride,
                 transformFunctionParameters.TransformType);
+
             return;
         }
 
@@ -82,6 +84,7 @@ internal static class Av1InverseTransformerFactory
                 writeStride,
                 transformFunctionParameters.TransformType,
                 transformFunctionParameters.EndOfBuffer);
+
             return;
         }
 

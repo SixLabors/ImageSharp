@@ -1877,6 +1877,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) &&
                 blockOrigin.Y + blockSize.GetHeight() <=
                 (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+
             if (splitLevel != 0 && allowSplit && wholeBlock)
             {
                 int modelIndex = splitAggressiveness is 1 or 2 ? 1 : 0;

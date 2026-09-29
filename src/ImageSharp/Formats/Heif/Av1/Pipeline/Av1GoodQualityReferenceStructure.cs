@@ -140,6 +140,7 @@ internal sealed class Av1GoodQualityReferenceStructure
         this.UpdateType = keyFrame
             ? Av1FrameUpdateType.Key
             : this.groupIndex == 0 ? Av1FrameUpdateType.Golden : Av1FrameUpdateType.Last;
+
         this.layerDepth = GetLayerDepth(this.groupLength, this.groupIndex, out int maximumLayerDepth);
         this.pyramidLevel = GetTruePyramidLevel(this.layerDepth, this.displayOrder, maximumLayerDepth);
 

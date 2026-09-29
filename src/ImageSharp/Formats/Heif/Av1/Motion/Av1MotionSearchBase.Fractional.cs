@@ -214,6 +214,7 @@ internal static partial class Av1MotionSearchBase
                     int rowDenominator = costList[4] - (2 * costList[0]) + costList[2];
                     int column = (columnNumerator + (columnNumerator < 0 ? -columnDenominator / 2 : columnDenominator / 2))
                         / columnDenominator;
+
                     int row = (rowNumerator + (rowNumerator < 0 ? -rowDenominator / 2 : rowDenominator / 2)) / rowDenominator;
 
                     if ((row | column) != 0)

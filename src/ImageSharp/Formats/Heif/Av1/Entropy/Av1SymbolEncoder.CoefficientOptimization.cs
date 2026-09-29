@@ -61,6 +61,7 @@ internal sealed partial class Av1SymbolEncoder
 
         rate += this.GetTransformTypeCost(
             transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterMode, intraMode, isInter);
+
         rate += GetOptimizationEndOfBlockRate(
             allCosts, endOfBlock, transformSize, Av1ComponentType.Luminance, transformType.ToClass(), costs);
 
@@ -262,6 +263,7 @@ internal sealed partial class Av1SymbolEncoder
             long lowerDistortion = lowerMagnitude == 0
                 ? 0
                 : GetDistortionDifference(originalValue, lowerReconstruction, shift, distortionWeights, coefficientIndex);
+
             int rate = GetOptimizationCoefficientRate(
                 false,
                 coefficientIndex,
@@ -405,14 +407,17 @@ internal sealed partial class Av1SymbolEncoder
             case Av1TransformClass.Class2D:
                 ReduceSimpleCoefficients<TwoDimensionalClass>(
                     original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, sharpness, distortionWeights, inverseWeights, ref accumulatedRate);
+
                 break;
             case Av1TransformClass.ClassHorizontal:
                 ReduceSimpleCoefficients<HorizontalClass>(
                     original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, sharpness, distortionWeights, inverseWeights, ref accumulatedRate);
+
                 break;
             default:
                 ReduceSimpleCoefficients<VerticalClass>(
                     original, quantized, dequantized, levelPlane, widthLog2, levelStride, scan, ref scanIndex, transformSize, costs, acDequantizer, multiplier, shift, sharpness, distortionWeights, inverseWeights, ref accumulatedRate);
+
                 break;
         }
 
@@ -496,6 +501,7 @@ internal sealed partial class Av1SymbolEncoder
             ref byte level = ref Unsafe.Add(ref levelPlaneBase, Av1LevelBuffer.GetPaddedIndex(coefficientIndex, widthLog2));
             int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(
                 ref level, levelStride, coefficientIndex, widthLog2, ref offsets, transformClass);
+
             ref int baseCosts = ref Unsafe.Add(ref costBase, Av1CoefficientCosts.BaseOffset + (coefficientContext * 8));
 
             if (coefficient == 0)
@@ -661,6 +667,7 @@ internal sealed partial class Av1SymbolEncoder
         long lowerDistortion = lowerMagnitude == 0
             ? 0
             : GetDistortionDifference(originalValue, lowerReconstruction, shift, distortionWeights, coefficientIndex);
+
         if (Av1RateDistortion.GetCost(multiplier, lowerRate, lowerDistortion) < Av1RateDistortion.GetCost(multiplier, rate, distortion))
         {
             quantized[coefficientIndex] = sign * lowerMagnitude;

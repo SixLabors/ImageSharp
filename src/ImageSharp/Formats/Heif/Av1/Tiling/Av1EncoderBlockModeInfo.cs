@@ -173,6 +173,7 @@ internal struct Av1EncoderBlockModeInfo
         readonly get => (this.compoundState & DifferenceWeightedMaskTypeMask) == 0
             ? Av1DifferenceWeightedMaskType.Type38
             : Av1DifferenceWeightedMaskType.Type38Inverse;
+
         set => this.compoundState = value == Av1DifferenceWeightedMaskType.Type38Inverse
             ? (byte)(this.compoundState | DifferenceWeightedMaskTypeMask)
             : (byte)(this.compoundState & ~DifferenceWeightedMaskTypeMask);

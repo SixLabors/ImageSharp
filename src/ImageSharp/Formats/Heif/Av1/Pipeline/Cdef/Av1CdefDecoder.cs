@@ -281,9 +281,11 @@ internal sealed class Av1CdefDecoder : IDisposable
                     int planeWidth = planeWidths[planeIndex];
                     int currentLineSlotOffset = lineBufferOffsets[planeIndex] +
                         (((unitRow - 1) & 1) * SourceBorder * planeWidth);
+
                     ReadOnlySpan<ushort> topLineBuffer = unitRow == 0
                         ? default
                         : lineBuffer.Slice(currentLineSlotOffset, SourceBorder * planeWidth);
+
                     Span<ushort> planeColumnBuffer = columnBuffer.Slice(
                         columnBufferOffsets[planeIndex],
                         columnBufferLengths[planeIndex]);
@@ -516,6 +518,7 @@ internal sealed class Av1CdefDecoder : IDisposable
             int direction = primaryStrength != 0
                 ? Av1CdefFilter.ConvertDirection(directions[blockIndex], subsamplingX, subsamplingY)
                 : 0;
+
             int blockPlaneColumn = (block.ModeInfoColumn << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
             int blockPlaneRow = (block.ModeInfoRow << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
             int blockSourceOffset = block.GetSourceOffset(

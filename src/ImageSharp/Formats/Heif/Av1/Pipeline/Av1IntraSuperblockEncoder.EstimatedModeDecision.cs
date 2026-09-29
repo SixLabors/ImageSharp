@@ -273,6 +273,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, distortion);
                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
                     $"NRD {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)mode} rate {rate} dist {distortion} rd {statistics.Cost} skip {skip} var {sourceVariance} sad {bestSad}");
+
                 if (statistics.Cost < bestStatistics.Cost)
                 {
                     bestStatistics = statistics;
@@ -290,6 +291,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool paletteSelected = false;
             bool prunePalette = stillPicture &&
                 !((!pruneSad || normalizedSad > 20) && blockSize <= Av1BlockSize.Block16x16 && sourceVariance > 200);
+
             if (!prunePalette && Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize))
             {
                 Av1RateDistortionStatistics paletteStatistics = bestStatistics;
@@ -313,6 +315,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref paletteStatistics,
                     ref paletteInfo,
                     ref paletteTransformSize);
+
                 this.blockWorkspace.EvaluationStage = previousStage;
                 if (paletteImproved)
                 {
@@ -455,6 +458,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         Av1RateDistortionStatistics chroma = this.EstimateInterChroma(
                             blockOrigin, blockSize, interWorkspace.BluePrediction, interWorkspace.RedPrediction, true, true);
+
                         copyRate += chroma.Rate;
                         copyDistortion += chroma.Distortion;
                     }
@@ -497,6 +501,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     default,
                     interWorkspace.LumaPrediction,
                     Av1TransformType.DctDct);
+
                 this.picture.SetDisplacementVector(
                     new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2), copyVector);
             }
@@ -542,6 +547,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         chromaTransform,
                         this.codedAreaChroma,
                         false);
+
                     this.EncodeSelectedIntraPlane(
                         writer,
                         tileIndex,
@@ -621,6 +627,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<byte> paletteMap = paletteColors.IsEmpty
                 ? default
                 : this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, planeBlockSize.GetWidth(), planeBlockSize.GetHeight());
+
             bool keepsSearchedTypes = !paletteColors.IsEmpty &&
                 states[coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount].TransformType != Av1TransformType.DctDct;
 

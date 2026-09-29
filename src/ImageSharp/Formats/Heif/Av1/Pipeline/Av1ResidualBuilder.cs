@@ -177,6 +177,7 @@ internal static partial class Av1ResidualBuilder
             {
                 total128 = TOperator.AccumulateAbsoluteDifferences(
                     LoadSearchRow(sourceRow[x..]), LoadSearchRow(predictionRow[x..]), total128);
+
                 x += SearchBlockDimension;
             }
 
@@ -280,6 +281,7 @@ internal static partial class Av1ResidualBuilder
             {
                 TOperator.AccumulateMoments(
                     LoadSearchRow(sourceRow[x..]), LoadSearchRow(predictionRow[x..]), ref sum128, ref squares128);
+
                 x += SearchBlockDimension;
             }
 

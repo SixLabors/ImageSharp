@@ -482,6 +482,7 @@ internal static partial class Av1WarpedInterPredictor
             ref byte sourceRow = ref clampHorizontally
                 ? ref MemoryMarshal.GetReference(window)
                 : ref Unsafe.Add(ref sourceBase, rowIndex + integerX - 7);
+
             ref ushort intermediateRow = ref intermediate[(row + 7) * WarpedTileSize];
             int phase = phaseX + (parameters.Beta * (row + 4));
             int column = 0;
@@ -602,6 +603,7 @@ internal static partial class Av1WarpedInterPredictor
             ref ushort sourceRow = ref clampHorizontally
                 ? ref MemoryMarshal.GetReference(window)
                 : ref Unsafe.Add(ref sourceBase, rowIndex + integerX - 7);
+
             ref ushort intermediateRow = ref intermediate[(row + 7) * WarpedTileSize];
             int phase = phaseX + (parameters.Beta * (row + 4));
             int column = 0;

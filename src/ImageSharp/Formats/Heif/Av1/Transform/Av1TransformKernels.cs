@@ -244,6 +244,7 @@ internal static class Av1TransformKernels
         Vector256<short> packed = Vector256_.PackSignedSaturate(
             Vector256.LoadUnsafe(ref source, (nuint)offset),
             Vector256.LoadUnsafe(ref source, (nuint)(offset + 8)));
+
         return Vector256_.Permute4x64(packed.AsInt64(), 0xD8).AsInt16();
     }
 

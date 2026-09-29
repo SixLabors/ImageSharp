@@ -112,12 +112,14 @@ internal static class Av1LoopFilterEncoder
         // its latest level.
         int bothDirections = SearchFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
             picture, source, reconstruction, backup, lastLevels, Av1Plane.Y, 2);
+
         parameters.FilterLevel[0] = bothDirections;
         parameters.FilterLevel[1] = bothDirections;
         if (method != Av1LoopFilterPickMethod.FullImageNonDual)
         {
             parameters.FilterLevel[0] = SearchFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
                 picture, source, reconstruction, backup, lastLevels, Av1Plane.Y, 0);
+
             parameters.FilterLevel[1] = SearchFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
                 picture, source, reconstruction, backup, lastLevels, Av1Plane.Y, 1);
         }
@@ -126,6 +128,7 @@ internal static class Av1LoopFilterEncoder
         {
             parameters.FilterLevelU = SearchFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
                 picture, source, reconstruction, backup, lastLevels, Av1Plane.U, 0);
+
             parameters.FilterLevelV = SearchFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
                 picture, source, reconstruction, backup, lastLevels, Av1Plane.V, 0);
         }
@@ -296,6 +299,7 @@ internal static class Av1LoopFilterEncoder
 
         long bestError = TryFilterFrame<TSample, TVerticalOperator, THorizontalOperator>(
             picture, source, reconstruction, backup, middle, plane, direction);
+
         int best = middle;
         errors[middle] = bestError;
 

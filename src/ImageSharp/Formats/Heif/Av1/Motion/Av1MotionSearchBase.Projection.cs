@@ -189,6 +189,7 @@ internal static partial class Av1MotionSearchBase
         vector = new Av1MotionVector(
             Math.Clamp(selected.Y, bounds.Top, bounds.Bottom - 1) << 3,
             Math.Clamp(selected.X, bounds.Left, bounds.Right - 1) << 3);
+
         return bestSad;
     }
 

@@ -238,6 +238,7 @@ internal static partial class HeifTransferFunctions
         TVector nonlinear = TOperations.Subtract(
             TOperations.Multiply(TOperations.Create(Bt709Alpha), Power<TVector, TOperations>(TOperations.Max(value, zero), 0.45F)),
             TOperations.Create(Bt709Alpha - 1F));
+
         TVector belowOne = TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(Bt709Beta)), linear, nonlinear);
         TVector bounded = TOperations.ConditionalSelect(TOperations.LessThan(value, one), belowOne, one);
         return TOperations.ConditionalSelect(TOperations.LessThan(value, zero), zero, bounded);
@@ -281,6 +282,7 @@ internal static partial class HeifTransferFunctions
         TVector nonlinear = TOperations.Subtract(
             TOperations.Multiply(TOperations.Create(Smpte240Alpha), Power<TVector, TOperations>(TOperations.Max(value, zero), 0.45F)),
             TOperations.Create(Smpte240Alpha - 1F));
+
         TVector belowOne = TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(Smpte240Beta)), linear, nonlinear);
         TVector bounded = TOperations.ConditionalSelect(TOperations.LessThan(value, one), belowOne, one);
         return TOperations.ConditionalSelect(TOperations.LessThan(value, zero), zero, bounded);
@@ -328,6 +330,7 @@ internal static partial class HeifTransferFunctions
         TVector positive = TOperations.Subtract(
             TOperations.Multiply(TOperations.Create(Bt709Alpha), Power<TVector, TOperations>(TOperations.Max(value, zero), 0.45F)),
             TOperations.Create(Bt709Alpha - 1F));
+
         TVector centerOrPositive = TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(Bt709Beta)), linear, positive);
         return TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(-Bt709Beta)), negative, centerOrPositive);
     }
@@ -411,6 +414,7 @@ internal static partial class HeifTransferFunctions
         TVector positive = TOperations.Subtract(
             TOperations.Multiply(TOperations.Create(SrgbAlpha), Power<TVector, TOperations>(TOperations.Max(value, zero), 1F / 2.4F)),
             TOperations.Create(SrgbAlpha - 1F));
+
         TVector centerOrPositive = TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(SrgbBeta)), linear, positive);
         return TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(-SrgbBeta)), negative, centerOrPositive);
     }
@@ -493,6 +497,7 @@ internal static partial class HeifTransferFunctions
         TVector logarithmInput = TOperations.Max(
             TOperations.Subtract(TOperations.Multiply(TOperations.Create(12F), bounded), TOperations.Create(HlgB)),
             TOperations.Create(float.Epsilon));
+
         TVector logarithmic = TOperations.Add(TOperations.Multiply(TOperations.Create(HlgA), TOperations.Log(logarithmInput)), TOperations.Create(HlgC));
         TVector positive = TOperations.ConditionalSelect(TOperations.LessThanOrEqual(bounded, TOperations.Create(1F / 12F)), linear, logarithmic);
         return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, zero), zero, positive);

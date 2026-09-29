@@ -569,6 +569,7 @@ internal static class HeifPlanarColorConverter
                     {
                         HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(
                             cb0.Slice(this.sourceX, width), green, this.colorConverter.ChromaBias, this.colorConverter.ChromaScale);
+
                         HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(
                             cr0.Slice(this.sourceX, width), blue, this.colorConverter.ChromaBias, this.colorConverter.ChromaScale);
                     }
@@ -631,6 +632,7 @@ internal static class HeifPlanarColorConverter
                     {
                         HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(
                             cb.Slice(this.sourceX, width), green, this.colorConverter.ChromaBias, this.colorConverter.ChromaScale);
+
                         HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(
                             cr.Slice(this.sourceX, width), blue, this.colorConverter.ChromaBias, this.colorConverter.ChromaScale);
                     }
@@ -638,6 +640,7 @@ internal static class HeifPlanarColorConverter
                     {
                         HeifSampleConversion.ReconstructChromaRow<TSample, TLoader>(
                             cb, this.sourceX, green, this.colorConverter.ChromaBias, this.colorConverter.ChromaScale);
+
                         HeifSampleConversion.ReconstructChromaRow<TSample, TLoader>(
                             cr, this.sourceX, blue, this.colorConverter.ChromaBias, this.colorConverter.ChromaScale);
                     }

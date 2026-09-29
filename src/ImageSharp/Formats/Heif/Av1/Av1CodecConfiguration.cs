@@ -222,6 +222,7 @@ internal sealed class Av1CodecConfiguration
             | (this.ChromaSubsamplingX ? 1 << 3 : 0)
             | (this.ChromaSubsamplingY ? 1 << 2 : 0)
             | this.ChromaSamplePosition);
+
         destination[3] = 0;
     }
 

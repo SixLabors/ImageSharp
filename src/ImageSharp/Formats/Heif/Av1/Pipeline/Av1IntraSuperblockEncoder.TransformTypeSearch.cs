@@ -86,6 +86,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // scale, so it has the same four fractional bits as pixel-domain distortion.
             long error = Av1TransformBlockEncoder.GetTransformError(
                 this.blockWorkspace, Av1ComponentType.Luminance, transformed, dequantized, size, type, this.bitDepth, out _);
+
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, error);
         }
 
@@ -144,6 +145,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformType.FlipAdstDct, Av1TransformType.FlipAdstAdst, Av1TransformType.FlipAdstFlipAdst, Av1TransformType.VerticalFlipAdst,
                     Av1TransformType.HorizontalDct, Av1TransformType.HorizontalAdst, Av1TransformType.HorizontalFlipAdst, Av1TransformType.Identity
                 ];
+
                 ReadOnlySpan<byte> verticalPattern = [0, 0, 1, 1, 0, 2, 1, 2, 2, 0, 3, 1, 3, 2, 3, 3];
                 ReadOnlySpan<byte> horizontalPattern = [0, 1, 0, 1, 2, 0, 2, 1, 2, 3, 0, 3, 1, 3, 2, 3];
 

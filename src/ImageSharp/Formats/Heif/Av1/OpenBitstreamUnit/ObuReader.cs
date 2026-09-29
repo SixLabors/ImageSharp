@@ -913,6 +913,7 @@ internal sealed class ObuReader
                     Idc = reader.ReadLiteral(Av1Constants.OperatingPointIdcBits),
                     SequenceLevelIndex = (int)reader.ReadLiteral(Av1Constants.LevelBits)
                 };
+
                 if (!IsValidSequenceLevel(sequenceHeader.OperatingPoint[i].SequenceLevelIndex))
                 {
                     throw new InvalidImageContentException("The AV1 sequence header contains an undefined sequence-level index.");
@@ -2207,6 +2208,7 @@ internal sealed class ObuReader
             (frameHeader.CdefParameters.BitCount != 0 ||
             frameHeader.CdefParameters.YStrength[0] != 0 ||
             frameHeader.CdefParameters.UvStrength[0] != 0));
+
         bool doLoopRestoration = noIbc &&
             (frameHeader.LoopRestorationParameters.Items[(int)Av1Plane.Y].Type != ObuRestorationType.None ||
             frameHeader.LoopRestorationParameters.Items[(int)Av1Plane.U].Type != ObuRestorationType.None ||

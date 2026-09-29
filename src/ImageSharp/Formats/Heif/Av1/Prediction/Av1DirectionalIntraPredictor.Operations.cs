@@ -291,6 +291,7 @@ internal static partial class Av1DirectionalIntraPredictor
             int validCount = maximumBasis == int.MaxValue || basis >= maximumBasis
                 ? maximumBasis == int.MaxValue ? destination.Length : 0
                 : Math.Min(destination.Length, ((maximumBasis - 1 - basis) / basisIncrement) + 1);
+
             int index = 0;
 
             if (!upsample)
@@ -399,6 +400,7 @@ internal static partial class Av1DirectionalIntraPredictor
             int validCount = maximumBasis == int.MaxValue || basis >= maximumBasis
                 ? maximumBasis == int.MaxValue ? destination.Length : 0
                 : Math.Min(destination.Length, ((maximumBasis - 1 - basis) / basisIncrement) + 1);
+
             int index = 0;
 
             if (!upsample)

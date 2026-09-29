@@ -258,6 +258,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.Create(isHlg ? HlgCpToS : PqCpToS),
                 cp,
                 Vector128.MultiplyAddEstimate(Vector128.Create(isHlg ? HlgCtToS : PqCtToS), ct, intensity));
+
             Vector128<float> linearL = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector128<float> linearM = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector128<float> linearS = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -265,10 +266,12 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.Create(SToRed),
                 linearS,
                 Vector128.MultiplyAddEstimate(Vector128.Create(MToRed), linearM, Vector128.Create(LToRed) * linearL));
+
             Vector128<float> linearGreen = Vector128.MultiplyAddEstimate(
                 Vector128.Create(SToGreen),
                 linearS,
                 Vector128.MultiplyAddEstimate(Vector128.Create(MToGreen), linearM, Vector128.Create(LToGreen) * linearL));
+
             Vector128<float> linearBlue = Vector128.MultiplyAddEstimate(
                 Vector128.Create(SToBlue),
                 linearS,
@@ -296,6 +299,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.Create(isHlg ? HlgCpToS : PqCpToS),
                 cp,
                 Vector256.MultiplyAddEstimate(Vector256.Create(isHlg ? HlgCtToS : PqCtToS), ct, intensity));
+
             Vector256<float> linearL = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector256<float> linearM = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector256<float> linearS = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -303,10 +307,12 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.Create(SToRed),
                 linearS,
                 Vector256.MultiplyAddEstimate(Vector256.Create(MToRed), linearM, Vector256.Create(LToRed) * linearL));
+
             Vector256<float> linearGreen = Vector256.MultiplyAddEstimate(
                 Vector256.Create(SToGreen),
                 linearS,
                 Vector256.MultiplyAddEstimate(Vector256.Create(MToGreen), linearM, Vector256.Create(LToGreen) * linearL));
+
             Vector256<float> linearBlue = Vector256.MultiplyAddEstimate(
                 Vector256.Create(SToBlue),
                 linearS,
@@ -334,6 +340,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.Create(isHlg ? HlgCpToS : PqCpToS),
                 cp,
                 Vector512.MultiplyAddEstimate(Vector512.Create(isHlg ? HlgCtToS : PqCtToS), ct, intensity));
+
             Vector512<float> linearL = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector512<float> linearM = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector512<float> linearS = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -341,10 +348,12 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.Create(SToRed),
                 linearS,
                 Vector512.MultiplyAddEstimate(Vector512.Create(MToRed), linearM, Vector512.Create(LToRed) * linearL));
+
             Vector512<float> linearGreen = Vector512.MultiplyAddEstimate(
                 Vector512.Create(SToGreen),
                 linearS,
                 Vector512.MultiplyAddEstimate(Vector512.Create(MToGreen), linearM, Vector512.Create(LToGreen) * linearL));
+
             Vector512<float> linearBlue = Vector512.MultiplyAddEstimate(
                 Vector512.Create(SToBlue),
                 linearS,
@@ -374,12 +383,15 @@ internal abstract partial class HeifColorConverterBase
             float nonlinearL = HeifTransferFunctions.ToGamma(
                 parameters.TransferCharacteristics,
                 (RedToL * linearRed) + (GreenToL * linearGreen) + (BlueToL * linearBlue));
+
             float nonlinearM = HeifTransferFunctions.ToGamma(
                 parameters.TransferCharacteristics,
                 (RedToM * linearRed) + (GreenToM * linearGreen) + (BlueToM * linearBlue));
+
             float nonlinearS = HeifTransferFunctions.ToGamma(
                 parameters.TransferCharacteristics,
                 (RedToS * linearRed) + (GreenToS * linearGreen) + (BlueToS * linearBlue));
+
             intensity = 0.5F * (nonlinearL + nonlinearM);
             bool isHlg = parameters.TransferCharacteristics == CicpTransferCharacteristics.AribStdB67;
             ct = isHlg
@@ -409,14 +421,17 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.Create(RedToL),
                 linearRed,
                 Vector128.MultiplyAddEstimate(Vector128.Create(GreenToL), linearGreen, Vector128.Create(BlueToL) * linearBlue));
+
             Vector128<float> linearM = Vector128.MultiplyAddEstimate(
                 Vector128.Create(RedToM),
                 linearRed,
                 Vector128.MultiplyAddEstimate(Vector128.Create(GreenToM), linearGreen, Vector128.Create(BlueToM) * linearBlue));
+
             Vector128<float> linearS = Vector128.MultiplyAddEstimate(
                 Vector128.Create(RedToS),
                 linearRed,
                 Vector128.MultiplyAddEstimate(Vector128.Create(GreenToS), linearGreen, Vector128.Create(BlueToS) * linearBlue));
+
             Vector128<float> nonlinearL = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector128<float> nonlinearM = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector128<float> nonlinearS = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
@@ -432,6 +447,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.Create(lToCt),
                 nonlinearL,
                 Vector128.MultiplyAddEstimate(Vector128.Create(mToCt), nonlinearM, Vector128.Create(sToCt) * nonlinearS));
+
             cp = Vector128.MultiplyAddEstimate(
                 Vector128.Create(lToCp),
                 nonlinearL,
@@ -456,14 +472,17 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.Create(RedToL),
                 linearRed,
                 Vector256.MultiplyAddEstimate(Vector256.Create(GreenToL), linearGreen, Vector256.Create(BlueToL) * linearBlue));
+
             Vector256<float> linearM = Vector256.MultiplyAddEstimate(
                 Vector256.Create(RedToM),
                 linearRed,
                 Vector256.MultiplyAddEstimate(Vector256.Create(GreenToM), linearGreen, Vector256.Create(BlueToM) * linearBlue));
+
             Vector256<float> linearS = Vector256.MultiplyAddEstimate(
                 Vector256.Create(RedToS),
                 linearRed,
                 Vector256.MultiplyAddEstimate(Vector256.Create(GreenToS), linearGreen, Vector256.Create(BlueToS) * linearBlue));
+
             Vector256<float> nonlinearL = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector256<float> nonlinearM = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector256<float> nonlinearS = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
@@ -479,6 +498,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.Create(lToCt),
                 nonlinearL,
                 Vector256.MultiplyAddEstimate(Vector256.Create(mToCt), nonlinearM, Vector256.Create(sToCt) * nonlinearS));
+
             cp = Vector256.MultiplyAddEstimate(
                 Vector256.Create(lToCp),
                 nonlinearL,
@@ -503,14 +523,17 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.Create(RedToL),
                 linearRed,
                 Vector512.MultiplyAddEstimate(Vector512.Create(GreenToL), linearGreen, Vector512.Create(BlueToL) * linearBlue));
+
             Vector512<float> linearM = Vector512.MultiplyAddEstimate(
                 Vector512.Create(RedToM),
                 linearRed,
                 Vector512.MultiplyAddEstimate(Vector512.Create(GreenToM), linearGreen, Vector512.Create(BlueToM) * linearBlue));
+
             Vector512<float> linearS = Vector512.MultiplyAddEstimate(
                 Vector512.Create(RedToS),
                 linearRed,
                 Vector512.MultiplyAddEstimate(Vector512.Create(GreenToS), linearGreen, Vector512.Create(BlueToS) * linearBlue));
+
             Vector512<float> nonlinearL = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector512<float> nonlinearM = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector512<float> nonlinearS = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
@@ -526,6 +549,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.Create(lToCt),
                 nonlinearL,
                 Vector512.MultiplyAddEstimate(Vector512.Create(mToCt), nonlinearM, Vector512.Create(sToCt) * nonlinearS));
+
             cp = Vector512.MultiplyAddEstimate(
                 Vector512.Create(lToCp),
                 nonlinearL,

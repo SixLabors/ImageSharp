@@ -109,9 +109,11 @@ internal readonly struct HeifCleanAperture : IEquatable<HeifCleanAperture>
         // center-plus-offset-minus-half-size equation without floating-point rounding.
         long xNumerator = ((long)(imageExtent.Width - width) * this.HorizontalOffsetDenominator) +
             (2L * this.HorizontalOffsetNumerator);
+
         long xDenominator = 2L * this.HorizontalOffsetDenominator;
         long yNumerator = ((long)(imageExtent.Height - height) * this.VerticalOffsetDenominator) +
             (2L * this.VerticalOffsetNumerator);
+
         long yDenominator = 2L * this.VerticalOffsetDenominator;
 
         if ((xNumerator % xDenominator) != 0 || (yNumerator % yDenominator) != 0)

@@ -1581,6 +1581,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Rectangle primaryBounds = primaryReference.Bounds;
             int primaryOrigin = ((primaryBounds.Y + primaryPredictionOrigin.Y) * primaryReference.Stride) +
                 primaryBounds.X + primaryPredictionOrigin.X;
+
             Rectangle secondaryBounds = secondaryReference.Bounds;
             int secondaryOrigin = ((secondaryBounds.Y + secondaryPredictionOrigin.Y) * secondaryReference.Stride) +
                 secondaryBounds.X + secondaryPredictionOrigin.X;
@@ -1635,6 +1636,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         firstWeight,
                         secondWeight,
                         bitCount);
+
                     break;
                 case Av1CompoundType.Wedge:
                     Av1WedgeMask.Fill(compoundMask, lumaBlockSize.GetWidth(), lumaBlockSize, wedgeIndex, wedgeSign, 0, 0, invert: false);
@@ -1652,6 +1654,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingX,
                         subsamplingY,
                         bitCount);
+
                     break;
                 case Av1CompoundType.DifferenceWeighted:
                     // Chroma reuses the luma mask even when its sample dimensions are identical.
@@ -1684,10 +1687,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingX,
                         subsamplingY,
                         bitCount);
+
                     break;
                 default:
                     Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
                         prediction, width, firstIntermediate, width, secondIntermediate, width, width, height, bitCount);
+
                     break;
             }
 
@@ -2702,6 +2707,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Rectangle primaryBounds = primaryReference.Bounds;
             int primaryOrigin = ((primaryBounds.Y + primaryPredictionOrigin.Y) * primaryReference.Stride) +
                 primaryBounds.X + primaryPredictionOrigin.X;
+
             Rectangle secondaryBounds = secondaryReference.Bounds;
             int secondaryOrigin = ((secondaryBounds.Y + secondaryPredictionOrigin.Y) * secondaryReference.Stride) +
                 secondaryBounds.X + secondaryPredictionOrigin.X;
@@ -2758,6 +2764,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         firstWeight,
                         secondWeight,
                         bitCount);
+
                     break;
                 case Av1CompoundType.Wedge:
                     Av1WedgeMask.Fill(compoundMask, lumaBlockSize.GetWidth(), lumaBlockSize, wedgeIndex, wedgeSign, 0, 0, invert: false);
@@ -2775,6 +2782,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingX,
                         subsamplingY,
                         bitCount);
+
                     break;
                 case Av1CompoundType.DifferenceWeighted:
                     // Chroma reuses the luma mask even when its sample dimensions are identical.
@@ -2807,10 +2815,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingX,
                         subsamplingY,
                         bitCount);
+
                     break;
                 default:
                     Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
                         prediction, width, firstIntermediate, width, secondIntermediate, width, width, height, bitCount);
+
                     break;
             }
 

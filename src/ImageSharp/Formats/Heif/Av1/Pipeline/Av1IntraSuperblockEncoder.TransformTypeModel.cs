@@ -798,6 +798,7 @@ internal static partial class Av1IntraSuperblockEncoder
         ReadOnlySpan<byte> aggressiveness = transformSet == Av1TransformSetType.InterSet1
             ? [4, 6, 9, 9, 12]
             : [1, 3, 6, 6, 9];
+
         float threshold = thresholds[aggressiveness[pruningLevel - 1]];
         ReadOnlySpan<Av1TransformType> modelOrder =
         [

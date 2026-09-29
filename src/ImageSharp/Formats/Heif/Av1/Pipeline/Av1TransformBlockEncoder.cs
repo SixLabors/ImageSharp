@@ -195,6 +195,7 @@ internal static partial class Av1TransformBlockEncoder
                 workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(
                 workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+
         sse = residualEnergy;
 
         // predict_dc_only_block settles a block whose residual cannot survive
@@ -352,6 +353,7 @@ internal static partial class Av1TransformBlockEncoder
         long residualEnergy = predictDcBlock
             ? GetBlockStatistics(residual, inputStride, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+
         sse = residualEnergy;
 
         bool dcOnly = false;
@@ -928,6 +930,7 @@ internal static partial class Av1TransformBlockEncoder
                 workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(
                 workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+
         sse = residualEnergy;
 
         // predict_dc_only_block settles a block whose residual cannot survive
@@ -1092,6 +1095,7 @@ internal static partial class Av1TransformBlockEncoder
         long residualEnergy = predictDcBlock
             ? GetBlockStatistics(residual, inputStride, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(residual, inputStride, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+
         sse = residualEnergy;
 
         bool dcOnly = false;
@@ -2058,6 +2062,7 @@ internal static partial class Av1TransformBlockEncoder
             state.TransformType = Av1TransformType.DctDct;
             state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                 quantized, transformSize, state.TransformType, state.EndOfBlock);
+
             return;
         }
 
@@ -2132,6 +2137,7 @@ internal static partial class Av1TransformBlockEncoder
             state.TransformType = Av1TransformType.DctDct;
             state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                 quantized, transformSize, state.TransformType, state.EndOfBlock);
+
             return;
         }
 
@@ -2177,6 +2183,7 @@ internal static partial class Av1TransformBlockEncoder
             thresholds,
             winnerEvaluation,
             out satdMeasured);
+
         Av1WorkCounters.Stop(Av1WorkCounters.SatdGate, workSatd);
 
         long workQuant = Av1WorkCounters.Start();
@@ -2194,6 +2201,7 @@ internal static partial class Av1TransformBlockEncoder
                 transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, weights, inverseWeights)
             : Av1ForwardQuantizer.QuantizeRegular(
                 transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
+
         Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
 
         if (optimize && state.EndOfBlock > 0)
@@ -2302,6 +2310,7 @@ internal static partial class Av1TransformBlockEncoder
             state.TransformType = Av1TransformType.DctDct;
             state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                 quantized, transformSize, state.TransformType, state.EndOfBlock);
+
             optimize = false;
         }
         else if (dcOnly)
@@ -2321,6 +2330,7 @@ internal static partial class Av1TransformBlockEncoder
                 transformSize,
                 bitDepth.GetBitCount(),
                 workspace.TransformWorkspace);
+
             Av1WorkCounters.Stop(Av1WorkCounters.FwdXform, workXform);
         }
 
@@ -2372,6 +2382,7 @@ internal static partial class Av1TransformBlockEncoder
         {
             state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                 quantized, transformSize, state.TransformType, state.EndOfBlock);
+
             return writer.GetCoefficientCost(
                 transformSize,
                 state.TransformType,

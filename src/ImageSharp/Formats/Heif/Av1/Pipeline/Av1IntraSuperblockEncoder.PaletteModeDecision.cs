@@ -390,6 +390,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
                         $"PALGATE {blockOrigin.X},{blockOrigin.Y} header {rate} headerCost {headerCost} best {bestStatistics.Cost} limit {this.blockCostLimit}");
+
                     headerBreakout = true;
                     return false;
                 }

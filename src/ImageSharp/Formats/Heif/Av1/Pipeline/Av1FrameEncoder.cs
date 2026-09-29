@@ -685,6 +685,7 @@ internal static partial class Av1FrameEncoder
         frameHeader.ReferenceMode = frameType == ObuFrameType.InterFrame
             ? ObuReferenceMode.ReferenceModeSelect
             : ObuReferenceMode.SingleReference;
+
         frameHeader.InterpolationFilter = Av1InterpolationFilter.Regular;
         frameHeader.IsMotionModeSwitchable = false;
         frameHeader.AllowScreenContentTools = false;
@@ -748,6 +749,7 @@ internal static partial class Av1FrameEncoder
             qIndex,
             options,
             sequenceHeader.IsStillPicture);
+
         Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
     }
 
@@ -889,6 +891,7 @@ internal static partial class Av1FrameEncoder
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
             isScreenContent);
+
         int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
 
         using Av1EncoderPictureBuffer picture = new(
@@ -1000,6 +1003,7 @@ internal static partial class Av1FrameEncoder
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
             isScreenContent);
+
         int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
 
         using Av1EncoderPictureBuffer picture = new(
@@ -1735,6 +1739,11 @@ internal static partial class Av1FrameEncoder
         private readonly Av1RateControl? rateControl;
 
         /// <summary>
+        /// The requested quantizer index, which constant-quality coding keeps for inter frames. Reference: cq_level.
+        /// </summary>
+        private readonly int constantQualityIndex;
+
+        /// <summary>
         /// Reference: rc->frames_till_gf_update_due.
         /// </summary>
         private int framesTillGoldenUpdateDue;
@@ -1811,6 +1820,7 @@ internal static partial class Av1FrameEncoder
             this.Configuration = configuration;
             this.SequenceHeader = CreateSequenceHeader(width, height, colorConfig, options, false);
             this.QIndex = qIndex;
+            this.constantQualityIndex = qIndex;
             this.Options = options;
             this.TileBufferLength = GetTileBufferLength(width, height, colorConfig);
             this.EncodeAlpha = encodeAlpha;
@@ -2054,6 +2064,7 @@ internal static partial class Av1FrameEncoder
             Av1FrameUpdateType updateType = realtime
                 ? GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup)
                 : this.goodQualityStructure.UpdateType;
+
             bool boosted = frameHeader.IsIntra || updateType is Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
             GlobalMotionSearchInputs inputs = new(
                 !realtime,
@@ -2064,6 +2075,7 @@ internal static partial class Av1FrameEncoder
                 this.BlockWorkspace.EncodedFrameCount,
                 this.goodQualityStructure.SlotPyramidLevels,
                 this.goodQualityStructure.PyramidLevel);
+
             ComputeGlobalMotion<TSample, TOperator>(
                 this.Configuration.MemoryAllocator,
                 source,
@@ -2121,6 +2133,7 @@ internal static partial class Av1FrameEncoder
             // prune_warped_prob_thresh test of encode_frame_internal().
             bool allowWarpedMotion = !frameHeader.IsIntra && !frameHeader.ErrorResilientMode &&
                 this.SequenceHeader.EnableWarpedMotion;
+
             int warpedThreshold = speedSettings.WarpedProbabilityThreshold;
             if (allowWarpedMotion && warpedThreshold > 0 &&
                 this.warpedProbabilities[(int)GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup)] < warpedThreshold)
@@ -2285,6 +2298,7 @@ internal static partial class Av1FrameEncoder
                     int distance = sequenceHeader.OrderHintInfo.GetRelativeDistance(
                         frameHeader.GetReferenceOrderHints()[slot],
                         frameHeader.OrderHint);
+
                     if (Math.Abs(distance) > 2)
                     {
                         referencesToDisable++;
@@ -2409,6 +2423,7 @@ internal static partial class Av1FrameEncoder
                 // Reference: the obmc_probs update at the end of encode_frame_internal().
                 int row = (int)GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup) *
                     (int)Av1BlockSize.AllSizes;
+
                 for (int size = 0; size < (int)Av1BlockSize.AllSizes; size++)
                 {
                     int sum = parent.ObmcUsage[size * 2] + parent.ObmcUsage[(size * 2) + 1];
@@ -2557,12 +2572,31 @@ internal static partial class Av1FrameEncoder
             where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
             where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         {
+            bool keyFrame = this.FrameHeader.IsIntra;
             if (this.rateControl is null)
             {
+                // Constant-quality coding without lookahead lowers only the key frame quantizer; every other frame
+                // codes at the constant-quality index. Reference: rc_pick_q_and_bounds_q_mode().
+                int frameQIndex = keyFrame
+                    ? Av1RateControl.GetConstantQualityKeyFrameQIndex(
+                        this.constantQualityIndex,
+                        this.FrameHeader.FrameSize.FrameWidth,
+                        this.FrameHeader.FrameSize.FrameHeight,
+                        this.SequenceHeader.ColorConfig.BitDepth,
+                        parent.IsScreenContent,
+                        Av1QuantizationLookup.GetQIndex(this.Options.MinimumQuantizer),
+                        Av1QuantizationLookup.GetQIndex(this.Options.MaximumQuantizer))
+                    : this.constantQualityIndex;
+
+                if (frameQIndex != this.QIndex)
+                {
+                    this.QIndex = frameQIndex;
+                    ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, frameQIndex, this.Options);
+                }
+
                 return;
             }
 
-            bool keyFrame = this.FrameHeader.IsIntra;
             this.rateControl.BeginFrame(keyFrame, this.frameNumber);
             Av1RateControl.SourceSadStatistics sourceSad = new(parent.FrameSourceSad, averageSourceSad, previousAverageSourceSad);
             int qIndex = this.rateControl.PickQuantizer<TSample, TMotion, TBlock>(
@@ -2599,6 +2633,7 @@ internal static partial class Av1FrameEncoder
                 this.FrameHeader.IsIntra,
                 parent.RefreshesGolden,
                 parent.IsScreenContent);
+
             this.rateControl.EndFrame();
         }
 
@@ -2823,8 +2858,10 @@ internal static partial class Av1FrameEncoder
                 last is null ? default : last.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y),
                 this.averageSourceSad,
                 previousAverageSourceSad);
+
             parent.SpeedSettings = new(
                 this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+
             parent.EncoderOptions = this.Options;
             parent.ConstantQualityIndex = this.QIndex;
 
@@ -2903,6 +2940,7 @@ internal static partial class Av1FrameEncoder
                 frameHeader,
                 GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
                 parent.SpeedSettings);
+
             CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask);
             return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
                 ? null
@@ -3033,6 +3071,7 @@ internal static partial class Av1FrameEncoder
             parent.IsScreenContent = isScreenContent;
             parent.SpeedSettings = new(
                 this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+
             parent.EncoderOptions = this.Options;
             parent.ConstantQualityIndex = this.QIndex;
 
@@ -3069,8 +3108,10 @@ internal static partial class Av1FrameEncoder
                 last is null ? default : last.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y),
                 this.averageSourceSad,
                 previousAverageSourceSad);
+
             parent.SpeedSettings = new(
                 this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+
             parent.ConstantQualityIndex = this.QIndex;
 
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
@@ -3144,6 +3185,7 @@ internal static partial class Av1FrameEncoder
                 frameHeader,
                 GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
                 parent.SpeedSettings);
+
             CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask);
             return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
                 ? null

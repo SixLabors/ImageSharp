@@ -47,10 +47,12 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.LessThanOrEqual(cb, Vector128<float>.Zero),
                 Vector128.Create(scales.NegativeBlue),
                 Vector128.Create(scales.PositiveBlue));
+
             Vector128<float> redScale = Vector128.ConditionalSelect(
                 Vector128.LessThanOrEqual(cr, Vector128<float>.Zero),
                 Vector128.Create(scales.NegativeRed),
                 Vector128.Create(scales.PositiveRed));
+
             Vector128<float> nonlinearBlue = Vector128.MultiplyAddEstimate(Vector128.Create(2F) * blueScale, cb, y);
             Vector128<float> nonlinearRed = Vector128.MultiplyAddEstimate(Vector128.Create(2F) * redScale, cr, y);
             Vector128<float> linearY = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, y);
@@ -74,10 +76,12 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.LessThanOrEqual(cb, Vector256<float>.Zero),
                 Vector256.Create(scales.NegativeBlue),
                 Vector256.Create(scales.PositiveBlue));
+
             Vector256<float> redScale = Vector256.ConditionalSelect(
                 Vector256.LessThanOrEqual(cr, Vector256<float>.Zero),
                 Vector256.Create(scales.NegativeRed),
                 Vector256.Create(scales.PositiveRed));
+
             Vector256<float> nonlinearBlue = Vector256.MultiplyAddEstimate(Vector256.Create(2F) * blueScale, cb, y);
             Vector256<float> nonlinearRed = Vector256.MultiplyAddEstimate(Vector256.Create(2F) * redScale, cr, y);
             Vector256<float> linearY = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, y);
@@ -101,10 +105,12 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.LessThanOrEqual(cb, Vector512<float>.Zero),
                 Vector512.Create(scales.NegativeBlue),
                 Vector512.Create(scales.PositiveBlue));
+
             Vector512<float> redScale = Vector512.ConditionalSelect(
                 Vector512.LessThanOrEqual(cr, Vector512<float>.Zero),
                 Vector512.Create(scales.NegativeRed),
                 Vector512.Create(scales.PositiveRed));
+
             Vector512<float> nonlinearBlue = Vector512.MultiplyAddEstimate(Vector512.Create(2F) * blueScale, cb, y);
             Vector512<float> nonlinearRed = Vector512.MultiplyAddEstimate(Vector512.Create(2F) * redScale, cr, y);
             Vector512<float> linearY = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, y);
@@ -162,6 +168,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.Create(parameters.Kr),
                 linearRed,
                 Vector128.MultiplyAddEstimate(Vector128.Create(parameters.Kg), linearGreen, Vector128.Create(parameters.Kb) * linearBlue));
+
             y = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearY);
             Vector128<float> blueDifference = b - y;
             Vector128<float> redDifference = r - y;
@@ -170,6 +177,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.LessThanOrEqual(blueDifference, Vector128<float>.Zero),
                 Vector128.Create(scales.NegativeBlue),
                 Vector128.Create(scales.PositiveBlue));
+
             Vector128<float> redScale = Vector128.ConditionalSelect(
                 Vector128.LessThanOrEqual(redDifference, Vector128<float>.Zero),
                 Vector128.Create(scales.NegativeRed),
@@ -197,6 +205,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.Create(parameters.Kr),
                 linearRed,
                 Vector256.MultiplyAddEstimate(Vector256.Create(parameters.Kg), linearGreen, Vector256.Create(parameters.Kb) * linearBlue));
+
             y = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearY);
             Vector256<float> blueDifference = b - y;
             Vector256<float> redDifference = r - y;
@@ -205,6 +214,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.LessThanOrEqual(blueDifference, Vector256<float>.Zero),
                 Vector256.Create(scales.NegativeBlue),
                 Vector256.Create(scales.PositiveBlue));
+
             Vector256<float> redScale = Vector256.ConditionalSelect(
                 Vector256.LessThanOrEqual(redDifference, Vector256<float>.Zero),
                 Vector256.Create(scales.NegativeRed),
@@ -232,6 +242,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.Create(parameters.Kr),
                 linearRed,
                 Vector512.MultiplyAddEstimate(Vector512.Create(parameters.Kg), linearGreen, Vector512.Create(parameters.Kb) * linearBlue));
+
             y = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearY);
             Vector512<float> blueDifference = b - y;
             Vector512<float> redDifference = r - y;
@@ -240,6 +251,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.LessThanOrEqual(blueDifference, Vector512<float>.Zero),
                 Vector512.Create(scales.NegativeBlue),
                 Vector512.Create(scales.PositiveBlue));
+
             Vector512<float> redScale = Vector512.ConditionalSelect(
                 Vector512.LessThanOrEqual(redDifference, Vector512<float>.Zero),
                 Vector512.Create(scales.NegativeRed),

@@ -284,6 +284,7 @@ internal struct Av1EstimatedInterSearchState
         statistics.Add(
             rateMultiplier,
             new Av1RateDistortionStatistics(rateMultiplier, motionRate + this.ModeCosts[modeIndex][slot] + this.ReferenceCosts[slot], 0));
+
         if (this.useMotionVectorBias)
         {
             this.ApplyMotionVectorBias(mode, this.MotionVectors[(int)mode][slot], ref statistics);

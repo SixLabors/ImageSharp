@@ -267,6 +267,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.sourceLogVarianceStorageOffset = (length + 1) & ~1;
         length = this.sourceLogVarianceStorageOffset +
             (superblockSize.GetWidth() * superblockSize.GetHeight() / 16 * sizeof(double) / sizeof(int));
+
         this.owner = this.MemoryAllocator.Allocate<int>(length);
         this.TransformTypeProbabilities.Clear();
         this.InterpolationProbabilities.Clear();
@@ -626,6 +627,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         ReadOnlySpan<byte> distortionWeights = options.DistortionMetric == Av1DistortionMetric.QuantizationMatrixPsnr
             ? this.GetQuantizationMatrix(componentType, transformSize, transformType)
             : default;
+
         return new Av1CoefficientOptimizationWeights(
             options.Sharpness,
             options.Tuning == Av1Tuning.Iq ? 7 : 5,

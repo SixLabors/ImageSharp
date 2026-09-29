@@ -868,6 +868,7 @@ internal static partial class Av1Inverse2dTransformer
                     value = normalizeRectangle
                         ? Av1Math.RoundShift((long)value * Av1InverseTransformMath.NewInverseSqrt2, Av1InverseTransformMath.NewSqrt2BitCount)
                         : value;
+
                     tempIn[column] = Av1Transform1dMath.Clamp(value, rowClampBits);
                 }
             }

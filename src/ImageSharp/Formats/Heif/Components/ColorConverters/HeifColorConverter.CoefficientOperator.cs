@@ -113,6 +113,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.Create(parameters.Kr),
                 r,
                 Vector128.MultiplyAddEstimate(Vector128.Create(parameters.Kg), g, Vector128.Create(parameters.Kb) * b));
+
             cb = (b - y) / Vector128.Create(parameters.BlueChromaScale);
             cr = (r - y) / Vector128.Create(parameters.RedChromaScale);
         }
@@ -132,6 +133,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.Create(parameters.Kr),
                 r,
                 Vector256.MultiplyAddEstimate(Vector256.Create(parameters.Kg), g, Vector256.Create(parameters.Kb) * b));
+
             cb = (b - y) / Vector256.Create(parameters.BlueChromaScale);
             cr = (r - y) / Vector256.Create(parameters.RedChromaScale);
         }
@@ -151,6 +153,7 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.Create(parameters.Kr),
                 r,
                 Vector512.MultiplyAddEstimate(Vector512.Create(parameters.Kg), g, Vector512.Create(parameters.Kb) * b));
+
             cb = (b - y) / Vector512.Create(parameters.BlueChromaScale);
             cr = (r - y) / Vector512.Create(parameters.RedChromaScale);
         }

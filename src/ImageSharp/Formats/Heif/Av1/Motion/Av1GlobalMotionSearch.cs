@@ -144,6 +144,7 @@ internal static partial class Av1GlobalMotionSearch
         const int TranslationMaximum = 1 << Av1GlobalMotionParameters.AbsoluteTranslationBits;
         const int TranslationDecodeFactor =
             1 << (Av1GlobalMotionParameters.ModelPrecisionBits - Av1GlobalMotionParameters.TranslationPrecisionBits);
+
         const int AlphaScale = 1 << Av1GlobalMotionParameters.AlphaPrecisionBits;
         const int AlphaMaximum = Av1GlobalMotionParameters.AlphaValueMagnitude - 1;
 

@@ -173,6 +173,7 @@ internal static partial class Av1ResidualBuilder
                     Vector512<TSample> blended = equalWeights
                         ? TOperator.Average(searched, second)
                         : TOperator.Blend(searched, second, TOperator.LoadMask(ref maskBase, (nuint)x, default(Vector512<TSample>)));
+
                     total512 = TOperator.AccumulateAbsoluteDifferences(Vector512.LoadUnsafe(ref sourceBase, (nuint)x), blended, total512);
                 }
             }
@@ -186,6 +187,7 @@ internal static partial class Av1ResidualBuilder
                     Vector256<TSample> blended = equalWeights
                         ? TOperator.Average(searched, second)
                         : TOperator.Blend(searched, second, TOperator.LoadMask(ref maskBase, (nuint)x, default(Vector256<TSample>)));
+
                     total256 = TOperator.AccumulateAbsoluteDifferences(Vector256.LoadUnsafe(ref sourceBase, (nuint)x), blended, total256);
                 }
             }
@@ -199,6 +201,7 @@ internal static partial class Av1ResidualBuilder
                     Vector128<TSample> blended = equalWeights
                         ? TOperator.Average(searched, second)
                         : TOperator.Blend(searched, second, TOperator.LoadMask(ref maskBase, (nuint)x, default(Vector128<TSample>)));
+
                     total128 = TOperator.AccumulateAbsoluteDifferences(Vector128.LoadUnsafe(ref sourceBase, (nuint)x), blended, total128);
                 }
             }
@@ -213,6 +216,7 @@ internal static partial class Av1ResidualBuilder
                 Vector128<TSample> blended = equalWeights
                     ? TOperator.Average(searched, second)
                     : TOperator.Blend(searched, second, TOperator.LoadSearchMask(mask[(packedOffset + x)..]));
+
                 total128 = TOperator.AccumulateAbsoluteDifferences(LoadSearchRow(sourceRow[x..]), blended, total128);
                 x += SearchBlockDimension;
             }
@@ -222,6 +226,7 @@ internal static partial class Av1ResidualBuilder
                 TSample blended = equalWeights
                     ? TOperator.Average(predictionRow[x], secondRow[x])
                     : TOperator.Blend(predictionRow[x], secondRow[x], mask[packedOffset + x]);
+
                 sum += TOperator.SumAbsoluteDifferences(sourceRow[x], blended);
             }
         }
@@ -288,6 +293,7 @@ internal static partial class Av1ResidualBuilder
                     Vector512<TSample> blended = equalWeights
                         ? TOperator.Average(searched, second)
                         : TOperator.Blend(searched, second, TOperator.LoadMask(ref maskBase, (nuint)x, default(Vector512<TSample>)));
+
                     TOperator.AccumulateMoments(Vector512.LoadUnsafe(ref sourceBase, (nuint)x), blended, ref sum512, ref squares512);
                 }
             }
@@ -301,6 +307,7 @@ internal static partial class Av1ResidualBuilder
                     Vector256<TSample> blended = equalWeights
                         ? TOperator.Average(searched, second)
                         : TOperator.Blend(searched, second, TOperator.LoadMask(ref maskBase, (nuint)x, default(Vector256<TSample>)));
+
                     TOperator.AccumulateMoments(Vector256.LoadUnsafe(ref sourceBase, (nuint)x), blended, ref sum256, ref squares256);
                 }
             }
@@ -314,6 +321,7 @@ internal static partial class Av1ResidualBuilder
                     Vector128<TSample> blended = equalWeights
                         ? TOperator.Average(searched, second)
                         : TOperator.Blend(searched, second, TOperator.LoadMask(ref maskBase, (nuint)x, default(Vector128<TSample>)));
+
                     TOperator.AccumulateMoments(Vector128.LoadUnsafe(ref sourceBase, (nuint)x), blended, ref sum128, ref squares128);
                 }
             }
@@ -327,6 +335,7 @@ internal static partial class Av1ResidualBuilder
                 Vector128<TSample> blended = equalWeights
                     ? TOperator.Average(searched, second)
                     : TOperator.Blend(searched, second, TOperator.LoadSearchMask(mask[(packedOffset + x)..]));
+
                 TOperator.AccumulateMoments(LoadSearchRow(sourceRow[x..]), blended, ref sum128, ref squares128);
                 x += SearchBlockDimension;
             }
@@ -340,6 +349,7 @@ internal static partial class Av1ResidualBuilder
                 TSample blended = equalWeights
                     ? TOperator.Average(predictionRow[x], secondRow[x])
                     : TOperator.Blend(predictionRow[x], secondRow[x], mask[packedOffset + x]);
+
                 int difference = TOperator.Subtract(sourceRow[x], blended);
                 sum += difference;
                 sumOfSquares += difference * difference;

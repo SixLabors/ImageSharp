@@ -129,6 +129,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 double weight = frameQuantizer < largeBlockQuantizer - 20 ? 1
                     : frameQuantizer > largeBlockQuantizer + 20 ? 0
                     : 1D - ((frameQuantizer - largeBlockQuantizer + 20) / 40);
+
                 if (pixels > resolution480)
                 {
                     for (int index = 0; index < 4; index++)
@@ -182,6 +183,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 double weight = frameQuantizer < largeBlockQuantizer - 45 ? 1
                     : frameQuantizer > largeBlockQuantizer + 45 ? 0
                     : 1D - ((frameQuantizer - largeBlockQuantizer + 45) / 90);
+
                 thresholds[1] = (int)(((1 - weight) * (thresholds[1] << 1)) + (weight * thresholds[1]));
                 thresholds[2] = (int)(((1 - weight) * (thresholds[2] << 1)) + (weight * thresholds[2]));
                 thresholds[3] = (int)(((1 - weight) * (thresholds[3] << shift)) + (weight * thresholds[3]));
@@ -281,6 +283,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 node.ForceParentSplit |= node.Variance > threshold ||
                     (node.Variance > (threshold >> 1) && node.Variance > (childVarianceSum >> 1));
+
                 if (pixels <= 640 * 360)
                 {
                     node.ForceParentSplit |= (maximum - minimum > (threshold >> 1) && maximum > threshold) ||
@@ -594,6 +597,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 bool largeSearch = parent.IsScreenContent ||
                     (this.sourceSadLevel > Av1SourceSadLevel.Medium && (long)frameSize.Width * frameSize.Height > 1280 * 720);
+
                 int maximumRange = parent.IsScreenContent ? 512 : 256;
                 int horizontalRange = largeSearch ? this.sourceSadLevel > Av1SourceSadLevel.Medium ? maximumRange : 96 : side >> 1;
                 int verticalRange = largeSearch ? this.sourceSadLevel > Av1SourceSadLevel.Medium ? maximumRange : 192 : side >> 1;
@@ -670,6 +674,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     motion = new Av1MotionVector(
                         ((row + 3 + (row >= 0 ? 1 : 0)) >> 3) << 3,
                         ((column + 3 + (column >= 0 ? 1 : 0)) >> 3) << 3);
+
                     neighbors[index] = motion;
                     if (motion == this.partitionMotion || (index == 1 && motion == neighbors[0]))
                     {
@@ -724,6 +729,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1ReferenceFrameType.Alternate => this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView,
                 _ => this.reference
             };
+
             if (!zeroMotion)
             {
                 int planes = this.source.IsMonochrome ? 1 : 3;
@@ -734,6 +740,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
                     Span<TSample> prediction = planeIndex == 0 ? workspace.LumaPrediction
                         : planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
+
                     this.PrepareInterPlanePrediction(
                         this.partitionMotion,
                         default,
@@ -793,6 +800,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
                         : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;
+
                     uint sad = (uint)TOperator.SumAbsoluteDifferences(
                         Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
                         chromaSource.Stride,
@@ -801,6 +809,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         width,
                         height,
                         1) >> precisionShift;
+
                     this.superblockChromaSad[index] = sad;
                     this.superblockColorSensitivity[index] = (byte)(sad > (lastSad >> upperShift) ? 1 : sad < (lastSad >> lowerShift) ? 0 : 2);
                     if (goldenSad != uint.MaxValue)
@@ -814,6 +823,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             width,
                             height,
                             1) >> precisionShift;
+
                         this.goldenColorSensitivity[index] = (byte)(sadGolden > goldenSad / chromaFactor ? 1 : 0);
                     }
 
@@ -828,6 +838,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             width,
                             height,
                             1) >> precisionShift;
+
                         this.alternateColorSensitivity[index] = (byte)(sadAlternate > alternateSad / chromaFactor ? 1 : 0);
                     }
                 }
@@ -884,6 +895,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 uint sad = (uint)Av1MotionSearchBase.ByteOperator.SumAbsoluteDifferences(
                     source, luma.Stride, previous[(previousOffset + offset)..], previousLuma.Stride, side, side, 1);
+
                 if (threshold >= sad)
                 {
                     return;
@@ -1140,6 +1152,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // set_vt_partitioning().
             bool onlyNone = width == 16 && aboveThreshold && pruneSixteenSplit &&
                 maximumVariance - minimumVariance <= (threshold16 << 2);
+
             if (onlyNone && fitsColumns && fitsRows)
             {
                 partition = Av1PartitionType.None;

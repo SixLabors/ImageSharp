@@ -227,6 +227,7 @@ internal sealed partial class HeifEncoderCore
         Av1Tuning colorTuning = this.encoder.Lossless
             ? Av1Tuning.Psnr
             : allIntra && colorProfile.MatrixCoefficients != CicpMatrixCoefficients.Identity ? Av1Tuning.Iq : Av1Tuning.Ssim;
+
         Av1Tuning alphaTuning = Av1Tuning.Psnr;
 
         // Reference: DEFAULT_QUALITY of avifenc.
@@ -463,6 +464,7 @@ internal sealed partial class HeifEncoderCore
         ulong trackDuration = sequence.RepeatCount == 0
             ? ulong.MaxValue
             : checked(mediaDuration * sequence.RepeatCount);
+
         bool hasAlpha = sequence.AlphaTrack.HasValue;
 
         WriteSequenceMovieHeader(
@@ -471,6 +473,7 @@ internal sealed partial class HeifEncoderCore
             sequence.Timescale,
             trackDuration,
             hasAlpha ? 3U : 2U);
+
         int colorChunkOffsetPosition = WriteSequenceTrack(
             memory,
             ref offset,

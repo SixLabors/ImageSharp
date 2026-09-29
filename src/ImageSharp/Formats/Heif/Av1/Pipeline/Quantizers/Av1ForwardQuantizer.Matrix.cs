@@ -130,6 +130,7 @@ internal static partial class Av1ForwardQuantizer
                 dcDequantizer,
                 logScale,
                 magnitudeLimit);
+
             ac = new MatrixQuantizerConstants(
                 RoundPowerOfTwo(RoundPowerOfTwo(zeroBinFactor * acDequantizer, 7), logScale) << Av1Constants.QuantizationMatrixElementBitCount,
                 RoundPowerOfTwo((roundingFactor * acDequantizer) >> 7, logScale),
@@ -138,6 +139,7 @@ internal static partial class Av1ForwardQuantizer
                 acDequantizer,
                 logScale,
                 magnitudeLimit);
+
             return QuantizeWithMatrix<RegularMatrixQuantizationOperator>(
                 coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, weights, inverseWeights, in dc, in ac);
         }
@@ -153,6 +155,7 @@ internal static partial class Av1ForwardQuantizer
             dcDequantizer,
             logScale,
             magnitudeLimit);
+
         ac = new MatrixQuantizerConstants(
             acDequantizer << thresholdShift,
             RoundPowerOfTwo((fastRoundingFactor * acDequantizer) >> 7, logScale),
@@ -161,6 +164,7 @@ internal static partial class Av1ForwardQuantizer
             acDequantizer,
             logScale,
             magnitudeLimit);
+
         return QuantizeWithMatrix<FastMatrixQuantizationOperator>(
             coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, weights, inverseWeights, in dc, in ac);
     }
@@ -201,6 +205,7 @@ internal static partial class Av1ForwardQuantizer
                     LoadWeights(ref Unsafe.Add(ref inverseWeightBase, index), Vector512<int>.Zero),
                     in ac,
                     out Vector512<int> dequantized);
+
                 quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
                 dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
             }
@@ -216,6 +221,7 @@ internal static partial class Av1ForwardQuantizer
                     LoadWeights(ref Unsafe.Add(ref inverseWeightBase, index), Vector256<int>.Zero),
                     in ac,
                     out Vector256<int> dequantized);
+
                 quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
                 dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
             }
@@ -231,6 +237,7 @@ internal static partial class Av1ForwardQuantizer
                     LoadWeights(ref Unsafe.Add(ref inverseWeightBase, index), Vector128<int>.Zero),
                     in ac,
                     out Vector128<int> dequantized);
+
                 quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
                 dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
             }

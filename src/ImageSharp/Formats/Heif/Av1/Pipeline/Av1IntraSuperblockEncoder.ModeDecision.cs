@@ -344,6 +344,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.maximumPartitionSize = (Av1BlockSize)Math.Min(
                 (int)picture.Parent.SpeedSettings.MaximumPartitionSize,
                 (int)picture.Sequence.SequenceHeader.SuperblockSize);
+
             this.blockCostLimit = long.MaxValue;
             blockWorkspace.SourceLogVariances.Fill(-1D);
             blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
@@ -363,6 +364,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Point superblockOrigin = new(
                     (superblock.Index % coefficientBuffer.SuperblockColumnCount) * superblockSize,
                     (superblock.Index / coefficientBuffer.SuperblockColumnCount) * superblockSize);
+
                 int baseQIndex = this.quantization.BaseQIndex;
                 int wantedQIndex = picture.Parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.VarianceBoost
                     ? this.GetVarianceBoostQIndex(superblockOrigin, baseQIndex)
@@ -374,6 +376,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool estimated = picture.Sequence.SequenceHeader.IsStillPicture
                     ? picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8
                     : picture.Parent.SpeedSettings.IsRealtime;
+
                 int anchorQIndex = estimated ? baseQIndex : picture.Parent.PreviousQIndex.Span[superblock.TileIndex];
                 this.superblockQIndex = Av1VarianceBoost.AdjustToResolution(deltaQ.Resolution, anchorQIndex, wantedQIndex);
                 picture.Parent.DeltaQUsed |= this.superblockQIndex != baseQIndex;
@@ -405,6 +408,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int bottom = Math.Min(originY + superblockSize, picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
                 (double minimumLogVariance, double maximumLogVariance) = this.GetLogSubBlockVariance(
                     new Rectangle(originX, originY, right - originX, bottom - originY));
+
                 int modifier = 128;
                 if (minimumLogVariance < 2 && maximumLogVariance > 4)
                 {
@@ -499,6 +503,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         int threshold = step * (Math.Min(
                             picture.Parent.FrameHeader.FrameSize.FrameWidth,
                             picture.Parent.FrameHeader.FrameSize.FrameHeight) < 360 ? 250 : Math.Clamp(averageStep, 250, 1000));
+
                         this.filterTemporalSource = variance <= threshold && meanSquaredError <= 15;
                     }
                 }
@@ -593,6 +598,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.picture.Parent.Common.ModeInfoStride,
                         this.picture.Parent.Common.ModeInfoRowCount,
                         this.picture.Parent.Common.ModeInfoColumnCount);
+
                     this.PrepareVariancePartitions(macroBlock, blockOrigin);
                     if (searchesLeaves)
                     {
@@ -696,6 +702,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.SavePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
             int noneRate = Av1TileWriter.GetPartitionCost(
                 this.picture, writer, blockSize, Av1PartitionType.None, blockOrigin, this.picture.PartitionContexts[tileIndex]);
+
             int splitRate = Av1TileWriter.GetPartitionCost(
                 this.picture, writer, blockSize, Av1PartitionType.Split, blockOrigin, this.picture.PartitionContexts[tileIndex]);
 
@@ -733,6 +740,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Av1EncoderPartitionTree.ModeContext childContext =
                         this.blockWorkspace.PartitionTree.GetContext(firstChild + child, Av1PartitionType.None, 0);
+
                     Av1RateDistortionStatistics childStatistics = this.EvaluatePartitionLeaf(
                         writer, macroBlock, childOrigin, tileIndex, childSize, Av1PartitionType.None, childContext, long.MaxValue, child < 3, true);
 
@@ -994,8 +1002,10 @@ internal static partial class Av1IntraSuperblockEncoder
             // Asymmetric candidates exist only above 8x8, so no smaller block keeps a cached decision.
             bool cacheAsymmetricModes = blockSize > Av1BlockSize.Block8x8 &&
                 partitionSettings.ReuseBestPredictionForAsymmetricPartitions(frameHeader.IsIntra);
+
             Av1BlockSize extendedThreshold = partitionSettings.GetExtendedPartitionThreshold(
                 frameHeader.AllowScreenContentTools, frameHeader.IsIntra, this.picture.Parent.FrameUpdateType);
+
             bool restrictExtendedToWinner = !this.mustFindValidPartition && partitionSettings.RestrictExtendedPartitionsToWinner(
                 frameHeader.AllowScreenContentTools, frameHeader.IsIntra);
 
@@ -1005,6 +1015,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int halfHeight = blockSize.GetHeight() >> 1;
             bool activeHorizontalEdge = blockOrigin.Y == 0 ||
                 (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) < blockOrigin.Y + halfHeight;
+
             bool activeVerticalEdge = blockOrigin.X == 0 ||
                 (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) < blockOrigin.X + halfWidth;
 
@@ -1075,9 +1086,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 int right = Math.Min(
                     blockOrigin.X + blockSize.GetWidth(),
                     this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2);
+
                 int bottom = Math.Min(
                     blockOrigin.Y + blockSize.GetHeight(),
                     this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+
                 (double minimum, double maximum) = this.GetLogSubBlockVariance(
                     new Rectangle(blockOrigin.X, blockOrigin.Y, right - blockOrigin.X, bottom - blockOrigin.Y));
 
@@ -1122,6 +1135,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.picture.Sequence.SequenceHeader.SuperblockSize,
                         noneInvalid,
                         true);
+
                     if (this.PrunePartitionsAfterSplit(
                         blockOrigin,
                         blockSize,
@@ -1175,8 +1189,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     bool widthAllowed = partitionType != Av1PartitionType.Horizontal4 ||
                         blockSize.GetWidth() >= (partitionSettings.MinimumPartitionSize.GetWidth() << partitionSettings.FourStripPartitionMinimumScale);
+
                     allowExtendedStage = bestStatistics.Cost == long.MaxValue ||
                         (!pruneExtendedPartitions && blockSize > extendedThreshold && !incompatibleWinner && widthAllowed);
+
                     if (partitionType == Av1PartitionType.Horizontal4 && allowExtendedStage &&
                         blockSize is >= Av1BlockSize.Block16x16 and <= Av1BlockSize.Block64x64)
                     {
@@ -1185,8 +1201,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         {
                             bool horizontalWinner = selectedPartition is Av1PartitionType.Horizontal or
                                 Av1PartitionType.HorizontalA or Av1PartitionType.HorizontalB or Av1PartitionType.Split or Av1PartitionType.None;
+
                             bool verticalWinner = selectedPartition is Av1PartitionType.Vertical or
                                 Av1PartitionType.VerticalA or Av1PartitionType.VerticalB or Av1PartitionType.Split or Av1PartitionType.None;
+
                             fourStripMask = (horizontalWinner ? 1 : 0) | (verticalWinner ? 2 : 0);
                         }
 
@@ -1234,6 +1252,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         bool boosted = this.picture.Parent.FrameUpdateType is Av1FrameUpdateType.Key or
                             Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+
                         if (fourStripMask == 3 && !frameHeader.IsIntra && bestStatistics.Cost != long.MaxValue &&
                             partitionSettings.Speed >= HeifEncodingSpeed.Level1 && partitionSettings.Speed <= HeifEncodingSpeed.Level6 &&
                             (!boosted || partitionSettings.Speed >= HeifEncodingSpeed.Level3) &&
@@ -1257,6 +1276,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                                 int rate = Av1TileWriter.GetPartitionCost(
                                     this.picture, writer, blockSize, stripPartition, blockOrigin, this.picture.PartitionContexts[tileIndex]);
+
                                 directionCosts[direction] = new Av1RateDistortionStatistics(this.rateMultiplier, rate, squaredError).Cost;
                             }
 
@@ -1300,6 +1320,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int pruningLevel = partitionSettings.ExtendedPartitionPruningLevel;
                     bool flatNone = pruningLevel == 1 && selectedPartition == Av1PartitionType.None &&
                         parentSourceVariance < 32;
+
                     bool allowHorizontal = selectedPartition is Av1PartitionType.Horizontal or Av1PartitionType.Split || flatNone;
                     bool allowVertical = selectedPartition is Av1PartitionType.Vertical or Av1PartitionType.Split || flatNone;
                     int weight = pruningLevel == 1 ? 14 : 15;
@@ -1371,6 +1392,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             int wins = (rectangleWins & directionBit) != 0 ? 1 : 0;
                             Av1PartitionType firstPartition =
                                 (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[(nodeIndex * 4) + firstChild + 1];
+
                             Av1PartitionType secondPartition =
                                 (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[(nodeIndex * 4) + secondChild + 1];
 
@@ -1479,6 +1501,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     partitionType == Av1PartitionType.Split ? childRectangleWins : [],
                     out int stoppedAtLeaf,
                     out long accumulatedCost);
+
                 this.asymmetricModeCache = default;
                 if (cacheAsymmetricModes)
                 {
@@ -1518,6 +1541,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     noneCost = noneInvalid
                         ? long.MaxValue
                         : this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.Statistics.Cost;
+
                     if (!noneInvalid && !this.picture.Parent.FrameHeader.IsIntra &&
                         this.picture.Parent.SpeedSettings.GetRectangularPartitionReferencePruning(this.picture.Parent.FrameUpdateType) != 0)
                     {
@@ -1542,6 +1566,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
                         long distortionThreshold = settings.PartitionBreakoutDistortionThreshold >>
                             ((2 * Av1Constants.MaxSuperBlockSizeLog2) - sampleCountLog2);
+
                         int rateThreshold = settings.PartitionBreakoutRateThreshold * sampleCountLog2;
                         terminateAfterNone = this.ShouldStopPartitionSearch(blockSize, candidateStatistics) ||
                             (candidateStatistics.Distortion < distortionThreshold && candidateStatistics.Rate < rateThreshold);
@@ -1905,6 +1930,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool rectangleAllowed = this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Horizontal) ||
                 this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Vertical);
+
             if (!terminated && !this.mustFindValidPartition && !frameHeader.IsIntra && settings.AfterSplitTerminationLevel != 0 &&
                 allowRectangularSplit && rectangleAllowed)
             {
@@ -2024,6 +2050,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         long.MaxValue,
                         false,
                         false).Cost != long.MaxValue;
+
                     break;
 
                 case Av1PartitionType.Horizontal:
@@ -2301,6 +2328,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.activeModeCache = searchChildren && partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.VerticalB
                     ? this.asymmetricModeCache[leafIndex]
                     : default;
+
                 long childNoneCost = 0;
                 byte childWins = 3;
 
@@ -2444,6 +2472,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1EncoderPartitionTree.ModeContext sibling =
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
+
                     if (sibling.Snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
                         !sibling.Snapshot.ModeInfo.Block.Skip && !this.picture.Parent.FrameHeader.CodedLossless)
                     {
@@ -2457,6 +2486,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1EncoderPartitionTree.ModeContext sibling =
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
+
                     int siblingLumaArea = this.codedAreaLuma;
                     int siblingChromaArea = this.codedAreaChroma;
                     if (sibling.Snapshot.ModeInfo.Block.UseIntraBlockCopy)
@@ -3030,6 +3060,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformSize replayRootSize = this.picture.Parent.FrameHeader.CodedLossless
                         ? Av1TransformSize.Size4x4
                         : modeInfo.Block.BlockSize.GetMaximumTransformSize();
+
                     Av1TransformSize replayTraversalSize = replayRootSize.GetSubSize().GetSubSize();
                     Size replayExtent = GetCodedTransformExtent(
                         macroBlock, modeInfo.Block.BlockSize, Av1TransformSize.Size4x4, 0, 0);
@@ -3043,6 +3074,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Point offset = replayRootSize.GetBlockPartitionOrigin(modeInfo.Block.BlockSize, replayTraversalSize, leaf, 0, 0);
                         Av1TransformSize size = modeInfo.Block.InterTransformSizes[
                             modeInfo.Block.GetInterTransformSizeIndex(offset.Y >> 2, offset.X >> 2)];
+
                         if (offset.X >= replayExtent.Width || offset.Y >= replayExtent.Height ||
                             (offset.X % size.GetWidth()) != 0 || (offset.Y % size.GetHeight()) != 0)
                         {
@@ -3065,6 +3097,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
                             ? Av1TransformSize.Size4x4
                             : modeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+
                         Av1BlockSize chromaBlockSize = modeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0);
                         Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subX, subY);
                         int chromaTransformCount = chromaExtent.Width * chromaExtent.Height / chromaTransformSize.GetSize2d();
@@ -3108,6 +3141,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
                             ? Av1TransformSize.Size4x4
                             : modeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+
                         Size chromaExtent = GetCodedTransformExtent(
                             macroBlock,
                             chromaBlockSize,
@@ -3317,6 +3351,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
                     Span<Av1EncoderTransformBlockState> blueTransformBlocks =
                         this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.U);
+
                     Span<Av1EncoderTransformBlockState> redTransformBlocks =
                         this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.V);
 
@@ -3367,6 +3402,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool allowIntraBlockCopy = this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
             bool nonRdWithoutCopy = this.picture.Sequence.SequenceHeader.IsStillPicture &&
                 this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8;
+
             bool searchIntraBlockCopy = allowIntraBlockCopy && !nonRdWithoutCopy &&
                 this.picture.Parent.MotionSearchSettings.AllowIntraBlockCopy &&
                 (!this.picture.Parent.MotionSearchSettings.UseFastIntraBlockCopySearch ||
@@ -3426,6 +3462,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         interSecondaryVector,
                         ref interStatistics,
                         ref interStates);
+
                     this.useWarpedPrediction = false;
                     this.useObmcPrediction = false;
                 }
@@ -3523,9 +3560,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         refinedBlock.FilterIntraMode = refinedFilter;
                         Av1RateDistortionStatistics refinedChroma = this.RefineSelectedChroma(
                             writer, macroBlock, blockOrigin, tileIndex, refinedModeInfo, refinedBlock, refinedPalette, chromaStatistics);
+
                         refinedLuma.Add(this.rateMultiplier, refinedChroma);
                         Av1RateDistortionStatistics refinedStatistics = this.GetRegularBlockCost(
                             writer, macroBlock, refinedLuma);
+
                         if (refinedStatistics.Cost < this.SelectedBlockStatistics.Cost)
                         {
                             modeInfo = refinedModeInfo;
@@ -3540,6 +3579,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             Size refinedExtent = GetCodedTransformExtent(macroBlock, blockSize, refinedSize, 0, 0);
                             this.RetainModeContext(
                                 winner, this.codedAreaLuma, this.codedAreaChroma, refinedExtent.Width * refinedExtent.Height, chromaArea);
+
                             CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
                             refinementAccepted = true;
                         }
@@ -3582,6 +3622,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ? writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) +
                             chromaStatistics.Rate - chromaStatistics.ResidualRate
                         : paletteStatistics.Rate + chromaStatistics.Rate;
+
                     rate += writer.GetSkipCost(skip, Av1TileWriter.GetSkipContext(macroBlock));
                     Av1RateDistortionStatistics combinedStatistics = new(
                         this.rateMultiplier, rate, paletteStatistics.Distortion + chromaStatistics.Distortion);
@@ -3602,6 +3643,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Size paletteExtent = GetCodedTransformExtent(macroBlock, blockSize, paletteTransformSize, 0, 0);
                         this.RetainModeContext(
                             winner, this.codedAreaLuma, this.codedAreaChroma, paletteExtent.Width * paletteExtent.Height, chromaArea);
+
                         CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
                     }
 
@@ -3633,6 +3675,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Size selectedExtent = GetCodedTransformExtent(macroBlock, blockSize, modeInfo.Block.TransformSize, 0, 0);
                 this.RetainModeContext(
                     winner, this.codedAreaLuma, this.codedAreaChroma, selectedExtent.Width * selectedExtent.Height, chromaArea);
+
                 CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
                 int savedLumaArea = this.codedAreaLuma;
                 int savedChromaArea = this.codedAreaChroma;
@@ -3659,6 +3702,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // best_mode_index return at the end of av1_rd_pick_inter_mode().
                     bool comparesLeftoverEstimate = selectedStatistics.Cost == long.MaxValue &&
                         this.leftoverInterEstimate.Cost != long.MaxValue;
+
                     if (comparesLeftoverEstimate)
                     {
                         selectedStatistics = this.leftoverInterEstimate;
@@ -3671,6 +3715,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // the ref_mv_count return of rd_pick_skip_mode() before it adds skip_mode_cost[ctx][0].
                     bool skipModeListsReady = this.HasSkipModeReferenceLists(
                         skipModeParameters.FirstReferenceFrame, skipModeParameters.SecondReferenceFrame);
+
                     if (selectedStatistics.Cost != long.MaxValue && skipModeListsReady)
                     {
                         selectedStatistics.Add(this.rateMultiplier, syntaxStatistics);
@@ -3700,6 +3745,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     bool noMode = modeInfo.Block.SkipMode
                         ? selectedStatistics.Cost >= this.blockCostLimit
                         : comparesLeftoverEstimate;
+
                     this.SelectedBlockStatistics = noMode ? Av1RateDistortionStatistics.Invalid : selectedStatistics;
                 }
 
@@ -3714,6 +3760,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1TransformSize maximumSize = this.picture.Parent.FrameHeader.CodedLossless
                             ? Av1TransformSize.Size4x4
                             : blockSize.GetMaximumTransformSize();
+
                         modeInfo.Block.Skip = true;
                         modeInfo.Block.TransformSize = maximumSize;
                         modeInfo.Block.InterTransformSizes.Fill(maximumSize);
@@ -3732,6 +3779,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         interVector,
                         interSecondaryVector,
                         interStates);
+
                     this.keepSearchedZeroBlockTypes = false;
                     this.picture.SetDisplacementVector(modeInfoPosition, interVector);
                     if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
@@ -3765,6 +3813,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.codedAreaLuma += modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || modeInfo.Block.UseIntraBlockCopy
                 ? GetInterLumaCodedArea(macroBlock, ref modeInfo.Block)
                 : lumaExtent.Width * lumaExtent.Height;
+
             this.codedAreaChroma += chromaArea;
         }
 
@@ -4036,11 +4085,13 @@ internal static partial class Av1IntraSuperblockEncoder
             int chromaArea = this.codedAreaChroma;
             bool codesNothing = modeSearchReused &&
                 snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra && !snapshot.ModeInfo.Block.UseIntraBlockCopy;
+
             if (snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || snapshot.ModeInfo.Block.UseIntraBlockCopy)
             {
                 Av1TransformSize rootSize = this.picture.Parent.FrameHeader.CodedLossless
                     ? Av1TransformSize.Size4x4
                     : blockSize.GetMaximumTransformSize();
+
                 Av1TransformSize traversalSize = rootSize.GetSubSize().GetSubSize();
                 Size lumaExtent = GetCodedTransformExtent(macroBlock, blockSize, Av1TransformSize.Size4x4, 0, 0);
                 int leafCount = blockSize.GetWidth() * blockSize.GetHeight() / traversalSize.GetSize2d();
@@ -4053,6 +4104,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Point offset = rootSize.GetBlockPartitionOrigin(blockSize, traversalSize, leaf, 0, 0);
                     Av1TransformSize size = snapshot.ModeInfo.Block.InterTransformSizes[
                         snapshot.ModeInfo.Block.GetInterTransformSizeIndex(offset.Y >> 2, offset.X >> 2)];
+
                     if (offset.X >= lumaExtent.Width || offset.Y >= lumaExtent.Height ||
                         (offset.X % size.GetWidth()) != 0 || (offset.Y % size.GetHeight()) != 0)
                     {
@@ -4075,6 +4127,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
                             ? Av1TransformSize.Size4x4
                             : snapshot.ModeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+
                     Av1BlockSize chromaBlockSize = snapshot.ModeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0);
                     Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subX, subY);
                     int chromaTransformCount = chromaExtent.Width * chromaExtent.Height / chromaTransformSize.GetSize2d();
@@ -4138,6 +4191,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // distortion and cost and does no more.
                 Size reusedLumaExtent = GetCodedTransformExtent(
                     macroBlock, blockSize, snapshot.ModeInfo.Block.TransformSize, 0, 0);
+
                 this.codedAreaLuma += reusedLumaExtent.Width * reusedLumaExtent.Height;
                 if (snapshot.Block.HasChroma)
                 {
@@ -4146,6 +4200,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformSize reusedChromaTransform = this.picture.Parent.FrameHeader.CodedLossless
                         ? Av1TransformSize.Size4x4
                         : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+
                     Size reusedChromaExtent = GetCodedTransformExtent(
                         macroBlock,
                         blockSize.GetSubsampled(subX != 0, subY != 0),
@@ -4523,6 +4578,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Av1TransformSize leafSize = modeInfo.Block.InterTransformSizes[
                         modeInfo.Block.GetInterTransformSizeIndex(offset.Y >> 2, offset.X >> 2)];
+
                     int width = leafSize.GetWidth();
                     int height = leafSize.GetHeight();
                     if ((offset.X % width) != 0 || (offset.Y % height) != 0)
@@ -4534,6 +4590,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Size leafDimensions = new(width, height);
                     transformContexts.UnitModeWrite(
                         (byte)width, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
+
                     transformContexts.UnitModeWrite(
                         (byte)height, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
@@ -4542,6 +4599,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         byte context = lumaStates[
                             coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount]
                             .CoefficientContext;
+
                         Av1TileWriter.UpdateCoefficientContexts(
                             coefficientContexts.Top.Slice(coefficientContexts.GetTopIndex(origin), leafSize.Get4x4WideCount()),
                             coefficientContexts.Left.Slice(coefficientContexts.GetLeftIndex(origin), leafSize.Get4x4HighCount()),
@@ -4557,6 +4615,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 transformContexts.UnitModeWrite(
                     (byte)transformSize.GetWidth(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
+
                 transformContexts.UnitModeWrite(
                     (byte)transformSize.GetHeight(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
             }
@@ -5013,6 +5072,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int level = this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate
                 ? this.picture.Parent.SpeedSettings.IntraTransformTypeSearchLevel
                 : 0;
+
             if (level == 2)
             {
                 Av1TransformType type = transformSize >= Av1TransformSize.Size32x32 || this.picture.Parent.FrameHeader.AllowScreenContentTools
@@ -5035,6 +5095,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 int probabilityOffset = ((int)this.picture.Parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength) +
                     ((int)transformSize * Av1TransformTypeProbabilities.TypeCount);
+
                 mask = Av1TransformTypeProbabilities.Prune(
                     this.blockWorkspace.TransformTypeProbabilities.Slice(probabilityOffset, Av1TransformTypeProbabilities.TypeCount),
                     mask,
@@ -5141,6 +5202,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // av1_rd_pick_intra_sbuv_mode().
             Point chromaReferencePosition = new(
                 blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+
             bool storeLumaForChromaFromLuma = !this.source.IsMonochrome &&
                 Av1TileReader.HasChroma(this.picture.Sequence.SequenceHeader, chromaReferencePosition, blockSize) &&
                 blockSize.AllowsChromaFromLuma(
@@ -5255,6 +5317,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int maximumDepth = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
                     ? width == height ? settings.IntraSquareTransformSearchDepth : settings.IntraRectangularTransformSearchDepth
                     : 0;
+
                 int sourceVariance = maximumDepth > 1 || settings.PruneIntraTransformDepth
                     ? this.GetSourceVariance(blockOrigin, blockSize)
                     : 0;
@@ -5634,6 +5697,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     long modelCost = this.GetLumaModelCost(
                         macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, mode, angleDelta, filterMode);
+
                     if (filter)
                     {
                         if (bestModelCost != long.MaxValue && modelCost > bestModelCost + (bestModelCost >> 2))
@@ -5786,6 +5850,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 bool improves = intraFrame ? modeStatistics.Cost < Math.Min(bestStatistics.Cost, interCostLimit)
                     : modeStatistics.LumaCost < bestStatistics.LumaCost || (filter && modeStatistics.Cost != long.MaxValue);
+
                 if (improves)
                 {
                     bestStatistics = modeStatistics;
@@ -5847,6 +5912,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize rootSize = modeInfo.TransformSize == Av1TransformSize.Size4x4
                 ? Av1TransformSize.Size4x4
                 : modeInfo.BlockSize.GetMaximumTransformSize();
+
             Av1TransformSize traversalSize = rootSize.GetSubSize().GetSubSize();
             Size extent = GetCodedTransformExtent(macroBlock, modeInfo.BlockSize, Av1TransformSize.Size4x4, 0, 0);
             int leafCount = modeInfo.BlockSize.GetWidth() * modeInfo.BlockSize.GetHeight() / traversalSize.GetSize2d();
@@ -5995,10 +6061,12 @@ internal static partial class Av1IntraSuperblockEncoder
             // Reference: tx_size_cost() against select_tx_mode() and tx_size_search_methods.
             bool selectsTransformSize = !this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
                 this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate;
+
             int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 && selectsTransformSize &&
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
                 ? writer.GetTransformSizeCost(blockSize, transformSize, transformSizeContext)
                 : 0;
+
             int transformSizeRate = rate;
             if (paletteSize > 0)
             {
@@ -6199,6 +6267,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             // before the skip prediction and the type pruning read the residual.
                             Av1TransformBlockEncoder.PadBorderResidual(
                                 this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, transformWidth, transformWidth, transformHeight, Av1TransformType.DctDct);
+
                             ushort candidateTransformMask = transformMask;
                             Av1EncoderSpeedSettings typeSettings = this.picture.Parent.SpeedSettings;
                             if (typeSettings.EstimateTransformTypeRateDistortion &&
@@ -6240,6 +6309,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             int visibleHeight = visibleSize.Height;
                             bool borderBlock = this.blockWorkspace.BorderPad &&
                                 (visibleWidth < transformWidth || visibleHeight < transformHeight);
+
                             int predictDcLevel = this.blockWorkspace.EvaluationStage switch
                             {
                                 Av1EncoderEvaluationStage.Candidate => typeSettings.ModePredictDcLevel,
@@ -6291,6 +6361,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 perPixelMean,
                                 blockVariance,
                                 out dcOnlyCandidate);
+
                             bool dcOnlyBlock = predictDcBlock && dcOnlyCandidate && predictDcLevel > 1;
                             if (dcOnlyBlock)
                             {
@@ -6319,6 +6390,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 blockMseQ8 >= distortionPolicy.Threshold &&
                                 transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64 &&
                                 !dcOnlyBlock;
+
                             bool measureWinnerInPixelDomain = distortionPolicy.Type == 1 && useTransformDomainDistortion;
                             if (measureWinnerInPixelDomain &&
                                 (System.Numerics.BitOperations.PopCount((uint)transformMask) == 1 || candidateTransformMask == 1))
@@ -6349,6 +6421,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     blockOrigin,
                                     blockSize,
                                     transformSize);
+
                                 candidateTransformMask = 0;
                                 bestTransformType = Av1TransformType.DctDct;
                                 bestTransformState = default;
@@ -6356,6 +6429,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     true,
                                     Av1SymbolContextHelper.GetTransformSizeContext(transformSize),
                                     originContext.SkipContext);
+
                                 bestTransformDistortion = blockError;
                                 bestTransformCoefficients.Clear();
                                 prediction.CopyTo(bestTransformReconstruction);
@@ -6458,6 +6532,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             this.bitDepth,
                                             out transformDomainEnergy,
                                             useMatrix: !candidateMatricesDropped);
+
                                         energyDifference = blockError - transformDomainEnergy;
                                     }
 
@@ -6477,6 +6552,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             this.superblockQIndex,
                                             this.bitDepth,
                                             in candidateState);
+
                                         candidateReconstructed = true;
                                         if (isHighEnergy && candidateDistortion < transformDomainDistortion)
                                         {
@@ -6550,6 +6626,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     this.superblockQIndex,
                                     this.bitDepth,
                                     in bestTransformState);
+
                                 Av1WorkCounters.Stop(Av1WorkCounters.ReconIntraInv, workRecon);
 
                                 if (measureWinnerInPixelDomain && bestTransformState.EndOfBlock != 0)
@@ -6569,8 +6646,10 @@ internal static partial class Av1IntraSuperblockEncoder
                             bool publishReconstruction = bestTransformState.EndOfBlock != 0 &&
                                 ((y + transformHeight) < blockHeight ||
                                 (x + transformWidth) < blockWidth);
+
                             ReadOnlySpan<TSample> publishedSamples =
                                 publishReconstruction ? bestTransformReconstruction : prediction;
+
                             for (int row = 0; row < transformHeight; row++)
                             {
                                 publishedSamples.Slice(row * transformWidth, transformWidth)
@@ -6793,6 +6872,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref TSample column = ref transformColumn > 0
                     ? ref Unsafe.Add(ref candidateBase, (rowOffset * candidateStride) + columnOffset - 1)
                     : ref Unsafe.Add(ref planeBase, (rowOffset * planeStride) - 1);
+
                 int columnStride = transformColumn > 0 ? candidateStride : planeStride;
                 ref TSample leftBase = ref MemoryMarshal.GetReference(left);
                 for (int row = 0; row < leftCount; row++)
@@ -6869,12 +6949,14 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 Size sibling = GetCodedTransformExtent(
                     macroBlock, blockSize, this.GetRetainedLumaTransformSize(new Point(blockOrigin.X ^ 4, blockOrigin.Y)), 0, 0);
+
                 height = Math.Max(height, sibling.Height);
             }
             else if (sharedHeight && !sharedWidth)
             {
                 Size sibling = GetCodedTransformExtent(
                     macroBlock, blockSize, this.GetRetainedLumaTransformSize(new Point(blockOrigin.X, blockOrigin.Y ^ 4)), 0, 0);
+
                 width = Math.Max(width, sibling.Width);
             }
 
@@ -7048,6 +7130,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // intra_model_rd() subtracts with the border padding of the picture.
                     Av1TransformBlockEncoder.PadBorderResidual(
                         this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, tileSize, tileSize, tileSize, Av1TransformType.DctDct);
+
                     cost += Av1ForwardTransformer.GetHadamardCost(
                         residual,
                         tileSize,
@@ -7097,8 +7180,10 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 bool leftDiffers = macroBlock.IsLeftAvailable &&
                     macroBlock.GetRelativeModeInfo(-1).Block.Mode != mode;
+
                 bool aboveDiffers = macroBlock.IsUpAvailable &&
                     macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Mode != mode;
+
                 if ((qIndex <= 127 && (leftDiffers || aboveDiffers)) ||
                     (qIndex > 127 && leftDiffers && aboveDiffers))
                 {
@@ -7172,6 +7257,7 @@ internal static partial class Av1IntraSuperblockEncoder
             float threshold = this.picture.Parent.FrameHeader.IsIntra
                 ? pruningLevel == 4 ? 0.4F : pruningLevel == 3 ? -0.6F : -1.2F
                 : pruningLevel == 4 ? 1.2F : pruningLevel == 1 ? -1.2F : 0F;
+
             return GetDirectionalModeSkipMask(
                 sourcePlane,
                 blockOrigin,
@@ -7275,6 +7361,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int planeIndex = (int)plane;
             Av1TransformBlockEncoder.PadBorderResidual(
                 this.blockWorkspace, plane, planeOrigin, residual, inputStride, width, height, selectedState.TransformType);
+
             Av1TransformBlockEncoder.EncodeLossyCandidate(
                 this.blockWorkspace,
                 writer,
@@ -7323,6 +7410,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 reconLine.Append(
                     System.Globalization.CultureInfo.InvariantCulture,
                     $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} pred");
+
                 for (int i = 0; i < width && i < 8; i++)
                 {
                     reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {TOperator.GetSampleValue(prediction[i])}");

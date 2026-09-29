@@ -329,6 +329,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Rectangle reconstructionBounds = reconstruction.Bounds;
         int reconstructionOffset = ((reconstructionBounds.Y + blockOrigin.Y) * reconstruction.Stride) +
             reconstructionBounds.X + blockOrigin.X;
+
         Point start = new(reference.Column >> 3, reference.Row >> 3);
         Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
         int directionCount = settings.UseFastIntraBlockCopySearch ? 1 : 2;
@@ -340,18 +341,23 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             int maximumRow = direction == 0
                 ? Math.Min(superblockTop - height, tileBottom)
                 : Math.Min(superblockTop + superblockSize - height, tileBottom);
+
             int minimumColumn = Math.Max(
                 tileLeft - blockOrigin.X,
                 Math.Max(start.X - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
+
             int minimumRow = Math.Max(
                 tileTop - blockOrigin.Y,
                 Math.Max(start.Y - MaximumFullPixelSearchOffset, MinimumFullPixelMotionVector));
+
             maximumColumn = Math.Min(
                 maximumColumn - blockOrigin.X,
                 Math.Min(start.X + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
+
             maximumRow = Math.Min(
                 maximumRow - blockOrigin.Y,
                 Math.Min(start.Y + MaximumFullPixelSearchOffset, MaximumFullPixelMotionVector));
+
             if (minimumColumn > maximumColumn || minimumRow > maximumRow)
             {
                 continue;
@@ -470,6 +476,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Rectangle reconstructionBounds = reconstruction.Bounds;
         int reconstructionOffset = ((reconstructionBounds.Y + blockOrigin.Y) * reconstruction.Stride) +
             reconstructionBounds.X + blockOrigin.X;
+
         ReadOnlySpan<TSample> sourceSamples = source.Buffer.DangerousGetSingleSpan()[sourceOffset..];
         ReadOnlySpan<TSample> reconstructedSamples = reconstruction.Buffer.DangerousGetSingleSpan();
         int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(qIndex, sequenceHeader.ColorConfig.BitDepth);
@@ -528,6 +535,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             int offset = reconstructionOffset + (displacement.Y * reconstruction.Stride) + displacement.X;
             int sad = TOperation.SumAbsoluteDifferences(
                 sourceSamples, source.Stride, reconstructedSamples[offset..], reconstruction.Stride, width, height, 1);
+
             int rate = ((costs.GetCost(vector, reference) * 108) + 64) >> 7;
             int cost = sad + rate;
             if (cost < bestCost)
@@ -610,6 +618,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         uint blockHash = blockOrigin.X < originWidth && blockOrigin.Y < originHeight
             ? hashes[(blockOrigin.Y * originWidth) + blockOrigin.X]
             : GetBlockHash<TSample, TOperation>(source, blockOrigin, size);
+
         int bucket = (int)(blockHash & (MaximumBucketCount - 1));
         int count = counts[bucket];
         bestVector = default;

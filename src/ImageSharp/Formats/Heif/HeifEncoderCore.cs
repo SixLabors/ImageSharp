@@ -410,12 +410,15 @@ internal sealed partial class HeifEncoderCore
             propertyBytes += item.Av1CodecConfiguration is null
                 ? 0
                 : Av1CodecConfigurationPropertyBoxLength;
+
             propertyBytes += item.AuxiliaryType is null
                 ? 0
                 : AuxiliaryTypePropertyBoxFixedLength + Encoding.UTF8.GetByteCount(item.AuxiliaryType);
+
             propertyBytes += item.IccProfile is null
                 ? 0
                 : IccColorInformationPropertyBoxFixedLength + item.GetIccProfileDataForWriting().Length;
+
             propertyBytes += item.CicpProfile is null ? 0 : CicpColorInformationPropertyBoxLength;
         }
 

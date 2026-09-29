@@ -524,6 +524,7 @@ internal sealed class Av1PredictionDecoder
             blockModeInfoColumnOffset,
             subX,
             subY);
+
         bool haveBottomLeft = Av1IntraReferenceAvailability.HasBottomLeft(
             this.sequenceHeader.SuperblockSize,
             blockSize,

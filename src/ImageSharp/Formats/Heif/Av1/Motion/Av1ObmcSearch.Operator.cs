@@ -679,6 +679,7 @@ internal static partial class Av1ObmcSearch
             Vector128<int> difference = Vector128.ShiftRightArithmetic(
                 value + Vector128.Create(DifferenceBias) + Vector128.ShiftRightArithmetic(value, 31),
                 DifferenceShift);
+
             sum += difference;
             squares += (difference * difference).AsUInt32();
         }
@@ -698,6 +699,7 @@ internal static partial class Av1ObmcSearch
             Vector256<int> difference = Vector256.ShiftRightArithmetic(
                 value + Vector256.Create(DifferenceBias) + Vector256.ShiftRightArithmetic(value, 31),
                 DifferenceShift);
+
             sum += difference;
             squares += (difference * difference).AsUInt32();
         }
@@ -717,6 +719,7 @@ internal static partial class Av1ObmcSearch
             Vector512<int> difference = Vector512.ShiftRightArithmetic(
                 value + Vector512.Create(DifferenceBias) + Vector512.ShiftRightArithmetic(value, 31),
                 DifferenceShift);
+
             sum += difference;
             squares += (difference * difference).AsUInt32();
         }
@@ -810,6 +813,7 @@ internal static partial class Av1ObmcSearch
             Vector128<int> weights = Vector128.LoadUnsafe(ref mask);
             ((Vector128.ShiftRightArithmetic(source, AlphaShift) * weight) +
                 (Vector128.ShiftLeft(prediction, AlphaShift) * (Vector128.Create(MaximumAlpha) - weight))).StoreUnsafe(ref weightedSource);
+
             (Vector128.ShiftRightArithmetic(weights, AlphaShift) * weight).StoreUnsafe(ref mask);
         }
 
@@ -827,6 +831,7 @@ internal static partial class Av1ObmcSearch
             Vector256<int> weights = Vector256.LoadUnsafe(ref mask);
             ((Vector256.ShiftRightArithmetic(source, AlphaShift) * weight) +
                 (Vector256.ShiftLeft(prediction, AlphaShift) * (Vector256.Create(MaximumAlpha) - weight))).StoreUnsafe(ref weightedSource);
+
             (Vector256.ShiftRightArithmetic(weights, AlphaShift) * weight).StoreUnsafe(ref mask);
         }
 
@@ -844,6 +849,7 @@ internal static partial class Av1ObmcSearch
             Vector512<int> weights = Vector512.LoadUnsafe(ref mask);
             ((Vector512.ShiftRightArithmetic(source, AlphaShift) * weight) +
                 (Vector512.ShiftLeft(prediction, AlphaShift) * (Vector512.Create(MaximumAlpha) - weight))).StoreUnsafe(ref weightedSource);
+
             (Vector512.ShiftRightArithmetic(weights, AlphaShift) * weight).StoreUnsafe(ref mask);
         }
 

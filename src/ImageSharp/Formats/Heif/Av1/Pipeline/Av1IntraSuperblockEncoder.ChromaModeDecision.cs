@@ -103,6 +103,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int residualRate = usesChromaFromLuma
                 ? writer.GetChromaFromLumaCost(block.PredictionUnit.ChromaFromLumaIndex, block.PredictionUnit.ChromaFromLumaSigns)
                 : 0;
+
             long distortion = 0;
             bool hasCoefficients = false;
             for (int planeIndex = 1; planeIndex < 3; planeIndex++)
@@ -717,10 +718,13 @@ internal static partial class Av1IntraSuperblockEncoder
                             {
                                 int jointSign = Av1ChromaFromLumaMath.JointSign(
                                     Av1ChromaFromLumaMath.AlphaToSign(alphaU), Av1ChromaFromLumaMath.AlphaToSign(alphaV));
+
                                 int packedIndex = Av1ChromaFromLumaMath.PackIndices(
                                     Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU), Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaV));
+
                                 int headerRate = writer.GetChromaModeCost(Av1ChromaPredictionMode.ChromaFromLuma, true, lumaMode) +
                                     writer.GetChromaFromLumaCost(packedIndex, jointSign);
+
                                 evaluateAlpha = Av1RateDistortion.GetCost(this.rateMultiplier, headerRate, 0) <= bestStatistics.Cost;
                             }
                         }
@@ -812,6 +816,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 // Alpha syntax is part of the CfL residual decision; the UV mode symbol is separate.
                                 int residualRate = blueRates[blueCandidateIndex] + redRates[redCandidateIndex] +
                                     writer.GetChromaFromLumaCost(packedIndex, jointSign);
+
                                 int rate = chromaFromLumaModeRate + residualRate;
 
                                 long distortion = blueDistortions[blueCandidateIndex] + redDistortions[redCandidateIndex];
@@ -1114,6 +1119,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             ushort chromaModeMask = speedSettings.GetChromaModeMask(
                 blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY));
+
             byte directionalModeSkipMask = hogLevel != 0
                 ? GetDirectionalModeSkipMask(
                     blueSource,
@@ -1127,6 +1133,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool pruneSmooth = speedSettings.PruneChromaSmoothByVariance &&
                 GetSourceVariance(blueSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20;
+
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
                 this.picture.Parent.FrameHeader.AllowScreenContentTools,
@@ -1748,6 +1755,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformSize.GetWidth(),
                         transformSize.GetHeight(),
                         Av1TransformType.DctDct);
+
                     Av1ForwardTransformer.Transform2d(
                         residual,
                         coefficients,

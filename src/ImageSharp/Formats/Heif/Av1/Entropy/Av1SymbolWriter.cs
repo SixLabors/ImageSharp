@@ -325,8 +325,10 @@ internal sealed class Av1SymbolWriter : IDisposable
             uint v;
             u = (uint)((((r >> 8) * (lowFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
                 (Av1Distribution.ProbabilityMinimum * (n - (symbol - 1))));
+
             v = (uint)((((r >> 8) * (highFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
                 (Av1Distribution.ProbabilityMinimum * (n - symbol)));
+
             l += r - u;
             r = u - v;
         }

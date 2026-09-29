@@ -485,6 +485,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         parent.FrameUpdateType = frameHeader.FrameType == ObuFrameType.KeyFrame
             ? Av1FrameUpdateType.Key
             : parent.StartsGoldenGroup ? Av1FrameUpdateType.Golden : Av1FrameUpdateType.Last;
+
         if (!frameHeader.IsIntra)
         {
             // DC steps are represented at four times sample precision. Normalize high-bit-depth
@@ -493,6 +494,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             ObuQuantizationParameters quantization = frameHeader.QuantizationParameters;
             double step = Av1QuantizationLookup.GetDcQuant(quantization.QIndex[0], quantization.DeltaQDc[0], bitDepth) /
                 (double)(1 << (2 + (2 * (int)bitDepth)));
+
             blockWorkspace.ModeThresholdQuantizerFactor = Math.Max((int)(Math.Pow(step, 1.25) * 5.12), 8);
 
             // Q12 spans 2.5 at quantizer zero to 1 at quantizer 255. Compute once for the frame,
@@ -518,6 +520,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // copy_frame_prob_info() runs at a key frame, and at a golden refresh when warped motion is pruned further.
         bool restoreProbabilities = frameHeader.FrameType == ObuFrameType.KeyFrame ||
             (parent.SpeedSettings.ExtraPruneWarped && parent.RefreshesGolden);
+
         if (restoreProbabilities && parent.SpeedSettings.TransformTypeProbabilityPruning != 0)
         {
             Av1TransformTypeProbabilities.Defaults.CopyTo(blockWorkspace.TransformTypeProbabilities);
@@ -718,6 +721,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // loopfilter_frame picks the levels against the source, then filters the frame.
         Av1LoopFilterEncoder.PickFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
             blockWorkspace.MemoryAllocator, picture, source, reconstruction, blockWorkspace.PreviousLoopFilterLevels);
+
         Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);
         bool useRestoration = picture.Sequence.SequenceHeader.EnableRestoration && !frameHeader.AllLossless && !frameHeader.AllowIntraBlockCopy;
         if (useRestoration)
@@ -788,6 +792,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.FrameUpdateType,
             parent.EncoderOptions.Tuning,
             parent.SpeedSettings.IsRealtime);
+
         return encodedTiles;
     }
 

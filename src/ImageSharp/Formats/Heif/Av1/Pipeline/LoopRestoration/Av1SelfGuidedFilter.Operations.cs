@@ -222,6 +222,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector256<int> squares = samples * samples;
                 Vector256<int> scannedSums = Scan(samples);
                 Vector256<int> scannedSquares = Scan(squares);
@@ -296,6 +297,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector128<int> squares = samples * samples;
                 Vector128<int> scannedSums = Scan(samples);
                 Vector128<int> scannedSquares = Scan(squares);
@@ -786,6 +788,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector256<int> values = Vector256.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -848,6 +851,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector128<int> values = Vector128.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -907,6 +911,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector256<int> values = Vector256.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -966,6 +971,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector128<int> values = Vector128.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -1219,6 +1225,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector256<int> unfiltered = Vector256.ShiftLeft(samples, RestorationBits);
                 Vector256<int> projected = Vector256.ShiftLeft(unfiltered, ProjectionBits);
                 if (radii[0] > 0)
@@ -1315,6 +1322,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
                     ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
                     vector);
+
                 Vector128<int> unfiltered = Vector128.ShiftLeft(samples, RestorationBits);
                 Vector128<int> projected = Vector128.ShiftLeft(unfiltered, ProjectionBits);
                 if (radii[0] > 0)

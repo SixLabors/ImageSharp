@@ -1257,6 +1257,7 @@ internal ref struct Av1SymbolDecoder
             in transformInfo,
             useReducedTransformSet,
             usesInterTransformSet);
+
         Av1TransformClass transformClass = transformInfo.Type.ToClass();
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
         ReadOnlySpan<short> scan = scanOrder.Scan;

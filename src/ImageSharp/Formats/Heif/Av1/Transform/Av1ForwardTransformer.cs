@@ -972,8 +972,10 @@ internal static partial class Av1ForwardTransformer
     {
         ref Av1TransformVector<Vector512<short>> buffer0 =
             ref Unsafe.As<int, Av1TransformVector<Vector512<short>>>(ref MemoryMarshal.GetReference(workspace));
+
         ref Av1TransformVector<Vector512<short>> buffer1 =
             ref Unsafe.Add(ref buffer0, 1);
+
         ref short source = ref MemoryMarshal.GetReference(buffer);
         nint inputByteStride = inputStride * sizeof(short);
         nint outputByteStride = outputStride * sizeof(short);
@@ -1000,8 +1002,10 @@ internal static partial class Av1ForwardTransformer
     {
         ref Av1TransformVector<Vector256<short>> buffer0 =
             ref Unsafe.As<int, Av1TransformVector<Vector256<short>>>(ref MemoryMarshal.GetReference(workspace));
+
         ref Av1TransformVector<Vector256<short>> buffer1 =
             ref Unsafe.Add(ref buffer0, 1);
+
         ref short source = ref MemoryMarshal.GetReference(buffer);
         nint inputByteStride = inputStride * sizeof(short);
         nint outputByteStride = outputStride * sizeof(short);
@@ -1028,8 +1032,10 @@ internal static partial class Av1ForwardTransformer
     {
         ref Av1TransformVector<Vector128<short>> buffer0 =
             ref Unsafe.As<int, Av1TransformVector<Vector128<short>>>(ref MemoryMarshal.GetReference(workspace));
+
         ref Av1TransformVector<Vector128<short>> buffer1 =
             ref Unsafe.Add(ref buffer0, 1);
+
         ref short source = ref MemoryMarshal.GetReference(buffer);
         nint inputByteStride = inputStride * sizeof(short);
         nint outputByteStride = outputStride * sizeof(short);
@@ -1056,8 +1062,10 @@ internal static partial class Av1ForwardTransformer
     {
         ref Av1TransformVector<Vector512<int>> buffer0 =
             ref Unsafe.As<int, Av1TransformVector<Vector512<int>>>(ref MemoryMarshal.GetReference(workspace));
+
         ref Av1TransformVector<Vector512<int>> buffer1 =
             ref Unsafe.Add(ref buffer0, 1);
+
         ref int source = ref MemoryMarshal.GetReference(buffer);
         nint inputByteStride = inputStride * sizeof(int);
         nint outputByteStride = outputStride * sizeof(int);
@@ -1084,8 +1092,10 @@ internal static partial class Av1ForwardTransformer
     {
         ref Av1TransformVector<Vector256<int>> buffer0 =
             ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref MemoryMarshal.GetReference(workspace));
+
         ref Av1TransformVector<Vector256<int>> buffer1 =
             ref Unsafe.Add(ref buffer0, 1);
+
         ref int source = ref MemoryMarshal.GetReference(buffer);
         nint inputByteStride = inputStride * sizeof(int);
         nint outputByteStride = outputStride * sizeof(int);
@@ -1112,8 +1122,10 @@ internal static partial class Av1ForwardTransformer
     {
         ref Av1TransformVector<Vector128<int>> buffer0 =
             ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref MemoryMarshal.GetReference(workspace));
+
         ref Av1TransformVector<Vector128<int>> buffer1 =
             ref Unsafe.Add(ref buffer0, 1);
+
         ref int source = ref MemoryMarshal.GetReference(buffer);
         nint inputByteStride = inputStride * sizeof(int);
         nint outputByteStride = outputStride * sizeof(int);
@@ -1140,8 +1152,10 @@ internal static partial class Av1ForwardTransformer
     {
         ref Av1TransformVector<int> buffer0 =
             ref Unsafe.As<int, Av1TransformVector<int>>(ref MemoryMarshal.GetReference(workspace));
+
         ref Av1TransformVector<int> buffer1 =
             ref Unsafe.Add(ref buffer0, 1);
+
         ref int source = ref MemoryMarshal.GetReference(buffer);
         nint inputByteStride = inputStride * sizeof(int);
         nint outputByteStride = outputStride * sizeof(int);

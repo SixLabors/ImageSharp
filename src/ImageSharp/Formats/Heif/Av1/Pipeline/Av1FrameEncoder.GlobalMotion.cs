@@ -83,6 +83,7 @@ internal static partial class Av1FrameEncoder
                 int frame = frames[i];
                 ComputeGlobalMotionForReference<TSample, TOperator>(
                     allocator, source, references[frame], frameHeader, frame, bitDepth, search.SpeedSettings);
+
                 if (prune && models[frame - 1].Type <= Av1GlobalMotionType.Translation)
                 {
                     break;
@@ -323,6 +324,7 @@ internal static partial class Av1FrameEncoder
             double errorAdvantage = (double)warpError / referenceError;
             int parametersCost = ObuWriter.GetGlobalMotionParameterBitCount(
                 candidate, previous, frameHeader.AllowHighPrecisionMotionVector) << Av1ProbabilityCost.CostShift;
+
             if (!Av1GlobalMotionSearch.IsEnoughErrorAdvantage(errorAdvantage, parametersCost, threshold))
             {
                 continue;

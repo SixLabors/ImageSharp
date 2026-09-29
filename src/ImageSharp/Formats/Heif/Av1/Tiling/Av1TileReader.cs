@@ -1224,6 +1224,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         bool subY = sequenceHeader.ColorConfig.SubSamplingY;
         bool hasChroma = ((modeInfoLocation.Y & 0x01) != 0 || (blockHigh & 0x01) == 0 || !subY) &&
             ((modeInfoLocation.X & 0x01) != 0 || (blockWide & 0x01) == 0 || !subX);
+
         return hasChroma;
     }
 
@@ -1893,6 +1894,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         {
                             lumaTransformInfo[transformInfoYIndex] = new Av1TransformInfo(
                                 transformSize, blockColumn, blockRow);
+
                             transformInfoYIndex++;
                             lumaTransformUnitCount++;
                             totalLumaTransformUnitCount++;
@@ -1924,6 +1926,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     {
                         chromaTransformInfo[transformInfoUvIndex] = new Av1TransformInfo(
                             transformSizeUv, blockColumn, blockRow);
+
                         transformInfoUvIndex++;
                         chromaTransformUnitCount++;
                         totalChromaTransformUnitCount++;
@@ -1942,6 +1945,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 (transformInfoUvIndex - totalChromaTransformUnitCount) ==
                 partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Uv),
                 nameof(totalChromaTransformUnitCount));
+
             int originalIndex = transformInfoUvIndex - totalChromaTransformUnitCount;
             ref Av1TransformInfo originalInfo = ref chromaTransformInfo[originalIndex];
             ref Av1TransformInfo infoV = ref chromaTransformInfo[transformInfoUvIndex];
@@ -2742,6 +2746,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1BlockModeInfo? aboveModeInfo = partitionInfo.RowIndex % minimumSuperblockHeight == 0
             ? null
             : partitionInfo.AboveModeInfo;
+
         Av1BlockModeInfo? leftModeInfo = partitionInfo.LeftModeInfo;
 
         Av1BlockModeInfo above = aboveModeInfo.GetValueOrDefault();
@@ -2782,6 +2787,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int columnsInsideImage = partitionInfo.ModeBlockToRightEdge >= 0
             ? blockWidth
             : blockWidth + (partitionInfo.ModeBlockToRightEdge >> 3);
+
         int rowsInsideImage = partitionInfo.ModeBlockToBottomEdge >= 0
             ? blockHeight
             : blockHeight + (partitionInfo.ModeBlockToBottomEdge >> 3);
@@ -3041,6 +3047,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int ctx = prevUL < 0 ? 0
                 : prevUL == prevU && prevUL == prevL ? 2
                 : prevUL == prevU || prevUL == prevL || prevU == prevL ? 1 : 0;
+
             int lastActiveSegmentId = this.FrameHeader.SegmentationParameters.LastActiveSegmentId;
             int segmentId = Av1SymbolContextHelper.NegativeDeinterleave(reader.ReadSegmentId(ctx), predictor, lastActiveSegmentId + 1);
             if (segmentId is < 0 || segmentId > lastActiveSegmentId)

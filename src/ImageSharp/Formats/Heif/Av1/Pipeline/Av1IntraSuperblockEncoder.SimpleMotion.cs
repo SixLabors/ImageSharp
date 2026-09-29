@@ -51,6 +51,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
                 new Rectangle(blockOrigin, size), frameSize, Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y));
+
             Av1MotionVector zero = default;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1MotionSearchSettings settings = this.picture.Parent.MotionSearchSettings;
@@ -141,6 +142,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 TOperator.GetMoments(
                     source, sourcePlane.Stride, prediction, size.Width, size.Width, size.Height, out int sum, out long squares);
+
                 int shift = this.bitDepth.GetBitCount() - 8;
                 sum = (sum + ((1 << shift) >> 1)) >> shift;
                 squares = (squares + ((1L << (2 * shift)) >> 1)) >> (2 * shift);
@@ -183,6 +185,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Point origin = new(
                         blockOrigin.X + (horizontal ? 0 : (rectangle & 1) * half),
                         blockOrigin.Y + (horizontal ? (rectangle & 1) * half : 0));
+
                     Av1BlockSize rectangleSize = (horizontal ? Av1PartitionType.Horizontal : Av1PartitionType.Vertical).GetBlockSubSize(blockSize);
                     this.SearchSimpleMotion(
                         origin,
@@ -244,6 +247,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1BlockSize above = macroBlock.IsUpAvailable
                 ? macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.BlockSize : blockSize;
+
             Av1BlockSize left = macroBlock.IsLeftAvailable ? macroBlock.GetRelativeModeInfo(-1).Block.BlockSize : blockSize;
             features[index++] = macroBlock.IsUpAvailable ? 1F : 0F;
             features[index++] = BitOperations.Log2((uint)above.GetWidth()) - Av1Constants.ModeInfoSizeLog2;
@@ -262,6 +266,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1SimpleMotionData node = ref nodes[nodeIndex];
             Av1MotionVector vector = this.SearchSimpleMotion(
                 blockOrigin, blockSize, node.Starts[(int)Av1ReferenceFrameType.Last], true, out node.SquaredError, out node.Variance);
+
             node.WholeBlockValid = true;
             if (this.IsBlockOriginInsideFrame(blockOrigin))
             {

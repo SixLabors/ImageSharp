@@ -54,10 +54,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Size frameSize = new(
                 this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
                 this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+
             Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
                 new Rectangle(blockOrigin, new Size(width, height)),
                 frameSize,
                 Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y));
+
             Av1MotionVectorCosts costs = this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision);
             int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(this.superblockQIndex, this.bitDepth);
             Av1MotionVector integerReference = new(
@@ -70,8 +72,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Point best = new(
                 Math.Clamp((start.Column + 3 + (start.Column >= 0 ? 1 : 0)) >> 3, fullBounds.Left, fullBounds.Right - 1),
                 Math.Clamp((start.Row + 3 + (start.Row >= 0 ? 1 : 0)) >> 3, fullBounds.Top, fullBounds.Bottom - 1));
+
             int bestSad = GetObmcSad(reference, referencePlane.Stride, referenceOrigin, best, weightedSource, mask, width, height) +
                 Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, costs.GetCost(new Av1MotionVector(best.Y * 8, best.X * 8), integerReference), 0);
+
             ReadOnlySpan<Point> neighbors = [new(0, -1), new(-1, 0), new(1, 0), new(0, 1)];
             Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
             if (!motionSettings.UseRefiningObmcSearch)
@@ -105,6 +109,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         {
                             sad += Av1RateDistortion.GetMotionSearchSadCost(
                                 sadPerBit, costs.GetCost(new Av1MotionVector(candidate.Y * 8, candidate.X * 8), integerReference), 0);
+
                             if (sad < bestSad)
                             {
                                 bestSad = sad;
@@ -131,6 +136,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector bestVector = new(best.Y * 8, best.X * 8);
             int bestError = this.GetObmcSubpixelCost(
                 reference, referencePlane.Stride, referenceOrigin, bestVector, referenceVector, costs, weightedSource, mask, prediction, width, height, taps);
+
             int rounds = Math.Min(3 - (int)settings.FractionalPrecision, frameHeader.AllowHighPrecisionMotionVector ? 3 : 2);
             for (int iteration = 0, step = 4; iteration < rounds; iteration++, step >>= 1)
             {
@@ -194,6 +200,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Point best = SearchObmcDiamondSteps(
                 reference, referenceStride, referenceOrigin, start, stepParameter, sites, bounds, integerReference, costs, sadPerBit, weightedSource, mask, width, height, out int stage);
+
             int bestCost = this.GetObmcFullPixelCost(reference, referenceStride, referenceOrigin, best, referenceVector, costs, weightedSource, mask, width, height);
             int furtherStages = sites.StageCount - 1 - stepParameter;
             int centeredStages = 0;
@@ -208,6 +215,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Point candidate = SearchObmcDiamondSteps(
                     reference, referenceStride, referenceOrigin, start, stepParameter + stage, sites, bounds, integerReference, costs, sadPerBit, weightedSource, mask, width, height, out centeredStages);
+
                 int cost = this.GetObmcFullPixelCost(reference, referenceStride, referenceOrigin, candidate, referenceVector, costs, weightedSource, mask, width, height);
                 if (cost < bestCost)
                 {
@@ -246,6 +254,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point best = start;
             int bestSad = GetObmcSad(reference, referenceStride, referenceOrigin, best, weightedSource, mask, width, height) +
                 Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, costs.GetCost(new Av1MotionVector(best.Y * 8, best.X * 8), integerReference), 0);
+
             for (int stage = sites.StageCount - stepParameter - 1; stage >= 0; stage--)
             {
                 ReadOnlySpan<Av1MotionSearchSites.Site> stageSites = sites.GetSites(stage);
@@ -263,6 +272,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         sad += Av1RateDistortion.GetMotionSearchSadCost(
                             sadPerBit, costs.GetCost(new Av1MotionVector(candidate.Y * 8, candidate.X * 8), integerReference), 0);
+
                         if (sad < bestSad)
                         {
                             bestSad = sad;
@@ -336,6 +346,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int cost = this.GetObmcSubpixelCost(
                 reference, referenceStride, referenceOrigin, vector, referenceVector, costs, weightedSource, mask, prediction, width, height, taps);
+
             if (cost < bestError)
             {
                 bestError = cost;

@@ -488,7 +488,7 @@ internal sealed class WriteToOutputStage : RenderPipelineStageBase, IDisposable
         }
         else if (output.PixelFormat.Channels == 2)
         {
-            for (int i = 0; i < length; i += Vector<float>.Count)
+            for (int i = 0; i <= length - Vector<float>.Count; i += Vector<float>.Count)
             {
                 JxlSimdUtils.StoreInterleaved(
                     Vector.Create<float>(input0[i..]),
@@ -498,7 +498,7 @@ internal sealed class WriteToOutputStage : RenderPipelineStageBase, IDisposable
         }
         else if (output.PixelFormat.Channels == 3)
         {
-            for (int i = 0; i < length; i += Vector<float>.Count)
+            for (int i = 0; i <= length - Vector<float>.Count; i += Vector<float>.Count)
             {
                 JxlSimdUtils.StoreInterleaved(
                     Vector.Create<float>(input0[i..]),
@@ -509,7 +509,7 @@ internal sealed class WriteToOutputStage : RenderPipelineStageBase, IDisposable
         }
         else if (output.PixelFormat.Channels == 4)
         {
-            for (int i = 0; i < length; i += Vector<float>.Count)
+            for (int i = 0; i <= length - Vector<float>.Count; i += Vector<float>.Count)
             {
                 JxlSimdUtils.StoreInterleaved(
                     Vector.Create<float>(input0[i..]),

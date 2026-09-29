@@ -175,16 +175,14 @@ internal static partial class SimdUtils
 
     internal static Vector<int> GatherBytes(Vector<byte> indices, Vector<int> table)
     {
-        Span<byte> indexValues = stackalloc byte[Vector<byte>.Count];
-        Span<int> tableValues = stackalloc int[Vector<byte>.Count];
-        Span<int> resultValues = stackalloc int[Vector<byte>.Count];
+        Span<int> tableValues = stackalloc int[Vector<int>.Count];
+        Span<int> resultValues = stackalloc int[Vector<int>.Count];
 
-        indices.CopyTo(indexValues);
         table.CopyTo(tableValues);
 
         for (int i = 0; i < resultValues.Length; i++)
         {
-            byte index = indexValues[i];
+            byte index = indices[i];
             resultValues[i] = index < tableValues.Length ? tableValues[index] : 0;
         }
 

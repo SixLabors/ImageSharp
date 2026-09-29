@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -316,7 +315,7 @@ internal static class JxlDotDetectionUtils
 
                 for (int y = yc - rectBounds; y <= yc + rectBounds; y++)
                 {
-                    if (y < 0 || y >= rect.Height)
+                    if ((uint)y >= rect.Height)
                     {
                         continue;
                     }
@@ -326,7 +325,7 @@ internal static class JxlDotDetectionUtils
 
                     for (int x = xc - rectBounds; x <= xc + rectBounds; x++)
                     {
-                        if (x < 0 || x >= rect.Width)
+                        if ((uint)x >= rect.Width)
                         {
                             continue;
                         }
@@ -380,19 +379,24 @@ internal static class JxlDotDetectionUtils
             {
                 int y = sy + cc.Bounds.Y0();
 
-                if (y < 0 || y >= rect.Height)
+                if ((uint)y >= rect.Height)
                 {
                     continue;
                 }
 
                 Span<float> row = img.PlaneRow(rect, c, y);
+
+                // The assignment is necessary, if the OptimizeBackground
+                // constant gets changed in the future.
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
                 Span<float> bgrow = background.PlaneRow(rect, c, y);
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
 
                 for (int sx = -rectBounds; sx < cc.Bounds.Width + rectBounds; sx++)
                 {
                     int x = sx + cc.Bounds.X0();
 
-                    if (x < 0 || x >= rect.Width)
+                    if ((uint)x >= rect.Width)
                     {
                         continue;
                     }

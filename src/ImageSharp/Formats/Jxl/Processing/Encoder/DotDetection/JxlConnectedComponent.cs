@@ -8,42 +8,30 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.DotDetection;
 
 internal sealed class JxlConnectedComponent
 {
-    private Rectangle bounds;
+    private Stats stats;
     private readonly List<Point> points = [];
-    private float maxEnergy;
-    private float meanEnergy;
-    private float varEnergy;
-    private float meanBg;
-    private float varBg;
-    private Point mode;
 
     public JxlConnectedComponent(Rectangle bounds, List<Point> points)
     {
-        this.bounds = bounds;
+        this.stats.bounds = bounds;
         this.points = points;
     }
 
-    public Point Mode => this.mode;
+    public Point Mode => this.stats.mode;
 
-    public Rectangle Bounds => this.bounds;
+    public Rectangle Bounds => this.stats.bounds;
 
     public float Score { get; private set; }
 
     public void ComputeStats(JxlImageF energy, in Rectangle rect, int extra)
     {
-        this.maxEnergy = 0.0F;
-        this.meanEnergy = 0.0F;
-        this.varEnergy = 0.0F;
-        this.meanBg = 0.0F;
-        this.varBg = 0.0F;
+        this.stats = default;
         int nIn = 0;
         int nOut = 0;
-        this.mode.X = 0;
-        this.mode.Y = 0;
 
-        for (int sy = -extra; sy < (this.bounds.Height + extra); sy++)
+        for (int sy = -extra; sy < (this.stats.bounds.Height + extra); sy++)
         {
-            int y = sy + this.bounds.Y0();
+            int y = sy + this.stats.bounds.Y0();
 
             if (y < 0 || (uint)y >= rect.Height)
             {
@@ -52,42 +40,57 @@ internal sealed class JxlConnectedComponent
 
             Span<float> erow = energy.GetRow(rect, y);
 
-            for (int sx = -extra; sx < (this.bounds.Width + extra); sx++)
+            for (int sx = -extra; sx < (this.stats.bounds.Width + extra); sx++)
             {
-                int x = sx + this.bounds.X0();
+                int x = sx + this.stats.bounds.X0();
 
                 if (x < 0 || (uint)x >= rect.Width)
                 {
                     continue;
                 }
 
-                if (erow[x] > this.maxEnergy)
+                if (erow[x] > this.stats.maxEnergy)
                 {
-                    this.maxEnergy = erow[x];
-                    this.mode.X = x;
-                    this.mode.Y = y;
+                    this.stats.maxEnergy = erow[x];
+                    this.stats.mode.X = x;
+                    this.stats.mode.Y = y;
                 }
 
-                if (JxlDotDetectionUtils.PointInRect(this.bounds, new Point(x, y)))
+                if (JxlDotDetectionUtils.PointInRect(this.stats.bounds, new Point(x, y)))
                 {
-                    this.meanEnergy += erow[x];
-                    this.varEnergy += erow[x] * erow[x];
+                    this.stats.meanEnergy += erow[x];
+                    this.stats.varEnergy += erow[x] * erow[x];
                     nIn++;
                 }
                 else
                 {
-                    this.meanBg += erow[x];
-                    this.varBg += erow[x] * erow[x];
+                    this.stats.meanBg += erow[x];
+                    this.stats.varBg += erow[x] * erow[x];
                     nOut++;
                 }
             }
         }
 
-        this.meanEnergy /= nIn;
-        this.meanBg /= nOut;
-        this.varEnergy = (this.varEnergy / nIn) - (this.meanEnergy * this.meanEnergy);
+        this.stats.meanEnergy /= nIn;
+        this.stats.meanBg /= nOut;
+        this.stats.varEnergy = (this.stats.varEnergy / nIn) - (this.stats.meanEnergy * this.stats.meanEnergy);
 
-        this.varBg = (this.varBg / nOut) - (this.meanBg * this.meanBg);
-        this.Score = (this.meanEnergy - this.meanBg) / MathF.Sqrt(this.varBg);
+        this.stats.varBg = (this.stats.varBg / nOut) - (this.stats.meanBg * this.stats.meanBg);
+        this.Score = (this.stats.meanEnergy - this.stats.meanBg) / MathF.Sqrt(this.stats.varBg);
+    }
+
+    private struct Stats
+    {
+#pragma warning disable IDE1006 // Naming Styles
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        public Rectangle bounds;
+        public float maxEnergy;
+        public float meanEnergy;
+        public float varEnergy;
+        public float meanBg;
+        public float varBg;
+        public Point mode;
+#pragma warning restore IDE1006 // Naming Styles
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 }

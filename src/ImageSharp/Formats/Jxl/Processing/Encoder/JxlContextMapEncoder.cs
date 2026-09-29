@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -13,39 +14,34 @@ internal static class JxlContextMapEncoder
 
     private static int IndexOf(List<byte> v, byte value)
     {
-        int i = 0;
-        for (; i < v.Count; ++i)
-        {
-            if (v[i] == value)
-            {
-                return i;
-            }
-        }
+        ReadOnlySpan<byte> span = CollectionsMarshal.AsSpan(v);
+        int idx = span.IndexOf(value);
 
-        return i;
+        return idx >= 0 ? idx : span.Length;
     }
 
     private static void MoveToFront(List<byte> v, int index)
     {
-        byte value = v[index];
+        Span<byte> spanv = CollectionsMarshal.AsSpan(v);
+        byte value = spanv[index];
 
         for (int i = index; i != 0; --i)
         {
-            v[i] = v[i - 1];
+            spanv[i] = spanv[i - 1];
         }
 
-        v[0] = value;
+        spanv[0] = value;
     }
 
-    private static List<byte> MoveToFrontTransform(IReadOnlyList<byte> v)
+    private static List<byte> MoveToFrontTransform(Span<byte> v)
     {
-        if (v.Count == 0)
+        if (v.Length == 0)
         {
             return [];
         }
 
         byte maxValue = 0;
-        for (int i = 0; i < v.Count; ++i)
+        for (int i = 0; i < v.Length; ++i)
         {
             if (v[i] > maxValue)
             {
@@ -59,8 +55,8 @@ internal static class JxlContextMapEncoder
             mtf.Add((byte)i);
         }
 
-        List<byte> result = new(v.Count);
-        for (int i = 0; i < v.Count; ++i)
+        List<byte> result = new(v.Length);
+        for (int i = 0; i < v.Length; ++i)
         {
             int index = IndexOf(mtf, v[i]);
 
@@ -76,7 +72,7 @@ internal static class JxlContextMapEncoder
         return result;
     }
 
-    private static bool EncodeContextMap(IReadOnlyList<byte> contextMap, int numHistograms, JxlBitWriter writer)
+    private static bool EncodeContextMap(byte[] contextMap, int numHistograms, JxlBitWriter writer)
     {
         if (numHistograms == 1)
         {
@@ -92,7 +88,7 @@ internal static class JxlContextMapEncoder
 
         List<List<JxlToken>> jxlTokens =
         [
-            new List<JxlToken>(contextMap.Count)
+            new List<JxlToken>(contextMap.Length)
         ];
 
         List<List<JxlToken>> mtfJxlTokens =
@@ -100,7 +96,7 @@ internal static class JxlContextMapEncoder
             new List<JxlToken>(transformedSymbols.Count)
         ];
 
-        for (int i = 0; i < contextMap.Count; ++i)
+        for (int i = 0; i < contextMap.Length; ++i)
         {
             jxlTokens[0].Add(new JxlToken(0, contextMap[i]));
         }
@@ -137,16 +133,16 @@ internal static class JxlContextMapEncoder
         }
 
         int entryBits = JxlMath.CeilLog2Nonzero(numHistograms);
-        int simpleCost = entryBits * contextMap.Count;
+        int simpleCost = entryBits * contextMap.Length;
 
         if (entryBits < 4 && simpleCost < ansCost && simpleCost < mtfCost)
         {
-            return writer.WithMaxBits((ulong)(3 + (entryBits * contextMap.Count)), () =>
+            return writer.WithMaxBits((ulong)(3 + (entryBits * contextMap.Length)), () =>
             {
                 writer.Write(1, 1);
                 writer.Write(2, entryBits);
 
-                for (int i = 0; i < contextMap.Count; ++i)
+                for (int i = 0; i < contextMap.Length; ++i)
                 {
                     writer.Write(entryBits, contextMap[i]);
                 }

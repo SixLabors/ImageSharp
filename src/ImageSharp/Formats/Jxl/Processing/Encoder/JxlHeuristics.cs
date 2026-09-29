@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
@@ -79,25 +80,21 @@ internal static class JxlHeuristics
             }
         }
 
-        int[]? pooledCounts = null;
-        int[]? pooledRemap = null;
-        int[]? pooledClusters = null;
+        byte[]? pooledRemap = null;
+        byte[]? pooledClusters = null;
         int countsLength = JxlForwardCoefficientOrder.OrderCount * (qft.Count + 1);
 
-        Span<int> counts =
-            countsLength <= 128
-                ? stackalloc int[128].Slice(0, countsLength)
-                : pooledCounts = ArrayPool<int>.Shared.Rent(countsLength);
+        int[] counts = ArrayPool<int>.Shared.Rent(countsLength);
 
-        Span<int> remap =
+        Span<byte> remap =
             countsLength <= 128
-                ? stackalloc int[128].Slice(0, countsLength)
-                : pooledRemap = ArrayPool<int>.Shared.Rent(countsLength);
+                ? stackalloc byte[128].Slice(0, countsLength)
+                : pooledRemap = ArrayPool<byte>.Shared.Rent(countsLength);
 
-        Span<int> clusters =
+        Span<byte> clusters =
             countsLength <= 128
-                ? stackalloc int[128].Slice(0, countsLength)
-                : pooledClusters = ArrayPool<int>.Shared.Rent(countsLength);
+                ? stackalloc byte[128].Slice(0, countsLength)
+                : pooledClusters = ArrayPool<byte>.Shared.Rent(countsLength);
 
         int qftPos = 0;
 
@@ -114,14 +111,65 @@ internal static class JxlHeuristics
             }
         }
 
-        JxlSimdUtils.Iota(remap, 0);
+        JxlSimdUtils.Iota(remap, (byte)0);
         remap.CopyTo(clusters);
 
         int numClusters = Math.Clamp(total / sizeForContextModel / 2, 2, 9);
         int numClustersChroma = Math.Clamp(total / sizeForContextModel / 3, 1, 5);
 
-        // TODO: method incomplete
-        // do not forget to ArrayPool<int>.Shared.Return pooledCounts, pooledRemap, pooledClusters if needed
+        while (clusters.Length > numClusters)
+        {
+            clusters.Sort((a, b) => counts[b].CompareTo(counts[a]));
+            counts[clusters[^2]] += counts[clusters[^1]];
+            counts[^1] = 0;
+            remap[^1] = clusters[^2];
+            clusters = clusters[..^1];
+        }
+
+        for (int i = 0; i < remap.Length; i++)
+        {
+            while (remap[remap[i]] != remap[i])
+            {
+                remap[i] = remap[remap[i]];
+            }
+        }
+
+        Span<byte> remapRemap = stackalloc byte[remap.Length];
+        remapRemap.Fill((byte)remap.Length);
+
+        int num = 0;
+        for (int i = 0; i < remap.Length; i++)
+        {
+            if (remapRemap[remap[i]] == remap.Length)
+            {
+                remapRemap[remap[i]] = (byte)(num++);
+            }
+
+            remap[i] = remapRemap[remap[i]];
+        }
+
+        // Write the block context map.
+        blockCtxMap.ContextMap = remap.ToArray();
+        Array.Resize(ref blockCtxMap.ContextMap, remap.Length * 3);
+
+        // For chroma, only use up to numClustersChroma separate block contexts
+        // (those for the biggest clusters)
+        for (int i = remap.Length; i < remap.Length * 3; i++)
+        {
+            blockCtxMap.ContextMap[i] = (byte)(num + Math.Clamp(remap[i % remap.Length], 0, numClustersChroma - 1));
+        }
+
+        blockCtxMap.ContextCount = TensorPrimitives.Max((ReadOnlySpan<byte>)blockCtxMap.ContextMap.AsSpan()) + 1;
+
+        if (pooledRemap is not null)
+        {
+            ArrayPool<byte>.Shared.Return(pooledRemap);
+        }
+
+        if (pooledClusters is not null)
+        {
+            ArrayPool<byte>.Shared.Return(pooledClusters);
+        }
     }
 
     private sealed class OccCounters : IDisposable

@@ -8,6 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 /// </summary>
 internal sealed class JxlHistogram(int length)
 {
+    public const int Rounding = 8;
+
     public List<int> Counts { get; set; } = new(length);
 
     public int TotalCount { get; set; }
@@ -21,8 +23,23 @@ internal sealed class JxlHistogram(int length)
     {
         this.Counts.Clear();
         this.TotalCount = 0;
-        this.Entropy = 0f;
     }
+
+    /// <summary>
+    /// Calculates &amp; returns Shannon entropy for this histogram.
+    /// https://en.wikipedia.org/wiki/Entropy_(information_theory)
+    /// </summary>
+    /// <returns>
+    /// The shannon entropy. The larger the entropy, the more difficult is the
+    /// data to compress further.
+    /// </returns>
+    public float ComputeShannonEntropy()
+    {
+        JxlCluster.HistogramEntropy(this);
+        return this.Entropy;
+    }
+
+    public void Condition() => JxlCluster.HistogramCondition(this);
 
     /// <summary>
     /// Adds a new symbol.

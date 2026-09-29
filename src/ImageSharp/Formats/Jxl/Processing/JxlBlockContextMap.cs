@@ -26,7 +26,11 @@ internal sealed class JxlBlockContextMap
 
     public List<uint> QfThresholds { get; set; } = [];
 
-    public byte[] ContextMap { get; set; } = new byte[DefaultContextMap.Length];
+    /// <summary>
+    /// We may need to get a ref to this field, so make this
+    /// public.
+    /// </summary>
+    public byte[] ContextMap = new byte[DefaultContextMap.Length];
 
     public int ContextCount { get; set; }
 

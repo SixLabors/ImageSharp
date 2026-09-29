@@ -554,24 +554,40 @@ internal static partial class JxlSimdUtils
     /// vector sizes. For example, some ARM CPUs support 2048-bit
     /// vectors through Vector&lt;T&gt;. In that specific case, this
     /// method can be used for future-proofing.
-    ///
-    /// Note that this method, albeit future-proof, may be considered
-    /// slow for smaller vector sizes (think CPUs with 256bit vectors).
     /// </summary>
     /// <param name="vec">Vector to duplicate.</param>
     /// <returns>New vector that is duplicated across the width.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Vector<T> LoadDuplicate128<T>(Vector128<T> vec)
+    public static Vector<T> LoadDuplicate128<T>(Vector128<T> vec)
         where T : unmanaged
     {
-        Span<T> value = stackalloc T[Vector<T>.Count];
-
-        for (int i = 0; i < Vector<T>.Count; i += sizeof(T))
+        if (Vector<T>.Count == Vector64<T>.Count)
         {
-            vec.CopyTo(value[i..]);
+            throw new NotSupportedException();
         }
+        else if (Vector<T>.Count == Vector512<T>.Count)
+        {
+            return Vector512.Create(vec).AsVector();
+        }
+        else if (Vector<T>.Count == Vector256<T>.Count)
+        {
+            return Vector256.Create(vec).AsVector();
+        }
+        else if (Vector<T>.Count == Vector128<T>.Count)
+        {
+            return vec.AsVector();
+        }
+        else
+        {
+            Span<T> value = stackalloc T[Vector<T>.Count];
 
-        return new Vector<T>(value);
+            for (int i = 0; i <= Vector<T>.Count - Vector128<T>.Count; i += Vector128<T>.Count)
+            {
+                vec.CopyTo(value[i..]);
+            }
+
+            return new Vector<T>(value);
+        }
     }
 
     /// <summary>

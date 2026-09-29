@@ -2108,6 +2108,8 @@ internal static partial class Av1FrameEncoder
                 this.BlockWorkspace.EncodedFrameCount,
                 this.goodQualityStructure.SlotPyramidLevels,
                 this.goodQualityStructure.PyramidLevel,
+                parent.AvailableReferenceMask,
+                parent.IsStatConsumptionStage,
                 this.globalMotionDisabledByStatistics);
 
             ComputeGlobalMotion<TSample, TOperator>(

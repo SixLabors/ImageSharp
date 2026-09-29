@@ -665,6 +665,38 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Returns whether the frame drops a compound pair. When the references lie on both sides of the frame, a pair
+        /// with both references on one side is dropped, and from selective level four a pair with ALTREF2 is dropped
+        /// when BWDREF is a nearer future reference. Reference: the second branch of setup_prune_ref_frame_mask(),
+        /// which prune_ref_frame() reads.
+        /// </summary>
+        /// <param name="first">The first reference of the pair.</param>
+        /// <param name="second">The second reference of the pair.</param>
+        /// <returns><see langword="true"/> when the pair is not searched.</returns>
+        private bool PrunesCompoundReferencePair(Av1ReferenceFrameType first, Av1ReferenceFrameType second)
+        {
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            int level = parent.SpeedSettings.SelectiveReferenceFrameLevel;
+            if (level < 1)
+            {
+                return false;
+            }
+
+            int[] distances = parent.ReferenceDistances;
+            if (!parent.AllOneSidedReferences && (distances[(int)first] > 0) == (distances[(int)second] > 0))
+            {
+                return true;
+            }
+
+            int alternate2Distance = distances[(int)Av1ReferenceFrameType.Alternate2];
+            int backwardDistance = distances[(int)Av1ReferenceFrameType.Backward];
+            return level >= 4 &&
+                (first == Av1ReferenceFrameType.Alternate2 || second == Av1ReferenceFrameType.Alternate2) &&
+                (parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Backward)) != 0 &&
+                alternate2Distance > 0 && backwardDistance > 0 && backwardDistance <= alternate2Distance;
+        }
+
+        /// <summary>
         /// Returns the combined type of a reference or reference pair. A pair of a forward and a backward reference
         /// indexes the forward-by-backward table, and a pair on one side indexes the unidirectional pairs after it.
         /// Reference: av1_ref_frame_type() with get_uni_comp_ref_idx().
@@ -4744,9 +4776,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Returns whether the selective reference search drops a reference or pair: from level two, LAST2 and LAST3
         /// when they precede GOLDEN, and from level three, ALTREF2 and BWDREF when they precede LAST. A reference whose
         /// predicted-vector SAD is the best of the past references is kept. Without temporal-dependency statistics
-        /// no reference is kept by them.
-        /// Reference: prune_ref_by_selective_ref_frame() with prune_ref(). The pair pruning of
-        /// prune_comp_ref_frames is not ported; the frames that reach it here drop every compound pair.
+        /// no reference is kept by them. A compound pair that is neither kept nor made of the closest past and future
+        /// references is dropped at pruning level three, and below it unless it holds the best predicted-vector SAD
+        /// on each side.
+        /// Reference: prune_ref_by_selective_ref_frame() with prune_ref(), has_closest_ref_frames() and
+        /// has_best_pred_mv_sad().
         /// </summary>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none for a single reference.</param>
@@ -4769,9 +4803,46 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            return level >= 3 &&
+            if (level >= 3 &&
                 (this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Alternate2, Av1ReferenceFrameType.Last) ||
-                this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Last));
+                this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Last)))
+            {
+                return true;
+            }
+
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            int compoundPruning = parent.SpeedSettings.CompoundReferencePruningLevel;
+            if (!compound || compoundPruning == 0)
+            {
+                return false;
+            }
+
+            bool closestPair = (first == parent.NearestPastReference || second == parent.NearestPastReference) &&
+                (first == parent.NearestFutureReference || second == parent.NearestFutureReference);
+
+            bool keptPair = (parent.KeepCompoundReferenceMask & (1 << (int)first)) != 0 &&
+                (parent.KeepCompoundReferenceMask & (1 << (int)second)) != 0;
+
+            if (keptPair || closestPair)
+            {
+                return false;
+            }
+
+            if (compoundPruning >= 3)
+            {
+                return true;
+            }
+
+            if (this.bestPastPredictionVectorSad == int.MaxValue || this.bestFuturePredictionVectorSad == int.MaxValue)
+            {
+                return true;
+            }
+
+            int firstSad = this.predictionVectorSads[(int)first];
+            int secondSad = this.predictionVectorSads[(int)second];
+            bool bestPast = firstSad == this.bestPastPredictionVectorSad || secondSad == this.bestPastPredictionVectorSad;
+            bool bestFuture = firstSad == this.bestFuturePredictionVectorSad || secondSad == this.bestFuturePredictionVectorSad;
+            return !(bestPast && bestFuture);
         }
 
         /// <summary>
@@ -5102,6 +5173,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 (1u << (int)Av1PredictionMode.NearestMotionVector) | (1u << (int)Av1PredictionMode.NearMotionVector) |
                 (1u << (int)Av1PredictionMode.GlobalMotionVector) | (1u << (int)Av1PredictionMode.NewMotionVector);
 
+            // Every single and compound inter mode. Reference: INTER_ALL.
+            const uint interAll = ((1u << ((int)Av1PredictionMode.NewNewMotionVector + 1)) - 1) &
+                ~((1u << (int)Av1PredictionMode.NearestMotionVector) - 1);
+
             this.interModeSkipMasks = default;
             Av1PictureParentControlSet parent = this.picture.Parent;
             ObuFrameHeader frameHeader = parent.FrameHeader;
@@ -5177,17 +5252,74 @@ internal static partial class Av1IntraSuperblockEncoder
 
             sads[..Av1Constants.ReferenceFrameCount].CopyTo(this.predictionVectorSads);
             this.bestPastPredictionVectorSad = bestByDirection[0];
+            this.bestFuturePredictionVectorSad = bestByDirection[1];
 
             int pruneLevel = parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType);
             double pruneThreshold = pruneLevel <= 3 ? 1.20 : 1.05;
+            Span<uint> masks = stackalloc uint[Av1Constants.ReferenceFrameCount];
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
-                uint mask = 0;
                 if ((availableReferences & (1 << reference)) != 0 && (sads[reference] >> 2) > minimum)
                 {
-                    mask |= nearestNearZero;
+                    masks[reference] = nearestNearZero;
+                }
+            }
+
+            // A frame coded from the source of an alternate reference searches that reference alone. Without
+            // temporal filtering it keeps the fixed-vector modes whose vector is the global one, and the faster
+            // speeds search every mode of the reference. Reference: the is_src_frame_alt_ref branches of
+            // init_mode_skip_mask(), with disable_inter_references_except_altref().
+            int alternateSearchLevel = parent.SpeedSettings.AlternateReferenceSearchLevel;
+            const int alternate = (int)Av1ReferenceFrameType.Alternate;
+            if (parent.IsSourceAlternateReference)
+            {
+                if (!parent.EncoderOptions.EnableTemporalFilter)
+                {
+                    DisableReferencesExceptAlternate(masks);
+                    masks[alternate] = ~nearestNearZero;
+                    Av1MotionVector global = frameHeader.GetGlobalMotionParameters()[alternate - (int)Av1ReferenceFrameType.Last]
+                        .GetMotionVector(frameHeader.AllowHighPrecisionMotionVector, blockSize, position, frameHeader.ForceIntegerMotionVector);
+
+                    if (singleReferenceVectors[alternate].GetStackVector(1, global) != global)
+                    {
+                        masks[alternate] |= 1u << (int)Av1PredictionMode.NearMotionVector;
+                    }
+
+                    if (singleReferenceVectors[alternate].GetStackVector(0, global) != global)
+                    {
+                        masks[alternate] |= 1u << (int)Av1PredictionMode.NearestMotionVector;
+                    }
                 }
 
+                if (alternateSearchLevel != 0 && (availableReferences & (1 << alternate)) != 0)
+                {
+                    masks[alternate] = 0;
+                    DisableReferencesExceptAlternate(masks);
+                }
+            }
+
+            // An unshown frame drops every mode of a later-type reference that lies in the past near LAST, when its
+            // predicted-vector SAD is well above the best of the past. Reference: the alt_ref_search_fp branch of
+            // init_mode_skip_mask().
+            if (alternateSearchLevel != 0 && !frameHeader.ShowFrame && bestByDirection[0] < int.MaxValue)
+            {
+                int sadThreshold = bestByDirection[0] + (bestByDirection[0] >> 3);
+                int start = alternateSearchLevel == 1 ? (int)Av1ReferenceFrameType.Alternate2 : (int)Av1ReferenceFrameType.Backward;
+                for (int reference = start; reference <= alternate; reference++)
+                {
+                    int distance = parent.ReferenceDistances[reference];
+                    if (distance < 0 &&
+                        Math.Abs(distance - parent.ReferenceDistances[(int)Av1ReferenceFrameType.Last]) <= 4 &&
+                        sads[reference] > sadThreshold)
+                    {
+                        masks[reference] |= interAll;
+                    }
+                }
+            }
+
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
+            {
+                uint mask = masks[reference];
                 bool closest = (Av1ReferenceFrameType)reference == parent.NearestPastReference ||
                     (Av1ReferenceFrameType)reference == parent.NearestFutureReference;
 
@@ -5201,6 +5333,19 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 this.interModeSkipMasks[reference] = mask;
+            }
+        }
+
+        /// <summary>
+        /// Drops every mode of every reference but ALTREF. A compound pair names ALTREF only second, so every pair
+        /// goes too. Reference: disable_inter_references_except_altref().
+        /// </summary>
+        /// <param name="masks">The skipped modes of each reference, one bit per mode.</param>
+        private static void DisableReferencesExceptAlternate(Span<uint> masks)
+        {
+            for (int reference = (int)Av1ReferenceFrameType.Last; reference < (int)Av1ReferenceFrameType.Alternate; reference++)
+            {
+                masks[reference] = uint.MaxValue;
             }
         }
 
@@ -5448,6 +5593,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) < 8 ||
                 ((this.skipReferenceFrameMask & (1 << GetReferenceFrameType(primaryReference, secondaryReference))) != 0 &&
                     !this.IsCachedCompoundPair(primaryReference, secondaryReference)) ||
+                this.PrunesCompoundReferencePair(primaryReference, secondaryReference) ||
                 this.PrunesReferenceBySelectiveReferenceFrame(primaryReference, secondaryReference) ||
                 outsideSingleReferenceCutoff)
             {
@@ -6550,8 +6696,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         model = maskModel + Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + motionRate, 0);
                     }
 
+                    // The gate prices the vectors the mode came with, even after a refinement moved them.
+                    // Reference: the rs2 + *rate_mv of each prune_mode_by_skip_rd() call in av1_compound_type_rd().
                     if ((modelMask && !useCachedEstimate && settings.PruneCompoundTypeByModel && model > bestModel) ||
-                        (!modelMask && !useCachedEstimate && !this.ShouldSearchCompoundTransforms(blendRate + motionRate, predictionError << 4)))
+                        (!modelMask && !useCachedEstimate && !this.ShouldSearchCompoundTransforms(blendRate + initialMotionRate, predictionError << 4)))
                     {
                         continue;
                     }
@@ -8140,10 +8288,15 @@ internal static partial class Av1IntraSuperblockEncoder
                         predictionError, out estimatedRate, out estimatedDistortion);
                 }
 
+                // An estimate keeps the skip flag that each motion mode trial starts with, so a winner that
+                // has only an estimate is skippable for the mode thresholds. Reference: the
+                // rd_stats->skip_txfm = 1 at the top of the motion_mode_rd() loop, which the !do_tx_search
+                // branch leaves, and the best_mode_skippable of update_search_state().
                 Av1RateDistortionStatistics estimate = new(this.rateMultiplier, predictionRate + estimatedRate, estimatedDistortion)
                 {
                     ResidualRate = estimatedRate,
-                    PredictionDistortion = predictionError
+                    PredictionDistortion = predictionError,
+                    AllTransformsEmpty = true
                 };
 
                 // Retain predictions close enough to the best estimate for the later transform pass.

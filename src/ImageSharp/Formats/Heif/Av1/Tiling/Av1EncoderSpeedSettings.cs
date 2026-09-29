@@ -435,6 +435,41 @@ internal readonly struct Av1EncoderSpeedSettings
 
         // selective_ref_frame: good quality starts at 1 and raises the level with speed; speed 0 uses 2 for a
         // 1080p frame at a low quantizer; real-time usage uses 4.
+        // prune_comp_ref_frames: good quality prunes compound pairs from speed 3 above 480p; at speed 4 from 720p,
+        // and from 480p outside the boosted and internal alternate-reference frames; everywhere at speed 5, and
+        // every pair that is not kept at speed 6. Reference: set_good_speed_feature_framesize_dependent().
+        int compoundPruning = 0;
+        if (!realtime && !allIntra && speed >= HeifEncodingSpeed.Level3)
+        {
+            compoundPruning = this.minimumDimension <= 480 ? 0 : 1;
+            if (speed >= HeifEncodingSpeed.Level4)
+            {
+                if (this.minimumDimension >= 720)
+                {
+                    compoundPruning = 2;
+                }
+                else if (this.minimumDimension >= 480)
+                {
+                    compoundPruning = boostedOrInternalAlternate ? 0 : 2;
+                }
+            }
+
+            if (speed >= HeifEncodingSpeed.Level5)
+            {
+                compoundPruning = speed >= HeifEncodingSpeed.Level6 ? 3 : 2;
+            }
+        }
+
+        this.CompoundReferencePruningLevel = compoundPruning;
+
+        // alt_ref_search_fp: good quality uses 1 from speed 2 and 2 from speed 4; real-time usage uses 2.
+        this.AlternateReferenceSearchLevel = realtime ? 2 : allIntra ? 0 : speed switch
+        {
+            >= HeifEncodingSpeed.Level4 => 2,
+            >= HeifEncodingSpeed.Level2 => 1,
+            _ => 0
+        };
+
         this.SelectiveReferenceFrameLevel = realtime ? 4 : allIntra ? 0 : speed switch
         {
             >= HeifEncodingSpeed.Level6 => 6,
@@ -1278,6 +1313,19 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets the level that limits the references an inter frame searches. Reference: selective_ref_frame.
     /// </summary>
     public int SelectiveReferenceFrameLevel { get; }
+
+    /// <summary>
+    /// Gets the level that prunes compound reference pairs which are neither kept nor the closest pair. Level one
+    /// and two keep a pair with the best predicted-vector SAD on each side, and level three prunes it too.
+    /// Reference: prune_comp_ref_frames.
+    /// </summary>
+    public int CompoundReferencePruningLevel { get; }
+
+    /// <summary>
+    /// Gets the level that limits the references of a frame coded from the source of an alternate reference, and of
+    /// an unshown frame whose alternate references lie in the past. Reference: alt_ref_search_fp.
+    /// </summary>
+    public int AlternateReferenceSearchLevel { get; }
 
     /// <summary>
     /// Gets the level at which inter modes whose references predicted much worse than the best reference in the

@@ -95,7 +95,9 @@ internal static partial class Av1FrameEncoder
     /// <summary>
     /// Lists the references that the global motion search visits, with their distance from the frame. With one pass
     /// and no statistics the encoder never recodes a frame, so a reference that the frame does not use is still
-    /// searched. Reference: update_valid_ref_frames_for_gm().
+    /// searched. An encoder with first-pass statistics may recode, and skips such a reference. Reference:
+    /// update_valid_ref_frames_for_gm(), and the DISALLOW_RECODE of has_no_stats_stage() in
+    /// av1_set_speed_features_framesize_independent().
     /// </summary>
     private static void UpdateValidReferenceFrames<TSample>(
         Av1EncoderFrame<TSample> source,
@@ -129,7 +131,8 @@ internal static partial class Av1FrameEncoder
             int slot = (int)slots[frame - 1];
             bool pruned = pruningEnabled && PrunesReferenceForGlobalMotion(frame, slots, search.SlotDisplayOrders, selectiveLevel);
             Buffer2DRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
-            if (reference.Width != source.Width ||
+            if ((search.RecodeAllowed && (search.ReferenceFrameFlags & (1 << frame)) == 0) ||
+                reference.Width != source.Width ||
                 reference.Height != source.Height ||
                 referenceLuma.Stride != sourceLuma.Stride ||
                 !IsGlobalMotionSearched(searchType, frame) ||
@@ -351,8 +354,12 @@ internal static partial class Av1FrameEncoder
             int displayOrder,
             ReadOnlySpan<int> slotPyramidLevels,
             int pyramidLevel,
+            byte referenceFrameFlags,
+            bool recodeAllowed,
             bool disabledByStatistics = false)
         {
+            this.ReferenceFrameFlags = referenceFrameFlags;
+            this.RecodeAllowed = recodeAllowed;
             this.DisabledByStatistics = disabledByStatistics;
             this.Enabled = enabled;
             this.SpeedSettings = speedSettings;
@@ -405,6 +412,17 @@ internal static partial class Av1FrameEncoder
         /// Gets the pyramid level of the frame being coded.
         /// </summary>
         public int PyramidLevel { get; }
+
+        /// <summary>
+        /// Gets the references the frame uses, one bit per reference type. Reference: cpi->ref_frame_flags.
+        /// </summary>
+        public byte ReferenceFrameFlags { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the encoder may recode a frame, which it may whenever it has first-pass
+        /// statistics. Reference: hl_sf.recode_loop != DISALLOW_RECODE.
+        /// </summary>
+        public bool RecodeAllowed { get; }
 
         /// <summary>
         /// Gets a value indicating whether a group with an alternate reference found no global motion in its

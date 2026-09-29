@@ -310,6 +310,18 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
 
         parent.KeepSingleReferenceMask = mask;
+
+        // The compound pruning keeps the pairs of the best three references at level one, and no pair above it.
+        // Reference: the keep_comp_ref_frame_mask of setup_keep_ref_frame_mask().
+        ReadOnlySpan<int> keptCompoundCounts = [7, 3, 0, 0];
+        int keptCompound = keptCompoundCounts[parent.SpeedSettings.CompoundReferencePruningLevel];
+        int compoundMask = 0;
+        for (int i = 0; i < keptCompound; i++)
+        {
+            compoundMask |= 1 << (order[i] + (int)Av1ReferenceFrameType.Last);
+        }
+
+        parent.KeepCompoundReferenceMask = compoundMask;
     }
 
     /// <summary>
@@ -549,6 +561,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         parent.NearestFutureReference = Av1ReferenceFrameType.None;
         Array.Clear(parent.ReferenceDistances);
         parent.KeepSingleReferenceMask = 0;
+        parent.KeepCompoundReferenceMask = 0;
         parent.AllOneSidedReferences = false;
         if (!frameHeader.IsIntra)
         {
@@ -610,7 +623,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
         else if (motionSettings.AutomaticStepSizeLevel != 0)
         {
-            if (frameHeader.ShowFrame && motionSettings.AutomaticStepSizeLevel >= 2 && parent.MaximumMotionVectorMagnitude != -1)
+            // Shown frames and internal alternate references use the adaptive step. Reference: the use_auto_mv_step
+            // test of av1_set_mv_search_params().
+            if ((frameHeader.ShowFrame || parent.FrameUpdateType == Av1FrameUpdateType.IntermediateAlternate) &&
+                motionSettings.AutomaticStepSizeLevel >= 2 && parent.MaximumMotionVectorMagnitude != -1)
             {
                 int range = Math.Min(maximumDimension, 2 * parent.MaximumMotionVectorMagnitude);
                 stepParameter = Av1MotionSearchBase.GetInitialStepParameter(range);

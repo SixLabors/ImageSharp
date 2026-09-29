@@ -179,6 +179,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly Av1EncoderFrame<TSample>.PlanarView source;
         private readonly ReadOnlyMemory<Av1EncoderFrame<TSample>> references;
         private readonly Av1EncoderFrame<TSample>.PlanarView reference;
+        private readonly Av1ReferenceFrameType simpleMotionReference;
         private readonly Av1EncoderFrame<TSample>.PlanarView goldenReference;
         private readonly bool hasDistinctGoldenReference;
         private readonly Av1EncoderFrame<TSample>.PlanarView reconstruction;
@@ -251,10 +252,11 @@ internal static partial class Av1IntraSuperblockEncoder
         // Reference: skip_ref_frame_mask of av1_rd_pick_inter_mode().
         private int skipReferenceFrameMask;
 
-        // The predicted-vector SAD of each reference, and the best of the references that precede the frame.
-        // Reference: x->pred_mv_sad and x->best_pred_mv_sad[0].
+        // The predicted-vector SAD of each reference, and the best of the references that precede and follow the
+        // frame. Reference: x->pred_mv_sad and x->best_pred_mv_sad.
         private InlineArray8<int> predictionVectorSads;
         private int bestPastPredictionVectorSad;
+        private int bestFuturePredictionVectorSad;
         private bool searchingRetainedCandidates;
         private long interSourceVarianceCost;
         private int interSourceVariance;
@@ -264,7 +266,7 @@ internal static partial class Av1IntraSuperblockEncoder
         // partition context keeps the searched flag. Reference: the skip_txfm initialization of av1_encode_sb().
         private bool encodedWithoutCoefficients;
 
-        // Set while an inter leaf is reconstructed for the partition search. The mode search keeps the types it
+        // Set while a leaf is reconstructed for the partition search. The mode search keeps the types it
         // searched; only an encode of the decision writes DCT_DCT for a luma block that quantized to nothing.
         private bool keepSearchedZeroBlockTypes;
         private long blockCostLimit;
@@ -363,7 +365,11 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             this.source = source.CodedView;
             this.references = references;
-            this.reference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : references.Span[(int)Av1ReferenceFrameType.Last].CodedView;
+
+            // The simple motion searches read ALTREF in a frame coded from its source, and LAST otherwise.
+            // Reference: the is_src_frame_alt_ref choice of ref_list in av1_simple_motion_search_based_split().
+            this.simpleMotionReference = picture.Parent.IsSourceAlternateReference ? Av1ReferenceFrameType.Alternate : Av1ReferenceFrameType.Last;
+            this.reference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : references.Span[(int)this.simpleMotionReference].CodedView;
             this.goldenReference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : references.Span[(int)Av1ReferenceFrameType.Golden].CodedView;
             this.hasDistinctGoldenReference = (picture.Parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Golden)) != 0;
             this.reconstruction = reconstruction.CodedView;
@@ -1052,7 +1058,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PartitionType.None,
                     this.picture.Sequence.SequenceHeader,
                     this.picture.Parent.FrameHeader,
-                    Av1ReferenceFrameType.Last,
+                    this.simpleMotionReference,
                     Av1ReferenceFrameType.None);
 
                 Av1MotionVector nearest = starts.Nearest;
@@ -2587,15 +2593,17 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.IsPartitionSiblingInsideFrame(blockOrigin, blockSize, partitionType, leafIndex);
 
                 // An inter frame leaves the leaf's samples from its own search, but the encode it stands for
-                // still writes DCT_DCT for each luma block that quantized to nothing.
+                // still writes DCT_DCT for each luma block that quantized to nothing. An intra leaf runs
+                // encode_block_intra() even when it is skipped.
                 if (searchChildren && !this.picture.Parent.FrameHeader.IsIntra &&
                     (reconstructSplitLeaf || reconstructSibling))
                 {
                     Av1EncoderPartitionTree.ModeContext sibling =
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
 
-                    if (sibling.Snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
-                        !sibling.Snapshot.ModeInfo.Block.Skip && !this.picture.Parent.FrameHeader.CodedLossless)
+                    if (!this.picture.Parent.FrameHeader.CodedLossless &&
+                        (sibling.Snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra ||
+                         !sibling.Snapshot.ModeInfo.Block.Skip))
                     {
                         Span<Av1EncoderTransformBlockState> siblingStates = sibling.GetTransformStates(Av1Plane.Y);
                         RetainEncodedZeroBlockTypes(siblingStates, siblingStates);
@@ -3758,10 +3766,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 // encoded again whether or not a refinement ran, and the next block predicts from it and stores
                 // its luma for chroma-from-luma. Reference: the encode_superblock() dry run that
                 // rd_try_subblock() and rectangular_partition_search() make after pick_sb_modes(), which runs
-                // encode_block_intra() over every transform block.
+                // encode_block_intra() over every transform block. A leaf of its own partition search has no
+                // such encode, so the winner keeps its searched types here, and the partition search writes
+                // DCT_DCT for a sibling that quantized to nothing. Reference: the dry run encode_sb() that
+                // closes av1_rd_pick_partition(), the first to run update_txk_array() for the leaf.
                 int reconstructedLumaArea = this.codedAreaLuma;
                 int reconstructedChromaArea = this.codedAreaChroma;
+                this.keepSearchedZeroBlockTypes = true;
                 this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, winner);
+                this.keepSearchedZeroBlockTypes = false;
                 this.codedAreaLuma = reconstructedLumaArea;
                 this.codedAreaChroma = reconstructedChromaArea;
 
@@ -3817,7 +3830,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     // from a winning palette's reconstructed luma, while preserving its selected UV mode.
                     int savedLumaArea = this.codedAreaLuma;
                     int savedChromaArea = this.codedAreaChroma;
+                    this.keepSearchedZeroBlockTypes = true;
                     this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, winner);
+                    this.keepSearchedZeroBlockTypes = false;
                     this.codedAreaLuma = savedLumaArea;
                     this.codedAreaChroma = savedChromaArea;
                 }
@@ -3962,7 +3977,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            if (isInterFrame && this.picture.Parent.SpeedSettings.AdaptiveModeThresholdLevel != 0)
+            // A frame coded from the source of an alternate reference leaves the thresholds as they were.
+            // Reference: the is_src_frame_alt_ref test before av1_update_rd_thresh_fact() in av1_rd_pick_inter_mode().
+            if (isInterFrame && this.picture.Parent.SpeedSettings.AdaptiveModeThresholdLevel != 0 &&
+                !this.picture.Parent.IsSourceAlternateReference)
             {
                 // Update only after residual refinement, palette, and skip-mode selection have all finished.
                 // Partition replay returns earlier and must not count the retained winner a second time.
@@ -4654,7 +4672,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 // encode_block_intra returns a luma transform block that quantized to nothing
                                 // to DCT_DCT, so a later pass over the same block transforms it with the
                                 // default type instead of the one the search happened to pick.
-                                if (plane == Av1Plane.Y && outputState.EndOfBlock == 0)
+                                if (plane == Av1Plane.Y && outputState.EndOfBlock == 0 && !this.keepSearchedZeroBlockTypes)
                                 {
                                     states[stateIndex].TransformType = Av1TransformType.DctDct;
                                 }
@@ -7563,7 +7581,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.superblockQIndex == 0,
                     state);
             }
-            else if (plane == Av1Plane.Y && !(isInter && this.keepSearchedZeroBlockTypes))
+            else if (plane == Av1Plane.Y && !this.keepSearchedZeroBlockTypes)
             {
                 // A luma transform block that quantized to nothing returns to DCT_DCT, so a later pass
                 // over the same block transforms it with the default type rather than the one this

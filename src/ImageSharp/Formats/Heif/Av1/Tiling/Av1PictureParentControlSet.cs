@@ -35,6 +35,14 @@ internal class Av1PictureParentControlSet
     public Av1FrameUpdateType FrameUpdateType { get; set; }
 
     /// <summary>
+    /// Gets a value indicating whether the frame is coded from the source of an alternate reference, as a coded
+    /// overlay is. Reference: rc.is_src_frame_alt_ref, which av1_configure_buffer_updates() sets for OVERLAY_UPDATE
+    /// and INTNL_OVERLAY_UPDATE.
+    /// </summary>
+    public bool IsSourceAlternateReference =>
+        this.FrameUpdateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
+
+    /// <summary>
     /// Gets or sets the selected-transform counts borrowed from the encoder workspace.
     /// </summary>
     public Memory<int> TransformTypeCounts { get; set; }
@@ -78,6 +86,12 @@ internal class Av1PictureParentControlSet
     /// reference type. Reference: keep_single_ref_frame_mask.
     /// </summary>
     public int KeepSingleReferenceMask { get; set; }
+
+    /// <summary>
+    /// Gets or sets the references whose compound pairs the block-level pruning keeps, one bit per reference type.
+    /// Reference: keep_comp_ref_frame_mask.
+    /// </summary>
+    public int KeepCompoundReferenceMask { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether every reference precedes the frame in display order.

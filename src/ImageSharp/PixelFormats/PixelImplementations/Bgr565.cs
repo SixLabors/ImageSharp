@@ -208,7 +208,10 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector3 vector)
     {
-        vector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+        vector = new Vector3(
+            Numerics.Clamp(vector.X, 0F, 1F),
+            Numerics.Clamp(vector.Y, 0F, 1F),
+            Numerics.Clamp(vector.Z, 0F, 1F));
 
         return (ushort)((((int)Math.Round(vector.X * 31F) & 0x1F) << 11)
                | (((int)Math.Round(vector.Y * 63F) & 0x3F) << 5)

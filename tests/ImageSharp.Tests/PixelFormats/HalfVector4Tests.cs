@@ -44,7 +44,7 @@ public class HalfVector4Tests
     public void HalfVector4_ToScaledVector4()
     {
         // arrange
-        Vector4 expected = new(0F, .5F, 1F, 0F);
+        Vector4 expected = new((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue);
         HalfVector4 pixel = new((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue);
 
         // act
@@ -58,8 +58,8 @@ public class HalfVector4Tests
     public void HalfVector4_FromScaledVector4()
     {
         // arrange
-        Vector4 scaled = new(0F, .25F, .5F, 1F);
-        ulong expected = new HalfVector4((float)Half.MinValue, -32752F, 0F, (float)Half.MaxValue).PackedValue;
+        Vector4 scaled = new((float)Half.MinValue, -32752F, 0F, (float)Half.MaxValue);
+        ulong expected = new HalfVector4(scaled).PackedValue;
 
         // act
         HalfVector4 pixel = HalfVector4.FromScaledVector4(scaled);
@@ -70,19 +70,19 @@ public class HalfVector4Tests
     }
 
     [Fact]
-    public void HalfVector4_BulkScaledConversionsCoverFiniteRange() =>
+    public void HalfVector4_BulkScaledConversionsPreserveFiniteRange() =>
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            AssertHalfVector4BulkScaledConversionsCoverFiniteRange,
+            AssertHalfVector4BulkScaledConversionsPreserveFiniteRange,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
-    private static void AssertHalfVector4BulkScaledConversionsCoverFiniteRange()
+    private static void AssertHalfVector4BulkScaledConversionsPreserveFiniteRange()
     {
         const ulong packedValue = 0xFBFF_7BFF_0000_FBFF;
         HalfVector4 pixel = new() { PackedValue = packedValue };
         HalfVector4[] source = new HalfVector4[17];
         Vector4[] expectedVectors = new Vector4[source.Length];
         Array.Fill(source, pixel);
-        Array.Fill(expectedVectors, new Vector4(0F, .5F, 1F, 0F));
+        Array.Fill(expectedVectors, new Vector4((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue));
 
         Vector4[] actualVectors = new Vector4[source.Length];
         PixelOperations<HalfVector4>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);

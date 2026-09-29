@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -21,9 +22,7 @@ public partial struct RgbaHalf
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // RgbaHalf and RgbaHalfP have the same four-half layout. Sharing the binary16 expansion kernel keeps this path
-            // vectorized without changing the unassociated meaning of the source components.
-            RgbaHalfP.PixelOperations.Unpack(MemoryMarshal.Cast<RgbaHalf, RgbaHalfP>(source), destination[..source.Length]);
+            HalfTypeHelper.Unpack(MemoryMarshal.Cast<RgbaHalf, ushort>(source), MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
         }
 
         /// <inheritdoc />
@@ -32,7 +31,7 @@ public partial struct RgbaHalf
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             // Association is fused with half expansion so the conversion reads and writes each span once.
-            RgbaHalfP.PixelOperations.UnpackAssociated(MemoryMarshal.Cast<RgbaHalf, RgbaHalfP>(source), destination[..source.Length]);
+            HalfTypeHelper.UnpackAssociated(MemoryMarshal.Cast<RgbaHalf, ushort>(source), MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
         }
 
         /// <inheritdoc />
@@ -48,8 +47,7 @@ public partial struct RgbaHalf
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // The layouts are identical, so the shared packer can write RgbaHalf storage without an intermediate buffer.
-            RgbaHalfP.PixelOperations.Pack(source, MemoryMarshal.Cast<RgbaHalf, RgbaHalfP>(destination[..source.Length]));
+            HalfTypeHelper.Pack(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.Cast<RgbaHalf, ushort>(destination[..source.Length]));
         }
 
         /// <inheritdoc />
@@ -57,8 +55,8 @@ public partial struct RgbaHalf
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // Unassociation is fused with binary16 packing so processors do not pay for another pass over their vector buffer.
-            RgbaHalfP.PixelOperations.PackFromAssociated(source, MemoryMarshal.Cast<RgbaHalf, RgbaHalfP>(destination[..source.Length]));
+            // Unassociation is fused with half-precision packing so processors do not pay for another pass over their vector buffer.
+            HalfTypeHelper.PackFromAssociated(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.Cast<RgbaHalf, ushort>(destination[..source.Length]));
         }
 
         /// <inheritdoc />

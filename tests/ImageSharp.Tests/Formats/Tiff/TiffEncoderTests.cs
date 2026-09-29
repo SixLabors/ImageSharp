@@ -5,6 +5,8 @@ using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
@@ -14,6 +16,318 @@ public class TiffEncoderTests : TiffEncoderBaseTester
 {
     [Fact]
     public void TiffEncoderDefaultInstanceHasQuantizer() => Assert.NotNull(new TiffEncoder().Quantizer);
+
+    [Theory]
+    [InlineData(TiffCompression.None)]
+    [InlineData(TiffCompression.PackBits)]
+    [InlineData(TiffCompression.Deflate)]
+    [InlineData(TiffCompression.Lzw)]
+    public void FloatSingleComponent_RoundTripsWithoutChangingIntensity(TiffCompression compression)
+    {
+        using Image<HalfSingle> input = new(65, 1);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = new HalfSingle(x % 2 == 0 ? 2.5F : -.5F);
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.Float, Compression = compression });
+
+        stream.Position = 0;
+        using Image<HalfSingle> output = Image.Load<HalfSingle>(stream);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffSampleFormat.Float, metadata.SampleFormat);
+        Assert.Equal(TiffBitsPerPixel.Bit32, metadata.BitsPerPixel);
+        Assert.Equal((byte)1, metadata.BitsPerSample.Channels);
+        Assert.Equal((ushort)32, metadata.BitsPerSample.Channel0);
+        Assert.Equal(compression, metadata.Compression);
+
+        stream.Position = 0;
+        ImageInfo identified = Image.Identify(stream);
+        Assert.Equal(TiffSampleFormat.Float, identified.Metadata.GetTiffMetadata().SampleFormat);
+        Assert.Equal(TiffSampleFormat.Float, identified.FrameMetadataCollection[0].GetTiffMetadata().SampleFormat);
+
+        // The row crosses the writer's 64-pixel block boundary, so both blocks must retain the samples.
+        for (int x = 0; x < input.Width; x++)
+        {
+            Assert.Equal(input[x, 0].ToSingle(), output[x, 0].ToSingle());
+        }
+
+        stream.Position = 0;
+        using Image defaultOutput = Image.Load(stream);
+        Image<RgbaVector> defaultPixels = Assert.IsType<Image<RgbaVector>>(defaultOutput);
+        Assert.Equal(2.5F, defaultPixels[0, 0].R);
+    }
+
+    [Theory]
+    [InlineData(TiffCompression.None, TiffPredictor.None)]
+    [InlineData(TiffCompression.PackBits, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.None)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.Horizontal)]
+    public void Rgb48_RoundTrips16BitSamples(TiffCompression compression, TiffPredictor predictor)
+    {
+        using Image<Rgb48> input = new(65, 2);
+
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                input[x, y] = new Rgb48((ushort)(0x1201 + x + y), (ushort)(0x3402 + (x * 3)), (ushort)(0x5603 + (y * 7)));
+            }
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit48, Compression = compression, HorizontalPredictor = predictor });
+
+        stream.Position = 0;
+        using Image<Rgb48> output = Image.Load<Rgb48>(stream);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffBitsPerPixel.Bit48, metadata.BitsPerPixel);
+        Assert.Equal(new TiffBitsPerSample(16, 16, 16), metadata.BitsPerSample);
+        Assert.Equal(TiffSampleFormat.UnsignedInteger, metadata.SampleFormat);
+        Assert.Equal(compression, metadata.Compression);
+        Assert.Equal(predictor, metadata.Predictor);
+
+        // Distinct low bytes expose any conversion through an 8-bit pixel format.
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+
+        stream.Position = 0;
+        using Image defaultOutput = Image.Load(stream);
+        Image<Rgb48> defaultPixels = Assert.IsType<Image<Rgb48>>(defaultOutput);
+        Assert.Equal(input[64, 1], defaultPixels[64, 1]);
+    }
+
+    [Theory]
+    [InlineData(TiffCompression.None, TiffPredictor.None)]
+    [InlineData(TiffCompression.PackBits, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.None)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.Horizontal)]
+    public void Rgba64_RoundTrips16BitSamples(TiffCompression compression, TiffPredictor predictor)
+    {
+        using Image<Rgba64> input = new(65, 2);
+
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                input[x, y] = new Rgba64((ushort)(0x1201 + x + y), (ushort)(0x3402 + (x * 3)), (ushort)(0x5603 + (y * 7)), (ushort)(0x7804 + x));
+            }
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit64, Compression = compression, HorizontalPredictor = predictor });
+
+        stream.Position = 0;
+        using Image<Rgba64> output = Image.Load<Rgba64>(stream);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffBitsPerPixel.Bit64, metadata.BitsPerPixel);
+        Assert.Equal(new TiffBitsPerSample(16, 16, 16, 16), metadata.BitsPerSample);
+        Assert.Equal(TiffSampleFormat.UnsignedInteger, metadata.SampleFormat);
+        Assert.Equal(TiffExtraSampleType.UnassociatedAlphaData, metadata.ExtraSampleType);
+        Assert.Equal(compression, metadata.Compression);
+        Assert.Equal(predictor, metadata.Predictor);
+
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+
+        stream.Position = 0;
+        using Image defaultOutput = Image.Load(stream);
+        Image<Rgba64> defaultPixels = Assert.IsType<Image<Rgba64>>(defaultOutput);
+        Assert.Equal(input[64, 1], defaultPixels[64, 1]);
+    }
+
+    [Theory]
+    [WithFile(FlowerRgb161616Contiguous, PixelTypes.Rgb48, TiffBitsPerPixel.Bit48)]
+    [WithFile(FlowerRgb161616ContiguousLittleEndian, PixelTypes.Rgb48, TiffBitsPerPixel.Bit48)]
+    [WithFile(FlowerRgb161616PredictorBigEndian, PixelTypes.Rgb48, TiffBitsPerPixel.Bit48)]
+    [WithFile(FlowerRgb161616PredictorLittleEndian, PixelTypes.Rgb48, TiffBitsPerPixel.Bit48)]
+    [WithFile(Rgba16BitUnassociatedAlphaBigEndian, PixelTypes.Rgba64, TiffBitsPerPixel.Bit64)]
+    [WithFile(Rgba16BitUnassociatedAlphaLittleEndian, PixelTypes.Rgba64, TiffBitsPerPixel.Bit64)]
+    [WithFile(Rgba16BitUnassociatedAlphaBigEndianWithPredictor, PixelTypes.Rgba64, TiffBitsPerPixel.Bit64)]
+    [WithFile(Rgba16BitUnassociatedAlphaLittleEndianWithPredictor, PixelTypes.Rgba64, TiffBitsPerPixel.Bit64)]
+    public void SixteenBitReferenceImages_RoundTrip<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+
+        // Check the independent source decode first, so a decoder error cannot make
+        // the subsequent encoder comparison appear correct by repeating that error.
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
+
+        TiffEncoder encoder = new()
+        {
+            BitsPerPixel = bitsPerPixel,
+            Compression = TiffCompression.Deflate,
+            HorizontalPredictor = TiffPredictor.Horizontal
+        };
+
+        image.VerifyEncoder(provider, "tiff", bitsPerPixel, encoder, ImageComparer.Exact, referenceDecoder: ReferenceDecoder);
+    }
+
+    [Theory]
+    [InlineData(TiffBitsPerPixel.Bit96, TiffCompression.None)]
+    [InlineData(TiffBitsPerPixel.Bit96, TiffCompression.PackBits)]
+    [InlineData(TiffBitsPerPixel.Bit96, TiffCompression.Deflate)]
+    [InlineData(TiffBitsPerPixel.Bit96, TiffCompression.Lzw)]
+    [InlineData(TiffBitsPerPixel.Bit128, TiffCompression.None)]
+    [InlineData(TiffBitsPerPixel.Bit128, TiffCompression.PackBits)]
+    [InlineData(TiffBitsPerPixel.Bit128, TiffCompression.Deflate)]
+    [InlineData(TiffBitsPerPixel.Bit128, TiffCompression.Lzw)]
+    public void FloatColor_RoundTripsSamplesAndLayout(TiffBitsPerPixel bitsPerPixel, TiffCompression compression)
+    {
+        using Image<RgbaVector> input = new(65, 1);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = new RgbaVector(2.500123F + (x * .25F), -.50001F, .250001F, .5F);
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.Float, BitsPerPixel = bitsPerPixel, Compression = compression });
+
+        stream.Position = 0;
+        using Image<RgbaVector> output = Image.Load<RgbaVector>(stream);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffSampleFormat.Float, metadata.SampleFormat);
+        Assert.Equal(bitsPerPixel, metadata.BitsPerPixel);
+        Assert.Equal((byte)((int)bitsPerPixel / 32), metadata.BitsPerSample.Channels);
+        Assert.Equal(TiffPhotometricInterpretation.Rgb, metadata.PhotometricInterpretation);
+        Assert.Equal(compression, metadata.Compression);
+        Assert.Equal(bitsPerPixel == TiffBitsPerPixel.Bit128 ? TiffExtraSampleType.UnassociatedAlphaData : null, metadata.ExtraSampleType);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            RgbaVector actual = output[x, 0];
+            Assert.Equal(2.500123F + (x * .25F), actual.R);
+            Assert.Equal(-.50001F, actual.G);
+            Assert.Equal(.250001F, actual.B);
+            Assert.Equal(bitsPerPixel == TiffBitsPerPixel.Bit128 ? .5F : 1F, actual.A);
+        }
+
+        stream.Position = 0;
+        using Image defaultOutput = Image.Load(stream);
+        Image<RgbaVector> defaultPixels = Assert.IsType<Image<RgbaVector>>(defaultOutput);
+        Assert.Equal(2.500123F, defaultPixels[0, 0].R);
+    }
+
+    [Theory]
+    [InlineData(TiffCompression.None)]
+    [InlineData(TiffCompression.PackBits)]
+    [InlineData(TiffCompression.Deflate)]
+    [InlineData(TiffCompression.Lzw)]
+    public void FloatAssociatedColor_RetainsStoredColorAtZeroAlpha(TiffCompression compression)
+    {
+        using Image<RgbaVectorP> input = new(65, 1);
+        RgbaVectorP pixel = new(2.500123F, -.50001F, .250001F, 0F);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = pixel;
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.Float, Compression = compression });
+
+        stream.Position = 0;
+        using Image<RgbaVectorP> output = Image.Load<RgbaVectorP>(stream);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffSampleFormat.Float, metadata.SampleFormat);
+        Assert.Equal(TiffBitsPerPixel.Bit128, metadata.BitsPerPixel);
+        Assert.Equal(TiffExtraSampleType.AssociatedAlphaData, metadata.ExtraSampleType);
+        Assert.Equal(compression, metadata.Compression);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            Assert.Equal(pixel.ToVector4(), output[x, 0].ToVector4());
+        }
+
+        stream.Position = 0;
+        using Image defaultOutput = Image.Load(stream);
+        Image<RgbaVectorP> defaultPixels = Assert.IsType<Image<RgbaVectorP>>(defaultOutput);
+        Assert.Equal(pixel.ToVector4(), defaultPixels[0, 0].ToVector4());
+    }
+
+    [Fact]
+    public void FloatTiff_DefaultReencodeRetainsFloatSamples()
+    {
+        using Image<RgbaVector> input = new(65, 1);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = new RgbaVector(2.5F + (x * .25F), -.5F, .25F, 1F);
+        }
+
+        using MemoryStream first = new();
+        input.Save(first, new TiffEncoder { SampleFormat = TiffSampleFormat.Float });
+
+        first.Position = 0;
+        using Image decoded = Image.Load(first);
+        Assert.IsType<Image<RgbaVector>>(decoded);
+
+        using MemoryStream second = new();
+        decoded.Save(second, new TiffEncoder());
+
+        second.Position = 0;
+        using Image<RgbaVector> output = Image.Load<RgbaVector>(second);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffSampleFormat.Float, metadata.SampleFormat);
+        Assert.Equal(TiffBitsPerPixel.Bit128, metadata.BitsPerPixel);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            Assert.Equal(input[x, 0], output[x, 0]);
+        }
+    }
+
+    [Fact]
+    public void FloatTiff_DefaultLoadPreservesNonfiniteSamplesAndSignedZero()
+    {
+        using Image<RgbaVectorP> input = new(65, 1);
+        RgbaVectorP pixel = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, -0F);
+
+        for (int x = 0; x < input.Width; x++)
+        {
+            input[x, 0] = pixel;
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.Float, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image decoded = Image.Load(stream);
+        Image<RgbaVectorP> output = Assert.IsType<Image<RgbaVectorP>>(decoded);
+
+        for (int x = 0; x < output.Width; x++)
+        {
+            RgbaVectorP actual = output[x, 0];
+            Assert.True(float.IsNaN(actual.R));
+            Assert.True(float.IsPositiveInfinity(actual.G));
+            Assert.True(float.IsNegativeInfinity(actual.B));
+            Assert.Equal(BitConverter.SingleToInt32Bits(-0F), BitConverter.SingleToInt32Bits(actual.A));
+        }
+    }
 
     [Theory]
     [InlineData(null, TiffBitsPerPixel.Bit24)]
@@ -75,10 +389,6 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     }
 
     [Theory]
-    [InlineData(TiffBitsPerPixel.Bit48)]
-    [InlineData(TiffBitsPerPixel.Bit42)]
-    [InlineData(TiffBitsPerPixel.Bit36)]
-    [InlineData(TiffBitsPerPixel.Bit30)]
     [InlineData(TiffBitsPerPixel.Bit12)]
     [InlineData(TiffBitsPerPixel.Bit10)]
     [InlineData(TiffBitsPerPixel.Bit6)]
@@ -99,6 +409,242 @@ public class TiffEncoderTests : TiffEncoderBaseTester
 
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(TiffBitsPerPixel.Bit24, frameMetaData.BitsPerPixel);
+    }
+
+    [Theory]
+    [InlineData(TiffBitsPerPixel.Bit30, TiffCompression.None)]
+    [InlineData(TiffBitsPerPixel.Bit36, TiffCompression.None)]
+    [InlineData(TiffBitsPerPixel.Bit42, TiffCompression.None)]
+    [InlineData(TiffBitsPerPixel.Bit30, TiffCompression.Jpeg)]
+    [InlineData(TiffBitsPerPixel.Bit36, TiffCompression.Jpeg)]
+    [InlineData(TiffBitsPerPixel.Bit42, TiffCompression.Jpeg)]
+    public void EncoderOptions_UnsupportedColorDepth_Uses48Bits(TiffBitsPerPixel bitsPerPixel, TiffCompression compression)
+    {
+        // Nonzero low bytes reveal a fallback through 8-bit samples.
+        Rgb48 expected = new(0x1201, 0x3402, 0x5603);
+        using Image<Rgb48> input = new(1, 1);
+        input[0, 0] = expected;
+        using MemoryStream stream = new();
+
+        input.Save(stream, new TiffEncoder { BitsPerPixel = bitsPerPixel, Compression = compression });
+
+        stream.Position = 0;
+        using Image<Rgb48> output = Image.Load<Rgb48>(stream);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffBitsPerPixel.Bit48, metadata.BitsPerPixel);
+        Assert.Equal(new TiffBitsPerSample(16, 16, 16), metadata.BitsPerSample);
+        Assert.Equal(compression == TiffCompression.Jpeg ? TiffCompression.Deflate : compression, metadata.Compression);
+        Assert.Equal(expected, output[0, 0]);
+    }
+
+    [Theory]
+    [InlineData(TiffCompression.None, TiffPredictor.None)]
+    [InlineData(TiffCompression.PackBits, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.None)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Jpeg, TiffPredictor.None)]
+    public void UnsignedRgb96_RoundTripsEverySampleBit(TiffCompression compression, TiffPredictor predictor)
+    {
+        // 2^24 + 1 is the first integer a float cannot represent exactly.
+        // The second value sets the unsigned high bit and keeps its low bit set.
+        const uint FirstInexactFloatSample = 0x01000001U;
+        const uint HighUnsignedSample = 0x80000001U;
+
+        // The 65-pixel rows cross SIMD block boundaries and check that the predictor
+        // restarts on the second row. Decreasing from uint.MaxValue also checks the
+        // upper bound while adjacent samples differ in bits Vector4 would lose.
+        using Image<Rgb96> input = new(65, 2);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                input[x, y] = new Rgb96(FirstInexactFloatSample + (uint)x, HighUnsignedSample + (uint)y, uint.MaxValue - (uint)x);
+            }
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.UnsignedInteger, BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = compression, HorizontalPredictor = predictor });
+
+        stream.Position = 0;
+        using Image decoded = Image.Load(stream);
+        Image<Rgb96> output = Assert.IsType<Image<Rgb96>>(decoded);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffBitsPerPixel.Bit96, metadata.BitsPerPixel);
+        Assert.Equal(new TiffBitsPerSample(32, 32, 32), metadata.BitsPerSample);
+        Assert.Equal(TiffSampleFormat.UnsignedInteger, metadata.SampleFormat);
+        Assert.Equal(compression == TiffCompression.Jpeg ? TiffCompression.Deflate : compression, metadata.Compression);
+        Assert.Equal(predictor, metadata.Predictor);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(TiffCompression.None, TiffPredictor.None)]
+    [InlineData(TiffCompression.PackBits, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.None)]
+    [InlineData(TiffCompression.Deflate, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.None)]
+    [InlineData(TiffCompression.Lzw, TiffPredictor.Horizontal)]
+    [InlineData(TiffCompression.Jpeg, TiffPredictor.None)]
+    public void UnsignedRgba128_RoundTripsEverySampleBit(TiffCompression compression, TiffPredictor predictor)
+    {
+        // These values exercise the first integer a float cannot represent,
+        // the unsigned high bit, and a non-opaque alpha with a significant low bit.
+        const uint FirstInexactFloatSample = 0x01000001U;
+        const uint HighUnsignedSample = 0x80000001U;
+        const uint NonOpaqueAlphaSample = 0x40000001U;
+
+        // Cross SIMD block and row boundaries and decrease from uint.MaxValue.
+        // The first pixel in each row has nonzero color with zero alpha, which
+        // encoding must retain.
+        using Image<Rgba128> input = new(65, 2);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                input[x, y] = new Rgba128(FirstInexactFloatSample + (uint)x, HighUnsignedSample + (uint)y, uint.MaxValue - (uint)x, x == 0 ? 0U : NonOpaqueAlphaSample + (uint)x);
+            }
+        }
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.UnsignedInteger, BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = compression, HorizontalPredictor = predictor });
+
+        stream.Position = 0;
+        using Image decoded = Image.Load(stream);
+        Image<Rgba128> output = Assert.IsType<Image<Rgba128>>(decoded);
+        TiffFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.Equal(TiffBitsPerPixel.Bit128, metadata.BitsPerPixel);
+        Assert.Equal(new TiffBitsPerSample(32, 32, 32, 32), metadata.BitsPerSample);
+        Assert.Equal(TiffSampleFormat.UnsignedInteger, metadata.SampleFormat);
+        Assert.Equal(TiffExtraSampleType.UnassociatedAlphaData, metadata.ExtraSampleType);
+        Assert.Equal(compression == TiffCompression.Jpeg ? TiffCompression.Deflate : compression, metadata.Compression);
+        Assert.Equal(predictor, metadata.Predictor);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(TiledRgb96BitLittleEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgb96BitBigEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgb96BitLittleEndianLzwCompressedWithPredictor)]
+    [InlineData(TiledRgb96BitBigEndianLzwCompressedWithPredictor)]
+    public void UnsignedRgb96_RealReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgb96> input = Image.Load<Rgb96>(TestFile.GetInputFileFullPath(path));
+
+        // These are the sample words at two pixels in libtiff's uncompressed output
+        // of the source tiles. Hex keeps each stored byte visible.
+        Assert.Equal(new Rgb96(0x0D0D0D0DU, 0x0D0D0D0DU, 0x0F0F0F0FU), input[0, 0]);
+        Assert.Equal(new Rgb96(0xB1B1B1B1U, 0xA9A9A9A9U, 0x9E9E9E9EU), input[65, 97]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgb96> output = Image.Load<Rgb96>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(TiledRgba128BitLittleEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgba128BitBigEndianDeflateCompressedWithPredictor)]
+    [InlineData(TiledRgba128BitLittleEndianLzwCompressedWithPredictor)]
+    [InlineData(TiledRgba128BitBigEndianLzwCompressedWithPredictor)]
+    public void UnsignedRgba128_RealReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgba128> input = Image.Load<Rgba128>(TestFile.GetInputFileFullPath(path));
+
+        // These are the sample words at two pixels in libtiff's uncompressed output
+        // of the source tiles. Hex keeps each stored byte visible.
+        Assert.Equal(new Rgba128(0x0D0D0D0DU, 0x0D0D0D0DU, 0x0F0F0F0FU, uint.MaxValue), input[0, 0]);
+        Assert.Equal(new Rgba128(0xB1B1B1B1U, 0xA9A9A9A9U, 0x9E9E9E9EU, uint.MaxValue), input[65, 97]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgba128> output = Image.Load<Rgba128>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(FlowerRgb323232Planar)]
+    [InlineData(FlowerRgb323232PlanarLittleEndian)]
+    public void UnsignedRgb96_PlanarReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgb96> input = Image.Load<Rgb96>(TestFile.GetInputFileFullPath(path));
+
+        // These are the 32-bit sample words at two pixels in the uncompressed
+        // planar TIFF. Hex keeps each stored byte visible for byte-order checks.
+        Assert.Equal(new Rgb96(0x58CC576BU, 0x58A64DD6U, 0x47713036U), input[0, 0]);
+        Assert.Equal(new Rgb96(0x44B8137EU, 0x4650DF9BU, 0x3C3B4613U), input[72, 42]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgb96> output = Image.Load<Rgb96>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(Rgba32BitPlanarUnassociatedAlphaLittleEndian)]
+    [InlineData(Rgba32BitPlanarUnassociatedAlphaBigEndian)]
+    public void UnsignedRgba128_PlanarReferenceImage_RoundTrips(string path)
+    {
+        using Image<Rgba128> input = Image.Load<Rgba128>(TestFile.GetInputFileFullPath(path));
+
+        // These hex values are the exact 32-bit sample words at the named pixels
+        // in the uncompressed planar TIFF, with each byte visible. The first
+        // pixel has stored color at zero alpha; the second checks nonzero alpha.
+        Assert.Equal(new Rgba128(0xB2B2B2B2U, 0xB2B2B2B2U, 0xFEFEFEFEU, 0U), input[78, 7]);
+        Assert.Equal(new Rgba128(0xD2D2D2D2U, 0xA0A0A0A0U, 0xA0A0A0A0U, 0xF7F7F7F7U), input[140, 105]);
+
+        using MemoryStream stream = new();
+        input.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = TiffCompression.Deflate });
+
+        stream.Position = 0;
+        using Image<Rgba128> output = Image.Load<Rgba128>(stream);
+        for (int y = 0; y < input.Height; y++)
+        {
+            for (int x = 0; x < input.Width; x++)
+            {
+                Assert.Equal(input[x, y], output[x, y]);
+            }
+        }
     }
 
     [Theory]
@@ -554,6 +1100,45 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_BlackIsZero_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax);
 
+    /// <summary>
+    /// CCITT row framing must fit even when each row contains only one pixel.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(64)]
+    public void TiffEncoder_EncodeNarrowCcittGroup3Fax_Works(int width)
+    {
+        using Image<L8> image = new(width, 2000);
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                image[x, y] = new L8((byte)(((x + y) & 1) == 0 ? 255 : 0));
+            }
+        }
+
+        TiffFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+        metadata.BitsPerPixel = TiffBitsPerPixel.Bit1;
+        metadata.Compression = TiffCompression.CcittGroup3Fax;
+
+        using MemoryStream output = new();
+        image.Save(output, new TiffEncoder());
+
+        output.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(output);
+        Assert.Equal(image.Size, decoded.Size);
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                Assert.Equal(image[x, y], decoded[x, y]);
+            }
+        }
+    }
+
     [Theory]
     [WithFile(Issues2255, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_WithoutSpecifyingBitPerPixel_Works<TPixel>(TestImageProvider<TPixel> provider)
@@ -568,6 +1153,26 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeBiColor_WithCcittGroup4FaxCompression_BlackIsZero_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup4Fax);
+
+    /// <summary>
+    /// Re-encoding a one-pixel Group 4 image must retain its pixel and fit the end-of-block code.
+    /// </summary>
+    [Fact]
+    public void TiffEncoder_ReencodeNarrowCcittGroup4Fax_Works()
+    {
+        byte[] data = Convert.FromBase64String(
+            "SUkqAAgAAAAJAAABAwABAAAAAQAAAAEBAwABAAAAAQAAAAIBAwABAAAAAQAAAAMBAwABAAAABAAAAAYBAwABAAAAAAAAABEBBAABAAAA" +
+            "egAAABUBAwABAAAAAQAAABYBBAABAAAAAQAAABcBBAABAAAABAAAAAAAAACACACA");
+
+        using Image<L8> image = Image.Load<L8>(data);
+        using MemoryStream output = new();
+        image.Save(output, new TiffEncoder());
+
+        output.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(output);
+        Assert.Equal(new Size(1, 1), decoded.Size);
+        Assert.Equal(image[0, 0], decoded[0, 0]);
+    }
 
     [Theory]
     [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]

@@ -157,7 +157,9 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                             float sourceBlue = vector.Z;
                             float sourceGreen = vector.Y;
 
-                            int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (this.levels - 1));
+                            // The computed intensity can be nonfinite or outside [0, 1], so bound it before indexing the bins.
+                            float intensity = Numerics.Clamp((sourceBlue + sourceGreen + sourceRed) / 3F, 0F, 1F);
+                            int currentIntensity = (int)MathF.Round(intensity * (this.levels - 1));
 
                             intensityBinsSpan[currentIntensity]++;
                             redBinSpan[currentIntensity] += sourceRed;

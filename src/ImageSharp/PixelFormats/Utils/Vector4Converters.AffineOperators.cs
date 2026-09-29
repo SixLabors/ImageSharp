@@ -71,12 +71,7 @@ internal static partial class Vector4Converters
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 Invoke(Vector4 source)
-        {
-            Vector128<float> result = (source.AsVector128() * this.multiplier.GetLower().GetLower()) + this.offset.GetLower().GetLower();
-
-            return result.AsVector4();
-        }
+        public Vector4 Invoke(Vector4 source) => this.Invoke(source.AsVector128()).AsVector4();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

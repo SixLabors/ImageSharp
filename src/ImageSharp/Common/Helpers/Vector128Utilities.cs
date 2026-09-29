@@ -821,6 +821,46 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Interleaves the high 64-bit floating-point components of two vectors.
+    /// </summary>
+    /// <param name="left">The first vector.</param>
+    /// <param name="right">The second vector.</param>
+    /// <returns>The interleaved high components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> UnpackHigh(Vector128<double> left, Vector128<double> right)
+        => UnpackHigh(left.AsInt64(), right.AsInt64()).AsDouble();
+
+    /// <summary>
+    /// Interleaves the low 64-bit floating-point components of two vectors.
+    /// </summary>
+    /// <param name="left">The first vector.</param>
+    /// <param name="right">The second vector.</param>
+    /// <returns>The interleaved low components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> UnpackLow(Vector128<double> left, Vector128<double> right)
+        => UnpackLow(left.AsInt64(), right.AsInt64()).AsDouble();
+
+    /// <summary>
+    /// Interleaves the high 32-bit floating-point components of two vectors.
+    /// </summary>
+    /// <param name="left">The first vector.</param>
+    /// <param name="right">The second vector.</param>
+    /// <returns>The interleaved high components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> UnpackHigh(Vector128<float> left, Vector128<float> right)
+        => UnpackHigh(left.AsInt32(), right.AsInt32()).AsSingle();
+
+    /// <summary>
+    /// Interleaves the low 32-bit floating-point components of two vectors.
+    /// </summary>
+    /// <param name="left">The first vector.</param>
+    /// <param name="right">The second vector.</param>
+    /// <returns>The interleaved low components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> UnpackLow(Vector128<float> left, Vector128<float> right)
+        => UnpackLow(left.AsInt32(), right.AsInt32()).AsSingle();
+
+    /// <summary>
     /// Unpack and interleave 64-bit integers from the low half of <paramref name="left"/> and <paramref name="right"/>
     /// and store the results in the result.
     /// </summary>

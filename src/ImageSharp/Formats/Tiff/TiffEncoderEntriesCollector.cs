@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
@@ -191,6 +192,14 @@ internal class TiffEncoderEntriesCollector
             {
                 foreach (IExifValue entry in exifProfile.Values)
                 {
+                    // This encoder writes strips. Source tile dimensions and offsets
+                    // would make readers use the old layout in the new file.
+                    ExifTagValue tag = (ExifTagValue)(ushort)entry.Tag;
+                    if (tag is ExifTagValue.TileWidth or ExifTagValue.TileLength or ExifTagValue.TileOffsets or ExifTagValue.TileByteCounts)
+                    {
+                        continue;
+                    }
+
                     if (!this.Collector.Entries.Exists(t => t.Tag == entry.Tag) && entry.GetValue() != null)
                     {
                         ExifParts entryPart = ExifTags.GetPart(entry.Tag);
@@ -318,6 +327,13 @@ internal class TiffEncoderEntriesCollector
 
         public void Process(TiffEncoderCore encoder)
         {
+            // These tags describe the samples and predictor written by this encoder. Source EXIF
+            // values can describe a different layout, so replace them from the selected options.
+            this.Collector.Entries.RemoveAll(
+                entry => entry.Tag == ExifTag.SampleFormat
+                    || entry.Tag == ExifTag.ExtraSamples
+                    || entry.Tag == ExifTag.Predictor);
+
             ExifShort planarConfig = new(ExifTagValue.PlanarConfiguration)
             {
                 Value = (ushort)TiffPlanarConfiguration.Chunky
@@ -351,6 +367,38 @@ internal class TiffEncoderEntriesCollector
             this.Collector.AddOrReplace(compression);
             this.Collector.AddOrReplace(photometricInterpretation);
 
+            if (encoder.SampleFormat == TiffSampleFormat.Float)
+            {
+                ushort[] sampleFormats = new ushort[samplesPerPixel.Value];
+                Array.Fill(sampleFormats, (ushort)TiffSampleFormat.Float);
+                this.Collector.AddOrReplace(new ExifShortArray(ExifTagValue.SampleFormat)
+                {
+                    Value = sampleFormats
+                });
+
+                if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit128)
+                {
+                    // The extra sample describes association; the binary32 sample layout is
+                    // identical for straight and premultiplied source pixels.
+                    TiffExtraSampleType alphaType = encoder.FloatAlphaRepresentation == PixelAlphaRepresentation.Associated
+                        ? TiffExtraSampleType.AssociatedAlphaData
+                        : TiffExtraSampleType.UnassociatedAlphaData;
+
+                    this.Collector.AddOrReplace(new ExifShortArray(ExifTagValue.ExtraSamples)
+                    {
+                        Value = [(ushort)alphaType]
+                    });
+                }
+            }
+            else if (encoder.BitsPerPixel is TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit128)
+            {
+                // Integer color writers emit straight color with a fourth alpha sample.
+                this.Collector.AddOrReplace(new ExifShortArray(ExifTagValue.ExtraSamples)
+                {
+                    Value = [(ushort)TiffExtraSampleType.UnassociatedAlphaData]
+                });
+            }
+
             if (encoder.HorizontalPredictor == TiffPredictor.Horizontal &&
                 (encoder.PhotometricInterpretation is TiffPhotometricInterpretation.Rgb or
                                                       TiffPhotometricInterpretation.PaletteColor or
@@ -363,16 +411,30 @@ internal class TiffEncoderEntriesCollector
         }
 
         private static ushort GetSamplesPerPixel(TiffEncoderCore encoder)
-            => encoder.PhotometricInterpretation switch
+        {
+            if (encoder.SampleFormat == TiffSampleFormat.Float)
+            {
+                return (ushort)((int)encoder.BitsPerPixel!.Value / 32);
+            }
+
+            return encoder.PhotometricInterpretation switch
             {
                 TiffPhotometricInterpretation.PaletteColor or
                 TiffPhotometricInterpretation.BlackIsZero or
                 TiffPhotometricInterpretation.WhiteIsZero => 1,
-                _ => 3,
+                _ => encoder.BitsPerPixel is TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit128 ? (ushort)4 : (ushort)3,
             };
+        }
 
         private static ushort[] GetBitsPerSampleValue(TiffEncoderCore encoder)
         {
+            if (encoder.SampleFormat == TiffSampleFormat.Float)
+            {
+                ushort[] bits = new ushort[(int)encoder.BitsPerPixel!.Value / 32];
+                Array.Fill(bits, (ushort)32);
+                return bits;
+            }
+
             switch (encoder.PhotometricInterpretation)
             {
                 case TiffPhotometricInterpretation.PaletteColor:
@@ -384,7 +446,14 @@ internal class TiffEncoderEntriesCollector
                     return TiffConstants.BitsPerSample8Bit.ToArray();
 
                 case TiffPhotometricInterpretation.Rgb:
-                    return TiffConstants.BitsPerSampleRgb8Bit.ToArray();
+                    return encoder.BitsPerPixel switch
+                    {
+                        TiffBitsPerPixel.Bit48 => [16, 16, 16],
+                        TiffBitsPerPixel.Bit64 => [16, 16, 16, 16],
+                        TiffBitsPerPixel.Bit96 => [32, 32, 32],
+                        TiffBitsPerPixel.Bit128 => [32, 32, 32, 32],
+                        _ => TiffConstants.BitsPerSampleRgb8Bit.ToArray(),
+                    };
 
                 case TiffPhotometricInterpretation.WhiteIsZero:
                     return encoder.BitsPerPixel switch
@@ -418,14 +487,9 @@ internal class TiffEncoderEntriesCollector
                     // PackBits is allowed for all modes.
                     return (ushort)TiffCompression.PackBits;
                 case TiffCompression.Lzw:
-                    if (encoder.PhotometricInterpretation is TiffPhotometricInterpretation.Rgb or
-                                                             TiffPhotometricInterpretation.PaletteColor or
-                                                             TiffPhotometricInterpretation.BlackIsZero)
-                    {
-                        return (ushort)TiffCompression.Lzw;
-                    }
-
-                    break;
+                    // LZW compresses the encoded sample bytes independently of whether
+                    // grayscale zero represents white or black.
+                    return (ushort)TiffCompression.Lzw;
 
                 case TiffCompression.CcittGroup3Fax:
                     return (ushort)TiffCompression.CcittGroup3Fax;

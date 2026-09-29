@@ -39,19 +39,20 @@ internal class Pxr24Compression : ExrBaseDecompressor
     }
 
     /// <inheritdoc/>
-    public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
+    public override void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
-        Span<byte> uncompressed = this.tmpBuffer.GetSpan();
+        uint rowCount = uncompressedBytes / this.BytesPerRow;
+        uint packedBytes = this.pixelType == ExrPixelType.Float ? (uncompressedBytes / 4) * 3 : uncompressedBytes;
+        Span<byte> uncompressed = this.tmpBuffer.GetSpan()[..(int)packedBytes];
         Span<ushort> outputBufferHalf = MemoryMarshal.Cast<byte, ushort>(buffer);
         Span<uint> outputBufferFloat = MemoryMarshal.Cast<byte, uint>(buffer);
         Span<uint> outputBufferUint = MemoryMarshal.Cast<byte, uint>(buffer);
 
-        uint uncompressedBytes = this.BytesPerBlock;
-        UndoZipCompression(stream, compressedBytes, uncompressed, uncompressedBytes);
+        UndoZipCompression(stream, compressedBytes, uncompressed, packedBytes);
 
         int lastIn = 0;
         int outputOffset = 0;
-        for (int y = 0; y < this.RowsPerBlock; y++)
+        for (uint y = 0; y < rowCount; y++)
         {
             for (int c = 0; c < this.channelCount; c++)
             {

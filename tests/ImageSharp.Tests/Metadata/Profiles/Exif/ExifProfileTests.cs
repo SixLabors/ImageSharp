@@ -490,6 +490,47 @@ public class ExifProfileTests
         }
     }
 
+    /// <summary>
+    /// Lazy profile serialization filters selected sections without changing the all-parts passthrough.
+    /// </summary>
+    /// <param name="parts">The sections to serialize.</param>
+    /// <param name="keepMake">Whether the IFD tag should remain.</param>
+    /// <param name="keepGps">Whether the GPS tag should remain.</param>
+    [Theory]
+    [InlineData(ExifParts.All, true, true)]
+    [InlineData(ExifParts.IfdTags | ExifParts.ExifTags, true, false)]
+    [InlineData(ExifParts.GpsTags, false, true)]
+    [InlineData(ExifParts.None, false, false)]
+    public void ProfileToByteArray_AppliesPartsToLazyValues(ExifParts parts, bool keepMake, bool keepGps)
+    {
+        ExifProfile source = new();
+        source.SetValue(ExifTag.Make, "POC");
+        source.SetValue(ExifTag.GPSLatitudeRef, "N");
+        byte[] originalData = source.ToByteArray();
+        ExifProfile lazy = new(originalData) { Parts = parts };
+
+        byte[] filteredData = lazy.ToByteArray();
+        ExifProfile result = new(filteredData);
+
+        Assert.Equal(keepMake, result.TryGetValue(ExifTag.Make, out IExifValue<string> make));
+        Assert.Equal(keepGps, result.TryGetValue(ExifTag.GPSLatitudeRef, out IExifValue<string> gps));
+
+        if (keepMake)
+        {
+            Assert.Equal("POC", make.Value);
+        }
+
+        if (keepGps)
+        {
+            Assert.Equal("N", gps.Value);
+        }
+
+        if (parts is ExifParts.All)
+        {
+            Assert.Same(originalData, filteredData);
+        }
+    }
+
     private static ExifProfile CreateExifProfile()
     {
         ExifProfile profile = new();

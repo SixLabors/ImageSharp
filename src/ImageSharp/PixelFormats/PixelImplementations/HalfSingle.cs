@@ -7,11 +7,11 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing a single IEEE 754 binary16 floating-point value.
+/// Packed pixel type containing a single IEEE 754 half-precision floating-point value.
 /// </summary>
 /// <remarks>
-/// <see cref="ToVector4"/> returns the stored IEEE 754 binary16 value directly. Scaled vector conversions normalize
-/// the finite range <c>[-65504, 65504]</c> to <c>[0, 1]</c>. The packed representation is binary-compatible with
+/// Native and scaled vector conversions return the stored IEEE 754 half-precision value directly.
+/// The packed representation is binary-compatible with
 /// <c>DXGI_FORMAT_R16_FLOAT</c>.
 /// </remarks>
 public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
@@ -53,11 +53,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4()
-    {
-        float scaled = HalfTypeHelper.ToScaled(this.ToSingle());
-        return new Vector4(scaled, 0, 0, 1F);
-    }
+    public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -110,15 +106,13 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfSingle FromAssociatedVector4(Vector4 source)
     {
-        // This format has no native alpha component: X uses the binary16 finite range, while W remains the source opacity.
-        source.X = HalfTypeHelper.ToScaled(source.X);
-        return FromAssociatedScaledVector4(source);
+        Numerics.UnPremultiply(ref source);
+        return FromVector4(source);
     }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfSingle FromScaledVector4(Vector4 source)
-        => new() { PackedValue = HalfTypeHelper.Pack(HalfTypeHelper.FromScaled(source.X)) };
+    public static HalfSingle FromScaledVector4(Vector4 source) => FromVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

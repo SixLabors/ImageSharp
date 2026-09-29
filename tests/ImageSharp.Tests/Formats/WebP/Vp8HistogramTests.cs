@@ -208,7 +208,7 @@ public class Vp8HistogramTests
         Vp8Histogram histogram1 = new();
         histogram1.CollectHistogram(reference, pred, 0, 1);
         Vp8Histogram histogram2 = new();
-        histogram1.Merge(histogram2);
+        histogram1.Merge(ref histogram2);
 
         // act
         int alpha = histogram2.GetAlpha();

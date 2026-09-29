@@ -23,7 +23,6 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
 
     /// <summary>
     /// Initializes the pixel instance from a generic ("scaled") <see cref="Vector4"/> representation using the pixel type's native alpha representation.
-    /// The scaled representation uses <value>0</value> and <value>1</value> as its nominal component bounds.
     /// </summary>
     /// <param name="source">The vector to load the pixel from.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
@@ -31,7 +30,6 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
 
     /// <summary>
     /// Initializes the pixel instance from a generic ("scaled") <see cref="Vector4"/> whose color components use unassociated alpha.
-    /// The scaled representation uses <value>0</value> and <value>1</value> as its nominal component bounds.
     /// </summary>
     /// <param name="source">The vector to load the pixel from.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
@@ -40,7 +38,6 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     /// <summary>
     /// Initializes the pixel instance from a generic ("scaled") <see cref="Vector4"/> whose color components use associated alpha,
     /// representing color multiplied by the logical opacity represented by alpha.
-    /// The scaled representation uses <value>0</value> and <value>1</value> as its nominal component bounds.
     /// </summary>
     /// <param name="source">The vector to load the pixel from.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
@@ -179,7 +176,6 @@ public interface IPixel
 
     /// <summary>
     /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> representation using the pixel type's native alpha representation.
-    /// The scaled representation uses <value>0</value> and <value>1</value> as its nominal component bounds.
     /// The vector components are typically expanded in least to greatest significance order.
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>
@@ -187,7 +183,6 @@ public interface IPixel
 
     /// <summary>
     /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> whose color components use unassociated alpha.
-    /// The scaled representation uses <value>0</value> and <value>1</value> as its nominal component bounds.
     /// When alpha is zero and the pixel's native representation is associated, the color components remain unchanged
     /// because no unassociated value can be recovered.
     /// </summary>
@@ -197,7 +192,6 @@ public interface IPixel
     /// <summary>
     /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> whose color components use associated alpha,
     /// representing color multiplied by the logical opacity represented by alpha.
-    /// The scaled representation uses <value>0</value> and <value>1</value> as its nominal component bounds.
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>
     public Vector4 ToAssociatedScaledVector4();

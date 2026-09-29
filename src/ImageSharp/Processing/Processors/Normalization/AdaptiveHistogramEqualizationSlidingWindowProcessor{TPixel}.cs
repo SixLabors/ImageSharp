@@ -49,6 +49,20 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     /// </summary>
     private int Tiles { get; }
 
+    /// <summary>
+    /// Gets a histogram index from BT.709 luminance, saturating out-of-range values and mapping NaN to zero.
+    /// </summary>
+    /// <param name="vector">The source color.</param>
+    /// <param name="levels">The number of histogram bins.</param>
+    /// <returns>The bounded histogram index.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static int GetLuminanceIndex(Vector4 vector, int levels)
+    {
+        // Unbounded luminance can address outside the histogram; NaN maps to its first bin.
+        float luminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+        return (int)MathF.Round(luminance * (levels - 1));
+    }
+
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
@@ -256,7 +270,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     {
         for (nuint idx = 0; idx < (uint)length; idx++)
         {
-            int luminance = ColorNumerics.GetBT709Luminance(Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+            int luminance = GetLuminanceIndex(Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
             Unsafe.Add(ref histogramBase, (uint)luminance)++;
         }
     }
@@ -273,7 +287,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     {
         for (nuint idx = 0; idx < (uint)length; idx++)
         {
-            int luminance = ColorNumerics.GetBT709Luminance(Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+            int luminance = GetLuminanceIndex(Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
             Unsafe.Add(ref histogramBase, (uint)luminance)--;
         }
     }
@@ -382,7 +396,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
 
                     // Map the current pixel to the new equalized value.
                     Vector4 vector = this.source[x, y].ToUnassociatedScaledVector4();
-                    int luminance = ColorNumerics.GetBT709Luminance(vector, this.processor.LuminanceLevels);
+                    int luminance = GetLuminanceIndex(vector, this.processor.LuminanceLevels);
                     float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / numberOfPixelsMinusCdfMin;
                     vector.X = vector.Y = vector.Z = luminanceEqualized;
                     this.targetPixels[x, y] = TPixel.FromUnassociatedScaledVector4(vector);

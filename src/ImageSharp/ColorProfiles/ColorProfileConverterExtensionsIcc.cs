@@ -75,8 +75,11 @@ internal static class ColorProfileConverterExtensionsIcc
             throw new InvalidOperationException("Target ICC profile is missing.");
         }
 
-        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, converter.Options.IccInterpolationMethod);
-        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, converter.Options.IccInterpolationMethod);
+        // The embedded source profile supplies the connection's intent. Use it for both transform
+        // selection and PCS adjustment; the destination header may recommend a different intent.
+        IccRenderingIntent renderingIntent = converter.Options.SourceIccProfile.Header.RenderingIntent;
+        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, renderingIntent, converter.Options.IccInterpolationMethod);
+        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, renderingIntent, converter.Options.IccInterpolationMethod);
 
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
@@ -142,8 +145,11 @@ internal static class ColorProfileConverterExtensionsIcc
 
         Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(destination));
 
-        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, converter.Options.IccInterpolationMethod);
-        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, converter.Options.IccInterpolationMethod);
+        // Resolve the connection's intent once for the entire span, before selecting either transform
+        // or deciding whether perceptual PCS adjustment is needed.
+        IccRenderingIntent renderingIntent = converter.Options.SourceIccProfile.Header.RenderingIntent;
+        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, renderingIntent, converter.Options.IccInterpolationMethod);
+        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, renderingIntent, converter.Options.IccInterpolationMethod);
 
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
@@ -692,17 +698,30 @@ internal static class ColorProfileConverterExtensionsIcc
     {
         private readonly IccProfile profile;
 
-        internal ConversionParams(IccProfile profile, bool toPcs, IccInterpolationMethod interpolationMethod)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConversionParams"/> class.
+        /// </summary>
+        /// <param name="profile">The profile used by this transform.</param>
+        /// <param name="toPcs">Whether this transform converts device values to the PCS.</param>
+        /// <param name="renderingIntent">The rendering intent shared by both profiles.</param>
+        /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+        internal ConversionParams(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
         {
             this.profile = profile;
-            this.Converter = toPcs ? new IccDataToPcsConverter(profile, interpolationMethod) : new IccPcsToDataConverter(profile, interpolationMethod);
+            this.Intent = renderingIntent;
+            this.Converter = toPcs
+                ? new IccDataToPcsConverter(profile, renderingIntent, interpolationMethod)
+                : new IccPcsToDataConverter(profile, renderingIntent, interpolationMethod);
         }
 
         internal IccConverterBase Converter { get; }
 
         internal IccProfileHeader Header => this.profile.Header;
 
-        internal IccRenderingIntent Intent => this.Header.RenderingIntent;
+        /// <summary>
+        /// Gets the rendering intent selected for this profile connection.
+        /// </summary>
+        internal IccRenderingIntent Intent { get; }
 
         internal IccColorSpaceType PcsType => this.Header.ProfileConnectionSpace;
 

@@ -133,7 +133,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
     }
 
     /// <summary>
-    /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
+    /// Gets the saturated BT.709 histogram index for a pixel.
     /// </summary>
     /// <param name="sourcePixel">The pixel to get the luminance from</param>
     /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
@@ -143,6 +143,9 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
         // TODO: We need a bulk per span equivalent.
         // Histogram bins describe logical color, so storage alpha association must not scale luminance.
         Vector4 vector = sourcePixel.ToUnassociatedScaledVector4();
-        return ColorNumerics.GetBT709Luminance(vector, luminanceLevels);
+
+        // Unbounded luminance can address outside the histogram; NaN maps to its first bin.
+        float luminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+        return (int)MathF.Round(luminance * (luminanceLevels - 1));
     }
 }

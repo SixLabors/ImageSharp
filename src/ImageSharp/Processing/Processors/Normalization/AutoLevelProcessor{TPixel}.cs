@@ -148,8 +148,19 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
             for (int x = 0; x < this.bounds.Width; x++)
             {
                 Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-                int luminance = ColorNumerics.GetBT709Luminance(vector, levels);
+
+                // Keep the CDF offset within the histogram even for HDR or nonfinite samples.
+                float boundedLuminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+                int luminance = (int)MathF.Round(boundedLuminance * (levels - 1));
                 float scaledLuminance = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
+
+                // The first histogram bin maps to black; avoid dividing by its zero index.
+                if (luminance == 0)
+                {
+                    Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(0F, 0F, 0F, vector.W);
+                    continue;
+                }
+
                 float scalingFactor = scaledLuminance * levels / luminance;
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scalingFactor * vector.X, scalingFactor * vector.Y, scalingFactor * vector.Z, vector.W);
             }
@@ -212,13 +223,14 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
                 float alpha = vector.W;
 
                 // Alpha is not a histogram component and must not be scaled into the CDF index range.
-                vector *= levelsMinusOne;
+                // The CDF lookup uses bounded indices; the source vector can still contain HDR values.
+                Vector4 indexValues = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * levelsMinusOne;
 
-                uint originalX = (uint)MathF.Round(vector.X);
+                uint originalX = (uint)MathF.Round(indexValues.X);
                 float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;
-                uint originalY = (uint)MathF.Round(vector.Y);
+                uint originalY = (uint)MathF.Round(indexValues.Y);
                 float scaledY = Unsafe.Add(ref cdfBase, originalY) / noOfPixelsMinusCdfMin;
-                uint originalZ = (uint)MathF.Round(vector.Z);
+                uint originalZ = (uint)MathF.Round(indexValues.Z);
                 float scaledZ = Unsafe.Add(ref cdfBase, originalZ) / noOfPixelsMinusCdfMin;
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scaledX, scaledY, scaledZ, alpha);
             }

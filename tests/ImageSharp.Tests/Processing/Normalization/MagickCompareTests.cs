@@ -49,7 +49,9 @@ public class MagickCompareTests
             ?? throw new InvalidOperationException("CompareToMagick() works only with file providers!");
 
         TestFile testFile = TestFile.Create(path);
-        return new FileStream(testFile.FullPath, FileMode.Open);
+
+        // The input is shared with other tests running in parallel.
+        return File.OpenRead(testFile.FullPath);
     }
 
     private static Image<TPixel> ConvertImageFromMagick<TPixel>(MagickImage magickImage)

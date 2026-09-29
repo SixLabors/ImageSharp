@@ -74,6 +74,7 @@ internal sealed class TiffEncoderCore
         this.quantizer = encoder.Quantizer ?? KnownQuantizers.Hexadecatree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.BitsPerPixel = encoder.BitsPerPixel;
+        this.SampleFormat = encoder.SampleFormat;
         this.HorizontalPredictor = encoder.HorizontalPredictor;
         this.CompressionType = encoder.Compression;
         this.compressionLevel = encoder.CompressionLevel ?? DeflateCompressionLevel.DefaultCompression;
@@ -102,6 +103,16 @@ internal sealed class TiffEncoderCore
     internal TiffBitsPerPixel? BitsPerPixel { get; private set; }
 
     /// <summary>
+    /// Gets the selected format of the written samples.
+    /// </summary>
+    internal TiffSampleFormat? SampleFormat { get; private set; }
+
+    /// <summary>
+    /// Gets the source pixel's alpha representation for the floating-point extra sample tag.
+    /// </summary>
+    internal PixelAlphaRepresentation FloatAlphaRepresentation { get; private set; }
+
+    /// <summary>
     /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -118,6 +129,15 @@ internal sealed class TiffEncoderCore
 
         ImageFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata;
         TiffFrameMetadata rootFrameTiffMetaData = rootFrameMetaData.GetTiffMetadata();
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        TiffSampleFormat sampleFormat = this.SampleFormat ?? rootFrameTiffMetaData.SampleFormat;
+
+        // The encoder writes unsigned integer or IEEE floating-point samples. Match the
+        // existing TIFF option policy by using unsigned samples for unsupported values.
+        if (sampleFormat is not TiffSampleFormat.Float and not TiffSampleFormat.UnsignedInteger)
+        {
+            sampleFormat = TiffSampleFormat.UnsignedInteger;
+        }
 
         // Determine the correct values to encode with.
         // EncoderOptions > Metadata > Default.
@@ -130,7 +150,41 @@ internal sealed class TiffEncoderCore
         TiffCompression compression = this.CompressionType ?? rootFrameTiffMetaData.Compression;
 
         // Make sure the Encoder options makes sense in combination with each other.
-        this.SanitizeAndSetEncoderOptions(bitsPerPixel, photometricInterpretation, compression, predictor);
+        if (sampleFormat == TiffSampleFormat.Float)
+        {
+            // Fresh images have integer TIFF metadata defaults. An explicit float request without
+            // an explicit depth instead follows the source pixel's color and alpha capabilities.
+            if (this.BitsPerPixel is null && rootFrameTiffMetaData.SampleFormat != TiffSampleFormat.Float)
+            {
+                bool hasColorComponents = (pixelInfo.ColorType & PixelColorType.RGB) == PixelColorType.RGB
+                    || (pixelInfo.ColorType & PixelColorType.BGR) == PixelColorType.BGR;
+
+                bitsPerPixel = hasColorComponents
+                    ? pixelInfo.AlphaRepresentation == PixelAlphaRepresentation.None ? TiffBitsPerPixel.Bit96 : TiffBitsPerPixel.Bit128
+                    : TiffBitsPerPixel.Bit32;
+            }
+
+            if (this.PhotometricInterpretation is null && rootFrameTiffMetaData.SampleFormat != TiffSampleFormat.Float)
+            {
+                photometricInterpretation = bitsPerPixel == TiffBitsPerPixel.Bit32
+                    ? TiffPhotometricInterpretation.BlackIsZero
+                    : TiffPhotometricInterpretation.Rgb;
+            }
+
+            this.FloatAlphaRepresentation = pixelInfo.AlphaRepresentation;
+        }
+        else
+        {
+            // An explicit change from floating-point samples must not inherit their 32-bit
+            // component depth when the caller did not choose an integer output depth.
+            if (this.BitsPerPixel is null && rootFrameTiffMetaData.SampleFormat == TiffSampleFormat.Float)
+            {
+                bitsPerPixel = TiffConstants.DefaultBitsPerPixel;
+            }
+        }
+
+        this.SanitizeAndSetEncoderOptions(bitsPerPixel, photometricInterpretation, compression, predictor, sampleFormat);
+        this.SampleFormat = sampleFormat;
 
         using TiffStreamWriter writer = new(stream);
         Span<byte> buffer = stackalloc byte[4];
@@ -148,7 +202,7 @@ internal sealed class TiffEncoderCore
 
                 // TODO: Try to avoid cloning the frame if possible.
                 // We should be cloning individual scanlines instead.
-                if (EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
+                if (sampleFormat != TiffSampleFormat.Float && EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
                 {
                     clonedFrame = frame.Clone();
                     EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
@@ -156,7 +210,7 @@ internal sealed class TiffEncoderCore
 
                 ImageFrame<TPixel> encodingFrame = clonedFrame ?? frame;
 
-                ifdMarker = this.WriteFrame(writer, encodingFrame, image.Metadata, imageMetadata, this.BitsPerPixel.Value, this.CompressionType.Value, ifdMarker);
+                ifdMarker = this.WriteFrame(writer, encodingFrame, image.Metadata, imageMetadata, this.BitsPerPixel.Value, this.CompressionType.Value, sampleFormat, ifdMarker);
                 imageMetadata = null;
             }
             finally
@@ -199,6 +253,7 @@ internal sealed class TiffEncoderCore
     /// <param name="image">The image (common metadata for root frame).</param>
     /// <param name="bitsPerPixel">The bits per pixel.</param>
     /// <param name="compression">The compression type.</param>
+    /// <param name="sampleFormat">The sample format.</param>
     /// <param name="ifdOffset">The marker to write this IFD offset.</param>
     /// <returns>
     /// The next IFD offset value.
@@ -210,6 +265,7 @@ internal sealed class TiffEncoderCore
         Image<TPixel>? image,
         TiffBitsPerPixel bitsPerPixel,
         TiffCompression compression,
+        TiffSampleFormat sampleFormat,
         long ifdOffset)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -225,16 +281,29 @@ internal sealed class TiffEncoderCore
         Size encodingSize = new(width, height);
 
         TiffEncoderEntriesCollector entriesCollector = new();
-        using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
-            this.PhotometricInterpretation,
-            frame,
-            encodingSize,
-            this.quantizer,
-            this.pixelSamplingStrategy,
-            this.memoryAllocator,
-            this.configuration,
-            entriesCollector,
-            (int)bitsPerPixel);
+
+        // Float samples need their own writer. The existing factory selects the integer
+        // writer from the photometric interpretation and encoded pixel depth.
+        using TiffBaseColorWriter<TPixel> colorWriter = sampleFormat == TiffSampleFormat.Float
+            ? new TiffFloatWriter<TPixel>(
+                frame,
+                encodingSize,
+                this.memoryAllocator,
+                this.configuration,
+                entriesCollector,
+                (int)bitsPerPixel,
+                this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero,
+                EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
+            : TiffColorWriterFactory.Create(
+                this.PhotometricInterpretation,
+                frame,
+                encodingSize,
+                this.quantizer,
+                this.pixelSamplingStrategy,
+                this.memoryAllocator,
+                this.configuration,
+                entriesCollector,
+                (int)bitsPerPixel);
 
         using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
             compression,
@@ -373,8 +442,50 @@ internal sealed class TiffEncoderCore
         TiffBitsPerPixel bitsPerPixel,
         TiffPhotometricInterpretation photometricInterpretation,
         TiffCompression compression,
-        TiffPredictor predictor)
+        TiffPredictor predictor,
+        TiffSampleFormat sampleFormat)
     {
+        if (sampleFormat == TiffSampleFormat.Float)
+        {
+            // Preserve supported float depths. For an unsupported depth, select a layout
+            // from the requested color interpretation and the source alpha representation.
+            if (bitsPerPixel is not (TiffBitsPerPixel.Bit32 or TiffBitsPerPixel.Bit96 or TiffBitsPerPixel.Bit128))
+            {
+                bitsPerPixel = photometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero
+                    ? TiffBitsPerPixel.Bit32
+                    : this.FloatAlphaRepresentation == PixelAlphaRepresentation.None ? TiffBitsPerPixel.Bit96 : TiffBitsPerPixel.Bit128;
+            }
+
+            if (bitsPerPixel == TiffBitsPerPixel.Bit32)
+            {
+                photometricInterpretation = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
+                    ? TiffPhotometricInterpretation.WhiteIsZero
+                    : TiffPhotometricInterpretation.BlackIsZero;
+            }
+            else
+            {
+                photometricInterpretation = TiffPhotometricInterpretation.Rgb;
+            }
+
+            // Fax and JPEG compressors cannot write these sample layouts. Deflate is the
+            // existing TIFF fallback for a non-bilevel image with incompatible compression.
+            if (compression is not (TiffCompression.None or TiffCompression.PackBits or TiffCompression.Deflate or TiffCompression.Lzw))
+            {
+                compression = TiffCompression.Deflate;
+            }
+
+            // The TIFF floating-point predictor is not implemented, so write samples directly.
+            this.SetEncoderOptions(bitsPerPixel, photometricInterpretation, compression, TiffPredictor.None);
+            return;
+        }
+
+        // The packed integer depths still use the existing 16-bit color fallback.
+        bitsPerPixel = bitsPerPixel switch
+        {
+            TiffBitsPerPixel.Bit30 or TiffBitsPerPixel.Bit36 or TiffBitsPerPixel.Bit42 => TiffBitsPerPixel.Bit48,
+            _ => bitsPerPixel
+        };
+
         // Ensure 1 Bit compression is only used with 1 bit pixel type.
         // Choose a sensible default based on the bits per pixel.
         if (IsOneBitCompression(compression) && bitsPerPixel != TiffBitsPerPixel.Bit1)
@@ -388,6 +499,13 @@ internal sealed class TiffEncoderCore
 
         // Ensure predictor is only used with compression that supports it.
         predictor = HasPredictor(compression) ? predictor : TiffPredictor.None;
+
+        // JPEG cannot write the requested high-precision integer samples.
+        if (compression == TiffCompression.Jpeg &&
+            bitsPerPixel is (TiffBitsPerPixel.Bit48 or TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit96 or TiffBitsPerPixel.Bit128))
+        {
+            compression = TiffCompression.Deflate;
+        }
 
         // BitsPerPixel should be the primary source of truth for the encoder options.
         switch (bitsPerPixel)
@@ -426,16 +544,12 @@ internal sealed class TiffEncoderCore
             case TiffBitsPerPixel.Bit10:
             case TiffBitsPerPixel.Bit12:
             case TiffBitsPerPixel.Bit14:
-            case TiffBitsPerPixel.Bit30:
-            case TiffBitsPerPixel.Bit36:
-            case TiffBitsPerPixel.Bit42:
-            case TiffBitsPerPixel.Bit48:
                 // Encoding not yet supported bits per pixel will default to 24 bits.
                 this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, predictor);
                 break;
+            case TiffBitsPerPixel.Bit48:
             case TiffBitsPerPixel.Bit64:
-                // Encoding not yet supported bits per pixel will default to 32 bits.
-                this.SetEncoderOptions(TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Rgb, compression, predictor);
+                this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);
                 break;
             default:
                 this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);

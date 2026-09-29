@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Tests.Helpers;
 
@@ -309,6 +310,114 @@ public class NumericsTests
             max,
             (s, m1, m2) => Numerics.Clamp(s, m1, m2),
             (v, m1, m2) => Numerics.Clamp(v, m1, m2));
+    }
+
+    /// <summary>
+    /// Scalar, SIMD, and span clamps map nonfinite values to the requested bounds.
+    /// </summary>
+    /// <param name="min">The lower bound.</param>
+    /// <param name="max">The upper bound.</param>
+    [Theory]
+    [InlineData(0F, 1F)]
+    [InlineData(-2F, 3F)]
+    [InlineData(.25F, .75F)]
+    public void ClampSingle_NormalizesNonfiniteValues(float min, float max)
+    {
+        float midpoint = (min + max) / 2;
+        float[] inputs = [float.NaN, float.PositiveInfinity, float.NegativeInfinity, midpoint];
+        float[] normalized = [min, max, min, midpoint];
+        float[] values = new float[65];
+        float[] expected = new float[values.Length];
+
+        // The length includes complete registers and remainders for every supported SIMD width.
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = inputs[i % inputs.Length];
+            expected[i] = normalized[i % normalized.Length];
+            Assert.Equal(expected[i], Numerics.Clamp(values[i], min, max));
+        }
+
+        Vector4 input = new(inputs[0], inputs[1], inputs[2], inputs[3]);
+        Vector4 result = new(normalized[0], normalized[1], normalized[2], normalized[3]);
+        Assert.Equal(result, Numerics.Clamp(input, new Vector4(min), new Vector4(max)));
+        Assert.Equal(new Vector2(min, max), Numerics.Clamp(new Vector2(float.NaN, float.PositiveInfinity), new Vector2(min), new Vector2(max)));
+
+        Vector128<float> vector128 = Vector128.LoadUnsafe(ref values[0]);
+        Assert.Equal(Vector128.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector128, Vector128.Create(min), Vector128.Create(max)));
+
+        Vector256<float> vector256 = Vector256.LoadUnsafe(ref values[0]);
+        Assert.Equal(Vector256.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector256, Vector256.Create(min), Vector256.Create(max)));
+
+        Vector512<float> vector512 = Vector512.LoadUnsafe(ref values[0]);
+        Assert.Equal(Vector512.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector512, Vector512.Create(min), Vector512.Create(max)));
+
+        Numerics.Clamp(values, min, max);
+        Assert.Equal(expected, values);
+    }
+
+    /// <summary>
+    /// Scalar, SIMD, and span clamps map nonfinite values to the requested bounds.
+    /// </summary>
+    /// <param name="min">The lower bound.</param>
+    /// <param name="max">The upper bound.</param>
+    [Theory]
+    [InlineData(0D, 1D)]
+    [InlineData(-2D, 3D)]
+    [InlineData(.25D, .75D)]
+    public void ClampDouble_NormalizesNonfiniteValues(double min, double max)
+    {
+        double midpoint = (min + max) / 2;
+        double[] inputs = [double.NaN, double.PositiveInfinity, double.NegativeInfinity, midpoint];
+        double[] normalized = [min, max, min, midpoint];
+        double[] values = new double[65];
+        double[] expected = new double[values.Length];
+
+        // The length includes complete registers and remainders for every supported SIMD width.
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = inputs[i % inputs.Length];
+            expected[i] = normalized[i % normalized.Length];
+            Assert.Equal(expected[i], Numerics.Clamp(values[i], min, max));
+        }
+
+        Vector128<double> vector128 = Vector128.LoadUnsafe(ref values[0]);
+        Assert.Equal(Vector128.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector128, Vector128.Create(min), Vector128.Create(max)));
+
+        Vector256<double> vector256 = Vector256.LoadUnsafe(ref values[0]);
+        Assert.Equal(Vector256.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector256, Vector256.Create(min), Vector256.Create(max)));
+
+        Vector512<double> vector512 = Vector512.LoadUnsafe(ref values[0]);
+        Assert.Equal(Vector512.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector512, Vector512.Create(min), Vector512.Create(max)));
+
+        Numerics.Clamp(values, min, max);
+        Assert.Equal(expected, values);
+    }
+
+    /// <summary>
+    /// Clamping an in-range zero preserves its sign in scalar and bulk conversions.
+    /// </summary>
+    [Fact]
+    public void Clamp_PreservesInRangeSignedZero()
+    {
+        float[] singles = new float[65];
+        double[] doubles = new double[65];
+
+        for (int i = 0; i < singles.Length; i++)
+        {
+            singles[i] = i % 2 == 0 ? -0F : 0F;
+            doubles[i] = i % 2 == 0 ? -0D : 0D;
+            Assert.Equal(BitConverter.SingleToInt32Bits(singles[i]), BitConverter.SingleToInt32Bits(Numerics.Clamp(singles[i], 0F, 1F)));
+            Assert.Equal(BitConverter.DoubleToInt64Bits(doubles[i]), BitConverter.DoubleToInt64Bits(Numerics.Clamp(doubles[i], 0D, 1D)));
+        }
+
+        Numerics.Clamp(singles, 0F, 1F);
+        Numerics.Clamp(doubles, 0D, 1D);
+
+        for (int i = 0; i < singles.Length; i++)
+        {
+            Assert.Equal(BitConverter.SingleToInt32Bits(i % 2 == 0 ? -0F : 0F), BitConverter.SingleToInt32Bits(singles[i]));
+            Assert.Equal(BitConverter.DoubleToInt64Bits(i % 2 == 0 ? -0D : 0D), BitConverter.DoubleToInt64Bits(doubles[i]));
+        }
     }
 
     private static void TestClampSpan<T>(

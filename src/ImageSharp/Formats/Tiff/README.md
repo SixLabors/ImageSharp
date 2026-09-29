@@ -44,6 +44,12 @@
 |Old Deflate (Technote 2)   |       |   Y   |                                   |
 |Webp   					|       |   Y   |                                   |
 
+For high-precision samples, the encoder and decoder support unsigned 16-bit and
+32-bit RGB/RGBA samples (48, 64, 96, or 128 bits per pixel). They also support
+32-bit floating-point grayscale, RGB, and RGBA samples (32, 96, or 128 bits per
+pixel). Floating-point encoding supports None, PackBits, Lzw, and Deflate
+compression. The floating-point predictor is not supported.
+
 ### Photometric Interpretation Formats
 
 |                           |Encoder|Decoder|Comments                                        |
@@ -88,7 +94,7 @@
 |MaxSampleValue             |       |       |                          |
 |XResolution                |   Y   |   Y   |                          |
 |YResolution                |   Y   |   Y   |                          |
-|PlanarConfiguration        |       |   Y   | Encoding support only chunky. |
+|PlanarConfiguration        |   Y   |   Y   | Encoder writes chunky; decoder supports chunky and planar. |
 |FreeOffsets                |       |       |                          |
 |FreeByteCounts             |       |       |                          |
 |GrayResponseUnit           |       |       |                          |
@@ -99,7 +105,7 @@
 |Artist                     |   Y   |   Y   |                          |
 |HostComputer               |   Y   |   Y   |                          |
 |ColorMap                   |   Y   |   Y   |                          |
-|ExtraSamples               |       |   Y   | Unspecified alpha data is not supported. |
+|ExtraSamples               |   Y   |   Y   | Encoder writes unassociated integer alpha or associated/unassociated floating-point alpha. Unspecified alpha data is not supported. |
 |Copyright                  |   Y   |   Y   |                          |
 
 ### Extension TIFF Tags
@@ -115,7 +121,7 @@
 |T6Options                  |       |       |                          |
 |PageNumber                 |       |       |                          |
 |TransferFunction           |       |       |                          |
-|Predictor                  |   Y   |   Y   | only Horizontal          |
+|Predictor                  |   Y   |   Y   | Horizontal only; not used for floating-point samples. |
 |WhitePoint                 |       |       |                          |
 |PrimaryChromaticities      |       |       |                          |
 |HalftoneHints              |       |       |                          |
@@ -132,7 +138,7 @@
 |NumberOfInks               |       |   -   |                          |
 |DotRange                   |       |       |                          |
 |TargetPrinter              |       |       |                          |
-|SampleFormat               |       |   -   |                          |
+|SampleFormat               |   Y   |   Y   | Encoder writes IEEE floating-point; unsigned integer is the default. Signed and complex samples are not supported. |
 |SMinSampleValue            |       |       |                          |
 |SMaxSampleValue            |       |       |                          |
 |TransferRange              |       |       |                          |

@@ -26,7 +26,7 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
         : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
     /// <inheritdoc/>
-    public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
+    public override void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan();
         int maxLength = (int)this.BytesPerBlock;

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -190,12 +191,57 @@ internal static class HorizontalPredictor
         }
         else if (bitsPerPixel == 16)
         {
-            // Assume rows are L16 grayscale since that's currently the only way 16 bits is supported by encoder
-            ApplyHorizontalPrediction16Bit(rows, width);
+            ApplyHorizontalPrediction16Bit(rows, width, 1);
         }
         else if (bitsPerPixel == 24)
         {
             ApplyHorizontalPrediction24Bit(rows, width);
+        }
+        else if (bitsPerPixel == 48 || bitsPerPixel == 64)
+        {
+            ApplyHorizontalPrediction16Bit(rows, width, bitsPerPixel / 16);
+        }
+        else if (bitsPerPixel == 96 || bitsPerPixel == 128)
+        {
+            ApplyHorizontalPrediction32Bit(rows, width, bitsPerPixel / 32);
+        }
+    }
+
+    /// <summary>
+    /// Applies horizontal differencing to each 32-bit component using the preceding pixel's component.
+    /// </summary>
+    /// <param name="rows">The rows of native-endian 32-bit samples.</param>
+    /// <param name="width">The row width in bytes.</param>
+    /// <param name="samplesPerPixel">The number of components in each pixel.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void ApplyHorizontalPrediction32Bit(Span<byte> rows, int width, int samplesPerPixel)
+    {
+        DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equal");
+        for (int row = 0; row < rows.Length; row += width)
+        {
+            Span<uint> samples = MemoryMarshal.Cast<byte, uint>(rows.Slice(row, width));
+
+            // Predictor 2 subtracts the same component of the preceding pixel.
+            // Work backward so those preceding samples still have their original
+            // values. Load both vectors before writing because their spans can
+            // overlap when a pixel has three or four components. Unsigned vector
+            // subtraction wraps at 32 bits, as the scalar predictor does.
+            int i = samples.Length - 1;
+            if (Vector.IsHardwareAccelerated)
+            {
+                for (; i >= samplesPerPixel + Vector<uint>.Count - 1; i -= Vector<uint>.Count)
+                {
+                    int first = i - Vector<uint>.Count + 1;
+                    Vector<uint> current = new(samples.Slice(first, Vector<uint>.Count));
+                    Vector<uint> previous = new(samples.Slice(first - samplesPerPixel, Vector<uint>.Count));
+                    (current - previous).CopyTo(samples.Slice(first, Vector<uint>.Count));
+                }
+            }
+
+            for (; i >= samplesPerPixel; i--)
+            {
+                samples[i] -= samples[i - samplesPerPixel];
+            }
         }
     }
 
@@ -228,26 +274,26 @@ internal static class HorizontalPredictor
     }
 
     /// <summary>
-    /// Applies a horizontal predictor to the L16 row.
-    /// Make use of the fact that many continuous-tone images rarely vary much in pixel value from one pixel to the next.
-    /// In such images, if we replace the pixel values by differences between consecutive pixels, many of the differences should be 0, plus
-    /// or minus 1, and so on.This reduces the apparent information content and allows LZW to encode the data more compactly.
+    /// Applies horizontal differencing to each 16-bit component using the preceding pixel's corresponding component.
     /// </summary>
-    /// <param name="rows">The L16 pixel rows.</param>
+    /// <param name="rows">The rows of native-endian 16-bit samples.</param>
     /// <param name="width">The width.</param>
+    /// <param name="samplesPerPixel">The number of 16-bit components in each pixel.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ApplyHorizontalPrediction16Bit(Span<byte> rows, int width)
+    private static void ApplyHorizontalPrediction16Bit(Span<byte> rows, int width, int samplesPerPixel)
     {
         DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
         int height = rows.Length / width;
         for (int y = 0; y < height; y++)
         {
             Span<byte> rowSpan = rows.Slice(y * width, width);
-            Span<L16> rowL16 = MemoryMarshal.Cast<byte, L16>(rowSpan);
+            Span<ushort> samples = MemoryMarshal.Cast<byte, ushort>(rowSpan);
 
-            for (int x = rowL16.Length - 1; x >= 1; x--)
+            // TIFF Predictor 2 uses a one-pixel sample stride (libtiff horDiff16).
+            // Walk backward so every subtraction uses the original preceding sample.
+            for (int i = samples.Length - 1; i >= samplesPerPixel; i--)
             {
-                rowL16[x].PackedValue = (ushort)(rowL16[x].PackedValue - rowL16[x - 1].PackedValue);
+                samples[i] = (ushort)(samples[i] - samples[i - samplesPerPixel]);
             }
         }
     }

@@ -6026,8 +6026,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     // The syntax of a wedge is priced before its prediction is formed. Half of the
                     // current winner is the allowance: a shape whose syntax alone already reaches
-                    // it leaves no room for the distortion that will follow.
-                    if (isWedge && !modelMask &&
+                    // it leaves no room for the distortion that will follow. A wedge kept from an
+                    // earlier mode of the block is not pruned this way. Reference: the
+                    // need_mask_search branches of av1_compound_type_rd().
+                    if (isWedge && !modelMask && !reuseMask &&
                         Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + totalModeRate, 0) >= currentBest / 2)
                     {
                         continue;
@@ -6083,8 +6085,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             ref trialSecondary);
                     }
 
+                    // A wedge kept from an earlier mode of the block is predicted from the references, as a
+                    // refined or difference-weighted blend is; a searched wedge blends the two single-reference
+                    // predictions. Reference: av1_enc_build_inter_predictor() in the reuse branch of
+                    // av1_compound_type_rd(), and av1_build_wedge_inter_predictor_from_buf() in its search loop.
                     int motionRate = this.GetCompoundMotionRate(mode, trialPrimary, trialSecondary, referenceIndex, in referenceMotionVectors);
-                    if (!isMasked || refine || (!isWedge && !modelMask))
+                    if (!isMasked || refine || (!isWedge && !modelMask) || (isWedge && reuseMask))
                     {
                         this.PrepareInterPlanePrediction(
                             trialPrimary,
@@ -6144,7 +6150,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    long residualBound = isWedge && !modelMask ? Math.Min(typeEstimate, currentBest) :
+                    // A kept wedge is estimated without a bound. Reference: the INT64_MAX bound of the
+                    // estimate_yrd_for_sb() call in the wedge reuse branch of av1_compound_type_rd().
+                    long residualBound = isWedge && !modelMask && reuseMask ? long.MaxValue :
+                        isWedge && !modelMask ? Math.Min(typeEstimate, currentBest) :
                         refine && !isMasked ? long.MaxValue :
                         Math.Min(bestEstimate, threshold) - Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + motionRate, 0);
 

@@ -29,78 +29,282 @@ internal static partial class Av1MotionSearchBase
     }
 
     /// <summary>
-    /// Collects weighted temporal starting vectors for one prediction block.
+    /// Adds the temporal dependency vectors of the 16x16 blocks that a prediction block covers to its starting
+    /// candidates, after the spatial start at index zero. Each vector rounds to full samples, and vectors whose full
+    /// samples round to the same eight-sample cell merge into the first of them, which counts their votes. The
+    /// spatial start weighs as much as every covered block together, so it stays among the tested starts. When every
+    /// covered block has a vector, the candidates are ordered by decreasing weight and the total weight is twice the
+    /// covered block count; at the first block without a vector the collected prefix is kept unordered and the total
+    /// stays zero. Reference: get_mv_candidate_from_tpl().
     /// </summary>
-    /// <param name="spatialStart">The rounded spatial reference displacement in full samples.</param>
-    /// <param name="temporalVectors">The temporal analysis vectors at the block's analysis-grid origin.</param>
-    /// <param name="temporalStride">The analysis row stride in vectors.</param>
-    /// <param name="analysisSize">The number of analysis columns and rows covered by the block.</param>
-    /// <param name="candidates">Storage for the spatial start and every covered analysis block.</param>
-    /// <param name="totalWeight">The represented weight, or zero when analysis is incomplete.</param>
-    /// <returns>The number of collected starting candidates.</returns>
+    /// <param name="superblockVectors">
+    /// The temporal dependency vectors of the superblock, seven per 16x16 block, one for each reference LAST to ALTREF.
+    /// Reference: sb_enc->tpl_mv.
+    /// </param>
+    /// <param name="superblockBlockCount">
+    /// The number of superblock blocks inside the frame, zero without statistics. Reference: sb_enc->tpl_data_count.
+    /// </param>
+    /// <param name="superblockStride">The number of blocks per superblock row. Reference: sb_enc->tpl_stride.</param>
+    /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
+    /// <param name="modeInfoPosition">The prediction block position in mode-information units.</param>
+    /// <param name="blockSize">The prediction block size.</param>
+    /// <param name="referenceIndex">The searched reference, zero for LAST.</param>
+    /// <param name="candidates">Holds the spatial start at index zero, and receives the collected candidates.</param>
+    /// <param name="totalWeight">Receives the total weight, or zero when the candidates are not ordered.</param>
+    /// <returns>The number of starting candidates, at least one.</returns>
     public static int CollectStartingCandidates(
-        Point spatialStart,
-        ReadOnlySpan<Av1MotionVector> temporalVectors,
-        int temporalStride,
-        Size analysisSize,
+        ReadOnlySpan<Av1MotionVector> superblockVectors,
+        int superblockBlockCount,
+        int superblockStride,
+        int superblockModeInfoSize,
+        Point modeInfoPosition,
+        Av1BlockSize blockSize,
+        int referenceIndex,
         Span<StartingCandidate> candidates,
         out int totalWeight)
     {
-        candidates[0] = new StartingCandidate(spatialStart, 0);
         totalWeight = 0;
         int count = 1;
-        int analysisCount = analysisSize.Width * analysisSize.Height;
-        if (analysisCount != 0)
+        if (superblockBlockCount == 0)
         {
-            // The spatial start receives one vote per analysis block before temporal votes are added.
-            // It therefore remains among the first starts even when the temporal field is fragmented.
-            candidates[0] = new StartingCandidate(spatialStart, analysisCount);
-            for (int y = 0; y < analysisSize.Height; y++)
+            return count;
+        }
+
+        // A 16x16 model block spans four mode-information units. A prediction block narrower or shorter than one
+        // covers no whole model block and adds nothing.
+        const int ModelModeInfo = 4;
+        int wide = blockSize.Get4x4WideCount() / ModelModeInfo;
+        int high = blockSize.Get4x4HighCount() / ModelModeInfo;
+        if (wide < 1 || high < 1)
+        {
+            return count;
+        }
+
+        int offsetRow = modeInfoPosition.Y % superblockModeInfoSize;
+        int offsetColumn = modeInfoPosition.X % superblockModeInfoSize;
+        int start = ((offsetRow / ModelModeInfo) * superblockStride) + (offsetColumn / ModelModeInfo);
+        candidates[0] = new StartingCandidate(candidates[0].Vector, wide * high);
+        const int References = 7;
+        for (int k = 0; k < high; k++)
+        {
+            for (int l = 0; l < wide; l++)
             {
-                for (int x = 0; x < analysisSize.Width; x++)
+                Av1MotionVector vector = superblockVectors[((start + (k * superblockStride) + l) * References) + referenceIndex];
+                if (vector.Row == short.MinValue && vector.Column == short.MinValue)
                 {
-                    Av1MotionVector vector = temporalVectors[(y * temporalStride) + x];
-                    if (vector.Row == short.MinValue && vector.Column == short.MinValue)
-                    {
-                        // Analysis may end partway through a block. Retain the collected prefix, but do not
-                        // apply completed-field weighting or reorder it as if all temporal votes were available.
-                        return count;
-                    }
+                    // An unsearched reference or a block outside the frame ends the collection. Reference: the
+                    // INVALID_MV test that clears valid.
+                    return count;
+                }
 
-                    Point position = new(vector.Column >> 3, vector.Row >> 3);
-                    int rowGroup = (position.Y + 3 + (position.Y >= 0 ? 1 : 0)) >> 3;
-                    int columnGroup = (position.X + 3 + (position.X >= 0 ? 1 : 0)) >> 3;
-                    int index = 0;
-                    for (; index < count; index++)
+                // GET_MV_RAWPEL() rounds the eighth-sample vector to full samples, and RIGHT_SHIFT_MV() applies the
+                // same rounding to group full samples into eight-sample cells.
+                Point position = new(RoundToFullSample(vector.Column), RoundToFullSample(vector.Row));
+                int rowCell = RoundToFullSample(position.Y);
+                int columnCell = RoundToFullSample(position.X);
+                int index = 0;
+                for (; index < count; index++)
+                {
+                    Point existing = candidates[index].Vector;
+                    if (RoundToFullSample(existing.Y) == rowCell && RoundToFullSample(existing.X) == columnCell)
                     {
-                        Point existing = candidates[index].Vector;
-
-                        // Temporal starts are grouped into rounded eight-sample cells after conversion to
-                        // full samples. Keep the first representative position while accumulating its votes.
-                        if (((existing.Y + 3 + (existing.Y >= 0 ? 1 : 0)) >> 3) == rowGroup
-                            && ((existing.X + 3 + (existing.X >= 0 ? 1 : 0)) >> 3) == columnGroup)
-                        {
-                            candidates[index] = new StartingCandidate(existing, candidates[index].Weight + 1);
-                            break;
-                        }
-                    }
-
-                    if (index == count)
-                    {
-                        candidates[count++] = new StartingCandidate(position, 1);
+                        candidates[index] = new StartingCandidate(existing, candidates[index].Weight + 1);
+                        break;
                     }
                 }
-            }
 
-            totalWeight = 2 * analysisCount;
-            if (count > 2)
-            {
-                candidates[..count].Sort(default(StartingCandidateWeightComparer));
+                if (index == count)
+                {
+                    candidates[count++] = new StartingCandidate(position, 1);
+                }
             }
+        }
+
+        totalWeight = 2 * high * wide;
+        if (count > 2)
+        {
+            SortByDecreasingWeight(candidates[..count]);
         }
 
         return count;
     }
+
+    /// <summary>
+    /// Rounds an eighth-sample value to the nearest full sample, halves away from zero. Reference: GET_MV_RAWPEL()
+    /// and RIGHT_SHIFT_MV().
+    /// </summary>
+    /// <param name="value">The value in eighth samples.</param>
+    /// <returns>The value in full samples.</returns>
+    private static int RoundToFullSample(int value) => (value + 3 + (value >= 0 ? 1 : 0)) >> 3;
+
+    /// <summary>
+    /// Orders starting candidates by decreasing weight with the C library qsort of the x64 reference build, which links
+    /// the Microsoft C runtime; its order of equal weights is the order this reproduces. A range of up to eight entries
+    /// is sorted by moving its first largest entry, in comparator order, to its end. A longer range is partitioned
+    /// around the median of its first, middle and last entries into entries ordered no later than the partition entry,
+    /// entries equal to it, and entries ordered after it; the smaller part is sorted first and the larger is kept on
+    /// an explicit stack. Reference: qsort() with compare_weight().
+    /// </summary>
+    /// <param name="candidates">The candidates, sorted in place.</param>
+    private static void SortByDecreasingWeight(Span<StartingCandidate> candidates)
+    {
+        // The explicit stack holds at most log2 of the length entries; the runtime sizes it for any 64-bit length.
+        const int StackSize = (8 * 8) - 2;
+        const int Cutoff = 8;
+        Span<int> lowStack = stackalloc int[StackSize];
+        Span<int> highStack = stackalloc int[StackSize];
+        int stackPointer = 0;
+        int low = 0;
+        int high = candidates.Length - 1;
+        while (true)
+        {
+            int size = high - low + 1;
+            if (size <= Cutoff)
+            {
+                // shortsort(): the first entry that compares greatest moves to the end of the shrinking range.
+                for (int end = high; end > low; end--)
+                {
+                    int greatest = low;
+                    for (int index = low + 1; index <= end; index++)
+                    {
+                        if (CompareWeight(candidates[index], candidates[greatest]) > 0)
+                        {
+                            greatest = index;
+                        }
+                    }
+
+                    (candidates[greatest], candidates[end]) = (candidates[end], candidates[greatest]);
+                }
+            }
+            else
+            {
+                // The median of three moves into the middle.
+                int middle = low + (size / 2);
+                if (CompareWeight(candidates[low], candidates[middle]) > 0)
+                {
+                    (candidates[low], candidates[middle]) = (candidates[middle], candidates[low]);
+                }
+
+                if (CompareWeight(candidates[low], candidates[high]) > 0)
+                {
+                    (candidates[low], candidates[high]) = (candidates[high], candidates[low]);
+                }
+
+                if (CompareWeight(candidates[middle], candidates[high]) > 0)
+                {
+                    (candidates[middle], candidates[high]) = (candidates[high], candidates[middle]);
+                }
+
+                // The two scans exchange entries on the wrong side of the partition entry, which the exchange may
+                // move. Each scan is split in two so that the partition entry is never compared with itself.
+                int lowScan = low;
+                int highScan = high;
+                while (true)
+                {
+                    if (middle > lowScan)
+                    {
+                        do
+                        {
+                            lowScan++;
+                        }
+                        while (lowScan < middle && CompareWeight(candidates[lowScan], candidates[middle]) <= 0);
+                    }
+
+                    if (middle <= lowScan)
+                    {
+                        do
+                        {
+                            lowScan++;
+                        }
+                        while (lowScan <= high && CompareWeight(candidates[lowScan], candidates[middle]) <= 0);
+                    }
+
+                    do
+                    {
+                        highScan--;
+                    }
+                    while (highScan > middle && CompareWeight(candidates[highScan], candidates[middle]) > 0);
+
+                    if (highScan < lowScan)
+                    {
+                        break;
+                    }
+
+                    (candidates[lowScan], candidates[highScan]) = (candidates[highScan], candidates[lowScan]);
+                    if (middle == highScan)
+                    {
+                        middle = lowScan;
+                    }
+                }
+
+                // Entries equal to the partition entry that sit next to it join neither part.
+                highScan++;
+                if (middle < highScan)
+                {
+                    do
+                    {
+                        highScan--;
+                    }
+                    while (highScan > middle && CompareWeight(candidates[highScan], candidates[middle]) == 0);
+                }
+
+                if (middle >= highScan)
+                {
+                    do
+                    {
+                        highScan--;
+                    }
+                    while (highScan > low && CompareWeight(candidates[highScan], candidates[middle]) == 0);
+                }
+
+                if (highScan - low >= high - lowScan)
+                {
+                    if (low < highScan)
+                    {
+                        lowStack[stackPointer] = low;
+                        highStack[stackPointer++] = highScan;
+                    }
+
+                    if (lowScan < high)
+                    {
+                        low = lowScan;
+                        continue;
+                    }
+                }
+                else
+                {
+                    if (lowScan < high)
+                    {
+                        lowStack[stackPointer] = lowScan;
+                        highStack[stackPointer++] = high;
+                    }
+
+                    if (low < highScan)
+                    {
+                        high = highScan;
+                        continue;
+                    }
+                }
+            }
+
+            if (--stackPointer < 0)
+            {
+                return;
+            }
+
+            low = lowStack[stackPointer];
+            high = highStack[stackPointer];
+        }
+    }
+
+    /// <summary>
+    /// Compares two starting candidates so that a heavier candidate orders first. Reference: compare_weight().
+    /// </summary>
+    /// <param name="left">The first candidate.</param>
+    /// <param name="right">The second candidate.</param>
+    /// <returns>A positive value when <paramref name="left"/> is lighter, negative when heavier, otherwise zero.</returns>
+    private static int CompareWeight(StartingCandidate left, StartingCandidate right)
+        => left.Weight < right.Weight ? 1 : left.Weight > right.Weight ? -1 : 0;
 
     /// <summary>
     /// Holds one weighted full-sample starting position from spatial or temporal analysis.
@@ -848,14 +1052,5 @@ internal static partial class Av1MotionSearchBase
             int motionRate = ((this.motionCosts.GetCost(vector, referenceVector) * 108) + 64) >> 7;
             return Av1RateDistortion.GetCost(this.rateMultiplier, statistics.Rate + motionRate, statistics.Distortion);
         }
-    }
-
-    /// <summary>
-    /// Orders temporal starts by descending represented analysis weight.
-    /// </summary>
-    private readonly struct StartingCandidateWeightComparer : IComparer<StartingCandidate>
-    {
-        /// <inheritdoc/>
-        public int Compare(StartingCandidate x, StartingCandidate y) => y.Weight.CompareTo(x.Weight);
     }
 }

@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -508,6 +509,16 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         bool varianceBoost = parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.VarianceBoost;
         deltaQ.IsPresent = varianceBoost && baseQIndex > 0;
         deltaQ.Resolution = varianceBoost ? Av1VarianceBoost.GetDeltaQResolution(baseQIndex) : 1;
+        if (parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.Objective)
+        {
+            deltaQ.Resolution = Av1TplDecisions.ObjectiveDeltaQResolution;
+            deltaQ.IsPresent = AllowsObjectiveDeltaQ(picture, blockWorkspace) && baseQIndex > 0;
+        }
+
+        // Each coding block derives its rate multiplier from its superblock quantizer whenever the frame codes delta
+        // quantizers. Reference: enable_delta_rdmult() without disable_deltaq_for_intl_arfs(), which one-pass
+        // coding never enables.
+        parent.CodingBlockDeltaRateMultiplier = deltaQ.IsPresent;
         frameHeader.DeltaLoopFilterParameters.IsPresent = false;
         parent.DeltaQUsed = false;
 
@@ -629,6 +640,40 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         loopFilter.FilterLevelV = 0;
         loopFilter.ReferenceDeltaModeEnabled = true;
         parent.MotionSearchStepParameter = stepParameter;
+    }
+
+    /// <summary>
+    /// Returns whether a frame of the objective delta quantizer mode keeps its delta quantizer syntax: a frame other
+    /// than a leaf frame whose objective superblock quantizers lower the estimated rate-distortion cost of the frame.
+    /// Without temporal dependency statistics every superblock estimate is zero, so the syntax stays off. The
+    /// estimate updates the regularized importance that the coding block rate multipliers divide by. Reference: the
+    /// DELTA_Q_OBJECTIVE tests of encode_frame_internal(), with enable_delta_q() and allow_deltaq_mode().
+    /// </summary>
+    /// <param name="picture">The picture whose parent carries the temporal dependency state.</param>
+    /// <param name="blockWorkspace">The workspace that holds the regularized importance.</param>
+    /// <returns><see langword="true"/> when the frame codes delta quantizers.</returns>
+    private static bool AllowsObjectiveDeltaQ(Av1PictureControlSet picture, Av1EncoderBlockWorkspace blockWorkspace)
+    {
+        // One-pass coding never takes the pyramid level test of disable_deltaq_for_intl_arfs(), which needs two-pass
+        // statistics, so only leaf frames are excluded. Reference: enable_delta_q().
+        Av1PictureParentControlSet parent = picture.Parent;
+        if (parent.FrameUpdateType == Av1FrameUpdateType.Last || parent.TplFrame is not { } frame)
+        {
+            return false;
+        }
+
+        ObuSequenceHeader sequenceHeader = picture.Sequence.SequenceHeader;
+        double regularizedImportance = blockWorkspace.RegularizedImportance;
+        bool allowed = Av1TplDecisions.AllowDeltaQ(
+            frame,
+            1 << (sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2),
+            parent.FrameHeader.QuantizationParameters.BaseQIndex,
+            sequenceHeader.ColorConfig.BitDepth,
+            parent.TplImportance,
+            ref regularizedImportance);
+
+        blockWorkspace.RegularizedImportance = regularizedImportance;
+        return allowed;
     }
 
     private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
@@ -783,12 +828,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
 
         blockWorkspace.EncodedFrameCount++;
-        blockWorkspace.PreviousFrameRateMultiplier = Av1RateDistortion.GetRateMultiplier(
+        blockWorkspace.FrameNumber = blockWorkspace.EncodedFrameCount;
+        blockWorkspace.PreviousFrameRateMultiplier = parent.GetRateMultiplier(
             frameHeader.QuantizationParameters.QIndex[0] + frameHeader.QuantizationParameters.DeltaQDc[0],
-            picture.Sequence.SequenceHeader.ColorConfig.BitDepth,
-            parent.FrameUpdateType,
-            parent.EncoderOptions.Tuning,
-            parent.SpeedSettings.IsRealtime);
+            picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
 
         return encodedTiles;
     }

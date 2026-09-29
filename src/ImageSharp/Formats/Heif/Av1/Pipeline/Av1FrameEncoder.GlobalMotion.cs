@@ -119,9 +119,8 @@ internal static partial class Av1FrameEncoder
         bool pruningEnabled = selectiveLevel > 0 &&
             search.UpdateType is not (Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Key);
 
-        // A group without an alternate reference keeps the search. The groups here never have one.
-        // Reference: disable_gm_search_based_on_stats().
-        const bool searchDisabledByStatistics = false;
+        // Reference: disable_gm_search_based_on_stats(), on for every good-quality speed.
+        bool searchDisabledByStatistics = search.DisabledByStatistics;
 
         Buffer2DRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
         for (int frame = (int)Av1ReferenceFrameType.Alternate; frame >= (int)Av1ReferenceFrameType.Last; frame--)
@@ -351,8 +350,10 @@ internal static partial class Av1FrameEncoder
             ReadOnlySpan<int> slotDisplayOrders,
             int displayOrder,
             ReadOnlySpan<int> slotPyramidLevels,
-            int pyramidLevel)
+            int pyramidLevel,
+            bool disabledByStatistics = false)
         {
+            this.DisabledByStatistics = disabledByStatistics;
             this.Enabled = enabled;
             this.SpeedSettings = speedSettings;
             this.UpdateType = updateType;
@@ -404,5 +405,11 @@ internal static partial class Av1FrameEncoder
         /// Gets the pyramid level of the frame being coded.
         /// </summary>
         public int PyramidLevel { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether a group with an alternate reference found no global motion in its
+        /// alternate, intermediate alternate and leaf frames so far. Reference: disable_gm_search_based_on_stats().
+        /// </summary>
+        public bool DisabledByStatistics { get; }
     }
 }

@@ -441,6 +441,16 @@ internal readonly struct Av1EncoderSpeedSettings
             _ => minimumDimension >= 1080 && qIndex <= 108 ? 2 : 1
         };
 
+        // prune_inter_modes_based_on_tpl: good quality prunes LAST2 modes at every speed, and from speed 3 a frame
+        // that is not boosted prunes more with speed; a boosted frame keeps level 1. Real-time usage leaves it off.
+        this.TplInterModePruningLevel = realtime || allIntra ? 0 : boosted ? 1 : speed switch
+        {
+            >= HeifEncodingSpeed.Level6 => 4,
+            >= HeifEncodingSpeed.Level4 => 3,
+            HeifEncodingSpeed.Level3 => 2,
+            _ => 1
+        };
+
         this.EnableWinnerCoefficientOptimization = !realtime &&
             speed >= (allIntra ? HeifEncodingSpeed.Level4 : HeifEncodingSpeed.Level3);
 
@@ -1265,6 +1275,12 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets the level that limits the references an inter frame searches. Reference: selective_ref_frame.
     /// </summary>
     public int SelectiveReferenceFrameLevel { get; }
+
+    /// <summary>
+    /// Gets the level at which inter modes whose references predicted much worse than the best reference in the
+    /// temporal dependency model are skipped, or zero to never skip them. Reference: prune_inter_modes_based_on_tpl.
+    /// </summary>
+    public int TplInterModePruningLevel { get; }
 
     /// <summary>
     /// Gets the pyramid level on which the global motion search finds its corners. Reference: gm_sf.downsample_level.

@@ -40,7 +40,10 @@ internal sealed class Av1EncoderOptions
         this.CdefControl = allIntra ? Av1CdefControl.None : Av1CdefControl.All;
         this.ScreenDetectionMode = allIntra ? Av1ScreenDetectionMode.AntialiasingAware : Av1ScreenDetectionMode.Standard;
         this.DistortionMetric = Av1DistortionMetric.Psnr;
-        this.DeltaQMode = Av1DeltaQMode.None;
+
+        // Sequences keep the objective delta-q mode, which acts only when the temporal dependency model has
+        // statistics. Reference: the DELTA_Q_OBJECTIVE deltaq_mode of the good-quality defaults.
+        this.DeltaQMode = allIntra ? Av1DeltaQMode.None : Av1DeltaQMode.Objective;
 
         // The image tune enables the quantization matrices, sharpness 7, the QM-PSNR metric, adaptive CDEF, chroma
         // delta q, variance boost, anti-aliasing aware screen detection and adaptive sharpness. Every other tune keeps
@@ -152,6 +155,18 @@ internal sealed class Av1EncoderOptions
     /// arrives. Reference: g_lag_in_frames.
     /// </summary>
     public int LagInFrames { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether a lookahead sequence runs the temporal dependency model. Reference:
+    /// enable_tpl_model, on by default.
+    /// </summary>
+    public bool EnableTemporalModel { get; init; } = true;
+
+    /// <summary>
+    /// Gets a value indicating whether a lookahead sequence filters its alternate references and key frames.
+    /// Reference: arnr_max_frames and enable_keyframe_filtering, on by default.
+    /// </summary>
+    public bool EnableTemporalFilter { get; init; } = true;
 
     /// <summary>
     /// Creates the options of an encoding.

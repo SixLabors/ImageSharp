@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -341,6 +342,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             this.skipReferenceFrameMask = this.GetSkipReferenceFrameMask(blockOrigin, blockSize, initialModeInfo.Block.PartitionType);
             this.SetInterModeSkipMasks(blockOrigin, blockSize, singleReferenceVectors[..]);
+            this.PrepareTplInterModePruning(blockOrigin, blockSize);
 
             // Search the same syntax mode across the available references before advancing to the
             // next mode. NEWMV's complete DRL search is retained for the later compound candidates.
@@ -3003,7 +3005,16 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
             Av1MotionSearchBase.SingleReferenceState motionState = default;
-            Span<Av1MotionSearchBase.StartingCandidate> motionStarts = stackalloc Av1MotionSearchBase.StartingCandidate[1];
+
+            // The spatial start and one candidate per 16x16 model block of the largest block. Reference: the cand
+            // array of av1_single_motion_search(), MAX_TPL_BLK_IN_SB squared plus one.
+            Span<Av1MotionSearchBase.StartingCandidate> motionStarts =
+                stackalloc Av1MotionSearchBase.StartingCandidate[Av1EncoderBlockWorkspace.TplSuperblockBlockCount + 1];
+
+            // The model prunes no entry of the mode when a neighbor shares its reference. Reference: the
+            // ref_match_found_in_above_nb and ref_match_found_in_left_nb setup of handle_inter_mode().
+            bool tplPruning = this.tplInterModePruning &&
+                !this.HasNeighborReferenceMatch(macroBlock, blockOrigin, blockSize, referenceFrame, Av1ReferenceFrameType.None);
 
             int candidateMask = (1 << candidateCount) - 1;
 
@@ -3221,6 +3232,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
+                if (tplPruning && this.PrunesInterModeByTpl(
+                    Math.Min(bestCost, selectedStatistics.Cost),
+                    referenceFrame,
+                    Av1ReferenceFrameType.None,
+                    candidateReferenceIndices[candidateIndex],
+                    requestedMode))
+                {
+                    continue;
+                }
+
                 if (requestedMode == Av1PredictionMode.NewMotionVector)
                 {
                     int referenceIndex = candidateReferenceIndices[candidateIndex];
@@ -3288,7 +3309,26 @@ internal static partial class Av1IntraSuperblockEncoder
                         (referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3,
                         (referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3);
 
+                    // The temporal dependency vectors of the covered 16x16 blocks join the spatial start, unless the
+                    // speed limits the full-pixel search to the spatial start. Reference: the full_pixel_search_level
+                    // test and get_mv_candidate_from_tpl() in av1_single_motion_search().
                     motionStarts[0] = new Av1MotionSearchBase.StartingCandidate(startVector, 0);
+                    int startCount = 1;
+                    int startWeight = 0;
+                    if (!motionSettings.LimitFullPixelStartingCandidates)
+                    {
+                        startCount = Av1MotionSearchBase.CollectStartingCandidates(
+                            this.blockWorkspace.TplSuperblockVectors,
+                            this.tplSuperblockBlockCount,
+                            this.tplSuperblockStride,
+                            this.picture.Sequence.SequenceHeader.SuperblockSize.Get4x4WideCount(),
+                            modeInfoPosition,
+                            blockSize,
+                            (int)referenceFrame - (int)Av1ReferenceFrameType.Last,
+                            motionStarts,
+                            out startWeight);
+                    }
+
                     if (!motionSearch.Search(
                         motionSettings,
                         this.picture.Parent.MotionSearchStepParameter,
@@ -3303,8 +3343,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         drlRate,
                         heldHorizontalFilter,
                         heldVerticalFilter,
-                        motionStarts,
-                        totalWeight: 0,
+                        motionStarts[..startCount],
+                        startWeight,
                         ref motionState,
                         out Av1MotionSearchBase.FractionalResult searchResult) ||
                         motionState.References[referenceIndex].Skip)
@@ -4680,8 +4720,157 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Prepares the pruning of the block's inter modes by the temporal dependency model: when the speed prunes by
+        /// the model and the frame has ready statistics, sums the model prediction error of each reference over the
+        /// block and keeps the best among the references that the model keeps or the selective pruning does not drop.
+        /// Reference: the prune_inter_modes_based_on_tpl setup of av1_rd_pick_inter_mode() with
+        /// get_block_level_tpl_stats(), and prune_modes_based_on_tpl of handle_inter_mode().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        private void PrepareTplInterModePruning(Point blockOrigin, Av1BlockSize blockSize)
+        {
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            if (parent.SpeedSettings.TplInterModePruningLevel == 0 || !parent.TplStatisticsReady ||
+                parent.TplFrame is not { } tplFrame)
+            {
+                this.tplInterModePruning = false;
+                return;
+            }
+
+            // A reference the model keeps, or one the selective pruning keeps on its own, may hold the best cost.
+            Span<bool> validReferences = stackalloc bool[Av1TplModelConstants.InterReferenceCount];
+            for (Av1ReferenceFrameType reference = Av1ReferenceFrameType.Last; reference <= Av1ReferenceFrameType.Alternate; reference++)
+            {
+                validReferences[(int)reference - (int)Av1ReferenceFrameType.Last] = this.tplKeepReferenceFrames[(int)reference] ||
+                    !this.PrunesReferenceBySelectiveReferenceFrame(reference, Av1ReferenceFrameType.None);
+            }
+
+            this.tplInterModePruning = true;
+            this.tplBestInterCost = Av1TplModePruning.GetBlockLevelStatistics(
+                true,
+                tplFrame,
+                blockSize,
+                blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2,
+                blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
+                validReferences,
+                this.tplReferenceInterCosts[..]);
+        }
+
+        /// <summary>
+        /// Returns whether an inter block of the row above or the column to the left of the block uses one of the
+        /// block's references, or that row or column is unavailable. The model then prunes none of the entries of the
+        /// block's mode. Reference: find_ref_match_in_above_nbs() and find_ref_match_in_left_nbs() with
+        /// ref_match_found_in_nb_blocks().
+        /// </summary>
+        /// <param name="macroBlock">The block's neighbor availability.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference, or none for a single reference.</param>
+        /// <returns><see langword="true"/> when a neighbor matches or is unavailable.</returns>
+        private readonly bool HasNeighborReferenceMatch(
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1ReferenceFrameType first,
+            Av1ReferenceFrameType second)
+        {
+            if (!macroBlock.IsUpAvailable)
+            {
+                return true;
+            }
+
+            // Each step advances by the width of the above block found at the current column.
+            int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+            int endColumn = Math.Min(modeInfoColumn + blockSize.Get4x4WideCount(), this.picture.Parent.Common.ModeInfoColumnCount);
+            for (int column = modeInfoColumn; column < endColumn;)
+            {
+                ref readonly Av1EncoderBlockModeInfo above = ref this.picture.GetFromModeInfoGrid(new Point(column, modeInfoRow - 1)).Block;
+                if (MatchesNeighborReference(in above, first, second))
+                {
+                    return true;
+                }
+
+                column += above.BlockSize.Get4x4WideCount();
+            }
+
+            if (!macroBlock.IsLeftAvailable)
+            {
+                return true;
+            }
+
+            int endRow = Math.Min(modeInfoRow + blockSize.Get4x4HighCount(), this.picture.Parent.Common.ModeInfoRowCount);
+            for (int row = modeInfoRow; row < endRow;)
+            {
+                ref readonly Av1EncoderBlockModeInfo left = ref this.picture.GetFromModeInfoGrid(new Point(modeInfoColumn - 1, row)).Block;
+                if (MatchesNeighborReference(in left, first, second))
+                {
+                    return true;
+                }
+
+                row += left.BlockSize.Get4x4HighCount();
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns whether a neighbor is an inter block that uses the first reference, or the second of a compound
+        /// pair. Reference: is_inter_block() and ref_match_found_in_nb_blocks().
+        /// </summary>
+        /// <param name="neighbor">The neighbor's mode.</param>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference, or none for a single reference.</param>
+        /// <returns><see langword="true"/> when a reference matches.</returns>
+        private static bool MatchesNeighborReference(
+            in Av1EncoderBlockModeInfo neighbor,
+            Av1ReferenceFrameType first,
+            Av1ReferenceFrameType second)
+        {
+            if (!neighbor.UseIntraBlockCopy && neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra)
+            {
+                return false;
+            }
+
+            return first == neighbor.ReferenceFrame || first == neighbor.SecondaryReferenceFrame ||
+                (second > Av1ReferenceFrameType.Intra && (second == neighbor.ReferenceFrame || second == neighbor.SecondaryReferenceFrame));
+        }
+
+        /// <summary>
+        /// Returns whether the model skips an entry of an inter mode: once the block has a best cost, when the
+        /// references predicted much worse in the model than the best reference, by the pruning level of the speed.
+        /// The caller has checked that pruning is on and that no neighbor shares a reference. Reference: the
+        /// prune_modes_based_on_tpl test of the ref_mv_idx loop of handle_inter_mode(), with
+        /// prune_modes_based_on_tpl_stats().
+        /// </summary>
+        /// <param name="bestCost">The best cost of the block so far. Reference: ref_best_rd.</param>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference, or none for a single reference.</param>
+        /// <param name="referenceIndex">The dynamic reference list index of the entry. Reference: ref_mv_idx.</param>
+        /// <param name="mode">The inter mode.</param>
+        /// <returns><see langword="true"/> when the entry is skipped.</returns>
+        private readonly bool PrunesInterModeByTpl(
+            long bestCost,
+            Av1ReferenceFrameType first,
+            Av1ReferenceFrameType second,
+            int referenceIndex,
+            Av1PredictionMode mode)
+            => bestCost != long.MaxValue && Av1TplModePruning.PruneInterMode(
+                this.tplReferenceInterCosts[..],
+                this.tplBestInterCost,
+                (int)first,
+                second > Av1ReferenceFrameType.Intra ? (int)second : 0,
+                referenceIndex,
+                mode,
+                this.picture.Parent.SpeedSettings.TplInterModePruningLevel);
+
+        /// <summary>
         /// Returns whether a reference or pair uses a candidate reference that precedes the anchor reference in
-        /// display order, unless the candidate has the best past predicted-vector SAD. Reference: prune_ref().
+        /// display order, unless the temporal dependency model keeps the candidate or it has the best past
+        /// predicted-vector SAD. Reference: prune_ref(), with the tpl_keep_ref_frame and pred_mv_sad tests of
+        /// prune_ref_by_selective_ref_frame().
         /// </summary>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none.</param>
@@ -4695,6 +4884,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1ReferenceFrameType anchor)
         {
             if ((first != candidate && second != candidate) ||
+                this.tplKeepReferenceFrames[(int)candidate] ||
                 this.predictionVectorSads[(int)candidate] == this.bestPastPredictionVectorSad)
             {
                 return false;
@@ -5225,6 +5415,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 primaryReference,
                 secondaryReference);
 
+            // The model prunes no entry of the pair when a neighbor shares one of its references. Reference: the
+            // ref_match_found_in_above_nb and ref_match_found_in_left_nb setup of handle_inter_mode().
+            bool tplPruning = this.tplInterModePruning &&
+                !this.HasNeighborReferenceMatch(macroBlock, blockOrigin, blockSize, primaryReference, secondaryReference);
+
             Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
             Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
             int commonPredictionRate = writer.GetIsInterCost(
@@ -5565,6 +5760,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (rejectMode || (candidateMask & (1 << referenceIndices[candidateIndex])) == 0 ||
                     !CompoundVectorsInFrameSearchBounds(
                         mode, candidatePrimary, candidateSecondary, primaryModes, secondaryModes, frameBounds))
+                {
+                    continue;
+                }
+
+                if (tplPruning && this.PrunesInterModeByTpl(
+                    Math.Min(this.blockCostLimit, selectedStatistics.Cost),
+                    primaryReference,
+                    secondaryReference,
+                    referenceIndices[candidateIndex],
+                    mode))
                 {
                     continue;
                 }
@@ -7305,7 +7510,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictedFilter = -1;
             if (!winnerSearch && !dual && settings.UseNeighborInterpolation && (horizontalPhase || verticalPhase) &&
                 ((((blockOrigin.Y >> 2) + (blockOrigin.X >> 2)) >> (System.Numerics.BitOperations.Log2((uint)blockSize.GetWidth()) - 2)) +
-                    this.blockWorkspace.EncodedFrameCount & 1) != 0 &&
+                    this.blockWorkspace.FrameNumber & 1) != 0 &&
                 macroBlock.IsUpAvailable && macroBlock.IsLeftAvailable)
             {
                 Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;

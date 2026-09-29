@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -146,6 +148,59 @@ internal class Av1PictureParentControlSet
     public bool DeltaQUsed { get; set; }
 
     /// <summary>
+    /// Gets or sets the temporal dependency statistics of the frame, or <see langword="null"/> when the encoder does
+    /// not run the temporal dependency model for it. The statistics are read only when
+    /// <see cref="TplStatisticsReady"/> is set. Reference: tpl_data->tpl_frame[cpi->gf_frame_index].
+    /// </summary>
+    public Av1TplFrameStatistics? TplFrame { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the temporal dependency model measured valid statistics for the frame
+    /// in the current golden group. Reference: av1_tpl_stats_ready(&amp;cpi->ppi->tpl_data, cpi->gf_frame_index).
+    /// </summary>
+    public bool TplStatisticsReady { get; set; }
+
+    /// <summary>
+    /// Gets or sets the importance of the frame from its temporal dependency statistics: the exponential of the
+    /// source-distortion weighted mean log ratio of its reconstruction cost to its reconstruction plus dependency
+    /// cost. Reference: cpi->rd.r0, which process_tpl_stats_frame() sets.
+    /// </summary>
+    public double TplImportance { get; set; }
+
+    /// <summary>
+    /// Gets or sets the golden boost of the frame's group, after process_tpl_stats_frame() combined it with the
+    /// temporal dependency boost. Reference: cpi->ppi->p_rc.gfu_boost.
+    /// </summary>
+    public int GoldenBoost { get; set; }
+
+    /// <summary>
+    /// Gets or sets the pyramid layer depth of the frame in its golden group. Reference:
+    /// cpi->ppi->gf_group.layer_depth[cpi->gf_frame_index].
+    /// </summary>
+    public int LayerDepth { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the rate multipliers take the layer depth and golden boost
+    /// adjustments: one-pass good-quality coding with a lookahead. Reference: is_stat_consumption_stage(cpi), with
+    /// cpi->ppi->lap_enabled.
+    /// </summary>
+    public bool IsStatConsumptionStage { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether each coding block derives its rate multiplier from the superblock
+    /// quantizer and, with ready temporal dependency statistics, from its importance. The tile encoder sets it
+    /// before analysis. Reference: cpi->cb_delta_rdmult_enabled from enable_delta_rdmult().
+    /// </summary>
+    public bool CodingBlockDeltaRateMultiplier { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the temporal dependency model supplies statistics for the frame's update
+    /// type: key frames, golden frames and alternate references. Reference: is_frame_tpl_eligible().
+    /// </summary>
+    public bool IsTplEligible =>
+        this.FrameUpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+
+    /// <summary>
     /// Gets or sets the rate multiplier scaling factor of each 16x16 luma block for the SSIM and image tunes, or
     /// <see langword="null"/> for the other tunes. Reference: ssim_rdmult_scaling_factors.
     /// </summary>
@@ -244,6 +299,36 @@ internal class Av1PictureParentControlSet
     /// Gets or sets the largest whole-sample magnitude written by a new-motion mode in the preceding frame.
     /// </summary>
     public int MaximumMotionVectorMagnitude { get; set; } = -1;
+
+    /// <summary>
+    /// Returns the rate multiplier of a quantizer for the frame. With stat consumption, a frame other than a key
+    /// frame scales it by its layer depth and adds its golden boost share; otherwise it is the multiplier of the
+    /// quantizer alone. Reference: av1_compute_rd_mult(), with use_fixed_qp_offsets zero.
+    /// </summary>
+    /// <param name="qIndex">The quantizer index, including the luma DC delta.</param>
+    /// <param name="bitDepth">The sample precision.</param>
+    /// <returns>The rate multiplier, at least one.</returns>
+    public int GetRateMultiplier(int qIndex, Av1BitDepth bitDepth)
+    {
+        if (!this.IsStatConsumptionStage)
+        {
+            return Av1RateDistortion.GetRateMultiplier(
+                qIndex, bitDepth, this.FrameUpdateType, this.EncoderOptions.Tuning, this.SpeedSettings.IsRealtime);
+        }
+
+        // The stat consumption stage excludes real-time usage. Reference: the mode test of
+        // is_stat_consumption_stage().
+        return Av1TplRateDistortion.GetRateMultiplier(
+            qIndex,
+            bitDepth,
+            this.FrameUpdateType,
+            Math.Min(this.LayerDepth, 6),
+            Av1TplRateDistortion.GetBoostIndex(this.GoldenBoost),
+            this.FrameHeader.FrameType == ObuFrameType.KeyFrame,
+            0,
+            true,
+            this.EncoderOptions.Tuning);
+    }
 
     /// <summary>
     /// Gets the right and bottom limits of the samples that a distortion measures in one plane. Without border

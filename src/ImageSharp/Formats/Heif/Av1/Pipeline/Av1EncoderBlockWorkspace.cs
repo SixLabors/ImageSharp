@@ -27,6 +27,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public const int MaximumResidualCount = (1 << Av1Constants.MaxSuperBlockSizeLog2) * (1 << Av1Constants.MaxSuperBlockSizeLog2);
 
     /// <summary>
+    /// The largest number of 16x16 temporal dependency blocks in a superblock. Reference: MAX_TPL_BLK_IN_SB squared.
+    /// </summary>
+    public const int TplSuperblockBlockCount = 8 * 8;
+
+    /// <summary>
     /// The maximum number of coded coefficients after AV1 removes the uncoded half of 64-point axes.
     /// </summary>
     public const int MaximumCoefficientCount = (Av1Constants.MaxTransformSize / 2) * (Av1Constants.MaxTransformSize / 2);
@@ -370,7 +375,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         Av1InterpolationProbabilities.FilterCount);
 
     /// <summary>
-    /// Gets the unwrapped frame numbers retained in the decoded reference slots.
+    /// Gets the unwrapped display order of the frame retained in each decoded reference slot.
+    /// Reference: the display_order_hint of each RefCntBuffer.
     /// </summary>
     public Span<int> ReferenceFrameNumbers => this.owner.Memory.Span.Slice(
         this.referenceFrameNumberStorageOffset, Av1Constants.ReferenceFrameCount);
@@ -416,15 +422,48 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.loopFilterLevelStorageOffset, LoopFilterLevelCount);
 
     /// <summary>
-    /// Gets or sets the number of completed coded frames.
+    /// Gets or sets the unwrapped display order of the current frame. Without a lookahead it is the number of
+    /// completed coded frames. Reference: cm->current_frame.display_order_hint.
     /// </summary>
     public int EncodedFrameCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of frames shown before the current frame. Without a lookahead it equals
+    /// <see cref="EncodedFrameCount"/>. Reference: cm->current_frame.frame_number.
+    /// </summary>
+    public int FrameNumber { get; set; }
 
     /// <summary>
     /// Gets or sets the frame rate multiplier of the preceding coded frame. Reference: td.mb.rdmult, which
     /// loopfilter_frame() sets to cpi->rd.RDMULT after each frame and the block searches restore after use.
     /// </summary>
     public int PreviousFrameRateMultiplier { get; set; }
+
+    /// <summary>
+    /// Gets or sets the regularized importance of the latest superblock whose temporal dependency statistics gave one.
+    /// It persists across superblocks and frames and starts at zero, which leaves coding block rate multipliers
+    /// unscaled. Reference: x->rb, which av1_get_q_for_deltaq_objective() sets.
+    /// </summary>
+    public double RegularizedImportance { get; set; }
+
+    /// <summary>
+    /// Gets the temporal dependency inter cost of each 16x16 block of the current superblock, scaled by sixteen, in
+    /// raster order with the superblock's block stride. Reference: sb_enc->tpl_inter_cost.
+    /// </summary>
+    public long[] TplSuperblockInterCosts { get; } = new long[TplSuperblockBlockCount];
+
+    /// <summary>
+    /// Gets the temporal dependency intra cost of each 16x16 block of the current superblock, scaled by sixteen, at
+    /// the indices of <see cref="TplSuperblockInterCosts"/>. Reference: sb_enc->tpl_intra_cost.
+    /// </summary>
+    public long[] TplSuperblockIntraCosts { get; } = new long[TplSuperblockBlockCount];
+
+    /// <summary>
+    /// Gets the temporal dependency motion vectors of each 16x16 block of the current superblock, seven per block, one
+    /// for each reference LAST to ALTREF. Reference: sb_enc->tpl_mv.
+    /// </summary>
+    public Av1MotionVector[] TplSuperblockVectors { get; } =
+        new Av1MotionVector[TplSuperblockBlockCount * Tpl.Av1TplModelConstants.InterReferenceCount];
 
     /// <summary>
     /// Gets the per-size mode history retained throughout one superblock row.

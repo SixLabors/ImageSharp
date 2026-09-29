@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
@@ -162,8 +161,10 @@ internal static partial class Av1CdefEncoder
             }
 
             int qIndex = header.QuantizationParameters.BaseQIndex + header.QuantizationParameters.DeltaQDc[0];
-            int rateMultiplier = Av1RateDistortion.GetRateMultiplier(
-                qIndex, sequence.ColorConfig.BitDepth, picture.Parent.FrameUpdateType, options.Tuning, picture.Parent.SpeedSettings.IsRealtime);
+
+            // The strength search reads the frame multiplier. Reference: the cpi->rd.RDMULT that loopfilter_frame()
+            // copies to td.mb.rdmult before av1_cdef_search().
+            int rateMultiplier = picture.Parent.GetRateMultiplier(qIndex, sequence.ColorConfig.BitDepth);
 
             // Adaptive CDEF halves the strengths up to quantizer index 220, and at low quantizers also zeroes the low
             // strengths, for which it searches at least one signaling bit. Reference: zero_low_cdef_strengths in

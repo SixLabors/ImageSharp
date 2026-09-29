@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -306,6 +307,42 @@ internal static partial class Av1IntraSuperblockEncoder
         private InlineArray2<uint> superblockChromaSad;
 
         /// <summary>
+        /// Whether the temporal dependency model keeps each reference type, INTRA to ALTREF, from the selective
+        /// reference pruning in the current superblock. Reference: x->tpl_keep_ref_frame.
+        /// </summary>
+        private InlineArray8<bool> tplKeepReferenceFrames;
+
+        /// <summary>
+        /// The number of 16x16 model blocks of the superblock inside the frame whose costs and vectors the block
+        /// workspace holds, or zero without them. Reference: sb_enc->tpl_data_count.
+        /// </summary>
+        private int tplSuperblockBlockCount;
+
+        /// <summary>
+        /// The number of model blocks per superblock row of the gathered costs and vectors. Reference:
+        /// sb_enc->tpl_stride.
+        /// </summary>
+        private int tplSuperblockStride;
+
+        /// <summary>
+        /// Whether the inter mode search of the current block skips modes by the model's reference costs. Reference:
+        /// prune_modes_based_on_tpl in handle_inter_mode().
+        /// </summary>
+        private bool tplInterModePruning;
+
+        /// <summary>
+        /// The model prediction error of each reference LAST to ALTREF summed over the current block. Reference: the
+        /// ref_inter_cost of PruneInfoFromTpl.
+        /// </summary>
+        private InlineArray7<long> tplReferenceInterCosts;
+
+        /// <summary>
+        /// The smallest nonzero entry of <see cref="tplReferenceInterCosts"/> among the references the selective
+        /// pruning keeps. Reference: the best_inter_cost of PruneInfoFromTpl.
+        /// </summary>
+        private long tplBestInterCost;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ModeDecision{TSample, TOperator}"/> struct.
         /// </summary>
         /// <param name="source">The coded source frame.</param>
@@ -355,9 +392,16 @@ internal static partial class Av1IntraSuperblockEncoder
             // previous coded superblock of the tile. The full search also measures its rate multiplier at that
             // quantizer; the estimated search keeps the frame multiplier. Reference: setup_delta_q(),
             // setup_delta_q_nonrd() and the av1_get_cb_rdmult() call of setup_block_rdmult().
+            Av1PictureParentControlSet parent = picture.Parent;
+            int superblockSampleSize = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
+            int superblockModeInfoSize = superblockSampleSize >> Av1Constants.ModeInfoSizeLog2;
+            Point superblockModeInfo = new(
+                (superblock.Index % coefficientBuffer.SuperblockColumnCount) * superblockModeInfoSize,
+                (superblock.Index / coefficientBuffer.SuperblockColumnCount) * superblockModeInfoSize);
+
             this.superblockQIndex = this.quantization.QIndex[0];
             int rateQIndex = this.superblockQIndex;
-            ObuDeltaParameters deltaQ = picture.Parent.FrameHeader.DeltaQParameters;
+            ObuDeltaParameters deltaQ = parent.FrameHeader.DeltaQParameters;
             if (deltaQ.IsPresent)
             {
                 int superblockSize = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
@@ -366,9 +410,31 @@ internal static partial class Av1IntraSuperblockEncoder
                     (superblock.Index / coefficientBuffer.SuperblockColumnCount) * superblockSize);
 
                 int baseQIndex = this.quantization.BaseQIndex;
-                int wantedQIndex = picture.Parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.VarianceBoost
-                    ? this.GetVarianceBoostQIndex(superblockOrigin, baseQIndex)
-                    : baseQIndex;
+                int wantedQIndex = baseQIndex;
+                if (parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.VarianceBoost)
+                {
+                    wantedQIndex = this.GetVarianceBoostQIndex(superblockOrigin, baseQIndex);
+                }
+                else if (parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.Objective && parent.TplFrame is { } tplFrame)
+                {
+                    // The quantizer follows the superblock's importance, and the regularized importance it leaves
+                    // scales the coding block rate multipliers. Reference: av1_get_q_for_deltaq_objective() in
+                    // setup_delta_q().
+                    double regularizedImportance = blockWorkspace.RegularizedImportance;
+                    wantedQIndex = Av1TplDecisions.GetQForDeltaQObjective(
+                        tplFrame,
+                        superblockModeInfoSize,
+                        superblockModeInfo.Y,
+                        superblockModeInfo.X,
+                        baseQIndex,
+                        this.bitDepth,
+                        parent.TplImportance,
+                        ref regularizedImportance,
+                        out _,
+                        false);
+
+                    blockWorkspace.RegularizedImportance = regularizedImportance;
+                }
 
                 // Only the full search updates the anchor after each coded superblock; the estimated search keeps
                 // the frame quantizer as the anchor for the whole tile. Reference: the current_base_qindex update of
@@ -386,12 +452,43 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            this.baseRateMultiplier = Av1RateDistortion.GetRateMultiplier(
-                rateQIndex + this.quantization.DeltaQDc[0],
-                this.bitDepth,
-                picture.Parent.FrameUpdateType,
-                picture.Parent.EncoderOptions.Tuning,
-                picture.Parent.SpeedSettings.IsRealtime);
+            // The multiplier at the frame quantizer is cpi->rd.RDMULT; at the superblock quantizer it is
+            // set_rdmult(cpi, x, -1). Both take the layer depth and golden boost of stat consumption.
+            this.baseRateMultiplier = parent.GetRateMultiplier(rateQIndex + this.quantization.DeltaQDc[0], this.bitDepth);
+
+            // The superblock starts from the references the temporal dependency model keeps against the selective
+            // reference pruning. Reference: init_ref_frame_space() in init_encode_rd_sb().
+            if (parent.TplFrame is { } superblockTplFrame)
+            {
+                Av1TplDecisions.GetKeptReferenceFrames(
+                    parent.TplStatisticsReady,
+                    superblockTplFrame,
+                    parent.FrameUpdateType,
+                    parent.IsTplEligible,
+                    superblockModeInfoSize,
+                    superblockModeInfo.Y,
+                    superblockModeInfo.X,
+                    this.tplKeepReferenceFrames[..]);
+
+                // The recursive partition search gathers the model costs and vectors of the superblock's 16x16
+                // blocks; the variance-based partition search does not. Reference: the av1_get_tpl_stats_sb() call
+                // of encode_rd_sb().
+                if (!parent.SpeedSettings.UseVarianceBasedPartition)
+                {
+                    this.tplSuperblockBlockCount = Av1TplDecisions.GetSuperblockStatistics(
+                        parent.TplStatisticsReady,
+                        superblockTplFrame,
+                        parent.FrameHeader.FrameType == ObuFrameType.KeyFrame,
+                        parent.FrameUpdateType,
+                        superblockModeInfoSize,
+                        superblockModeInfo.Y,
+                        superblockModeInfo.X,
+                        blockWorkspace.TplSuperblockInterCosts,
+                        blockWorkspace.TplSuperblockIntraCosts,
+                        blockWorkspace.TplSuperblockVectors,
+                        out this.tplSuperblockStride);
+                }
+            }
 
             // rd_pick_partition measures the superblock at its root. The
             // variance-based partition search of the fastest speeds does not run it, so its rate weight
@@ -878,8 +975,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the rate multiplier of a block: the superblock multiplier, scaled by the SSIM factors of the block for
-        /// the SSIM and image tunes, then by the all-intra superblock modifier. Reference: setup_block_rdmult().
+        /// Gets the rate multiplier of a block: the superblock multiplier, scaled with ready temporal dependency
+        /// statistics by the block's importance over the superblock's regularized importance when the frame derives
+        /// coding block multipliers, then by the SSIM factors of the block for the SSIM and image tunes, then by the
+        /// all-intra superblock modifier. Reference: setup_block_rdmult() with av1_get_cb_rdmult().
         /// </summary>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
@@ -887,7 +986,20 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly int GetBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
         {
             int multiplier = this.baseRateMultiplier;
-            if (this.picture.Parent.SsimRateMultiplierFactors is not null)
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            if (parent.CodingBlockDeltaRateMultiplier && parent.TplFrame is { } tplFrame)
+            {
+                multiplier = Av1TplDecisions.GetCodingBlockRateMultiplier(
+                    parent.TplStatisticsReady,
+                    tplFrame,
+                    blockSize,
+                    blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2,
+                    blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
+                    multiplier,
+                    this.blockWorkspace.RegularizedImportance);
+            }
+
+            if (parent.SsimRateMultiplierFactors is not null)
             {
                 multiplier = this.ScaleSsimRateMultiplier(multiplier, blockOrigin, blockSize);
             }
@@ -3280,18 +3392,55 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.interSourceVariance > 128;
                 }
 
-                if (!skipIntra && settings.IntraInInterPruningLevel >= 2 && this.interSourceVariance > 1 &&
-                    interStatistics.Cost != long.MaxValue && interModeInfo.Block.Skip)
+                // The mean model intra and inter costs of the block stay -1 without the statistics of a whole
+                // superblock, and at speeds 0 and 1 for frames whose shorter side exceeds 480 lines. Reference: the
+                // do_pruning test and calculate_cost_from_tpl_data() in av1_rd_pick_inter_mode().
+                long tplInterCost = -1;
+                long tplIntraCost = -1;
+                ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
+                int minimumFrameDimension = Math.Min(frameSize.FrameWidth, frameSize.FrameHeight);
+                bool tplPruning = !(minimumFrameDimension > 480 && this.picture.Parent.EncodingSpeed <= HeifEncodingSpeed.Level1);
+                if (tplPruning && settings.IntraInInterPruningLevel != 0)
                 {
-                    bool newMotion = interModeInfo.Block.Mode is Av1PredictionMode.NewMotionVector or
-                        Av1PredictionMode.NearestNewMotionVector or Av1PredictionMode.NewNearestMotionVector or
-                        Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector or Av1PredictionMode.NewNewMotionVector;
+                    Av1TplModePruning.GetCostFromTplData(
+                        this.blockWorkspace.TplSuperblockInterCosts,
+                        this.blockWorkspace.TplSuperblockIntraCosts,
+                        this.tplSuperblockBlockCount,
+                        this.tplSuperblockStride,
+                        this.picture.Sequence.SequenceHeader.SuperblockSize.Get4x4WideCount(),
+                        blockSize,
+                        blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2,
+                        blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
+                        out tplInterCost,
+                        out tplIntraCost);
+                }
 
-                    // Preserve intra search for nearly flat sources. Otherwise a skipped residual from
-                    // inherited motion is sufficient evidence, with the weaker policy limited to Q <= 200.
-                    // Without temporal lookahead costs, the stronger policies also accept searched motion.
-                    skipIntra |= (!newMotion && (settings.IntraInInterPruningLevel >= 3 || qIndex <= 200)) ||
-                        settings.IntraInInterPruningLevel >= 4;
+                // Without a valid inter mode the best mode is zeroed, so it neither skips its transform nor codes
+                // a new vector. Reference: the av1_zero() of best_mbmode in init_inter_mode_search_state().
+                bool bestSkip = validInter && interModeInfo.Block.Skip;
+                if (!skipIntra && settings.IntraInInterPruningLevel != 0 && this.interSourceVariance > 1)
+                {
+                    if (settings.IntraInInterPruningLevel >= 2 && bestSkip)
+                    {
+                        bool newMotion = interModeInfo.Block.Mode is Av1PredictionMode.NewMotionVector or
+                            Av1PredictionMode.NearestNewMotionVector or Av1PredictionMode.NewNearestMotionVector or
+                            Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector or Av1PredictionMode.NewNewMotionVector;
+
+                        // Preserve intra search for nearly flat sources. Otherwise a skipped residual from
+                        // inherited motion is sufficient evidence, with the weaker policy limited to Q <= 200.
+                        // Without model costs, the strongest policies also accept searched motion.
+                        skipIntra = (!newMotion && (settings.IntraInInterPruningLevel >= 3 || qIndex <= 200)) ||
+                            (settings.IntraInInterPruningLevel >= 4 && (tplInterCost < 0 || tplIntraCost < 0));
+                    }
+
+                    // With both model costs, a small network decides from them, the best mode's transform skip, the
+                    // block shape and the quantizer. Reference: the neural network branch of
+                    // skip_intra_modes_in_interframe().
+                    if (!skipIntra)
+                    {
+                        skipIntra = Av1TplModePruning.SkipIntraByNetwork(
+                            bestSkip, blockSize, tplIntraCost, tplInterCost, qIndex, this.bitDepth, minimumFrameDimension);
+                    }
                 }
             }
 

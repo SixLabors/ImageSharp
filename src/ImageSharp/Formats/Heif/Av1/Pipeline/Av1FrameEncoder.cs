@@ -1263,7 +1263,8 @@ internal static partial class Av1FrameEncoder
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
         Av1SymbolEncoder symbolEncoder,
-        bool writeSequenceHeader)
+        bool writeSequenceHeader,
+        bool writeTemporalDelimiter = true)
     {
         Av1TileEncoder tileWriter = new(
             symbolEncoder,
@@ -1279,9 +1280,13 @@ internal static partial class Av1FrameEncoder
         {
             obuWriter.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileWriter);
         }
-        else
+        else if (writeTemporalDelimiter)
         {
             obuWriter.WriteFrame(stream, sequenceHeader, frameHeader, tileWriter);
+        }
+        else
+        {
+            obuWriter.WriteFrameWithoutDelimiter(stream, sequenceHeader, frameHeader, tileWriter);
         }
     }
 
@@ -1298,7 +1303,8 @@ internal static partial class Av1FrameEncoder
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
         Av1SymbolEncoder symbolEncoder,
-        bool writeSequenceHeader)
+        bool writeSequenceHeader,
+        bool writeTemporalDelimiter = true)
     {
         Av1TileEncoder tileWriter = new(
             symbolEncoder,
@@ -1314,9 +1320,13 @@ internal static partial class Av1FrameEncoder
         {
             obuWriter.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileWriter);
         }
-        else
+        else if (writeTemporalDelimiter)
         {
             obuWriter.WriteFrame(stream, sequenceHeader, frameHeader, tileWriter);
+        }
+        else
+        {
+            obuWriter.WriteFrameWithoutDelimiter(stream, sequenceHeader, frameHeader, tileWriter);
         }
     }
 
@@ -1706,7 +1716,7 @@ internal static partial class Av1FrameEncoder
     /// <summary>
     /// Retains the reconstructed reference state shared by the samples of one AV1 sequence track.
     /// </summary>
-    internal abstract class SequenceEncoder : IDisposable, IAv1ReferenceRefreshControl
+    internal abstract partial class SequenceEncoder : IDisposable, IAv1ReferenceRefreshControl
     {
         /// <summary>
         /// The number of rotating slots that hold LAST and ALTREF. Reference: sh in
@@ -2097,7 +2107,8 @@ internal static partial class Av1FrameEncoder
                 this.BlockWorkspace.ReferenceFrameNumbers,
                 this.BlockWorkspace.EncodedFrameCount,
                 this.goodQualityStructure.SlotPyramidLevels,
-                this.goodQualityStructure.PyramidLevel);
+                this.goodQualityStructure.PyramidLevel,
+                this.globalMotionDisabledByStatistics);
 
             ComputeGlobalMotion<TSample, TOperator>(
                 this.Configuration.MemoryAllocator,
@@ -2280,7 +2291,13 @@ internal static partial class Av1FrameEncoder
         /// <param name="sequenceHeader">The sequence header with the order hint parameters.</param>
         /// <param name="frameHeader">The frame header whose skip mode flag is updated.</param>
         /// <param name="availableReferences">The references the encoder searches, one bit per reference type.</param>
-        protected static void CheckSkipModeEnabled(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, byte availableReferences)
+        /// <param name="onlyPastReferencesWithLag">Whether every reference precedes the frame while the sequence codes
+        /// with a lookahead. Reference: the all_one_sided_refs and lag_in_frames test.</param>
+        protected static void CheckSkipModeEnabled(
+            ObuSequenceHeader sequenceHeader,
+            ObuFrameHeader frameHeader,
+            byte availableReferences,
+            bool onlyPastReferencesWithLag)
         {
             ObuSkipModeParameters skipMode = frameHeader.SkipModeParameters;
             if (!skipMode.SkipModeAllowed)
@@ -2299,6 +2316,7 @@ internal static partial class Av1FrameEncoder
             int toFirst = orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, firstOrderHint);
             int toSecond = Math.Abs(orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, secondOrderHint));
             if (Math.Abs(toFirst - toSecond) > 1 ||
+                onlyPastReferencesWithLag ||
                 (availableReferences & (1 << (int)first)) == 0 ||
                 (availableReferences & (1 << (int)second)) == 0)
             {
@@ -2764,7 +2782,7 @@ internal static partial class Av1FrameEncoder
         }
     }
 
-    private sealed class ByteSequenceEncoder : SequenceEncoder
+    private sealed partial class ByteSequenceEncoder : SequenceEncoder
     {
         private Av1EncoderFrameBuffer<byte> source;
         private Av1EncoderFrameBuffer<byte>? previousSource;
@@ -2936,7 +2954,7 @@ internal static partial class Av1FrameEncoder
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
-            parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
+            parent.BorderPad = this.UsesBorderPad;
 
             this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
@@ -3010,14 +3028,14 @@ internal static partial class Av1FrameEncoder
                 GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
                 parent.SpeedSettings);
 
-            CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask);
+            CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask, this.HasOnlyPastReferencesWithLag());
             return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
                 ? null
                 : this.referencePool.GetSlot((int)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame])!.Context;
         }
     }
 
-    private sealed class HighBitDepthSequenceEncoder : SequenceEncoder
+    private sealed partial class HighBitDepthSequenceEncoder : SequenceEncoder
     {
         private Av1EncoderFrameBuffer<ushort> source;
         private Av1EncoderFrameBuffer<ushort>? previousSource;
@@ -3185,7 +3203,7 @@ internal static partial class Av1FrameEncoder
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
-            parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
+            parent.BorderPad = this.UsesBorderPad;
 
             this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
@@ -3259,7 +3277,7 @@ internal static partial class Av1FrameEncoder
                 GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
                 parent.SpeedSettings);
 
-            CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask);
+            CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask, this.HasOnlyPastReferencesWithLag());
             return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
                 ? null
                 : this.referencePool.GetSlot((int)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame])!.Context;

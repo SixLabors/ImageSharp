@@ -153,6 +153,59 @@ internal readonly ref struct Av1MotionSearchSites
     }
 
     /// <summary>
+    /// Writes the first-pass site geometry: eleven stages whose radius doubles from one to 1024 samples, with
+    /// twelve sites per stage beyond the eight-site innermost stage.
+    /// </summary>
+    /// <remarks>
+    /// The configuration is written unconditionally, because its stride slot cannot tell it apart from a
+    /// <see cref="Configure"/> result for the same stride; the owner must dedicate the storage to this geometry.
+    /// Reference: av1_init_motion_fpf().
+    /// </remarks>
+    /// <param name="stride">The reference plane stride in samples.</param>
+    public void ConfigureFirstPass(int stride)
+    {
+        const int stageCount = 11;
+        Span<Site> sites = MemoryMarshal.Cast<int, Site>(this.storage[..SiteStorageLength]);
+        Span<int> counts = this.storage.Slice(SiteStorageLength, StageCapacity);
+        Span<int> radii = this.storage.Slice(SiteStorageLength + StageCapacity, StageCapacity);
+
+        // The reference fills its stages from the outermost radius inward, so stage zero ends up holding the
+        // unit radius. Radii halve from 1024 exactly, so no two stages share a radius and none can be skipped.
+        for (int stage = 0; stage < stageCount; stage++)
+        {
+            int radius = 1 << stage;
+
+            // The tangent offset places the extra sites near 22.5 degrees. At the unit radius it rounds to the
+            // diagonal, and only the first eight sites are populated.
+            int tangent = Math.Max((int)(0.41 * radius), 1);
+            int count = radius == 1 ? 8 : 12;
+            Span<Site> stageSites = sites.Slice(stage * SitesPerStage, SitesPerStage);
+            stageSites[0] = new Site(0, 0, stride);
+            stageSites[1] = new Site(-radius, 0, stride);
+            stageSites[2] = new Site(radius, 0, stride);
+            stageSites[3] = new Site(0, -radius, stride);
+            stageSites[4] = new Site(0, radius, stride);
+            stageSites[5] = new Site(-radius, -tangent, stride);
+            stageSites[6] = new Site(radius, tangent, stride);
+            stageSites[7] = new Site(-tangent, radius, stride);
+            stageSites[8] = new Site(tangent, -radius, stride);
+            if (count == 12)
+            {
+                stageSites[9] = new Site(-radius, tangent, stride);
+                stageSites[10] = new Site(radius, -tangent, stride);
+                stageSites[11] = new Site(tangent, radius, stride);
+                stageSites[12] = new Site(-tangent, -radius, stride);
+            }
+
+            counts[stage] = count;
+            radii[stage] = radius;
+        }
+
+        this.storage[StageCountOffset] = stageCount;
+        this.storage[StageCountOffset + 1] = stride;
+    }
+
+    /// <summary>
     /// Stores one full-sample displacement and its reference-plane offset in eight bytes.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]

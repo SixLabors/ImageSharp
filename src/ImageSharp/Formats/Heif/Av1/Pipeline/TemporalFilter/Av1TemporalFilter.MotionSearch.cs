@@ -349,8 +349,7 @@ internal static partial class Av1TemporalFilter
             midblockVectors.Clear();
             midblockErrors.Fill(int.MaxValue);
 
-            Span<int> costList = stackalloc int[5];
-            FullPixelResult fullResult = this.SearchFullPixel(block, block, ToFullPixel(referenceVector), costList);
+            FullPixelResult fullResult = this.SearchFullPixel(block, block, ToFullPixel(referenceVector));
             if (parameters.ForceIntegerMotion)
             {
                 // Only the full-pixel search runs. The variance takes the reference block first.
@@ -371,7 +370,7 @@ internal static partial class Av1TemporalFilter
             }
             else
             {
-                FractionalResult fractional = this.SearchFractional(block, block, fullResult, costList);
+                FractionalResult fractional = this.SearchFractional(block, block, fullResult);
                 uint error = (uint)fractional.Cost;
                 blockError = DivideAndRound(error, BlockPixels);
                 blockVector = fractional.Vector;
@@ -390,7 +389,7 @@ internal static partial class Av1TemporalFilter
                         {
                             Rectangle midblock = new(block.X + j, block.Y + i, BlockSize / 2, BlockSize / 2);
                             (midblockVectors[midblockIndex], midblockErrors[midblockIndex]) =
-                                this.SearchSubblock(block, midblock, ToFullPixel(referenceVector), costList);
+                                this.SearchSubblock(block, midblock, ToFullPixel(referenceVector));
 
                             Point subblockStart = ToFullPixel(midblockVectors[midblockIndex]);
                             int subblockIndex = midblockIndex * 4;
@@ -400,7 +399,7 @@ internal static partial class Av1TemporalFilter
                                 {
                                     Rectangle subblock = new(midblock.X + bj, midblock.Y + bi, BlockSize / 4, BlockSize / 4);
                                     (subblockVectors[subblockIndex], subblockErrors[subblockIndex]) =
-                                        this.SearchSubblock(block, subblock, subblockStart, costList);
+                                        this.SearchSubblock(block, subblock, subblockStart);
 
                                     subblockIndex++;
                                 }
@@ -436,12 +435,11 @@ internal static partial class Av1TemporalFilter
         /// <param name="block">The luma rectangle of the whole filter block.</param>
         /// <param name="subblock">The luma rectangle of the sub-block.</param>
         /// <param name="start">The full-sample start of the search.</param>
-        /// <param name="costList">Scratch for the integer cost neighborhood.</param>
         /// <returns>The sub-block vector and its rounded mean squared error.</returns>
-        private (Av1MotionVector Vector, int Error) SearchSubblock(Rectangle block, Rectangle subblock, Point start, Span<int> costList)
+        private (Av1MotionVector Vector, int Error) SearchSubblock(Rectangle block, Rectangle subblock, Point start)
         {
-            FullPixelResult fullResult = this.SearchFullPixel(block, subblock, start, costList);
-            FractionalResult fractional = this.SearchFractional(block, subblock, fullResult, costList);
+            FullPixelResult fullResult = this.SearchFullPixel(block, subblock, start);
+            FractionalResult fractional = this.SearchFractional(block, subblock, fullResult);
             return (fractional.Vector, DivideAndRound((uint)fractional.Cost, subblock.Width * subblock.Height));
         }
 
@@ -452,14 +450,13 @@ internal static partial class Av1TemporalFilter
         /// <param name="block">The luma rectangle of the whole filter block, whose position sets the sharpness margins.</param>
         /// <param name="searched">The luma rectangle of the searched block.</param>
         /// <param name="start">The full-sample start of the search.</param>
-        /// <param name="costList">Receives the integer cost neighborhood when the fractional method uses it.</param>
         /// <returns>The integer winner with its variance and squared error.</returns>
         /// <remarks>
         /// tf_motion_search() sets run_mesh_search, so libaom always follows the NSTEP search with the mesh search,
         /// unless prune_mesh_search stops it: at PRUNE_MESH_SEARCH_LVL_1 the filter prunes when q exceeds 20 and the
         /// winner is within two samples of the start, and at PRUNE_MESH_SEARCH_LVL_2 within four samples.
         /// </remarks>
-        private FullPixelResult SearchFullPixel(Rectangle block, Rectangle searched, Point start, Span<int> costList)
+        private FullPixelResult SearchFullPixel(Rectangle block, Rectangle searched, Point start)
         {
             TemporalFilterContext parameters = this.context;
             int offset = (searched.Y * this.stride) + searched.X;
@@ -480,8 +477,10 @@ internal static partial class Av1TemporalFilter
                 [],
                 []);
 
-            // cond_cost_list() publishes the integer neighborhood only for the pruned fractional trees.
-            Span<int> neighborhood = this.settings.FractionalMethod == FractionalSearchMethod.TwoLevelTree ? Span<int>.Empty : costList;
+            // cond_cost_list() publishes the integer neighborhood only for the pruned fractional trees with
+            // use_fullpel_costlist, which only real-time usage enables; the filter runs with a lookahead, in good
+            // quality usage, so it never has one.
+            Span<int> neighborhood = Span<int>.Empty;
             Av1MotionSearchSites sites = new(this.searchSiteStorage);
             int pruneDistance = this.settings.MeshPruningLevel == 2 ? 4 :
                 this.settings.MeshPruningLevel == 1 && parameters.QFactor > 20 ? 2 : -1;
@@ -508,9 +507,8 @@ internal static partial class Av1TemporalFilter
         /// <param name="block">The luma rectangle of the whole filter block, whose position sets the sharpness margins.</param>
         /// <param name="searched">The luma rectangle of the searched block.</param>
         /// <param name="fullResult">The full-pixel winner.</param>
-        /// <param name="costList">The integer cost neighborhood.</param>
         /// <returns>The fractional winner; its cost is the variance alone.</returns>
-        private FractionalResult SearchFractional(Rectangle block, Rectangle searched, FullPixelResult fullResult, ReadOnlySpan<int> costList)
+        private FractionalResult SearchFractional(Rectangle block, Rectangle searched, FullPixelResult fullResult)
         {
             TemporalFilterContext parameters = this.context;
             int offset = (searched.Y * this.stride) + searched.X;
@@ -539,8 +537,10 @@ internal static partial class Av1TemporalFilter
 
             // The filter sets best_mv_stats->err_cost to zero: the refinement starts from the integer variance alone,
             // and the subpixel search type is USE_8_TAPS whatever use_accurate_subpel_search selects.
+            // Without use_fullpel_costlist the pruned trees have no integer neighborhood either. Reference:
+            // cond_cost_list_const() in av1_make_default_subpel_ms_params().
             FullPixelResult start = new(fullResult.Vector, fullResult.Variance, fullResult.SquaredError, 0);
-            ReadOnlySpan<int> neighborhood = this.settings.FractionalMethod == FractionalSearchMethod.TwoLevelTree ? Span<int>.Empty : costList;
+            ReadOnlySpan<int> neighborhood = [];
             search.Search(
                 new Av1MotionVector(fullResult.Vector.Y * 8, fullResult.Vector.X * 8),
                 start,

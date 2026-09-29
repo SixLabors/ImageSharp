@@ -340,7 +340,9 @@ internal static partial class Av1FrameEncoder
                     else
                     {
                         // The filter reads the motion settings and frame flags the encoder holds from the previous
-                        // frame; before the first frame they are those of a key frame.
+                        // frame; before the first frame they are those of a key frame. High precision vectors are
+                        // always allowed. Reference: the av1_set_high_precision_mv(cpi, 1, 0) call that starts
+                        // av1_get_compressed_data().
                         Av1MotionSearchSettings motionSettings = codedFrames == 0
                             ? new(this.Options.Speed, false, image.Size, this.QIndex, true, false)
                             : this.PictureBuffer.Picture.Parent.MotionSearchSettings;
@@ -350,7 +352,7 @@ internal static partial class Av1FrameEncoder
                             filter.FilterGroup(
                                 lookahead,
                                 secondPass,
-                                this.FrameHeader.AllowHighPrecisionMotionVector,
+                                true,
                                 this.FrameHeader.AllowScreenContentTools,
                                 motionSettings);
                         }
@@ -363,7 +365,7 @@ internal static partial class Av1FrameEncoder
                                 secondPass,
                                 ref frame,
                                 source,
-                                this.FrameHeader.AllowHighPrecisionMotionVector,
+                                true,
                                 this.FrameHeader.AllowScreenContentTools,
                                 motionSettings);
                         }

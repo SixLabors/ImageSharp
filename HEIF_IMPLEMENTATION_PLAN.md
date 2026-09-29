@@ -91,8 +91,6 @@ Audited 2026-09-29.
 - Lag-35 path: the first-pass wavelet energy (`GetWaveletEnergy`, `GetHaarAcSad`) is Vector128 only; the TPL
   `EstimateRate` is scalar. The temporal filter has every width.
 
-Test note: `HwIntrinsics.DisableAVX512F` does not clear `Vector512.IsHardwareAccelerated` on .NET 10.
-
 ## Tests
 
 - Add parity tests for the lag-35 path, in proportion to the other formats. HEIF tests stay in proportion to the

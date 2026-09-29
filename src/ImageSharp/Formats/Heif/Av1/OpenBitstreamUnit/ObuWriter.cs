@@ -1228,7 +1228,8 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes global-motion parameters when permitted by the frame type.
+    /// Writes global-motion parameters when permitted by the frame type. Each model is coded against the model of the
+    /// same reference in the primary reference frame. Reference: write_global_motion().
     /// </summary>
     /// <param name="writer">The bit writer positioned at the global-motion syntax.</param>
     /// <param name="frameHeader">The current frame header.</param>
@@ -1240,13 +1241,13 @@ internal sealed class ObuWriter : IDisposable
         }
 
         ReadOnlySpan<Av1GlobalMotionParameters> parameters = frameHeader.GetGlobalMotionParameters();
-        Av1GlobalMotionParameters referenceParameters = Av1GlobalMotionParameters.Identity;
+        ReadOnlySpan<Av1GlobalMotionParameters> referenceParameters = frameHeader.GetPreviousGlobalMotionParameters();
         for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
         {
             WriteGlobalMotionModel(
                 ref writer,
                 parameters[reference],
-                referenceParameters,
+                referenceParameters[reference],
                 frameHeader.AllowHighPrecisionMotionVector);
         }
     }
@@ -1271,6 +1272,20 @@ internal sealed class ObuWriter : IDisposable
             }
         }
 
+        WriteGlobalMotionModelParameters(ref writer, parameters, referenceParameters, allowHighPrecisionMotionVector);
+    }
+
+    /// <summary>
+    /// Writes the parameters of one global-motion model, after its type, against the same-role model in the primary
+    /// reference frame. Reference: write_global_motion_params().
+    /// </summary>
+    private static void WriteGlobalMotionModelParameters(
+        ref Av1BitStreamWriter writer,
+        Av1GlobalMotionParameters parameters,
+        Av1GlobalMotionParameters referenceParameters,
+        bool allowHighPrecisionMotionVector)
+    {
+        Av1GlobalMotionType type = parameters.Type;
         if (type >= Av1GlobalMotionType.RotationZoom)
         {
             int horizontalScale =
@@ -1349,22 +1364,25 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Gets the exact number of uncompressed-header bits required by one global-motion model.
+    /// Gets the number of header bits that the parameters of one global-motion model take, without its type bits.
+    /// Reference: gm_get_params_cost(), before its shift to rate units.
     /// </summary>
     /// <param name="parameters">The model to measure.</param>
+    /// <param name="referenceParameters">The model of the same reference in the primary reference frame.</param>
     /// <param name="allowHighPrecisionMotionVector">Whether translation may retain one-eighth-sample precision.</param>
-    /// <returns>The encoded model length in bits.</returns>
-    internal static int GetGlobalMotionModelBitCount(
+    /// <returns>The parameter length in bits.</returns>
+    internal static int GetGlobalMotionParameterBitCount(
         Av1GlobalMotionParameters parameters,
+        Av1GlobalMotionParameters referenceParameters,
         bool allowHighPrecisionMotionVector)
     {
         InlineArray16<byte> storage = default;
         Span<byte> buffer = storage;
         Av1BitStreamWriter writer = new(buffer);
-        WriteGlobalMotionModel(
+        WriteGlobalMotionModelParameters(
             ref writer,
             parameters,
-            Av1GlobalMotionParameters.Identity,
+            referenceParameters,
             allowHighPrecisionMotionVector);
 
         return writer.BitPosition;

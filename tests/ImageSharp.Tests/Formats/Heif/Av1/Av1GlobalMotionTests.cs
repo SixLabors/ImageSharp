@@ -68,7 +68,7 @@ public class Av1GlobalMotionTests
 
         Av1MotionModel[] models = [new Av1MotionModel()];
         bool fitted = Av1GlobalMotionEstimator.Compute<byte, Av1GlobalMotionEstimator.ByteFillOperator, Av1Ransac.RotationZoomModel>(
-            allocator, source, reference, Width, Height, Stride, origin, 8, models);
+            allocator, source, reference, Width, Height, Stride, origin, 8, 0, models);
 
         Assert.True(fitted);
         Assert.True(models[0].InlierCount > 0);

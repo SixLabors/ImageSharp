@@ -66,6 +66,7 @@ internal static class Av1GlobalMotionEstimator
     /// <param name="stride">The row stride of both storages, in samples.</param>
     /// <param name="origin">The index of the first coded sample of both storages.</param>
     /// <param name="bitDepth">The coded sample depth of both frames.</param>
+    /// <param name="downsampleLevel">The pyramid level on which the corners are found.</param>
     /// <param name="models">The models to fill, best first.</param>
     /// <returns>Whether any model was fitted.</returns>
     /// <remarks>Reference: av1_compute_global_motion_disflow().</remarks>
@@ -78,6 +79,7 @@ internal static class Av1GlobalMotionEstimator
         int stride,
         int origin,
         int bitDepth,
+        int downsampleLevel,
         ReadOnlySpan<Av1MotionModel> models)
         where TSample : unmanaged
         where TFill : struct, IAv1PyramidFillOperator<TSample>
@@ -98,22 +100,32 @@ internal static class Av1GlobalMotionEstimator
             return false;
         }
 
+        // The corners come from the downsampled level, clamped to the levels the frame has, and are scaled back
+        // to full resolution. Reference: compute_corner_list().
         using IMemoryOwner<int> cornerOwner = allocator.Allocate<int>(2 * Av1CornerDetector.MaximumCorners);
         Span<int> corners = cornerOwner.Memory.Span;
-        Av1ImagePyramid.Level finest = sourcePyramid.GetLevel(0);
+        int cornerLevel = Math.Min(downsampleLevel, sourceLevels - 1);
+        Av1ImagePyramid.Level cornerPlane = sourcePyramid.GetLevel(cornerLevel);
         int cornerCount = Av1CornerDetector.Detect(
             allocator,
-            sourcePyramid.GetSamples(0),
-            finest.Origin,
-            finest.Width,
-            finest.Height,
-            finest.Stride,
+            sourcePyramid.GetSamples(cornerLevel),
+            cornerPlane.Origin,
+            cornerPlane.Width,
+            cornerPlane.Height,
+            cornerPlane.Stride,
             corners);
 
         if (cornerCount == 0)
         {
             return false;
         }
+
+        for (int i = 0; i < 2 * cornerCount; i++)
+        {
+            corners[i] <<= cornerLevel;
+        }
+
+        Av1ImagePyramid.Level finest = sourcePyramid.GetLevel(0);
 
         using Av1FlowField flow = new(allocator, finest.Width, finest.Height);
         flow.Compute(allocator, sourcePyramid, referencePyramid, sourceLevels);

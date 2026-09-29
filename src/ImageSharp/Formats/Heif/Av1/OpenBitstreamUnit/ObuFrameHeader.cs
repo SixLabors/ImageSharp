@@ -38,6 +38,11 @@ internal sealed class ObuFrameHeader
     private InlineArray7<Av1GlobalMotionParameters> globalMotionParameters;
 
     /// <summary>
+    /// Stores the models of the primary reference frame, which the models of this frame are coded against.
+    /// </summary>
+    private InlineArray7<Av1GlobalMotionParameters> previousGlobalMotionParameters;
+
+    /// <summary>
     /// Stores the lossless-coding flag for each of the eight segments without a per-header array allocation.
     /// </summary>
     private InlineArray8<bool> losslessArray;
@@ -312,6 +317,14 @@ internal sealed class ObuFrameHeader
     /// </summary>
     /// <returns>The mutable seven-entry global-motion parameter table.</returns>
     public Span<Av1GlobalMotionParameters> GetGlobalMotionParameters() => this.globalMotionParameters;
+
+    /// <summary>
+    /// Gets the global-motion models of the primary reference frame, which the models of this frame are coded
+    /// against. Every model is the identity when the frame has no primary reference. The encoder fills them before it
+    /// writes the header. Reference: the prev_frame global_motion that write_global_motion() reads.
+    /// </summary>
+    /// <returns>The mutable seven-entry global-motion parameter table.</returns>
+    public Span<Av1GlobalMotionParameters> GetPreviousGlobalMotionParameters() => this.previousGlobalMotionParameters;
 
     /// <summary>
     /// Invalidates retained reference slots whose frame identifiers fall outside the permitted backwards window.

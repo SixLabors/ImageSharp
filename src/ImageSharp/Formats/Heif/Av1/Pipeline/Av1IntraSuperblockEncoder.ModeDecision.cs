@@ -190,6 +190,12 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly int baseRateMultiplier;
         private readonly int rateMultiplierModifier;
         private readonly int superblockQIndex;
+
+        /// <summary>
+        /// The prediction error of the best new vector of each single reference in the block being searched, or
+        /// <see cref="int.MaxValue"/> before one is found. Reference: best_single_sse_in_refs.
+        /// </summary>
+        private InlineArray8<uint> bestSingleReferenceSses;
         private int rateMultiplier;
         private int codedAreaLuma;
         private int codedAreaChroma;

@@ -1190,6 +1190,26 @@ internal readonly struct Av1EncoderSpeedSettings
     public int SelectiveReferenceFrameLevel { get; }
 
     /// <summary>
+    /// Gets the pyramid level on which the global motion search finds its corners. Reference: gm_sf.downsample_level.
+    /// </summary>
+    public int GlobalMotionDownsampleLevel =>
+        this.Speed >= HeifEncodingSpeed.Level6 ? 2 : this.Speed >= HeifEncodingSpeed.Level4 ? 1 : 0;
+
+    /// <summary>
+    /// Gets the number of refinement steps of each global motion model. Reference: gm_sf.num_refinement_steps.
+    /// </summary>
+    public int GlobalMotionRefinementSteps =>
+        this.Speed >= HeifEncodingSpeed.Level3 ? 0 : this.Speed >= HeifEncodingSpeed.Level2 ? 2 : 5;
+
+    /// <summary>
+    /// Gets the level at which a zero-vector global mode is dropped when its prediction error exceeds that of the best
+    /// new vector of its reference: zero off, one with a margin of a quarter, two without margin. Real-time usage does
+    /// not use the full mode search. Reference: gm_sf.prune_zero_mv_with_sse.
+    /// </summary>
+    public int ZeroVectorSsePruningLevel =>
+        this.realtime ? 0 : this.Speed >= HeifEncodingSpeed.Level4 ? 2 : this.Speed >= HeifEncodingSpeed.Level3 ? 1 : 0;
+
+    /// <summary>
     /// Gets a value indicating whether compound prediction from two references on the same side of the frame is
     /// disabled.
     /// </summary>
@@ -1612,6 +1632,31 @@ internal readonly struct Av1EncoderSpeedSettings
             ? this.Speed >= HeifEncodingSpeed.Level6 && !screenContent ? 1 : 0
             : this.Speed >= HeifEncodingSpeed.Level5 ? screenContent ? 1 : 2 : 0;
     }
+
+    /// <summary>
+    /// Gets the references that the global motion search of an inter frame visits. Real-time usage does not search.
+    /// Reference: gm_search_type in set_good_speed_features_framesize_independent() and
+    /// set_rt_speed_feature_framesize_independent().
+    /// </summary>
+    /// <param name="boosted">Whether the frame is a key, golden or alternate reference frame.</param>
+    /// <returns>The search type.</returns>
+    public Av1GlobalMotionSearchType GetGlobalMotionSearchType(bool boosted)
+    {
+        if (this.realtime)
+        {
+            return Av1GlobalMotionSearchType.Disabled;
+        }
+
+        return boosted ? Av1GlobalMotionSearchType.SkipLast2Last3Alternate2 : Av1GlobalMotionSearchType.ClosestReferencesOnly;
+    }
+
+    /// <summary>
+    /// Returns whether the global motion search stops at the first reference without a usable model.
+    /// The threaded override does not apply to the single-threaded encoder. Reference: prune_ref_frame_for_gm_search.
+    /// </summary>
+    /// <param name="boosted">Whether the frame is a key, golden or alternate reference frame.</param>
+    /// <returns><see langword="true"/> when the search stops early.</returns>
+    public bool PrunesGlobalMotionReferences(bool boosted) => this.Speed >= HeifEncodingSpeed.Level3 || !boosted;
 
     /// <summary>
     /// Resolves the inclusive size range for rectangular partition searches.

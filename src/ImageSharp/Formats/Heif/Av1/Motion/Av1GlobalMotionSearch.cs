@@ -51,15 +51,6 @@ internal static partial class Av1GlobalMotionSearch
     private const int SegmentCountThreshold = 48;
 
     /// <summary>
-    /// The share of the unwarped error below which a model is worth coding.
-    /// </summary>
-    /// <remarks>
-    /// The reference picks one of three values from its speed settings. The first is used here,
-    /// which is the value its default speed uses. Reference: erroradv_tr.
-    /// </remarks>
-    private const double ErrorAdvantageThreshold = 0.65;
-
-    /// <summary>
     /// The largest product of the error share and the coding cost that is still worth coding.
     /// </summary>
     /// <remarks>Reference: erroradv_prod_tr.</remarks>
@@ -265,14 +256,27 @@ internal static partial class Av1GlobalMotionSearch
     }
 
     /// <summary>
+    /// Gets the largest share of the unwarped error that a model may leave. Reference: erroradv_tr.
+    /// </summary>
+    /// <param name="level">The threshold level of the speed settings. Reference: gm_erroradv_tr_level.</param>
+    /// <returns>The threshold.</returns>
+    public static double GetErrorAdvantageThreshold(int level) => level switch
+    {
+        0 => 0.65,
+        1 => 0.3,
+        _ => 0.2,
+    };
+
+    /// <summary>
     /// Gets whether the error a model saves is worth what the model costs to code.
     /// </summary>
     /// <param name="errorAdvantage">The warped error as a share of the unwarped error.</param>
     /// <param name="parametersCost">The cost of coding the model.</param>
+    /// <param name="threshold">The largest share of the unwarped error that a model may leave.</param>
     /// <returns>Whether the model is worth coding.</returns>
     /// <remarks>Reference: av1_is_enough_erroradvantage().</remarks>
-    public static bool IsEnoughErrorAdvantage(double errorAdvantage, int parametersCost)
-        => errorAdvantage < ErrorAdvantageThreshold &&
+    public static bool IsEnoughErrorAdvantage(double errorAdvantage, int parametersCost, double threshold)
+        => errorAdvantage < threshold &&
            errorAdvantage * parametersCost < ErrorAdvantageProductThreshold;
 
     /// <summary>
@@ -439,6 +443,7 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="referenceError">The error the unwarped frames already have.</param>
     /// <param name="map">The marked error blocks.</param>
     /// <param name="mapStride">The error blocks across the frame.</param>
+    /// <param name="errorAdvantageThreshold">The largest share of the unwarped error that a model may leave.</param>
     /// <returns>The error of the refined model, or <see cref="long.MaxValue"/> when it is not usable.</returns>
     /// <remarks>Reference: av1_refine_integerized_param().</remarks>
     public static long RefineIntegerizedParameters<TSample, TOperator>(
@@ -455,7 +460,8 @@ internal static partial class Av1GlobalMotionSearch
         int bitDepth,
         long referenceError,
         ReadOnlySpan<byte> map,
-        int mapStride)
+        int mapStride,
+        double errorAdvantageThreshold)
         where TSample : unmanaged
         where TOperator : struct, IAv1GlobalMotionOperator<TSample>
     {
@@ -467,6 +473,15 @@ internal static partial class Av1GlobalMotionSearch
         using IMemoryOwner<short> scratchOwner = allocator.Allocate<short>(Av1WarpedInterPredictor.WarpedScratchLength);
         Span<TSample> warped = warpedOwner.Memory.Span;
         Span<short> scratch = scratchOwner.Memory.Span;
+
+        if (refinementCount == 0)
+        {
+            // The error of the model itself, measured only as far as the final threshold needs, so that the
+            // measure can stop once it proves that the model is not taken.
+            long selectionThreshold = (long)Math.Round(referenceError * errorAdvantageThreshold, MidpointRounding.ToEven);
+            return GetWarpError<TSample, TOperator>(
+                ref parameters, reference, referenceStride, source, sourceStride, width, height, map, mapStride, selectionThreshold, bitDepth, warped, scratch);
+        }
 
         long threshold = (long)Math.Round(referenceError * EarlyErrorAdvantageThreshold, MidpointRounding.ToEven);
         long bestError = GetWarpError<TSample, TOperator>(

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// <summary>
 /// Performs operation-scoped AV1 frame encoding.
 /// </summary>
-internal static class Av1FrameEncoder
+internal static partial class Av1FrameEncoder
 {
     /// <summary>
     /// The base-two exponent used to align each frame dimension for output sizing. Rounding to 32 samples accounts
@@ -85,7 +85,7 @@ internal static class Av1FrameEncoder
     /// Defines the sample-specific SIMD squared-error operation used by frame-level motion search.
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
-    private interface IGlobalMotionSearchOperator<TSample> :
+    internal interface IGlobalMotionSearchOperator<TSample> :
         Av1GlobalMotionEstimator.IAv1PyramidFillOperator<TSample>,
         Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
         where TSample : unmanaged
@@ -1081,16 +1081,6 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options)
     {
-        // Real-time usage never searches global motion. Reference: the g_usage test that clears
-        // tool_cfg->enable_global_motion in av1_cx_iface.
-        ConfigureGlobalMotion<byte, ByteGlobalMotionSearchOperator>(
-            configuration.MemoryAllocator,
-            source,
-            reference,
-            frameHeader,
-            sequenceHeader.ColorConfig.BitDepth,
-            sequenceHeader.IsStillPicture || options.Speed < HeifEncodingSpeed.Level7);
-
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
@@ -1191,16 +1181,6 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options)
     {
-        // Real-time usage never searches global motion. Reference: the g_usage test that clears
-        // tool_cfg->enable_global_motion in av1_cx_iface.
-        ConfigureGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(
-            configuration.MemoryAllocator,
-            source,
-            reference,
-            frameHeader,
-            sequenceHeader.ColorConfig.BitDepth,
-            sequenceHeader.IsStillPicture || options.Speed < HeifEncodingSpeed.Level7);
-
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
@@ -1389,146 +1369,6 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Selects a bounded whole-frame translation model for an inter frame.
     /// </summary>
-    /// <summary>
-    /// Estimates the warp model of one reference frame and codes it when it earns its cost.
-    /// </summary>
-    /// <typeparam name="TSample">The component sample type.</typeparam>
-    /// <typeparam name="TOperator">The sample-specific measures the search needs.</typeparam>
-    /// <param name="allocator">The allocator of every buffer the search uses.</param>
-    /// <param name="source">The frame being coded.</param>
-    /// <param name="reference">The frame the model maps onto.</param>
-    /// <param name="frameHeader">The header that receives the chosen model.</param>
-    /// <param name="bitDepth">The coded sample depth.</param>
-    /// <param name="enableGlobalMotion">Whether the encoder configuration searches global motion.</param>
-    /// <remarks>
-    /// Every model family is tried, and the one whose warped error is the smallest share of the
-    /// unwarped error wins, as long as that share also justifies what the model costs to code. A
-    /// model that reduces to a translation is never taken, because the vector such a model gives a
-    /// block has a published defect. Reference: compute_global_motion_for_ref_frame().
-    /// </remarks>
-    private static void ConfigureGlobalMotion<TSample, TOperator>(
-        MemoryAllocator allocator,
-        Av1EncoderFrame<TSample> source,
-        Av1EncoderFrame<TSample> reference,
-        ObuFrameHeader frameHeader,
-        Av1BitDepth bitDepth,
-        bool enableGlobalMotion)
-        where TSample : unmanaged
-        where TOperator : struct, IGlobalMotionSearchOperator<TSample>
-    {
-        Span<Av1GlobalMotionParameters> models = frameHeader.GetGlobalMotionParameters();
-        models.Fill(Av1GlobalMotionParameters.Identity);
-        if (frameHeader.IsIntra || !enableGlobalMotion)
-        {
-            return;
-        }
-
-        Buffer2DRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
-        Buffer2DRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
-
-        // The flow search walks both frames with one set of level sizes, so the two planes have to
-        // agree on their row stride.
-        if (sourceLuma.Stride != referenceLuma.Stride)
-        {
-            return;
-        }
-
-        int width = source.CodedWidth;
-        int height = source.CodedHeight;
-        int stride = sourceLuma.Stride;
-        int depth = bitDepth.GetBitCount();
-        ReadOnlySpan<TSample> sourcePlane = sourceLuma.Buffer.DangerousGetSingleSpan();
-        ReadOnlySpan<TSample> referencePlane = referenceLuma.Buffer.DangerousGetSingleSpan();
-        int sourceOrigin = (sourceLuma.Bounds.Y * stride) + sourceLuma.Bounds.X;
-        int referenceOrigin = (referenceLuma.Bounds.Y * stride) + referenceLuma.Bounds.X;
-
-        // The map holds one mark per error block, and a frame that does not divide evenly still
-        // has a partial block at its right and bottom edges.
-        int mapWidth = (width + Av1GlobalMotionSearch.ErrorBlock - 1) >> Av1GlobalMotionSearch.ErrorBlockLog;
-        int mapHeight = (height + Av1GlobalMotionSearch.ErrorBlock - 1) >> Av1GlobalMotionSearch.ErrorBlockLog;
-        using IMemoryOwner<byte> mapOwner = allocator.Allocate<byte>(mapWidth * mapHeight);
-        Span<byte> map = mapOwner.Memory.Span;
-
-        Av1MotionModel[] fitted = [new Av1MotionModel()];
-        double bestErrorAdvantage = double.MaxValue;
-        for (Av1GlobalMotionType family = Av1GlobalMotionType.RotationZoom; family <= Av1GlobalMotionType.Affine; family++)
-        {
-            bool estimated = family == Av1GlobalMotionType.RotationZoom
-                ? Av1GlobalMotionEstimator.Compute<TSample, TOperator, Av1Ransac.RotationZoomModel>(
-                    allocator, sourcePlane, referencePlane, width, height, stride, sourceOrigin, depth, fitted)
-                : Av1GlobalMotionEstimator.Compute<TSample, TOperator, Av1Ransac.AffineModel>(
-                    allocator, sourcePlane, referencePlane, width, height, stride, sourceOrigin, depth, fitted);
-
-            if (!estimated || fitted[0].InlierCount == 0)
-            {
-                continue;
-            }
-
-            Av1GlobalMotionParameters candidate = Av1GlobalMotionSearch.ConvertModelToParameters(fitted[0].Parameters);
-            candidate.UpdateShearParameters();
-            if (candidate.IsInvalid || candidate.Type <= Av1GlobalMotionType.Translation)
-            {
-                continue;
-            }
-
-            // The error is measured only where the model was fitted, so the parts of the frame that
-            // move on their own do not decide whether the model is worth coding.
-            Av1GlobalMotionSearch.ComputeFeatureSegmentationMap(map, mapWidth, mapHeight, fitted[0].Inliers);
-            long referenceError = Av1GlobalMotionSearch.GetSegmentedFrameError<TSample, TOperator>(
-                referencePlane[referenceOrigin..],
-                stride,
-                sourcePlane[sourceOrigin..],
-                stride,
-                width,
-                height,
-                map,
-                mapWidth);
-
-            if (referenceError == 0)
-            {
-                continue;
-            }
-
-            long warpError = Av1GlobalMotionSearch.RefineIntegerizedParameters<TSample, TOperator>(
-                allocator,
-                ref candidate,
-                candidate.Type,
-                referencePlane[referenceOrigin..],
-                stride,
-                sourcePlane[sourceOrigin..],
-                stride,
-                width,
-                height,
-                GlobalMotionRefinementCount,
-                depth,
-                referenceError,
-                map,
-                mapWidth);
-
-            // Refinement can move a model down to a simpler family, so the family is read again.
-            if (warpError == long.MaxValue || candidate.Type <= Av1GlobalMotionType.Translation)
-            {
-                continue;
-            }
-
-            int parametersCost =
-                ObuWriter.GetGlobalMotionModelBitCount(candidate, frameHeader.AllowHighPrecisionMotionVector) <<
-                Av1ProbabilityCost.CostShift;
-
-            double errorAdvantage = (double)warpError / referenceError;
-            if (!Av1GlobalMotionSearch.IsEnoughErrorAdvantage(errorAdvantage, parametersCost))
-            {
-                continue;
-            }
-
-            if (errorAdvantage < bestErrorAdvantage)
-            {
-                bestErrorAdvantage = errorAdvantage;
-                models[0] = candidate;
-            }
-        }
-    }
-
     /// <summary>
     /// Measures source changes and retains the block errors used by subsequent mode decisions.
     /// </summary>
@@ -1921,6 +1761,13 @@ internal static class Av1FrameEncoder
         /// </summary>
         private readonly Av1GoodQualityReferenceStructure goodQualityStructure = new();
 
+        /// <summary>
+        /// The global motion models of the frame in each reference slot, seven per slot. A key frame refreshes every
+        /// slot before any frame reads them. Reference: the global_motion of each RefCntBuffer.
+        /// </summary>
+        private readonly Av1GlobalMotionParameters[] slotGlobalMotion =
+            new Av1GlobalMotionParameters[Av1Constants.ReferenceFrameCount * Av1Constants.ReferencesPerFrame];
+
         protected SequenceEncoder(
             Configuration configuration,
             int width,
@@ -2135,6 +1982,58 @@ internal static class Av1FrameEncoder
         /// <returns>The reference-map slot of LAST.</returns>
         protected int GetLastSlot()
             => this.frameNumber > 1 ? (int)((this.frameNumber - 1) % RotatingSlotCount) : 0;
+
+        /// <summary>
+        /// Sets the models that the frame codes its global motion against, then searches its global motion. Real-time
+        /// usage does not search. Reference: prev_frame in write_global_motion(), and
+        /// av1_compute_global_motion_facade().
+        /// </summary>
+        /// <typeparam name="TSample">The component sample type.</typeparam>
+        /// <typeparam name="TOperator">The sample-specific measures the search needs.</typeparam>
+        /// <param name="source">The frame being coded.</param>
+        /// <param name="references">The reference frame of each reference type, indexed by reference type.</param>
+        /// <param name="parent">The frame state with the speed settings of the frame.</param>
+        private protected void SearchGlobalMotion<TSample, TOperator>(
+            Av1EncoderFrame<TSample> source,
+            Av1EncoderFrame<TSample>[] references,
+            Av1PictureParentControlSet parent)
+            where TSample : unmanaged
+            where TOperator : struct, IGlobalMotionSearchOperator<TSample>
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            Span<Av1GlobalMotionParameters> previous = frameHeader.GetPreviousGlobalMotionParameters();
+            if (frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
+            {
+                previous.Fill(Av1GlobalMotionParameters.Identity);
+            }
+            else
+            {
+                int slot = (int)frameHeader.GetReferenceFrameIndices()[(int)frameHeader.PrimaryReferenceFrame];
+                this.slotGlobalMotion.AsSpan(slot * Av1Constants.ReferencesPerFrame, Av1Constants.ReferencesPerFrame).CopyTo(previous);
+            }
+
+            bool realtime = parent.SpeedSettings.IsRealtime;
+            Av1FrameUpdateType updateType = realtime
+                ? GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup)
+                : this.goodQualityStructure.UpdateType;
+            bool boosted = frameHeader.IsIntra || updateType is Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+            GlobalMotionSearchInputs inputs = new(
+                !realtime,
+                parent.SpeedSettings,
+                updateType,
+                boosted,
+                this.BlockWorkspace.ReferenceFrameNumbers,
+                this.BlockWorkspace.EncodedFrameCount,
+                this.goodQualityStructure.SlotPyramidLevels,
+                this.goodQualityStructure.PyramidLevel);
+            ComputeGlobalMotion<TSample, TOperator>(
+                this.Configuration.MemoryAllocator,
+                source,
+                references,
+                frameHeader,
+                this.SequenceHeader.ColorConfig.BitDepth,
+                in inputs);
+        }
 
         /// <summary>
         /// Selects the reference slots, the refreshed slots, the primary reference, and the frame tools after the
@@ -2443,6 +2342,18 @@ internal static class Av1FrameEncoder
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
+
+            // Each refreshed slot keeps the models of this frame, which later frames code theirs against.
+            // Reference: the copy to cm->cur_frame->global_motion in av1_compute_global_motion_facade().
+            ReadOnlySpan<Av1GlobalMotionParameters> models = frameHeader.GetGlobalMotionParameters();
+            for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
+            {
+                if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
+                {
+                    models.CopyTo(this.slotGlobalMotion.AsSpan(slot * Av1Constants.ReferencesPerFrame, Av1Constants.ReferencesPerFrame));
+                }
+            }
+
             if (frameHeader.AllowWarpedMotion && parent.SpeedSettings.WarpedProbabilityThreshold > 0)
             {
                 // The running probability moves halfway to this frame's share of warped blocks.
@@ -2818,6 +2729,7 @@ internal static class Av1FrameEncoder
 
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent));
+            this.SearchGlobalMotion<byte, ByteGlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
 
             Encode(
                 this.ObuWriter,
@@ -3044,6 +2956,7 @@ internal static class Av1FrameEncoder
 
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent));
+            this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
 
             Encode(
                 this.ObuWriter,

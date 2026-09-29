@@ -109,6 +109,16 @@ internal sealed class Av1GoodQualityReferenceStructure
     public Av1FrameUpdateType UpdateType { get; private set; }
 
     /// <summary>
+    /// Gets the pyramid level of the frame being coded. Reference: cm->cur_frame->pyramid_level.
+    /// </summary>
+    public int PyramidLevel => this.pyramidLevel;
+
+    /// <summary>
+    /// Gets the pyramid level of the frame in each reference slot. Reference: the pyramid_level of each RefCntBuffer.
+    /// </summary>
+    public ReadOnlySpan<int> SlotPyramidLevels => this.slotPyramidLevel;
+
+    /// <summary>
     /// Chooses the golden-group position, the reference slots, the refreshed slots, and the primary reference of a
     /// frame.
     /// </summary>

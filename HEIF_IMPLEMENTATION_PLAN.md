@@ -95,6 +95,29 @@ Status 2026-09-28. Each feature is checked alone against `aomenc --usage=2` with
   `AV1E_SET_SKIP_POSTPROC_FILTERING` skips only filter application that no later stage reads, so it does not
   change the stream.
 
+Status 2026-09-29, GOOD sequences with global motion on (the production path). The earlier GOOD parity was
+measured with `ZZ_NO_GM` against references from 2026-09-25, which were stale for the current y4m files. Against
+fresh `aomenc --usage=0` references, splash 333x251, 6 frames, speeds 0-6: 7/7 identical after these ports:
+
+- `av1_compute_global_motion_facade()`: reference eligibility (`update_valid_ref_frames_for_gm()`, one pass never
+  recodes, so disabled references are still searched), the `gm_search_type` rules, the selective reference pruning
+  without a block, the MSVC `qsort` order for equal distances (the x64 reference build), the closest-references
+  limit, ROTZOOM models only, the prune break, the `erroradv_tr` start value, the visible frame size, the corner
+  pyramid level (`downsample_level`) and the refinement steps of each speed.
+- Each model is coded and costed against the primary reference frame's model; the writer used the identity before,
+  which the decoder did not.
+- GLOBALMV blocks warp with the global model (`is_global_mv_block()`), in the candidate and the selected predictions.
+- `prune_zero_mv_with_sse` (speed 3 and higher).
+- `best_mode_skippable` is the search's all-empty result, not the block's skip choice.
+- The uniform (largest transform) luma search keeps a block above its budget and fails only on an incomplete exit.
+
+Open:
+- tune=ssim GOOD sequences: speeds 1, 2, 4, 5, 6 identical; speeds 0 and 3 differ (speed 3 frame 2: the intra
+  transform type of a filter-intra 8x4 block).
+- GLOBAL_GLOBALMV compound blocks do not warp yet; inter-intra with GLOBALMV does not warp.
+- `enable_winner_mode_for_tx_size_srch` at speed 2 below 480p is `boosted ? 0 : 1`; the port tests intra frames only.
+- `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port uses the search.
+
 ## SIMD operator-pattern gaps, found 2026-09-28
 
 A read-only audit found these kernels outside the operator pattern. Each one gets an operator and a traversal,

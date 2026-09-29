@@ -765,21 +765,13 @@ internal static partial class Av1IntraSuperblockEncoder
             this.superblockChromaSad[..].Clear();
             if (!this.source.IsMonochrome)
             {
+                // The screen branches of chroma_check() test the screen tune content, which libavif never sets,
+                // not the detected screen content. Reference: tune_cfg.content == AOM_CONTENT_SCREEN.
                 int upperShift = 1;
                 int lowerShift = 3;
                 long pixels = (long)frameSize.Width * frameSize.Height;
-                int chromaFactor = parent.IsScreenContent ? 6 : pixels >= 1920 * 1080 ? 3 : 5;
-                if (parent.IsScreenContent && parent.HighSourceSad)
-                {
-                    lowerShift = 7;
-                }
-                else if (parent.IsScreenContent && parent.SourceMotionPercentage > 90 && parent.FrameSourceSad > 10000 &&
-                    this.sourceSadLevel > Av1SourceSadLevel.Low)
-                {
-                    lowerShift = 8;
-                    upperShift = 3;
-                }
-                else if (this.sourceSadLevel >= Av1SourceSadLevel.Medium && spatialVariance > 500 && pixels >= 640 * 360)
+                int chromaFactor = pixels >= 1920 * 1080 ? 3 : 5;
+                if (this.sourceSadLevel >= Av1SourceSadLevel.Medium && spatialVariance > 500 && pixels >= 640 * 360)
                 {
                     upperShift = 2;
                     lowerShift = this.sourceSadLevel > Av1SourceSadLevel.Medium ? 5 : 4;
@@ -795,8 +787,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane plane = index == 0 ? Av1Plane.U : Av1Plane.V;
                     Buffer2DRegion<TSample> chromaSource = this.source.GetPlane(plane);
 
-                    // chroma_check() measures zero motion against the reference chosen for partitioning (pre[0]).
-                    Buffer2DRegion<TSample> chromaReference = selected.GetPlane(plane);
+                    // chroma_check() measures zero motion against LAST, whichever reference the partition chose:
+                    // pre[0] when that is LAST, otherwise the LAST buffer through setup_pred_plane().
+                    Buffer2DRegion<TSample> chromaReference = this.references.Span[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
                         : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;

@@ -196,6 +196,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <see cref="int.MaxValue"/> before one is found. Reference: best_single_sse_in_refs.
         /// </summary>
         private InlineArray8<uint> bestSingleReferenceSses;
+
+        /// <summary>
+        /// The best estimate of the mode loop when the transform search of the retained candidates found no mode
+        /// below the block budget, or invalid otherwise. The skip mode comparison still reads it. Reference: the
+        /// rd_cost that update_search_state() fills during the mode loop, which tx_search_best_inter_candidates()
+        /// keeps when it resets best_rd and best_mode_index.
+        /// </summary>
+        private Av1RateDistortionStatistics leftoverInterEstimate;
         private int rateMultiplier;
         private int codedAreaLuma;
         private int codedAreaChroma;
@@ -3464,6 +3472,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     (speedSettings.IntraTransformTypeSearchLevel != 0 ||
                      speedSettings.EnableWinnerCoefficientOptimization || speedSettings.DeferTransformSizeSearch))
                 {
+                    // The luma refinement writes each improving trial into the luma winner context, which
+                    // shares storage with this winner. Keep the winner's grid so that a rejected refinement
+                    // leaves it as the mode search chose it. Reference: refine_winner_mode_tx(), which copies
+                    // ctx->tx_type_map only when this_rd is below best_rd.
+                    InlineArray256<Av1EncoderTransformBlockState> keptLumaStates = default;
+                    Span<Av1EncoderTransformBlockState> winnerLuma = winner.GetTransformStates(Av1Plane.Y);
+                    Span<Av1EncoderTransformBlockState> keptLuma = keptLumaStates[..winnerLuma.Length];
+                    winnerLuma.CopyTo(keptLuma);
+                    bool refinementAccepted = false;
+
                     this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Winner;
                     Av1RateDistortionStatistics refinedLuma = Av1RateDistortionStatistics.Invalid;
                     Av1EncoderPaletteInfo refinedPalette = paletteInfo;
@@ -3516,7 +3534,14 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.RetainModeContext(
                                 winner, this.codedAreaLuma, this.codedAreaChroma, refinedExtent.Width * refinedExtent.Height, chromaArea);
                             CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
+                            refinementAccepted = true;
                         }
+                    }
+
+                    if (!refinementAccepted)
+                    {
+                        keptLuma.CopyTo(winnerLuma);
+                        CopyWinnerTransformStates(keptLuma, retainedLumaStates);
                     }
 
                     this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
@@ -3620,6 +3645,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     int skipModeContext = Av1TileWriter.GetSkipModeContext(macroBlock);
                     Av1RateDistortionStatistics selectedStatistics = this.SelectedBlockStatistics;
+
+                    // A block whose retained candidates all failed still compares skip mode with the best estimate
+                    // of the mode loop, and keeps no mode when skip mode loses. Reference: the rd_cost that
+                    // rd_pick_skip_mode() reads, which tx_search_best_inter_candidates() does not reset, with the
+                    // best_mode_index return at the end of av1_rd_pick_inter_mode().
+                    bool comparesLeftoverEstimate = selectedStatistics.Cost == long.MaxValue &&
+                        this.leftoverInterEstimate.Cost != long.MaxValue;
+                    if (comparesLeftoverEstimate)
+                    {
+                        selectedStatistics = this.leftoverInterEstimate;
+                    }
+
                     Av1RateDistortionStatistics syntaxStatistics = new(
                         this.rateMultiplier, writer.GetSkipModeCost(false, skipModeContext), 0);
 
@@ -3653,9 +3690,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     // Skip mode replaces a result that nothing else produced, but a skip mode at or above the block
                     // budget still leaves the block without one. Reference: the best_rd >= best_rd_so_far return at
                     // the end of av1_rd_pick_inter_mode(), after rd_pick_skip_mode() sets best_rd.
-                    this.SelectedBlockStatistics = modeInfo.Block.SkipMode && selectedStatistics.Cost >= this.blockCostLimit
-                        ? Av1RateDistortionStatistics.Invalid
-                        : selectedStatistics;
+                    bool noMode = modeInfo.Block.SkipMode
+                        ? selectedStatistics.Cost >= this.blockCostLimit
+                        : comparesLeftoverEstimate;
+                    this.SelectedBlockStatistics = noMode ? Av1RateDistortionStatistics.Invalid : selectedStatistics;
                 }
 
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra)

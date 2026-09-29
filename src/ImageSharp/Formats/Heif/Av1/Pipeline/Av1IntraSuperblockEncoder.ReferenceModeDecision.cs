@@ -303,6 +303,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Reference: the best_single_sse_in_refs reset of init_inter_mode_search_state().
             this.bestSingleReferenceSses[..].Fill(int.MaxValue);
+            this.leftoverInterEstimate = Av1RateDistortionStatistics.Invalid;
             selectedVector = default;
             selectedSecondaryVector = default;
             selectedStates = default;
@@ -620,6 +621,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (this.estimateInterCandidates)
             {
+                Av1RateDistortionStatistics bestEstimate = selectedStatistics;
                 selectedStatistics = this.SearchRetainedInterCandidates(
                     writer,
                     macroBlock,
@@ -630,6 +632,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     out selectedVector,
                     out selectedSecondaryVector,
                     out selectedStates);
+
+                if (selectedStatistics.Cost == long.MaxValue)
+                {
+                    this.leftoverInterEstimate = bestEstimate;
+                }
             }
 
             return selectedStatistics;
@@ -1295,6 +1302,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         blockOrigin,
                         predictionModeInfo.BlockSize,
                         block.HasChroma,
+                        predictionModeInfo.Mode,
                         predictionModeInfo.ReferenceFrame,
                         candidate.Vector,
                         predictionModeInfo.HorizontalInterpolationFilter,
@@ -1688,6 +1696,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     modeInfo.Block.BlockSize,
                     block.HasChroma,
+                    modeInfo.Block.Mode,
                     modeInfo.Block.ReferenceFrame,
                     vector,
                     modeInfo.Block.HorizontalInterpolationFilter,
@@ -1719,6 +1728,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 this.blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> first, out Span<ushort> second);
+                Buffer2DRegion<TSample> primaryPlane = this.references.Span[(int)modeInfo.Block.ReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
+                Buffer2DRegion<TSample> secondaryPlane = this.references.Span[(int)modeInfo.Block.SecondaryReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
+                bool primaryWarped = this.TryPrepareGlobalCompoundIntermediate(
+                    modeInfo.Block.Mode, modeInfo.Block.ReferenceFrame, predictionSize, primaryPlane, blockOrigin, predictionSize, 0, 0, first);
+                bool secondaryWarped = this.TryPrepareGlobalCompoundIntermediate(
+                    modeInfo.Block.Mode, modeInfo.Block.SecondaryReferenceFrame, predictionSize, secondaryPlane, blockOrigin, predictionSize, 0, 0, second);
                 int primaryColumnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
                 int primaryRowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
                 int secondaryColumnQ4 = (blockOrigin.X << 4) + (secondaryVector.Column << 1);
@@ -1726,11 +1741,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 TOperator.PrepareCompoundInterPrediction(
                     this.source.GetPlane(Av1Plane.Y),
                     blockOrigin,
-                    this.references.Span[(int)modeInfo.Block.ReferenceFrame].CodedView.GetPlane(Av1Plane.Y),
+                    primaryPlane,
                     new Point(primaryColumnQ4 >> 4, primaryRowQ4 >> 4),
                     primaryColumnQ4 & 15,
                     primaryRowQ4 & 15,
-                    this.references.Span[(int)modeInfo.Block.SecondaryReferenceFrame].CodedView.GetPlane(Av1Plane.Y),
+                    secondaryPlane,
                     new Point(secondaryColumnQ4 >> 4, secondaryRowQ4 >> 4),
                     secondaryColumnQ4 & 15,
                     secondaryRowQ4 & 15,
@@ -1753,7 +1768,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     modeInfo.Block.CompoundWedgeIndex,
                     modeInfo.Block.CompoundWedgeSign,
-                    modeInfo.Block.DifferenceWeightedMaskType);
+                    modeInfo.Block.DifferenceWeightedMaskType,
+                    primaryWarped,
+                    secondaryWarped);
                 return;
             }
 
@@ -3616,6 +3633,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
+                    requestedMode,
                     referenceFrame,
                     ref interIntraVector,
                     referenceMotionVectors.GetNewReference(candidateReferenceIndices[candidateIndex]),
@@ -3645,6 +3663,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     block.HasChroma,
+                    requestedMode,
                     referenceFrame,
                     interIntraVector,
                     horizontalFilter,
@@ -3835,6 +3854,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
+            Av1PredictionMode predictionMode,
             Av1ReferenceFrameType referenceFrame,
             ref Av1MotionVector vector,
             Av1MotionVector referenceVector,
@@ -3861,22 +3881,20 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask()[..sampleCount];
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Buffer2DRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
-            int columnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
-            int rowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
-            TOperator.PrepareTranslationalInterPrediction(
-                sourcePlane,
+            this.PrepareSingleInterPrediction(
+                predictionMode,
+                referenceFrame,
+                blockSize,
+                Av1Plane.Y,
                 blockOrigin,
-                referencePlane,
-                new Point(columnQ4 >> 4, rowQ4 >> 4),
+                0,
+                0,
+                vector,
                 horizontalFilter,
                 verticalFilter,
-                columnQ4 & 15,
-                rowQ4 & 15,
-                interPrediction,
-                interResidual,
-                workspace.PredictionScratch,
                 blockSize,
-                this.bitDepth);
+                interPrediction,
+                interResidual);
 
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
             int acQuantizer = Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
@@ -4397,6 +4415,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             bool hasChroma,
+            Av1PredictionMode mode,
             Av1ReferenceFrameType referenceFrame,
             Av1MotionVector vector,
             Av1InterpolationFilter horizontalFilter,
@@ -4424,23 +4443,20 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane.U => workspace.BluePrediction[..sampleCount],
                     _ => workspace.RedPrediction[..sampleCount],
                 };
-                int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subX));
-                int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subY));
-                Av1EncoderFrame<TSample>.PlanarView reference = this.references.Span[(int)referenceFrame].CodedView;
-                TOperator.PrepareTranslationalInterPrediction(
-                    this.source.GetPlane(plane),
+                this.PrepareSingleInterPrediction(
+                    mode,
+                    referenceFrame,
+                    blockSize,
+                    plane,
                     planeOrigin,
-                    reference.GetPlane(plane),
-                    new Point(columnQ4 >> 4, rowQ4 >> 4),
+                    subX,
+                    subY,
+                    vector,
                     horizontalFilter,
                     verticalFilter,
-                    columnQ4 & 15,
-                    rowQ4 & 15,
-                    interPrediction,
-                    workspace.Residual,
-                    workspace.PredictionScratch,
                     transformSize.ToBlockSize(),
-                    this.bitDepth);
+                    interPrediction,
+                    workspace.Residual);
 
                 Span<TSample> intraPrediction = this.PrepareInterIntraPlane(macroBlock, blockOrigin, blockSize, plane, interIntraMode);
 
@@ -5775,11 +5791,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     // Rounded predictors are retained only during blend selection. Full coding regenerates
                     // its selected high-precision compound predictor after these scratch spans are released.
+                    // A GLOBAL_GLOBALMV block warps each single predictor with the model of its reference.
+                    // Reference: av1_init_warp_params() in build_inter_predictors_single_buf().
+                    Av1PredictionMode singleMode = mode == Av1PredictionMode.GlobalGlobalMotionVector
+                        ? Av1PredictionMode.GlobalMotionVector
+                        : Av1PredictionMode.NearestMotionVector;
+
                     this.PrepareInterPlanePrediction(
                         initialPrimary,
                         default,
                         Av1Plane.Y,
-                        Av1PredictionMode.NearestMotionVector,
+                        singleMode,
                         primaryReference,
                         Av1ReferenceFrameType.None,
                         false,
@@ -5802,7 +5824,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         initialSecondary,
                         default,
                         Av1Plane.Y,
-                        Av1PredictionMode.NearestMotionVector,
+                        singleMode,
                         secondaryReference,
                         Av1ReferenceFrameType.None,
                         false,
@@ -6678,6 +6700,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     modeInfo.Block.BlockSize,
                     block.HasChroma,
+                    modeInfo.Block.Mode,
                     modeInfo.Block.ReferenceFrame,
                     vector,
                     modeInfo.Block.HorizontalInterpolationFilter,
@@ -8755,6 +8778,138 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Warps one reference of a GLOBAL_GLOBALMV block into its compound intermediate when that reference has a
+        /// rotation-zoom or affine global model and the plane block is at least 8x8. Each reference decides for
+        /// itself, so one reference can warp while the other translates. Reference: av1_init_warp_params() for
+        /// each reference in build_inter_predictors().
+        /// </summary>
+        /// <param name="mode">The prediction mode.</param>
+        /// <param name="reference">The reference of this predictor.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="referencePlane">The padded retained reference plane.</param>
+        /// <param name="planeOrigin">The block origin in plane samples.</param>
+        /// <param name="predictionSize">The plane block size.</param>
+        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+        /// <param name="intermediate">The compound intermediate of this reference.</param>
+        /// <returns><see langword="true"/> when the intermediate holds the warped predictor.</returns>
+        private readonly bool TryPrepareGlobalCompoundIntermediate(
+            Av1PredictionMode mode,
+            Av1ReferenceFrameType reference,
+            Av1BlockSize blockSize,
+            Buffer2DRegion<TSample> referencePlane,
+            Point planeOrigin,
+            Av1BlockSize predictionSize,
+            int subsamplingX,
+            int subsamplingY,
+            Span<ushort> intermediate)
+        {
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
+            if (width < 8 || height < 8 || !this.TryGetGlobalWarpModel(mode, reference, blockSize, out Av1GlobalMotionParameters model))
+            {
+                return false;
+            }
+
+            Av1EncoderFrame<TSample> frame = this.references.Span[(int)reference];
+            TOperator.PrepareWarpedCompoundIntermediate(
+                referencePlane,
+                Av1Math.DivideLog2Ceiling(frame.Width, subsamplingX),
+                Av1Math.DivideLog2Ceiling(frame.Height, subsamplingY),
+                planeOrigin,
+                width,
+                height,
+                subsamplingX,
+                subsamplingY,
+                model,
+                intermediate,
+                this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch,
+                this.bitDepth);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Builds the single-reference prediction of one plane and its residual. A GLOBALMV block of at least 8x8
+        /// plane samples warps with the rotation-zoom or affine model of its reference; every other block
+        /// translates. Reference: av1_init_warp_params() for the inter predictor that
+        /// av1_build_interintra_predictor() blends.
+        /// </summary>
+        /// <param name="mode">The prediction mode.</param>
+        /// <param name="referenceFrame">The reference of the prediction.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="plane">The plane.</param>
+        /// <param name="planeOrigin">The block origin in plane samples.</param>
+        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+        /// <param name="vector">The motion vector.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+        /// <param name="verticalFilter">The vertical interpolation filter.</param>
+        /// <param name="predictionSize">The plane block size.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="residual">The contiguous residual destination.</param>
+        private void PrepareSingleInterPrediction(
+            Av1PredictionMode mode,
+            Av1ReferenceFrameType referenceFrame,
+            Av1BlockSize blockSize,
+            Av1Plane plane,
+            Point planeOrigin,
+            int subsamplingX,
+            int subsamplingY,
+            Av1MotionVector vector,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            Av1BlockSize predictionSize,
+            Span<TSample> prediction,
+            Span<short> residual)
+        {
+            Av1EncoderFrame<TSample> reference = this.references.Span[(int)referenceFrame];
+            Buffer2DRegion<TSample> referencePlane = reference.CodedView.GetPlane(plane);
+            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+            Span<short> scratch = this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch;
+            int width = predictionSize.GetWidth();
+            int height = predictionSize.GetHeight();
+            if (width >= 8 && height >= 8 && this.TryGetGlobalWarpModel(mode, referenceFrame, blockSize, out Av1GlobalMotionParameters model))
+            {
+                int sampleCount = width * height;
+                TOperator.PrepareWarpedInterPrediction(
+                    referencePlane,
+                    Av1Math.DivideLog2Ceiling(reference.Width, subsamplingX),
+                    Av1Math.DivideLog2Ceiling(reference.Height, subsamplingY),
+                    planeOrigin,
+                    width,
+                    height,
+                    subsamplingX,
+                    subsamplingY,
+                    model,
+                    prediction,
+                    scratch,
+                    this.bitDepth);
+
+                TOperator.SubtractPrediction(
+                    sourcePlane, planeOrigin, prediction[..sampleCount], residual[..sampleCount], width, height);
+                return;
+            }
+
+            int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
+            int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY));
+            TOperator.PrepareTranslationalInterPrediction(
+                sourcePlane,
+                planeOrigin,
+                referencePlane,
+                new Point(columnQ4 >> 4, rowQ4 >> 4),
+                horizontalFilter,
+                verticalFilter,
+                columnQ4 & 15,
+                rowQ4 & 15,
+                prediction,
+                residual,
+                scratch,
+                predictionSize,
+                this.bitDepth);
+        }
+
+        /// <summary>
         /// Builds the complete plane prediction and residual in contiguous block rows.
         /// </summary>
         private void PrepareInterPlanePrediction(
@@ -8821,6 +8976,28 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Span<ushort> firstIntermediate,
                     out Span<ushort> secondIntermediate);
 
+                bool primaryWarped = this.TryPrepareGlobalCompoundIntermediate(
+                    predictionMode,
+                    primaryReferenceFrame,
+                    blockSize,
+                    referencePlane,
+                    planeOrigin,
+                    predictionSize,
+                    subsamplingX,
+                    subsamplingY,
+                    firstIntermediate);
+
+                bool secondaryWarped = this.TryPrepareGlobalCompoundIntermediate(
+                    predictionMode,
+                    secondaryReferenceFrame,
+                    blockSize,
+                    secondaryReferencePlane,
+                    planeOrigin,
+                    predictionSize,
+                    subsamplingX,
+                    subsamplingY,
+                    secondIntermediate);
+
                 TOperator.PrepareCompoundInterPrediction(
                     sourcePlane,
                     planeOrigin,
@@ -8851,7 +9028,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     subsamplingY,
                     compoundWedgeIndex,
                     compoundWedgeSign,
-                    differenceWeightedMaskType);
+                    differenceWeightedMaskType,
+                    primaryWarped,
+                    secondaryWarped);
             }
             else if (predictionMode >= Av1PredictionMode.InterModeStart)
             {

@@ -111,10 +111,21 @@ fresh `aomenc --usage=0` references, splash 333x251, 6 frames, speeds 0-6: 7/7 i
 - `best_mode_skippable` is the search's all-empty result, not the block's skip choice.
 - The uniform (largest transform) luma search keeps a block above its budget and fails only on an incomplete exit.
 
+Status 2026-09-29, tune=ssim GOOD sequences (the libavif default for color sequences): speeds 0-6, 7/7 identical,
+with the psnr GOOD sequences still 7/7. Fixes:
+
+- The winner refinement of an intra block in an inter frame keeps the transform types of the mode search when the
+  refined block costs more (`refine_winner_mode_tx()` copies `ctx->tx_type_map` only when `this_rd < best_rd`). The
+  luma refinement wrote its trials into storage that the kept winner shares.
+- GLOBAL_GLOBALMV compound blocks warp each reference with its global model into the compound intermediate, and the
+  masked-compound search warps its single predictors. Inter-intra GLOBALMV blocks warp their inter predictor.
+- `tx_search_best_inter_candidates()` resets `best_rd` and `best_mode_index` but not `rd_cost`. When no retained
+  candidate passes, `rd_pick_skip_mode()` still compares skip mode with the best estimate of the mode loop, and the
+  block has no mode when skip mode loses.
+
 Open:
-- tune=ssim GOOD sequences: speeds 1, 2, 4, 5, 6 identical; speeds 0 and 3 differ (speed 3 frame 2: the intra
-  transform type of a filter-intra 8x4 block).
-- GLOBAL_GLOBALMV compound blocks do not warp yet; inter-intra with GLOBALMV does not warp.
+- RT color sequences: libavif uses `AOM_USAGE_REALTIME` with `AOM_CBR` and a quantizer range of +/-4 around the
+  target. The port has no one-pass CBR rate control yet.
 - `enable_winner_mode_for_tx_size_srch` at speed 2 below 480p is `boosted ? 0 : 1`; the port tests intra frames only.
 - `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port uses the search.
 

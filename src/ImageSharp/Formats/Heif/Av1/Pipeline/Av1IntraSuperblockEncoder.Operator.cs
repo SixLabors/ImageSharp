@@ -172,6 +172,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="wedgeIndex">The selected wedge shape.</param>
         /// <param name="wedgeSign">Whether to reverse the wedge's predictor weights.</param>
         /// <param name="differenceWeightedMaskType">The polarity of the difference-weighted mask.</param>
+        /// <param name="primaryPrepared">Whether <paramref name="firstIntermediate"/> already holds the primary predictor.</param>
+        /// <param name="secondaryPrepared">Whether <paramref name="secondIntermediate"/> already holds the secondary predictor.</param>
         public static abstract void PrepareCompoundInterPrediction(
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
@@ -202,7 +204,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             int wedgeIndex,
             bool wedgeSign,
-            Av1DifferenceWeightedMaskType differenceWeightedMaskType);
+            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+            bool primaryPrepared,
+            bool secondaryPrepared);
 
         /// <summary>
         /// Builds a difference-weighted mask from two rounded single-reference predictors.
@@ -478,6 +482,37 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             Av1GlobalMotionParameters parameters,
             Span<TSample> prediction,
+            Span<short> scratch,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
+        /// Predicts one reference of a compound block with an affine warped model into the unsigned compound
+        /// intermediate. Reference: av1_warp_plane() with the compound convolve parameters that
+        /// av1_make_inter_predictor() passes for a warped reference of a compound block.
+        /// </summary>
+        /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="referenceWidth">The visible width of the reference plane.</param>
+        /// <param name="referenceHeight">The visible height of the reference plane.</param>
+        /// <param name="blockOrigin">The block origin in plane samples.</param>
+        /// <param name="width">The prediction width.</param>
+        /// <param name="height">The prediction height.</param>
+        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+        /// <param name="parameters">The warped model.</param>
+        /// <param name="intermediate">The contiguous compound intermediate destination.</param>
+        /// <param name="scratch">The warp filter intermediate storage.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PrepareWarpedCompoundIntermediate(
+            Buffer2DRegion<TSample> reference,
+            int referenceWidth,
+            int referenceHeight,
+            Point blockOrigin,
+            int width,
+            int height,
+            int subsamplingX,
+            int subsamplingY,
+            Av1GlobalMotionParameters parameters,
+            Span<ushort> intermediate,
             Span<short> scratch,
             Av1BitDepth bitDepth);
 
@@ -1380,6 +1415,36 @@ internal static partial class Av1IntraSuperblockEncoder
                 scratch);
 
         /// <inheritdoc/>
+        public static void PrepareWarpedCompoundIntermediate(
+            Buffer2DRegion<byte> reference,
+            int referenceWidth,
+            int referenceHeight,
+            Point blockOrigin,
+            int width,
+            int height,
+            int subsamplingX,
+            int subsamplingY,
+            Av1GlobalMotionParameters parameters,
+            Span<ushort> intermediate,
+            Span<short> scratch,
+            Av1BitDepth bitDepth)
+            => Av1WarpedInterPredictor.PredictWarpedCompound(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                reference.Bounds.Location,
+                referenceWidth,
+                referenceHeight,
+                intermediate,
+                width,
+                blockOrigin,
+                width,
+                height,
+                subsamplingX,
+                subsamplingY,
+                parameters,
+                scratch);
+
+        /// <inheritdoc/>
         public static void BlendMask(
             Span<byte> destination,
             int destinationStride,
@@ -1507,7 +1572,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             int wedgeIndex,
             bool wedgeSign,
-            Av1DifferenceWeightedMaskType differenceWeightedMaskType)
+            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+            bool primaryPrepared,
+            bool secondaryPrepared)
         {
             int width = predictionSize.GetWidth();
             int height = predictionSize.GetHeight();
@@ -1518,33 +1585,39 @@ internal static partial class Av1IntraSuperblockEncoder
             int secondaryOrigin = ((secondaryBounds.Y + secondaryPredictionOrigin.Y) * secondaryReference.Stride) +
                 secondaryBounds.X + secondaryPredictionOrigin.X;
 
-            Av1CompoundInterPredictor.PredictCompound(
-                primaryReference.Buffer.DangerousGetSingleSpan(),
-                primaryReference.Stride,
-                primaryOrigin,
-                firstIntermediate,
-                width,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                primaryHorizontalPhase,
-                primaryVerticalPhase,
-                predictionScratch);
+            if (!primaryPrepared)
+            {
+                Av1CompoundInterPredictor.PredictCompound(
+                    primaryReference.Buffer.DangerousGetSingleSpan(),
+                    primaryReference.Stride,
+                    primaryOrigin,
+                    firstIntermediate,
+                    width,
+                    width,
+                    height,
+                    horizontalFilter,
+                    verticalFilter,
+                    primaryHorizontalPhase,
+                    primaryVerticalPhase,
+                    predictionScratch);
+            }
 
-            Av1CompoundInterPredictor.PredictCompound(
-                secondaryReference.Buffer.DangerousGetSingleSpan(),
-                secondaryReference.Stride,
-                secondaryOrigin,
-                secondIntermediate,
-                width,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                secondaryHorizontalPhase,
-                secondaryVerticalPhase,
-                predictionScratch);
+            if (!secondaryPrepared)
+            {
+                Av1CompoundInterPredictor.PredictCompound(
+                    secondaryReference.Buffer.DangerousGetSingleSpan(),
+                    secondaryReference.Stride,
+                    secondaryOrigin,
+                    secondIntermediate,
+                    width,
+                    width,
+                    height,
+                    horizontalFilter,
+                    verticalFilter,
+                    secondaryHorizontalPhase,
+                    secondaryVerticalPhase,
+                    predictionScratch);
+            }
 
             int bitCount = bitDepth.GetBitCount();
             switch (compoundType)
@@ -2460,6 +2533,37 @@ internal static partial class Av1IntraSuperblockEncoder
                 scratch);
 
         /// <inheritdoc/>
+        public static void PrepareWarpedCompoundIntermediate(
+            Buffer2DRegion<ushort> reference,
+            int referenceWidth,
+            int referenceHeight,
+            Point blockOrigin,
+            int width,
+            int height,
+            int subsamplingX,
+            int subsamplingY,
+            Av1GlobalMotionParameters parameters,
+            Span<ushort> intermediate,
+            Span<short> scratch,
+            Av1BitDepth bitDepth)
+            => Av1WarpedInterPredictor.PredictWarpedCompound(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                reference.Bounds.Location,
+                referenceWidth,
+                referenceHeight,
+                intermediate,
+                width,
+                blockOrigin,
+                width,
+                height,
+                subsamplingX,
+                subsamplingY,
+                bitDepth.GetBitCount(),
+                parameters,
+                scratch);
+
+        /// <inheritdoc/>
         public static void BlendMask(
             Span<ushort> destination,
             int destinationStride,
@@ -2589,7 +2693,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             int wedgeIndex,
             bool wedgeSign,
-            Av1DifferenceWeightedMaskType differenceWeightedMaskType)
+            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+            bool primaryPrepared,
+            bool secondaryPrepared)
         {
             int width = predictionSize.GetWidth();
             int height = predictionSize.GetHeight();
@@ -2600,35 +2706,41 @@ internal static partial class Av1IntraSuperblockEncoder
             int secondaryOrigin = ((secondaryBounds.Y + secondaryPredictionOrigin.Y) * secondaryReference.Stride) +
                 secondaryBounds.X + secondaryPredictionOrigin.X;
 
-            Av1CompoundInterPredictor.PredictCompound(
-                primaryReference.Buffer.DangerousGetSingleSpan(),
-                primaryReference.Stride,
-                primaryOrigin,
-                firstIntermediate,
-                width,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                primaryHorizontalPhase,
-                primaryVerticalPhase,
-                bitDepth.GetBitCount(),
-                predictionScratch);
+            if (!primaryPrepared)
+            {
+                Av1CompoundInterPredictor.PredictCompound(
+                    primaryReference.Buffer.DangerousGetSingleSpan(),
+                    primaryReference.Stride,
+                    primaryOrigin,
+                    firstIntermediate,
+                    width,
+                    width,
+                    height,
+                    horizontalFilter,
+                    verticalFilter,
+                    primaryHorizontalPhase,
+                    primaryVerticalPhase,
+                    bitDepth.GetBitCount(),
+                    predictionScratch);
+            }
 
-            Av1CompoundInterPredictor.PredictCompound(
-                secondaryReference.Buffer.DangerousGetSingleSpan(),
-                secondaryReference.Stride,
-                secondaryOrigin,
-                secondIntermediate,
-                width,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                secondaryHorizontalPhase,
-                secondaryVerticalPhase,
-                bitDepth.GetBitCount(),
-                predictionScratch);
+            if (!secondaryPrepared)
+            {
+                Av1CompoundInterPredictor.PredictCompound(
+                    secondaryReference.Buffer.DangerousGetSingleSpan(),
+                    secondaryReference.Stride,
+                    secondaryOrigin,
+                    secondIntermediate,
+                    width,
+                    width,
+                    height,
+                    horizontalFilter,
+                    verticalFilter,
+                    secondaryHorizontalPhase,
+                    secondaryVerticalPhase,
+                    bitDepth.GetBitCount(),
+                    predictionScratch);
+            }
 
             int bitCount = bitDepth.GetBitCount();
             switch (compoundType)

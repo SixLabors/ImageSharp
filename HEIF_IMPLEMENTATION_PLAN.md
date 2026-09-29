@@ -22,78 +22,90 @@ Updated 2026-09-29. Existing changes must be preserved. Do not create worktrees 
 |---|---|
 | Stills: tune=iq all-intra, alpha tune=psnr, lossless; 8/10/12-bit, 4:0:0, 4:2:0, 4:2:2, 4:4:4, odd sizes, speeds 0-9 | 620/620 identical, and each tune=iq feature 60/60 |
 | RT sequences, speeds 7-9: tune=ssim, `AOM_CBR` quantizer +/-4, 30 fps time base | splash, 512x384, 10-bit, screen and cut identical, except cut speed 7 (see open items) |
-| GOOD sequences with lag 0 (the alpha case), speeds 0-6, global motion on, psnr and ssim | 14/14 identical with a fixed quantizer |
-| GOOD `AOM_Q` with the quantizer range 0-63, lag 0 | speeds 3 and 6 identical; speed 0 differs from frame 5 |
+| GOOD sequences with lag 0 (the alpha case), speeds 0-6, global motion on, psnr and ssim | identical with a fixed quantizer |
+| GOOD `AOM_Q` with the quantizer range 0-63, lag 0 | speeds 0-6 identical (6 frames), speeds 2, 3, 6 identical (40 frames) |
+| GOOD lag 35, TPL off, temporal filter off (stage A), speed 6, splash 333x251, 40 frames, ssim | identical (`134a45416`) |
+| GOOD lag 35, TPL off, temporal filter on (stage B), speed 6, same case | identical (`6b005d986`) |
 
 Encoder defaults follow avifenc: quality 60, speed 6, full range, BT.601 matrix, and the format of `avifReadImage()`.
 Known difference: ImageSharp's JPEG decoder reports an unusual sampling layout as `YCbCrRatio420`, where libavif
 falls back to 4:4:4.
 
+Lag-35 comparison stages, with the harness `AV1_SEQ_RATE=lag AV1_SEQ_STAGE=a|b|(empty)` and aomenc
+`--lag-in-frames=35`: A adds `--enable-tpl-model=0 --arnr-maxframes=0 --enable-keyframe-filtering=0`, B adds
+`--enable-tpl-model=0`, C adds nothing (the libavif default).
+
 ## Open items, in order
 
-1. GOOD sequences without alpha: libaom's default 35-frame lag. This is the avifenc default path (speed 6). Port:
-   - the look-ahead first pass (`av1_first_pass` in LAP mode) and its statistics;
-   - key frame and group decisions (`define_gf_group`, `calculate_gf_length`, `find_next_key_frame`);
-   - the GF pyramid (`av1_gop_setup_structure`): frames coded out of display order, `show_existing_frame`, the
-     reference refresh of each layer, and the Q-mode quantizer of each layer (`rc_pick_q_and_bounds_q_mode`);
-   - the alt-ref temporal filter (`av1_temporal_filter`);
-   - the TPL model (`av1_tpl_setup_stats`) and its rdmult and quantizer adjustments;
-   - frame-end CDF propagation and error resilience as the lagged configuration sets them.
-   First check what `Av1GoodQualityReferenceStructure` already has.
-2. Good-quality speed features that depend on the update type (`boosted`, `is_lf_frame`, `is_boosted_arf2_bwd_type`
-   in the `set_good_speed_*` functions). The port derives them from "intra frame", which is wrong for GF_UPDATE
-   frames (frame 32 of a lag-0 sequence) and for every ARF and overlay frame of the lagged path.
-3. `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port uses the search.
-4. RT frame control: `frames_to_key`, `direct_partition_merging` where it applies, `enable_ref_short_signaling`
-   below 360p, and `context_update_tile_id` for multi-tile frames.
-
-Done 2026-09-29: GOOD `AOM_Q` speed 0 (a kept wedge is predicted from the references, `20e41ff17`), and RT CBR cut
-speed 7 (fixed by the LAST zero-motion chroma SAD, `f8c90594e`).
+1. Stage C: TPL in the lag-35 path. The model (`Av1TplModel`, `3b6601d7a`) and its consumers (`4f42d3278`) are
+   ported, but `EncodeWithLookahead` never calls `SetupStatistics`; it sets `TplFrame = null` and
+   `TplStatisticsReady = false` for every frame and passes `tplValid: false` to `ChooseBaseQIndex`.
+   - Call the model at each group start for KF and ARF/GF update types, after the temporal filter, as
+     `av1_encode_strategy()` does (`av1_tpl_preload_rc_estimate()`, then `av1_tpl_setup_stats(cpi, 0, ...)`).
+   - Build `Av1TplSetupInput` from the driver: the group, an `IAv1TplReferenceMapper` over
+     `Av1GoodQualityReferenceStructure`, look-ahead and filtered sources, slot reconstructions, slot display orders
+     and pyramid levels, the frame context MV distributions, and the stale 16x16 mode-information grid (the last
+     trial or final block written at each position, plus the model's own writes).
+   - Feed the results to `ChooseBaseQIndex`, the parent `TplFrame`, `TplStatisticsReady` and the golden boost.
+   - Observed in the libaom TPL dump (`D:\tmp\tpl-work\dump-lagc`): with TPL on, the first group is 49 entries
+     with its ARF at display 32 (with TPL off it is at 16), and the second model call is at frame 33 with an
+     8-entry group. Find which part of the GF length decision depends on `enable_tpl_model`.
+   - The TPL-based GF length check (`is_shorter_gf_interval_better()`, with trial filtering) runs only when the
+     interval exceeds 16 and `gop_length_decision_method != 3`, which excludes speed 6.
+2. Route `HeifEncoderCore` color sequences with `LagInFrames > 0` to `EncodeWithLookahead`, with the real frame
+   durations, sample ends and sync flags. Today every sequence takes the lag-0 path, so no user reaches the lag-35
+   code.
+3. Verify the lag-35 path beyond the one verified case: speeds 0-5 in stages A, B and C; a second clip; 10-bit.
+   The high-bit-depth driver does not run the temporal filter yet.
+4. `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port keeps the
+   squared error of the fractional result (`ReferenceModeDecision`, the `bestSingleReferenceSses` update).
+5. RT frame control: `frames_to_key`, `direct_partition_merging` where it applies, `enable_ref_short_signaling`
+   below 360p (the writer never sets `frame_refs_short_signaling`), and `context_update_tile_id` for multi-tile
+   frames (never set by the encoder).
 
 ## SIMD operator-pattern gaps
 
-Each kernel gets an operator, a traversal, and a `FeatureTestRunner` test against the scalar libaom definition.
-Hottest first:
+Each of these breaks the SIMD-first rule and is a defect. Each gets an operator with scalar, Vector128, Vector256
+and Vector512 overloads, one traversal, and a `FeatureTestRunner` test against the scalar libaom definition.
+Audited 2026-09-29.
 
-- Compound and inter-intra mask search: the mask inversion of `RefineCompoundVectors`, `Av1WedgeMask.Fill` and
-  `Av1InterIntraMaskBuilder.FillInterIntraMask` (libaom reads precomputed masks through
-  `av1_get_contiguous_soft_mask`).
-- Transform search: the energy grid of `PruneInterTransformTypes` (`get_energy_distribution_finer`).
-- Intra estimation: the scalar Hadamard of `GetHadamardCost`, `TransformForModeEstimation`, and the Vector128-only
-  `HadamardEstimationColumns`.
-- `GetDirectionalModeSkipMask`, the palette k-means `Accumulate` members and `CalculateCentroids`, and
-  `CopyPaletteSamples`.
-- Per superblock: the Vector128-only `FilterTemporalSource` and `ConvolveIntraPartition`, and
+- Scalar: the mask inversion of `RefineCompoundVectors`; `Av1WedgeMask.Fill`;
+  `Av1InterIntraMaskBuilder.FillInterIntraMask`.
+- Scalar: the energy grid and axis sums of `PruneInterTransformTypes` (`TransformTypeModel`).
+- `GetHadamardCost` (scalar 4x4 and quadrant combine); `TransformForModeEstimation` (scalar 4x4, 16x16 combine and
+  high-bit-depth path, Vector128-only widening); `HadamardEstimationColumns` (Vector128 only).
+- Scalar: `GetDirectionalModeSkipMask`; palette `CalculateCentroids` (1D and 2D). The palette k-means `Accumulate`
+  members sum their vector distances with a scalar loop. `CopyPaletteSamples` is Vector128-only for width 8.
+- Vector128 only: `FilterTemporalSource`, `ConvolveIntraPartition`. Scalar: the sums and column fills of
   `FillResidueOutsideFrame`.
-- Frame filters: the self-guided and Wiener statistics and errors of the loop restoration search, the shared
-  self-guided filter, and the CDEF `CopyPlane`, `FindDirection` and `FilterBlock` width variants.
-- Once per frame: the screen content detector moments and copy, the block-copy hash, and `Av1FlowField.Upscale`.
-- `Av1ChromaFromLumaPredictor.Operator.cs` names `AdvSimd` outside the vector shims.
+- Loop restoration: the self-guided statistics and `GetProjectionError` (scalar), the Wiener mean and variance
+  pruning (scalar), `Correlate` and the shared self-guided filter (Vector256/Vector128 copies, no Vector512, no
+  operator).
+- CDEF: `CopyPlane` and `FilterBlock` (no Vector512), `FindDirection` (Vector128 only).
+- Scalar: the screen content `Detect` moments, copy, `CountColorsWithThreshold` and `DilateBlock`; the block-copy
+  hash; `Av1FlowField.Upscale`.
+- `Av1ChromaFromLumaPredictor.Operator.cs` calls `AdvSimd` directly (an unreachable branch).
+- Lag-35 path: the first-pass wavelet energy (`GetWaveletEnergy`, `GetHaarAcSad`) is Vector128 only; the TPL
+  `EstimateRate` is scalar. The temporal filter has every width.
 
 Test note: `HwIntrinsics.DisableAVX512F` does not clear `Vector512.IsHardwareAccelerated` on .NET 10.
 
 ## Tests
 
-- Update test callers affected by the search, picture-buffer and partition-policy arguments. Do not weaken
-  expectations or add test-only production overloads.
-- Resolve the failing inter tests against libaom: `ProductionTileSelectsNonRegularInterpolation`,
-  `ProductionTileSelectsDualAxisInterpolationHighBitDepth`, `InterBlockCanSkipNonzeroQuantizedResiduals`,
-  `IntraBlockCopyCanSkipNonzeroQuantizedResiduals`, `SequenceEncoderWritesSelectedGlobalTranslation`,
-  `IndependentFrameAndSequenceModesRetainDifferentMotionPolicies`,
-  `ResolutionAndFrameRoleOverrideInitialSecondCandidatePolicy`, `PixelSearchFallsBackToExhaustiveMesh`.
+- Add parity tests for the lag-35 path, in proportion to the other formats.
 - Cover alpha, tiles, grids and dependent animation. Follow the `VerifyEncoder`, `DebugSave` and
   `CompareToReferenceOutput` patterns. HEIF tests stay in proportion to the other formats (whole suite about one
-  minute).
+  minute). Current HEIF run: 323/323 pass.
 - Verify public option precedence, metadata/CICP/ICC, timing, cancellation, non-seekable output and allocator
   ownership.
-- `PaletteColorMapCostDoesNotAllocateAfterEntropyInitialization` failed once under load; cause unknown.
 
 ## Performance
 
 - Measure complete encode and decode against the optimized native build; report time, size and allocations.
 - Known causes: primitives are 2-5x slower per call than libaom (forward transform, quantizer, trellis, coefficient
   cost), and speed 6 reconstructs chroma candidates and the luma winner where libaom does not.
-- `Buffer2D.DangerousGetSingleSpan()` allocates through LINQ `Single()`. Hot paths index `FastMemoryGroup[0]`.
+- `Buffer2D.DangerousGetSingleSpan()` allocates through LINQ `Single()` (still true). Hot paths index
+  `FastMemoryGroup[0]`.
 
 ## Known limits
 
@@ -108,7 +120,8 @@ Test note: `HwIntrinsics.DisableAVX512F` does not clear `Vector512.IsHardwareAcc
 
 ## Final cleanup
 
-- Remove the `DiagnosticSymbolTrace` code from the source.
+- Remove the `DiagnosticSymbolTrace` code from the source (31 references) and the RECON trace
+  (`TraceWindowMatches`).
 - Delete `tests/ImageSharp.Benchmarks/Codecs/Heif/Native/aom_benchmark.c`, `Native/CMakeLists.txt`,
   `Av1SequenceEncoderBenchmarks`, `Av1ReferenceDecoderVerificationTests` and other temporary native tooling. Review
   exact targets first.

@@ -32,6 +32,11 @@ internal static partial class Av1FrameEncoder
     private const int OutputAlignmentLog2 = 5;
 
     /// <summary>
+    /// The length of the empty temporal delimiter OBU that opens each sample: its header and a zero size.
+    /// </summary>
+    private const int TemporalDelimiterLength = 2;
+
+    /// <summary>
     /// The lower bound, in bytes, for the bounded compressed-frame buffer. The raw-size ratio is too small for tiny
     /// images to provide useful coder headroom, so the reference allocation retains an 8 KiB floor.
     /// </summary>
@@ -682,20 +687,42 @@ internal static partial class Av1FrameEncoder
             : ObuReferenceMode.SingleReference;
         frameHeader.InterpolationFilter = Av1InterpolationFilter.Regular;
         frameHeader.IsMotionModeSwitchable = false;
-        frameHeader.TransformMode = qIndex == 0
-            ? Av1TransformMode.Only4x4
-            : Av1TransformMode.Select;
-
         frameHeader.AllowScreenContentTools = false;
         frameHeader.AllowIntraBlockCopy = false;
         frameHeader.ForceIntegerMotionVector = false;
-        frameHeader.AllowHighPrecisionMotionVector = false;
         if (frameType == ObuFrameType.InterFrame)
         {
             Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
             referenceFrameIndices.Clear();
             referenceFrameIndices[(int)Av1ReferenceFrameType.Golden - 1] = 7;
+            frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+        }
 
+        ApplyFrameQuantizer(frameHeader, sequenceHeader, qIndex, options);
+    }
+
+    /// <summary>
+    /// Sets the quantizer of a frame and every frame field that depends on it. Reference: av1_set_quantizer(), with
+    /// av1_pick_and_set_high_precision_mv() and the reference mode choice of av1_encode_frame(), which read the
+    /// final quantizer of the frame.
+    /// </summary>
+    /// <param name="frameHeader">The frame header.</param>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoder options.</param>
+    private static void ApplyFrameQuantizer(
+        ObuFrameHeader frameHeader,
+        ObuSequenceHeader sequenceHeader,
+        int qIndex,
+        Av1EncoderOptions options)
+    {
+        frameHeader.TransformMode = qIndex == 0
+            ? Av1TransformMode.Only4x4
+            : Av1TransformMode.Select;
+
+        frameHeader.AllowHighPrecisionMotionVector = false;
+        if (frameHeader.FrameType == ObuFrameType.InterFrame)
+        {
             // Disabling screen-content tools makes force_integer_mv implicitly false, so inter vectors
             // use fractional-motion syntax at the precision selected for the frame quantizer.
             Av1EncoderSpeedSettings speedSettings = new(
@@ -706,15 +733,13 @@ internal static partial class Av1FrameEncoder
                 new Size(frameHeader.FrameSize.SuperResolutionUpscaledWidth, frameHeader.FrameSize.FrameHeight));
 
             frameHeader.AllowHighPrecisionMotionVector = speedSettings.AllowHighPrecisionMotionVector;
-            frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
 
             // Real-time usage selects the reference mode per frame only while estimated compound prediction is
             // enabled, and otherwise codes single references. Reference: the frame_parameter_update and
             // use_comp_ref_nonrd branches of av1_encode_frame().
-            if (speedSettings.IsRealtime && !speedSettings.UseEstimatedCompound)
-            {
-                frameHeader.ReferenceMode = ObuReferenceMode.SingleReference;
-            }
+            frameHeader.ReferenceMode = speedSettings.IsRealtime && !speedSettings.UseEstimatedCompound
+                ? ObuReferenceMode.SingleReference
+                : ObuReferenceMode.ReferenceModeSelect;
         }
 
         Av1FrameQuantizer.SetQuantizer(
@@ -1705,6 +1730,11 @@ internal static partial class Av1FrameEncoder
         private uint frameNumber;
 
         /// <summary>
+        /// The constant-bitrate model of a real-time sequence, or <see langword="null"/> for good-quality coding.
+        /// </summary>
+        private readonly Av1RateControl? rateControl;
+
+        /// <summary>
         /// Reference: rc->frames_till_gf_update_due.
         /// </summary>
         private int framesTillGoldenUpdateDue;
@@ -1843,9 +1873,17 @@ internal static partial class Av1FrameEncoder
                 this.PictureBuffer.Picture.Parent.SpeedSettings = speedSettings;
                 this.PictureBuffer.Picture.Parent.ReferenceRefreshControl = this;
 
-                // One-pass constant-bitrate coding starts the running inter quantizer at the worst allowed
-                // quantizer, which the fixed quantizer sets. Reference: avg_frame_qindex in av1_rc_init().
                 this.PictureBuffer.Picture.Parent.AverageInterQuantizer = qIndex;
+
+                // Real-time usage codes at a constant bit rate between the allowed quantizers. Options without a
+                // range keep the requested quantizer. Reference: the AOM_CBR rc_end_usage of AOM_USAGE_REALTIME, with
+                // av1_quantizer_to_qindex() of rc_min_quantizer and rc_max_quantizer.
+                if (speedSettings.IsRealtime)
+                {
+                    int bestAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer) : qIndex;
+                    int worstAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer) : qIndex;
+                    this.rateControl = new Av1RateControl(width, height, colorConfig.BitDepth, options.Speed, bestAllowedQIndex, worstAllowedQIndex);
+                }
 
                 this.MotionField = new Av1EncoderMotionField(
                     configuration,
@@ -1896,7 +1934,7 @@ internal static partial class Av1FrameEncoder
         /// </summary>
         protected int FramesSinceGolden => this.framesSinceGolden;
 
-        protected int QIndex { get; }
+        protected int QIndex { get; private set; }
 
         /// <summary>
         /// Gets the encoding options retained for every frame in this track.
@@ -2496,16 +2534,76 @@ internal static partial class Av1FrameEncoder
                 : frameHeader.RefreshFrameFlags & ~(1U << GoldenSlot);
         }
 
-        protected void CompleteFrameHeader()
+        /// <summary>
+        /// Picks the quantizer of a real-time frame from the constant-bitrate model, raises it for a scene change, and
+        /// applies every quantizer-dependent frame field. Reference: av1_rc_pick_q_and_bounds() in
+        /// av1_set_size_dependent_vars(), and the av1_encodedframe_overshoot_cbr() call of encode_without_recode().
+        /// </summary>
+        /// <typeparam name="TSample">The sample storage type.</typeparam>
+        /// <typeparam name="TMotion">The error operations.</typeparam>
+        /// <typeparam name="TBlock">The block averaging operations.</typeparam>
+        /// <param name="parent">The frame state, with the scene statistics of this frame.</param>
+        /// <param name="source">The bordered source luma plane.</param>
+        /// <param name="lastReconstruction">The bordered luma plane of the LAST reference, for an inter frame.</param>
+        /// <param name="averageSourceSad">The running average source SAD after this frame. Reference: avg_source_sad.</param>
+        /// <param name="previousAverageSourceSad">The running average before this frame. Reference: prev_avg_source_sad.</param>
+        private protected void SelectFrameQuantizer<TSample, TMotion, TBlock>(
+            Av1PictureParentControlSet parent,
+            Buffer2DRegion<TSample> source,
+            Buffer2DRegion<TSample> lastReconstruction,
+            ulong averageSourceSad,
+            ulong previousAverageSourceSad)
+            where TSample : unmanaged
+            where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
+            where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         {
-            Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
-
-            // av1_rc_postencode_update() skips frames that refresh GOLDEN.
-            if (this.FrameHeader.FrameType != ObuFrameType.KeyFrame && !parent.RefreshesGolden)
+            if (this.rateControl is null)
             {
-                parent.AverageInterQuantizer = ((3 * parent.AverageInterQuantizer) + this.FrameHeader.QuantizationParameters.BaseQIndex + 2) >> 2;
+                return;
             }
 
+            bool keyFrame = this.FrameHeader.IsIntra;
+            this.rateControl.BeginFrame(keyFrame, this.frameNumber);
+            Av1RateControl.SourceSadStatistics sourceSad = new(parent.FrameSourceSad, averageSourceSad, previousAverageSourceSad);
+            int qIndex = this.rateControl.PickQuantizer<TSample, TMotion, TBlock>(
+                keyFrame, this.frameNumber, parent.IsScreenContent, in sourceSad, source, lastReconstruction);
+
+            // Overshoot detection is set for constant-bitrate inter frames. Reference: the FAST_DETECTION_MAXQ
+            // overshoot_detection_cbr of set_rt_speed_features().
+            if (!keyFrame && parent.HighSourceSad)
+            {
+                qIndex = this.rateControl.ApplyOvershootQuantizer(qIndex, averageSourceSad);
+            }
+
+            this.QIndex = qIndex;
+            ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, qIndex, this.Options);
+            parent.AverageInterQuantizer = this.rateControl.AverageInterFrameQIndex;
+        }
+
+        /// <summary>
+        /// Updates the constant-bitrate model with the coded size of the frame. Reference: the
+        /// av1_rc_postencode_update() and update_rc_counts() calls of av1_post_encode_updates().
+        /// </summary>
+        /// <param name="parent">The frame state.</param>
+        /// <param name="frameBytes">The coded size of the frame, without the temporal delimiter.</param>
+        private protected void CompleteRateControl(Av1PictureParentControlSet parent, int frameBytes)
+        {
+            if (this.rateControl is null)
+            {
+                return;
+            }
+
+            this.rateControl.UpdateAfterFrame(
+                frameBytes,
+                this.FrameHeader.QuantizationParameters.BaseQIndex,
+                this.FrameHeader.IsIntra,
+                parent.RefreshesGolden,
+                parent.IsScreenContent);
+            this.rateControl.EndFrame();
+        }
+
+        protected void CompleteFrameHeader()
+        {
             Span<bool> referenceValidity = this.FrameHeader.GetReferenceValidity();
             Span<uint> referenceOrderHints = this.FrameHeader.GetReferenceOrderHints();
             for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
@@ -2699,6 +2797,7 @@ internal static partial class Av1FrameEncoder
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
             parent.SourceMotionPercentage = 0;
+            ulong previousAverageSourceSad = this.averageSourceSad;
             if (this.previousSource is not null && this.framesSinceKey != 0)
             {
                 AnalyzeTemporalSource<byte, Av1MotionSearchBase.ByteOperator>(
@@ -2718,6 +2817,12 @@ internal static partial class Av1FrameEncoder
             parent.FramesSinceKey = this.framesSinceKey;
             parent.FramesSinceGolden = this.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
+            this.SelectFrameQuantizer<byte, Av1MotionSearchBase.ByteOperator, Av1IntraSuperblockEncoder.ByteOperator>(
+                parent,
+                this.source.Frame.CodedView.GetPlane(Av1Plane.Y),
+                last is null ? default : last.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y),
+                this.averageSourceSad,
+                previousAverageSourceSad);
             parent.SpeedSettings = new(
                 this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
             parent.EncoderOptions = this.Options;
@@ -2728,9 +2833,10 @@ internal static partial class Av1FrameEncoder
             parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
 
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
-            this.SymbolEncoder.BeginFrame(this.BindReferences(parent));
+            this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.SearchGlobalMotion<byte, ByteGlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
 
+            long frameStart = stream.Length;
             Encode(
                 this.ObuWriter,
                 stream,
@@ -2745,6 +2851,9 @@ internal static partial class Av1FrameEncoder
                 this.BlockWorkspace,
                 this.SymbolEncoder,
                 writeSequenceHeader);
+
+            // The temporal delimiter precedes each sample, and libaom counts the frame without it.
+            this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - TemporalDelimiterLength);
 
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
@@ -2935,6 +3044,7 @@ internal static partial class Av1FrameEncoder
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
             parent.SourceMotionPercentage = 0;
+            ulong previousAverageSourceSad = this.averageSourceSad;
             if (this.previousSource is not null && this.framesSinceKey != 0)
             {
                 AnalyzeTemporalSource<ushort, Av1MotionSearchBase.UInt16Operator>(
@@ -2953,11 +3063,21 @@ internal static partial class Av1FrameEncoder
 
             parent.FramesSinceKey = this.framesSinceKey;
             parent.FramesSinceGolden = this.FramesSinceGolden;
+            this.SelectFrameQuantizer<ushort, Av1MotionSearchBase.UInt16Operator, Av1IntraSuperblockEncoder.UInt16Operator>(
+                parent,
+                this.source.Frame.CodedView.GetPlane(Av1Plane.Y),
+                last is null ? default : last.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y),
+                this.averageSourceSad,
+                previousAverageSourceSad);
+            parent.SpeedSettings = new(
+                this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
+            parent.ConstantQualityIndex = this.QIndex;
 
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
-            this.SymbolEncoder.BeginFrame(this.BindReferences(parent));
+            this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
 
+            long frameStart = stream.Length;
             Encode(
                 this.ObuWriter,
                 stream,
@@ -2972,6 +3092,9 @@ internal static partial class Av1FrameEncoder
                 this.BlockWorkspace,
                 this.SymbolEncoder,
                 writeSequenceHeader);
+
+            // The temporal delimiter precedes each sample, and libaom counts the frame without it.
+            this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - TemporalDelimiterLength);
 
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);

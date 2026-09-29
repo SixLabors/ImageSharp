@@ -239,6 +239,15 @@ internal sealed partial class HeifEncoderCore
         // libavif turns loop restoration off for 12-bit images, where the encoder can overflow. Reference: the
         // AV1E_SET_ENABLE_RESTORATION control of aomCodecEncodeImage().
         bool enableRestoration = av1BitDepth != Av1BitDepth.TwelveBit;
+
+        // A sequence at speed 7 or faster runs in real-time usage, which codes at a constant bit rate with the
+        // quantizer free to move four steps either side of the requested one. Lossless coding keeps quantizer zero,
+        // and lossy coding keeps quantizer one or higher, as GetAv1Quantizer() does.
+        // Reference: the AOM_USAGE_REALTIME choice, the AOM_CBR rc_end_usage and the minQuantizer and maxQuantizer
+        // adjustment of aomCodecEncodeImage().
+        bool constantBitRate = !allIntra && this.encoder.Speed >= HeifEncodingSpeed.Level7;
+        int colorQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(quality, colorTuning == Av1Tuning.Iq);
+        int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality);
         return new Av1EncodingSettings(
             bitDepth,
             chromaSubsampling,
@@ -248,8 +257,16 @@ internal sealed partial class HeifEncoderCore
             colorQIndex,
             alphaQIndex,
             hasAlpha,
-            Av1EncoderOptions.Create(this.encoder.Speed, colorTuning, enableRestoration, allIntra),
-            Av1EncoderOptions.Create(this.encoder.Speed, alphaTuning, enableRestoration, allIntra));
+            CreateOptions(colorTuning, colorQuantizer),
+            CreateOptions(alphaTuning, alphaQuantizer));
+
+        Av1EncoderOptions CreateOptions(Av1Tuning tuning, int quantizer)
+            => new(this.encoder.Speed, tuning, enableRestoration, allIntra)
+            {
+                UsesConstantBitRate = constantBitRate,
+                MinimumQuantizer = quantizer == 0 ? 0 : Math.Max(quantizer - 4, 1),
+                MaximumQuantizer = quantizer == 0 ? 0 : Math.Min(quantizer + 4, 63)
+            };
     }
 
     private HeifSequenceEncoding CompressAv1Sequence<TPixel>(

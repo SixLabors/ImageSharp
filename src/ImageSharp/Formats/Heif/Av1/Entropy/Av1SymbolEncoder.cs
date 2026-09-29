@@ -303,9 +303,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private Av1SymbolWriter writer;
 
     /// <summary>
-    /// The frame base quantizer used to select coefficient probability models.
+    /// The frame base quantizer used to select coefficient probability models. A sequence sets it for each frame,
+    /// because a rate-controlled frame can change the quantizer context of its defaults.
     /// </summary>
-    private readonly int baseQIndex;
+    private int baseQIndex;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class with reusable tile state.
@@ -517,9 +518,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
     /// The context must stay unchanged while the frame is coded.
     /// </param>
-    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext)
+    /// <param name="baseQIndex">The base quantizer index of the frame, which selects the default coefficient models.
+    /// Reference: av1_setup_past_independence() with av1_default_coef_probs().</param>
+    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int baseQIndex)
     {
         this.frameBase = primaryReferenceContext;
+        this.baseQIndex = baseQIndex;
         this.Reset();
     }
 

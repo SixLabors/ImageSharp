@@ -123,9 +123,17 @@ with the psnr GOOD sequences still 7/7. Fixes:
   candidate passes, `rd_pick_skip_mode()` still compares skip mode with the best estimate of the mode loop, and the
   block has no mode when skip mode loses.
 
+Status 2026-09-29, RT sequences with the libavif rate (tune=ssim, `AOM_CBR` at the realtime defaults, quantizer
++/-4, 30 fps time base): splash 333x251, 512x384, 10-bit splash, screen and cut at speeds 7-9 identical, except cut
+speed 7 from the scene-cut frame. `Av1RateControl` ports the one-pass CBR path (`av1_rc_pick_q_and_bounds()`,
+`adjust_q_cbr()`, `av1_encodedframe_overshoot_cbr()`, `av1_rc_postencode_update()`). Fixed with it: the default
+coefficient CDFs follow each frame's base quantizer, and an estimated-search intra leaf keeps its own transform grid.
+
 Open:
-- RT color sequences: libavif uses `AOM_USAGE_REALTIME` with `AOM_CBR` and a quantizer range of +/-4 around the
-  target. The port has no one-pass CBR rate control yet.
+- RT CBR cut speed 7, frame 6 (the scene cut at qindex 72): block (80,64) is inter in libaom and intra in the port.
+- libavif GOOD sequences use `AOM_Q` with the quantizer range 0-63 (per-frame quantizer offsets), and color-only
+  sequences keep libaom's default 35-frame lag (alt-ref frames, TPL, temporal filtering). The GOOD references so far
+  force `--min-q=--max-q` and `--lag-in-frames=0`, which libavif produces for neither case.
 - `enable_winner_mode_for_tx_size_srch` at speed 2 below 480p is `boosted ? 0 : 1`; the port tests intra frames only.
 - `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port uses the search.
 

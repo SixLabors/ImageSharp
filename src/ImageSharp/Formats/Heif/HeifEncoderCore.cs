@@ -990,12 +990,21 @@ internal sealed partial class HeifEncoderCore
     /// <param name="imageTune">Whether the encoding uses the image tune, which has its own quality curve.</param>
     /// <returns>The AV1 quantizer index.</returns>
     public static int GetAv1QuantizerIndex(int quality, bool imageTune = false)
+        => Av1QuantizationLookup.GetQIndex(GetAv1Quantizer(quality, imageTune));
+
+    /// <summary>
+    /// Maps the public lossy quality scale to libaom's external zero-through-63 quantizer scale.
+    /// Reference: aomQualityToQuantizer().
+    /// </summary>
+    /// <param name="quality">The lossy quality in the inclusive range zero through one hundred.</param>
+    /// <param name="imageTune">Whether the encoding uses the image tune, which has its own quality curve.</param>
+    /// <returns>The external quantizer.</returns>
+    public static int GetAv1Quantizer(int quality, bool imageTune = false)
     {
         int quantizer = imageTune ? ImageTuneQualityToQuantizer[quality] : (((100 - quality) * 63) + 50) / 100;
 
         // External quantizer zero maps to the codec's lossless qindex. Keep quality 100 lossy as its public contract requires.
-        quantizer = Math.Max(quantizer, 1);
-        return Av1QuantizationLookup.GetQIndex(quantizer);
+        return Math.Max(quantizer, 1);
     }
 
     /// <summary>

@@ -538,6 +538,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         public Av1RateDistortionStatistics SelectedBlockStatistics { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether the frame decides its blocks with the estimated inter-frame search, which
+        /// encodes each winner in place. Reference: the use_nonrd_pick_mode branch of pick_sb_modes_nonrd().
+        /// </summary>
+        private readonly bool UsesEstimatedInterSearch =>
+            !this.picture.Parent.FrameHeader.IsIntra && this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision;
+
         /// <inheritdoc/>
         public Av1PartitionType SelectPartition(
             Av1SymbolEncoder writer,
@@ -3861,7 +3868,8 @@ internal static partial class Av1IntraSuperblockEncoder
             // type this block's size does not allow. Reference: the
             // av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call of
             // av1_rd_pick_intra_sby_mode(), against the per-block tx_type_map_ of pick_sb_modes().
-            if (modeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra && !modeInfo.Block.UseIntraBlockCopy)
+            if (modeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra && !modeInfo.Block.UseIntraBlockCopy &&
+                !this.UsesEstimatedInterSearch)
             {
                 // Only a luma search that ran for this block left its grid here. A winner that names
                 // another size belongs to a different block, so this leaf keeps what it retained.
@@ -3965,9 +3973,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 // An intra block's luma search hands its own grid over afterwards, so this clear is what
                 // that copy lands on. An inter block has no such grid, so its luma still comes from the
                 // shared buffer its own search wrote.
+                // The estimated inter-frame search encodes an intra winner straight into the coefficient buffer
+                // and hands no grid over, so its leaf reads that buffer like an inter leaf. Reference: the
+                // tx_type_map that encode_block_intra() reads after av1_nonrd_pick_intra_mode().
                 bool lumaFromOwnSearch = plane == Av1Plane.Y &&
                     snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra &&
-                    !snapshot.ModeInfo.Block.UseIntraBlockCopy;
+                    !snapshot.ModeInfo.Block.UseIntraBlockCopy &&
+                    !this.UsesEstimatedInterSearch;
 
                 Span<Av1EncoderTransformBlockState> retainedGrid = context.GetTransformStates(plane);
                 retainedGrid.Clear();

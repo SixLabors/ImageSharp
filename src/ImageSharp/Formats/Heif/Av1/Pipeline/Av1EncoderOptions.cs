@@ -132,6 +132,22 @@ internal sealed class Av1EncoderOptions
     public bool EnableAdaptiveSharpness { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether a sequence codes at a constant bit rate. libavif selects it for real-time
+    /// usage. Reference: the AOM_CBR rc_end_usage of aomCodecEncodeImage().
+    /// </summary>
+    public bool UsesConstantBitRate { get; init; }
+
+    /// <summary>
+    /// Gets the lowest quantizer on libaom's zero-through-63 scale. Reference: rc_min_quantizer.
+    /// </summary>
+    public int MinimumQuantizer { get; init; }
+
+    /// <summary>
+    /// Gets the highest quantizer on libaom's zero-through-63 scale. Reference: rc_max_quantizer.
+    /// </summary>
+    public int MaximumQuantizer { get; init; } = 63;
+
+    /// <summary>
     /// Creates the options of an encoding.
     /// </summary>
     /// <param name="speed">The cpu-used tier.</param>

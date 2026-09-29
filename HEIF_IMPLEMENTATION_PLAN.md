@@ -40,14 +40,15 @@ falls back to 4:4:4.
    - the TPL model (`av1_tpl_setup_stats`) and its rdmult and quantizer adjustments;
    - frame-end CDF propagation and error resilience as the lagged configuration sets them.
    First check what `Av1GoodQualityReferenceStructure` already has.
-2. GOOD `AOM_Q` lag 0, speed 0, frame 5: at the 32x32 HORZ_4 partition at (128,224), the 32x8 leaf (128,248) picks
-   NEAR_NEARMV LAST+LAST2 (rd 3057406). libaom picks NEWMV LAST (rd 3077341) and costs NEAR_NEARMV at 3204275.
-3. RT CBR cut speed 7, frame 6 (the scene cut at qindex 72): block (80,64) is inter in libaom and intra in the port.
-4. `enable_winner_mode_for_tx_size_srch` at speed 2 below 480p is `boosted ? 0 : 1`; the port tests intra frames
-   only.
-5. `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port uses the search.
-6. RT frame control: `frames_to_key`, `direct_partition_merging` where it applies, `enable_ref_short_signaling`
+2. Good-quality speed features that depend on the update type (`boosted`, `is_lf_frame`, `is_boosted_arf2_bwd_type`
+   in the `set_good_speed_*` functions). The port derives them from "intra frame", which is wrong for GF_UPDATE
+   frames (frame 32 of a lag-0 sequence) and for every ARF and overlay frame of the lagged path.
+3. `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port uses the search.
+4. RT frame control: `frames_to_key`, `direct_partition_merging` where it applies, `enable_ref_short_signaling`
    below 360p, and `context_update_tile_id` for multi-tile frames.
+
+Done 2026-09-29: GOOD `AOM_Q` speed 0 (a kept wedge is predicted from the references, `20e41ff17`), and RT CBR cut
+speed 7 (fixed by the LAST zero-motion chroma SAD, `f8c90594e`).
 
 ## SIMD operator-pattern gaps
 

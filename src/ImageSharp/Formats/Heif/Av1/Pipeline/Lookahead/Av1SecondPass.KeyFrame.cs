@@ -1,0 +1,502 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
+
+/// <content>
+/// Key frame placement and the key frame boost.
+/// </content>
+internal sealed partial class Av1SecondPass
+{
+    /// <summary>
+    /// The number of recent frames whose prediction decay the key frame search multiplies.
+    /// Reference: FRAMES_TO_CHECK_DECAY.
+    /// </summary>
+    private const int FramesToCheckDecay = 8;
+
+    /// <summary>
+    /// Reference: KF_MIN_FRAME_BOOST.
+    /// </summary>
+    private const double KeyFrameMinimumFrameBoost = 80.0;
+
+    /// <summary>
+    /// Reference: KF_MAX_FRAME_BOOST.
+    /// </summary>
+    private const double KeyFrameMaximumFrameBoost = 128.0;
+
+    /// <summary>
+    /// The smallest boost of a key frame group that is not static. Reference: MIN_KF_BOOST.
+    /// </summary>
+    private const int MinimumKeyFrameBoost = 600;
+
+    /// <summary>
+    /// The smallest boost of a static key frame group. Reference: MIN_STATIC_KF_BOOST.
+    /// </summary>
+    private const int MinimumStaticKeyFrameBoost = 5400;
+
+    /// <summary>
+    /// The zero motion share above which a key frame group is static. Reference: STATIC_KF_GROUP_FLOAT_THRESH.
+    /// </summary>
+    private const double StaticKeyFrameGroupThreshold = 0.99;
+
+    /// <summary>
+    /// Starts a key frame group at the current frame: finds the next key frame and the key frame boost.
+    /// Reference: find_next_key_frame() in the one-pass look-ahead stage in AOM_Q mode, without the bit allocation.
+    /// </summary>
+    /// <param name="thisFrame">The statistics of the key frame.</param>
+    private void FindNextKeyFrame(in Av1FirstPassStatistics thisFrame)
+    {
+        this.framesSinceKey = 0;
+        this.useArfInThisKeyFrameGroup = this.lagInFrames >= AlternateReferenceMinimumLag;
+        this.group.Clear();
+        this.groupFrameIndex = 0;
+
+        int startPosition = this.statisticsPosition;
+        double zeroMotionAccumulator = 1.0;
+        double secondReferenceAccumulator = 0.0;
+        double keyFrameRawError = thisFrame.IntraError;
+
+        this.thisKeyFrameForced = this.nextKeyFrameForced;
+
+        // The current frame is a key frame, so the search for the next one starts at the following frame.
+        int framesToKeyFrame = this.DefineKeyFrameInterval(KeyFrameMaximumDistance, 1);
+        this.framesToKey = framesToKeyFrame != -1 ? Math.Min(KeyFrameMaximumDistance, framesToKeyFrame) : KeyFrameMaximumDistance;
+        this.CorrectFramesToKey();
+
+        // An automatic interval between one and two maximum distances centres the extra key frame. The rescan of
+        // the statistics that follows in libaom only moves the read position, which is reset below.
+        if (this.framesToKey > KeyFrameMaximumDistance)
+        {
+            this.framesToKey /= 2;
+            this.nextKeyFrameForced = true;
+        }
+        else
+        {
+            this.nextKeyFrameForced = this.framesToKey >= KeyFrameMaximumDistance;
+        }
+
+        // The key frame group error sums only count the statistics here: the look-ahead's error range is empty,
+        // so every error term is clamped to zero and only the count is read later.
+        for (int i = 0; i < this.framesToKey; ++i)
+        {
+            if (this.statisticsInfo.Contains(i))
+            {
+                ++this.statisticsUsedForKeyFrameBoost;
+            }
+        }
+
+        this.statisticsPosition = startPosition;
+        double boostScore = this.GetKeyFrameBoostScore(keyFrameRawError, ref zeroMotionAccumulator, ref secondReferenceAccumulator);
+        this.statisticsPosition = startPosition;
+
+        this.keyFrameBoost = (int)boostScore;
+        this.keyFrameBoost = this.GetProjectedKeyFrameBoost();
+
+        // Static content keeps a large boost unless the group is very short.
+        if (zeroMotionAccumulator > StaticKeyFrameGroupThreshold && this.framesToKey > 8)
+        {
+            this.keyFrameBoost = Math.Max(this.keyFrameBoost, MinimumStaticKeyFrameBoost);
+        }
+        else
+        {
+            this.keyFrameBoost = Math.Max(this.keyFrameBoost, this.framesToKey * 3);
+            this.keyFrameBoost = Math.Max(this.keyFrameBoost, MinimumKeyFrameBoost);
+        }
+
+        this.group.UpdateTypes[0] = Av1FrameUpdateType.Key;
+    }
+
+    /// <summary>
+    /// Returns the number of frames to the next key frame from the scene cuts and the still transitions in the
+    /// look-ahead, or -1 when the look-ahead finds neither.
+    /// Reference: define_kf_interval() without forced key frames.
+    /// </summary>
+    /// <param name="framesToDetect">The number of frames to search.</param>
+    /// <param name="searchStart">The first frame to test, 1 when the current frame is a key frame.</param>
+    /// <returns>The frames to the next key frame, or -1.</returns>
+    private int DefineKeyFrameInterval(int framesToDetect, int searchStart)
+    {
+        Span<double> recentLoopDecay = stackalloc double[FramesToCheckDecay];
+        int framesToKeyFrame = searchStart;
+        int framesSinceKeyFrame = this.framesSinceKey + 1;
+        bool sceneCutDetected = false;
+
+        if (framesToDetect == 0)
+        {
+            return this.framesToKey;
+        }
+
+        recentLoopDecay.Fill(1.0);
+        int i = 0;
+        int futureCount = this.statisticsInfo.GetFutureCount(0);
+        while (framesToKeyFrame < futureCount && framesToKeyFrame < framesToDetect)
+        {
+            // Provided that the look-ahead has the next frame.
+            if (this.sceneCutDetection > 0 && framesToKeyFrame + 1 < futureCount)
+            {
+                // Check for a scene cut.
+                if (framesSinceKeyFrame >= KeyFrameMinimumDistance)
+                {
+                    sceneCutDetected = this.TestCandidateKeyFrame(framesToKeyFrame, framesSinceKeyFrame);
+                    if (sceneCutDetected)
+                    {
+                        // A cut is kept only when a frame of the next 32 predicts much better from the long term
+                        // reference than from the previous frame.
+                        bool testNextGop = false;
+                        for (int j = 0; j < 32; ++j)
+                        {
+                            if (!this.statisticsInfo.Contains(framesToKeyFrame + j))
+                            {
+                                continue;
+                            }
+
+                            ref readonly Av1FirstPassStatistics next = ref this.statisticsInfo.Peek(framesToKeyFrame + j);
+                            if (this.frameNumber + framesToKeyFrame + j > 2 && next.LongTermCodedError * 2.5 < next.CodedError)
+                            {
+                                testNextGop = true;
+                            }
+                        }
+
+                        if (!testNextGop)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                // How fast is the prediction quality decaying over the recent frames?
+                double loopDecayRate = GetPredictionDecayRate(in this.statisticsInfo.Peek(framesToKeyFrame + 1));
+                recentLoopDecay[i % FramesToCheckDecay] = loopDecayRate;
+                double decayAccumulator = 1.0;
+                for (int j = 0; j < FramesToCheckDecay; ++j)
+                {
+                    decayAccumulator *= recentLoopDecay[j];
+                }
+
+                // A transition or high motion followed by a static scene makes the key frame a good predictor for
+                // the frames after it, so the group does not use an alternate reference.
+                if (framesSinceKeyFrame >= KeyFrameMinimumDistance)
+                {
+                    sceneCutDetected = this.DetectTransitionToStill(
+                        framesToKeyFrame + 1,
+                        i,
+                        KeyFrameMaximumDistance - i,
+                        loopDecayRate,
+                        decayAccumulator);
+
+                    if (sceneCutDetected)
+                    {
+                        this.useArfInThisKeyFrameGroup = false;
+                        break;
+                    }
+                }
+
+                ++framesToKeyFrame;
+                ++framesSinceKeyFrame;
+
+                // Without a real key frame within two maximum distances the search ends.
+                if (framesToKeyFrame >= 2 * KeyFrameMaximumDistance)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                ++framesToKeyFrame;
+                ++framesSinceKeyFrame;
+            }
+
+            ++i;
+        }
+
+        // A look-ahead that finds no cut leaves the interval to the forced key frames, of which there are none.
+        if (!sceneCutDetected)
+        {
+            framesToKeyFrame = -1;
+        }
+
+        return framesToKeyFrame;
+    }
+
+    /// <summary>
+    /// Tests whether a frame is a scene cut: it must look like an intra frame, not like a flash, and predict the
+    /// frames after it well. Reference: test_candidate_kf() in AOM_Q mode.
+    /// </summary>
+    /// <param name="index">The candidate's offset from the current frame.</param>
+    /// <param name="frameCountSoFar">The number of frames since the last key frame.</param>
+    /// <returns>Whether the candidate is a viable key frame.</returns>
+    private bool TestCandidateKeyFrame(int index, int frameCountSoFar)
+    {
+        if (!this.statisticsInfo.Contains(index - 1) || !this.statisticsInfo.Contains(index) || !this.statisticsInfo.Contains(index + 1))
+        {
+            return false;
+        }
+
+        ref readonly Av1FirstPassStatistics last = ref this.statisticsInfo.Peek(index - 1);
+        ref readonly Av1FirstPassStatistics candidate = ref this.statisticsInfo.Peek(index);
+        ref readonly Av1FirstPassStatistics next = ref this.statisticsInfo.Peek(index + 1);
+
+        double percentIntra = 1.0 - candidate.PercentInter;
+        double modifiedPercentInter = candidate.PercentInter - candidate.PercentNeutral;
+        double secondReferenceUsageThreshold = GetSecondReferenceUsageThreshold(frameCountSoFar);
+        int framesToTest = SceneCutKeyTestInterval;
+        int countForTolerablePrediction = 3;
+
+        // The candidate itself is not counted.
+        int statisticsAfter = this.statisticsInfo.GetFutureCount(index) - 1;
+        if (this.sceneCutDetection == 1)
+        {
+            if (statisticsAfter < 3)
+            {
+                return false;
+            }
+
+            framesToTest = 3;
+            countForTolerablePrediction = 1;
+        }
+
+        framesToTest = Math.Min(framesToTest, statisticsAfter);
+
+        // Does the frame satisfy the primary criteria of a key frame? Constant quality needs three frames since
+        // the last key frame. Reference: MIN_INTRA_LEVEL, INTRA_VS_INTER_THRESH, VERY_LOW_INTER_THRESH,
+        // KF_II_ERR_THRESHOLD, ERR_CHANGE_THRESHOLD and II_IMPROVEMENT_THRESHOLD.
+        if (frameCountSoFar >= 3 &&
+            candidate.PercentSecondReference < secondReferenceUsageThreshold &&
+            next.PercentSecondReference < secondReferenceUsageThreshold &&
+            (candidate.PercentInter < 0.05 ||
+             IsSlideTransition(in candidate, in last, in next) ||
+             (percentIntra > 0.25 &&
+              percentIntra > 2.0 * modifiedPercentInter &&
+              candidate.IntraError / DoubleDivideCheck(candidate.CodedError) < 1.9 &&
+              (Math.Abs(last.CodedError - candidate.CodedError) / DoubleDivideCheck(candidate.CodedError) > 0.4 ||
+               Math.Abs(last.IntraError - candidate.IntraError) / DoubleDivideCheck(candidate.IntraError) > 0.4 ||
+               next.IntraError / DoubleDivideCheck(next.CodedError) > 3.5))))
+        {
+            double boostScore = 0.0;
+            double oldBoostScore = 0.0;
+            double decayAccumulator = 1.0;
+
+            // Examine how well the key frame predicts the frames after it.
+            int i;
+            for (i = 1; i <= framesToTest; ++i)
+            {
+                ref readonly Av1FirstPassStatistics local = ref this.statisticsInfo.Peek(index + i);
+                if ((local.IntraError - candidate.IntraError) / DoubleDivideCheck(candidate.IntraError) > 0.1 &&
+                    candidate.CodedError > local.CodedError * 6)
+                {
+                    break;
+                }
+
+                // Reference: BOOST_FACTOR and KF_II_MAX.
+                double nextIntraInterRatio = 12.5 * local.IntraError / DoubleDivideCheck(local.CodedError);
+                if (nextIntraInterRatio > 128.0)
+                {
+                    nextIntraInterRatio = 128.0;
+                }
+
+                // The cumulative effect of the decay in prediction quality.
+                if (local.PercentInter > 0.85)
+                {
+                    decayAccumulator *= local.PercentInter;
+                }
+                else
+                {
+                    decayAccumulator *= (0.85 + local.PercentInter) / 2.0;
+                }
+
+                boostScore += decayAccumulator * nextIntraInterRatio;
+
+                // Test the breakout clauses.
+                if (local.PercentInter < 0.05 ||
+                    nextIntraInterRatio < 1.5 ||
+                    (local.PercentInter - local.PercentNeutral < 0.20 && nextIntraInterRatio < 3.0) ||
+                    boostScore - oldBoostScore < 3.0 ||
+                    local.IntraError < 200.0 / this.macroblockCount)
+                {
+                    break;
+                }
+
+                oldBoostScore = boostScore;
+            }
+
+            // Tolerable prediction for at least the next three frames makes the candidate viable.
+            return boostScore > 30.0 && i > countForTolerablePrediction;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the second reference usage above which a candidate looks like a flash or an occlusion. The threshold
+    /// rises over the first 32 frames of a key frame group. Reference: get_second_ref_usage_thresh().
+    /// </summary>
+    /// <param name="frameCountSoFar">The number of frames since the last key frame.</param>
+    /// <returns>The threshold.</returns>
+    private static double GetSecondReferenceUsageThreshold(int frameCountSoFar)
+    {
+        const int adaptUpTo = 32;
+        const double minimumThreshold = 0.085;
+        const double maximumDelta = 0.035;
+        if (frameCountSoFar >= adaptUpTo)
+        {
+            return minimumThreshold + maximumDelta;
+        }
+
+        return minimumThreshold + ((double)frameCountSoFar / (adaptUpTo - 1) * maximumDelta);
+    }
+
+    /// <summary>
+    /// Tests for a slide show transition: a single frame whose error spikes against low error either side, with
+    /// similar intra and inter error. Reference: slide_transition() with VERY_LOW_II and ERROR_SPIKE.
+    /// </summary>
+    /// <param name="candidate">The candidate frame.</param>
+    /// <param name="last">The frame before it.</param>
+    /// <param name="next">The frame after it.</param>
+    /// <returns>Whether the candidate is a slide transition.</returns>
+    private static bool IsSlideTransition(in Av1FirstPassStatistics candidate, in Av1FirstPassStatistics last, in Av1FirstPassStatistics next)
+        => candidate.IntraError < candidate.CodedError * 1.5 &&
+           candidate.CodedError > last.CodedError * 5.0 &&
+           candidate.CodedError > next.CodedError * 5.0;
+
+    /// <summary>
+    /// Returns the key frame boost of the frames after the key frame, weighted by their share of static blocks,
+    /// and the zero motion share of the group.
+    /// Reference: get_kf_boost_score() without averaged statistics.
+    /// </summary>
+    /// <param name="keyFrameRawError">The key frame's intra error.</param>
+    /// <param name="zeroMotionAccumulator">The smallest zero motion share so far.</param>
+    /// <param name="secondReferenceAccumulator">The accumulated growth of the second reference error.</param>
+    /// <returns>The boost score.</returns>
+    private double GetKeyFrameBoostScore(double keyFrameRawError, ref double zeroMotionAccumulator, ref double secondReferenceAccumulator)
+    {
+        double boostScore = 0.0;
+        double keyFrameMaximumBoost = Math.Clamp(this.framesToKey * 2.0, KeyFrameMinimumFrameBoost, KeyFrameMaximumFrameBoost);
+        for (int i = 0; i < this.framesToKey - 1; ++i)
+        {
+            if (!this.InputStatistics(out Av1FirstPassStatistics frame))
+            {
+                break;
+            }
+
+            // Monitor for static sections. The second reference of the first frame of the group is invalid.
+            if (i > 0)
+            {
+                zeroMotionAccumulator = Math.Min(zeroMotionAccumulator, GetZeroMotionFactor(in frame));
+            }
+            else
+            {
+                zeroMotionAccumulator = frame.PercentInter - frame.PercentMotion;
+            }
+
+            // Not every frame of the group counts toward the boost.
+            if (secondReferenceAccumulator < keyFrameRawError * 1.50 && i <= this.maximumGoldenInterval * 2)
+            {
+                // A factor of 0.75 to 1.25 from the static share of the frame.
+                double zeroMotionFactor = 0.75 + (zeroMotionAccumulator / 2.0);
+                if (i < 2)
+                {
+                    secondReferenceAccumulator = 0.0;
+                }
+
+                double frameBoost = this.CalculateKeyFrameFrameBoost(in frame, ref secondReferenceAccumulator, keyFrameMaximumBoost);
+                boostScore += frameBoost * zeroMotionFactor;
+            }
+        }
+
+        return boostScore;
+    }
+
+    /// <summary>
+    /// Returns the key frame boost of one frame from its intra to inter error ratio, with the accumulated growth
+    /// of the second reference error added to its inter error. Reference: calc_kf_frame_boost().
+    /// </summary>
+    /// <param name="frame">The frame's statistics.</param>
+    /// <param name="secondReferenceAccumulator">The accumulated growth of the second reference error.</param>
+    /// <param name="maximumBoost">The largest boost of one frame.</param>
+    /// <returns>The boost.</returns>
+    private double CalculateKeyFrameFrameBoost(in Av1FirstPassStatistics frame, ref double secondReferenceAccumulator, double maximumBoost)
+    {
+        double lastQ = Av1ConstantQuality.ConvertQIndexToQ(this.averageInterFrameQIndex, this.bitDepth);
+        double boostQCorrection = Math.Min(0.50 + (lastQ * 0.015), 2.00);
+        double activeArea = this.CalculateActiveArea(in frame);
+
+        // The underlying boost is the ratio of intra to inter error.
+        double frameBoost = Math.Max(this.BaselineErrorPerMacroblock * activeArea, frame.IntraError * activeArea) /
+            DoubleDivideCheck((frame.CodedError + secondReferenceAccumulator) * activeArea);
+
+        // The accumulator tracks how much the coded error grows over time.
+        secondReferenceAccumulator += frame.SecondReferenceCodedError - frame.CodedError;
+        secondReferenceAccumulator = Math.Max(0.0, secondReferenceAccumulator);
+
+        // 40 is the experimentally derived minimum, in line with the minimum per frame alternate reference boost.
+        frameBoost = (frameBoost + 40.0) * boostQCorrection;
+        return Math.Min(frameBoost, maximumBoost * boostQCorrection);
+    }
+
+    /// <summary>
+    /// Scales the key frame boost from the frames the look-ahead covered to the whole key frame group.
+    /// Reference: get_projected_kf_boost().
+    /// </summary>
+    /// <returns>The projected boost.</returns>
+    private int GetProjectedKeyFrameBoost()
+    {
+        if (this.statisticsUsedForKeyFrameBoost >= this.framesToKey)
+        {
+            return this.keyFrameBoost;
+        }
+
+        double tplFactor = Av1ConstantQuality.GetKeyFrameBoostProjectionFactor(this.framesToKey);
+        double tplFactorUsed = Av1ConstantQuality.GetKeyFrameBoostProjectionFactor(this.statisticsUsedForKeyFrameBoost);
+        return (int)Math.Round(tplFactor * this.keyFrameBoost / tplFactorUsed, MidpointRounding.ToEven);
+    }
+
+    /// <summary>
+    /// Returns the quantizer bounds of an intra frame in constant-quality mode.
+    /// Reference: get_intra_q_and_bounds() in the one-pass look-ahead stage.
+    /// </summary>
+    /// <param name="activeBest">Receives the lowest quantizer.</param>
+    /// <param name="activeWorst">The highest quantizer.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
+    private void GetIntraQAndBounds(ref int activeBest, ref int activeWorst, bool screenContent)
+    {
+        int activeBestQuality;
+        int activeWorstQuality = activeWorst;
+        bool largeResolution = Math.Min(this.width, this.height) >= 608;
+        if (this.framesToKey <= 1)
+        {
+            // The only frame of its key frame group codes at the constant-quality level.
+            activeBestQuality = this.cqLevel;
+            activeWorstQuality = this.cqLevel;
+        }
+        else if (this.thisKeyFrameForced)
+        {
+            // A key frame forced by the interval stays near the last boosted quantizer to limit popping.
+            int qIndex = this.lastBoostedQIndex;
+            double lastBoostedQ = Av1ConstantQuality.ConvertQIndexToQ(qIndex, this.bitDepth);
+            int deltaQIndex = Av1ConstantQuality.ComputeQDelta(lastBoostedQ, lastBoostedQ * 0.50, this.bitDepth, this.bestQuality, this.worstQuality);
+            activeBestQuality = Math.Max(qIndex + deltaQIndex, this.bestQuality);
+        }
+        else
+        {
+            // The floor of the active worst quality at the key frame boost.
+            double qAdjustmentFactor = 1.0;
+            activeBestQuality = Av1ConstantQuality.GetKeyFrameActiveQuality(activeWorstQuality, this.keyFrameBoost, largeResolution, this.bitDepth);
+            if (screenContent)
+            {
+                activeBestQuality /= 2;
+            }
+
+            // Small formats allow a somewhat lower key frame quantizer.
+            if (this.width * this.height <= 352 * 288)
+            {
+                qAdjustmentFactor -= 0.25;
+            }
+
+            double qValue = Av1ConstantQuality.ConvertQIndexToQ(activeBestQuality, this.bitDepth);
+            activeBestQuality += Av1ConstantQuality.ComputeQDelta(qValue, qValue * qAdjustmentFactor, this.bitDepth, this.bestQuality, this.worstQuality);
+        }
+
+        activeBest = activeBestQuality;
+        activeWorst = activeWorstQuality;
+    }
+}

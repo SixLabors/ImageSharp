@@ -2983,7 +2983,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         if (!masked)
         {
-            if (jointCompoundEnabled)
+            // The statistics pass adapts the compound index even in a sequence that does not code it, and the rate
+            // search prices it from that distribution. Reference: update_stats(), against the enable_dist_wtd_comp
+            // test of pack_inter_mode_mvs().
+            if (jointCompoundEnabled || !TOperation.WritesOutput)
             {
                 _ = TOperation.ProcessSymbol(
                     ref w,
@@ -2994,10 +2997,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             return;
         }
 
-        _ = TOperation.ProcessSymbol(
-            ref w,
-            compoundType == Av1CompoundType.DifferenceWeighted,
-            this.compoundType[(int)blockSize]);
+        // The masked type is coded only where wedges exist; other sizes imply the difference-weighted mask.
+        // Reference: the is_interinter_compound_used(COMPOUND_WEDGE, bsize) test of pack_inter_mode_mvs().
+        bool wedgeAllowed = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block8x16 or Av1BlockSize.Block16x8 or
+            Av1BlockSize.Block16x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block32x16 or Av1BlockSize.Block32x32 or
+            Av1BlockSize.Block8x32 or Av1BlockSize.Block32x8;
+
+        if (wedgeAllowed)
+        {
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                compoundType == Av1CompoundType.DifferenceWeighted,
+                this.compoundType[(int)blockSize]);
+        }
 
         if (compoundType == Av1CompoundType.Wedge)
         {

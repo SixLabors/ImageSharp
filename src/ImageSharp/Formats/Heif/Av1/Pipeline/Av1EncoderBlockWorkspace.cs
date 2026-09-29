@@ -397,6 +397,15 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public int[] ObmcMask { get; } = new int[128 * 128];
 
     /// <summary>
+    /// Gets the average-removed subsampled luma that the chroma mode search of the current intra block predicted
+    /// chroma-from-luma with, at the fixed stride of the chroma-from-luma buffer. The winner refinement of an intra
+    /// block in an inter frame predicts from it again, because the reference stores luma for chroma-from-luma only
+    /// before the chroma mode search. Reference: the store_y encode of av1_encode_intra_block_plane() in
+    /// search_intra_uv_modes_in_interframe(), which refine_winner_mode_tx() does not repeat.
+    /// </summary>
+    public short[] ChromaFromLumaSearchSamples { get; } = new short[Prediction.ChromaFromLuma.Av1ChromaFromLumaContext.BufferLength];
+
+    /// <summary>
     /// Gets the luma vertical, luma horizontal, U, and V deblocking levels retained from the preceding frame.
     /// </summary>
     /// <remarks>

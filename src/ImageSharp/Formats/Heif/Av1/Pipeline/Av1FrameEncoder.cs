@@ -477,7 +477,9 @@ internal static partial class Av1FrameEncoder
         bool isStillPicture)
     {
         Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
-        Av1EncoderSpeedSettings speedSettings = new(options.Speed, isStillPicture, intraFrame: true, qIndex: 0, new Size(width, height));
+        Av1EncoderSpeedSettings speedSettings = new(
+            options.Speed, isStillPicture, intraFrame: true, Av1FrameUpdateType.Key, qIndex: 0, new Size(width, height));
+
         ObuSequenceProfile sequenceProfile = colorConfig.BitDepth == Av1BitDepth.TwelveBit ||
             colorFormat == Av1ColorFormat.Yuv422
                 ? ObuSequenceProfile.Professional
@@ -725,11 +727,13 @@ internal static partial class Av1FrameEncoder
         if (frameHeader.FrameType == ObuFrameType.InterFrame)
         {
             // Disabling screen-content tools makes force_integer_mv implicitly false, so inter vectors
-            // use fractional-motion syntax at the precision selected for the frame quantizer.
+            // use fractional-motion syntax at the precision selected for the frame quantizer. Neither choice depends
+            // on the frame's update type.
             Av1EncoderSpeedSettings speedSettings = new(
                 options.Speed,
                 allIntra: false,
                 intraFrame: false,
+                Av1FrameUpdateType.Last,
                 qIndex,
                 new Size(frameHeader.FrameSize.SuperResolutionUpscaledWidth, frameHeader.FrameSize.FrameHeight));
 
@@ -882,7 +886,12 @@ internal static partial class Av1FrameEncoder
             sequenceHeader.SuperblockSize);
 
         Av1EncoderSpeedSettings speedSettings = new(
-            options.Speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
+            options.Speed,
+            sequenceHeader.IsStillPicture,
+            frameHeader.IsIntra,
+            Av1FrameUpdateType.Key,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            frameSize);
 
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
@@ -994,7 +1003,12 @@ internal static partial class Av1FrameEncoder
             sequenceHeader.SuperblockSize);
 
         Av1EncoderSpeedSettings speedSettings = new(
-            options.Speed, sequenceHeader.IsStillPicture, frameHeader.IsIntra, frameHeader.QuantizationParameters.BaseQIndex, frameSize);
+            options.Speed,
+            sequenceHeader.IsStillPicture,
+            frameHeader.IsIntra,
+            Av1FrameUpdateType.Key,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            frameSize);
 
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
@@ -1744,6 +1758,12 @@ internal static partial class Av1FrameEncoder
         private readonly int constantQualityIndex;
 
         /// <summary>
+        /// The running average quantizer index of the ordinary inter frames of constant-quality coding, which starts
+        /// in the middle of the allowed range. Reference: p_rc->avg_frame_qindex[INTER_FRAME] from av1_rc_init().
+        /// </summary>
+        private int averageInterQIndex;
+
+        /// <summary>
         /// Reference: rc->frames_till_gf_update_due.
         /// </summary>
         private int framesTillGoldenUpdateDue;
@@ -1821,6 +1841,9 @@ internal static partial class Av1FrameEncoder
             this.SequenceHeader = CreateSequenceHeader(width, height, colorConfig, options, false);
             this.QIndex = qIndex;
             this.constantQualityIndex = qIndex;
+            this.averageInterQIndex = (Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer) +
+                Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer)) / 2;
+
             this.Options = options;
             this.TileBufferLength = GetTileBufferLength(width, height, colorConfig);
             this.EncodeAlpha = encodeAlpha;
@@ -1857,7 +1880,12 @@ internal static partial class Av1FrameEncoder
                 // Sequence geometry and maximum tool capacity are fixed before the first sample. Reusing this owner
                 // avoids renting the complete mode grid and optional screen-content index for every frame.
                 Av1EncoderSpeedSettings speedSettings = new(
-                    options.Speed, this.SequenceHeader.IsStillPicture, this.FrameHeader.IsIntra, qIndex, new Size(width, height));
+                    options.Speed,
+                    this.SequenceHeader.IsStillPicture,
+                    this.FrameHeader.IsIntra,
+                    Av1FrameUpdateType.Key,
+                    qIndex,
+                    new Size(width, height));
 
                 this.PictureBuffer = new Av1EncoderPictureBuffer(
                     configuration,
@@ -2061,16 +2089,11 @@ internal static partial class Av1FrameEncoder
             }
 
             bool realtime = parent.SpeedSettings.IsRealtime;
-            Av1FrameUpdateType updateType = realtime
-                ? GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup)
-                : this.goodQualityStructure.UpdateType;
-
-            bool boosted = frameHeader.IsIntra || updateType is Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
             GlobalMotionSearchInputs inputs = new(
                 !realtime,
                 parent.SpeedSettings,
-                updateType,
-                boosted,
+                parent.FrameUpdateType,
+                parent.SpeedSettings.IsBoosted,
                 this.BlockWorkspace.ReferenceFrameNumbers,
                 this.BlockWorkspace.EncodedFrameCount,
                 this.goodQualityStructure.SlotPyramidLevels,
@@ -2086,23 +2109,27 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Selects the reference slots, the refreshed slots, the primary reference, and the frame tools after the
-        /// source analysis of the frame. Real-time usage follows the one-layer real-time structure, and good-quality
-        /// usage the low-delay pyramid of <see cref="Av1GoodQualityReferenceStructure"/>.
+        /// Selects the update type, the reference slots, the refreshed slots, and the primary reference after the
+        /// source analysis of the frame, before its quantizer and speed features, as libaom defines the group in
+        /// av1_encode_strategy() before encode_without_recode(). Real-time usage follows the one-layer real-time
+        /// structure, and good-quality usage the low-delay pyramid of <see cref="Av1GoodQualityReferenceStructure"/>.
         /// </summary>
-        /// <param name="parent">The frame state with the source analysis and options settings of the frame.</param>
+        /// <param name="parent">
+        /// The frame state with the source analysis of the frame. Its speed settings are those of the previous frame;
+        /// the structure reads only the features that do not depend on the update type.
+        /// </param>
         /// <param name="averageSourceSad">The running average source SAD. Reference: rc->avg_source_sad.</param>
         protected void ConfigureReferenceStructure(Av1PictureParentControlSet parent, ulong averageSourceSad)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
-            Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
             bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
-            if (!speedSettings.IsRealtime)
+            if (!parent.SpeedSettings.IsRealtime)
             {
                 // Good-quality usage without lookahead codes low-delay pyramid groups. copy_frame_prob_info() restores
                 // the frame probability tables at every key frame.
                 this.goodQualityStructure.Configure(frameHeader, parent.FramesSinceKey);
-                parent.StartsGoldenGroup = this.goodQualityStructure.UpdateType == Av1FrameUpdateType.Golden;
+                parent.FrameUpdateType = this.goodQualityStructure.UpdateType;
+                parent.StartsGoldenGroup = parent.FrameUpdateType == Av1FrameUpdateType.Golden;
                 parent.RefreshesGolden = keyFrame || parent.StartsGoldenGroup;
                 if (keyFrame)
                 {
@@ -2113,7 +2140,21 @@ internal static partial class Av1FrameEncoder
             else
             {
                 this.ConfigureRealtimeReferenceStructure(parent, averageSourceSad);
+                parent.FrameUpdateType = GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup);
             }
+        }
+
+        /// <summary>
+        /// Sets the frame tools that follow the reference structure and the quantizer of the frame: the interpolation
+        /// filter, temporal motion vectors, warped motion, OBMC, and skip mode. Reference: set_size_independent_vars(),
+        /// frame_might_allow_ref_frame_mvs(), frame_might_allow_warped_motion(), is_switchable_motion_mode_allowed(),
+        /// and av1_setup_skip_mode_allowed().
+        /// </summary>
+        /// <param name="parent">The frame state with the update type and the speed settings of the frame.</param>
+        protected void ConfigureReferenceTools(Av1PictureParentControlSet parent)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
 
             // Every frame starts with switchable filters, and fix_interp_filter() narrows the filter after the
             // frame. Reference: set_size_independent_vars() in encode_without_recode().
@@ -2136,13 +2177,13 @@ internal static partial class Av1FrameEncoder
 
             int warpedThreshold = speedSettings.WarpedProbabilityThreshold;
             if (allowWarpedMotion && warpedThreshold > 0 &&
-                this.warpedProbabilities[(int)GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup)] < warpedThreshold)
+                this.warpedProbabilities[(int)parent.FrameUpdateType] < warpedThreshold)
             {
                 allowWarpedMotion = false;
             }
 
             frameHeader.AllowWarpedMotion = allowWarpedMotion;
-            int obmcRow = (int)GetFrameUpdateType(keyFrame, parent.StartsGoldenGroup) * (int)Av1BlockSize.AllSizes;
+            int obmcRow = (int)parent.FrameUpdateType * (int)Av1BlockSize.AllSizes;
             this.obmcProbabilities.AsSpan(obmcRow, (int)Av1BlockSize.AllSizes).CopyTo(parent.ObmcProbabilities);
 
             // OBMC is enabled by default, so the motion mode is switchable in every inter frame.
@@ -2410,7 +2451,7 @@ internal static partial class Av1FrameEncoder
             {
                 // The running probability moves halfway to this frame's share of warped blocks.
                 // Reference: the warped_probs update at the end of encode_frame_internal().
-                int updateType = (int)GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup);
+                int updateType = (int)parent.FrameUpdateType;
                 int sum = parent.WarpedUsage[0] + parent.WarpedUsage[1];
                 int newProbability = sum != 0 ? 128 * parent.WarpedUsage[1] / sum : 0;
                 this.warpedProbabilities[updateType] = (this.warpedProbabilities[updateType] + newProbability) >> 1;
@@ -2421,8 +2462,7 @@ internal static partial class Av1FrameEncoder
             {
                 // Each block size's probability moves halfway to this frame's share of OBMC blocks.
                 // Reference: the obmc_probs update at the end of encode_frame_internal().
-                int row = (int)GetFrameUpdateType(frameHeader.FrameType == ObuFrameType.KeyFrame, parent.StartsGoldenGroup) *
-                    (int)Av1BlockSize.AllSizes;
+                int row = (int)parent.FrameUpdateType * (int)Av1BlockSize.AllSizes;
 
                 for (int size = 0; size < (int)Av1BlockSize.AllSizes; size++)
                 {
@@ -2575,8 +2615,11 @@ internal static partial class Av1FrameEncoder
             bool keyFrame = this.FrameHeader.IsIntra;
             if (this.rateControl is null)
             {
-                // Constant-quality coding without lookahead lowers only the key frame quantizer; every other frame
-                // codes at the constant-quality index. Reference: rc_pick_q_and_bounds_q_mode().
+                // Constant-quality coding without lookahead lowers the quantizer of the key frame and, in good-quality
+                // usage, of the golden update that starts each group; every other frame codes at the
+                // constant-quality index. Reference: rc_pick_q_and_bounds_q_mode() with get_active_best_quality().
+                int bestQIndex = Av1QuantizationLookup.GetQIndex(this.Options.MinimumQuantizer);
+                int worstQIndex = Av1QuantizationLookup.GetQIndex(this.Options.MaximumQuantizer);
                 int frameQIndex = keyFrame
                     ? Av1RateControl.GetConstantQualityKeyFrameQIndex(
                         this.constantQualityIndex,
@@ -2584,9 +2627,26 @@ internal static partial class Av1FrameEncoder
                         this.FrameHeader.FrameSize.FrameHeight,
                         this.SequenceHeader.ColorConfig.BitDepth,
                         parent.IsScreenContent,
-                        Av1QuantizationLookup.GetQIndex(this.Options.MinimumQuantizer),
-                        Av1QuantizationLookup.GetQIndex(this.Options.MaximumQuantizer))
-                    : this.constantQualityIndex;
+                        bestQIndex,
+                        worstQIndex)
+                    : !parent.SpeedSettings.IsRealtime && parent.FrameUpdateType == Av1FrameUpdateType.Golden
+                        ? Av1RateControl.GetConstantQualityGoldenFrameQIndex(
+                            this.constantQualityIndex,
+                            this.averageInterQIndex,
+                            parent.FramesSinceKey,
+                            this.FrameHeader.FrameSize.FrameWidth,
+                            this.FrameHeader.FrameSize.FrameHeight,
+                            this.SequenceHeader.ColorConfig.BitDepth,
+                            bestQIndex,
+                            worstQIndex)
+                        : this.constantQualityIndex;
+
+                // Only the last-frame updates move the running inter average, after their quantizer is known.
+                // Reference: the avg_frame_qindex[INTER_FRAME] update of av1_rc_postencode_update().
+                if (parent.FrameUpdateType == Av1FrameUpdateType.Last)
+                {
+                    this.averageInterQIndex = ((3 * this.averageInterQIndex) + frameQIndex + 2) >> 2;
+                }
 
                 if (frameQIndex != this.QIndex)
                 {
@@ -2852,6 +2912,11 @@ internal static partial class Av1FrameEncoder
             parent.FramesSinceKey = this.framesSinceKey;
             parent.FramesSinceGolden = this.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
+
+            // The quantizer and the speed features follow the update type that the reference structure selects, as
+            // libaom defines the golden-frame group before rc_pick_q_and_bounds() and the speed features of
+            // encode_without_recode().
+            this.ConfigureReferenceStructure(parent, this.averageSourceSad);
             this.SelectFrameQuantizer<byte, Av1MotionSearchBase.ByteOperator, Av1IntraSuperblockEncoder.ByteOperator>(
                 parent,
                 this.source.Frame.CodedView.GetPlane(Av1Plane.Y),
@@ -2859,17 +2924,21 @@ internal static partial class Av1FrameEncoder
                 this.averageSourceSad,
                 previousAverageSourceSad);
 
-            parent.SpeedSettings = new(
-                this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
-
             parent.EncoderOptions = this.Options;
             parent.ConstantQualityIndex = this.QIndex;
+            parent.SpeedSettings = new(
+                this.Options.Speed,
+                this.SequenceHeader.IsStillPicture,
+                frameHeader.IsIntra,
+                parent.FrameUpdateType,
+                this.QIndex,
+                image.Size);
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
             parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
 
-            this.ConfigureReferenceStructure(parent, this.averageSourceSad);
+            this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.SearchGlobalMotion<byte, ByteGlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
 
@@ -3069,16 +3138,7 @@ internal static partial class Av1FrameEncoder
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
             parent.IsScreenContent = isScreenContent;
-            parent.SpeedSettings = new(
-                this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
-
             parent.EncoderOptions = this.Options;
-            parent.ConstantQualityIndex = this.QIndex;
-
-            // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
-            // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
-            parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
-
             parent.SourceBlockSad = this.sourceBlockSad is not null ? this.sourceBlockSad.Memory : default;
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
@@ -3102,6 +3162,11 @@ internal static partial class Av1FrameEncoder
 
             parent.FramesSinceKey = this.framesSinceKey;
             parent.FramesSinceGolden = this.FramesSinceGolden;
+
+            // The quantizer and the speed features follow the update type that the reference structure selects, as
+            // libaom defines the golden-frame group before rc_pick_q_and_bounds() and the speed features of
+            // encode_without_recode().
+            this.ConfigureReferenceStructure(parent, this.averageSourceSad);
             this.SelectFrameQuantizer<ushort, Av1MotionSearchBase.UInt16Operator, Av1IntraSuperblockEncoder.UInt16Operator>(
                 parent,
                 this.source.Frame.CodedView.GetPlane(Av1Plane.Y),
@@ -3109,12 +3174,20 @@ internal static partial class Av1FrameEncoder
                 this.averageSourceSad,
                 previousAverageSourceSad);
 
-            parent.SpeedSettings = new(
-                this.Options.Speed, this.SequenceHeader.IsStillPicture, frameHeader.IsIntra, this.QIndex, image.Size);
-
             parent.ConstantQualityIndex = this.QIndex;
+            parent.SpeedSettings = new(
+                this.Options.Speed,
+                this.SequenceHeader.IsStillPicture,
+                frameHeader.IsIntra,
+                parent.FrameUpdateType,
+                this.QIndex,
+                image.Size);
 
-            this.ConfigureReferenceStructure(parent, this.averageSourceSad);
+            // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
+            // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
+            parent.BorderPad = !this.SequenceHeader.IsStillPicture && !parent.SpeedSettings.IsRealtime;
+
+            this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
 

@@ -453,9 +453,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// Establishes the frame-level decision state that every block decision of one picture reads.
     /// </summary>
     /// <remarks>
-    /// Block decisions assume this state: speed settings, the frame update role, inter mode thresholds,
-    /// transform-type and interpolation statistics, nearest references, motion search settings, and cleared
-    /// restoration choices. The tile encoder calls it once before analysis. A caller that drives
+    /// Block decisions assume this state: speed settings for the update role that the caller stores in
+    /// <see cref="Av1PictureParentControlSet.FrameUpdateType"/>, inter mode thresholds, transform-type and
+    /// interpolation statistics, nearest references, motion search settings, and cleared restoration choices.
+    /// The tile encoder calls it once before analysis. A caller that drives
     /// <see cref="Av1IntraSuperblockEncoder.ModeDecision{TSample, TOperator}"/> directly must call it first.
     /// </remarks>
     /// <param name="picture">The picture whose parent state is prepared.</param>
@@ -469,6 +470,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.EncodingSpeed,
             picture.Sequence.SequenceHeader.IsStillPicture,
             frameHeader.IsIntra,
+            parent.FrameUpdateType,
             frameHeader.QuantizationParameters.BaseQIndex,
             sourceSize,
             frameHeader.AllowScreenContentTools);
@@ -480,11 +482,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         blockWorkspace.LumaVisibleBoundary = parent.GetVisibleBoundary(0, 0);
         blockWorkspace.ChromaVisibleBoundary = parent.GetVisibleBoundary(
             colorConfig.SubSamplingX ? 1 : 0, colorConfig.SubSamplingY ? 1 : 0);
-
-        // An inter frame that starts a golden group is a GF_UPDATE frame. Reference: set_baseline_gf_interval().
-        parent.FrameUpdateType = frameHeader.FrameType == ObuFrameType.KeyFrame
-            ? Av1FrameUpdateType.Key
-            : parent.StartsGoldenGroup ? Av1FrameUpdateType.Golden : Av1FrameUpdateType.Last;
 
         if (!frameHeader.IsIntra)
         {
@@ -589,7 +586,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             picture.Sequence.SequenceHeader.IsStillPicture,
             sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
-            frameHeader.IsIntra,
+            parent.SpeedSettings.IsBoosted,
             parent.IsScreenContent);
 
         parent.MotionSearchSettings = motionSettings;

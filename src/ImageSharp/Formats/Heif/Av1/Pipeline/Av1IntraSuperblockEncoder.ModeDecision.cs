@@ -1557,7 +1557,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     if (candidateStatistics.Cost < bestStatistics.Cost && !this.picture.Parent.FrameHeader.IsIntra &&
-                        !this.picture.Parent.FrameHeader.CodedLossless &&
+                        !this.picture.Parent.FrameHeader.CodedLossless && (allowMotionSplit || allowRectangularSplit) &&
                         IsSkippable(in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot))
                     {
                         // Scale distortion by block area relative to a maximum superblock. Rate uses the
@@ -1568,8 +1568,17 @@ internal static partial class Av1IntraSuperblockEncoder
                             ((2 * Av1Constants.MaxSuperBlockSizeLog2) - sampleCountLog2);
 
                         int rateThreshold = settings.PartitionBreakoutRateThreshold * sampleCountLog2;
-                        terminateAfterNone = this.ShouldStopPartitionSearch(blockSize, candidateStatistics) ||
-                            (candidateStatistics.Distortion < distortionThreshold && candidateStatistics.Rate < rateThreshold);
+
+                        // The breakout clears the square and rectangular searches without ending the search: a
+                        // rectangle on an active image edge and the pruning after the split stage still run.
+                        // Reference: prune_partitions_after_none(), which clears do_square_split and
+                        // do_rectangular_split, with the active edge test of is_rect_part_allowed().
+                        if (this.ShouldStopPartitionSearch(blockSize, candidateStatistics) ||
+                            (candidateStatistics.Distortion < distortionThreshold && candidateStatistics.Rate < rateThreshold))
+                        {
+                            allowMotionSplit = false;
+                            allowRectangularSplit = false;
+                        }
                     }
 
                     if (!noneInvalid && this.picture.Parent.SpeedSettings.PruneRectangularPartitionsUsingIntraMode)
@@ -1909,7 +1918,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
-            if (!noneInvalid && blockSize >= Av1BlockSize.Block16x16 && this.picture.Parent.FrameUpdateType == Av1FrameUpdateType.Last)
+            if (!noneInvalid && blockSize >= Av1BlockSize.Block16x16 && settings.SkippablePartitionPruningLevel != 0)
             {
                 Av1MacroBlockModeInfo noneModeInfo = this.blockWorkspace.PartitionTree
                     .GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo;
@@ -2828,7 +2837,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Active = true,
                     Mode = snapshot.ModeInfo.Block.Mode,
-                    FilterIntraMode = snapshot.Block.FilterIntraMode
+                    FilterIntraMode = snapshot.Block.FilterIntraMode,
+                    ReferenceFrame = snapshot.ModeInfo.Block.ReferenceFrame,
+                    SecondaryReferenceFrame = snapshot.ModeInfo.Block.SecondaryReferenceFrame
                 };
 
                 switch (partitionType)
@@ -3592,12 +3603,18 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
-                    int savedLumaArea = this.codedAreaLuma;
-                    int savedChromaArea = this.codedAreaChroma;
-                    this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, winner);
-                    this.codedAreaLuma = savedLumaArea;
-                    this.codedAreaChroma = savedChromaArea;
                 }
+
+                // The search leaves the last transform block of each plane as its prediction, so the winner is
+                // encoded again whether or not a refinement ran, and the next block predicts from it and stores
+                // its luma for chroma-from-luma. Reference: the encode_superblock() dry run that
+                // rd_try_subblock() and rectangular_partition_search() make after pick_sb_modes(), which runs
+                // encode_block_intra() over every transform block.
+                int reconstructedLumaArea = this.codedAreaLuma;
+                int reconstructedChromaArea = this.codedAreaChroma;
+                this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, winner);
+                this.codedAreaLuma = reconstructedLumaArea;
+                this.codedAreaChroma = reconstructedChromaArea;
 
                 Av1RateDistortionStatistics paletteStatistics = this.SelectedBlockStatistics;
                 Av1EncoderPaletteInfo candidatePalette = paletteInfo;
@@ -5620,8 +5637,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     filterMode = (Av1FilterIntraMode)(index - filterStart);
 
                     // A cached decision without filter intra excludes every filter mode, and a cached
-                    // filter mode excludes the others. Reference: rd_pick_filter_intra_sby() L255-L272.
-                    if (this.activeModeCache.Active && filterMode != this.activeModeCache.FilterIntraMode)
+                    // filter mode excludes the others. The intra search of an inter frame does not read the
+                    // cache. Reference: rd_pick_filter_intra_sby(), which only av1_rd_pick_intra_sby_mode() calls.
+                    if (intraFrame && this.activeModeCache.Active && filterMode != this.activeModeCache.FilterIntraMode)
                     {
                         continue;
                     }
@@ -5658,8 +5676,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     // Reference: the mode cache test in av1_rd_pick_intra_sby_mode().
-                    // The angle delta stays free.
-                    if (this.activeModeCache.Active && mode != this.activeModeCache.Mode)
+                    // The angle delta stays free. The intra search of an inter frame does not read the cache.
+                    // Reference: search_intra_modes_in_interframe().
+                    if (intraFrame && this.activeModeCache.Active && mode != this.activeModeCache.Mode)
                     {
                         continue;
                     }
@@ -7465,6 +7484,17 @@ internal static partial class Av1IntraSuperblockEncoder
             /// <see cref="Av1FilterIntraMode.AllFilterIntraModes"/> when it used none.
             /// </summary>
             public Av1FilterIntraMode FilterIntraMode;
+
+            /// <summary>
+            /// The first reference of the source candidate, or <see cref="Av1ReferenceFrameType.Intra"/> for an intra
+            /// decision.
+            /// </summary>
+            public Av1ReferenceFrameType ReferenceFrame;
+
+            /// <summary>
+            /// The second reference of a compound source candidate; otherwise a value that is not an inter reference.
+            /// </summary>
+            public Av1ReferenceFrameType SecondaryReferenceFrame;
         }
 
         private struct LumaCandidate

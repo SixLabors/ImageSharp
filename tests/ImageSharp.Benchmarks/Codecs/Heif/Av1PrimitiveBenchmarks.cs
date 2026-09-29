@@ -68,7 +68,7 @@ public class Av1PrimitiveBenchmarks
         this.writer.RefreshCosts();
         this.blockWorkspace = new Av1EncoderBlockWorkspace(Configuration.Default)
         {
-            SpeedSettings = new Av1EncoderSpeedSettings(HeifEncodingSpeed.Level6, true, true, QIndex, new Size(512, 512))
+            SpeedSettings = new Av1EncoderSpeedSettings(HeifEncodingSpeed.Level6, true, true, Av1FrameUpdateType.Key, QIndex, new Size(512, 512))
         };
 
         this.Forward();
@@ -110,6 +110,7 @@ public class Av1PrimitiveBenchmarks
             this.TransformSize,
             8,
             this.workspace);
+
         return this.coefficients[0];
     }
 
@@ -128,6 +129,7 @@ public class Av1PrimitiveBenchmarks
             this.TransformSize,
             8,
             this.workspace);
+
         return this.coefficients[0];
     }
 
@@ -187,6 +189,7 @@ public class Av1PrimitiveBenchmarks
             state.EndOfBlock,
             false,
             this.workspace);
+
         return Av1ResidualBuilder.SumSquaredError(this.source, this.Size, this.reconstruction, this.Size, this.Size, this.Size);
     }
 
@@ -267,6 +270,7 @@ public class Av1PrimitiveBenchmarks
             false,
             this.residual,
             this.TransformSize);
+
         return this.residual[0];
     }
 
@@ -393,6 +397,7 @@ public class Av1PrimitiveBenchmarks
             false,
             this.residual,
             this.TransformSize);
+
         return this.residual[0];
     }
 }

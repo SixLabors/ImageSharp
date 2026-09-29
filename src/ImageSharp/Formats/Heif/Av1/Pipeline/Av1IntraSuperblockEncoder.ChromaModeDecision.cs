@@ -53,6 +53,7 @@ internal static partial class Av1IntraSuperblockEncoder
     {
         /// <summary>
         /// Refines coefficients for the selected UV predictor without repeating mode or alpha search.
+        /// Reference: the av1_txfm_uvrd() call of refine_winner_mode_tx() for an intra winner.
         /// </summary>
         private Av1RateDistortionStatistics RefineSelectedChroma(
             Av1SymbolEncoder writer,
@@ -84,25 +85,17 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformCount = sampleCount / transformSize.GetSize2d();
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             bool usesChromaFromLuma = modeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
-            ReadOnlySpan<short> lumaQ3 = default;
-            if (usesChromaFromLuma)
-            {
-                TOperator.PrepareChromaFromLuma(
-                    this.reconstruction.GetPlane(Av1Plane.Y),
-                    new Point(origin.X << subX, origin.Y << subY),
-                    workspace.ChromaFromLumaSamples,
-                    transformSize,
-                    this.GetChromaFromLumaExtent(macroBlock, blockOrigin, blockSize, modeInfo.Block.TransformSize, subX, subY),
-                    subX != 0,
-                    subY != 0);
 
-                lumaQ3 = workspace.ChromaFromLumaSamples;
-            }
+            // Chroma-from-luma predicts from the luma of the chroma mode search, not from the refined luma: the
+            // reference stores luma for it only before that search. Reference: refine_winner_mode_tx(), whose
+            // av1_txfm_uvrd() predicts from the stored chroma-from-luma buffer.
+            ReadOnlySpan<short> lumaQ3 = usesChromaFromLuma ? this.blockWorkspace.ChromaFromLumaSearchSamples : default;
 
+            // The refined rate replaces the searched chroma rate, alpha included, by the coefficient rate alone.
+            // Reference: the winner_rate_uv that refine_winner_mode_tx() removes is the token-only rate of
+            // av1_rd_pick_intra_sbuv_mode(), which counts the alpha cost, and av1_txfm_uvrd() counts coefficients only.
             int rate = previousStatistics.Rate - previousStatistics.ResidualRate;
-            int residualRate = usesChromaFromLuma
-                ? writer.GetChromaFromLumaCost(block.PredictionUnit.ChromaFromLumaIndex, block.PredictionUnit.ChromaFromLumaSigns)
-                : 0;
+            int residualRate = 0;
 
             long distortion = 0;
             bool hasCoefficients = false;
@@ -647,6 +640,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                 macroBlock, lumaOrigin, blockSize, modeInfo.Block.TransformSize, subsamplingX, subsamplingY),
                             colorConfig.SubSamplingX,
                             colorConfig.SubSamplingY);
+
+                        // The winner refinement of an intra block in an inter frame predicts from this luma again.
+                        lumaQ3.CopyTo(this.blockWorkspace.ChromaFromLumaSearchSamples);
 
                         // Every alpha candidate uses the same constant DC predictor, so compute each plane once and
                         // refill the candidate block from its sample instead of rebuilding the identical edge average.

@@ -28,11 +28,20 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <param name="speed">The native-valued cpu-used tier.</param>
     /// <param name="allIntra">Whether the sequence uses the all-intra profile.</param>
     /// <param name="intraFrame">Whether the current picture is intra-only.</param>
+    /// <param name="updateType">
+    /// The picture's role in its golden-frame group. Reference: gf_group->update_type[cpi->gf_frame_index].
+    /// </param>
     /// <param name="qIndex">The current base quantizer index.</param>
     /// <param name="frameSize">The visible frame dimensions.</param>
     /// <param name="screenContent">Whether the frame allows the screen content tools.</param>
     public Av1EncoderSpeedSettings(
-        HeifEncodingSpeed speed, bool allIntra, bool intraFrame, int qIndex, Size frameSize, bool screenContent = false)
+        HeifEncodingSpeed speed,
+        bool allIntra,
+        bool intraFrame,
+        Av1FrameUpdateType updateType,
+        int qIndex,
+        Size frameSize,
+        bool screenContent = false)
     {
         this.Speed = speed;
         this.qIndex = qIndex;
@@ -40,6 +49,17 @@ internal readonly struct Av1EncoderSpeedSettings
         this.screenContent = screenContent;
         this.intraFrame = intraFrame;
         this.minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
+
+        // Good-quality usage derives many features from the frame's role in its group. A boosted frame is an
+        // intra-only, golden, or alternate-reference update and is coded at a higher quality than the frames
+        // around it; the second class adds the internal alternate-reference updates; only the ordinary displayed
+        // frames of a group are last-frame updates. Reference: frame_is_boosted(), is_boosted_arf2_bwd_type, and
+        // is_lf_frame in set_good_speed_features_framesize_independent() and
+        // set_good_speed_feature_framesize_dependent().
+        bool boosted = intraFrame || updateType is Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+        bool boostedOrInternalAlternate = boosted || updateType == Av1FrameUpdateType.IntermediateAlternate;
+        bool lastFrameUpdate = updateType == Av1FrameUpdateType.Last;
+        this.IsBoosted = boosted;
 
         // GOOD mode disables dual interpolation filtering in its baseline speed features. All-intra pictures do not
         // write inter filters, so keeping the sequence flag disabled avoids advertising an unused coding tool.
@@ -84,9 +104,13 @@ internal readonly struct Av1EncoderSpeedSettings
         this.realtime = realtime;
         this.AdaptiveModeThresholdLevel = allIntra ? 0 : realtime ? 4 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0;
         this.PruneSkippableInterModes = !allIntra && (realtime || speed >= HeifEncodingSpeed.Level5);
+
+        // skip_intra_in_interframe: good quality uses 2 in an inter frame from speed 2, and from speed 3 keeps 1 in a
+        // boosted frame and uses 2 or 3 by resolution in the others.
         this.IntraInInterPruningLevel = allIntra ? 0 : realtime ? 5 : speed >= HeifEncodingSpeed.Level4 ? 4 :
-            speed >= HeifEncodingSpeed.Level3 && !intraFrame ? minimumDimension >= 720 ? 2 : 3 :
+            speed >= HeifEncodingSpeed.Level3 ? boosted ? 1 : minimumDimension >= 720 ? 2 : 3 :
             speed >= HeifEncodingSpeed.Level2 && !intraFrame ? 2 : 1;
+
         this.MaximumIntraBlockSize = realtime || (!allIntra && speed >= HeifEncodingSpeed.Level3 && minimumDimension < 720)
             ? Av1BlockSize.Block32x32 : Av1BlockSize.Block128x128;
 
@@ -149,8 +173,12 @@ internal readonly struct Av1EncoderSpeedSettings
         this.TransformTypeProbabilityPruning = realtime || minimumDimension < 480 || speed < HeifEncodingSpeed.Level2
             ? 0 : speed >= HeifEncodingSpeed.Level4 ? 2 : 1;
 
+        // fast_inter_tx_type_prob_thresh: good quality speed 6 below 720p keeps the higher threshold in boosted and
+        // internal alternate-reference frames.
         this.InterTransformTypeProbabilityThreshold = realtime ? 0 :
-            !allIntra && speed >= HeifEncodingSpeed.Level6 && minimumDimension < 720 ? intraFrame ? 450 : 150 : int.MaxValue;
+            !allIntra && speed >= HeifEncodingSpeed.Level6 && minimumDimension < 720
+                ? boostedOrInternalAlternate ? 450 : 150
+                : int.MaxValue;
 
         this.InterWinnerPruningLevel = realtime && !intraFrame ? minimumDimension < 360 ? 2 : 3 : 0;
         this.InterpolationReuseLevel = allIntra ? 0 : realtime ? 1 : speed >= HeifEncodingSpeed.Level4 ? 2 :
@@ -159,20 +187,31 @@ internal readonly struct Av1EncoderSpeedSettings
             speed >= HeifEncodingSpeed.Level2 ? 1 : 0;
         this.ModelBasedInterpolationBreakout = !allIntra;
         this.PruneNearMotionByTranslation = !allIntra && !realtime;
-        this.ReduceInterReferenceIndices = allIntra ? 0 : intraFrame ? 1 : realtime || speed >= HeifEncodingSpeed.Level1 ? 3 : 2;
-        this.PruneSpatialMotionByWeight = !allIntra && !realtime && !intraFrame &&
+
+        // reduce_inter_modes: good quality uses 1 in a boosted frame, and 2 at speed 0 or 3 from speed 1 in the others.
+        this.ReduceInterReferenceIndices = allIntra ? 0 : realtime ? intraFrame ? 1 : 3 :
+            boosted ? 1 : speed >= HeifEncodingSpeed.Level1 ? 3 : 2;
+
+        // prune_nearest_near_mv_using_refmv_weight: good quality from speed 5 below 720p, and from speed 6, in a frame
+        // that is not boosted. The screen-content condition applies where the flag is read.
+        this.PruneSpatialMotionByWeight = !allIntra && !realtime && !boosted &&
             (speed >= HeifEncodingSpeed.Level6 || (speed >= HeifEncodingSpeed.Level5 && minimumDimension < 720));
 
         this.NearNeighborPruningLevel = allIntra ? 0 : realtime || speed >= HeifEncodingSpeed.Level6 ? 3 :
             speed >= HeifEncodingSpeed.Level5 ? minimumDimension <= 480 ? 1 : 2 : 0;
-        this.SkipSingleInterpolationSearch = !allIntra && !realtime && !intraFrame && speed >= HeifEncodingSpeed.Level5;
+
+        // skip_interp_filter_search: good quality from speed 5 in a frame that is not boosted.
+        this.SkipSingleInterpolationSearch = !allIntra && !realtime && !boosted && speed >= HeifEncodingSpeed.Level5;
         this.UseWinnerInterpolation = realtime;
         this.UseSimpleInterpolationModel = realtime;
         this.WinnerInterpolationUsesSharp = minimumDimension <= 240;
+
+        // prune_comp_search_by_single_result: good quality prunes less in a boosted frame.
         this.CompoundSingleResultPruningLevel = allIntra ? 0 : realtime ? 2 :
-            speed >= HeifEncodingSpeed.Level3 ? intraFrame ? 4 : 2 :
-            speed >= HeifEncodingSpeed.Level2 ? intraFrame ? 4 : 1 :
-            speed >= HeifEncodingSpeed.Level1 ? intraFrame ? 2 : 1 : 0;
+            speed >= HeifEncodingSpeed.Level3 ? boosted ? 4 : 2 :
+            speed >= HeifEncodingSpeed.Level2 ? boosted ? 4 : 1 :
+            speed >= HeifEncodingSpeed.Level1 ? boosted ? 2 : 1 : 0;
+
         this.SkipMixedNearCompound = !allIntra && !realtime &&
             (speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && minimumDimension <= 480));
 
@@ -185,16 +224,26 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.SkipInterpolationChromaModel = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level1;
         this.SkipSharpInterpolationAfterSmooth = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level4;
-        this.PreferSharpInterpolation = !allIntra && !realtime && !intraFrame && speed < HeifEncodingSpeed.Level4;
+
+        // use_more_sharp_interp: good quality below speed 4 in a frame that is not boosted.
+        this.PreferSharpInterpolation = !allIntra && !realtime && !boosted && speed < HeifEncodingSpeed.Level4;
         this.UseNeighborInterpolation = !allIntra && (!realtime ? speed >= HeifEncodingSpeed.Level4 :
             speed >= HeifEncodingSpeed.Level9 && minimumDimension is >= 360 and < 1080);
         this.CompoundMotionSearchLevel = realtime ? 0 : speed >= HeifEncodingSpeed.Level5 ? 2 : 1;
         this.UseLocalJointMotionSearch = !realtime;
         this.ReuseCompoundTypeDecision = !realtime && speed >= HeifEncodingSpeed.Level3;
-        this.ReuseCompoundMaskResults = !realtime && speed >= HeifEncodingSpeed.Level2;
+
+        // reuse_mask_search_results: good quality from speed 2, and at speed 1 up to base_qindex 200 in a frame that
+        // is neither boosted nor an internal alternate reference. Reference:
+        // set_good_speed_features_framesize_independent() and av1_set_speed_features_qindex_dependent().
+        this.ReuseCompoundMaskResults = !realtime && (speed >= HeifEncodingSpeed.Level2 ||
+            (speed == HeifEncodingSpeed.Level1 && qIndex <= 200 && !boostedOrInternalAlternate));
+
         this.UseCompoundWedgeModel = !realtime && speed >= HeifEncodingSpeed.Level1;
         this.FastWedgeSignEstimation = realtime;
-        this.PruneCompoundTypeByModel = !realtime && speed >= HeifEncodingSpeed.Level1;
+
+        // prune_comp_type_by_model_rd: good quality from speed 1 in a frame that is not boosted.
+        this.PruneCompoundTypeByModel = !realtime && speed >= HeifEncodingSpeed.Level1 && !boosted;
         this.CompoundTypePruningLevel = realtime || speed >= HeifEncodingSpeed.Level2 ? 2 :
             speed >= HeifEncodingSpeed.Level1 ? 1 : 0;
 
@@ -202,8 +251,10 @@ internal readonly struct Av1EncoderSpeedSettings
             speed >= HeifEncodingSpeed.Level3 ? minimumDimension >= 720 ? 100 : int.MaxValue :
             speed >= HeifEncodingSpeed.Level2 ? 100 : 0;
 
+        // disable_interinter_wedge_newmv_search: good quality speed 2 below 720p refines only in boosted and internal
+        // alternate-reference frames, and from speed 3 only in boosted frames.
         this.RefineWedgeMotion = realtime || speed < HeifEncodingSpeed.Level2 ||
-            (speed == HeifEncodingSpeed.Level2 && minimumDimension >= 720);
+            (speed == HeifEncodingSpeed.Level2 ? minimumDimension >= 720 || boostedOrInternalAlternate : boosted);
 
         this.FastWedgeMaskSearch = !realtime &&
             (speed >= HeifEncodingSpeed.Level3 || (speed == HeifEncodingSpeed.Level2 && minimumDimension < 720));
@@ -217,15 +268,18 @@ internal readonly struct Av1EncoderSpeedSettings
         this.InterIntraWedgeVarianceThreshold = realtime || speed >= HeifEncodingSpeed.Level3 ? int.MaxValue :
             speed == HeifEncodingSpeed.Level2 ? minimumDimension >= 480 ? 100 : int.MaxValue : 0;
         this.InterModeEstimation = allIntra || intraFrame ? 0 : realtime ? 2 : 1;
-        this.InterModeCandidateLimit = realtime ? 2 :
+
+        // limit_inter_mode_cands limits only the last-frame updates of good quality, and limit_txfm_eval_per_mode
+        // and inter_mode_txfm_breakout the frames that are not boosted.
+        this.InterModeCandidateLimit = realtime ? 2 : !lastFrameUpdate ? int.MaxValue :
             speed >= HeifEncodingSpeed.Level3 ? 6 :
             speed >= HeifEncodingSpeed.Level2 ? minimumDimension >= 720 ? 10 : 9 : int.MaxValue;
 
-        this.InterModeRepeatThreshold = realtime ? 0 :
+        this.InterModeRepeatThreshold = realtime ? 0 : boosted ? int.MaxValue :
             speed >= HeifEncodingSpeed.Level4 ? 3 :
             speed >= HeifEncodingSpeed.Level3 ? minimumDimension >= 720 ? 4 : 3 : int.MaxValue;
 
-        this.InterModeTransformBreakout = !realtime && speed >= HeifEncodingSpeed.Level2
+        this.InterModeTransformBreakout = !realtime && !boosted && speed >= HeifEncodingSpeed.Level2
             ? speed >= HeifEncodingSpeed.Level3 ? 2 : 1
             : 0;
 
@@ -233,7 +287,9 @@ internal readonly struct Av1EncoderSpeedSettings
         this.InterTransformGateLevel = allIntra || intraFrame ? 0 :
             realtime ? 4 : speed >= HeifEncodingSpeed.Level3 ? 2 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0;
         this.PruneRectangularPartitionsUsingIntraMode = allIntra && speed >= HeifEncodingSpeed.Level6;
-        this.SkippablePartitionPruningLevel = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level3
+
+        // skip_non_sq_part_based_on_none: good quality from speed 3 in a last-frame update only.
+        this.SkippablePartitionPruningLevel = !allIntra && !realtime && lastFrameUpdate && speed >= HeifEncodingSpeed.Level3
             ? minimumDimension >= 720 ? 2 : 1
             : 0;
 
@@ -307,7 +363,7 @@ internal readonly struct Av1EncoderSpeedSettings
         // adaptive_txb_search_level: all-intra keeps 2 from speed 1. Good quality raises unboosted frames to 3 from
         // speed 3, and turns the level off only for sharpness 3, which this encoder does not configure.
         this.InterAdaptiveTransformSearchLevel = realtime ? 2
-            : speed >= HeifEncodingSpeed.Level3 && !intraFrame ? 3
+            : speed >= HeifEncodingSpeed.Level3 && !boosted ? 3
             : speed >= HeifEncodingSpeed.Level1 ? 2 : 1;
 
         this.UseLumaCostForChromaBound = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level3;
@@ -321,9 +377,10 @@ internal readonly struct Av1EncoderSpeedSettings
             ? 3
             : speed >= HeifEncodingSpeed.Level1 || (minimumDimension >= 1080 && qIndex <= 108) ? 2 : 1;
 
+        // winner_mode_tx_type_pruning: good quality speed 2 below 480p prunes in a frame that is not boosted.
         int winnerTypePruning = realtime || speed >= HeifEncodingSpeed.Level6 ? 4
             : speed >= HeifEncodingSpeed.Level4 ? 2
-            : speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && !intraFrame && minimumDimension < 480) ? 1 : 0;
+            : speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && !boosted && minimumDimension < 480) ? 1 : 0;
 
         // Good quality speed 5 prunes more strongly in an inter frame without screen content, at any quantizer
         // below 480p and at a low quantizer from 480p. Reference: the speed 5 winner_mode_tx_type_pruning of
@@ -389,10 +446,13 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.EstimateTransformTypeRateDistortion = allIntra && speed is HeifEncodingSpeed.Level4 or HeifEncodingSpeed.Level5;
         this.IntraTransformTypeSearchLevel = speed < HeifEncodingSpeed.Level4 ? 0 : allIntra || realtime ? 2 : 1;
+
+        // enable_winner_mode_for_tx_size_srch: good quality speed 2 below 480p defers in a frame that is not boosted,
+        // speed 3 in an inter frame, and every frame from speed 4.
         this.DeferTransformSizeSearch = allIntra
             ? speed >= HeifEncodingSpeed.Level4
-            : speed >= HeifEncodingSpeed.Level4 ||
-                (!intraFrame && (speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && minimumDimension < 480)));
+            : speed >= HeifEncodingSpeed.Level4 || (speed == HeifEncodingSpeed.Level3 && !intraFrame) ||
+                (speed == HeifEncodingSpeed.Level2 && !boosted && minimumDimension < 480);
 
         this.IntraWinnerCount = intraFrame && speed is HeifEncodingSpeed.Level4 or HeifEncodingSpeed.Level5
             ? speed == HeifEncodingSpeed.Level4 ? 3 : 2
@@ -403,15 +463,15 @@ internal readonly struct Av1EncoderSpeedSettings
         this.SkipFilterIntraAfterInvalidDc = !allIntra && speed >= HeifEncodingSpeed.Level2;
         this.FilterIntraPruneLevel = allIntra ? speed >= HeifEncodingSpeed.Level6 ? 2 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0 : 0;
 
-        // Key pictures use the boosted-frame thresholds. The current sequence controller emits
-        // ordinary inter updates; their thresholds differ from independent and key pictures.
+        // perform_coeff_opt: good quality speed 1 keeps the lower level in a boosted frame, and the faster speeds in
+        // boosted and internal alternate-reference frames.
         int coefficientLevel = speed switch
         {
             HeifEncodingSpeed.Level0 => 1,
-            HeifEncodingSpeed.Level1 => allIntra || intraFrame ? 2 : 3,
-            HeifEncodingSpeed.Level2 or HeifEncodingSpeed.Level3 => allIntra || intraFrame ? 3 : 4,
-            HeifEncodingSpeed.Level4 or HeifEncodingSpeed.Level5 => allIntra || intraFrame ? 5 : 7,
-            _ => allIntra || intraFrame ? 6 : 8
+            HeifEncodingSpeed.Level1 => allIntra || boosted ? 2 : 3,
+            HeifEncodingSpeed.Level2 or HeifEncodingSpeed.Level3 => allIntra || boostedOrInternalAlternate ? 3 : 4,
+            HeifEncodingSpeed.Level4 or HeifEncodingSpeed.Level5 => allIntra || boostedOrInternalAlternate ? 5 : 7,
+            _ => allIntra || boostedOrInternalAlternate ? 6 : 8
         };
 
         if (speed == HeifEncodingSpeed.Level0 && minimumDimension >= 720 && qIndex <= 128)
@@ -453,11 +513,11 @@ internal readonly struct Av1EncoderSpeedSettings
 
         // Transform-domain distortion follows tx_domain_dist_level, tx_domain_dist_thres_level, and
         // enable_winner_mode_for_use_tx_domain_dist. Sequence speed 0 applies the 1080p rule of
-        // set_good_speed_feature_framesize_dependent; boosted frames are the independent pictures here.
+        // av1_set_speed_features_qindex_dependent(), and good quality uses level 1 in a boosted frame.
         bool largeLowQuantizer = speed == HeifEncodingSpeed.Level0 && minimumDimension >= 1080 && qIndex <= 108;
         int distortionLevel = realtime ? 2 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 1 : 0
-            : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? intraFrame ? 1 : 2 : 0;
+            : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? boosted ? 1 : 2 : 0;
 
         // Real-time usage raises the threshold level to 3 from speed 6, and this port reaches real-time usage
         // from speed 7 only. Good-quality usage keeps level 1 from speed 1. Reference: tx_domain_dist_thres_level
@@ -495,12 +555,12 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.SkipTransformSearchAfterEmptyBlock = realtime || speed >= HeifEncodingSpeed.Level1 || (!allIntra && largeLowQuantizer);
 
-        // Skip and DC-only block prediction follows dc_blk_pred_level and the predict_dc_levels rows.
-        // Boosted frames are the independent pictures of this encoder.
+        // Skip and DC-only block prediction follows dc_blk_pred_level and the predict_dc_levels rows. Good quality
+        // speed 4 keeps level 0 in a boosted frame.
         int dcPredictionLevel = realtime ? intraFrame ? 0 : 3 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level5 ? 2
-                : speed >= HeifEncodingSpeed.Level4 ? intraFrame ? 0 : 2 : 0;
+                : speed >= HeifEncodingSpeed.Level4 ? boosted ? 0 : 2 : 0;
 
         // predict_dc_levels rows in libaom order: default, mode, and winner evaluation.
         (int Default, int Mode, int Winner) dcPredictionLevels = dcPredictionLevel switch
@@ -613,6 +673,12 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets the native-valued cpu-used tier.
     /// </summary>
     public HeifEncodingSpeed Speed { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the picture is an intra-only, golden, or alternate-reference update, which is
+    /// coded at a higher quality than the frames around it. Reference: frame_is_boosted().
+    /// </summary>
+    public bool IsBoosted { get; }
 
     /// <summary>
     /// Gets a value indicating whether independent horizontal and vertical interpolation filters are enabled.
@@ -1708,8 +1774,11 @@ internal readonly struct Av1EncoderSpeedSettings
                     (int)Av1BlockSize.Block4x4,
                     (int)Av1BlockSize.Block32x32 - ((blockQIndex * 3 / 256) * 3));
             }
-            else if (!this.allIntra && !intraFrame && this.Speed >= HeifEncodingSpeed.Level4 && blockQIndex < 35)
+            else if (!this.allIntra && !intraFrame && this.Speed is >= HeifEncodingSpeed.Level4 and < HeifEncodingSpeed.Level6 &&
+                blockQIndex < 35)
             {
+                // Good quality speeds 4 and 5 use level one in an inter frame; from speed 6 a boosted frame uses
+                // level zero. Reference: prune_rectangular_split_based_on_qidx.
                 minimum = Av1BlockSize.Block16x16;
             }
         }

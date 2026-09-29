@@ -92,8 +92,8 @@ internal static partial class Av1LoopRestorationEncoder
             sequence.IsStillPicture,
             new Size(source.Width, source.Height),
             qIndex,
-            header.IsIntra,
-            false,
+            picture.Parent.SpeedSettings.IsBoosted,
+            picture.Parent.FrameUpdateType == Av1FrameUpdateType.IntermediateAlternate,
             header.AllowScreenContentTools,
             1 << sequence.SuperblockSizeLog2);
 

@@ -125,6 +125,20 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     }
 
     /// <summary>
+    /// Returns whether the vector, rounded to full samples, lies in the frame displacement region. A mode whose
+    /// vector does not is not searched. The margin clamp that precedes the test never moves an out-of-region
+    /// vector into it. Reference: clamp_and_check_mv() with GET_MV_RAWPEL() and av1_is_fullmv_in_range().
+    /// </summary>
+    /// <param name="frameBounds">The full-pixel region from <see cref="GetFrameSearchBounds"/>.</param>
+    /// <returns><see langword="true"/> when the rounded vector is inside the region.</returns>
+    public bool IsInFrameSearchBounds(Rectangle frameBounds)
+    {
+        int row = (this.Row + 3 + (this.Row >= 0 ? 1 : 0)) >> 3;
+        int column = (this.Column + 3 + (this.Column >= 0 ? 1 : 0)) >> 3;
+        return row >= frameBounds.Top && row < frameBounds.Bottom && column >= frameBounds.Left && column < frameBounds.Right;
+    }
+
+    /// <summary>
     /// Restricts a frame displacement region to representable full-pixel candidates around this reference.
     /// </summary>
     /// <param name="frameBounds">The full-pixel region from <see cref="GetFrameSearchBounds"/>.</param>

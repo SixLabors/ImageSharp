@@ -528,6 +528,54 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
+    /// Returns the quantizer index of a golden or alternate-reference update in one-pass constant-quality coding
+    /// without lookahead. The base is the constant-quality index, or the running average of the ordinary inter
+    /// frames when that is lower after the first inter frame; the result is the high motion floor of the
+    /// good-quality golden-frame table, because the one-pass group definition leaves arf_boost_factor at zero.
+    /// Reference: get_active_best_quality() for a frame that is not a leaf, with rc_pick_q_and_bounds_q_mode() and
+    /// the cq_level active_worst_quality of av1_get_second_pass_params().
+    /// </summary>
+    /// <param name="cqLevel">The constant-quality index. Reference: cq_level.</param>
+    /// <param name="averageInterQIndex">
+    /// The running average quantizer of the ordinary inter frames. Reference: avg_frame_qindex[INTER_FRAME].
+    /// </param>
+    /// <param name="framesSinceKey">The number of frames since the last key frame. Reference: frames_since_key.</param>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+    /// <returns>The golden frame quantizer index.</returns>
+    public static int GetConstantQualityGoldenFrameQIndex(
+        int cqLevel,
+        int averageInterQIndex,
+        int framesSinceKey,
+        int width,
+        int height,
+        Av1BitDepth bitDepth,
+        int bestAllowedQIndex,
+        int worstAllowedQIndex)
+    {
+        // The active worst quality of constant-quality coding is the constant-quality index. The lower recent
+        // average applies once the frame follows more than one frame after the key frame.
+        int q = framesSinceKey > 1 && averageInterQIndex < cqLevel ? averageInterQIndex : cqLevel;
+
+        // min_boost - (int)(boost * arf_boost_factor) keeps the high motion floor of the good-quality tables of
+        // the 608-line and larger class, else of the smaller class. Reference: get_gf_high_motion_quality() with
+        // x1[0] and the res_idx > 1 selection of ASSIGN_MINQ_TABLE_2().
+        bool large = Math.Min(width, height) >= 608;
+        int activeBestQuality = GetMinimumQIndex(
+            ConvertQIndexToQ(q, bitDepth), 0.0000021, -0.00125, large ? 0.6916 : 0.6634, bitDepth);
+
+        if (cqLevel > 0)
+        {
+            activeBestQuality = Math.Max(1, activeBestQuality);
+        }
+
+        return Av1Math.Clamp(activeBestQuality, bestAllowedQIndex, worstAllowedQIndex);
+    }
+
+    /// <summary>
     /// Returns the key frame quantizer floor between the low and high motion curves by the key frame boost.
     /// Reference: get_kf_active_quality() in real-time mode.
     /// </summary>

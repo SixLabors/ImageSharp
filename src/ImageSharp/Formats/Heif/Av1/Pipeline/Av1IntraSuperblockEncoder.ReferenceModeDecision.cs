@@ -359,9 +359,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.transformSearchSkip = false;
                     int index = (int)reference;
 
+                    // A reference that the cached decision of an asymmetric sub-block needs is not removed by the
+                    // partition's reference mask, and a mode the cache leaves searches motion modes only when the
+                    // cache holds that single-reference mode itself.
+                    int cacheDecision = this.GetInterModeCacheDecision(mode, reference, Av1ReferenceFrameType.None);
+                    bool skipMotionModes = cacheDecision == 2 ||
+                        (cacheDecision == 0 && (this.skipReferenceFrameMask & (1 << index)) != 0);
+
                     if ((availableReferences & (1 << index)) == 0 ||
                         (this.interModeSkipMasks[index] & (1u << (int)mode)) != 0 ||
-                        this.IsSingleReferenceSkipped(index) ||
+                        (cacheDecision == 0 && this.IsSingleReferenceSkipped(index)) ||
                         this.PrunesReferenceBySelectiveReferenceFrame(reference, Av1ReferenceFrameType.None))
                     {
                         continue;
@@ -432,7 +439,15 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
                     }
 
-                    if (mode == Av1PredictionMode.NearMotionVector &&
+                    // The cache test follows the repeated-vector test, and a single mode kept for a cached compound
+                    // passes the neighbor test unconditionally. Reference: the order of
+                    // inter_mode_search_order_independent_skip(), which returns before prune_nearmv_using_neighbors.
+                    if (cacheDecision == 1)
+                    {
+                        continue;
+                    }
+
+                    if (mode == Av1PredictionMode.NearMotionVector && cacheDecision != 2 &&
                         this.ShouldPruneNearMode(macroBlock, reference, Av1ReferenceFrameType.None, Math.Min(this.blockCostLimit, selectedStatistics.Cost)))
                     {
                         continue;
@@ -489,7 +504,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         mode,
                         ref singleReferenceVectors[index],
                         ref interIntraModes[index],
-                        this.motionModeWinnerLimit == 0 && (this.skipReferenceFrameMask & (1 << index)) == 0,
+                        this.motionModeWinnerLimit == 0 && !skipMotionModes,
                         ref candidateModeInfo,
                         ref candidateBlock,
                         out Av1MotionVector candidateVector,
@@ -517,7 +532,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     // A reference kept only because a compound pair uses it searches no motion mode.
                     // Reference: the skip_motion_mode result of inter_mode_search_order_independent_skip().
-                    if ((this.skipReferenceFrameMask & (1 << index)) == 0)
+                    if (!skipMotionModes)
                     {
                         this.RecordMotionModeWinner(candidateStatistics.Cost, false, in candidateModeInfo, in candidateBlock, candidateVector);
                     }
@@ -2991,6 +3006,21 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MotionSearchBase.StartingCandidate> motionStarts = stackalloc Av1MotionSearchBase.StartingCandidate[1];
 
             int candidateMask = (1 << candidateCount) - 1;
+
+            // A list or global vector that points beyond the frame displacement region is not searched, and neither
+            // is it modeled among the near entries. A new-motion entry searches from its reference instead.
+            // Reference: build_cur_mv() in handle_inter_mode() and ref_mv_idx_to_search().
+            if (requestedMode != Av1PredictionMode.NewMotionVector)
+            {
+                for (int index = 0; index < candidateCount; index++)
+                {
+                    if (!candidateVectors[index].IsInFrameSearchBounds(frameBounds))
+                    {
+                        candidateMask &= ~(1 << index);
+                    }
+                }
+            }
+
             int reductionLevel = this.picture.Parent.SpeedSettings.ReduceInterReferenceIndices;
             if (reductionLevel != 0 && candidateCount > 1)
             {
@@ -4677,6 +4707,76 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Returns how the decision cached for a sub-block of an asymmetric partition restricts an inter mode. A
+        /// cached intra decision excludes every inter mode; a cached single-reference decision keeps only its own
+        /// mode and reference; a cached compound decision keeps only its own mode and pair, and the single
+        /// references whose new vectors its new components start from, without their motion modes.
+        /// Reference: the mb_mode_cache test of inter_mode_search_order_independent_skip().
+        /// </summary>
+        /// <param name="mode">The inter prediction mode.</param>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference, or none for a single reference.</param>
+        /// <returns>
+        /// Zero without a cache, one to skip the mode, two to search it without motion modes, or three for the
+        /// cached mode itself, whose references no reference pruning may remove.
+        /// </returns>
+        private readonly int GetInterModeCacheDecision(
+            Av1PredictionMode mode,
+            Av1ReferenceFrameType first,
+            Av1ReferenceFrameType second)
+        {
+            Av1AsymmetricModeCacheEntry cache = this.activeModeCache;
+            if (!cache.Active)
+            {
+                return 0;
+            }
+
+            if (cache.ReferenceFrame <= Av1ReferenceFrameType.Intra)
+            {
+                return 1;
+            }
+
+            if (cache.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra)
+            {
+                return mode == cache.Mode && first == cache.ReferenceFrame ? 3 : 1;
+            }
+
+            if (second <= Av1ReferenceFrameType.Intra)
+            {
+                // A single mode of a reference that a new component of the cached compound starts from is searched
+                // for that vector only.
+                bool startsCompound = cache.Mode switch
+                {
+                    Av1PredictionMode.NewNearMotionVector or Av1PredictionMode.NewNearestMotionVector
+                        => first == cache.ReferenceFrame,
+                    Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NearestNewMotionVector
+                        => first == cache.SecondaryReferenceFrame,
+                    Av1PredictionMode.NewNewMotionVector
+                        => first == cache.ReferenceFrame || first == cache.SecondaryReferenceFrame,
+                    _ => false
+                };
+
+                return startsCompound ? 2 : 1;
+            }
+
+            return mode == cache.Mode && first == cache.ReferenceFrame && second == cache.SecondaryReferenceFrame ? 3 : 1;
+        }
+
+        /// <summary>
+        /// Returns whether the cached decision of an asymmetric sub-block is a compound prediction from this pair, which
+        /// the partition's reference mask then does not remove. Reference: is_ref_frame_used_in_cache() for a compound
+        /// reference type.
+        /// </summary>
+        /// <param name="first">The first reference.</param>
+        /// <param name="second">The second reference.</param>
+        /// <returns><see langword="true"/> when the cache holds a compound decision of the pair.</returns>
+        private readonly bool IsCachedCompoundPair(Av1ReferenceFrameType first, Av1ReferenceFrameType second)
+            => this.activeModeCache.Active &&
+                this.activeModeCache.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
+                this.activeModeCache.ReferenceFrame == first &&
+                this.activeModeCache.SecondaryReferenceFrame == second;
+
+        /// <summary>
         /// Returns whether the block searches no mode of a single reference: the rectangular pruning skips it and no
         /// compound pair that the pruning keeps uses it.
         /// Reference: is_ref_frame_used_by_compound_ref() with the skip_ref_frame_mask tests.
@@ -4884,6 +4984,31 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Returns whether every component of a compound entry that does not search a new vector lies in the frame
+        /// displacement region. Reference: build_cur_mv(), which tests each such component with
+        /// clamp_and_check_mv().
+        /// </summary>
+        /// <param name="mode">The compound prediction mode.</param>
+        /// <param name="primary">The vector of the first reference.</param>
+        /// <param name="secondary">The vector of the second reference.</param>
+        /// <param name="primaryModes">The single mode of the first component of each compound mode.</param>
+        /// <param name="secondaryModes">The single mode of the second component of each compound mode.</param>
+        /// <param name="frameBounds">The full-pixel frame displacement region of the block.</param>
+        /// <returns><see langword="true"/> when the entry may be searched.</returns>
+        private static bool CompoundVectorsInFrameSearchBounds(
+            Av1PredictionMode mode,
+            Av1MotionVector primary,
+            Av1MotionVector secondary,
+            ReadOnlySpan<Av1PredictionMode> primaryModes,
+            ReadOnlySpan<Av1PredictionMode> secondaryModes,
+            Rectangle frameBounds)
+        {
+            int modeIndex = (int)mode - (int)Av1PredictionMode.CompoundInterModeStart;
+            return (primaryModes[modeIndex] == Av1PredictionMode.NewMotionVector || primary.IsInFrameSearchBounds(frameBounds)) &&
+                (secondaryModes[modeIndex] == Av1PredictionMode.NewMotionVector || secondary.IsInFrameSearchBounds(frameBounds));
+        }
+
+        /// <summary>
         /// Ranks compound references from complete translation costs followed by modeled filter costs.
         /// </summary>
         private InlineArray4<byte> GetCompoundReferenceMasks(uint searchedModes)
@@ -5076,7 +5201,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 (this.picture.Parent.AvailableReferenceMask & (1 << (int)secondaryReference)) == 0 ||
                 frameHeader.ReferenceMode == ObuReferenceMode.SingleReference ||
                 Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) < 8 ||
-                (this.skipReferenceFrameMask & (1 << GetReferenceFrameType(primaryReference, secondaryReference))) != 0 ||
+                ((this.skipReferenceFrameMask & (1 << GetReferenceFrameType(primaryReference, secondaryReference))) != 0 &&
+                    !this.IsCachedCompoundPair(primaryReference, secondaryReference)) ||
                 this.PrunesReferenceBySelectiveReferenceFrame(primaryReference, secondaryReference) ||
                 outsideSingleReferenceCutoff)
             {
@@ -5225,6 +5351,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PredictionMode.GlobalMotionVector, Av1PredictionMode.NewMotionVector
             ];
 
+            // A list or global component that points beyond the frame displacement region removes its entry.
+            // Reference: build_cur_mv() in handle_inter_mode() and ref_mv_idx_to_search().
+            Buffer2DRegion<TSample> boundsPlane = this.references.Span[(int)primaryReference].CodedView.GetPlane(Av1Plane.Y);
+            Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
+                new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
+                new Size(
+                    this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                    this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2),
+                Math.Min(boundsPlane.Bounds.X, boundsPlane.Bounds.Y));
+
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             InlineArray4<byte> referenceMasks = this.GetCompoundReferenceMasks(searchedSingleModes);
             bool primaryNeighborMatch = false;
@@ -5289,6 +5425,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         selectedStatistics.AllTransformsEmpty);
 
                     rejectMode |= (this.interModeSkipMasks[(int)primaryReference] & (1u << (int)mode)) != 0;
+                    rejectMode |= this.GetInterModeCacheDecision(mode, primaryReference, secondaryReference) == 1;
                     rejectMode |= mode == Av1PredictionMode.NearNearMotionVector &&
                         this.ShouldPruneNearMode(
                             macroBlock, primaryReference, secondaryReference, Math.Min(this.blockCostLimit, selectedStatistics.Cost));
@@ -5365,6 +5502,13 @@ internal static partial class Av1IntraSuperblockEncoder
                                 continue;
                             }
 
+                            if (!CompoundVectorsInFrameSearchBounds(
+                                mode, primaryVectors[index], secondaryVectors[index], primaryModes, secondaryModes, frameBounds))
+                            {
+                                candidateMask &= ~(1 << referenceIndices[index]);
+                                continue;
+                            }
+
                             int translationModeRate = this.GetCompoundInterModeRate(
                                 writer, mode, primaryVectors[index], secondaryVectors[index], referenceIndices[index], in referenceMotionVectors) -
                                 this.GetCompoundMotionRate(
@@ -5418,7 +5562,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                if (rejectMode || (candidateMask & (1 << referenceIndices[candidateIndex])) == 0)
+                if (rejectMode || (candidateMask & (1 << referenceIndices[candidateIndex])) == 0 ||
+                    !CompoundVectorsInFrameSearchBounds(
+                        mode, candidatePrimary, candidateSecondary, primaryModes, secondaryModes, frameBounds))
                 {
                     continue;
                 }

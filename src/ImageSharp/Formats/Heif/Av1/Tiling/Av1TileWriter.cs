@@ -1262,14 +1262,12 @@ internal partial class Av1TileWriter
                         Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8;
 
                     bool jointCompoundEnabled = scs.SequenceHeader.OrderHintInfo.EnableJointCompound;
-                    int compoundIndexContext = jointCompoundEnabled
-                        ? Av1SymbolContextHelper.GetCompoundIndexContext(
-                            scs.SequenceHeader.OrderHintInfo,
-                            frm_hdr,
-                            macroBlockModeInfo.Block.ReferenceFrame,
-                            macroBlockModeInfo.Block.SecondaryReferenceFrame,
-                            macroBlock)
-                        : 0;
+                    int compoundIndexContext = Av1SymbolContextHelper.GetCompoundIndexContext(
+                        scs.SequenceHeader.OrderHintInfo,
+                        frm_hdr,
+                        macroBlockModeInfo.Block.ReferenceFrame,
+                        macroBlockModeInfo.Block.SecondaryReferenceFrame,
+                        macroBlock);
 
                     writer.WriteCompoundBlend<TOperation>(
                         blockSize,

@@ -57,11 +57,14 @@ Lag-35 comparison stages, with the harness `AV1_SEQ_RATE=lag AV1_SEQ_STAGE=a|b|(
    code.
 3. Verify the lag-35 path beyond the one verified case: speeds 0-5 in stages A, B and C; a second clip; 10-bit.
    The high-bit-depth driver does not run the temporal filter yet.
-4. `pred_sse` after a search with integer vectors keeps the filter search value in libaom; the port keeps the
-   squared error of the fractional result (`ReferenceModeDecision`, the `bestSingleReferenceSses` update).
-5. RT frame control: `frames_to_key`, `direct_partition_merging` where it applies, `enable_ref_short_signaling`
-   below 360p (the writer never sets `frame_refs_short_signaling`), and `context_update_tile_id` for multi-tile
-   frames (never set by the encoder).
+4. `pred_sse` on frames with `cur_frame_force_integer_mv` (screen content): libaom skips the fractional search, so
+   `x->pred_sse[ref]` keeps the value of the interpolation or model search. The port always keeps the squared
+   error of the search result (`ReferenceModeDecision`, the `bestSingleReferenceSses` update).
+5. RT frame control:
+   - `enable_ref_short_signaling` below 360p: the writer never sets `frame_refs_short_signaling`.
+   - `context_update_tile_id` for multi-tile frames: the encoder never sets it.
+   - `partition_direct_merging` (RT speed 8 and up) is not ported. libaom runs it only when the tile does not
+     update CDFs; confirm whether any libavif RT configuration reaches it before porting.
 
 ## SIMD operator-pattern gaps
 
@@ -92,17 +95,15 @@ Test note: `HwIntrinsics.DisableAVX512F` does not clear `Vector512.IsHardwareAcc
 
 ## Tests
 
-- Add parity tests for the lag-35 path, in proportion to the other formats.
-- Cover alpha, tiles, grids and dependent animation. Follow the `VerifyEncoder`, `DebugSave` and
-  `CompareToReferenceOutput` patterns. HEIF tests stay in proportion to the other formats (whole suite about one
-  minute). Current HEIF run: 323/323 pass.
-- Verify public option precedence, metadata/CICP/ICC, timing, cancellation, non-seekable output and allocator
-  ownership.
+- Add parity tests for the lag-35 path, in proportion to the other formats. HEIF tests stay in proportion to the
+  other formats (whole suite about one minute). Current HEIF run: 323/323 pass.
+- Add an encoder cancellation test. Alpha, tiles, grids, sequences with timing, metadata/CICP/ICC, non-seekable
+  output, option defaults and allocator ownership already have tests (`HeifEncoderTests` and the Av1 tests).
 
 ## Performance
 
 - Measure complete encode and decode against the optimized native build; report time, size and allocations.
-- Known causes: primitives are 2-5x slower per call than libaom (forward transform, quantizer, trellis, coefficient
+- Known causes, measured 2026-09-18 and not re-measured since: primitives are 2-5x slower per call than libaom (forward transform, quantizer, trellis, coefficient
   cost), and speed 6 reconstructs chroma candidates and the luma winner where libaom does not.
 - `Buffer2D.DangerousGetSingleSpan()` allocates through LINQ `Single()` (still true). Hot paths index
   `FastMemoryGroup[0]`.

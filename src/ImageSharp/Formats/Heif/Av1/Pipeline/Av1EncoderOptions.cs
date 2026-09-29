@@ -148,6 +148,12 @@ internal sealed class Av1EncoderOptions
     public int MaximumQuantizer { get; init; } = 63;
 
     /// <summary>
+    /// Gets the number of frames a sequence looks ahead before it codes a frame, or 0 to code each frame as it
+    /// arrives. Reference: g_lag_in_frames.
+    /// </summary>
+    public int LagInFrames { get; init; }
+
+    /// <summary>
     /// Creates the options of an encoding.
     /// </summary>
     /// <param name="speed">The cpu-used tier.</param>

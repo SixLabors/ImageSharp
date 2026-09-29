@@ -23,6 +23,11 @@ internal sealed partial class HeifEncoderCore
     private const uint DefaultSequenceTimescale = 1000;
 
     /// <summary>
+    /// The lookahead of good-quality sequences. Reference: the g_lag_in_frames of the good-quality usage defaults.
+    /// </summary>
+    private const int DefaultLagInFrames = 35;
+
+    /// <summary>
     /// The microsecond fallback used when the exact common frame-delay timescale exceeds 32 bits.
     /// </summary>
     private const uint FallbackSequenceTimescale = 1000000;
@@ -249,6 +254,11 @@ internal sealed partial class HeifEncoderCore
         bool constantBitRate = !allIntra && this.encoder.Speed >= HeifEncodingSpeed.Level7;
         int colorQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality);
+
+        // Good-quality sequences keep libaom's default lookahead of 35 frames, except when alpha is present.
+        // Reference: the g_lag_in_frames default of the good-quality usage, and disableLaggedOutput of
+        // aomCodecEncodeImage(), which avifEncoderAddImageInternal() sets when alpha is present.
+        int colorLag = allIntra || constantBitRate || hasAlpha ? 0 : DefaultLagInFrames;
         return new Av1EncodingSettings(
             bitDepth,
             chromaSubsampling,
@@ -258,15 +268,19 @@ internal sealed partial class HeifEncoderCore
             colorQIndex,
             alphaQIndex,
             hasAlpha,
-            CreateOptions(colorTuning, colorQuantizer),
-            CreateOptions(alphaTuning, alphaQuantizer));
+            CreateOptions(colorTuning, colorQuantizer, colorLag),
+            CreateOptions(alphaTuning, alphaQuantizer, 0));
 
-        Av1EncoderOptions CreateOptions(Av1Tuning tuning, int quantizer)
+        // Constant-quality coding keeps the default quantizer range of 0 to 63. Only the constant and variable
+        // bit-rate modes narrow it to four steps either side of the requested quantizer.
+        // Reference: the rc_min_quantizer and rc_max_quantizer setup of aomCodecEncodeImage().
+        Av1EncoderOptions CreateOptions(Av1Tuning tuning, int quantizer, int lagInFrames)
             => new(this.encoder.Speed, tuning, enableRestoration, allIntra)
             {
                 UsesConstantBitRate = constantBitRate,
-                MinimumQuantizer = quantizer == 0 ? 0 : Math.Max(quantizer - 4, 1),
-                MaximumQuantizer = quantizer == 0 ? 0 : Math.Min(quantizer + 4, 63)
+                MinimumQuantizer = !constantBitRate ? 0 : quantizer == 0 ? 0 : Math.Max(quantizer - 4, 0),
+                MaximumQuantizer = !constantBitRate ? 63 : quantizer == 0 ? 0 : Math.Min(quantizer + 4, 63),
+                LagInFrames = lagInFrames
             };
     }
 

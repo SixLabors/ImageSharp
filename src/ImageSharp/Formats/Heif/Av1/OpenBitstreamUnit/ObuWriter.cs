@@ -100,6 +100,55 @@ internal sealed class ObuWriter : IDisposable
         WriteFrameObu(stream, sequenceHeader, frameHeader, tileWriter, headerBuffer, ref writer);
     }
 
+    /// <summary>
+    /// Writes a coded frame that continues the current temporal unit, after a hidden frame of the same unit.
+    /// Reference: the frame OBU that av1_pack_bitstream() writes without a temporal delimiter.
+    /// </summary>
+    /// <typeparam name="TTileWriter">The non-boxed tile source type.</typeparam>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="sequenceHeader">The sequence header established by an earlier sample.</param>
+    /// <param name="frameHeader">The frame header.</param>
+    /// <param name="tileWriter">The encoded tile source.</param>
+    public void WriteFrameWithoutDelimiter<TTileWriter>(
+        Stream stream,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        TTileWriter tileWriter)
+        where TTileWriter : IAv1TileWriter
+    {
+        Span<byte> headerBuffer = this.headerOwner.Memory.Span[..MaximumHeaderLength];
+        Av1BitStreamWriter writer = new(headerBuffer);
+        WriteFrameObu(stream, sequenceHeader, frameHeader, tileWriter, headerBuffer, ref writer);
+    }
+
+    /// <summary>
+    /// Writes a frame header OBU that shows a frame already in a reference slot.
+    /// Reference: the OBU_FRAME_HEADER of a show_existing_frame in av1_pack_bitstream(), with av1_add_trailing_bits().
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="sequenceHeader">The sequence header established by an earlier sample.</param>
+    /// <param name="frameHeader">The frame header with <see cref="ObuFrameHeader.ShowExistingFrame"/> set.</param>
+    /// <param name="writeTemporalDelimiter">Whether the frame starts a temporal unit.</param>
+    public void WriteShowExistingFrame(
+        Stream stream,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        bool writeTemporalDelimiter)
+    {
+        Span<byte> headerBuffer = this.headerOwner.Memory.Span[..MaximumHeaderLength];
+        Av1BitStreamWriter writer = new(headerBuffer);
+        if (writeTemporalDelimiter)
+        {
+            WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
+        }
+
+        WriteFrameHeader(ref writer, sequenceHeader, frameHeader);
+        WriteTrailingBits(ref writer);
+        int bytesWritten = (writer.BitPosition + 7) >> 3;
+        writer.Flush();
+        WriteObuHeaderAndSize(stream, ObuType.FrameHeader, headerBuffer[..bytesWritten]);
+    }
+
     /// <inheritdoc/>
     public void Dispose() => this.headerOwner.Dispose();
 

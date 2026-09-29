@@ -161,6 +161,64 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
+    /// Chooses the reference slots, the refreshed slots, and the primary reference of a frame of a lookahead golden
+    /// group. Reference: the reference setup of av1_encode_strategy(), with av1_get_ref_frames(),
+    /// av1_get_refresh_frame_flags(), and choose_primary_ref_frame().
+    /// </summary>
+    /// <param name="frameHeader">The frame header that receives the slots and the primary reference.</param>
+    /// <param name="frame">The role of the frame in its golden group.</param>
+    /// <param name="skipFrameRefresh">The display orders that the frame must not replace. Reference:
+    /// gf_group->skip_frame_refresh[gf_index].</param>
+    public void ConfigureLagged(ObuFrameHeader frameHeader, in GroupFrame frame, ReadOnlySpan<int> skipFrameRefresh)
+    {
+        bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
+        this.displayOrder = frame.DisplayOrder;
+        this.UpdateType = frame.UpdateType;
+        this.layerDepth = frame.LayerDepth;
+        this.pyramidLevel = GetTruePyramidLevel(this.layerDepth, this.displayOrder, frame.MaximumLayerDepth);
+
+        Span<int> pairOrder = stackalloc int[SlotCount];
+        Span<int> pairLevel = stackalloc int[SlotCount];
+        this.InitializeReferenceMapPairs(keyFrame, pairOrder, pairLevel);
+
+        Span<int> remapped = stackalloc int[SlotCount];
+        GetReferenceFrames(pairOrder, pairLevel, this.displayOrder, remapped);
+        Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        for (int reference = 0; reference < ReferenceCount; reference++)
+        {
+            referenceFrameIndices[reference] = (uint)remapped[reference];
+        }
+
+        frameHeader.RefreshFrameFlags = frame.IsNonReference
+            ? 0
+            : GetLaggedRefreshFrameFlags(pairOrder, pairLevel, this.displayOrder, in frame, skipFrameRefresh);
+
+        frameHeader.PrimaryReferenceFrame = frame.IsNonReference
+            ? Av1Constants.PrimaryReferenceFrameNone
+            : this.ChoosePrimaryReferenceFrame(frameHeader);
+    }
+
+    /// <summary>
+    /// Returns the slot of the frame that a show-existing frame displays. Reference: the existing_fb_idx_to_show
+    /// search of av1_encode_strategy().
+    /// </summary>
+    /// <param name="displayOrder">The display order of the frame to show.</param>
+    /// <returns>The last slot that holds the frame, or -1.</returns>
+    public int GetExistingFrameSlot(int displayOrder)
+    {
+        int slot = InvalidIndex;
+        for (int index = 0; index < SlotCount; index++)
+        {
+            if (this.slotBuffer[index] >= 0 && this.slotDisplayOrder[index] == displayOrder)
+            {
+                slot = index;
+            }
+        }
+
+        return slot;
+    }
+
+    /// <summary>
     /// Records the coded frame in its refreshed slots and advances the golden group. Reference: the
     /// ref_frame_map update of av1_update_ref_frame_map() and update_fb_of_context_type().
     /// </summary>
@@ -608,6 +666,108 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
+    /// Chooses the slots that a frame of a lookahead golden group refreshes. Reference: av1_get_refresh_frame_flags().
+    /// </summary>
+    private static uint GetLaggedRefreshFrameFlags(
+        ReadOnlySpan<int> pairOrder,
+        ReadOnlySpan<int> pairLevel,
+        int currentOrder,
+        in GroupFrame frame,
+        ReadOnlySpan<int> skipFrameRefresh)
+    {
+        if (frame.ResetsReferences)
+        {
+            return byte.MaxValue;
+        }
+
+        if (frame.ShowExisting ||
+            frame.UpdateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay)
+        {
+            return 0;
+        }
+
+        for (int slot = 0; slot < SlotCount; slot++)
+        {
+            if (pairOrder[slot] == -1)
+            {
+                return 1U << slot;
+            }
+        }
+
+        int refreshIndex = GetRefreshIndex(
+            pairOrder, pairLevel, frame.UpdateType == Av1FrameUpdateType.Alternate, currentOrder, skipFrameRefresh);
+
+        return 1U << refreshIndex;
+    }
+
+    /// <summary>
+    /// Chooses the slot to replace: the oldest frame outside the three newest past frames and the frames the group
+    /// keeps, preferring frames above the lowest pyramid level. An alternate reference replaces the oldest lowest-level
+    /// frame when more than two are held. Reference: get_refresh_idx() with enable_refresh_skip.
+    /// </summary>
+    private static int GetRefreshIndex(
+        ReadOnlySpan<int> pairOrder,
+        ReadOnlySpan<int> pairLevel,
+        bool updateAlternate,
+        int currentOrder,
+        ReadOnlySpan<int> skipFrameRefresh)
+    {
+        int alternateCount = 0;
+        int oldestAlternateOrder = int.MaxValue;
+        int oldestAlternate = -1;
+        int oldestOrder = int.MaxValue;
+        int oldest = -1;
+        for (int slot = 0; slot < SlotCount; slot++)
+        {
+            int order = pairOrder[slot];
+            if (order == -1 || order > currentOrder - 3)
+            {
+                continue;
+            }
+
+            bool skip = false;
+            for (int i = 0; i < skipFrameRefresh.Length && skipFrameRefresh[i] != InvalidIndex; i++)
+            {
+                if (order == skipFrameRefresh[i])
+                {
+                    skip = true;
+                    break;
+                }
+            }
+
+            if (skip)
+            {
+                continue;
+            }
+
+            if (pairLevel[slot] == 1)
+            {
+                if (order < oldestAlternateOrder)
+                {
+                    oldestAlternateOrder = order;
+                    oldestAlternate = slot;
+                }
+
+                alternateCount++;
+                continue;
+            }
+
+            if (order < oldestOrder)
+            {
+                oldestOrder = order;
+                oldest = slot;
+            }
+        }
+
+        if (updateAlternate && alternateCount > 2)
+        {
+            return oldestAlternate;
+        }
+
+        return oldest >= 0 ? oldest : oldestAlternate;
+    }
+
+    /// <summary>
     /// Chooses the reference whose slot holds the most recent frame of the current frame's reference type.
     /// Reference: choose_primary_ref_frame().
     /// </summary>
@@ -630,5 +790,60 @@ internal sealed class Av1GoodQualityReferenceStructure
         }
 
         return primary;
+    }
+
+    /// <summary>
+    /// The role of one frame in a lookahead golden group. Reference: the entries of GF_GROUP at gf_index.
+    /// </summary>
+    public readonly struct GroupFrame
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GroupFrame"/> struct.
+        /// </summary>
+        /// <param name="updateType">The update type. Reference: update_type.</param>
+        /// <param name="layerDepth">The layer depth. Reference: layer_depth.</param>
+        /// <param name="maximumLayerDepth">The largest layer depth of the group. Reference: max_layer_depth.</param>
+        /// <param name="displayOrder">The display order of the frame. Reference: cur_frame_disp.</param>
+        /// <param name="resetsReferences">Whether the frame refreshes every slot. Reference: REFBUF_RESET.</param>
+        /// <param name="isNonReference">Whether no later frame references the frame. Reference: is_frame_non_ref.</param>
+        /// <param name="showExisting">Whether the frame shows a frame already coded. Reference: show_existing_frame.</param>
+        public GroupFrame(
+            Av1FrameUpdateType updateType,
+            int layerDepth,
+            int maximumLayerDepth,
+            int displayOrder,
+            bool resetsReferences,
+            bool isNonReference,
+            bool showExisting)
+        {
+            this.UpdateType = updateType;
+            this.LayerDepth = layerDepth;
+            this.MaximumLayerDepth = maximumLayerDepth;
+            this.DisplayOrder = displayOrder;
+            this.ResetsReferences = resetsReferences;
+            this.IsNonReference = isNonReference;
+            this.ShowExisting = showExisting;
+        }
+
+        /// <summary>Gets the update type.</summary>
+        public Av1FrameUpdateType UpdateType { get; }
+
+        /// <summary>Gets the layer depth.</summary>
+        public int LayerDepth { get; }
+
+        /// <summary>Gets the largest layer depth of the group.</summary>
+        public int MaximumLayerDepth { get; }
+
+        /// <summary>Gets the display order of the frame.</summary>
+        public int DisplayOrder { get; }
+
+        /// <summary>Gets a value indicating whether the frame refreshes every slot.</summary>
+        public bool ResetsReferences { get; }
+
+        /// <summary>Gets a value indicating whether no later frame references the frame.</summary>
+        public bool IsNonReference { get; }
+
+        /// <summary>Gets a value indicating whether the frame shows a frame already coded.</summary>
+        public bool ShowExisting { get; }
     }
 }

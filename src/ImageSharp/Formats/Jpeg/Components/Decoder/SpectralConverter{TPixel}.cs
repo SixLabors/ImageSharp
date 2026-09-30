@@ -3,6 +3,8 @@
 #nullable disable
 
 using System.Buffers;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -51,6 +53,16 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// Resulting 2D pixel buffer.
     /// </summary>
     private Buffer2D<TPixel> pixelBuffer;
+
+    /// <summary>
+    /// The converter from <see cref="iccConverterProfile"/> to sRGB, created on the first stride with a profile.
+    /// </summary>
+    private ColorProfileConverter iccConverter;
+
+    /// <summary>
+    /// The profile <see cref="iccConverter"/> was built for.
+    /// </summary>
+    private IccProfile iccConverterProfile;
 
     /// <summary>
     /// How many pixel rows are processed in one 'stride'.
@@ -138,6 +150,19 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
         int width = this.pixelBuffer.Width;
 
+        // The profile is fixed for the image, so its converter and transforms are built once, not per row.
+        if (iccProfile != null && !ReferenceEquals(iccProfile, this.iccConverterProfile))
+        {
+            this.iccConverter = new ColorProfileConverter(new ColorConversionOptions
+            {
+                MemoryAllocator = this.Configuration.MemoryAllocator,
+                SourceIccProfile = iccProfile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+            });
+
+            this.iccConverterProfile = iccProfile;
+        }
+
         for (int yy = this.pixelRowCounter; yy < maxY; yy++)
         {
             int y = yy - this.pixelRowCounter;
@@ -146,7 +171,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             if (iccProfile != null)
             {
-                this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, iccProfile);
+                this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, this.iccConverter);
             }
             else
             {
@@ -214,6 +239,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             pixelSize.Height,
             this.Configuration.PreferContiguousImageBuffers,
             AllocationOptions.Clean);
+
         this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
         // Component processors from spectral to RGB

@@ -522,9 +522,10 @@ internal static class HeifPlanarColorConverter
                     componentLength += (this.chromaWidth * 2) + (this.reconstructCompleteRow ? this.bufferWidth : 0);
                 }
 
-                // ICC interleaving and final pixel packing occur sequentially, so the same scratch
-                // storage holds both. No additional buffer or allocation is needed per row.
-                int packedRowCount = this.profileConverter is not null ? 4 : this.UsesBytePacking && this.alpha is null ? 1 : 2;
+                // ICC rows hold one RGBA vector per pixel plus the packed RGB the profile converts. Opaque eight-bit
+                // rows pack bytes (one float of storage per pixel); other rows may interleave one RGBA vector per pixel
+                // for reoriented output.
+                int packedRowCount = this.profileConverter is not null ? 7 : this.UsesBytePacking && this.alpha is null ? 1 : 4;
                 return componentLength + (this.width * packedRowCount);
             }
         }
@@ -647,59 +648,14 @@ internal static class HeifPlanarColorConverter
                 }
             }
 
-            this.colorConverter.ConvertToRgbInPlace(red, green, blue);
-            ReadOnlySpan<float> alpha = this.alpha is null ? default : this.alpha.ReadRow(y);
-            if (this.premultiplied)
-            {
-                HeifColorConverterBase.UnassociateRgb(red, green, blue, alpha);
-            }
-
             Span<float> packedStorage = scratch[packedOffset..];
+            ReadOnlySpan<float> alpha = this.alpha is null ? default : this.alpha.ReadRow(y)[..width];
             if (this.profileConverter is not null)
             {
-                this.colorConverter.ConvertRgbToSrgbInPlace(
-                    red, green, blue, this.profileConverter, MemoryMarshal.Cast<float, Rgb>(packedStorage)[..width]);
-
-                // Keep the converted RGB and auxiliary alpha in floating point until TPixel performs its
-                // final conversion. An integer intermediate would discard precision for floating-point pixels.
-                // ICC's interleaved RGB is no longer live, so its scratch storage now holds RGBA vectors.
+                // The converted RGBA row stays in floating point until TPixel performs its final conversion.
                 Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(packedStorage)[..width];
-                int x = 0;
-                if (Vector128.IsHardwareAccelerated)
-                {
-                    // Load four samples per plane and transpose them into four RGBA pixels. Opaque alpha
-                    // supplies four ones; auxiliary alpha has already been normalized by its row source.
-                    for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
-                    {
-                        Vector128<float> r = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(red), (nuint)x);
-                        Vector128<float> g = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(green), (nuint)x);
-                        Vector128<float> b = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(blue), (nuint)x);
-                        Vector128<float> a = this.alpha is null
-                            ? Vector128.Create(1F)
-                            : Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(alpha), (nuint)x);
-
-                        HeifColorConverterBase.Transpose4(
-                            r,
-                            g,
-                            b,
-                            a,
-                            out Vector128<float> p0,
-                            out Vector128<float> p1,
-                            out Vector128<float> p2,
-                            out Vector128<float> p3);
-
-                        vectors[x] = p0.AsVector4();
-                        vectors[x + 1] = p1.AsVector4();
-                        vectors[x + 2] = p2.AsVector4();
-                        vectors[x + 3] = p3.AsVector4();
-                    }
-                }
-
-                for (; x < width; x++)
-                {
-                    vectors[x] = new Vector4(red[x], green[x], blue[x], this.alpha is null ? 1F : alpha[x]);
-                }
-
+                Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packedStorage[(width * 4)..])[..width];
+                this.colorConverter.ConvertToRgbInPlaceWithIcc(red, green, blue, alpha, this.premultiplied, this.profileConverter, vectors, rgb);
                 if (step.Width == 1)
                 {
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(
@@ -711,7 +667,7 @@ internal static class HeifPlanarColorConverter
                 else
                 {
                     // Reversed rows and rotated columns write directly into their final locations.
-                    for (x = 0; x < width; x++)
+                    for (int x = 0; x < width; x++)
                     {
                         destination.DangerousGetRowSpan(origin.Y)[origin.X] = TPixel.FromUnassociatedScaledVector4(vectors[x]);
                         origin += step;
@@ -721,6 +677,7 @@ internal static class HeifPlanarColorConverter
                 return;
             }
 
+            this.colorConverter.ConvertToRgbInPlace(red, green, blue);
             if (this.UsesBytePacking && this.alpha is null)
             {
                 // The shared planar packing contract lets existing pixel-specific SIMD packers own the
@@ -752,32 +709,34 @@ internal static class HeifPlanarColorConverter
                 return;
             }
 
-            Span<Rgba64> packed = MemoryMarshal.Cast<float, Rgba64>(packedStorage)[..width];
-            HeifSampleConversion.PackRgba64(red, green, blue, packed);
-            if (this.alpha is not null)
-            {
-                // RGB has been packed, so its float row is no longer live. Reuse that storage for
-                // alpha narrowing instead of allocating a fourth component buffer or revisiting the image.
-                Span<L16> packedAlpha = MemoryMarshal.Cast<float, L16>(red)[..width];
-                HeifSampleConversion.PackL16(alpha, packedAlpha);
-                for (int x = 0; x < width; x++)
-                {
-                    packed[x].A = packedAlpha[x].PackedValue;
-                }
-            }
-
+            // Other rows pack the float planes through the shared planar path: floating-point pixel types keep the full
+            // (HDR) range, premultiplied pixel types keep their association, and integer types saturate once in the
+            // pixel conversion.
             if (step.Width == 1)
             {
-                PixelOperations<TPixel>.Instance.FromRgba64(
-                    this.configuration, packed, destination.DangerousGetRowSpan(origin.Y).Slice(origin.X, width));
+                PixelOperations<TPixel>.Instance.PackFromFloatPlanes(
+                    this.configuration,
+                    red,
+                    green,
+                    blue,
+                    alpha,
+                    destination.DangerousGetRowSpan(origin.Y).Slice(origin.X, width),
+                    this.premultiplied ? PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale : PixelConversionModifiers.Scale);
             }
             else
             {
-                // Keep the same component narrowing as contiguous output, including alpha, while avoiding
-                // a second packed pixel buffer for reversed rows and quarter-turn destination columns.
+                // A reversed row or column is not a contiguous span. Interleave once and construct each pixel at its
+                // final location.
+                Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(packedStorage)[..width];
+                SimdUtils.InterleaveFloatPlanes(red, green, blue, alpha, vectors);
+                if (this.premultiplied)
+                {
+                    Numerics.UnPremultiply(vectors);
+                }
+
                 for (int x = 0; x < width; x++)
                 {
-                    destination.DangerousGetRowSpan(origin.Y)[origin.X] = TPixel.FromRgba64(packed[x]);
+                    destination.DangerousGetRowSpan(origin.Y)[origin.X] = TPixel.FromUnassociatedScaledVector4(vectors[x]);
                     origin += step;
                 }
             }

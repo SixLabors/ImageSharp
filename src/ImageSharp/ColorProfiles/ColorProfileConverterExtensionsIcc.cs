@@ -75,18 +75,11 @@ internal static class ColorProfileConverterExtensionsIcc
             throw new InvalidOperationException("Target ICC profile is missing.");
         }
 
-        // The embedded source profile supplies the connection's intent. Use it for both transform
-        // selection and PCS adjustment; the destination header may recommend a different intent.
-        IccRenderingIntent renderingIntent = converter.Options.SourceIccProfile.Header.RenderingIntent;
-        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, renderingIntent, converter.Options.IccInterpolationMethod);
-        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, renderingIntent, converter.Options.IccInterpolationMethod);
-
-        ColorProfileConverter pcsConverter = new(new ColorConversionOptions
-        {
-            MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = KnownIlluminants.D50Icc,
-            TargetWhitePoint = KnownIlluminants.D50Icc
-        });
+        // The transforms depend only on the converter's options, so they are built once per converter.
+        IccTransform transform = converter.GetIccTransform();
+        ConversionParams sourceParams = transform.Source;
+        ConversionParams targetParams = transform.Target;
+        ColorProfileConverter pcsConverter = transform.PcsConverter;
 
         // Normalize the source, then convert to the PCS space.
         Vector4 sourcePcs = sourceParams.Converter.Calculate(source.ToScaledVector4());
@@ -145,18 +138,11 @@ internal static class ColorProfileConverterExtensionsIcc
 
         Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(destination));
 
-        // Resolve the connection's intent once for the entire span, before selecting either transform
-        // or deciding whether perceptual PCS adjustment is needed.
-        IccRenderingIntent renderingIntent = converter.Options.SourceIccProfile.Header.RenderingIntent;
-        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, renderingIntent, converter.Options.IccInterpolationMethod);
-        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, renderingIntent, converter.Options.IccInterpolationMethod);
-
-        ColorProfileConverter pcsConverter = new(new ColorConversionOptions
-        {
-            MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = KnownIlluminants.D50Icc,
-            TargetWhitePoint = KnownIlluminants.D50Icc
-        });
+        // The transforms depend only on the converter's options, so they are built once per converter.
+        IccTransform transform = converter.GetIccTransform();
+        ConversionParams sourceParams = transform.Source;
+        ConversionParams targetParams = transform.Target;
+        ColorProfileConverter pcsConverter = transform.PcsConverter;
 
         using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
         Span<Vector4> pcs = pcsBuffer.GetSpan();
@@ -694,7 +680,47 @@ internal static class ColorProfileConverterExtensionsIcc
         TensorPrimitives.Multiply(MemoryMarshal.Cast<Vector4, float>(source), scale, MemoryMarshal.Cast<Vector4, float>(destination));
     }
 
-    private class ConversionParams
+    /// <summary>
+    /// The immutable ICC connection of a converter: both profile transforms and the PCS converter.
+    /// </summary>
+    internal sealed class IccTransform
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IccTransform"/> class.
+        /// </summary>
+        /// <param name="options">The conversion options carrying both ICC profiles.</param>
+        public IccTransform(ColorConversionOptions options)
+        {
+            // The embedded source profile supplies the connection's intent. Use it for both transform
+            // selection and PCS adjustment; the destination header may recommend a different intent.
+            IccRenderingIntent renderingIntent = options.SourceIccProfile!.Header.RenderingIntent;
+            this.Source = new ConversionParams(options.SourceIccProfile, toPcs: true, renderingIntent, options.IccInterpolationMethod);
+            this.Target = new ConversionParams(options.TargetIccProfile!, toPcs: false, renderingIntent, options.IccInterpolationMethod);
+            this.PcsConverter = new ColorProfileConverter(new ColorConversionOptions
+            {
+                MemoryAllocator = options.MemoryAllocator,
+                SourceWhitePoint = KnownIlluminants.D50Icc,
+                TargetWhitePoint = KnownIlluminants.D50Icc
+            });
+        }
+
+        /// <summary>
+        /// Gets the transform from the source profile's device values to its PCS.
+        /// </summary>
+        public ConversionParams Source { get; }
+
+        /// <summary>
+        /// Gets the transform from the PCS to the target profile's device values.
+        /// </summary>
+        public ConversionParams Target { get; }
+
+        /// <summary>
+        /// Gets the converter between the two profile connection spaces.
+        /// </summary>
+        public ColorProfileConverter PcsConverter { get; }
+    }
+
+    internal sealed class ConversionParams
     {
         private readonly IccProfile profile;
 

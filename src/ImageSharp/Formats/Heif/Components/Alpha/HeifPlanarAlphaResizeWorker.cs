@@ -58,9 +58,10 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
     private readonly ResizeKernelMap verticalKernels;
 
     /// <summary>
-    /// The transposed horizontally filtered rows retained by the sliding window.
+    /// The transposed horizontally filtered rows retained by the sliding window. Each destination column holds
+    /// <see cref="workerHeight"/> consecutive source rows.
     /// </summary>
-    private readonly Buffer2D<Vector4> transposedFirstPassBuffer;
+    private readonly IMemoryOwner<Vector4> transposedFirstPassBuffer;
 
     /// <summary>
     /// The reusable normalized source or resized destination row.
@@ -137,11 +138,9 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
         // A whole number of bands lets Slide retain exactly one overlap band and fill the remaining window with rows
         // that have not entered the first pass before.
         this.workerHeight = Math.Min(sourceRectangle.Height, windowBandCount * this.windowBandHeight);
-        this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
-            this.workerHeight,
-            destinationRectangle.Width,
-            preferContiguosImageBuffers: true,
-            options: AllocationOptions.Clean);
+        this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate<Vector4>(
+            checked(this.workerHeight * destinationRectangle.Width),
+            AllocationOptions.Clean);
 
         this.componentOwner = configuration.MemoryAllocator.Allocate<float>(Math.Max(sourceRectangle.Width, destinationRectangle.Width));
         this.sourceVectorOwner = configuration.MemoryAllocator.Allocate<Vector4>(sourceRectangle.Width);
@@ -170,7 +169,7 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
     /// <returns>The normalized row, valid until the next row is read.</returns>
     public override Span<float> ReadRow(int y)
     {
-        Span<Vector4> transposed = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
+        Span<Vector4> transposed = this.transposedFirstPassBuffer.GetSpan();
         Span<float> resizedAlpha = this.componentOwner.GetSpan()[..this.destinationRectangle.Width];
         ReadOnlySpan<ResizeKernel> verticalKernelSpan = this.verticalKernels.GetKernelSpan();
         ref ResizeKernel verticalKernelBase = ref MemoryMarshal.GetReference(verticalKernelSpan);
@@ -223,12 +222,15 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
         int minimumY = this.currentWindow.Max - this.windowBandHeight;
         int maximumY = Math.Min(minimumY + this.workerHeight, this.sourceRectangle.Height);
 
-        // Buffer2D columns represent source Y because the first pass is transposed. Move the retained bottom band to
-        // offset zero for every destination-X column before replacing the remainder of the window.
-        this.transposedFirstPassBuffer.DangerousCopyColumns(
-            this.workerHeight - this.windowBandHeight,
-            0,
-            this.windowBandHeight);
+        // Each destination-X column runs along source Y because the first pass is transposed. Move the retained
+        // bottom band to offset zero in every column before replacing the remainder of the window.
+        Span<Vector4> transposed = this.transposedFirstPassBuffer.GetSpan();
+        int retainedStart = this.workerHeight - this.windowBandHeight;
+        for (int x = 0; x < this.destinationRectangle.Width; x++)
+        {
+            Span<Vector4> column = transposed.Slice(x * this.workerHeight, this.workerHeight);
+            column.Slice(retainedStart, this.windowBandHeight).CopyTo(column);
+        }
 
         this.currentWindow = new RowInterval(minimumY, maximumY);
 
@@ -247,7 +249,7 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
         Span<float> normalized = this.componentOwner.GetSpan()[..sourceWidth];
         Span<L16> sourceAlpha = this.alphaOwner.GetSpan()[..sourceWidth];
         Span<Vector4> sourceVectors = this.sourceVectorOwner.GetSpan()[..sourceWidth];
-        Span<Vector4> transposed = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
+        Span<Vector4> transposed = this.transposedFirstPassBuffer.GetSpan();
         ReadOnlySpan<ResizeKernel> horizontalKernelSpan = this.horizontalKernels.GetKernelSpan();
         ref ResizeKernel horizontalKernelBase = ref MemoryMarshal.GetReference(horizontalKernelSpan);
         nuint workerHeight = (uint)this.workerHeight;

@@ -217,7 +217,7 @@ internal abstract class ImageDecoderCore
     protected bool TryConvertIccProfile<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (!this.Options.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out IccProfile? profile))
+        if (!IccProfile.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out IccProfile? profile))
         {
             return false;
         }
@@ -254,7 +254,7 @@ internal abstract class ImageDecoderCore
     protected bool TryConvertIccProfile<TPixel>(ImageFrame<TPixel> frame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (!this.Options.TryGetIccProfileForColorConversion(frame.Metadata.IccProfile, out IccProfile? profile))
+        if (!IccProfile.TryGetIccProfileForColorConversion(frame.Metadata.IccProfile, out IccProfile? profile))
         {
             return false;
         }

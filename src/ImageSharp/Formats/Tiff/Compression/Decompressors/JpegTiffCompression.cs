@@ -80,7 +80,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
                 jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
-                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                _ = IccProfile.TryGetIccProfileForColorConversion(
                     jpegDecoder.Metadata?.IccProfile,
                     out IccProfile? profile);
 
@@ -99,7 +99,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
                 jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
-                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                _ = IccProfile.TryGetIccProfileForColorConversion(
                     jpegDecoder.Metadata?.IccProfile,
                     out IccProfile? profile);
 

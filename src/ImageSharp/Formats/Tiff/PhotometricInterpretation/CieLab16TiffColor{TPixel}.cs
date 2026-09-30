@@ -42,7 +42,7 @@ internal class CieLab16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         this.isBigEndian = isBigEndian;
         this.configuration = configuration;
 
-        if (decoderOptions.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
+        if (IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
         {
             ColorConversionOptions options = new()
             {

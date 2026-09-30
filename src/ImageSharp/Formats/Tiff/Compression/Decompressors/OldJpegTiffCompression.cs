@@ -63,7 +63,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
-                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                _ = IccProfile.TryGetIccProfileForColorConversion(
                     jpegDecoder.Metadata?.IccProfile,
                     out IccProfile? profile);
 
@@ -82,7 +82,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
-                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                _ = IccProfile.TryGetIccProfileForColorConversion(
                     jpegDecoder.Metadata?.IccProfile,
                     out IccProfile? profile);
 

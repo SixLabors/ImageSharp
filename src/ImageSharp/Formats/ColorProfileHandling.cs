@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats;
 public enum ColorProfileHandling
 {
     /// <summary>
-    /// Leaves any embedded ICC color profiles intact.
+    /// Converts pixel colors to sRGB during decoding and retains the original ICC profile for conversion back during encoding, where supported.
     /// </summary>
     Preserve,
 

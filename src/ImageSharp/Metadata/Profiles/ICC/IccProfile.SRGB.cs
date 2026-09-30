@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 
@@ -17,6 +18,30 @@ public sealed partial class IccProfile
 
     // sRGB v4 Preference
     private static readonly IccProfileId StandardRgbV4 = new(0x34562ABF, 0x994CCD06, 0x6D2C5721, 0xD0D68C5D);
+
+    /// <summary>
+    /// Gets the supplied profile when conversion between its color space and sRGB is required.
+    /// </summary>
+    /// <param name="profile">The profile to check.</param>
+    /// <param name="value">The supplied profile when conversion is required; otherwise, <see langword="null"/>.</param>
+    /// <returns>Whether the profile is present and is not a canonical sRGB matrix-TRC profile.</returns>
+    internal static bool TryGetIccProfileForColorConversion(IccProfile? profile, [NotNullWhen(true)] out IccProfile? value)
+    {
+        value = null;
+
+        if (profile is null)
+        {
+            return false;
+        }
+
+        if (profile.IsCanonicalSrgbMatrixTrc())
+        {
+            return false;
+        }
+
+        value = profile;
+        return true;
+    }
 
     /// <summary>
     /// Detects canonical sRGB matrix+TRC profiles quickly and safely.

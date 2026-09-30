@@ -6,16 +6,20 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.IO.Hashing;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -179,6 +183,32 @@ internal sealed class PngEncoderCore : IDisposable
         PngMetadata pngMetadata = metadata.ClonePngMetadata();
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
+        IccProfile? outputIccProfile = metadata.IccProfile;
+
+        IccColorSpaceType outputColorSpace = this.colorType is PngColorType.Grayscale or PngColorType.GrayscaleWithAlpha
+            ? IccColorSpaceType.Gray
+            : IccColorSpaceType.Rgb;
+
+        if (outputIccProfile?.Header.DataColorSpace != outputColorSpace)
+        {
+            outputIccProfile = null;
+        }
+
+        ColorProfileConverter? colorProfileConverter = null;
+
+        // Working pixels are sRGB. Canonical sRGB needs no transform, and palette conversion belongs at PLTE rather than index rows.
+        if (this.colorType is not PngColorType.Palette && outputIccProfile is not null && !outputIccProfile.IsCanonicalSrgbMatrixTrc())
+        {
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = CompactSrgbV4Profile.Profile,
+                TargetIccProfile = outputIccProfile,
+                MemoryAllocator = this.memoryAllocator,
+            };
+
+            colorProfileConverter = new ColorProfileConverter(options);
+        }
+
         stream.Write(PngConstants.HeaderBytes);
 
         ImageFrame<TPixel>? clonedFrame = null;
@@ -211,9 +241,16 @@ internal sealed class PngEncoderCore : IDisposable
                 null);
 
             this.WriteHeaderChunk(stream);
-            this.WriteGammaChunk(stream);
-            this.WriteCicpChunk(stream, metadata);
-            this.WriteColorProfileChunk(stream, metadata);
+
+            // cICP has higher precedence than iCCP, and source gamma/cICP cannot describe the fallback samples after an
+            // incompatible ICC profile is omitted. Retain the ordinary color-tag path only when there was no source ICC.
+            if (metadata.IccProfile is null)
+            {
+                this.WriteGammaChunk(stream);
+                this.WriteCicpChunk(stream, metadata);
+            }
+
+            this.WriteColorProfileChunk(stream, outputIccProfile);
             this.WritePaletteChunk(stream, quantized);
             this.WriteTransparencyChunk(stream, pngMetadata);
             this.WritePhysicalChunk(stream, metadata);
@@ -236,7 +273,7 @@ internal sealed class PngEncoderCore : IDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 FrameControl frameControl = new((uint)this.width, (uint)this.height);
-                this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, false);
+                this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, false, colorProfileConverter);
                 currentFrameIndex++;
             }
 
@@ -252,11 +289,11 @@ internal sealed class PngEncoderCore : IDisposable
                 uint sequenceNumber = 1;
                 if (pngMetadata.AnimateRootFrame)
                 {
-                    this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, false);
+                    this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, false, colorProfileConverter);
                 }
                 else
                 {
-                    sequenceNumber += this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, true);
+                    sequenceNumber += this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, true, colorProfileConverter);
                 }
 
                 currentFrameIndex++;
@@ -340,7 +377,7 @@ internal sealed class PngEncoderCore : IDisposable
                         default);
 
                     Buffer2DRegion<TPixel> encodingFrameRegion = encodingFrame.PixelBuffer.GetRegion(bounds);
-                    sequenceNumber += this.WriteDataChunks(in frameControl, in encodingFrameRegion, quantized, stream, true) + 1;
+                    sequenceNumber += this.WriteDataChunks(in frameControl, in encodingFrameRegion, quantized, stream, true, colorProfileConverter) + 1;
 
                     previousFrame = currentFrame;
                     previousDisposal = frameMetadata.DisposalMode;
@@ -1080,15 +1117,15 @@ internal sealed class PngEncoderCore : IDisposable
     /// Writes the color profile chunk.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="metaData">The image meta data.</param>
-    private void WriteColorProfileChunk(Stream stream, ImageMetadata metaData)
+    /// <param name="profile">The color profile to write.</param>
+    private void WriteColorProfileChunk(Stream stream, IccProfile? profile)
     {
-        if (metaData.IccProfile is null)
+        if (profile is null)
         {
             return;
         }
 
-        byte[] iccProfileBytes = metaData.IccProfile.ToByteArray();
+        byte[] iccProfileBytes = profile.ToByteArray();
 
         byte[] compressedData = this.GetZlibCompressedBytes(iccProfileBytes);
         int payloadLength = ColorProfileName.Length + compressedData.Length + 2;
@@ -1318,7 +1355,8 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="quantized">The quantized pixel data. Can be null.</param>
     /// <param name="stream">The stream.</param>
     /// <param name="isFrame">Is writing fdAT or IDAT.</param>
-    private uint WriteDataChunks<TPixel>(in FrameControl frameControl, in Buffer2DRegion<TPixel> frame, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
+    /// <param name="colorProfileConverter">The optional output color profile converter.</param>
+    private uint WriteDataChunks<TPixel>(in FrameControl frameControl, in Buffer2DRegion<TPixel> frame, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame, ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Store the chunks in repeated 64k blocks.
@@ -1359,12 +1397,12 @@ internal sealed class PngEncoderCore : IDisposable
                 }
                 else
                 {
-                    this.EncodeAdam7Pixels(in frame, deflateStream);
+                    this.EncodeAdam7Pixels(in frame, deflateStream, colorProfileConverter);
                 }
             }
             else
             {
-                this.EncodePixels(in frame, quantized, deflateStream);
+                this.EncodePixels(in frame, quantized, deflateStream, colorProfileConverter);
             }
         }
 
@@ -1391,7 +1429,8 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="pixels">The image frame pixel buffer.</param>
     /// <param name="quantized">The quantized pixels.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZLibStream deflateStream)
+    /// <param name="colorProfileConverter">The optional output color profile converter.</param>
+    private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZLibStream deflateStream, ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesPerScanline = this.CalculateScanlineLength(pixels.Width);
@@ -1403,10 +1442,35 @@ internal sealed class PngEncoderCore : IDisposable
 
         Span<byte> filter = filterBuffer.GetSpan();
         Span<byte> attempt = attemptBuffer.GetSpan();
+
+        if (colorProfileConverter is null)
+        {
+            for (int y = 0; y < pixels.Height; y++)
+            {
+                ReadOnlySpan<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
+                this.CollectAndFilterPixelRow(rowSpan, ref filter, ref attempt, quantized, y);
+                deflateStream.Write(filter);
+                this.SwapScanlineBuffers();
+            }
+
+            return;
+        }
+
+        // Direct-color ICC output converts each source row into straight floating-point samples, then the existing packer quantizes once.
+        using IMemoryOwner<Vector4> vectorBuffer = this.memoryAllocator.Allocate<Vector4>(pixels.Width);
+        using IMemoryOwner<Rgb> rgbBuffer = this.memoryAllocator.Allocate<Rgb>(pixels.Width);
+
+        Span<Vector4> vectors = vectorBuffer.GetSpan();
+        Span<Rgb> rgb = rgbBuffer.GetSpan();
+
         for (int y = 0; y < pixels.Height; y++)
         {
             ReadOnlySpan<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
-            this.CollectAndFilterPixelRow(rowSpan, ref filter, ref attempt, quantized, y);
+            colorProfileConverter.Convert(this.configuration, rowSpan, vectors, rgb);
+
+            ReadOnlySpan<RgbaVector> convertedRow = MemoryMarshal.Cast<Vector4, RgbaVector>(vectors)[..rowSpan.Length];
+            this.CollectAndFilterPixelRow(convertedRow, ref filter, ref attempt, null, y);
+
             deflateStream.Write(filter);
             this.SwapScanlineBuffers();
         }
@@ -1418,7 +1482,8 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="pixels">The image frame pixel buffer.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7Pixels<TPixel>(in Buffer2DRegion<TPixel> pixels, ZLibStream deflateStream)
+    /// <param name="colorProfileConverter">The optional output color profile converter.</param>
+    private void EncodeAdam7Pixels<TPixel>(in Buffer2DRegion<TPixel> pixels, ZLibStream deflateStream, ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         for (int pass = 0; pass < 7; pass++)
@@ -1442,10 +1507,44 @@ internal sealed class PngEncoderCore : IDisposable
             Span<byte> filter = filterBuffer.GetSpan();
             Span<byte> attempt = attemptBuffer.GetSpan();
 
+            if (colorProfileConverter is null)
+            {
+                for (int row = startRow; row < pixels.Height; row += Adam7.RowIncrement[pass])
+                {
+                    // Collect pixel data
+                    Span<TPixel> srcRow = pixels.DangerousGetRowSpan(row);
+
+                    for (int col = startCol, i = 0; col < pixels.Width; col += Adam7.ColumnIncrement[pass], i++)
+                    {
+                        block[i] = srcRow[col];
+                    }
+
+                    // Encode data
+                    // Note: quantized parameter not used
+                    // Note: row parameter not used
+                    ReadOnlySpan<TPixel> blockSpan = block;
+                    this.CollectAndFilterPixelRow(blockSpan, ref filter, ref attempt, null, -1);
+
+                    deflateStream.Write(filter);
+
+                    this.SwapScanlineBuffers();
+                }
+
+                continue;
+            }
+
+            // Direct-color ICC output converts gathered pass samples before the unchanged packing and filtering stages.
+            using IMemoryOwner<Vector4> vectorBuffer = this.memoryAllocator.Allocate<Vector4>(blockWidth);
+            using IMemoryOwner<Rgb> rgbBuffer = this.memoryAllocator.Allocate<Rgb>(blockWidth);
+
+            Span<Vector4> vectors = vectorBuffer.GetSpan();
+            Span<Rgb> rgb = rgbBuffer.GetSpan();
+
             for (int row = startRow; row < pixels.Height; row += Adam7.RowIncrement[pass])
             {
                 // Collect pixel data
                 Span<TPixel> srcRow = pixels.DangerousGetRowSpan(row);
+
                 for (int col = startCol, i = 0; col < pixels.Width; col += Adam7.ColumnIncrement[pass], i++)
                 {
                     block[i] = srcRow[col];
@@ -1455,7 +1554,11 @@ internal sealed class PngEncoderCore : IDisposable
                 // Note: quantized parameter not used
                 // Note: row parameter not used
                 ReadOnlySpan<TPixel> blockSpan = block;
-                this.CollectAndFilterPixelRow(blockSpan, ref filter, ref attempt, null, -1);
+                colorProfileConverter.Convert(this.configuration, blockSpan, vectors, rgb);
+
+                ReadOnlySpan<RgbaVector> convertedRow = MemoryMarshal.Cast<Vector4, RgbaVector>(vectors)[..blockSpan.Length];
+                this.CollectAndFilterPixelRow(convertedRow, ref filter, ref attempt, null, -1);
+
                 deflateStream.Write(filter);
 
                 this.SwapScanlineBuffers();

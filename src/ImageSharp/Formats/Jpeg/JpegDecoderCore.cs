@@ -210,7 +210,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         this.InitializeMetadataProfiles();
 
-        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+        _ = IccProfile.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
 
         return new Image<TPixel>(
             this.configuration,
@@ -1633,7 +1633,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         }
 
         this.ExecuteAncillarySegmentAction(this.InitIccProfile);
-        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+        _ = IccProfile.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
         this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
     }
 

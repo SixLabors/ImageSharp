@@ -20,6 +20,117 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [Trait("Format", "Tiff")]
 public class TiffMetadataTests
 {
+    [Fact]
+    public void CieLab_ImageAndFrameMetadataReportLabSamples()
+    {
+        TiffMetadata image = new()
+        {
+            BitsPerSample = new TiffBitsPerSample(16, 16, 16),
+            BitsPerPixel = TiffBitsPerPixel.Bit48,
+            PhotometricInterpretation = TiffPhotometricInterpretation.CieLab
+        };
+
+        TiffFrameMetadata frame = new()
+        {
+            BitsPerSample = image.BitsPerSample,
+            BitsPerPixel = image.BitsPerPixel,
+            PhotometricInterpretation = image.PhotometricInterpretation
+        };
+
+        Assert.Equal(PixelColorType.Lab, image.ToFormatConnectingMetadata().PixelTypeInfo.ColorType);
+        Assert.Equal(PixelColorType.Lab, frame.ToFormatConnectingFrameMetadata().PixelTypeInfo.Value.ColorType);
+        Assert.Equal(16, frame.ToFormatConnectingFrameMetadata().PixelTypeInfo.Value.ComponentInfo.Value.GetComponentPrecision(2));
+    }
+
+    [Fact]
+    public void IncomingCmykPrecisionIsRetainedInImageAndFrameMetadata()
+    {
+        PixelTypeInfo pixelType = new(64)
+        {
+            ColorType = PixelColorType.CMYK,
+            ComponentInfo = PixelComponentInfo.Create(4, 64, 16, 16, 16, 16)
+        };
+
+        TiffMetadata image = TiffMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = pixelType });
+        TiffFrameMetadata frame = TiffFrameMetadata.FromFormatConnectingFrameMetadata(new FormatConnectingFrameMetadata { PixelTypeInfo = pixelType });
+
+        Assert.Equal(TiffPhotometricInterpretation.Separated, image.PhotometricInterpretation);
+        Assert.Equal(new TiffBitsPerSample(16, 16, 16, 16), image.BitsPerSample);
+        Assert.Equal(TiffBitsPerPixel.Bit64, image.BitsPerPixel);
+        Assert.Equal(image.BitsPerSample, frame.BitsPerSample);
+        Assert.Equal(image.PhotometricInterpretation, frame.PhotometricInterpretation);
+        Assert.Equal(TiffInkSet.Cmyk, frame.InkSet);
+        Assert.Equal(PixelAlphaRepresentation.None, frame.ToFormatConnectingFrameMetadata().PixelTypeInfo.Value.AlphaRepresentation);
+    }
+
+    [Fact]
+    public void IncomingRgbAlphaRetainsSampleDepthAndAssociation()
+    {
+        PixelTypeInfo pixelType = new(32)
+        {
+            ColorType = PixelColorType.RGB | PixelColorType.Alpha,
+            AlphaRepresentation = PixelAlphaRepresentation.Associated,
+            ComponentInfo = PixelComponentInfo.Create(4, 32, 8, 8, 8, 8)
+        };
+
+        TiffFrameMetadata frame = TiffFrameMetadata.FromFormatConnectingFrameMetadata(new FormatConnectingFrameMetadata { PixelTypeInfo = pixelType });
+
+        Assert.Equal(new TiffBitsPerSample(8, 8, 8, 8), frame.BitsPerSample);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, frame.ToFormatConnectingFrameMetadata().PixelTypeInfo.Value.ColorType);
+        Assert.Equal(PixelAlphaRepresentation.Associated, frame.ToFormatConnectingFrameMetadata().PixelTypeInfo.Value.AlphaRepresentation);
+    }
+
+    [Fact]
+    public void IncomingSingleChannelGrayscaleRetainsPrecision()
+    {
+        PixelTypeInfo pixelType = new(16)
+        {
+            ColorType = PixelColorType.Luminance,
+            ComponentInfo = PixelComponentInfo.Create(1, 16, 16)
+        };
+
+        TiffMetadata image = TiffMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = pixelType });
+        TiffFrameMetadata frame = TiffFrameMetadata.FromFormatConnectingFrameMetadata(new FormatConnectingFrameMetadata { PixelTypeInfo = pixelType });
+
+        Assert.Equal(TiffPhotometricInterpretation.BlackIsZero, image.PhotometricInterpretation);
+        Assert.Equal(new TiffBitsPerSample(16, 0, 0), image.BitsPerSample);
+        Assert.Equal(image.BitsPerSample, frame.BitsPerSample);
+    }
+
+    [Fact]
+    public void IncomingLabRetainsThreeComponentPrecision()
+    {
+        PixelTypeInfo pixelType = new(48)
+        {
+            ColorType = PixelColorType.Lab,
+            ComponentInfo = PixelComponentInfo.Create(3, 48, 16, 16, 16)
+        };
+
+        TiffMetadata image = TiffMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = pixelType });
+        TiffFrameMetadata frame = TiffFrameMetadata.FromFormatConnectingFrameMetadata(new FormatConnectingFrameMetadata { PixelTypeInfo = pixelType });
+
+        Assert.Equal(TiffPhotometricInterpretation.CieLab, image.PhotometricInterpretation);
+        Assert.Equal(new TiffBitsPerSample(16, 16, 16), image.BitsPerSample);
+        Assert.Equal(TiffBitsPerPixel.Bit48, frame.BitsPerPixel);
+        Assert.Equal(image.PhotometricInterpretation, frame.PhotometricInterpretation);
+    }
+
+    [Fact]
+    public void IncomingOneBitPaletteDoesNotSelectFaxCompression()
+    {
+        PixelTypeInfo pixelType = new(1)
+        {
+            ColorType = PixelColorType.Indexed,
+            ComponentInfo = PixelComponentInfo.Create(1, 1, 1)
+        };
+
+        TiffMetadata image = TiffMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = pixelType });
+
+        Assert.Equal(TiffPhotometricInterpretation.PaletteColor, image.PhotometricInterpretation);
+        Assert.Equal(TiffCompression.Deflate, image.Compression);
+        Assert.Equal(TiffPredictor.None, image.Predictor);
+    }
+
     private class NumberComparer : IEqualityComparer<Number>
     {
         public bool Equals(Number x, Number y) => x.Equals(y);

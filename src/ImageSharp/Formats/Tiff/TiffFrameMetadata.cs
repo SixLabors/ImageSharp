@@ -102,6 +102,16 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     public static TiffFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
     {
         TiffFrameMetadata frameMetadata = new();
+        if (metadata.PixelTypeInfo is PixelTypeInfo pixelType
+            && TiffMetadata.TryGetLayout(pixelType, out TiffPhotometricInterpretation photometric, out TiffBitsPerSample samples, out TiffExtraSampleType? extraSample))
+        {
+            frameMetadata.PhotometricInterpretation = photometric;
+            frameMetadata.BitsPerSample = samples;
+            frameMetadata.BitsPerPixel = samples.BitsPerPixel();
+            frameMetadata.ExtraSampleType = extraSample;
+            frameMetadata.InkSet = photometric == TiffPhotometricInterpretation.Separated ? TiffInkSet.Cmyk : null;
+        }
+
         if (metadata.EncodingWidth.HasValue && metadata.EncodingHeight.HasValue)
         {
             frameMetadata.EncodingWidth = metadata.EncodingWidth.Value;
@@ -134,6 +144,7 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
             TiffPhotometricInterpretation.Rgb => PixelColorType.RGB,
             TiffPhotometricInterpretation.Separated => PixelColorType.CMYK,
             TiffPhotometricInterpretation.YCbCr => PixelColorType.YCbCr,
+            TiffPhotometricInterpretation.CieLab => PixelColorType.Lab,
             _ => PixelColorType.Other
         };
 

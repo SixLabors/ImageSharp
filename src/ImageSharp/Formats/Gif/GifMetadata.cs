@@ -78,6 +78,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
             // extracted individually from a multi-frame image.
             ColorTableMode = metadata.ColorTableMode,
             RepeatCount = metadata.RepeatCount,
+            BackgroundColor = metadata.BackgroundColor,
         };
 
     /// <inheritdoc/>

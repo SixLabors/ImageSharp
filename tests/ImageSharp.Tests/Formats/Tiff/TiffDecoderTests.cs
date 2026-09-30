@@ -453,14 +453,27 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<TPixel> preserved = provider.GetImage(TiffDecoder.Instance, preserveOptions);
 
-        Assert.NotNull(image.Metadata.IccProfile);
-        Assert.NotSame(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> converted = provider.GetImage(TiffDecoder.Instance, convertOptions);
+
+        ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.NotSame(preserved.Frames.RootFrame.Metadata.IccProfile, preserved.Metadata.IccProfile);
         Assert.Equal(
-            image.Frames.RootFrame.Metadata.IccProfile.ToByteArray(),
-            image.Metadata.IccProfile.ToByteArray());
+            preserved.Frames.RootFrame.Metadata.IccProfile.ToByteArray(),
+            preserved.Metadata.IccProfile.ToByteArray());
+
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(sourceInfo.FrameMetadataCollection[0].IccProfile.ToByteArray(), preserved.Frames.RootFrame.Metadata.IccProfile.ToByteArray());
+
+        ImageComparer.Exact.VerifySimilarity(converted, preserved);
+
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.Null(converted.Frames.RootFrame.Metadata.IccProfile);
     }
 
     [Theory]

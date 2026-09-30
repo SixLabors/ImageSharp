@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -26,6 +27,17 @@ public class GifMetadataTests
             { TestImages.Gif.Receipt, 1 },
             { TestImages.Gif.Rings, 1 }
         };
+
+    [Fact]
+    public void FormatConnectingMetadata_PreservesBackgroundBetweenGifAndWebp()
+    {
+        WebpMetadata webp = new() { BackgroundColor = Color.CornflowerBlue };
+        GifMetadata gif = GifMetadata.FromFormatConnectingMetadata(webp.ToFormatConnectingMetadata());
+        WebpMetadata roundTrip = WebpMetadata.FromFormatConnectingMetadata(gif.ToFormatConnectingMetadata());
+
+        Assert.Equal(webp.BackgroundColor, gif.BackgroundColor);
+        Assert.Equal(webp.BackgroundColor, roundTrip.BackgroundColor);
+    }
 
     [Fact]
     public void CloneIsDeep()

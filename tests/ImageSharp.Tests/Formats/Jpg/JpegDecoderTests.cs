@@ -415,6 +415,16 @@ public partial class JpegDecoderTests
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
+
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<TPixel> preserved = provider.GetImage(JpegDecoder.Instance, preserveOptions);
+
+        ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        ImageComparer.Exact.VerifySimilarity(image, preserved);
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+
+        Assert.Null(image.Metadata.IccProfile);
     }
 
     [Theory]

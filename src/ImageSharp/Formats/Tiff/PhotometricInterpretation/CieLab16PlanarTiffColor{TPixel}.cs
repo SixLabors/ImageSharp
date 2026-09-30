@@ -42,7 +42,7 @@ internal class CieLab16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPix
         this.isBigEndian = isBigEndian;
         this.configuration = configuration;
 
-        if (decoderOptions.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
+        if (IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
         {
             ColorConversionOptions options = new()
             {

@@ -1,12 +1,58 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
 public class PixelColorTypeTests
 {
+    [Theory]
+    [InlineData(PixelColorType.XYZ, IccColorSpaceType.CieXyz)]
+    [InlineData(PixelColorType.Lab, IccColorSpaceType.CieLab)]
+    [InlineData(PixelColorType.Luv, IccColorSpaceType.CieLuv)]
+    [InlineData(PixelColorType.Yxy, IccColorSpaceType.CieYxy)]
+    [InlineData(PixelColorType.HSV, IccColorSpaceType.Hsv)]
+    [InlineData(PixelColorType.HLS, IccColorSpaceType.Hls)]
+    [InlineData(PixelColorType.CMY, IccColorSpaceType.Cmy)]
+    [InlineData(PixelColorType.YCbCr, IccColorSpaceType.YCbCr)]
+    public void NamedColorType_MapsToIccDataSpaceWithOrWithoutAlpha(PixelColorType colorType, IccColorSpaceType dataSpace)
+    {
+        Assert.True(PixelColorTypeIccMapping.TryGetDataSpace(colorType, out IccColorSpaceType directSpace));
+        Assert.Equal(dataSpace, directSpace);
+        Assert.True(PixelColorTypeIccMapping.TryGetDataSpace(colorType | PixelColorType.Alpha, out IccColorSpaceType actualSpace));
+        Assert.Equal(dataSpace, actualSpace);
+
+        Assert.True(PixelColorTypeIccMapping.TryGetColorType(dataSpace, out PixelColorType actualType));
+        Assert.Equal(colorType, actualType);
+    }
+
+    [Fact]
+    public void IndexedHasNoDirectIccDataSpaceAndYcckUsesCmyk()
+    {
+        Assert.False(PixelColorTypeIccMapping.TryGetDataSpace(PixelColorType.Indexed, out _));
+        Assert.True(PixelColorTypeIccMapping.TryGetDataSpace(PixelColorType.YCCK, out IccColorSpaceType dataSpace));
+        Assert.Equal(IccColorSpaceType.Cmyk, dataSpace);
+    }
+
+    [Fact]
+    public void NamedColorTypesShareOnlyTheirCommonComponents()
+    {
+        Assert.Equal(PixelColorType.Luminance, PixelColorType.XYZ & PixelColorType.Yxy);
+        Assert.Equal(PixelColorType.Luminance, PixelColorType.Lab & PixelColorType.Luv);
+        Assert.Equal(PixelColorType.Hue | PixelColorType.Saturation | PixelColorType.Luminance, PixelColorType.HSV & PixelColorType.HLS);
+        Assert.False(PixelColorType.HSV.HasFlag(PixelColorType.HLS));
+        Assert.False(PixelColorType.HLS.HasFlag(PixelColorType.HSV));
+    }
+
+    [Fact]
+    public void CmyComposesExistingInkFlags()
+    {
+        Assert.Equal(PixelColorType.Cyan | PixelColorType.Magenta | PixelColorType.Yellow, PixelColorType.CMY);
+    }
+
     [Fact]
     public void PixelColorType_RedFlag_ShouldBeSet()
     {

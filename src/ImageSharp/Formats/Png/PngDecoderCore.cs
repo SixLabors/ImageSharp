@@ -516,6 +516,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             }
 
                             break;
+                        case PngChunkType.EmbeddedColorProfile:
+                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
+                            break;
                         case PngChunkType.End:
                             goto EOF;
 

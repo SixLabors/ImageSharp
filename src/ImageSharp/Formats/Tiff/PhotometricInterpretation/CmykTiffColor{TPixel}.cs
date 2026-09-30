@@ -33,7 +33,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         this.compression = compression;
         this.configuration = configuration;
 
-        if (decoderOptions.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
+        if (IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
         {
             ColorConversionOptions options = new()
             {

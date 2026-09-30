@@ -288,16 +288,21 @@ public partial class JpegDecoderTests
         TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
 
         using Image<Rgba32> image = testFile.CreateRgba32Image(JpegDecoder.Instance, options);
+
         if (ignoreMetadata)
         {
             Assert.Null(image.Metadata.ExifProfile);
-            Assert.Null(image.Metadata.IccProfile);
         }
         else
         {
             Assert.NotNull(image.Metadata.ExifProfile);
-            Assert.NotNull(image.Metadata.IccProfile);
         }
+
+        Assert.NotNull(image.Metadata.IccProfile);
+
+        ImageInfo info = Image.Identify(options, testFile.Bytes);
+
+        Assert.Equal(image.Metadata.IccProfile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
     }
 
     [Theory]

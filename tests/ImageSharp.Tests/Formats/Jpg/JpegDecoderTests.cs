@@ -416,7 +416,7 @@ public partial class JpegDecoderTests
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
 
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(JpegDecoder.Instance, preserveOptions);
 
         ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);

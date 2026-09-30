@@ -47,7 +47,8 @@ public sealed class DecoderOptions
     public IResampler Sampler { get; init; } = KnownResamplers.Box;
 
     /// <summary>
-    /// Gets a value indicating whether to ignore encoded metadata when decoding.
+    /// Gets a value indicating whether to ignore optional encoded metadata when decoding.
+    /// ICC profiles remain available for color conversion.
     /// </summary>
     public bool SkipMetadata { get; init; }
 

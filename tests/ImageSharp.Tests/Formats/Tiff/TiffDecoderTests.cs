@@ -453,7 +453,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(TiffDecoder.Instance, preserveOptions);
 
         DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };

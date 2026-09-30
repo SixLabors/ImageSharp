@@ -222,13 +222,15 @@ public partial class PngDecoderTests
         image.CompareToReferenceOutput(provider);
         Assert.Null(image.Metadata.IccProfile);
 
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(PngDecoder.Instance, preserveOptions);
 
         ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+        ImageInfo skippedMetadataInfo = Image.Identify(preserveOptions, TestFile.Create(provider.SourceFileOrDescription).Bytes);
 
         ImageComparer.Exact.VerifySimilarity(image, preserved);
         Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), skippedMetadataInfo.Metadata.IccProfile.ToByteArray());
     }
 
     [Theory]

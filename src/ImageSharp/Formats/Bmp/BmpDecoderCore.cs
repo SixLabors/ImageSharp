@@ -1429,7 +1429,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             // > 108 bytes
             infoHeaderType = BmpInfoHeaderType.WinVersion5;
             this.infoHeader = BmpInfoHeader.ParseV5(buffer);
-            if (!this.Options.SkipMetadata && this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+            if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
             {
                 long streamPosition = stream.Position;
                 this.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));

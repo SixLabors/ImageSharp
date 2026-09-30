@@ -94,20 +94,18 @@ public class WebpMetaDataTests
     [WithFile(TestImages.Webp.Lossy.WithIccp, PixelTypes.Rgba32, true)]
     [WithFile(TestImages.Webp.Lossless.WithIccp, PixelTypes.Rgba32, false)]
     [WithFile(TestImages.Webp.Lossless.WithIccp, PixelTypes.Rgba32, true)]
-    public void IgnoreMetadata_ControlsWhetherIccpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
+    public void IgnoreMetadata_PreservesIccp<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
-        if (ignoreMetadata)
-        {
-            Assert.Null(image.Metadata.IccProfile);
-        }
-        else
-        {
-            Assert.NotNull(image.Metadata.IccProfile);
-            Assert.NotEmpty(image.Metadata.IccProfile.Entries);
-        }
+
+        Assert.NotNull(image.Metadata.IccProfile);
+        Assert.NotEmpty(image.Metadata.IccProfile.Entries);
+
+        ImageInfo info = Image.Identify(options, TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        Assert.Equal(image.Metadata.IccProfile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
     }
 
     [Theory]
@@ -336,7 +334,7 @@ public class WebpMetaDataTests
         byte[] payload = CreateWebpWithMetadata("ICCP", 4, true, animated);
         DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
-        if (integrity is SegmentIntegrityHandling.Strict && !skipMetadata)
+        if (integrity is SegmentIntegrityHandling.Strict)
         {
             Assert.Throws<InvalidIccProfileException>(() => Image.Load(options, payload));
             Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, payload));

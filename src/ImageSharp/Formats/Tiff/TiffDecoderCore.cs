@@ -285,24 +285,24 @@ internal class TiffDecoderCore : ImageDecoderCore
         if (!this.skipMetadata)
         {
             imageFrameMetaData.ExifProfile = tags;
+        }
 
-            // We resolve the ICC profile early so that we can use it for color conversion if needed.
-            if (tags.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
-            {
-                this.ExecuteAncillarySegmentAction(
-                    () =>
+        // ICC is needed for pixel conversion even when optional EXIF metadata is skipped.
+        if (tags.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
+        {
+            this.ExecuteAncillarySegmentAction(
+                () =>
+                {
+                    IccProfile profile = new(iccProfileBytes.Value);
+                    if (profile.CheckIsValid())
                     {
-                        IccProfile profile = new(iccProfileBytes.Value);
-                        if (profile.CheckIsValid())
-                        {
-                            imageFrameMetaData.IccProfile = profile;
-                        }
-                        else
-                        {
-                            throw new InvalidIccProfileException("Invalid TIFF ICC profile.");
-                        }
-                    });
-            }
+                        imageFrameMetaData.IccProfile = profile;
+                    }
+                    else
+                    {
+                        throw new InvalidIccProfileException("Invalid TIFF ICC profile.");
+                    }
+                });
         }
 
         TiffFrameMetadata tiffMetadata = TiffFrameMetadata.Parse(tags);

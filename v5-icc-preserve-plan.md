@@ -121,10 +121,13 @@ When transferring profiles between formats, preserve their source scope. An imag
 | --- | --- |
 | [BmpDecoderCore.ReadImageHeaders](src/ImageSharp/Formats/Bmp/BmpDecoderCore.cs) gates V5 ICC reading on `!Options.SkipMetadata`. | Remove that suppression for ICC; retain existing offset restoration and ancillary-error handling. |
 | [JpegDecoderCore.ProcessApp2Marker](src/ImageSharp/Formats/Jpeg/JpegDecoderCore.cs) exits on `skipMetadata` before reading ICC. | Continue recognizing and assembling ICC APP2 data when other metadata is skipped. |
+| [JpegDecoderCore.SetIccMetadata](src/ImageSharp/Formats/Jpeg/JpegDecoderCore.cs) drops a supplied TIFF ICC profile when `skipMetadata` is set. | Retain valid supplied ICC profiles independently of optional metadata. |
 | [WebpChunkParsingUtils.ReadIccProfile](src/ImageSharp/Formats/Webp/WebpChunkParsingUtils.cs) passes `ignoreMetadata` into payload reading. | Keep ICC payload reading active in still/animated Decode and Identify; preserve duplicate-profile and chunk-boundary behavior. |
 | [TiffDecoderCore.CreateFrameMetadata](src/ImageSharp/Formats/Tiff/TiffDecoderCore.cs) resolves ICC inside the `!skipMetadata` block. | Resolve ICC outside that block while leaving optional EXIF retention inside it. |
 
 **Verification:** Update the existing codec metadata tests that currently expect ICC suppression. Check valid ICC with `SkipMetadata` both ways, plus existing strict/permissive malformed-profile behavior and chunk framing. Include PNG Decode and the Identify path completed in D1.
+
+**Implementation status (2026-09-30):** Implemented and source-reviewed; Release/net10.0 build and tests not run at user direction.
 
 ### D4. Convert PNG, BMP and TIFF palettes before expansion
 

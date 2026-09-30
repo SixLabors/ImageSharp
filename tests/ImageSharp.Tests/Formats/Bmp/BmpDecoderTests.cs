@@ -51,7 +51,7 @@ public class BmpDecoderTests
             "00000000004000000000000000");
         DecoderOptions options = new() { SegmentIntegrityHandling = integrityHandling, SkipMetadata = skipMetadata };
 
-        if (integrityHandling is SegmentIntegrityHandling.Strict && !skipMetadata)
+        if (integrityHandling is SegmentIntegrityHandling.Strict)
         {
             Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
             Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
@@ -59,11 +59,13 @@ public class BmpDecoderTests
         else
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
             Assert.Equal(new Size(1, 1), image.Size);
             Assert.Equal(new Rgba32(0, 0, 0), image[0, 0]);
             Assert.Null(image.Metadata.IccProfile);
 
             ImageInfo info = Image.Identify(options, payload);
+
             Assert.Equal(image.Size, info.Size);
             Assert.Null(info.Metadata.IccProfile);
         }

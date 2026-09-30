@@ -290,7 +290,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 // precede the image data, and we cannot safely skip it without successfully reading its size.
                 // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
                 // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.ExecuteAncillarySegmentAction);
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, this.ExecuteAncillarySegmentAction);
                 break;
 
             case WebpChunkType.Exif:

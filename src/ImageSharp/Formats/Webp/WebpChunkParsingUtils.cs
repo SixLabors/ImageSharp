@@ -369,12 +369,10 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="metadata">The image metadata.</param>
-    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
     /// <param name="executeAncillarySegmentAction">Executes profile parsing under the decoder's integrity policy.</param>
     public static void ReadIccProfile(
         BufferedReadStream stream,
         ImageMetadata metadata,
-        bool ignoreMetadata,
         Action<Action> executeAncillarySegmentAction)
     {
         ulong chunkSize = ReadPaddedChunkSize(stream, stackalloc byte[4], true);
@@ -388,7 +386,8 @@ internal static class WebpChunkParsingUtils
 
         executeAncillarySegmentAction(() =>
         {
-            byte[]? iccpData = ReadMetadataChunk(stream, chunkSize, ignoreMetadata || metadata.IccProfile != null);
+            // The first ICCP chunk remains color metadata even when optional metadata is skipped.
+            byte[]? iccpData = ReadMetadataChunk(stream, chunkSize, metadata.IccProfile != null);
             if (iccpData is not null)
             {
                 IccProfile profile = new(iccpData);

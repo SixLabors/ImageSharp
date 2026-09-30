@@ -49,15 +49,22 @@ public class BmpMetadataTests
     }
 
     [Theory]
-    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
-    public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32, false)]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32, true)]
+    public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+        DecoderOptions options = new() { SkipMetadata = skipMetadata };
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         ImageSharp.Metadata.ImageMetadata metaData = image.Metadata;
+
         Assert.NotNull(metaData);
         Assert.NotNull(metaData.IccProfile);
         Assert.Equal(16, metaData.IccProfile.Entries.Length);
+
+        ImageInfo info = Image.Identify(options, TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        Assert.Equal(metaData.IccProfile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
     }
 
     [Fact]

@@ -710,7 +710,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
     private void SetIccMetadata(IccProfile profile)
     {
-        if (!this.skipMetadata && profile?.CheckIsValid() == true)
+        if (profile?.CheckIsValid() == true)
         {
             this.hasIcc = true;
             this.Metadata ??= new ImageMetadata();
@@ -962,12 +962,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         {
             this.ThrowOrIgnoreNonStrictSegmentError("Bad App2 Marker length.");
 
-            stream.Skip(remaining);
-            return;
-        }
-
-        if (this.skipMetadata)
-        {
             stream.Skip(remaining);
             return;
         }

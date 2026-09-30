@@ -5,7 +5,6 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Patch;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Blending;
 
@@ -44,9 +43,9 @@ internal static class JxlBlending
 
     public static void PerformBlending(
         Configuration configuration,
-        Buffer2D<float> bg,
-        Buffer2D<float> fg,
-        Buffer2D<float> output,
+        Span<Memory<float>> bg,
+        Span<Memory<float>> fg,
+        Span<Memory<float>> output,
         int x0,
         int xsize,
         JxlPatchBlending colorBlending,
@@ -69,7 +68,7 @@ internal static class JxlBlending
                     Span<float> row = tmp.GetRow(i3);
                     for (int x = 0; x < xsize; x++)
                     {
-                        row[x] = bg[i3, x + x0] + fg[i3, x + x0];
+                        row[x] = bg[i3].Span[x + x0] + fg[i3].Span[x + x0];
                     }
 
                     continue;
@@ -80,10 +79,10 @@ internal static class JxlBlending
                     int alpha = ecBlending[i].AlphaChannel;
                     bool isPremultiplied = extraChannelInfo[alpha].AlphaAssociated;
 
-                    Span<float> bgSpan3 = bg.DangerousGetRowSpan(i3)[x0..];
-                    Span<float> bgSpan3Alpha = bg.DangerousGetRowSpan(3 + alpha)[x0..];
-                    Span<float> fgSpan3 = fg.DangerousGetRowSpan(i3)[x0..];
-                    Span<float> fgSpan3Alpha = fg.DangerousGetRowSpan(3 + alpha)[x0..];
+                    Span<float> bgSpan3 = bg[i3].Span[x0..];
+                    Span<float> bgSpan3Alpha = bg[3 + alpha].Span[x0..];
+                    Span<float> fgSpan3 = fg[i3].Span[x0..];
+                    Span<float> fgSpan3Alpha = fg[3 + alpha].Span[x0..];
 
                     JxlAlphaHelper.PerformAlphaBlending(
                         bgSpan3,
@@ -103,10 +102,10 @@ internal static class JxlBlending
                     int alpha = ecBlending[i].AlphaChannel;
                     bool isPremultiplied = extraChannelInfo[alpha].AlphaAssociated;
 
-                    Span<float> bgSpan3 = bg.DangerousGetRowSpan(i3)[x0..];
-                    Span<float> bgSpan3Alpha = bg.DangerousGetRowSpan(3 + alpha)[x0..];
-                    Span<float> fgSpan3 = fg.DangerousGetRowSpan(i3)[x0..];
-                    Span<float> fgSpan3Alpha = fg.DangerousGetRowSpan(3 + alpha)[x0..];
+                    Span<float> bgSpan3 = bg[i3].Span[x0..];
+                    Span<float> bgSpan3Alpha = bg[3 + alpha].Span[x0..];
+                    Span<float> fgSpan3 = fg[i3].Span[x0..];
+                    Span<float> fgSpan3Alpha = fg[3 + alpha].Span[x0..];
 
                     JxlAlphaHelper.PerformAlphaBlending(
                         bgSpan3,
@@ -125,9 +124,9 @@ internal static class JxlBlending
                 {
                     int alpha = ecBlending[i].AlphaChannel;
 
-                    Span<float> bgSpan3 = bg.DangerousGetRowSpan(i3)[x0..];
-                    Span<float> bgSpan3Alpha = bg.DangerousGetRowSpan(3 + alpha)[x0..];
-                    Span<float> fgSpan3 = fg.DangerousGetRowSpan(i3)[x0..];
+                    Span<float> bgSpan3 = bg[i3].Span[x0..];
+                    Span<float> bgSpan3Alpha = bg[3 + alpha].Span[x0..];
+                    Span<float> fgSpan3 = fg[i3].Span[x0..];
 
                     JxlAlphaHelper.PerformAlphaWeightedAdd(
                         bgSpan3,
@@ -144,9 +143,9 @@ internal static class JxlBlending
                 {
                     int alpha = ecBlending[i].AlphaChannel;
 
-                    Span<float> bgSpan3 = bg.DangerousGetRowSpan(i3)[x0..];
-                    Span<float> bgSpan3Alpha = bg.DangerousGetRowSpan(3 + alpha)[x0..];
-                    Span<float> fgSpan3 = fg.DangerousGetRowSpan(i3)[x0..];
+                    Span<float> bgSpan3 = bg[i3].Span[x0..];
+                    Span<float> bgSpan3Alpha = bg[3 + alpha].Span[x0..];
+                    Span<float> fgSpan3 = fg[i3].Span[x0..];
 
                     JxlAlphaHelper.PerformAlphaWeightedAdd(
                         fgSpan3,
@@ -161,8 +160,8 @@ internal static class JxlBlending
 
                 case JxlPatchBlendMode.Multiply:
                 {
-                    Span<float> bgSpan3 = bg.DangerousGetRowSpan(i3)[x0..];
-                    Span<float> fgSpan3 = fg.DangerousGetRowSpan(i3)[x0..];
+                    Span<float> bgSpan3 = bg[i3].Span[x0..];
+                    Span<float> fgSpan3 = fg[i3].Span[x0..];
 
                     JxlAlphaHelper.PerformMultiplyBlending(
                         bgSpan3,
@@ -177,7 +176,7 @@ internal static class JxlBlending
                 case JxlPatchBlendMode.Replace:
                     if (xsize > 0)
                     {
-                        Span<float> fgSpan3 = fg.DangerousGetRowSpan(i3)[x0..];
+                        Span<float> fgSpan3 = fg[i3].Span[x0..];
                         fgSpan3.Slice(0, xsize).CopyTo(tmp.GetRow(i3));
                     }
 
@@ -186,7 +185,7 @@ internal static class JxlBlending
                 case JxlPatchBlendMode.None:
                     if (xsize > 0)
                     {
-                        Span<float> bgSpan3 = bg.DangerousGetRowSpan(i3)[x0..];
+                        Span<float> bgSpan3 = bg[i3].Span[x0..];
                         bgSpan3.Slice(0, xsize).CopyTo(tmp.GetRow(i3));
                     }
 
@@ -196,13 +195,13 @@ internal static class JxlBlending
 
         int colorBlendingAlpha = colorBlending.AlphaChannel;
 
-        void Add()
+        void Add(Span<Memory<float>> bg, Span<Memory<float>> fg)
         {
             for (int p = 0; p < 3; p++)
             {
                 Span<float> output = tmp.GetRow(p);
-                Span<float> bgSpan = bg.DangerousGetRowSpan(p);
-                Span<float> fgSpan = fg.DangerousGetRowSpan(p);
+                Span<float> bgSpan = bg[p].Span;
+                Span<float> fgSpan = fg[p].Span;
 
                 for (int x = 0; x < xsize; x++)
                 {
@@ -264,7 +263,7 @@ internal static class JxlBlending
         {
             case JxlPatchBlendMode.Add:
             {
-                Add();
+                Add(bg, fg);
                 break;
             }
 
@@ -276,7 +275,7 @@ internal static class JxlBlending
                 }
                 else
                 {
-                    Add();
+                    Add(bg, fg);
                 }
 
                 break;
@@ -290,7 +289,7 @@ internal static class JxlBlending
                 }
                 else
                 {
-                    Add();
+                    Add(bg, fg);
                 }
 
                 break;

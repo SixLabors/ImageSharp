@@ -318,6 +318,8 @@ internal sealed class JxlImageBundle
     /// <param name="channel">The extra channel to be added to the image bundle.</param>
     public void AddExtraChannel(JxlImageF channel) => this.extraChannels.Add(channel);
 
+    public JxlImageF GetExtraChannel(int i) => this.extraChannels[i];
+
     /// <summary>
     /// Sets the extra channels.
     /// </summary>

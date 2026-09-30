@@ -149,8 +149,8 @@ internal static partial class Av1IntraSuperblockEncoder
             if (parent.IsScreenContent && !forceZeroMotion && !blockZeroSad && this.interSourceVariance == 0 &&
                 blockSize < this.picture.Sequence.SequenceHeader.SuperblockSize)
             {
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-                Buffer2DRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
                 blockZeroSad = TOperator.SumAbsoluteDifferences(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, origin),
                     sourcePlane.Stride,
@@ -493,6 +493,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1EncoderFrame<TSample>.PlanarView alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView;
             bool globalOnly = minimumDimension < 360 || parent.EncodingSpeed >= HeifEncodingSpeed.Level9;
+            bool useSuperblockMotion = this.usePartitionMotion && blockSize >=
+                (this.picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128
+                    ? Av1BlockSize.Block64x64 : Av1BlockSize.Block32x32);
+
             _ = this.GetEstimatedFilterSearchPolicy(macroBlock, origin, blockSize, true, out Av1InterpolationFilter filter);
             for (int index = 0; index < (globalOnly ? 1 : 2); index++)
             {
@@ -570,6 +574,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     Span<TSample> previous = winningPrediction;
                     winningPrediction = prediction;
                     prediction = previous;
+                }
+
+                // A compound candidate always follows the single modes, so an early-terminating best mode ends the
+                // search unless the superblock motion is still untested. Reference: the best_early_term exit of
+                // handle_inter_mode_nonrd().
+                if (state.BestEarlyTermination && (!useSuperblockMotion || state.SuperblockMotionTested))
+                {
+                    state.EndSearch = true;
+                    return;
                 }
             }
         }
@@ -812,8 +825,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int subY = index == 0 ? 0 : this.source.ChromaSubsamplingY;
                 Av1BlockSize size = blockSize.GetSubsampled(subX != 0, subY != 0);
                 Point planeOrigin = index == 0 ? origin : Av1TileWriter.GetChromaBlockOrigin(origin, subX, subY);
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane((Av1Plane)index);
-                Buffer2DRegion<TSample> referencePlane = this.reference.GetPlane((Av1Plane)index);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane((Av1Plane)index);
+                Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane((Av1Plane)index);
                 uint sad = (uint)(TOperator.SumAbsoluteDifferences(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
                     sourcePlane.Stride,
@@ -904,8 +917,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     (colorSensitivity[index] == 0 && this.sourceSadLevel >= Av1SourceSadLevel.Medium && highResolution))
                 {
                     Av1Plane plane = (Av1Plane)(index + 1);
-                    Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
-                    Buffer2DRegion<TSample> referencePlane = this.reference.GetPlane(plane);
+                    Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+                    Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane(plane);
                     int sad = (int)(TOperator.SumAbsoluteDifferences(
                         Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, chromaOrigin),
                         sourcePlane.Stride,
@@ -1237,8 +1250,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<TSample> prediction = planeIndex == 0 ? lumaPrediction
                     : planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
 
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
-                Buffer2DRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+                Av1PlaneRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
 
                 // Prediction units use their largest permitted transform, independently of the
                 // smaller luma estimation tiles. Interior edges contain prediction, never residuals.
@@ -1462,7 +1475,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.source.GetPlane(plane), planeOrigin, prediction, workspace.Residual, stride, planeBlock.GetHeight());
                 }
 
-                Buffer2DRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
+                Av1PlaneRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
                 Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
                 Size extent = GetCodedTransformExtent(macroBlock, planeBlock, transformSize, subX, subY);
                 int width = transformSize.GetWidth();
@@ -1692,7 +1705,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     settings.AggressiveEstimatedModeSkip,
                     forceLowTemporalSkip,
                     this.sourceSadLevel) ||
-                    state.SkipByPredictorSad(mode, reference, referencePruning) ||
+                    state.SkipByPredictorSad(mode, reference, settings.GetEstimatedReferencePruningLevel(screenContent)) ||
                     Av1ModeThresholds.ShouldSkipEstimated(
                         this.blockWorkspace.ModeThresholdFactors,
                         this.blockWorkspace.ModeThresholdQuantizerFactor,
@@ -1808,7 +1821,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType partition,
             Av1ReferenceFrameType reference,
-            Buffer2DRegion<TSample> referencePlane,
+            Av1PlaneRegion<TSample> referencePlane,
             bool measureSad,
             ref Av1ReferenceMotionVectors referenceVectors)
         {
@@ -1847,9 +1860,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
-            ReadOnlySpan<TSample> referenceSamples = referencePlane.Buffer.DangerousGetSingleSpan();
+            ReadOnlySpan<TSample> referenceSamples = referencePlane.Samples;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
@@ -1966,8 +1979,8 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (modeInfo.Mode == Av1PredictionMode.NewMotionVector)
             {
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-                Buffer2DRegion<TSample> referencePlane = primaryReference.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> referencePlane = primaryReference.GetPlane(Av1Plane.Y);
                 int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) +
                     referencePlane.Bounds.X + blockOrigin.X;
 
@@ -1988,7 +2001,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                     sourcePlane.Stride,
-                    referencePlane.Buffer.DangerousGetSingleSpan(),
+                    referencePlane.Samples,
                     referencePlane.Stride,
                     referenceOrigin,
                     blockSize,
@@ -2032,7 +2045,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         projectionSad = Av1MotionSearchBase.SearchProjection(
                             MemoryMarshal.Cast<TSample, byte>(sourceBlock),
                             sourcePlane.Stride,
-                            MemoryMarshal.Cast<TSample, byte>(referencePlane.Buffer.DangerousGetSingleSpan()),
+                            MemoryMarshal.Cast<TSample, byte>(referencePlane.Samples),
                             referencePlane.Stride,
                             referenceOrigin,
                             new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
@@ -2055,7 +2068,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         projectionSad = (uint)TOperator.SumAbsoluteDifferences(
                             sourceBlock,
                             sourcePlane.Stride,
-                            referencePlane.Buffer.DangerousGetSingleSpan()[referenceOrigin..],
+                            referencePlane.Samples[referenceOrigin..],
                             referencePlane.Stride,
                             blockSize.GetWidth(),
                             blockSize.GetHeight(),
@@ -2171,7 +2184,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     prediction,
                     workspace.Residual);
 
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
                 int width = blockSize.GetWidth();
                 int height = blockSize.GetHeight();
                 TOperator.GetMoments(
@@ -2357,12 +2370,12 @@ internal static partial class Av1IntraSuperblockEncoder
             out uint squaredError,
             out bool earlyTermination)
         {
-            Buffer2DRegion<TSample> primaryReference = primaryReferencePlanes.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> secondaryReference = secondaryReferencePlanes.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> primaryReference = primaryReferencePlanes.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> secondaryReference = secondaryReferencePlanes.GetPlane(Av1Plane.Y);
             bool largeBlockModel = this.UsesLargeBlockModel(blockSize);
             earlyTermination = false;
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
             int sampleCount = width * height;
@@ -2629,7 +2642,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The units are the 16x16 transforms of a block larger than 32x32 or of a 16x16 estimation transform,
             // and 8x8 units otherwise.
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Span<TSample> sourceSpan = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
             int unit = transformSize == Av1TransformSize.Size16x16 ? 16 : 8;
             int unitLog2 = unit == 16 ? 8 : 6;
@@ -2705,7 +2718,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     chromaPrediction,
                     workspace.Residual);
 
-                Buffer2DRegion<TSample> chromaSource = this.source.GetPlane(plane);
+                Av1PlaneRegion<TSample> chromaSource = this.source.GetPlane(plane);
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
                     chromaSource.Stride,
@@ -2763,7 +2776,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane((Av1Plane)planeIndex);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane((Av1Plane)planeIndex);
                 ReadOnlySpan<TSample> prediction = planeIndex == 1 ? bluePrediction : redPrediction;
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, origin),

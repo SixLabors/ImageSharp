@@ -144,16 +144,8 @@ internal static partial class Av1PaletteKMeans2D
         counts = counts[..firstCentroids.Length];
         firstSums = firstSums[..firstCentroids.Length];
         secondSums = secondSums[..secondCentroids.Length];
-        counts.Clear();
-        firstSums.Clear();
-        secondSums.Clear();
-        for (int index = 0; index < firstSamples.Length; index++)
-        {
-            int centroidIndex = indices[index];
-            counts[centroidIndex]++;
-            firstSums[centroidIndex] += firstSamples[index];
-            secondSums[centroidIndex] += secondSamples[index];
-        }
+        Av1PaletteKMeans.SumByIndex(firstSamples, indices, firstSums, counts);
+        Av1PaletteKMeans.SumByIndex(secondSamples, indices, secondSums, Span<int>.Empty);
 
         uint randomState = (uint)firstSamples[0];
         for (int centroidIndex = 0; centroidIndex < firstCentroids.Length; centroidIndex++)

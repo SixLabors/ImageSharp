@@ -16,7 +16,7 @@ public class Av1CdefFilterTests
     /// <summary>
     /// The hardware configurations required to exercise packed filtering and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The row stride of the bordered source plane used by the filter tests.
@@ -101,6 +101,44 @@ public class Av1CdefFilterTests
                 Assert.Equal(expectedVariance, firstActualVariance);
                 Assert.Equal(secondExpectedDirection, secondActualDirection);
                 Assert.Equal(secondExpectedVariance, secondActualVariance);
+            }
+        }
+
+        ValidateDirectionBatches();
+    }
+
+    /// <summary>
+    /// Exercises the batched direction search with every list length that reaches the four-, two- and one-block
+    /// steps and their remainders.
+    /// </summary>
+    private static void ValidateDirectionBatches()
+    {
+        const int blockCount = 9;
+        const int stride = (blockCount * 8) + 10;
+        const int firstOffset = (4 * stride) + 5;
+
+        foreach (int bitDepth in new[] { 8, 10, 12 })
+        {
+            int coefficientShift = bitDepth - 8;
+            ushort[] source = new ushort[stride * 16];
+            int[] offsets = new int[blockCount];
+            for (int block = 0; block < blockCount; block++)
+            {
+                offsets[block] = firstOffset + (block * 8);
+                PopulateDirectionSource(source, offsets[block], stride, (block * 3) % 8, bitDepth);
+            }
+
+            for (int count = 1; count <= blockCount; count++)
+            {
+                int[] directions = new int[count];
+                int[] variances = new int[count];
+                Av1CdefFilter.FindDirections(source, offsets.AsSpan(0, count), stride, coefficientShift, directions, variances);
+                for (int block = 0; block < count; block++)
+                {
+                    int expectedDirection = FindDirectionReference(source, offsets[block], stride, coefficientShift, out int expectedVariance);
+                    Assert.Equal(expectedDirection, directions[block]);
+                    Assert.Equal(expectedVariance, variances[block]);
+                }
             }
         }
     }

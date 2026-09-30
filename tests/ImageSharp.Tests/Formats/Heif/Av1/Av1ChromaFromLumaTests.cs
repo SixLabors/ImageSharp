@@ -19,7 +19,7 @@ public class Av1ChromaFromLumaTests
     /// <summary>
     /// The hardware configurations required to exercise the native SIMD width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies that sub-8-by-8 luma blocks are combined before the shared average is removed.

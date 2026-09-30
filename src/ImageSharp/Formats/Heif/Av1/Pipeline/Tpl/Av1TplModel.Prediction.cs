@@ -157,16 +157,15 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// Estimates the coefficient rate as one bit plus, per coefficient in scan order up to the end of block, the bit
     /// length of its level plus one, one more bit, and a sign bit for a nonzero level. Reference: rate_estimator().
     /// </summary>
+    /// <remarks>
+    /// Every coefficient past the end of block is zero and adds only its one bit, and a sum does not depend on its
+    /// order. So the rate is one bit per scan position up to the end of block plus the level bits of every coefficient
+    /// that the quantizer wrote, in raster order.
+    /// </remarks>
     private static int EstimateRate(ReadOnlySpan<int> quantized, int endOfBlock, Av1TransformSize transformSize)
     {
-        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, Av1TransformType.DctDct).Scan;
-        int rate = 1;
-        for (int index = 0; index < endOfBlock; index++)
-        {
-            int level = Math.Abs(quantized[scan[index]]);
-            rate += BitOperations.Log2((uint)(level + 1)) + 1 + (level > 0 ? 1 : 0);
-        }
-
+        int count = transformSize.GetAdjusted().GetSize2d();
+        int rate = 1 + endOfBlock + Av1CoefficientMeasures.SumLevelBits(quantized[..count]);
         return rate << Av1TplModelConstants.ProbabilityCostShift;
     }
 

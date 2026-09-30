@@ -30,7 +30,7 @@ internal static partial class Av1IntraSuperblockEncoder
         int columns = (modeInfoColumns + 3) / 4;
         int rows = (modeInfoRows + 3) / 4;
         double[] factors = new double[columns * rows];
-        Buffer2DRegion<TSample> luma = source.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> luma = source.CodedView.GetPlane(Av1Plane.Y);
         Av1BitDepth bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
         int shift = bitDepth.GetBitCount() - 8;
         Span<TSample> midpoint = stackalloc TSample[8];

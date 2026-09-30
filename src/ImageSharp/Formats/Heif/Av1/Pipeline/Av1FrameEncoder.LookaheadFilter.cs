@@ -20,7 +20,7 @@ internal static partial class Av1FrameEncoder
     /// <typeparam name="TSample">The sample type.</typeparam>
     /// <typeparam name="TOperator">The filter arithmetic.</typeparam>
     /// <typeparam name="TSearch">The motion search arithmetic.</typeparam>
-    private sealed class LookaheadTemporalFilter<TSample, TOperator, TSearch> : IDisposable
+    private sealed class LookaheadTemporalFilter<TSample, TOperator, TSearch> : ILookaheadFilter<TSample>, IDisposable
         where TSample : unmanaged
         where TOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
         where TSearch : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
@@ -34,6 +34,7 @@ internal static partial class Av1FrameEncoder
         private readonly Av1TemporalFilterWorkspace<TSample> workspace;
         private readonly Av1EncoderFrameBuffer<TSample>[] buffers = new Av1EncoderFrameBuffer<TSample>[BufferCount];
         private readonly int[] groupIndices = [-1, -1, -1];
+        private readonly int[] lookaheadIndices = [-1, -1, -1];
         private readonly Av1TemporalFilterResult[] results = new Av1TemporalFilterResult[BufferCount];
         private readonly Av1EncoderOptions options;
         private readonly int constantQualityIndex;
@@ -77,8 +78,38 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Filters every key frame and alternate reference of a new golden group. Reference: av1_tf_info_reset() and
-        /// av1_tf_info_filtering() in av1_get_second_pass_params().
+        /// Discards the filtered frames of the previous group. Reference: av1_tf_info_reset().
+        /// </summary>
+        public void Reset()
+        {
+            this.groupIndices.AsSpan().Fill(-1);
+            this.lookaheadIndices.AsSpan().Fill(-1);
+        }
+
+        /// <summary>
+        /// Returns the filtered key frame or alternate reference of a group entry, or <see langword="null"/> when the
+        /// entry has none. Reference: av1_tf_info_get_filtered_buf().
+        /// </summary>
+        /// <param name="groupIndex">The group index of the entry.</param>
+        /// <returns>The filtered frame.</returns>
+        public Av1EncoderFrame<TSample>? GetFilteredFrame(int groupIndex)
+        {
+            Av1EncoderFrame<TSample>? frame = null;
+            for (int buffer = 0; buffer < 2; buffer++)
+            {
+                if (this.lookaheadIndices[buffer] >= 0 && this.groupIndices[buffer] == groupIndex)
+                {
+                    frame = this.buffers[buffer].Frame;
+                }
+            }
+
+            return frame;
+        }
+
+        /// <summary>
+        /// Filters the key frame and alternate reference of a golden group that are not filtered yet. A frame keeps
+        /// the result of an earlier call for the same lookahead position, even from a trial group. Reference:
+        /// av1_tf_info_filtering().
         /// </summary>
         /// <param name="lookahead">The lookahead.</param>
         /// <param name="secondPass">The frame-level decisions.</param>
@@ -92,7 +123,6 @@ internal static partial class Av1FrameEncoder
             bool allowScreenContentTools,
             Av1MotionSearchSettings motionSettings)
         {
-            this.groupIndices.AsSpan().Fill(-1);
             Av1GopStructure group = secondPass.Group;
             for (int index = 0; index < group.Size; index++)
             {
@@ -104,6 +134,12 @@ internal static partial class Av1FrameEncoder
 
                 int buffer = group.KeyFrames[index] ? 0 : 1;
                 int lookaheadIndex = group.ArfSourceOffsets[index] + group.CurrentFrameIndices[index];
+                if (this.lookaheadIndices[buffer] == lookaheadIndex)
+                {
+                    continue;
+                }
+
+                this.lookaheadIndices[buffer] = lookaheadIndex;
                 this.Filter(
                     buffer,
                     lookahead,

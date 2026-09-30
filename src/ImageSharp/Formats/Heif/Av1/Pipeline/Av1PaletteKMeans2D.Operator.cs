@@ -121,11 +121,8 @@ internal static partial class Av1PaletteKMeans2D
             ReadOnlySpan<short> secondCentroids,
             Span<byte> indices)
         {
-            // The distances of one vector are summed in one shared scalar pass. A squared distance
-            // needs thirty-two bits and the total of a whole block needs sixty-four, so a vector
-            // reduction would have to widen again for a sum that is taken once per vector.
-            Span<int> distanceScratch = stackalloc int[Vector512<short>.Count];
-            ref int distanceBase = ref MemoryMarshal.GetReference(distanceScratch);
+            // Each vector's squared distances are widened into 64-bit lane totals, which are reduced once at the
+            // end. A squared two-plane distance needs thirty-two bits and the total of a whole block needs 64.
             ref short firstBase = ref MemoryMarshal.GetReference(firstSamples);
             ref short secondBase = ref MemoryMarshal.GetReference(secondSamples);
             ref byte indexBase = ref MemoryMarshal.GetReference(indices);
@@ -135,6 +132,7 @@ internal static partial class Av1PaletteKMeans2D
 
             if (Vector512.IsHardwareAccelerated)
             {
+                Vector512<long> total = Vector512<long>.Zero;
                 int vectorEnd = firstSamples.Length - Vector512<short>.Count;
                 for (; offset <= vectorEnd; offset += Vector512<short>.Count)
                 {
@@ -149,16 +147,16 @@ internal static partial class Av1PaletteKMeans2D
                     Vector512.Narrow(index.AsUInt16(), Vector512<ushort>.Zero).GetLower()
                         .StoreUnsafe(ref indexBase, (nuint)offset);
 
-                    // The widening that produced the distances splits a vector of samples into a
-                    // lower half and an upper half, so the halves are stored in that order.
-                    lower.StoreUnsafe(ref distanceBase);
-                    upper.StoreUnsafe(ref distanceBase, (nuint)Vector512<int>.Count);
-                    distortion += Accumulate(distanceScratch[..Vector512<short>.Count]);
+                    (Vector512<long> lowerTotal, Vector512<long> upperTotal) = Vector512.Widen(lower + upper);
+                    total += lowerTotal + upperTotal;
                 }
+
+                distortion += Vector512.Sum(total);
             }
 
             if (Vector256.IsHardwareAccelerated)
             {
+                Vector256<long> total = Vector256<long>.Zero;
                 int vectorEnd = firstSamples.Length - Vector256<short>.Count;
                 for (; offset <= vectorEnd; offset += Vector256<short>.Count)
                 {
@@ -173,14 +171,16 @@ internal static partial class Av1PaletteKMeans2D
                     Vector256.Narrow(index.AsUInt16(), Vector256<ushort>.Zero).GetLower()
                         .StoreUnsafe(ref indexBase, (nuint)offset);
 
-                    lower.StoreUnsafe(ref distanceBase);
-                    upper.StoreUnsafe(ref distanceBase, (nuint)Vector256<int>.Count);
-                    distortion += Accumulate(distanceScratch[..Vector256<short>.Count]);
+                    (Vector256<long> lowerTotal, Vector256<long> upperTotal) = Vector256.Widen(lower + upper);
+                    total += lowerTotal + upperTotal;
                 }
+
+                distortion += Vector256.Sum(total);
             }
 
             if (Vector128.IsHardwareAccelerated)
             {
+                Vector128<long> total = Vector128<long>.Zero;
                 int vectorEnd = firstSamples.Length - Vector128<short>.Count;
                 for (; offset <= vectorEnd; offset += Vector128<short>.Count)
                 {
@@ -195,10 +195,11 @@ internal static partial class Av1PaletteKMeans2D
                     Vector128.Narrow(index.AsUInt16(), Vector128<ushort>.Zero).GetLower()
                         .StoreUnsafe(ref indexBase, (nuint)offset);
 
-                    lower.StoreUnsafe(ref distanceBase);
-                    upper.StoreUnsafe(ref distanceBase, (nuint)Vector128<int>.Count);
-                    distortion += Accumulate(distanceScratch[..Vector128<short>.Count]);
+                    (Vector128<long> lowerTotal, Vector128<long> upperTotal) = Vector128.Widen(lower + upper);
+                    total += lowerTotal + upperTotal;
                 }
+
+                distortion += Vector128.Sum(total);
             }
 
             for (; offset < firstSamples.Length; offset++)
@@ -210,22 +211,6 @@ internal static partial class Av1PaletteKMeans2D
             }
 
             return distortion;
-        }
-
-        /// <summary>
-        /// Sums one vector of squared distances.
-        /// </summary>
-        /// <param name="distances">The squared distances.</param>
-        /// <returns>Their total.</returns>
-        private static long Accumulate(ReadOnlySpan<int> distances)
-        {
-            long total = 0;
-            foreach (int distance in distances)
-            {
-                total += distance;
-            }
-
-            return total;
         }
     }
 }

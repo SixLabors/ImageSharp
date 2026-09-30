@@ -303,10 +303,25 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private Av1SymbolWriter writer;
 
     /// <summary>
-    /// The frame base quantizer used to select coefficient probability models. A sequence sets it for each frame,
-    /// because a rate-controlled frame can change the quantizer context of its defaults.
+    /// The frame base quantizer, which decides whether transform types are coded. A sequence sets it for each frame.
     /// </summary>
     private int baseQIndex;
+
+    /// <summary>
+    /// The base quantizer used to select coefficient probability models. A sequence sets it for each frame, because
+    /// a rate-controlled frame can change the quantizer context of its defaults.
+    /// </summary>
+    private int modelQIndex;
+
+    /// <summary>
+    /// The adapted distributions of the context-update tile of a frame with more than one tile.
+    /// </summary>
+    private Av1FrameEntropyContext? contextUpdateTile;
+
+    /// <summary>
+    /// Whether <see cref="contextUpdateTile"/> holds a tile of the current frame.
+    /// </summary>
+    private bool hasContextUpdateTile;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class with reusable tile state.
@@ -383,6 +398,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             this.RefreshCosts();
             this.writer = new(configuration, bufferLength, updateCdf);
             this.baseQIndex = qIndex;
+            this.modelQIndex = qIndex;
         }
         catch
         {
@@ -521,20 +537,49 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="baseQIndex">The base quantizer index of the frame, which selects the default coefficient models.
     /// Reference: av1_setup_past_independence() with av1_default_coef_probs().</param>
     public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int baseQIndex)
+        => this.BeginFrame(primaryReferenceContext, baseQIndex, baseQIndex);
+
+    /// <summary>
+    /// Selects the context every tile of the next frame starts from, with default coefficient models chosen by an
+    /// earlier quantizer than the frame's, and resets the tile state to it.
+    /// </summary>
+    /// <param name="primaryReferenceContext">
+    /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
+    /// The context must stay unchanged while the frame is coded.
+    /// </param>
+    /// <param name="baseQIndex">The base quantizer index of the frame.</param>
+    /// <param name="modelQIndex">The base quantizer index that selects the default coefficient models. Reference: the
+    /// cm->quant_params.base_qindex that av1_setup_frame() reads before av1_determine_sc_tools_with_encoding() sets
+    /// the trial quantizer.</param>
+    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int baseQIndex, int modelQIndex)
     {
         this.frameBase = primaryReferenceContext;
         this.baseQIndex = baseQIndex;
+        this.modelQIndex = modelQIndex;
+        this.hasContextUpdateTile = false;
         this.Reset();
     }
 
     /// <summary>
-    /// Copies the adapted distributions of the last coded tile into a retained frame context, with the observation
-    /// counters reset. Reference: the backward-adaptation copy of the context-update tile's tctx into cm->fc,
-    /// followed by av1_reset_cdf_symbol_counters().
+    /// Copies the adapted distributions of the context-update tile into a retained frame context, with the
+    /// observation counters reset: the tile kept by <see cref="RetainContextUpdateTile"/>, or the last coded tile.
+    /// Reference: the backward-adaptation copy of the context-update tile's tctx into cm->fc, followed by
+    /// av1_reset_cdf_symbol_counters().
     /// </summary>
     /// <param name="destination">The retained frame context that receives the snapshot.</param>
     public void SnapshotTo(Av1FrameEntropyContext destination)
-        => this.entropyContext.SnapshotTo(destination);
+        => (this.hasContextUpdateTile ? this.contextUpdateTile! : this.entropyContext).SnapshotTo(destination);
+
+    /// <summary>
+    /// Keeps the adapted distributions of the tile just coded as the frame's context-update tile. Reference: the
+    /// largest_tile_id of write_tiles_in_tg_obus(), whose tctx becomes cm->fc.
+    /// </summary>
+    public void RetainContextUpdateTile()
+    {
+        this.contextUpdateTile ??= new Av1FrameEntropyContext(this.modelQIndex);
+        this.contextUpdateTile.CopyFrom(this.entropyContext);
+        this.hasContextUpdateTile = true;
+    }
 
     /// <summary>
     /// Retains mode and coefficient rates from the current distributions for subsequent candidate comparisons.
@@ -564,7 +609,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     {
         if (this.frameBase is null)
         {
-            this.entropyContext.ResetToDefaults(this.baseQIndex);
+            this.entropyContext.ResetToDefaults(this.modelQIndex);
         }
         else
         {
@@ -980,7 +1025,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1PlaneType planeType,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap)
+        Av1PlaneRegion<byte> colorIndexMap)
         => this.ProcessPaletteColorMap<PaletteColorMapCostOperation>(
             paletteSize,
             planeType,
@@ -1002,17 +1047,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1PlaneType planeType,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap)
+        Av1PlaneRegion<byte> colorIndexMap)
         => this.WritePaletteColorMap<SymbolWriteOperation>(paletteSize, planeType, rows, columns, colorIndexMap);
 
-    /// <inheritdoc cref="WritePaletteColorMap(int, Av1PlaneType, int, int, Buffer2DRegion{byte})"/>
+    /// <inheritdoc cref="WritePaletteColorMap(int, Av1PlaneType, int, int, Av1PlaneRegion{byte})"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WritePaletteColorMap<TOperation>(
         int paletteSize,
         Av1PlaneType planeType,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap)
+        Av1PlaneRegion<byte> colorIndexMap)
         where TOperation : struct, ISymbolOperation
     {
         _ = this.ProcessPaletteColorMap<PaletteColorMapWriteOperation<TOperation>>(
@@ -1038,7 +1083,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1PlaneType planeType,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap,
+        Av1PlaneRegion<byte> colorIndexMap,
         Span<byte> tokens)
     {
         _ = this.ProcessPaletteColorMap<PaletteColorMapTokenOperation>(
@@ -3159,11 +3204,11 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1PlaneType planeType,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap,
+        Av1PlaneRegion<byte> colorIndexMap,
         Span<byte> tokens)
         where TOperation : struct, IPaletteColorMapOperation
     {
-        int colorIndex = colorIndexMap.DangerousGetRowSpan(0)[0];
+        int colorIndex = colorIndexMap.GetRowSpan(0)[0];
         int cost = TOperation.ProcessFirstIndex(this, paletteSize, colorIndex);
         if (TOperation.RetainsTokens)
         {
@@ -3173,11 +3218,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int tokenIndex = 1;
 
         // Resolve the map once. The wavefront visits a different row for every sample, so a row lookup
-        // per sample costs more than the context derivation. Palette maps wrap one contiguous workspace
-        // buffer, and indexing the group directly avoids the enumerator that a single-span query allocates.
+        // per sample costs more than the context derivation. A palette map is one contiguous allocation, so
+        // the wavefront indexes it from the map origin with the stride.
         int mapStride = colorIndexMap.Stride;
-        ReadOnlySpan<byte> map = colorIndexMap.Buffer.FastMemoryGroup[0].Span[
-            ((colorIndexMap.Bounds.Y * mapStride) + colorIndexMap.Bounds.X)..];
+        ReadOnlySpan<byte> map = colorIndexMap.Samples[colorIndexMap.Origin..];
 
         for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
         {

@@ -28,6 +28,12 @@ internal sealed partial class HeifEncoderCore
     private const int DefaultLagInFrames = 35;
 
     /// <summary>
+    /// The frame duration, in encoder time-stamp ticks, that libavif gives libaom: one unit of the default 1/30
+    /// timebase. Reference: the { 1, 30 } g_timebase default and timebase_units_to_ticks().
+    /// </summary>
+    private const long LibavifFrameDurationTicks = 10_000_000 / 30;
+
+    /// <summary>
     /// The microsecond fallback used when the exact common frame-delay timescale exceeds 32 bits.
     /// </summary>
     private const uint FallbackSequenceTimescale = 1000000;
@@ -325,38 +331,45 @@ internal sealed partial class HeifEncoderCore
         {
             cancellationToken.ThrowIfCancellationRequested();
             long colorOffset = stream.Length;
-            colorEncoder.EncodeKeyFrame(firstFrame, stream);
-            colorHeader = colorEncoder.SequenceHeader;
-
-            colorSamples[0] = new HeifSequenceSampleInfo(
-                colorOffset,
-                checked((int)(stream.Length - colorOffset)),
-                GetSequenceSampleDuration(firstFrame.Metadata.GetHeifMetadata().FrameDelay, timescale),
-                isSyncSample: true);
-
-            for (int sampleIndex = 1; sampleIndex < frameCount; sampleIndex++)
+            if (colorUsesInterPrediction && settings.ColorOptions.LagInFrames > 0)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                int frameIndex = firstFrameIndex + sampleIndex;
-                ImageFrame<TPixel> frame = image.Frames[frameIndex];
-                uint duration = GetSequenceSampleDuration(frame.Metadata.GetHeifMetadata().FrameDelay, timescale);
-                colorOffset = stream.Length;
-                if (colorUsesInterPrediction)
-                {
-                    colorEncoder.EncodeInterFrame(frame, stream);
-                }
-                else
-                {
-                    // Lossless AV1 requires 4x4 transforms. Until the inter path supports that reversible size,
-                    // continuation samples remain independent key frames instead of weakening losslessness.
-                    colorEncoder.EncodeKeyFrame(frame, stream);
-                }
+                // A lookahead codes frames out of display order, so each sample is one temporal unit that ends with a
+                // shown frame. libavif submits every frame with a duration of one unit of the default 1/30 timebase.
+                // Reference: the aom_codec_encode(encoder, image, 0, 1, flags) call of aomCodecEncodeImage().
+                using IMemoryOwner<long> sampleEnds = this.configuration.MemoryAllocator.Allocate<long>(frameCount);
+                using IMemoryOwner<bool> syncSamples = this.configuration.MemoryAllocator.Allocate<bool>(frameCount);
+                colorEncoder.EncodeWithLookahead(
+                    image,
+                    firstFrameIndex,
+                    frameCount,
+                    LibavifFrameDurationTicks,
+                    stream,
+                    sampleEnds.Memory.Span,
+                    syncSamples.Memory.Span,
+                    cancellationToken);
 
-                colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
-                    colorOffset,
-                    checked((int)(stream.Length - colorOffset)),
-                    duration,
-                    isSyncSample: !colorUsesInterPrediction);
+                colorHeader = colorEncoder.SequenceHeader;
+                long sampleStart = colorOffset;
+                for (int sampleIndex = 0; sampleIndex < frameCount; sampleIndex++)
+                {
+                    long sampleEnd = sampleEnds.Memory.Span[sampleIndex];
+                    uint duration = GetSequenceSampleDuration(
+                        image.Frames[firstFrameIndex + sampleIndex].Metadata.GetHeifMetadata().FrameDelay,
+                        timescale);
+
+                    colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
+                        sampleStart,
+                        checked((int)(sampleEnd - sampleStart)),
+                        duration,
+                        syncSamples.Memory.Span[sampleIndex]);
+
+                    sampleStart = sampleEnd;
+                }
+            }
+            else
+            {
+                CompressUnlaggedColorSequence(colorEncoder, image, stream, colorSamples, firstFrameIndex, frameCount, timescale, colorUsesInterPrediction, cancellationToken);
+                colorHeader = colorEncoder.SequenceHeader;
             }
         }
 
@@ -438,6 +451,67 @@ internal sealed partial class HeifEncoderCore
             exifData,
             tiffHeaderOffset,
             xmpData);
+    }
+
+    /// <summary>
+    /// Codes a color sequence one frame per sample: a key frame, then inter frames, or key frames only for lossless
+    /// coding.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="colorEncoder">The color sequence encoder.</param>
+    /// <param name="image">The image that holds the frames.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="colorSamples">Receives the sample of each frame.</param>
+    /// <param name="firstFrameIndex">The index of the first frame to encode.</param>
+    /// <param name="frameCount">The number of frames to encode.</param>
+    /// <param name="timescale">The track timescale.</param>
+    /// <param name="colorUsesInterPrediction">Whether frames after the first predict from earlier frames.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private static void CompressUnlaggedColorSequence<TPixel>(
+        Av1FrameEncoder.SequenceEncoder colorEncoder,
+        Image<TPixel> image,
+        ChunkedMemoryStream stream,
+        Span<HeifSequenceSampleInfo> colorSamples,
+        int firstFrameIndex,
+        int frameCount,
+        uint timescale,
+        bool colorUsesInterPrediction,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ImageFrame<TPixel> firstFrame = image.Frames[firstFrameIndex];
+        long colorOffset = stream.Length;
+        colorEncoder.EncodeKeyFrame(firstFrame, stream);
+        colorSamples[0] = new HeifSequenceSampleInfo(
+            colorOffset,
+            checked((int)(stream.Length - colorOffset)),
+            GetSequenceSampleDuration(firstFrame.Metadata.GetHeifMetadata().FrameDelay, timescale),
+            isSyncSample: true);
+
+        for (int sampleIndex = 1; sampleIndex < frameCount; sampleIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int frameIndex = firstFrameIndex + sampleIndex;
+            ImageFrame<TPixel> frame = image.Frames[frameIndex];
+            uint duration = GetSequenceSampleDuration(frame.Metadata.GetHeifMetadata().FrameDelay, timescale);
+            colorOffset = stream.Length;
+            if (colorUsesInterPrediction)
+            {
+                colorEncoder.EncodeInterFrame(frame, stream);
+            }
+            else
+            {
+                // Lossless AV1 requires 4x4 transforms. Until the inter path supports that reversible size,
+                // continuation samples remain independent key frames instead of weakening losslessness.
+                colorEncoder.EncodeKeyFrame(frame, stream);
+            }
+
+            colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
+                colorOffset,
+                checked((int)(stream.Length - colorOffset)),
+                duration,
+                isSyncSample: !colorUsesInterPrediction);
+        }
     }
 
     private int WriteSequenceFileTypeBox(Stream stream)

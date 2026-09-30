@@ -184,9 +184,9 @@ internal static partial class Av1TemporalFilter
         // Chroma uses the visible chroma dimensions, crop_widths[1] and crop_heights[1].
         int subsamplingX = plane == Av1Plane.Y ? 0 : frame.ChromaSubsamplingX;
         int subsamplingY = plane == Av1Plane.Y ? 0 : frame.ChromaSubsamplingY;
-        Buffer2DRegion<TSample> region = frame.CodedView.GetPlane(plane);
-        ReadOnlySpan<TSample> samples = region.Buffer.DangerousGetSingleSpan();
-        int stride = region.Buffer.Width;
+        Av1PlaneRegion<TSample> region = frame.CodedView.GetPlane(plane);
+        ReadOnlySpan<TSample> samples = region.Samples;
+        int stride = region.Stride;
         int origin = (region.Bounds.Y * stride) + region.Bounds.X;
         return EstimateNoise<TSample, TOperator>(
             samples[origin..],
@@ -250,9 +250,9 @@ internal static partial class Av1TemporalFilter
 
         TemporalFilterContext context = TemporalFilterContext.Create(frameToFilter, in settings, in parameters, qFactor);
         ReadOnlySpan<Av1EncoderFrame<TSample>> frames = lookahead.Slice(filterIndex - framesBefore, frameCount);
-        Buffer2DRegion<TSample> luma = frameToFilter.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> luma = frameToFilter.CodedView.GetPlane(Av1Plane.Y);
         Av1MotionSearchSites sites = new(workspace.SearchSites);
-        sites.Configure(Av1MotionSearchSettings.FullPixelSearchMethod.NStep, luma.Buffer.Width);
+        sites.Configure(Av1MotionSearchSettings.FullPixelSearchMethod.NStep, luma.Stride);
 
         int blockRows = (frameToFilter.Height + BlockSize - 1) / BlockSize;
         int blockColumns = (frameToFilter.Width + BlockSize - 1) / BlockSize;
@@ -474,9 +474,9 @@ internal static partial class Av1TemporalFilter
         where TSearch : struct, IMotionSearchOperator<TSample>
     {
         Av1EncoderFrame<TSample> frameToFilter = frames[filterFrame];
-        Buffer2DRegion<TSample> sourceLuma = frameToFilter.CodedView.GetPlane(Av1Plane.Y);
-        ReadOnlySpan<TSample> sourceSamples = sourceLuma.Buffer.DangerousGetSingleSpan();
-        int stride = sourceLuma.Buffer.Width;
+        Av1PlaneRegion<TSample> sourceLuma = frameToFilter.CodedView.GetPlane(Av1Plane.Y);
+        ReadOnlySpan<TSample> sourceSamples = sourceLuma.Samples;
+        int stride = sourceLuma.Stride;
         int sourceOrigin = (sourceLuma.Bounds.Y * stride) + sourceLuma.Bounds.X;
         Span<Av1MotionVector> subblockVectors = stackalloc Av1MotionVector[SubblockCount];
         Span<int> subblockErrors = stackalloc int[SubblockCount];
@@ -506,7 +506,7 @@ internal static partial class Av1TemporalFilter
             {
                 bool isDcDifferenceLarge = false;
                 bool isLowContrast = false;
-                Buffer2DRegion<TSample> referenceLuma = frames[frame].CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> referenceLuma = frames[frame].CodedView.GetPlane(Av1Plane.Y);
                 if (frame == filterFrame)
                 {
                     // Later frames continue the search from the mirrored vector.
@@ -517,7 +517,7 @@ internal static partial class Av1TemporalFilter
                     BlockMotionSearch<TSample, TSearch> search = new(
                         sourceSamples,
                         sourceOrigin,
-                        referenceLuma.Buffer.DangerousGetSingleSpan(),
+                        referenceLuma.Samples,
                         (referenceLuma.Bounds.Y * stride) + referenceLuma.Bounds.X,
                         stride,
                         workspace.FractionalPrediction,
@@ -574,13 +574,13 @@ internal static partial class Av1TemporalFilter
             NormalizeBlock<TSample, TOperator>(output, blockRow, blockColumn, accumulator, count);
 
             // compute_frame_diff: the 64x64 luma squared difference between the source and the filtered block.
-            Buffer2DRegion<TSample> filteredLuma = output.CodedView.GetPlane(Av1Plane.Y);
-            int filteredStride = filteredLuma.Buffer.Width;
+            Av1PlaneRegion<TSample> filteredLuma = output.CodedView.GetPlane(Av1Plane.Y);
+            int filteredStride = filteredLuma.Stride;
             int filteredOrigin = ((filteredLuma.Bounds.Y + (blockRow * BlockSize)) * filteredStride) + filteredLuma.Bounds.X + (blockColumn * BlockSize);
             GetVariance<TSample, TSearch>(
                 sourceSamples[blockOrigin..],
                 stride,
-                filteredLuma.Buffer.DangerousGetSingleSpan()[filteredOrigin..],
+                filteredLuma.Samples[filteredOrigin..],
                 filteredStride,
                 BlockSize,
                 BlockSize,
@@ -777,15 +777,15 @@ internal static partial class Av1TemporalFilter
             int subsamplingY = plane == 0 ? 0 : output.ChromaSubsamplingY;
             int width = BlockSize >> subsamplingX;
             int height = BlockSize >> subsamplingY;
-            Buffer2DRegion<TSample> region = output.CodedView.GetPlane((Av1Plane)plane);
-            int stride = region.Buffer.Width;
+            Av1PlaneRegion<TSample> region = output.CodedView.GetPlane((Av1Plane)plane);
+            int stride = region.Stride;
             int origin = ((region.Bounds.Y + (blockRow * height)) * stride) + region.Bounds.X + (blockColumn * width);
             Normalize<TSample, TOperator>(
                 accumulator.Slice(planeOffset, width * height),
                 count.Slice(planeOffset, width * height),
                 width,
                 height,
-                region.Buffer.DangerousGetSingleSpan()[origin..],
+                region.Samples[origin..],
                 stride);
 
             planeOffset += width * height;
@@ -820,10 +820,10 @@ internal static partial class Av1TemporalFilter
         int subsamplingY = plane == Av1Plane.Y ? 0 : frame.ChromaSubsamplingY;
         width = BlockSize >> subsamplingX;
         height = BlockSize >> subsamplingY;
-        Buffer2DRegion<TSample> region = frame.CodedView.GetPlane(plane);
-        stride = region.Buffer.Width;
+        Av1PlaneRegion<TSample> region = frame.CodedView.GetPlane(plane);
+        stride = region.Stride;
         int origin = ((region.Bounds.Y + (blockRow * height)) * stride) + region.Bounds.X + (blockColumn * width);
-        samples = region.Buffer.DangerousGetSingleSpan()[origin..];
+        samples = region.Samples[origin..];
     }
 
     /// <summary>

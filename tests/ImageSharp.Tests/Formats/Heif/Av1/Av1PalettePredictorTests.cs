@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Memory;
@@ -17,7 +18,7 @@ public class Av1PalettePredictorTests
     /// <summary>
     /// The hardware configurations required to exercise the native packed width and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies exact indexed reconstruction and destination-padding preservation for every palette size.
@@ -40,13 +41,9 @@ public class Av1PalettePredictorTests
                 int mapStride = width + 5;
                 int destinationStride = width + 9;
                 byte[] colorIndexMap = CreateColorIndexMap(mapStride, height, width, paletteSize);
-                using Buffer2D<byte> colorIndexMapBuffer = Configuration.Default.MemoryAllocator.Allocate2D<byte>(mapStride, height);
-                for (int row = 0; row < height; row++)
-                {
-                    colorIndexMap.AsSpan(row * mapStride, mapStride).CopyTo(colorIndexMapBuffer.DangerousGetRowSpan(row));
-                }
-
-                Buffer2DRegion<byte> colorIndexMapRegion = new(colorIndexMapBuffer);
+                using IMemoryOwner<byte> colorIndexMapOwner = Configuration.Default.MemoryAllocator.Allocate<byte>(mapStride * height);
+                colorIndexMap.AsSpan(0, mapStride * height).CopyTo(colorIndexMapOwner.Memory.Span);
+                Av1PlaneRegion<byte> colorIndexMapRegion = new(colorIndexMapOwner.Memory, mapStride, new Rectangle(0, 0, mapStride, height));
                 ushort[] bytePalette = CreatePalette(paletteSize, 8);
                 byte[] expectedBytes = Enumerable.Repeat((byte)251, destinationStride * height).ToArray();
                 byte[] actualBytes = (byte[])expectedBytes.Clone();

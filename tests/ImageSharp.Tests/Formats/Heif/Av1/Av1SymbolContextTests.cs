@@ -16,7 +16,7 @@ public class Av1SymbolContextTests
     /// scalar path are all exercised.
     /// </summary>
     private const HwIntrinsics ContextConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies that every register width and the scalar path derive the scalar contexts for every transform

@@ -24,7 +24,7 @@ public class Av1TransformEstimateTests
     public void InterTransformEstimatePreservesDecisionAndContextContracts()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateEstimates,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks storage and skip decisions, retaining independent input samples and the aggregate output.

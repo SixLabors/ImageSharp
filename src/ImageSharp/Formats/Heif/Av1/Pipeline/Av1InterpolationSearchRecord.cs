@@ -41,4 +41,7 @@ internal struct Av1InterpolationSearchRecord
 
     /// <summary>The selected filter's modeled rate-distortion cost.</summary>
     public long Cost;
+
+    /// <summary>The selected filter's luma prediction error. Reference: INTERPOLATION_FILTER_STATS.pred_sse.</summary>
+    public uint PredictionSse;
 }

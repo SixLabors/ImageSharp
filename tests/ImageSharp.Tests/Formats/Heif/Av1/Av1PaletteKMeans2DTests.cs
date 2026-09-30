@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1PaletteKMeans2DTests
 {
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     [Fact]
     public void AssignIndicesMatchesScalarAtEveryIntrinsicTier()

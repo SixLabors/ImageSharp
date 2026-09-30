@@ -38,6 +38,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         // Only the external rate control reads the number of look-ahead frames past the group.
         _ = this.InitializeGroupFrames(input, out int groupFrames, out int modelQIndex);
         this.BaseLayerQIndex = modelQIndex;
+        this.MeasuredFrame = false;
         this.InitializeStatistics();
 
         // A key frame restores the default vector distributions before the costs are captured. Reference:
@@ -62,6 +63,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
 
             this.InitializeFlowDispenser(input, frameIndex, modelQIndex);
+            this.MeasuredFrame = true;
             this.DispenseFlow(input);
 
             // Luma only models leave the chroma of their reconstructions untouched.

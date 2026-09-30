@@ -12,14 +12,6 @@ internal static partial class Av1IntraSuperblockEncoder
 {
     private const int GradientBinCount = 32;
 
-    private static readonly int[] GradientThresholds =
-    [
-        -1334015, -441798, -261605, -183158, -138560, -109331, -88359, -72303,
-        -59392, -48579, -39272, -30982, -23445, -16400, -9715, -3194,
-        3227, 9748, 16433, 23478, 31015, 39305, 48611, 59425,
-        72336, 88392, 109364, 138593, 183191, 261638, 441831, int.MaxValue
-    ];
-
     private static readonly float[] GradientModelBias =
     [
         0.450578F, 0.695518F, -0.717944F, -0.639894F,
@@ -77,7 +69,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="threshold">The speed-dependent neural score threshold.</param>
         /// <returns>A bit mask whose eight bits correspond to the contiguous directional prediction modes.</returns>
         internal static byte GetDirectionalModeSkipMask(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point origin,
             int rows,
             int columns,
@@ -87,43 +79,42 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<float> histogram = stackalloc float[GradientBinCount];
             histogram.Clear();
             float total = 0.1F;
-            ReadOnlySpan<int> thresholds = GradientThresholds;
-            for (int row = 1; row < rows - 1; row++)
+            if (rows > 2 && columns > 2)
             {
-                ReadOnlySpan<TSample> above = source.DangerousGetRowSpan(origin.Y + row - 1);
-                ReadOnlySpan<TSample> current = source.DangerousGetRowSpan(origin.Y + row);
-                ReadOnlySpan<TSample> below = source.DangerousGetRowSpan(origin.Y + row + 1);
-                for (int column = 1; column < columns - 1; column++)
+                // The gradients, magnitudes and bins of a row are computed with vectors. The histogram and total
+                // then add the magnitudes one sample at a time in row order, because they are floats and the
+                // reference accumulates them in that order.
+                // A block is at most 128 samples wide, so each row's scratch holds 128 values and the Sobel window
+                // holds the three rows around the current one.
+                Span<short> window = stackalloc short[3 * 128];
+                Span<short> magnitudes = stackalloc short[128];
+                Span<int> bins = stackalloc int[128];
+                Span<short> horizontal = stackalloc short[128];
+                Span<short> vertical = stackalloc short[128];
+                int interior = columns - 2;
+                for (int row = 1; row < rows - 1; row++)
                 {
-                    int x = origin.X + column;
-                    int dx = TOperator.GetSampleValue(above[x + 1]) + (2 * TOperator.GetSampleValue(current[x + 1])) + TOperator.GetSampleValue(below[x + 1])
-                        - TOperator.GetSampleValue(above[x - 1]) - (2 * TOperator.GetSampleValue(current[x - 1])) - TOperator.GetSampleValue(below[x - 1]);
-
-                    int dy = TOperator.GetSampleValue(below[x - 1]) + (2 * TOperator.GetSampleValue(below[x])) + TOperator.GetSampleValue(below[x + 1])
-                        - TOperator.GetSampleValue(above[x - 1]) - (2 * TOperator.GetSampleValue(above[x])) - TOperator.GetSampleValue(above[x + 1]);
-
-                    int magnitude = Math.Abs(dx) + Math.Abs(dy);
-                    if (magnitude == 0)
+                    TOperator.CopyPaletteSamples(source, new Point(origin.X, origin.Y + row - 1), 3, columns, window);
+                    Av1GradientHistogram.ComputeRow(window, columns, 1, magnitudes, bins, horizontal, vertical);
+                    for (int column = 0; column < interior; column++)
                     {
-                        continue;
-                    }
+                        int magnitude = magnitudes[column];
+                        if (magnitude == 0)
+                        {
+                            continue;
+                        }
 
-                    total += magnitude;
-                    if (dx == 0)
-                    {
-                        histogram[0] += magnitude >> 1;
-                        histogram[^1] += magnitude >> 1;
-                        continue;
-                    }
+                        total += magnitude;
+                        int bin = bins[column];
+                        if (bin == Av1GradientHistogram.VerticalBin)
+                        {
+                            histogram[0] += magnitude >> 1;
+                            histogram[^1] += magnitude >> 1;
+                            continue;
+                        }
 
-                    int ratio = (int)(((long)dy << 16) / dx);
-                    int bin = 0;
-                    while (ratio > thresholds[bin])
-                    {
-                        bin++;
+                        histogram[bin] += magnitude;
                     }
-
-                    histogram[bin] += magnitude;
                 }
             }
 

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -211,42 +212,65 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether a zero-vector global mode of a reference with an identity model is dropped because its
-        /// prediction error exceeds that of the best new vector of the reference, by a quarter at level one.
-        /// Reference: prune_zero_mv_with_sse().
+        /// Returns whether a zero-vector global mode whose references all have identity models is dropped because
+        /// its prediction error exceeds that of the best new vectors of the references, by a quarter at level one.
+        /// A compound mode compares the sums over both references. Reference: prune_zero_mv_with_sse().
         /// </summary>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="reference">The reference.</param>
+        /// <param name="primaryReference">The first reference.</param>
+        /// <param name="secondaryReference">The second reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
         /// <returns><see langword="true"/> when the mode is dropped.</returns>
-        private readonly bool PrunesZeroVectorWithSse(Point blockOrigin, Av1BlockSize blockSize, Av1ReferenceFrameType reference)
+        private readonly bool PrunesZeroVectorWithSse(
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1ReferenceFrameType primaryReference,
+            Av1ReferenceFrameType secondaryReference = Av1ReferenceFrameType.None)
         {
             int level = this.picture.Parent.SpeedSettings.ZeroVectorSsePruningLevel;
-            if (level == 0 ||
-                this.picture.Parent.FrameHeader.GetGlobalMotionParameters()[(int)reference - 1].Type != Av1GlobalMotionType.Identity ||
-                this.bestSingleReferenceSses[(int)reference] == int.MaxValue)
+            if (level == 0)
             {
                 return false;
             }
 
-            // The identity model predicts with the reference block at the same place, and the variance function of
-            // the block size measures its error, rounded down to 8-bit precision. Reference: the fn_ptr[bsize].vf call.
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> referencePlane = this.references.Span[(int)reference].CodedView.GetPlane(Av1Plane.Y);
-            TOperator.GetMoments(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
-                sourcePlane.Stride,
-                Av1TransformBlockEncoder.GetPlaneSpan(referencePlane, blockOrigin),
-                referencePlane.Stride,
-                blockSize.GetWidth(),
-                blockSize.GetHeight(),
-                out _,
-                out long squares);
+            int referenceCount = secondaryReference > Av1ReferenceFrameType.Intra ? 2 : 1;
+            for (int index = 0; index < referenceCount; index++)
+            {
+                Av1ReferenceFrameType reference = index == 0 ? primaryReference : secondaryReference;
+                if (this.picture.Parent.FrameHeader.GetGlobalMotionParameters()[(int)reference - 1].Type != Av1GlobalMotionType.Identity ||
+                    this.bestSingleReferenceSses[(int)reference] == int.MaxValue)
+                {
+                    return false;
+                }
+            }
 
+            // The identity model predicts with the reference block at the same place, and the variance function of
+            // the block size measures its error, rounded down to 8-bit precision. The sums wrap as unsigned values.
+            // Reference: the fn_ptr[bsize].vf call.
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int shift = 2 * (this.bitDepth.GetBitCount() - 8);
-            uint sse = shift == 0 ? (uint)squares : (uint)((squares + (1L << (shift - 1))) >> shift);
+            uint sseSum = 0;
+            uint bestSseSum = 0;
+            for (int index = 0; index < referenceCount; index++)
+            {
+                Av1ReferenceFrameType reference = index == 0 ? primaryReference : secondaryReference;
+                Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)reference].CodedView.GetPlane(Av1Plane.Y);
+                TOperator.GetMoments(
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
+                    sourcePlane.Stride,
+                    Av1TransformBlockEncoder.GetPlaneSpan(referencePlane, blockOrigin),
+                    referencePlane.Stride,
+                    blockSize.GetWidth(),
+                    blockSize.GetHeight(),
+                    out _,
+                    out long squares);
+
+                sseSum += shift == 0 ? (uint)squares : (uint)((squares + (1L << (shift - 1))) >> shift);
+                bestSseSum += this.bestSingleReferenceSses[(int)reference];
+            }
+
             double multiplier = level > 1 ? 1.00 : 1.25;
-            return sse > multiplier * this.bestSingleReferenceSses[(int)reference];
+            return sseSum > multiplier * bestSseSum;
         }
 
         /// <summary>
@@ -307,6 +331,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Reference: the best_single_sse_in_refs reset of init_inter_mode_search_state().
             this.bestSingleReferenceSses[..].Fill(int.MaxValue);
+
+            // Reference: the x->pred_sse reset at the start of av1_rd_pick_inter_mode().
+            this.predictionSses[..].Fill(int.MaxValue);
             this.leftoverInterEstimate = Av1RateDistortionStatistics.Invalid;
             selectedVector = default;
             selectedSecondaryVector = default;
@@ -1182,7 +1209,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Point> referencePoints = stackalloc Point[Av1EncoderMotionVariation.MaximumSampleCount];
             int count = Av1EncoderMotionVariation.FindSamples(this.picture, macroBlock, position, in mode, sourcePoints, referencePoints);
 
-            Buffer2DRegion<TSample> referencePlane = this.references.Span[(int)mode.ReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)mode.ReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
             Size frameSize = new(
                 this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
                 this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
@@ -1273,7 +1300,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.bitDepth);
 
             // The prediction is the first operand, so high-bit-depth rounding matches the reference variance.
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             TOperator.GetMoments(
                 prediction,
                 width,
@@ -1386,7 +1413,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Span<TSample> prediction = planeIndex == 0 ? workspace.LumaPrediction :
                             planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
 
-                        Buffer2DRegion<TSample> secondaryReference = predictionModeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                        Av1PlaneRegion<TSample> secondaryReference = predictionModeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                             ? this.references.Span[(int)predictionModeInfo.SecondaryReferenceFrame].CodedView.GetPlane(plane)
                             : default;
 
@@ -1791,8 +1818,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 this.blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> first, out Span<ushort> second);
-                Buffer2DRegion<TSample> primaryPlane = this.references.Span[(int)modeInfo.Block.ReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
-                Buffer2DRegion<TSample> secondaryPlane = this.references.Span[(int)modeInfo.Block.SecondaryReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> primaryPlane = this.references.Span[(int)modeInfo.Block.ReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> secondaryPlane = this.references.Span[(int)modeInfo.Block.SecondaryReferenceFrame].CodedView.GetPlane(Av1Plane.Y);
                 bool primaryWarped = this.TryPrepareGlobalCompoundIntermediate(
                     modeInfo.Block.Mode, modeInfo.Block.ReferenceFrame, predictionSize, primaryPlane, blockOrigin, predictionSize, 0, 0, first);
 
@@ -2012,7 +2039,9 @@ internal static partial class Av1IntraSuperblockEncoder
             // block after the cheaper skip flag, and stops once that sum exceeds the budget. Reference:
             // choose_largest_tx_size() with the current_rd of av1_txfm_rd_in_plane() and block_rd_txfm().
             bool uniformSearch = initialDepth == Av1Constants.MaxVarTransform;
-            long uniformCurrentCost = Math.Min(skipCost, codedCost);
+
+            // Lossless coding starts at zero. Reference: choose_smallest_tx_size().
+            long uniformCurrentCost = this.picture.Parent.FrameHeader.CodedLossless ? 0 : Math.Min(skipCost, codedCost);
             bool uniformExited = false;
 
             // A coding block can contain several maximum-size transforms. Each root consumes the
@@ -2575,6 +2604,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 int childHeight4 = childSize.Get4x4HighCount();
                 int childCount = (width4 / childWidth4) * (height4 / childHeight4);
                 long splitLimit = Math.Min(noSplit.Cost, costLimit);
+
+                // The split cost counts only after the first child: the partition rate is added without updating
+                // rdcost, so the first child receives the whole budget. Reference: the ref_best_rd -
+                // split_rd_stats->rdcost of try_tx_block_split().
+                long consumedCost = 0;
                 for (int y = 0; y < height4 && row + y < visibleHeight4; y += childHeight4)
                 {
                     for (int x = 0; x < width4 && column + x < visibleWidth4; x += childWidth4)
@@ -2595,7 +2629,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             states,
                             ref stateCount,
                             noSplit.Cost / childCount,
-                            splitLimit - split.Cost,
+                            splitLimit - consumedCost,
                             -1);
 
                         if (child.Cost == long.MaxValue)
@@ -2605,6 +2639,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
 
                         split.Add(this.rateMultiplier, in child);
+                        consumedCost = split.Cost;
                         if (split.Cost > splitLimit)
                         {
                             split = Av1RateDistortionStatistics.Invalid;
@@ -2800,7 +2835,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // prediction error directly and abandon later planes once the candidate cannot win.
                 // A frame that pads its border measures the samples inside the frame only. Reference:
                 // av1_pixel_diff_dist() in skip_mode_rd().
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                 Size visibleSize = this.blockWorkspace.BorderPad
                     ? this.blockWorkspace.GetVisibleSize(plane, origin, planeSize.GetWidth(), planeSize.GetHeight())
                     : new Size(
@@ -3036,8 +3071,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1InterpolationFilter defaultFilter = isSwitchable ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter;
             Av1InterpolationFilter selectedVerticalFilter = defaultFilter;
             Av1InterpolationFilter selectedHorizontalFilter = defaultFilter;
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             int sourceOrigin = ((sourcePlane.Bounds.Y + blockOrigin.Y) * sourcePlane.Stride) + sourcePlane.Bounds.X + blockOrigin.X;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size frameSize = new(
@@ -3061,9 +3096,9 @@ internal static partial class Av1IntraSuperblockEncoder
             // Frame owners provide contiguous padded planes. Borrow those spans without copying source blocks
             // or reconstructing border samples, and keep the search scratch disjoint from retained inter winners.
             Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
-                sourcePlane.Buffer.DangerousGetSingleSpan()[sourceOrigin..],
+                sourcePlane.Samples[sourceOrigin..],
                 sourcePlane.Stride,
-                referencePlane.Buffer.DangerousGetSingleSpan(),
+                referencePlane.Samples,
                 referencePlane.Stride,
                 referenceOrigin,
                 blockSize,
@@ -3177,6 +3212,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // against each other, so its absolute value does not have to be exact.
                     if (modelTranslation && Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + modeRate, 0) <= bestCost)
                     {
+                        long translationLumaSquaredError = 0;
                         Av1RateDistortionStatistics estimate = this.GetInterFilterModelCost(
                             candidateVectors[index],
                             default,
@@ -3193,8 +3229,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             workspace.LumaPrediction,
                             workspace.BluePrediction,
                             workspace.RedPrediction,
-                            planeStatistics);
+                            planeStatistics,
+                            ref translationLumaSquaredError);
 
+                        // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
+                        // simple_translation_pred_rd().
+                        this.SetPredictionSse(modeInfo.Block.ReferenceFrame, translationLumaSquaredError);
                         translationCosts[index] = estimate.Cost;
                         bestTranslation = Math.Min(bestTranslation, estimate.Cost);
                     }
@@ -3424,7 +3464,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         searchRange,
                         frameHeader.ForceIntegerMotionVector,
                         frameHeader.AllowHighPrecisionMotionVector,
-                        fineMeshInterval: false,
+                        fineMeshInterval: this.UsesFineSearchInterval,
                         referenceIndex,
                         referenceVector,
                         drlRate,
@@ -3433,8 +3473,17 @@ internal static partial class Av1IntraSuperblockEncoder
                         motionStarts[..startCount],
                         startWeight,
                         ref motionState,
-                        out Av1MotionSearchBase.FractionalResult searchResult) ||
-                        motionState.References[referenceIndex].Skip)
+                        out Av1MotionSearchBase.FractionalResult searchResult))
+                    {
+                        continue;
+                    }
+
+                    // A search result is kept for the compound modes even when the entry is then skipped as a repeat
+                    // of an earlier one. Reference: the single_newmv_valid update before the mode_info skip return
+                    // in handle_newmv().
+                    searchedNewVectors[referenceIndex] = searchResult.Vector;
+                    searchedNewVectorMask |= (byte)(1 << referenceIndex);
+                    if (motionState.References[referenceIndex].Skip)
                     {
                         continue;
                     }
@@ -3443,15 +3492,19 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     // The prediction error of the search is kept for the zero-vector pruning. Reference: the
                     // best_single_sse_in_refs update after handle_newmv() in handle_inter_mode(), which reads the
-                    // pred_sse that the fractional search leaves.
-                    uint searchSse = (uint)searchResult.SquaredError;
+                    // pred_sse that the fractional search leaves. A forced integer vector skips that search, so the
+                    // value an earlier candidate of the reference left is read. Reference: use_fractional_mv in
+                    // av1_single_motion_search().
+                    if (!frameHeader.ForceIntegerMotionVector)
+                    {
+                        this.SetPredictionSse(referenceFrame, searchResult.SquaredError);
+                    }
+
+                    uint searchSse = this.predictionSses[(int)referenceFrame];
                     if (searchSse < this.bestSingleReferenceSses[(int)referenceFrame])
                     {
                         this.bestSingleReferenceSses[(int)referenceFrame] = searchSse;
                     }
-
-                    searchedNewVectors[referenceIndex] = searchResult.Vector;
-                    searchedNewVectorMask |= (byte)(1 << referenceIndex);
                 }
 
                 modeInfo.Block.Mode = requestedMode;
@@ -4078,8 +4131,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> intraResidual = workspace.Residual[..sampleCount];
             Span<short> interResidual = workspace.Residual.Slice(sampleCount, sampleCount);
             Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask()[..sampleCount];
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             this.PrepareSingleInterPrediction(
                 predictionMode,
                 referenceFrame,
@@ -4253,9 +4306,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1MotionSearchSettings.FullPixelSearchMethod method = motionSettings.GetFullPixelMethod(blockSize);
                 Av1MotionSearchBase.FullPixelSearch<TSample, TOperator> fullSearch = new(
-                    sourcePlane.Buffer.DangerousGetSingleSpan()[sourceOrigin..],
+                    sourcePlane.Samples[sourceOrigin..],
                     sourcePlane.Stride,
-                    referencePlane.Buffer.DangerousGetSingleSpan(),
+                    referencePlane.Samples,
                     referencePlane.Stride,
                     referenceOrigin,
                     size,
@@ -4286,9 +4339,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!this.picture.Parent.FrameHeader.ForceIntegerMotionVector)
                 {
                     Av1MotionSearchBase.FractionalSearch<TSample, TOperator> fractionalSearch = new(
-                        sourcePlane.Buffer.DangerousGetSingleSpan()[sourceOrigin..],
+                        sourcePlane.Samples[sourceOrigin..],
                         sourcePlane.Stride,
-                        referencePlane.Buffer.DangerousGetSingleSpan(),
+                        referencePlane.Samples,
                         referencePlane.Stride,
                         referenceOrigin,
                         workspace.BluePrediction,
@@ -5188,7 +5241,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
                 parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
 
             Span<int> sads = stackalloc int[Av1Constants.ReferenceFrameCount + 1];
@@ -5208,8 +5261,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionVector first = singleReferenceVectors[reference].GetStackVector(0, globalMotion);
                 Av1MotionVector second = singleReferenceVectors[reference].GetStackVector(1, globalMotion);
                 int count = first == second ? 1 : 2;
-                Buffer2DRegion<TSample> referencePlane = this.references.Span[reference].CodedView.GetPlane(Av1Plane.Y);
-                ReadOnlySpan<TSample> referenceSamples = referencePlane.Buffer.DangerousGetSingleSpan();
+                Av1PlaneRegion<TSample> referencePlane = this.references.Span[reference].CodedView.GetPlane(Av1Plane.Y);
+                ReadOnlySpan<TSample> referenceSamples = referencePlane.Samples;
                 bool zeroSeen = false;
                 int best = int.MaxValue;
                 for (int i = 0; i < count; i++)
@@ -5651,6 +5704,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceIndices[candidateCount++] = (byte)referenceIndex;
             }
 
+            // A list or global component that points beyond the frame displacement region removes its entry.
+            // Reference: build_cur_mv() in handle_inter_mode() and ref_mv_idx_to_search().
+            Av1PlaneRegion<TSample> boundsPlane = this.references.Span[(int)primaryReference].CodedView.GetPlane(Av1Plane.Y);
+            Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
+                new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
+                new Size(
+                    this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                    this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2),
+                Math.Min(boundsPlane.Bounds.X, boundsPlane.Bounds.Y));
+
             ReadOnlySpan<Av1MotionVector> primaryNewVectors = newMotionVectors[(int)primaryReference];
             ReadOnlySpan<Av1MotionVector> secondaryNewVectors = newMotionVectors[(int)secondaryReference];
             byte primaryNewVectorMask = newMotionVectorMasks[(int)primaryReference];
@@ -5661,8 +5724,12 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if ((sharedNewMask & (1 << referenceIndex)) != 0)
                 {
-                    primaryVectors[candidateCount] = primaryNewVectors[referenceIndex];
-                    secondaryVectors[candidateCount] = secondaryNewVectors[referenceIndex];
+                    primaryVectors[candidateCount] = ClampToSubpixelRange(
+                        primaryNewVectors[referenceIndex], referenceMotionVectors.GetCompoundNewReference(referenceIndex, 0), frameBounds);
+
+                    secondaryVectors[candidateCount] = ClampToSubpixelRange(
+                        secondaryNewVectors[referenceIndex], referenceMotionVectors.GetCompoundNewReference(referenceIndex, 1), frameBounds);
+
                     modes[candidateCount] = Av1PredictionMode.NewNewMotionVector;
                     referenceIndices[candidateCount++] = (byte)referenceIndex;
                 }
@@ -5670,7 +5737,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if ((primaryNewVectorMask & 1) != 0)
             {
-                primaryVectors[candidateCount] = primaryNewVectors[0];
+                primaryVectors[candidateCount] = ClampToSubpixelRange(
+                    primaryNewVectors[0], referenceMotionVectors.GetCompoundNewReference(0, 0), frameBounds);
+
                 secondaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearestReference(1);
                 modes[candidateCount++] = Av1PredictionMode.NewNearestMotionVector;
             }
@@ -5678,7 +5747,9 @@ internal static partial class Av1IntraSuperblockEncoder
             if ((secondaryNewVectorMask & 1) != 0)
             {
                 primaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearestReference(0);
-                secondaryVectors[candidateCount] = secondaryNewVectors[0];
+                secondaryVectors[candidateCount] = ClampToSubpixelRange(
+                    secondaryNewVectors[0], referenceMotionVectors.GetCompoundNewReference(0, 1), frameBounds);
+
                 modes[candidateCount++] = Av1PredictionMode.NearestNewMotionVector;
             }
 
@@ -5688,7 +5759,9 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if ((primaryNewVectorMask & (1 << referenceIndex)) != 0)
                 {
-                    primaryVectors[candidateCount] = primaryNewVectors[referenceIndex];
+                    primaryVectors[candidateCount] = ClampToSubpixelRange(
+                        primaryNewVectors[referenceIndex], referenceMotionVectors.GetCompoundNewReference(referenceIndex + 1, 0), frameBounds);
+
                     secondaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearReference(referenceIndex, 1);
                     modes[candidateCount] = Av1PredictionMode.NewNearMotionVector;
                     referenceIndices[candidateCount++] = (byte)referenceIndex;
@@ -5700,7 +5773,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 if ((secondaryNewVectorMask & (1 << referenceIndex)) != 0)
                 {
                     primaryVectors[candidateCount] = referenceMotionVectors.GetCompoundNearReference(referenceIndex, 0);
-                    secondaryVectors[candidateCount] = secondaryNewVectors[referenceIndex];
+                    secondaryVectors[candidateCount] = ClampToSubpixelRange(
+                        secondaryNewVectors[referenceIndex], referenceMotionVectors.GetCompoundNewReference(referenceIndex + 1, 1), frameBounds);
+
                     modes[candidateCount] = Av1PredictionMode.NearNewMotionVector;
                     referenceIndices[candidateCount++] = (byte)referenceIndex;
                 }
@@ -5746,16 +5821,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PredictionMode.NewMotionVector, Av1PredictionMode.NearMotionVector,
                 Av1PredictionMode.GlobalMotionVector, Av1PredictionMode.NewMotionVector
             ];
-
-            // A list or global component that points beyond the frame displacement region removes its entry.
-            // Reference: build_cur_mv() in handle_inter_mode() and ref_mv_idx_to_search().
-            Buffer2DRegion<TSample> boundsPlane = this.references.Span[(int)primaryReference].CodedView.GetPlane(Av1Plane.Y);
-            Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
-                new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
-                new Size(
-                    this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
-                    this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2),
-                Math.Min(boundsPlane.Bounds.X, boundsPlane.Bounds.Y));
 
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             InlineArray4<byte> referenceMasks = this.GetCompoundReferenceMasks(searchedSingleModes);
@@ -5921,6 +5986,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             if (modelTranslation &&
                                 Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + translationModeRate, 0) <= Math.Min(this.blockCostLimit, selectedStatistics.Cost))
                             {
+                                long translationLumaSquaredError = 0;
                                 Av1RateDistortionStatistics estimate = this.GetInterFilterModelCost(
                                     primaryVectors[index],
                                     secondaryVectors[index],
@@ -5937,8 +6003,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                     workspace.LumaPrediction,
                                     workspace.BluePrediction,
                                     workspace.RedPrediction,
-                                    planeStatistics);
+                                    planeStatistics,
+                                    ref translationLumaSquaredError);
 
+                                // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
+                                // simple_translation_pred_rd().
+                                this.SetPredictionSse(prediction.ReferenceFrame, translationLumaSquaredError);
                                 translationCosts[referenceIndices[index]] = estimate.Cost;
                                 bestTranslation = Math.Min(bestTranslation, estimate.Cost);
                             }
@@ -6042,6 +6112,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         previousSecondary[referenceIndex] = candidateSecondary;
                         previousVectorMask |= (byte)(1 << referenceIndex);
                     }
+                }
+
+                if (mode == Av1PredictionMode.GlobalGlobalMotionVector &&
+                    this.PrunesZeroVectorWithSse(blockOrigin, blockSize, primaryReference, secondaryReference))
+                {
+                    continue;
                 }
 
                 if (!this.SelectCompoundBlend(
@@ -6860,7 +6936,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="height">The block height.</param>
         /// <returns><see langword="true"/> when the first prediction fits the bottom-right side better.</returns>
         private readonly bool EstimateWedgeSign(
-            Buffer2DRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> sourcePlane,
             Point blockOrigin,
             ReadOnlySpan<TSample> firstPrediction,
             ReadOnlySpan<TSample> secondPrediction,
@@ -6933,7 +7009,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> secondResidual = residualStorage.Slice(count, count);
             Span<short> difference = workspace.Residual[..count];
             Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask()[..count];
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(sourcePlane, blockOrigin, firstPrediction, firstResidual, width, height);
             TOperator.SubtractPrediction(sourcePlane, blockOrigin, secondPrediction, secondResidual, width, height);
 
@@ -7049,7 +7125,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin, Av1BlockSize blockSize, int syntaxRate, out long error, out int rate, out long distortion)
         {
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Size visible = this.GetPredictionModelSize(blockOrigin, blockSize, 0, 0);
             TOperator.GetMoments(
                 Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
@@ -7118,7 +7194,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
                 this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
             int stackIndex = mode is Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector
                 ? referenceIndex + 1 : referenceIndex;
@@ -7136,8 +7212,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
                 }
 
-                Buffer2DRegion<TSample> movingPlane = this.references.Span[(int)(component == 0 ? primaryReference : secondaryReference)].CodedView.GetPlane(Av1Plane.Y);
-                Buffer2DRegion<TSample> fixedPlane = this.references.Span[(int)(component == 0 ? secondaryReference : primaryReference)].CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> movingPlane = this.references.Span[(int)(component == 0 ? primaryReference : secondaryReference)].CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> fixedPlane = this.references.Span[(int)(component == 0 ? secondaryReference : primaryReference)].CodedView.GetPlane(Av1Plane.Y);
                 Av1MotionVector referenceVector = referenceMotionVectors.GetCompoundNewReference(stackIndex, component);
                 int columnQ4 = (blockOrigin.X << 4) + (other.Column << 1);
                 int rowQ4 = (blockOrigin.Y << 4) + (other.Row << 1);
@@ -7160,10 +7236,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // moves, then restore it before the caller builds the final compound prediction.
                 if (component != 0)
                 {
-                    for (int i = 0; i < mask.Length; i++)
-                    {
-                        mask[i] = (byte)(64 - mask[i]);
-                    }
+                    TensorPrimitives.Subtract((byte)64, mask, mask);
                 }
 
                 int referenceOrigin = ((movingPlane.Bounds.Y + blockOrigin.Y) * movingPlane.Stride) + movingPlane.Bounds.X + blockOrigin.X;
@@ -7173,7 +7246,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionSearchBase.FullPixelSearch<TSample, TOperator> fullSearch = new(
                     source,
                     sourcePlane.Stride,
-                    movingPlane.Buffer.DangerousGetSingleSpan(),
+                    movingPlane.Samples,
                     movingPlane.Stride,
                     referenceOrigin,
                     size,
@@ -7222,7 +7295,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1MotionSearchBase.FractionalSearch<TSample, TOperator> fractionalSearch = new(
                         source,
                         sourcePlane.Stride,
-                        movingPlane.Buffer.DangerousGetSingleSpan(),
+                        movingPlane.Samples,
                         movingPlane.Stride,
                         referenceOrigin,
                         workspace.RedPrediction,
@@ -7278,10 +7351,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (component != 0)
                 {
-                    for (int i = 0; i < mask.Length; i++)
-                    {
-                        mask[i] = (byte)(64 - mask[i]);
-                    }
+                    TensorPrimitives.Subtract((byte)64, mask, mask);
                 }
 
                 int previousCost = component == 0 ? primaryBestCost : secondaryBestCost;
@@ -7565,6 +7635,13 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Records the luma prediction error that a model or search leaves for a first reference.
+        /// Reference: the (unsigned int)AOMMIN(sse, UINT_MAX) stores to x->pred_sse.
+        /// </summary>
+        private void SetPredictionSse(Av1ReferenceFrameType reference, long squaredError)
+            => this.predictionSses[(int)reference] = (uint)Math.Min(squaredError, uint.MaxValue);
+
+        /// <summary>
         /// Selects interpolation filters with per-block reuse and frame-history pruning.
         /// </summary>
         /// <returns>Whether all selected prediction planes are prepared in the shared workspace.</returns>
@@ -7630,6 +7707,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (match >= 0)
             {
+                // Reference: the pred_sse restore of a find_interp_filter_match() hit.
+                this.predictionSses[(int)modeInfo.ReferenceFrame] = records[match].PredictionSse;
                 modelCost = records[match].Cost;
                 modeInfo.HorizontalInterpolationFilter = records[match].HorizontalFilter;
                 modeInfo.VerticalInterpolationFilter = records[match].VerticalFilter;
@@ -7746,6 +7825,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             InlineArray4<Av1RateDistortionStatistics> bestPlaneStatistics = default;
             InlineArray4<Av1RateDistortionStatistics> trialPlaneStatistics = default;
+            long bestLumaSquaredError = 0;
             Av1RateDistortionStatistics regular = this.GetInterFilterModelCost(
                 primary,
                 secondary,
@@ -7762,7 +7842,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 bestLuma,
                 bestBlue,
                 bestRed,
-                bestPlaneStatistics);
+                bestPlaneStatistics,
+                ref bestLumaSquaredError);
 
             long bestCost = regular.Cost;
             bool lumaUsesWorkspace = true;
@@ -7770,6 +7851,9 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.HorizontalInterpolationFilter = initialFilter;
             modeInfo.VerticalInterpolationFilter = initialFilter;
             filterRate = regularRate;
+
+            // Reference: the pred_sse store after the default filter's model in av1_interpolation_filter_search().
+            this.SetPredictionSse(modeInfo.ReferenceFrame, bestLumaSquaredError);
             if (writesFilters && compound && bestCandidateCost != long.MaxValue && (bestCost >> 1) > singleReferenceCost)
             {
                 modelCost = long.MaxValue;
@@ -7806,6 +7890,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // be integer-phase while subsampled chroma remains fractional, so reuse is per plane.
                 int skipPlanes = winnerSearch ? 0 : !dual && sharp && sharpMatchesRegular ? defaultSkip : predictionSkip;
                 bestPlaneStatistics[..].CopyTo(trialPlaneStatistics);
+                long trialLumaSquaredError = bestLumaSquaredError;
                 Av1RateDistortionStatistics trial = this.GetInterFilterModelCost(
                     primary,
                     secondary,
@@ -7822,11 +7907,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     trialLuma,
                     trialBlue,
                     trialRed,
-                    trialPlaneStatistics);
+                    trialPlaneStatistics,
+                    ref trialLumaSquaredError);
 
                 if (trial.Cost != long.MaxValue && trial.Cost * scale / 100 < bestCost)
                 {
                     bestCost = trial.Cost;
+                    bestLumaSquaredError = trialLumaSquaredError;
                     modeInfo.HorizontalInterpolationFilter = (Av1InterpolationFilter)horizontal;
                     modeInfo.VerticalInterpolationFilter = (Av1InterpolationFilter)vertical;
                     filterRate = trialRate;
@@ -7881,8 +7968,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
                     Span<TSample> prediction = planeIndex == 0 ? workspace.LumaPrediction :
                         planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
-                    Buffer2DRegion<TSample> reference = this.references.Span[(int)modeInfo.ReferenceFrame].CodedView.GetPlane(plane);
-                    Buffer2DRegion<TSample> secondaryReference = modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                    Av1PlaneRegion<TSample> reference = this.references.Span[(int)modeInfo.ReferenceFrame].CodedView.GetPlane(plane);
+                    Av1PlaneRegion<TSample> secondaryReference = modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                         ? this.references.Span[(int)modeInfo.SecondaryReferenceFrame].CodedView.GetPlane(plane)
                         : default;
 
@@ -7923,10 +8010,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     CompoundIndex = modeInfo.CompoundIndex,
                     HorizontalFilter = modeInfo.HorizontalInterpolationFilter,
                     VerticalFilter = modeInfo.VerticalInterpolationFilter,
-                    Cost = bestCost
+                    Cost = bestCost,
+                    PredictionSse = (uint)Math.Min(bestLumaSquaredError, uint.MaxValue)
                 };
             }
 
+            // Reference: the pred_sse store of the selected filter's luma error at the end of
+            // av1_interpolation_filter_search().
+            this.SetPredictionSse(modeInfo.ReferenceFrame, bestLumaSquaredError);
             modelCost = bestCost;
             return true;
         }
@@ -7950,7 +8041,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> lumaPrediction,
             Span<TSample> bluePrediction,
             Span<TSample> redPrediction,
-            Span<Av1RateDistortionStatistics> planeStatistics)
+            Span<Av1RateDistortionStatistics> planeStatistics,
+            ref long lumaSquaredError)
         {
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             int planeCount = modelChroma ? 3 : 1;
@@ -7979,8 +8071,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int height = planeBlockSize.GetHeight();
                 Span<TSample> prediction = plane == Av1Plane.Y ? lumaPrediction : plane == Av1Plane.U ? bluePrediction : redPrediction;
                 Span<short> residual = workspace.Residual[..(width * height)];
-                Buffer2DRegion<TSample> primaryReferencePlane = this.references.Span[(int)modeInfo.ReferenceFrame].CodedView.GetPlane(plane);
-                Buffer2DRegion<TSample> secondaryReferencePlane = modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
+                Av1PlaneRegion<TSample> primaryReferencePlane = this.references.Span[(int)modeInfo.ReferenceFrame].CodedView.GetPlane(plane);
+                Av1PlaneRegion<TSample> secondaryReferencePlane = modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                     ? this.references.Span[(int)modeInfo.SecondaryReferenceFrame].CodedView.GetPlane(plane)
                     : default;
 
@@ -8019,6 +8111,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (normalizationShift != 0)
                 {
                     squaredError = (squaredError + (1L << (normalizationShift - 1))) >> normalizationShift;
+                }
+
+                if (plane == Av1Plane.Y)
+                {
+                    lumaSquaredError = squaredError;
                 }
 
                 int acQuantizer = Av1QuantizationLookup.GetAcQuant(
@@ -8225,7 +8322,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (measurePrediction)
                 {
-                    Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+                    Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                     Point planeOrigin = planeIndex == 0 ? blockOrigin : Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
 
                     // A frame that pads its border measures the samples inside the frame only. Reference:
@@ -8789,6 +8886,22 @@ internal static partial class Av1IntraSuperblockEncoder
                 secondaryVector == referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 1));
         }
 
+        /// <summary>
+        /// Clamps a single-reference new vector that a compound mode reuses into the fractional search range around
+        /// the compound reference vector. Reference: clamp_mv_in_range() in handle_newmv().
+        /// </summary>
+        /// <param name="vector">The reused single-reference vector.</param>
+        /// <param name="reference">The compound reference vector of the component.</param>
+        /// <param name="frameBounds">The full-pixel region of the block. Reference: x->mv_limits.</param>
+        /// <returns>The clamped vector.</returns>
+        private static Av1MotionVector ClampToSubpixelRange(Av1MotionVector vector, Av1MotionVector reference, Rectangle frameBounds)
+        {
+            Rectangle limits = reference.GetSubpixelSearchBounds(frameBounds);
+            return new(
+                Math.Clamp(vector.Row, limits.Top, limits.Bottom - 1),
+                Math.Clamp(vector.Column, limits.Left, limits.Right - 1));
+        }
+
         private int GetCompoundMotionRate(
             Av1PredictionMode mode,
             Av1MotionVector vector,
@@ -9281,7 +9394,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth)
         {
             Av1MotionVector vector = this.picture.GetDisplacementVector(neighborPosition);
-            Buffer2DRegion<TSample> reference = neighbor.UseIntraBlockCopy
+            Av1PlaneRegion<TSample> reference = neighbor.UseIntraBlockCopy
                 ? this.reconstruction.GetPlane(plane)
                 : this.references.Span[(int)neighbor.ReferenceFrame].CodedView.GetPlane(plane);
 
@@ -9327,7 +9440,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1ReferenceFrameType referenceFrame,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
-            Buffer2DRegion<TSample> referencePlane,
+            Av1PlaneRegion<TSample> referencePlane,
             Av1Plane plane,
             Point lumaOrigin,
             int subsamplingX,
@@ -9383,7 +9496,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int x = 0; x < planeWidth; x += subWidth, modeColumn++)
                 {
                     Av1MotionVector subVector = vector;
-                    Buffer2DRegion<TSample> subReference = referencePlane;
+                    Av1PlaneRegion<TSample> subReference = referencePlane;
                     Av1InterpolationFilter subHorizontal = horizontalFilter;
                     Av1InterpolationFilter subVertical = verticalFilter;
                     if (modeRow != 0 || modeColumn != 0)
@@ -9471,7 +9584,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode mode,
             Av1ReferenceFrameType reference,
             Av1BlockSize blockSize,
-            Buffer2DRegion<TSample> referencePlane,
+            Av1PlaneRegion<TSample> referencePlane,
             Point planeOrigin,
             Av1BlockSize predictionSize,
             int subsamplingX,
@@ -9538,8 +9651,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> residual)
         {
             Av1EncoderFrame<TSample> reference = this.references.Span[(int)referenceFrame];
-            Buffer2DRegion<TSample> referencePlane = reference.CodedView.GetPlane(plane);
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+            Av1PlaneRegion<TSample> referencePlane = reference.CodedView.GetPlane(plane);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             Span<short> scratch = this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch;
             int width = predictionSize.GetWidth();
             int height = predictionSize.GetHeight();
@@ -9601,8 +9714,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1DifferenceWeightedMaskType differenceWeightedMaskType,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
-            Buffer2DRegion<TSample> referencePlane,
-            Buffer2DRegion<TSample> secondaryReferencePlane,
+            Av1PlaneRegion<TSample> referencePlane,
+            Av1PlaneRegion<TSample> secondaryReferencePlane,
             Point lumaOrigin,
             int subsamplingX,
             int subsamplingY,
@@ -9624,7 +9737,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point predictionOrigin = new(sourceColumnQ4 >> 4, sourceRowQ4 >> 4);
             Av1BlockSize predictionSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
             int sampleCount = predictionSize.GetWidth() * predictionSize.GetHeight();
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             if (usePreparedPrediction)
             {
                 TOperator.SubtractPrediction(
@@ -9834,7 +9947,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformTypeSelection = Av1TransformType.DctDct;
             }
 
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             int sampleCount = transformSize.GetSize2d();
 
             // Prediction-only error remains available even when every transform quantizes to nonzero coefficients.

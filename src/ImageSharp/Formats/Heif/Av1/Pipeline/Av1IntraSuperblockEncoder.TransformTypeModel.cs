@@ -1,6 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -698,63 +702,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        int widthShift = width <= 8 ? 0 : 1;
-        int heightShift = height <= 8 ? 0 : 1;
-        int energyWidth = width >> widthShift;
-        int energyHeight = height >> heightShift;
-        InlineArray64<uint> energy = default;
+        int energyWidth = width <= 8 ? width : width >> 1;
+        int energyHeight = height <= 8 ? height : height >> 1;
         InlineArray16<float> horizontalFeatures = default;
         InlineArray16<float> verticalFeatures = default;
-        ulong totalEnergy = 0;
-
-        // The supported models use at most an 8x8 energy grid. Each cell sums squared
-        // residuals before conversion to float, retaining high-bit-depth integer precision.
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                int sample = residual[(y * stride) + x];
-                uint square = (uint)(sample * sample);
-                energy[((y >> heightShift) * energyWidth) + (x >> widthShift)] += square;
-                totalEnergy += square;
-            }
-        }
-
-        if (totalEnergy == 0)
-        {
-            horizontalFeatures[..(energyWidth - 1)].Fill(1F / energyWidth);
-            verticalFeatures[..(energyHeight - 1)].Fill(1F / energyHeight);
-        }
-        else
-        {
-            float reciprocal = 1F / totalEnergy;
-            for (int y = 0; y < energyHeight; y++)
-            {
-                for (int x = 0; x < energyWidth; x++)
-                {
-                    float value = energy[(y * energyWidth) + x];
-                    if (x < energyWidth - 1)
-                    {
-                        horizontalFeatures[x] += value;
-                    }
-
-                    if (y < energyHeight - 1)
-                    {
-                        verticalFeatures[y] += value;
-                    }
-                }
-            }
-
-            for (int x = 0; x < energyWidth - 1; x++)
-            {
-                horizontalFeatures[x] *= reciprocal;
-            }
-
-            for (int y = 0; y < energyHeight - 1; y++)
-            {
-                verticalFeatures[y] *= reciprocal;
-            }
-        }
+        GetEnergyDistribution(residual, stride, width, height, horizontalFeatures, verticalFeatures);
 
         // The last feature of each axis is the correlation of adjacent residuals; a constant signal gives one.
         Av1ResidualBuilder.GetHorizontalVerticalCorrelation(
@@ -879,6 +831,107 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         return retainedMask;
+    }
+
+    /// <summary>
+    /// Computes the normalized horizontal and vertical energy projections of a residual block. The residual is
+    /// downscaled to at most an 8x8 grid of squared-sample sums, which stay integers, and the projections sum the
+    /// grid as floats in the reference order: each horizontal feature adds the rows top to bottom and each
+    /// vertical feature adds the columns left to right. Reference: get_energy_distribution_finer().
+    /// </summary>
+    /// <param name="residual">The residual samples.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="width">The block width: four, eight or sixteen.</param>
+    /// <param name="height">The block height: four, eight or sixteen.</param>
+    /// <param name="horizontalFeatures">Receives the grid width minus one horizontal features.</param>
+    /// <param name="verticalFeatures">Receives the grid height minus one vertical features.</param>
+    internal static void GetEnergyDistribution(
+        ReadOnlySpan<short> residual,
+        int stride,
+        int width,
+        int height,
+        Span<float> horizontalFeatures,
+        Span<float> verticalFeatures)
+    {
+        int heightShift = height <= 8 ? 0 : 1;
+        int energyWidth = width <= 8 ? width : width >> 1;
+        int energyHeight = height >> heightShift;
+
+        // Each grid row is one eight-lane vector; lanes past the grid width stay zero. A cell holds at most four
+        // squared twelve-bit samples, so the 32-bit lanes cannot overflow.
+        InlineArray8<Vector256<int>> grid = default;
+        ref short residualBase = ref MemoryMarshal.GetReference(residual);
+        for (int y = 0; y < height; y++)
+        {
+            ref short row = ref Unsafe.Add(ref residualBase, y * stride);
+            Vector256<int> cells;
+            if (width == 16)
+            {
+                // Two horizontally adjacent squares share a cell, which is one multiply-add of the row with itself.
+                Vector256<short> samples = Vector256.LoadUnsafe(ref row);
+                cells = Vector256_.MultiplyAddAdjacent(samples, samples);
+            }
+            else if (width == 8)
+            {
+                Vector256<int> samples = Vector256_.Widen(Vector128.LoadUnsafe(ref row));
+                cells = samples * samples;
+            }
+            else
+            {
+                Vector128<int> samples = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<long>(ref Unsafe.As<short, byte>(ref row))).AsInt16());
+                cells = Vector256.Create(samples * samples, Vector128<int>.Zero);
+            }
+
+            grid[y >> heightShift] += cells;
+        }
+
+        Vector256<ulong> total = Vector256<ulong>.Zero;
+        for (int y = 0; y < energyHeight; y++)
+        {
+            (Vector256<ulong> lower, Vector256<ulong> upper) = Vector256.Widen(grid[y].AsUInt32());
+            total += lower + upper;
+        }
+
+        ulong totalEnergy = Vector256.Sum(total);
+        if (totalEnergy == 0)
+        {
+            horizontalFeatures[..(energyWidth - 1)].Fill(1F / energyWidth);
+            verticalFeatures[..(energyHeight - 1)].Fill(1F / energyHeight);
+            return;
+        }
+
+        // Each lane of the horizontal sum is one column, so adding the rows in order keeps the reference's
+        // floating-point order. The transposed grid gives the vertical sums the same property.
+        InlineArray8<Vector256<float>> cellValues = default;
+        Vector256<float> horizontal = Vector256<float>.Zero;
+        for (int y = 0; y < energyHeight; y++)
+        {
+            cellValues[y] = Vector256.ConvertToSingle(grid[y]);
+            horizontal += cellValues[y];
+        }
+
+        Av1Transform2dOperations.Transpose(
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[0]),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[1]),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[2]),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[3]),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[4]),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[5]),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[6]),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[7]));
+
+        Vector256<float> vertical = Vector256<float>.Zero;
+        for (int x = 0; x < energyWidth; x++)
+        {
+            vertical += cellValues[x];
+        }
+
+        Vector256<float> reciprocal = Vector256.Create(1F / totalEnergy);
+        InlineArray8<float> values = default;
+        (horizontal * reciprocal).StoreUnsafe(ref values[0]);
+        ((ReadOnlySpan<float>)values)[..(energyWidth - 1)].CopyTo(horizontalFeatures);
+        (vertical * reciprocal).StoreUnsafe(ref values[0]);
+        ((ReadOnlySpan<float>)values)[..(energyHeight - 1)].CopyTo(verticalFeatures);
     }
 
     /// <summary>

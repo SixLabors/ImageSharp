@@ -114,7 +114,7 @@ internal struct Av1RateDistortionStatistics
     {
         if (this.Rate < int.MaxValue && this.Distortion < long.MaxValue && this.Cost < long.MaxValue)
         {
-            this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
+            this.Cost = Av1RateDistortion.GetSignedCost(rateMultiplier, this.Rate, this.Distortion);
         }
     }
 
@@ -127,9 +127,15 @@ internal struct Av1RateDistortionStatistics
     public readonly Av1RateDistortionStatistics Subtract(int rateMultiplier, in Av1RateDistortionStatistics other)
     {
         // Search starts without a winning candidate. Preserve that unbounded state instead of subtracting
-        // from sentinel integers; finite bounds subtract raw components before the single rate rounding.
-        return this.Cost == long.MaxValue || other.Cost == long.MaxValue
-            ? Invalid
-            : new(rateMultiplier, this.Rate - other.Rate, this.Distortion - other.Distortion);
+        // from sentinel integers; finite bounds subtract raw components before the single rate rounding, which
+        // rounds the magnitude of a negative rate. Reference: av1_rd_stats_subtraction().
+        if (this.Cost == long.MaxValue || other.Cost == long.MaxValue)
+        {
+            return Invalid;
+        }
+
+        Av1RateDistortionStatistics remaining = new(rateMultiplier, this.Rate - other.Rate, this.Distortion - other.Distortion);
+        remaining.Cost = Av1RateDistortion.GetSignedCost(rateMultiplier, remaining.Rate, remaining.Distortion);
+        return remaining;
     }
 }

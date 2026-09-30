@@ -135,7 +135,7 @@ public class Av1IntraSuperblockEncoderTests
         TSample[][] unfiltered = new TSample[planeCount][];
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
-            Buffer2DRegion<TSample> plane = source.Frame.View.GetPlane((Av1Plane)planeIndex);
+            Av1PlaneRegion<TSample> plane = source.Frame.View.GetPlane((Av1Plane)planeIndex);
             unfiltered[planeIndex] = new TSample[plane.Width * plane.Height];
         }
 
@@ -176,10 +176,10 @@ public class Av1IntraSuperblockEncoderTests
         _ = createWriter(symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace);
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
-            Buffer2DRegion<TSample> plane = reconstruction.Frame.View.GetPlane((Av1Plane)planeIndex);
+            Av1PlaneRegion<TSample> plane = reconstruction.Frame.View.GetPlane((Av1Plane)planeIndex);
             for (int y = 0; y < plane.Height; y++)
             {
-                plane.DangerousGetRowSpan(y).CopyTo(unfiltered[planeIndex].AsSpan(y * plane.Width, plane.Width));
+                plane.GetRowSpan(y).CopyTo(unfiltered[planeIndex].AsSpan(y * plane.Width, plane.Width));
             }
         }
 
@@ -219,14 +219,14 @@ public class Av1IntraSuperblockEncoderTests
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
             Av1Plane plane = (Av1Plane)planeIndex;
-            Buffer2DRegion<TSample> retained = reconstruction.Frame.View.GetPlane(plane);
+            Av1PlaneRegion<TSample> retained = reconstruction.Frame.View.GetPlane(plane);
             int subX = plane == Av1Plane.Y ? 0 : reconstruction.Frame.ChromaSubsamplingX;
             int subY = plane == Av1Plane.Y ? 0 : reconstruction.Frame.ChromaSubsamplingY;
-            Buffer2DRegion<byte> decoded = decodedFrame.DeriveBlockPointer(plane, subX, subY);
+            Av1PlaneRegion<byte> decoded = decodedFrame.DeriveBlockPointer(plane, subX, subY);
             for (int y = 0; y < retained.Height; y++)
             {
-                ReadOnlySpan<TSample> row = retained.DangerousGetRowSpan(y);
-                ReadOnlySpan<TSample> decodedRow = MemoryMarshal.Cast<byte, TSample>(decoded.DangerousGetRowSpan(y));
+                ReadOnlySpan<TSample> row = retained.GetRowSpan(y);
+                ReadOnlySpan<TSample> decodedRow = MemoryMarshal.Cast<byte, TSample>(decoded.GetRowSpan(y));
                 if (!row.SequenceEqual(decodedRow))
                 {
                     int column = 0;

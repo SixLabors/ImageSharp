@@ -328,6 +328,89 @@ internal static class Vector512_
     }
 
     /// <summary>
+    /// Widens thirty-two unsigned 8-bit integers to signed 16-bit integers.
+    /// </summary>
+    /// <param name="value">The vector to widen.</param>
+    /// <returns>The <see cref="Vector512{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<short> Widen(Vector256<byte> value)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.ConvertToVector512Int16(value);
+        }
+
+        return Vector512.Create(
+            Vector256_.Widen(value.GetLower()),
+            Vector256_.Widen(value.GetUpper()));
+    }
+
+    /// <summary>
+    /// Shifts each 128-bit lane right by a number of bytes, shifting in zeros.
+    /// </summary>
+    /// <param name="value">The value to shift.</param>
+    /// <param name="numBytes">The number of bytes to shift by.</param>
+    /// <returns>The <see cref="Vector512{Byte}"/>.</returns>
+    /// <remarks>
+    /// The shift stays inside each 128-bit lane, which is what the x86 instruction does. Composing
+    /// the two halves of the narrower shim reaches the same result on every other path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> ShiftRightBytesInLane(Vector512<byte> value, [ConstantExpected(Max = (byte)15)] byte numBytes)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.ShiftRightLogical128BitLane(value, numBytes);
+        }
+
+        return Vector512.Create(
+            Vector256_.ShiftRightBytesInLane(value.GetLower(), numBytes),
+            Vector256_.ShiftRightBytesInLane(value.GetUpper(), numBytes));
+    }
+
+    /// <summary>
+    /// Shifts each 128-bit lane left by a number of bytes, shifting in zeros.
+    /// </summary>
+    /// <param name="value">The value to shift.</param>
+    /// <param name="numBytes">The number of bytes to shift by.</param>
+    /// <returns>The <see cref="Vector512{Byte}"/>.</returns>
+    /// <remarks>
+    /// The shift stays inside each 128-bit lane, which is what the x86 instruction does. Composing
+    /// the two halves of the narrower shim reaches the same result on every other path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> ShiftLeftBytesInLane(Vector512<byte> value, [ConstantExpected(Max = (byte)15)] byte numBytes)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.ShiftLeftLogical128BitLane(value, numBytes);
+        }
+
+        return Vector512.Create(
+            Vector256_.ShiftLeftBytesInLane(value.GetLower(), numBytes),
+            Vector256_.ShiftLeftBytesInLane(value.GetUpper(), numBytes));
+    }
+
+    /// <summary>
+    /// Creates a new vector by selecting values from each 128-bit input lane using the corresponding indices.
+    /// </summary>
+    /// <param name="vector">The input vector from which values are selected.</param>
+    /// <param name="indices">The per-element indices used to select values within each 128-bit lane.</param>
+    /// <returns>The shuffled <see cref="Vector512{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> ShufflePerLane(Vector512<byte> vector, Vector512<byte> indices)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.Shuffle(vector, indices);
+        }
+
+        return Vector512.Create(
+            Vector256_.ShufflePerLane(vector.GetLower(), indices.GetLower()),
+            Vector256_.ShufflePerLane(vector.GetUpper(), indices.GetUpper()));
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.
@@ -458,4 +541,20 @@ internal static class Vector512_
             Vector256_.MultiplyWideningEven(left.GetLower(), right.GetLower()),
             Vector256_.MultiplyWideningEven(left.GetUpper(), right.GetUpper()));
     }
+
+    /// <summary>
+    /// Reads sixteen 32-bit values from a table, one per lane, at the given element indices.
+    /// </summary>
+    /// <param name="table">The first element of the table.</param>
+    /// <param name="indices">The element index of each lane.</param>
+    /// <returns>The <see cref="Vector512{Int32}"/>.</returns>
+    /// <remarks>
+    /// The runtime exposes no 512-bit gather, so each half reads through the 256-bit gather. The caller is
+    /// responsible for keeping every index inside the table.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> Gather(ref int table, Vector512<int> indices)
+        => Vector512.Create(
+            Vector256_.Gather(ref table, indices.GetLower()),
+            Vector256_.Gather(ref table, indices.GetUpper()));
 }

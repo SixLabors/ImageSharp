@@ -513,7 +513,12 @@ internal static partial class Av1FrameEncoder
             EnableFilterIntra = true,
             EnableDualFilter = speedSettings.EnableDualFilter,
             EnableIntraEdgeFilter = true,
-            EnableMaskedCompound = !isStillPicture,
+
+            // Good quality speed 6 and above turns masked compound off for 720p and larger frames before the
+            // sequence locks. Reference: disable_masked_comp in set_good_speed_feature_framesize_dependent(), applied
+            // to enable_masked_compound by av1_set_speed_features_framesize_dependent().
+            EnableMaskedCompound = !isStillPicture &&
+                !(!speedSettings.IsRealtime && options.Speed >= HeifEncodingSpeed.Level6 && minimumDimension >= 720),
             EnableInterIntraCompound = !isStillPicture && speedSettings.EnableInterIntraCompound,
 
             // A sequence enables temporal motion vectors and warped motion, and the frame header decides whether
@@ -726,9 +731,9 @@ internal static partial class Av1FrameEncoder
         frameHeader.AllowHighPrecisionMotionVector = false;
         if (frameHeader.FrameType == ObuFrameType.InterFrame)
         {
-            // Disabling screen-content tools makes force_integer_mv implicitly false, so inter vectors
-            // use fractional-motion syntax at the precision selected for the frame quantizer. Neither choice depends
-            // on the frame's update type.
+            // Inter vectors use fractional-motion syntax at the precision selected for the frame quantizer, unless
+            // the frame forces integer vectors. Neither choice depends on the frame's update type. Reference:
+            // av1_set_high_precision_mv() with cur_frame_force_integer_mv.
             Av1EncoderSpeedSettings speedSettings = new(
                 options.Speed,
                 allIntra: false,
@@ -737,7 +742,8 @@ internal static partial class Av1FrameEncoder
                 qIndex,
                 new Size(frameHeader.FrameSize.SuperResolutionUpscaledWidth, frameHeader.FrameSize.FrameHeight));
 
-            frameHeader.AllowHighPrecisionMotionVector = speedSettings.AllowHighPrecisionMotionVector;
+            frameHeader.AllowHighPrecisionMotionVector =
+                speedSettings.AllowHighPrecisionMotionVector && !frameHeader.ForceIntegerMotionVector;
 
             // Real-time usage selects the reference mode per frame only while estimated compound prediction is
             // enabled, and otherwise codes single references. Reference: the frame_parameter_update and
@@ -868,6 +874,7 @@ internal static partial class Av1FrameEncoder
 
         using ObuWriter obuWriter = new(configuration);
 
+        ScreenContentDecision decision = default;
         bool isScreenContent = PrepareFrame(
             configuration,
             image,
@@ -877,7 +884,8 @@ internal static partial class Av1FrameEncoder
             sequenceHeader,
             frameHeader,
             options,
-            encodeAlpha);
+            encodeAlpha,
+            ref decision);
 
         using Av1EncoderBlockWorkspace blockWorkspace = new(
             configuration,
@@ -985,6 +993,7 @@ internal static partial class Av1FrameEncoder
 
         using ObuWriter obuWriter = new(configuration);
 
+        ScreenContentDecision decision = default;
         bool isScreenContent = PrepareFrame(
             configuration,
             image,
@@ -994,7 +1003,8 @@ internal static partial class Av1FrameEncoder
             sequenceHeader,
             frameHeader,
             options,
-            encodeAlpha);
+            encodeAlpha,
+            ref decision);
 
         using Av1EncoderBlockWorkspace blockWorkspace = new(
             configuration,
@@ -1062,7 +1072,8 @@ internal static partial class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
-        bool encodeAlpha)
+        bool encodeAlpha,
+        ref ScreenContentDecision decision)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         PrepareSource<TPixel, byte, HeifByteSampleConverter>(
@@ -1079,7 +1090,8 @@ internal static partial class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            options);
+            options,
+            ref decision);
     }
 
     /// <summary>
@@ -1094,7 +1106,8 @@ internal static partial class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
-        Av1EncoderConversionWorkspace conversionWorkspace)
+        Av1EncoderConversionWorkspace conversionWorkspace,
+        ref ScreenContentDecision decision)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         PrepareSource<TPixel, byte, HeifByteSampleConverter>(
@@ -1110,7 +1123,8 @@ internal static partial class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            options);
+            options,
+            ref decision);
     }
 
     /// <summary>
@@ -1122,8 +1136,18 @@ internal static partial class Av1FrameEncoder
         Av1EncoderFrame<byte> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        Av1EncoderOptions options)
+        Av1EncoderOptions options,
+        ref ScreenContentDecision decision)
     {
+        if (!frameHeader.IsIntra)
+        {
+            // Inter frames keep the tools and the content type of the last intra frame. Reference: the
+            // is_intra_frame test around av1_set_screen_content_options() in av1_encode_strategy().
+            frameHeader.AllowScreenContentTools = decision.AllowScreenContentTools;
+            frameHeader.AllowIntraBlockCopy = false;
+            return decision.IsScreenContent;
+        }
+
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
@@ -1147,6 +1171,8 @@ internal static partial class Av1FrameEncoder
             frameHeader.AllowScreenContentTools &&
             allowIntraBlockCopy;
 
+        decision.AllowScreenContentTools = allowScreenContentTools;
+        decision.IsScreenContent = isScreenContent;
         return isScreenContent;
     }
 
@@ -1162,7 +1188,8 @@ internal static partial class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
-        bool encodeAlpha)
+        bool encodeAlpha,
+        ref ScreenContentDecision decision)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
@@ -1179,7 +1206,8 @@ internal static partial class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            options);
+            options,
+            ref decision);
     }
 
     /// <summary>
@@ -1194,7 +1222,8 @@ internal static partial class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
-        Av1EncoderConversionWorkspace conversionWorkspace)
+        Av1EncoderConversionWorkspace conversionWorkspace,
+        ref ScreenContentDecision decision)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
@@ -1210,7 +1239,8 @@ internal static partial class Av1FrameEncoder
             reference,
             sequenceHeader,
             frameHeader,
-            options);
+            options,
+            ref decision);
     }
 
     /// <summary>
@@ -1222,8 +1252,18 @@ internal static partial class Av1FrameEncoder
         Av1EncoderFrame<ushort> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        Av1EncoderOptions options)
+        Av1EncoderOptions options,
+        ref ScreenContentDecision decision)
     {
+        if (!frameHeader.IsIntra)
+        {
+            // Inter frames keep the tools and the content type of the last intra frame. Reference: the
+            // is_intra_frame test around av1_set_screen_content_options() in av1_encode_strategy().
+            frameHeader.AllowScreenContentTools = decision.AllowScreenContentTools;
+            frameHeader.AllowIntraBlockCopy = false;
+            return decision.IsScreenContent;
+        }
+
         bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
@@ -1247,6 +1287,8 @@ internal static partial class Av1FrameEncoder
             frameHeader.AllowScreenContentTools &&
             allowIntraBlockCopy;
 
+        decision.AllowScreenContentTools = allowScreenContentTools;
+        decision.IsScreenContent = isScreenContent;
         return isScreenContent;
     }
 
@@ -1430,21 +1472,19 @@ internal static partial class Av1FrameEncoder
     /// <param name="source">The current bordered source planes.</param>
     /// <param name="previousSource">The preceding bordered source planes.</param>
     /// <param name="parent">The frame analysis state and borrowed block-error storage.</param>
-    /// <param name="isScreenContent">Whether screen-content tuning is active.</param>
     /// <param name="framesSinceKey">The number of completed frames since the last key frame.</param>
     /// <param name="averageSourceSad">The running average of source changes.</param>
     private static void AnalyzeTemporalSource<TSample, TOperator>(
         Av1EncoderFrame<TSample>.PlanarView source,
         Av1EncoderFrame<TSample>.PlanarView previousSource,
         Av1PictureParentControlSet parent,
-        bool isScreenContent,
         int framesSinceKey,
         ref ulong averageSourceSad)
         where TSample : unmanaged
         where TOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
     {
-        Buffer2DRegion<TSample> current = source.GetPlane(Av1Plane.Y);
-        Buffer2DRegion<TSample> previous = previousSource.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> current = source.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> previous = previousSource.GetPlane(Av1Plane.Y);
         Span<ulong> blockErrors = parent.SourceBlockSad.Span;
         int columns = (source.Width + 63) >> 6;
         int rows = (source.Height + 63) >> 6;
@@ -1475,8 +1515,13 @@ internal static partial class Av1FrameEncoder
 
         int count = rows * columns;
         ulong average = total / (ulong)count;
-        uint minimum = isScreenContent ? 8000U : 10000U;
-        int multiplier = isScreenContent ? 5 : 6;
+
+        // Real-time speed features raise the minimum change unless the content option is screen, which is not the
+        // detected screen content type and which libavif never sets; the frame rate of the 1/30 time base and
+        // duration 1 that libavif passes is 30, above the rate that lowers it. Reference: higher_thresh_scene_detection
+        // in av1_rc_scene_detection_onepass_rt().
+        const uint minimum = 100000U;
+        const int multiplier = 6;
         int unchangedLimit = average > 8 * minimum ? 3 * (count >> 2) : count >> 1;
         parent.HighSourceSad = average > Math.Max(minimum, (uint)(averageSourceSad * (ulong)multiplier)) &&
             framesSinceKey > 2 && unchanged < unchangedLimit;
@@ -2549,14 +2594,17 @@ internal static partial class Av1FrameEncoder
             => keyFrame ? Av1FrameUpdateType.Key : startsGoldenGroup ? Av1FrameUpdateType.Golden : Av1FrameUpdateType.Last;
 
         /// <summary>
-        /// Starts a golden group. Reference: set_baseline_gf_interval() and set_golden_update(). Real-time usage
-        /// defaults to cyclic-refresh AQ, whose refresh percentage stays 0 while the quantizer is fixed, so the
-        /// interval is FIXED_GF_INTERVAL_RT unless recent frames had little zero motion.
+        /// Starts a golden group. Without adaptive quantization the refresh divisor is 10, so the interval is 80
+        /// frames, or 40 at speed 9 from 360p where the golden length level is 1, unless recent frames had little zero
+        /// motion. Reference: set_baseline_gf_interval() and set_golden_update() with gf_length_lvl.
         /// </summary>
         /// <param name="averageFrameLowMotion">The running zero-motion percentage. Reference: rc->avg_frame_low_motion.</param>
         private void SetBaselineGoldenInterval(int averageFrameLowMotion)
         {
-            int interval = FixedGoldenIntervalRealtime;
+            bool shortGoldenLength = this.Options.Speed >= HeifEncodingSpeed.Level9 &&
+                Math.Min(this.SequenceHeader.MaxFrameWidth, this.SequenceHeader.MaxFrameHeight) >= 360;
+
+            int interval = shortGoldenLength ? FixedGoldenIntervalRealtime / 2 : FixedGoldenIntervalRealtime;
             if (averageFrameLowMotion != 0 && averageFrameLowMotion < 40)
             {
                 interval = LowMotionGoldenInterval;
@@ -2624,8 +2672,8 @@ internal static partial class Av1FrameEncoder
         /// <param name="previousAverageSourceSad">The running average before this frame. Reference: prev_avg_source_sad.</param>
         private protected void SelectFrameQuantizer<TSample, TMotion, TBlock>(
             Av1PictureParentControlSet parent,
-            Buffer2DRegion<TSample> source,
-            Buffer2DRegion<TSample> lastReconstruction,
+            Av1PlaneRegion<TSample> source,
+            Av1PlaneRegion<TSample> lastReconstruction,
             ulong averageSourceSad,
             ulong previousAverageSourceSad)
             where TSample : unmanaged
@@ -2836,19 +2884,20 @@ internal static partial class Av1FrameEncoder
                 if (options.Speed >= HeifEncodingSpeed.Level7)
                 {
                     this.sourceBlockSad = configuration.MemoryAllocator.Allocate<ulong>(((width + 63) >> 6) * ((height + 63) >> 6));
-
-                    // Rotate source owners after encoding so temporal analysis sees uncompressed samples
-                    // without a frame copy. The padding also supplies complete edge superblocks.
-                    this.previousSource = new(
-                        configuration,
-                        width,
-                        height,
-                        ByteSampleBitDepth,
-                        colorFormat,
-                        CenteredChromaSamplePosition,
-                        CenteredChromaSamplePosition,
-                        lumaBorder);
                 }
+
+                // Rotate source owners after encoding so temporal analysis and the integer vector decision see the
+                // uncompressed previous source without a frame copy. The padding also supplies complete edge
+                // superblocks. Reference: the last_source of choose_frame_source().
+                this.previousSource = new(
+                    configuration,
+                    width,
+                    height,
+                    ByteSampleBitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
 
                 // Reconstructed frames live in the reference slots, and a slot keeps its frame until a later frame
                 // refreshes it.
@@ -2902,24 +2951,26 @@ internal static partial class Av1FrameEncoder
                 this.SequenceHeader,
                 frameHeader,
                 this.Options,
-                this.ConversionWorkspace);
+                this.ConversionWorkspace,
+                ref this.ScreenContent);
+
+            this.DecideIntegerMotionVectors<byte, Av1IntraSuperblockEncoder.ByteOperator>(this.source.Frame, this.previousSource?.Frame);
 
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
-            parent.PreviousSource = this.previousSource is not null ? this.previousSource.Frame.CodedView : default;
+            parent.PreviousSource = this.sourceBlockSad is not null && this.previousSource is not null ? this.previousSource.Frame.CodedView : default;
 
             parent.SourceBlockSad = this.sourceBlockSad is not null ? this.sourceBlockSad.Memory : default;
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
             parent.SourceMotionPercentage = 0;
             ulong previousAverageSourceSad = this.averageSourceSad;
-            if (this.previousSource is not null && this.framesSinceKey != 0)
+            if (this.sourceBlockSad is not null && this.previousSource is not null && this.framesSinceKey != 0)
             {
                 AnalyzeTemporalSource<byte, Av1MotionSearchBase.ByteOperator>(
                     this.source.Frame.CodedView,
                     this.previousSource.Frame.CodedView,
                     parent,
-                    isScreenContent,
                     this.framesSinceKey,
                     ref this.averageSourceSad);
             }
@@ -3090,16 +3141,18 @@ internal static partial class Av1FrameEncoder
                 if (options.Speed >= HeifEncodingSpeed.Level7)
                 {
                     this.sourceBlockSad = configuration.MemoryAllocator.Allocate<ulong>(((width + 63) >> 6) * ((height + 63) >> 6));
-                    this.previousSource = new(
-                        configuration,
-                        width,
-                        height,
-                        bitDepth,
-                        colorFormat,
-                        CenteredChromaSamplePosition,
-                        CenteredChromaSamplePosition,
-                        lumaBorder);
                 }
+
+                // Reference: the last_source of choose_frame_source().
+                this.previousSource = new(
+                    configuration,
+                    width,
+                    height,
+                    bitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
 
                 // Reconstructed frames live in the reference slots, and a slot keeps its frame until a later frame
                 // refreshes it.
@@ -3153,7 +3206,10 @@ internal static partial class Av1FrameEncoder
                 this.SequenceHeader,
                 frameHeader,
                 this.Options,
-                this.ConversionWorkspace);
+                this.ConversionWorkspace,
+                ref this.ScreenContent);
+
+            this.DecideIntegerMotionVectors<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(this.source.Frame, this.previousSource?.Frame);
 
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
@@ -3164,13 +3220,12 @@ internal static partial class Av1FrameEncoder
             parent.FrameSourceSad = 0;
             parent.SourceMotionPercentage = 0;
             ulong previousAverageSourceSad = this.averageSourceSad;
-            if (this.previousSource is not null && this.framesSinceKey != 0)
+            if (this.sourceBlockSad is not null && this.previousSource is not null && this.framesSinceKey != 0)
             {
                 AnalyzeTemporalSource<ushort, Av1MotionSearchBase.UInt16Operator>(
                     this.source.Frame.CodedView,
                     this.previousSource.Frame.CodedView,
                     parent,
-                    isScreenContent,
                     this.framesSinceKey,
                     ref this.averageSourceSad);
             }

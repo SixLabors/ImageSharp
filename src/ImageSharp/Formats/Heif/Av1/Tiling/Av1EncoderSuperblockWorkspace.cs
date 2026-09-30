@@ -129,7 +129,6 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.paletteMaps.Dispose();
         this.owner.Dispose();
     }
 }

@@ -462,38 +462,16 @@ internal sealed class Av1CdefDecoder : IDisposable
 
         if (plane == Av1Plane.Y)
         {
-            int blockIndex = 0;
-
-            // Analyze two listed 8x8 blocks together. The fixed list permits paired SIMD direction search
-            // without repeating four skip-map lookups during filtering.
-            for (; blockIndex < blocks.Length - 1; blockIndex += 2)
+            // Analyze the listed 8x8 blocks together. The fixed list permits batched SIMD direction search
+            // without repeating skip-map lookups during filtering. A 64x64 unit holds at most 64 blocks.
+            Span<int> offsets = stackalloc int[64];
+            offsets = offsets[..blocks.Length];
+            for (int blockIndex = 0; blockIndex < blocks.Length; blockIndex++)
             {
-                CdefBlock firstBlock = blocks[blockIndex];
-                CdefBlock secondBlock = blocks[blockIndex + 1];
-
-                Av1CdefFilter.FindDirections(
-                    source,
-                    firstBlock.GetSourceOffset(SourceStride, SourceBorder, unitModeInfoColumn, unitModeInfoRow, 0, 0),
-                    secondBlock.GetSourceOffset(SourceStride, SourceBorder, unitModeInfoColumn, unitModeInfoRow, 0, 0),
-                    SourceStride,
-                    coefficientShift,
-                    out directions[blockIndex],
-                    out variances[blockIndex],
-                    out directions[blockIndex + 1],
-                    out variances[blockIndex + 1]);
+                offsets[blockIndex] = blocks[blockIndex].GetSourceOffset(SourceStride, SourceBorder, unitModeInfoColumn, unitModeInfoRow, 0, 0);
             }
 
-            if (blockIndex < blocks.Length)
-            {
-                CdefBlock block = blocks[blockIndex];
-
-                directions[blockIndex] = Av1CdefFilter.FindDirection(
-                    source,
-                    block.GetSourceOffset(SourceStride, SourceBorder, unitModeInfoColumn, unitModeInfoRow, 0, 0),
-                    SourceStride,
-                    coefficientShift,
-                    out variances[blockIndex]);
-            }
+            Av1CdefFilter.FindDirections(source, offsets, SourceStride, coefficientShift, directions, variances);
         }
 
         if (codedStrength == 0)

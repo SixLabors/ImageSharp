@@ -226,6 +226,33 @@ internal class Av1PictureParentControlSet
     public bool IsScreenContent { get; set; }
 
     /// <summary>
+    /// Gets or sets the size every superblock is partitioned into instead of searching its partition, or
+    /// <see cref="Av1BlockSize.Invalid"/> to search it. Reference: the FIXED_PARTITION partition_search_type with
+    /// fixed_partition_size.
+    /// </summary>
+    public Av1BlockSize FixedPartitionSize { get; set; } = Av1BlockSize.Invalid;
+
+    /// <summary>
+    /// Gets or sets the number of luma samples in the finally coded blocks that use a luma palette. Reference:
+    /// palette_pixel_num.
+    /// </summary>
+    public int PalettePixelCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the next frame preparation keeps the frame probabilities that an
+    /// earlier coding of the same frame updated, instead of restoring them at a key frame. Reference: the single
+    /// copy_frame_prob_info() call of encode_with_recode_loop(), before av1_determine_sc_tools_with_encoding().
+    /// </summary>
+    public bool RetainsFrameProbabilities { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the frame allowed the screen content tools before its screen content trial, which the
+    /// frame-size speed features keep, or <see langword="null"/> when no trial changed them. Reference: the
+    /// allow_screen_content_tools that set_size_independent_vars() reads before av1_determine_sc_tools_with_encoding().
+    /// </summary>
+    public bool? ScreenContentToolsBeforeTrial { get; set; }
+
+    /// <summary>
     /// Gets or sets the preceding eight-bit source planes, borrowed for temporal source analysis and filtering.
     /// </summary>
     public Av1EncoderFrame<byte>.PlanarView PreviousSource { get; set; }

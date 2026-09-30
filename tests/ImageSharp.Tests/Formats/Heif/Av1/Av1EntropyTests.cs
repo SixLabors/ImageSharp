@@ -221,10 +221,12 @@ public class Av1EntropyTests
         const int Width = 9;
         const int Height = 6;
         Configuration configuration = Configuration.Default;
-        using Buffer2D<byte> source = configuration.MemoryAllocator.Allocate2D<byte>(Width, Height);
-        using Buffer2D<byte> decoded = configuration.MemoryAllocator.Allocate2D<byte>(Width, Height);
-        Buffer2DRegion<byte> sourceRegion = new(source);
-        Buffer2DRegion<byte> decodedRegion = new(decoded);
+        using IMemoryOwner<byte> sourceOwner = configuration.MemoryAllocator.Allocate<byte>(Width * Height);
+        using IMemoryOwner<byte> decodedOwner = configuration.MemoryAllocator.Allocate<byte>(Width * Height);
+        Av1PlaneRegion<byte> source = new(sourceOwner.Memory, Width, new Rectangle(0, 0, Width, Height));
+        Av1PlaneRegion<byte> decoded = new(decodedOwner.Memory, Width, new Rectangle(0, 0, Width, Height));
+        Av1PlaneRegion<byte> sourceRegion = source;
+        Av1PlaneRegion<byte> decodedRegion = decoded;
         using Av1SymbolEncoder encoder = new(configuration, 512, BaseQIndex, updateCdf: true);
         for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
         {
@@ -232,7 +234,7 @@ public class Av1EntropyTests
             {
                 for (int row = 0; row < Rows; row++)
                 {
-                    Span<byte> sourceRow = source.DangerousGetRowSpan(row);
+                    Span<byte> sourceRow = source.GetRowSpan(row);
                     for (int column = 0; column < Columns; column++)
                     {
                         sourceRow[column] = (byte)(((row * 3) + (column * 5) + plane) % paletteSize);
@@ -256,7 +258,7 @@ public class Av1EntropyTests
             {
                 for (int row = 0; row < Height; row++)
                 {
-                    decoded.DangerousGetRowSpan(row).Fill(byte.MaxValue);
+                    decoded.GetRowSpan(row).Fill(byte.MaxValue);
                 }
 
                 decoder.ReadPaletteColorMap(
@@ -268,7 +270,7 @@ public class Av1EntropyTests
 
                 for (int row = 0; row < Rows; row++)
                 {
-                    ReadOnlySpan<byte> decodedRow = decoded.DangerousGetRowSpan(row);
+                    ReadOnlySpan<byte> decodedRow = decoded.GetRowSpan(row);
                     for (int column = 0; column < Columns; column++)
                     {
                         Assert.Equal(
@@ -284,7 +286,7 @@ public class Av1EntropyTests
 
                 for (int row = Rows; row < Height; row++)
                 {
-                    ReadOnlySpan<byte> decodedRow = decoded.DangerousGetRowSpan(row);
+                    ReadOnlySpan<byte> decodedRow = decoded.GetRowSpan(row);
                     for (int column = 0; column < Width; column++)
                     {
                         Assert.Equal(byte.MaxValue, decodedRow[column]);
@@ -321,6 +323,7 @@ public class Av1EntropyTests
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None];
+
         Av1PartitionType[] actuals = new Av1PartitionType[values.Length];
 
         // Act
@@ -350,6 +353,7 @@ public class Av1EntropyTests
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal, Av1PartitionType.Horizontal];
+
         Av1PartitionType[] actuals = new Av1PartitionType[values.Length];
 
         // Act
@@ -379,6 +383,7 @@ public class Av1EntropyTests
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical, Av1PartitionType.Vertical];
+
         Av1PartitionType[] actuals = new Av1PartitionType[values.Length];
 
         // Act
@@ -497,6 +502,7 @@ public class Av1EntropyTests
             Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.Identity, Av1TransformType.AdstDct,
             Av1TransformType.DctDct, Av1TransformType.AdstAdst, Av1TransformType.Identity, Av1TransformType.DctAdst
         ];
+
         Av1TransformType[] actuals = new Av1TransformType[values.Length];
 
         // Act
@@ -687,6 +693,7 @@ public class Av1EntropyTests
         Av1FilterIntraMode[] values = [
             Av1FilterIntraMode.DC, Av1FilterIntraMode.Vertical, Av1FilterIntraMode.DC, Av1FilterIntraMode.Paeth,
             Av1FilterIntraMode.AllFilterIntraModes, Av1FilterIntraMode.Directional157, Av1FilterIntraMode.DC, Av1FilterIntraMode.Directional157];
+
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         Av1FilterIntraMode[] actuals = new Av1FilterIntraMode[values.Length];

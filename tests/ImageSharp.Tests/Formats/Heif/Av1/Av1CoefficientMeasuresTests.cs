@@ -16,10 +16,10 @@ public class Av1CoefficientMeasuresTests
     /// The hardware configurations that run every register width and the scalar overloads.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies the sum of magnitudes (aom_satd), the largest magnitude and the end of block.
+    /// Verifies the sum of magnitudes (aom_satd), the largest magnitude, the end of block and the level bits.
     /// </summary>
     [Fact]
     public void MeasuresMatchReference()
@@ -105,6 +105,21 @@ public class Av1CoefficientMeasuresTests
                 }
 
                 Assert.Equal(expectedEnd, Av1CoefficientMeasures.GetEndOfBlock(coefficients, inverseScan));
+
+                // The level bits of rate_estimator(), with one magnitude above 2^30 so every logarithm step is taken.
+                if (length > 0)
+                {
+                    coefficients[random.Next(length)] = (1 << 30) + random.Next(1 << 20);
+                }
+
+                int expectedBits = 0;
+                foreach (int coefficient in coefficients)
+                {
+                    int level = Math.Abs(coefficient);
+                    expectedBits += (int)Math.Floor(Math.Log2(level + 1.0)) + (level > 0 ? 1 : 0);
+                }
+
+                Assert.Equal(expectedBits, Av1CoefficientMeasures.SumLevelBits(coefficients));
 
                 // The reconstruction wraps to int16 in low precision, as av1_block_error_lp stores it.
                 int[] reconstructed = new int[length];

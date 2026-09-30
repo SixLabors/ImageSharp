@@ -144,7 +144,7 @@ public class Av1LoopRestorationBenchmarks
     }
 
     /// <summary>
-    /// Configures production-process measurements for hardware, 128-bit, and scalar filtering.
+    /// Configures production-process measurements for the default, AVX2, Vector128, and scalar paths.
     /// </summary>
     public sealed class Configuration : ManualConfig
     {
@@ -157,8 +157,14 @@ public class Av1LoopRestorationBenchmarks
 
             this.AddJob(
                 Job.ShortRun
+                    .WithId("Avx2")
+                    .WithEnvironmentVariable("DOTNET_EnableAVX512", "0"));
+
+            this.AddJob(
+                Job.ShortRun
                     .WithId("Vector128")
-                    .WithEnvironmentVariable("DOTNET_EnableAVX", "0"));
+                    .WithEnvironmentVariable("DOTNET_EnableAVX512", "0")
+                    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0"));
 
             this.AddJob(
                 Job.ShortRun

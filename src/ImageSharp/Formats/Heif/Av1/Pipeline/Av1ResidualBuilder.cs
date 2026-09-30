@@ -609,10 +609,7 @@ internal static partial class Av1ResidualBuilder
                 int sum = 0;
                 for (int row = 0; row < visibleRows; row++)
                 {
-                    foreach (short value in residual.Slice(row * residualStride, visibleColumns))
-                    {
-                        sum += value;
-                    }
+                    sum += SumSamples(residual.Slice(row * residualStride, visibleColumns));
                 }
 
                 average = (short)DivideAndRoundSigned(sum, visibleColumns * visibleRows);
@@ -636,24 +633,29 @@ internal static partial class Av1ResidualBuilder
             // The rows are coded by the identity, so each hidden row repeats the mean of its visible column.
             if (visibleRows < rows)
             {
-                for (int column = 0; column < visibleColumns; column++)
+                // A transform is at most 64 samples wide.
+                Span<short> averages = stackalloc short[64];
+                averages = averages[..visibleColumns];
+                averages.Clear();
+                if (!completeBlockOutside)
                 {
-                    short average = 0;
-                    if (!completeBlockOutside)
+                    Span<int> sums = stackalloc int[64];
+                    sums = sums[..visibleColumns];
+                    sums.Clear();
+                    for (int row = 0; row < visibleRows; row++)
                     {
-                        int sum = 0;
-                        for (int row = 0; row < visibleRows; row++)
-                        {
-                            sum += residual[(row * residualStride) + column];
-                        }
-
-                        average = (short)DivideAndRoundSigned(sum, visibleRows);
+                        AddColumns(residual.Slice(row * residualStride, visibleColumns), sums);
                     }
 
-                    for (int row = visibleRows; row < rows; row++)
+                    for (int column = 0; column < visibleColumns; column++)
                     {
-                        residual[(row * residualStride) + column] = average;
+                        averages[column] = (short)DivideAndRoundSigned(sums[column], visibleRows);
                     }
+                }
+
+                for (int row = visibleRows; row < rows; row++)
+                {
+                    averages.CopyTo(residual.Slice(row * residualStride, visibleColumns));
                 }
             }
 
@@ -676,13 +678,7 @@ internal static partial class Av1ResidualBuilder
                 short average = 0;
                 if (!completeBlockOutside)
                 {
-                    int sum = 0;
-                    foreach (short value in residual.Slice(row * residualStride, visibleColumns))
-                    {
-                        sum += value;
-                    }
-
-                    average = (short)DivideAndRoundSigned(sum, visibleColumns);
+                    average = (short)DivideAndRoundSigned(SumSamples(residual.Slice(row * residualStride, visibleColumns)), visibleColumns);
                 }
 
                 residual.Slice((row * residualStride) + visibleColumns, rightPixels).Fill(average);
@@ -692,6 +688,105 @@ internal static partial class Av1ResidualBuilder
         for (int row = visibleRows; row < rows; row++)
         {
             residual.Slice(row * residualStride, columns).Clear();
+        }
+    }
+
+    /// <summary>
+    /// Sums residual samples in 32-bit lanes, widest vectors first.
+    /// </summary>
+    /// <param name="samples">The samples.</param>
+    /// <returns>Their sum.</returns>
+    private static int SumSamples(ReadOnlySpan<short> samples)
+    {
+        ref short sampleBase = ref MemoryMarshal.GetReference(samples);
+        int length = samples.Length;
+        int index = 0;
+        int sum = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<int> total = Vector512<int>.Zero;
+            for (; index <= length - Vector512<short>.Count; index += Vector512<short>.Count)
+            {
+                total += Vector512_.MultiplyAddAdjacent(Vector512.LoadUnsafe(ref sampleBase, (nuint)index), Vector512<short>.One);
+            }
+
+            sum += Vector512.Sum(total);
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<int> total = Vector256<int>.Zero;
+            for (; index <= length - Vector256<short>.Count; index += Vector256<short>.Count)
+            {
+                total += Vector256_.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref sampleBase, (nuint)index), Vector256<short>.One);
+            }
+
+            sum += Vector256.Sum(total);
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<int> total = Vector128<int>.Zero;
+            for (; index <= length - Vector128<short>.Count; index += Vector128<short>.Count)
+            {
+                total += Vector128_.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref sampleBase, (nuint)index), Vector128<short>.One);
+            }
+
+            sum += Vector128.Sum(total);
+        }
+
+        for (; index < length; index++)
+        {
+            sum += Unsafe.Add(ref sampleBase, index);
+        }
+
+        return sum;
+    }
+
+    /// <summary>
+    /// Adds one row of residual samples to 32-bit column sums, widest vectors first.
+    /// </summary>
+    /// <param name="row">The row samples.</param>
+    /// <param name="sums">The column sums to update.</param>
+    private static void AddColumns(ReadOnlySpan<short> row, Span<int> sums)
+    {
+        ref short rowBase = ref MemoryMarshal.GetReference(row);
+        ref int sumBase = ref MemoryMarshal.GetReference(sums);
+        int length = row.Length;
+        int index = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; index <= length - Vector512<short>.Count; index += Vector512<short>.Count)
+            {
+                (Vector512<int> lower, Vector512<int> upper) = Vector512.Widen(Vector512.LoadUnsafe(ref rowBase, (nuint)index));
+                (Vector512.LoadUnsafe(ref sumBase, (nuint)index) + lower).StoreUnsafe(ref sumBase, (nuint)index);
+                (Vector512.LoadUnsafe(ref sumBase, (nuint)(index + Vector512<int>.Count)) + upper).StoreUnsafe(ref sumBase, (nuint)(index + Vector512<int>.Count));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; index <= length - Vector256<short>.Count; index += Vector256<short>.Count)
+            {
+                (Vector256<int> lower, Vector256<int> upper) = Vector256.Widen(Vector256.LoadUnsafe(ref rowBase, (nuint)index));
+                (Vector256.LoadUnsafe(ref sumBase, (nuint)index) + lower).StoreUnsafe(ref sumBase, (nuint)index);
+                (Vector256.LoadUnsafe(ref sumBase, (nuint)(index + Vector256<int>.Count)) + upper).StoreUnsafe(ref sumBase, (nuint)(index + Vector256<int>.Count));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; index <= length - Vector128<short>.Count; index += Vector128<short>.Count)
+            {
+                (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref rowBase, (nuint)index));
+                (Vector128.LoadUnsafe(ref sumBase, (nuint)index) + lower).StoreUnsafe(ref sumBase, (nuint)index);
+                (Vector128.LoadUnsafe(ref sumBase, (nuint)(index + Vector128<int>.Count)) + upper).StoreUnsafe(ref sumBase, (nuint)(index + Vector128<int>.Count));
+            }
+        }
+
+        for (; index < length; index++)
+        {
+            Unsafe.Add(ref sumBase, index) += Unsafe.Add(ref rowBase, index);
         }
     }
 

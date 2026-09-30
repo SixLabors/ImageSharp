@@ -379,7 +379,7 @@ public class Av1ReconstructionConformanceTests
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
     /// </summary>
     private const HwIntrinsics PresentationConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies active CDEF syntax, strength selection, unit traversal, subsampling, frame edges, and final native
@@ -675,6 +675,7 @@ public class Av1ReconstructionConformanceTests
             ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
             int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
                 >> sequenceHeader.SuperblockSizeLog2;
+
             int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
                 >> sequenceHeader.SuperblockSizeLog2;
 
@@ -805,11 +806,6 @@ public class Av1ReconstructionConformanceTests
 
             Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
             coverage |= GetInterPredictionCoverage(decoder);
-
-            // Every inter-prediction branch retains the same row-addressed plane contract under constrained allocators.
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
             if (decodedVisibleFrameCount == visibleFrameCount - 1)
             {
@@ -1036,12 +1032,6 @@ public class Av1ReconstructionConformanceTests
             _ = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
             Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
             Av1FrameInfo frameInfo = decoder.FrameInfo;
-
-            // Inter prediction addresses padding with one base span and a logical row stride. The frame owner must
-            // preserve that contract even when the configured allocator would ordinarily split a large buffer.
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
             // A pure show_existing_frame payload presents a retained reference without decoding new block syntax.
             if (frameInfo is not null)
@@ -1425,6 +1415,7 @@ public class Av1ReconstructionConformanceTests
             transformTypeCoverage |= frameInfo.LumaTransformTypeCoverage;
             int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
                 >> sequenceHeader.SuperblockSizeLog2;
+
             int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
                 >> sequenceHeader.SuperblockSizeLog2;
 
@@ -2073,9 +2064,6 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(ScaledReferenceFixtureSize, frameBuffer.Height);
         Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
         Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
-        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
         ObuFrameHeader finalFrameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
@@ -2168,9 +2156,6 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(ProgressiveFixtureHeight, frameBuffer.Height);
         Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
         Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
-        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
         ObuFrameHeader finalFrameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
@@ -2865,6 +2850,7 @@ public class Av1ReconstructionConformanceTests
         ReadOnlySpan<Av1Plane> planes = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400
             ? [Av1Plane.Y]
             : [Av1Plane.Y, Av1Plane.U, Av1Plane.V];
+
         int mismatchCount = 0;
         Av1Plane largestMismatchPlane = default;
         int largestMismatchX = 0;
@@ -2882,10 +2868,10 @@ public class Av1ReconstructionConformanceTests
 
             if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
             {
-                Buffer2DRegion<byte> actualPlane = frameBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
+                Av1PlaneRegion<byte> actualPlane = frameBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
                 for (int y = 0; y < planeHeight; y++)
                 {
-                    Span<byte> actualRow = actualPlane.DangerousGetRowSpan(y)[..planeWidth];
+                    Span<byte> actualRow = actualPlane.GetRowSpan(y)[..planeWidth];
                     ReadOnlySpan<byte> expectedRow = reference.Slice(referenceOffset, planeWidth);
                     for (int x = 0; x < planeWidth; x++)
                     {

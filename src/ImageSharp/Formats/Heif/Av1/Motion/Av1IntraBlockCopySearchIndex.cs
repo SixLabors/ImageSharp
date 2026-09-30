@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -58,13 +60,69 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         public static abstract uint GetHashSample(TSample sample);
 
         /// <summary>
+        /// Loads four samples, each folded to one hash byte by an exclusive or of its upper byte into its lower byte.
+        /// </summary>
+        /// <param name="source">The first sample of the row.</param>
+        /// <param name="offset">The index of the first sample to load.</param>
+        /// <param name="lanes">The overload-selection value.</param>
+        /// <returns>The hash bytes, one per lane.</returns>
+        public static abstract Vector128<uint> LoadHashBytes(ref TSample source, nuint offset, Vector128<uint> lanes);
+
+        /// <summary>
+        /// Loads eight samples, each folded to one hash byte by an exclusive or of its upper byte into its lower byte.
+        /// </summary>
+        /// <param name="source">The first sample of the row.</param>
+        /// <param name="offset">The index of the first sample to load.</param>
+        /// <param name="lanes">The overload-selection value.</param>
+        /// <returns>The hash bytes, one per lane.</returns>
+        public static abstract Vector256<uint> LoadHashBytes(ref TSample source, nuint offset, Vector256<uint> lanes);
+
+        /// <summary>
+        /// Loads sixteen samples, each folded to one hash byte by an exclusive or of its upper byte into its lower byte.
+        /// </summary>
+        /// <param name="source">The first sample of the row.</param>
+        /// <param name="offset">The index of the first sample to load.</param>
+        /// <param name="lanes">The overload-selection value.</param>
+        /// <returns>The hash bytes, one per lane.</returns>
+        public static abstract Vector512<uint> LoadHashBytes(ref TSample source, nuint offset, Vector512<uint> lanes);
+
+        /// <summary>
         /// Compares two complete 8x8 blocks.
         /// </summary>
         /// <param name="plane">The plane containing both blocks.</param>
         /// <param name="first">The first block origin.</param>
         /// <param name="second">The second block origin.</param>
         /// <returns><see langword="true"/> when every sample is equal.</returns>
-        public static abstract bool BlocksEqual(Buffer2DRegion<TSample> plane, Point first, Point second);
+        public static abstract bool BlocksEqual(Av1PlaneRegion<TSample> plane, Point first, Point second);
+
+        /// <summary>
+        /// Compares complete 8x8 blocks of two planes.
+        /// </summary>
+        /// <param name="first">The plane containing the first block.</param>
+        /// <param name="firstOrigin">The first block origin.</param>
+        /// <param name="second">The plane containing the second block.</param>
+        /// <param name="secondOrigin">The second block origin.</param>
+        /// <returns><see langword="true"/> when every sample is equal.</returns>
+        public static abstract bool BlocksEqual(
+            Av1PlaneRegion<TSample> first, Point firstOrigin, Av1PlaneRegion<TSample> second, Point secondOrigin);
+
+        /// <summary>
+        /// Returns whether every row of an 8x8 block repeats its first sample. Reference:
+        /// av1_hash_is_horizontal_perfect().
+        /// </summary>
+        /// <param name="plane">The plane containing the block.</param>
+        /// <param name="origin">The block origin.</param>
+        /// <returns><see langword="true"/> when every row is flat.</returns>
+        public static abstract bool IsHorizontalPerfect(Av1PlaneRegion<TSample> plane, Point origin);
+
+        /// <summary>
+        /// Returns whether every column of an 8x8 block repeats its first sample. Reference:
+        /// av1_hash_is_vertical_perfect().
+        /// </summary>
+        /// <param name="plane">The plane containing the block.</param>
+        /// <param name="origin">The block origin.</param>
+        /// <returns><see langword="true"/> when every column is flat.</returns>
+        public static abstract bool IsVerticalPerfect(Av1PlaneRegion<TSample> plane, Point origin);
 
         /// <summary>
         /// Gets the sum of absolute differences between the source block and reconstructed predictor.
@@ -75,9 +133,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         /// <param name="predictionOrigin">The predictor block origin.</param>
         /// <returns>The unnormalized absolute difference over the complete 8x8 block.</returns>
         public static abstract int GetSumOfAbsoluteDifferences(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point sourceOrigin,
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> reconstruction,
             Point predictionOrigin);
 
         /// <summary>
@@ -89,9 +147,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         /// <param name="firstPredictionOrigin">The first of four horizontally adjacent predictor origins.</param>
         /// <param name="sums">Storage receiving the four unnormalized absolute differences.</param>
         public static abstract void GetFourSumsOfAbsoluteDifferences(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point sourceOrigin,
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> reconstruction,
             Point firstPredictionOrigin,
             Span<int> sums);
 
@@ -105,9 +163,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         /// <param name="bitDepth">The coded sample precision.</param>
         /// <returns>The variance in the eight-bit distortion domain.</returns>
         public static abstract int GetVariance(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point sourceOrigin,
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> reconstruction,
             Point predictionOrigin,
             Av1BitDepth bitDepth);
     }
@@ -151,7 +209,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperation">The closed sample operation.</typeparam>
     /// <param name="source">The coded source luma plane.</param>
-    public void Initialize<TSample, TOperation>(Buffer2DRegion<TSample> source)
+    public void Initialize<TSample, TOperation>(Av1PlaneRegion<TSample> source)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
@@ -165,22 +223,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Span<uint> previous = MemoryMarshal.Cast<byte, uint>(this.storage.Span)[..(sourceWidth * (this.height - 1))];
         for (int y = 0; y < this.height - 1; y++)
         {
-            ReadOnlySpan<TSample> top = source.DangerousGetRowSpan(y);
-            ReadOnlySpan<TSample> bottom = source.DangerousGetRowSpan(y + 1);
-            for (int x = 0; x < sourceWidth; x++)
-            {
-                // Fold each sample's upper byte into its lower byte before packing the four
-                // positions. Every source bit contributes, including ten- and twelve-bit samples.
-                uint p0 = TOperation.GetHashSample(top[x]);
-                uint p1 = TOperation.GetHashSample(top[x + 1]);
-                uint p2 = TOperation.GetHashSample(bottom[x]);
-                uint p3 = TOperation.GetHashSample(bottom[x + 1]);
-                previous[(y * sourceWidth) + x] =
-                    (((p0 ^ (p0 >> 8)) & 255) << 24) |
-                    (((p1 ^ (p1 >> 8)) & 255) << 16) |
-                    (((p2 ^ (p2 >> 8)) & 255) << 8) |
-                    ((p3 ^ (p3 >> 8)) & 255);
-            }
+            PackSeedRow<TSample, TOperation>(source.GetRowSpan(y), source.GetRowSpan(y + 1), previous.Slice(y * sourceWidth, sourceWidth));
         }
 
         for (int size = 4; size <= maximumSize; size <<= 1)
@@ -294,8 +337,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <param name="candidates">Storage receiving the above winner followed by the left winner.</param>
     /// <returns>The number of candidates written.</returns>
     public int FindCandidates<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> reconstruction,
         Point blockOrigin,
         Av1BlockSize blockSize,
         Av1TileInfo tile,
@@ -365,9 +408,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
 
             Rectangle bounds = Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1);
             Av1MotionSearchBase.FullPixelSearch<TSample, TOperation> search = new(
-                source.Buffer.DangerousGetSingleSpan()[sourceOffset..],
+                source.Samples[sourceOffset..],
                 source.Stride,
-                reconstruction.Buffer.DangerousGetSingleSpan(),
+                reconstruction.Samples,
                 reconstruction.Stride,
                 reconstructionOffset,
                 new Size(width, height),
@@ -448,8 +491,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <param name="bestVector">The selected legal displacement.</param>
     /// <returns>Whether a legal candidate was found.</returns>
     public bool TryFindEstimatedCandidate<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> reconstruction,
         Point blockOrigin,
         Av1BlockSize blockSize,
         Av1TileInfo tile,
@@ -477,8 +520,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int reconstructionOffset = ((reconstructionBounds.Y + blockOrigin.Y) * reconstruction.Stride) +
             reconstructionBounds.X + blockOrigin.X;
 
-        ReadOnlySpan<TSample> sourceSamples = source.Buffer.DangerousGetSingleSpan()[sourceOffset..];
-        ReadOnlySpan<TSample> reconstructedSamples = reconstruction.Buffer.DangerousGetSingleSpan();
+        ReadOnlySpan<TSample> sourceSamples = source.Samples[sourceOffset..];
+        ReadOnlySpan<TSample> reconstructedSamples = reconstruction.Samples;
         int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(qIndex, sequenceHeader.ColorConfig.BitDepth);
         Av1MotionSearchBase.FullPixelSearch<TSample, TOperation> search = new(
             sourceSamples,
@@ -560,9 +603,104 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     }
 
     /// <summary>
+    /// Packs the 2x2 hash seed of every origin in one row pair, as the first level of
+    /// <c>av1_generate_block_2x2_hash_value</c> does.
+    /// </summary>
+    /// <remarks>
+    /// Each sample's upper byte is folded into its lower byte before the four positions are packed, so every source
+    /// bit contributes, including ten- and twelve-bit samples.
+    /// </remarks>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperation">The closed sample operation.</typeparam>
+    /// <param name="top">The upper row, one sample longer than <paramref name="seeds"/>.</param>
+    /// <param name="bottom">The lower row, one sample longer than <paramref name="seeds"/>.</param>
+    /// <param name="seeds">Receives one seed per origin.</param>
+    internal static void PackSeedRow<TSample, TOperation>(ReadOnlySpan<TSample> top, ReadOnlySpan<TSample> bottom, Span<uint> seeds)
+        where TSample : unmanaged
+        where TOperation : struct, ISearchOperation<TSample>
+    {
+        int length = seeds.Length;
+        ref TSample topBase = ref MemoryMarshal.GetReference(top);
+        ref TSample bottomBase = ref MemoryMarshal.GetReference(bottom);
+        ref uint seedBase = ref MemoryMarshal.GetReference(seeds);
+        int x = 0;
+
+        // The loads at x + 1 end at the last sample of the row.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= length - Vector512<uint>.Count; x += Vector512<uint>.Count)
+            {
+                PackSeeds(
+                    TOperation.LoadHashBytes(ref topBase, (nuint)x, default(Vector512<uint>)),
+                    TOperation.LoadHashBytes(ref topBase, (nuint)(x + 1), default(Vector512<uint>)),
+                    TOperation.LoadHashBytes(ref bottomBase, (nuint)x, default(Vector512<uint>)),
+                    TOperation.LoadHashBytes(ref bottomBase, (nuint)(x + 1), default(Vector512<uint>)))
+                    .StoreUnsafe(ref seedBase, (nuint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= length - Vector256<uint>.Count; x += Vector256<uint>.Count)
+            {
+                PackSeeds(
+                    TOperation.LoadHashBytes(ref topBase, (nuint)x, default(Vector256<uint>)),
+                    TOperation.LoadHashBytes(ref topBase, (nuint)(x + 1), default(Vector256<uint>)),
+                    TOperation.LoadHashBytes(ref bottomBase, (nuint)x, default(Vector256<uint>)),
+                    TOperation.LoadHashBytes(ref bottomBase, (nuint)(x + 1), default(Vector256<uint>)))
+                    .StoreUnsafe(ref seedBase, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= length - Vector128<uint>.Count; x += Vector128<uint>.Count)
+            {
+                PackSeeds(
+                    TOperation.LoadHashBytes(ref topBase, (nuint)x, default(Vector128<uint>)),
+                    TOperation.LoadHashBytes(ref topBase, (nuint)(x + 1), default(Vector128<uint>)),
+                    TOperation.LoadHashBytes(ref bottomBase, (nuint)x, default(Vector128<uint>)),
+                    TOperation.LoadHashBytes(ref bottomBase, (nuint)(x + 1), default(Vector128<uint>)))
+                    .StoreUnsafe(ref seedBase, (nuint)x);
+            }
+        }
+
+        for (; x < length; x++)
+        {
+            uint p0 = TOperation.GetHashSample(top[x]);
+            uint p1 = TOperation.GetHashSample(top[x + 1]);
+            uint p2 = TOperation.GetHashSample(bottom[x]);
+            uint p3 = TOperation.GetHashSample(bottom[x + 1]);
+            seeds[x] =
+                (((p0 ^ (p0 >> 8)) & 255) << 24) |
+                (((p1 ^ (p1 >> 8)) & 255) << 16) |
+                (((p2 ^ (p2 >> 8)) & 255) << 8) |
+                ((p3 ^ (p3 >> 8)) & 255);
+        }
+    }
+
+    /// <summary>
+    /// Packs the hash bytes of 2x2 blocks in top-left, top-right, bottom-left, bottom-right order, from the most
+    /// significant byte down.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<uint> PackSeeds(Vector128<uint> topLeft, Vector128<uint> topRight, Vector128<uint> bottomLeft, Vector128<uint> bottomRight)
+        => (topLeft << 24) | (topRight << 16) | (bottomLeft << 8) | bottomRight;
+
+    /// <inheritdoc cref="PackSeeds(Vector128{uint}, Vector128{uint}, Vector128{uint}, Vector128{uint})"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<uint> PackSeeds(Vector256<uint> topLeft, Vector256<uint> topRight, Vector256<uint> bottomLeft, Vector256<uint> bottomRight)
+        => (topLeft << 24) | (topRight << 16) | (bottomLeft << 8) | bottomRight;
+
+    /// <inheritdoc cref="PackSeeds(Vector128{uint}, Vector128{uint}, Vector128{uint}, Vector128{uint})"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<uint> PackSeeds(Vector512<uint> topLeft, Vector512<uint> topRight, Vector512<uint> bottomLeft, Vector512<uint> bottomRight)
+        => (topLeft << 24) | (topRight << 16) | (bottomLeft << 8) | bottomRight;
+
+    /// <summary>
     /// Computes a query hash when the source block extends into coded-frame padding.
     /// </summary>
-    private static uint GetBlockHash<TSample, TOperation>(Buffer2DRegion<TSample> source, Point origin, int size)
+    private static uint GetBlockHash<TSample, TOperation>(Av1PlaneRegion<TSample> source, Point origin, int size)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
@@ -572,8 +710,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             // and column. Clamping the coordinates reads the same values.
             int lastRow = source.Height - 1;
             int lastColumn = source.Width - 1;
-            ReadOnlySpan<TSample> top = source.DangerousGetRowSpan(Math.Min(origin.Y, lastRow));
-            ReadOnlySpan<TSample> bottom = source.DangerousGetRowSpan(Math.Min(origin.Y + 1, lastRow));
+            ReadOnlySpan<TSample> top = source.GetRowSpan(Math.Min(origin.Y, lastRow));
+            ReadOnlySpan<TSample> bottom = source.GetRowSpan(Math.Min(origin.Y + 1, lastRow));
             int left = Math.Min(origin.X, lastColumn);
             int right = Math.Min(origin.X + 1, lastColumn);
             uint p0 = TOperation.GetHashSample(top[left]);
@@ -598,7 +736,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// Selects a legal displacement from the ordered, size-specific CRC bucket.
     /// </summary>
     private bool TryFindCandidate<TSample, TOperation>(
-        Buffer2DRegion<TSample> source,
+        Av1PlaneRegion<TSample> source,
         Point blockOrigin,
         Av1BlockSize blockSize,
         Av1TileInfo tile,

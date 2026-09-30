@@ -453,19 +453,18 @@ internal sealed class Av1PredictionDecoder
             }
 
             Av1TileReader.PaletteColorIndexMaps paletteColorIndexMaps = paletteColorIndexMapState.Value;
-            Buffer2D<byte> colorIndexBuffer = plane == Av1Plane.Y
+            Av1PlaneRegion<byte> colorIndexBuffer = plane == Av1Plane.Y
                 ? paletteColorIndexMaps.Luma
                 : paletteColorIndexMaps.Chroma;
 
-            Buffer2DRegion<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane, colorIndexBuffer);
-            Buffer2DRegion<byte> transformColorIndexMap = colorIndexMap.GetSubRegion(
+            Av1PlaneRegion<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane, colorIndexBuffer);
+            Av1PlaneRegion<byte> transformColorIndexMap = colorIndexMap.GetSubRegion(
                 blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2,
                 blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2,
                 transformWidth,
                 transformHeight);
 
-            // Every transform reconstructs its own window of the block-level palette map. The row-oriented region
-            // keeps this traversal valid when the frame-owned map spans multiple allocator memory groups.
+            // Every transform reconstructs its own window of the block-level palette map.
             if (typeof(T) == typeof(byte))
             {
                 Span<byte> byteDestination = MemoryMarshal.Cast<T, byte>(pixelBuffer);

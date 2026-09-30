@@ -18,7 +18,7 @@ public class Av1ObmcSearchTests
     /// The hardware configurations that run every register width and the scalar overloads.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The block widths of the OBMC motion modes.
@@ -59,6 +59,7 @@ public class Av1ObmcSearchTests
                     int actual = bitDepth == 8
                         ? Av1ObmcSearch.SumAbsoluteDifferences<byte, Av1ObmcSearch.ByteOperator>(ToBytes(prediction), stride, weightedSource, mask, width, height)
                         : Av1ObmcSearch.SumAbsoluteDifferences<ushort, Av1ObmcSearch.UInt16Operator>(prediction, stride, weightedSource, mask, width, height);
+
                     Assert.Equal(expected, actual);
                 }
             }

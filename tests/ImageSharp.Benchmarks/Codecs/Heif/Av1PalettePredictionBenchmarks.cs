@@ -1,12 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Heif;
 
@@ -47,12 +48,12 @@ public class Av1PalettePredictionBenchmarks
     /// <summary>
     /// The decoded color-index map for one maximum-size palette block.
     /// </summary>
-    private Buffer2D<byte> colorIndexMapBuffer;
+    private IMemoryOwner<byte> colorIndexMapBuffer;
 
     /// <summary>
-    /// The row-addressable view of <see cref="colorIndexMapBuffer"/>.
+    /// The block view of <see cref="colorIndexMapBuffer"/>.
     /// </summary>
-    private Buffer2DRegion<byte> colorIndexMap;
+    private Av1PlaneRegion<byte> colorIndexMap;
 
     /// <summary>
     /// The frame-wide 8-bit reconstruction surface.
@@ -70,11 +71,11 @@ public class Av1PalettePredictionBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        this.colorIndexMapBuffer = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate2D<byte>(BlockSize, BlockSize);
-        this.colorIndexMap = new Buffer2DRegion<byte>(this.colorIndexMapBuffer);
+        this.colorIndexMapBuffer = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate<byte>(BlockSize * BlockSize);
+        this.colorIndexMap = new Av1PlaneRegion<byte>(this.colorIndexMapBuffer.Memory, BlockSize, new Rectangle(0, 0, BlockSize, BlockSize));
         for (int row = 0; row < BlockSize; row++)
         {
-            Span<byte> colorIndexRow = this.colorIndexMap.DangerousGetRowSpan(row);
+            Span<byte> colorIndexRow = this.colorIndexMap.GetRowSpan(row);
             for (int column = 0; column < BlockSize; column++)
             {
                 colorIndexRow[column] = (byte)(((row * 5) + (column * 3)) & 7);
@@ -83,7 +84,7 @@ public class Av1PalettePredictionBenchmarks
     }
 
     /// <summary>
-    /// Releases the row-addressable color-index map after the benchmark run.
+    /// Releases the color-index map after the benchmark run.
     /// </summary>
     [GlobalCleanup]
     public void Cleanup() => this.colorIndexMapBuffer?.Dispose();
@@ -147,12 +148,12 @@ public class Av1PalettePredictionBenchmarks
             this.AddJob(
                 Job.ShortRun
                     .WithId("Avx2")
-                    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0"));
+                    .WithEnvironmentVariable("DOTNET_EnableAVX512", "0"));
 
             this.AddJob(
                 Job.ShortRun
                     .WithId("Vector128")
-                    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0")
+                    .WithEnvironmentVariable("DOTNET_EnableAVX512", "0")
                     .WithEnvironmentVariable("DOTNET_EnableAVX2", "0"));
 
             this.AddJob(

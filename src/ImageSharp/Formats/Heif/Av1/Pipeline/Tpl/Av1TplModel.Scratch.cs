@@ -275,9 +275,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// </summary>
     private static PlaneAccess GetPlane(Av1EncoderFrame<TSample> frame, int plane)
     {
-        Buffer2DRegion<TSample> region = frame.CodedView.GetPlane((Av1Plane)plane);
+        Av1PlaneRegion<TSample> region = frame.CodedView.GetPlane((Av1Plane)plane);
         return new PlaneAccess(
-            region.Buffer.DangerousGetSingleSpan(),
+            region.Samples,
             region.Stride,
             (region.Bounds.Y * region.Stride) + region.Bounds.X);
     }

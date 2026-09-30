@@ -160,6 +160,30 @@ internal static class Av1RestorationSampleOperations
     }
 
     /// <summary>
+    /// Loads 16 adjacent samples into signed 32-bit arithmetic lanes.
+    /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <param name="source">The first of exactly 16 addressable samples.</param>
+    /// <param name="vector">The overload-selection value.</param>
+    /// <returns>The nonnegative sample values in increasing column order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> LoadToInt32<TSample>(ref TSample source, Vector512<int> vector)
+        where TSample : unmanaged
+    {
+        if (Unsafe.SizeOf<TSample>() == 1)
+        {
+            // Sixteen bytes are enough for sixteen result lanes. Both widening steps consume only their
+            // initialized lower halves.
+            Vector128<byte> packed = Vector128.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source));
+            Vector256<ushort> words = Vector256.WidenLower(packed.ToVector256Unsafe());
+            return Vector512.WidenLower(words.ToVector512Unsafe()).AsInt32();
+        }
+
+        Vector256<ushort> samples = Vector256.LoadUnsafe(ref Unsafe.As<TSample, ushort>(ref source));
+        return Vector512.WidenLower(samples.ToVector512Unsafe()).AsInt32();
+    }
+
+    /// <summary>
     /// Stores 4 already clipped samples at the frame's physical precision.
     /// </summary>
     /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>

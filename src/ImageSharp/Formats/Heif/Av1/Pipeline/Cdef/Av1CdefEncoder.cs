@@ -262,6 +262,13 @@ internal static partial class Av1CdefEncoder
         ObuFrameHeader header = picture.Parent.FrameHeader;
         int shift = reconstruction.LumaBitDepth - 8;
         int planeCount = source.IsMonochrome ? 1 : 3;
+
+        // With unequal chroma subsampling the search converts the shared directions in place: the first chroma
+        // plane once for every candidate with a strength, and the second plane reads what the first left. The
+        // zero strength copies its input before the conversion. Reference: the conv422 and conv440 loop of
+        // av1_cdef_filter_fb(), which get_filt_error() calls with the superblock's dir array for each candidate.
+        Span<int> chromaDirections = stackalloc int[directions.Length];
+        bool convertsChroma = !source.IsMonochrome && reconstruction.ChromaSubsamplingX != reconstruction.ChromaSubsamplingY;
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
             Av1Plane plane = (Av1Plane)planeIndex;
@@ -273,15 +280,16 @@ internal static partial class Av1CdefEncoder
             int planeHeight = header.ModeInfoRowCount << (2 - subY);
             int unitWidth = width << (2 - subX);
             int unitHeight = height << (2 - subY);
-            Buffer2DRegion<TSample> samples = reconstruction.CodedView.GetPlane(plane);
-            Buffer2DRegion<TSample> original = source.CodedView.GetPlane(plane);
+            Av1PlaneRegion<TSample> samples = reconstruction.CodedView.GetPlane(plane);
+            Av1PlaneRegion<TSample> original = source.CodedView.GetPlane(plane);
             CopyUnit<TSample, TOperator>(samples, x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
             if (planeIndex == 0)
             {
                 FindDirections(input, blocks, directions, variances, shift);
+                directions.CopyTo(chromaDirections);
             }
 
-            ReadOnlySpan<TSample> originalStorage = original.Buffer.DangerousGetSingleSpan();
+            ReadOnlySpan<TSample> originalStorage = original.Samples;
             int originalOffset = ((original.Bounds.Y + y) * original.Stride) + original.Bounds.X + x;
             int blockWidth = 8 >> subX;
             int blockHeight = 8 >> subY;
@@ -289,19 +297,28 @@ internal static partial class Av1CdefEncoder
             for (int candidate = 0; candidate < candidates.Length; candidate++)
             {
                 int strength = candidates[candidate];
+                if (convertsChroma && planeIndex == 1 && strength != 0)
+                {
+                    for (int index = 0; index < blocks.Length; index++)
+                    {
+                        chromaDirections[index] = Av1CdefFilter.ConvertDirection(chromaDirections[index], subX, subY);
+                    }
+                }
+
                 FilterUnit<TSample, TOperator>(
                     input,
                     output,
                     128,
                     blocks,
-                    directions,
+                    planeIndex != 0 && convertsChroma ? chromaDirections : directions,
                     variances,
                     subX,
                     subY,
                     strength,
                     header.CdefParameters.Damping,
                     shift,
-                    planeIndex == 0);
+                    planeIndex == 0,
+                    convertDirections: planeIndex == 0 || !convertsChroma);
 
                 long error = 0;
                 foreach (ushort block in blocks)
@@ -339,7 +356,7 @@ internal static partial class Av1CdefEncoder
     /// <param name="planeHeight">The coded mode-grid height.</param>
     /// <param name="input">The bordered filtering workspace.</param>
     private static void CopyUnit<TSample, TOperator>(
-        Buffer2DRegion<TSample> plane,
+        Av1PlaneRegion<TSample> plane,
         int x,
         int y,
         int width,
@@ -356,7 +373,7 @@ internal static partial class Av1CdefEncoder
         int bottom = y + height == planeHeight ? 0 : VerticalBorder;
         input.Fill(Av1CdefFilter.VeryLarge);
         int offset = ((plane.Bounds.Y + y - top) * plane.Stride) + plane.Bounds.X + x - left;
-        ReadOnlySpan<TSample> storage = plane.Buffer.DangerousGetSingleSpan();
+        ReadOnlySpan<TSample> storage = plane.Samples;
         TOperator.Copy(
             storage[offset..],
             plane.Stride,
@@ -376,28 +393,15 @@ internal static partial class Av1CdefEncoder
     /// <param name="shift">The number of sample bits above eight.</param>
     private static void FindDirections(ReadOnlySpan<ushort> input, ReadOnlySpan<ushort> blocks, Span<int> directions, Span<int> variances, int shift)
     {
-        int index = 0;
-        for (; index + 1 < blocks.Length; index += 2)
+        // A 64x64 unit holds at most 64 8x8 blocks.
+        Span<int> offsets = stackalloc int[64];
+        offsets = offsets[..blocks.Length];
+        for (int index = 0; index < blocks.Length; index++)
         {
-            int first = ((VerticalBorder + ((blocks[index] >> 4) * 8)) * SourceStride) + HorizontalBorder + ((blocks[index] & 15) * 8);
-            int second = ((VerticalBorder + ((blocks[index + 1] >> 4) * 8)) * SourceStride) + HorizontalBorder + ((blocks[index + 1] & 15) * 8);
-            Av1CdefFilter.FindDirections(
-                input,
-                first,
-                second,
-                SourceStride,
-                shift,
-                out directions[index],
-                out variances[index],
-                out directions[index + 1],
-                out variances[index + 1]);
+            offsets[index] = ((VerticalBorder + ((blocks[index] >> 4) * 8)) * SourceStride) + HorizontalBorder + ((blocks[index] & 15) * 8);
         }
 
-        if (index < blocks.Length)
-        {
-            int offset = ((VerticalBorder + ((blocks[index] >> 4) * 8)) * SourceStride) + HorizontalBorder + ((blocks[index] & 15) * 8);
-            directions[index] = Av1CdefFilter.FindDirection(input, offset, SourceStride, shift, out variances[index]);
-        }
+        Av1CdefFilter.FindDirections(input, offsets, SourceStride, shift, directions, variances);
     }
 
     /// <summary>
@@ -417,6 +421,7 @@ internal static partial class Av1CdefEncoder
     /// <param name="damping">The frame damping.</param>
     /// <param name="shift">The number of sample bits above eight.</param>
     /// <param name="luma">Whether luma variance adjusts the primary strength.</param>
+    /// <param name="convertDirections">Whether the chroma direction is converted from the luma direction here.</param>
     private static void FilterUnit<TSample, TOperator>(
         ReadOnlySpan<ushort> input,
         Span<TSample> output,
@@ -429,7 +434,8 @@ internal static partial class Av1CdefEncoder
         int strength,
         int damping,
         int shift,
-        bool luma)
+        bool luma,
+        bool convertDirections)
         where TSample : unmanaged
         where TOperator : struct, IEncodingOperator<TSample>
     {
@@ -446,7 +452,9 @@ internal static partial class Av1CdefEncoder
             int x = (blocks[index] & 15) * width;
             int y = (blocks[index] >> 4) * height;
             int adjustedPrimary = luma ? Av1CdefFilter.AdjustStrength(primary, variances[index]) : primary;
-            int direction = primary == 0 ? 0 : Av1CdefFilter.ConvertDirection(directions[index], subX, subY);
+            int direction = primary == 0 ? 0
+                : convertDirections ? Av1CdefFilter.ConvertDirection(directions[index], subX, subY) : directions[index];
+
             int offset = ((VerticalBorder + y) * SourceStride) + HorizontalBorder + x;
             TOperator.Filter(
                 input,

@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -62,55 +61,27 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
             ? lumaElementCount
             : checked(chromaRedOffset + chromaElementCount);
 
-        // Component planes share one frame allocation; their offsets preserve the 32-byte plane alignment.
-        // Non-owning Buffer2D views expose rows without introducing separate plane rents or copies.
+        // Component planes share one contiguous frame allocation; their offsets preserve the 32-byte plane
+        // alignment. Each plane is a slice of it, so a kernel addresses the whole bordered plane with its stride.
         IMemoryOwner<TSample> owner = configuration.MemoryAllocator.Allocate<TSample>(storageLength);
         Memory<TSample> storage = owner.Memory;
-        Buffer2D<TSample> luma = Buffer2D<TSample>.WrapMemory(
+        Av1PlaneRegion<TSample> lumaRegion = new(
             storage[..lumaElementCount],
             lumaSize.Width,
-            lumaSize.Height);
+            new Rectangle(lumaBorder, lumaBorder, codedSize.Width, codedSize.Height));
 
-        this.Luma = luma;
-
-        Buffer2DRegion<TSample> lumaRegion = luma.GetRegion(
-            lumaBorder,
-            lumaBorder,
-            codedSize.Width,
-            codedSize.Height);
-
-        Buffer2DRegion<TSample> chromaBlueRegion = default;
-        Buffer2DRegion<TSample> chromaRedRegion = default;
+        Av1PlaneRegion<TSample> chromaBlueRegion = default;
+        Av1PlaneRegion<TSample> chromaRedRegion = default;
         if (colorFormat != Av1ColorFormat.Yuv400)
         {
-            Buffer2D<TSample> chromaBlue = Buffer2D<TSample>.WrapMemory(
-                storage.Slice(chromaBlueOffset, chromaElementCount),
-                chromaSize.Width,
-                chromaSize.Height);
+            Rectangle chromaBounds = new(
+                lumaBorder >> subsamplingX,
+                lumaBorder >> subsamplingY,
+                codedSize.Width >> subsamplingX,
+                codedSize.Height >> subsamplingY);
 
-            Buffer2D<TSample> chromaRed = Buffer2D<TSample>.WrapMemory(
-                storage.Slice(chromaRedOffset, chromaElementCount),
-                chromaSize.Width,
-                chromaSize.Height);
-
-            this.ChromaBlue = chromaBlue;
-            this.ChromaRed = chromaRed;
-
-            int chromaBorderX = lumaBorder >> subsamplingX;
-            int chromaBorderY = lumaBorder >> subsamplingY;
-            int codedChromaWidth = codedSize.Width >> subsamplingX;
-            int codedChromaHeight = codedSize.Height >> subsamplingY;
-            chromaBlueRegion = chromaBlue.GetRegion(
-                chromaBorderX,
-                chromaBorderY,
-                codedChromaWidth,
-                codedChromaHeight);
-
-            chromaRedRegion = chromaRed.GetRegion(
-                chromaBorderX,
-                chromaBorderY,
-                codedChromaWidth,
-                codedChromaHeight);
+            chromaBlueRegion = new(storage.Slice(chromaBlueOffset, chromaElementCount), chromaSize.Width, chromaBounds);
+            chromaRedRegion = new(storage.Slice(chromaRedOffset, chromaElementCount), chromaSize.Width, chromaBounds);
         }
 
         this.owner = owner;
@@ -134,34 +105,25 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
     /// <summary>
     /// Gets the complete padded luma plane.
     /// </summary>
-    public Buffer2D<TSample> Luma { get; }
+    public Av1PlaneRegion<TSample> Luma => this.Frame.CodedView.GetPlane(Av1Plane.Y).GetFullPlane();
 
     /// <summary>
-    /// Gets the complete padded blue-difference chroma plane.
+    /// Gets the complete padded blue-difference plane, or the default region for a monochrome frame.
     /// </summary>
-    public Buffer2D<TSample>? ChromaBlue { get; }
+    public Av1PlaneRegion<TSample> ChromaBlue => this.Frame.IsMonochrome ? default : this.Frame.CodedView.GetPlane(Av1Plane.U).GetFullPlane();
 
     /// <summary>
-    /// Gets the complete padded red-difference chroma plane.
+    /// Gets the complete padded red-difference plane, or the default region for a monochrome frame.
     /// </summary>
-    public Buffer2D<TSample>? ChromaRed { get; }
+    public Av1PlaneRegion<TSample> ChromaRed => this.Frame.IsMonochrome ? default : this.Frame.CodedView.GetPlane(Av1Plane.V).GetFullPlane();
 
     /// <summary>
     /// Releases the complete frame allocation.
     /// </summary>
     public void Dispose()
     {
-        IMemoryOwner<TSample>? ownedMemory = this.owner;
+        this.owner?.Dispose();
         this.owner = null;
-        if (ownedMemory is null)
-        {
-            return;
-        }
-
-        this.Luma.Dispose();
-        this.ChromaBlue?.Dispose();
-        this.ChromaRed?.Dispose();
-        ownedMemory.Dispose();
     }
 
     /// <summary>

@@ -552,7 +552,18 @@ internal static partial class Av1MotionSearchBase
             Av1MotionVector vector = new(integerResult.Vector.Y * 8, integerResult.Vector.X * 8);
             motionRate = ((this.motionCosts.GetCost(vector, referenceVector) * 108) + 64) >> 7;
             result = new FractionalResult(vector, integerResult.Variance, integerResult.SquaredError, integerResult.MotionCost);
-            if (!forceInteger && Av1RateDistortion.GetCost(this.rateMultiplier, motionRate, 0) <= bestCost)
+            if (Av1RateDistortion.GetCost(this.rateMultiplier, motionRate, 0) > bestCost)
+            {
+                // combined_motion_search() skips the fractional search here and leaves tmp_mv holding the
+                // full-sample vector, which the union then reads as an eighth-sample vector. The rate stays the
+                // rate of the full-sample vector in eighth samples.
+                result = new FractionalResult(
+                    new Av1MotionVector(integerResult.Vector.Y, integerResult.Vector.X),
+                    integerResult.Variance,
+                    integerResult.SquaredError,
+                    integerResult.MotionCost);
+            }
+            else if (!forceInteger)
             {
                 bool fullPixelPerformedWell = (this.blockSize == Av1BlockSize.Block64x64 && unchecked((uint)integerResult.Cost * 40U) < 62267 * 7)
                     || (this.blockSize == Av1BlockSize.Block32x32 && unchecked((uint)integerResult.Cost * 8U) < 42380)

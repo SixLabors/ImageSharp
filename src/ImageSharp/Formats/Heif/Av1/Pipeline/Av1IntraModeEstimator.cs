@@ -104,34 +104,39 @@ internal static class Av1IntraModeEstimator
                 _ => highBitDepth ? HighBitDepthScan16x16 : Scan16x16
             };
 
-        Span<int> coefficients = workspace.TransformCoefficients[..sampleCount];
+        Span<int> rowCoefficients = workspace.TransformCoefficients;
         Span<int> reconstructed = workspace.DequantizedCoefficients[..sampleCount];
         Span<int> quantized = workspace.TransformWorkspace[..sampleCount];
         int normalizationShift = (bitDepth.GetBitCount() - 8) * 2;
+        int blocksPerRow = (extent.Width + width - 1) / width;
         int magnitudeSum = 0;
         int endOfBlockCost = 0;
         distortion = 0;
         skip = true;
         for (int row = 0; row < extent.Height; row += width)
         {
-            for (int column = 0; column < extent.Width; column += width)
+            // The whole row of blocks is transformed first, so the vector kernels can take several adjacent
+            // blocks per step, as av1_block_yrd() does with aom_hadamard_lp_8x8_dual().
+            if (!identity)
             {
-                ReadOnlySpan<short> transformResidual = residual[((row * stride) + column)..];
+                Av1ForwardTransformer.TransformRowForModeEstimation(
+                    residual[(row * stride)..],
+                    stride,
+                    width,
+                    blocksPerRow,
+                    rowCoefficients,
+                    workspace.TransformWorkspace,
+                    highBitDepth);
+            }
+
+            for (int block = 0; block < blocksPerRow; block++)
+            {
+                Span<int> coefficients = rowCoefficients.Slice(block * sampleCount, sampleCount);
                 if (identity)
                 {
                     // Identity estimation keeps spatial sample order and scales each residual by eight,
                     // putting it in the same quantizer domain as the orthogonal estimation transform.
-                    Av1CoefficientMeasures.ScaleResidual(coefficients, transformResidual, stride, width);
-                }
-                else
-                {
-                    Av1ForwardTransformer.TransformForModeEstimation(
-                        transformResidual,
-                        stride,
-                        width,
-                        coefficients,
-                        workspace.TransformWorkspace,
-                        highBitDepth);
+                    Av1CoefficientMeasures.ScaleResidual(coefficients, residual[((row * stride) + (block * width))..], stride, width);
                 }
 
                 // The transform has finished with its scratch before quantization reuses that span.

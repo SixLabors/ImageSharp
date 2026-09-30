@@ -5,6 +5,7 @@ using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -89,39 +90,7 @@ internal static partial class Av1ForwardTransformer
     {
         if (size == 4)
         {
-            Span<int> first = workspace[..16];
-            for (int column = 0; column < 4; column++)
-            {
-                int a0 = residual[column];
-                int a1 = residual[stride + column];
-                int a2 = residual[(2 * stride) + column];
-                int a3 = residual[(3 * stride) + column];
-                int b0 = (a0 + a1) >> 1;
-                int b1 = (a0 - a1) >> 1;
-                int b2 = (a2 + a3) >> 1;
-                int b3 = (a2 - a3) >> 1;
-                first[(column * 4) + 0] = b0 + b2;
-                first[(column * 4) + 1] = b1 + b3;
-                first[(column * 4) + 2] = b0 - b2;
-                first[(column * 4) + 3] = b1 - b3;
-            }
-
-            for (int column = 0; column < 4; column++)
-            {
-                int a0 = first[column];
-                int a1 = first[4 + column];
-                int a2 = first[8 + column];
-                int a3 = first[12 + column];
-                int b0 = (a0 + a1) >> 1;
-                int b1 = (a0 - a1) >> 1;
-                int b2 = (a2 + a3) >> 1;
-                int b3 = (a2 - a3) >> 1;
-                coefficients[(column * 4) + 0] = b0 + b2;
-                coefficients[(column * 4) + 1] = b1 + b3;
-                coefficients[(column * 4) + 2] = b0 - b2;
-                coefficients[(column * 4) + 3] = b1 - b3;
-            }
-
+            Hadamard4x4(residual, stride, coefficients);
             return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..16]);
         }
 
@@ -166,24 +135,138 @@ internal static partial class Av1ForwardTransformer
                 workspace);
         }
 
-        int shift = size == 32 ? 2 : 1;
-        for (int index = 0; index < quadrantLength; index++)
+        CombineHadamardQuadrants(coefficients, quadrantLength, size == 32 ? 2 : 1);
+        return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..(size * size)]);
+    }
+
+    /// <summary>
+    /// Computes the 4x4 Hadamard transform with the halving butterflies of aom_hadamard_4x4(). Each vector lane
+    /// is one column, so both passes are lane-wise butterflies over rows; the two transposes keep the coefficient
+    /// order that the column-by-column definition produces.
+    /// </summary>
+    /// <param name="residual">The residual samples.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="coefficients">Receives the sixteen coefficients.</param>
+    private static void Hadamard4x4(ReadOnlySpan<short> residual, int stride, Span<int> coefficients)
+    {
+        ref short residualBase = ref MemoryMarshal.GetReference(residual);
+        Vector128<int> row0 = LoadFourSamples(ref residualBase, 0);
+        Vector128<int> row1 = LoadFourSamples(ref residualBase, stride);
+        Vector128<int> row2 = LoadFourSamples(ref residualBase, 2 * stride);
+        Vector128<int> row3 = LoadFourSamples(ref residualBase, 3 * stride);
+
+        HadamardRows4(ref row0, ref row1, ref row2, ref row3);
+        Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+        HadamardRows4(ref row0, ref row1, ref row2, ref row3);
+        Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+
+        ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
+        row0.StoreUnsafe(ref coefficientBase);
+        row1.StoreUnsafe(ref coefficientBase, 4);
+        row2.StoreUnsafe(ref coefficientBase, 8);
+        row3.StoreUnsafe(ref coefficientBase, 12);
+    }
+
+    /// <summary>
+    /// Loads four residual samples as 32-bit lanes without reading past them.
+    /// </summary>
+    /// <param name="residual">The first residual sample.</param>
+    /// <param name="offset">The offset of the four samples.</param>
+    /// <returns>The widened samples.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> LoadFourSamples(ref short residual, int offset)
+        => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residual, offset)))).AsInt16());
+
+    /// <summary>
+    /// Applies the halving butterflies of one aom_hadamard_4x4() pass to four columns at once.
+    /// </summary>
+    /// <param name="row0">The first row, replaced by the first output.</param>
+    /// <param name="row1">The second row, replaced by the second output.</param>
+    /// <param name="row2">The third row, replaced by the third output.</param>
+    /// <param name="row3">The fourth row, replaced by the fourth output.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void HadamardRows4(ref Vector128<int> row0, ref Vector128<int> row1, ref Vector128<int> row2, ref Vector128<int> row3)
+    {
+        Vector128<int> b0 = (row0 + row1) >> 1;
+        Vector128<int> b1 = (row0 - row1) >> 1;
+        Vector128<int> b2 = (row2 + row3) >> 1;
+        Vector128<int> b3 = (row2 - row3) >> 1;
+        row0 = b0 + b2;
+        row1 = b1 + b3;
+        row2 = b0 - b2;
+        row3 = b1 - b3;
+    }
+
+    /// <summary>
+    /// Combines four equal Hadamard quadrants in place with the halving butterflies of the 16x16 and 32x32
+    /// transforms. Reference: the combine loops of aom_hadamard_16x16_c() and aom_hadamard_32x32_c().
+    /// </summary>
+    /// <param name="coefficients">The four quadrants in quadrant order.</param>
+    /// <param name="quadrantLength">The number of coefficients in one quadrant.</param>
+    /// <param name="shift">The halving shift, one for 16x16 and two for 32x32.</param>
+    private static void CombineHadamardQuadrants(Span<int> coefficients, int quadrantLength, int shift)
+    {
+        ref int quadrant0 = ref MemoryMarshal.GetReference(coefficients);
+        ref int quadrant1 = ref Unsafe.Add(ref quadrant0, quadrantLength);
+        ref int quadrant2 = ref Unsafe.Add(ref quadrant1, quadrantLength);
+        ref int quadrant3 = ref Unsafe.Add(ref quadrant2, quadrantLength);
+        nuint length = (nuint)quadrantLength;
+        nuint index = 0;
+
+        // Quadrants hold 64 or 256 coefficients, so every width divides them exactly.
+        if (Vector512.IsHardwareAccelerated)
         {
-            int a0 = coefficients[index];
-            int a1 = coefficients[quadrantLength + index];
-            int a2 = coefficients[(2 * quadrantLength) + index];
-            int a3 = coefficients[(3 * quadrantLength) + index];
-            int b0 = (a0 + a1) >> shift;
-            int b1 = (a0 - a1) >> shift;
-            int b2 = (a2 + a3) >> shift;
-            int b3 = (a2 - a3) >> shift;
-            coefficients[index] = b0 + b2;
-            coefficients[quadrantLength + index] = b1 + b3;
-            coefficients[(2 * quadrantLength) + index] = b0 - b2;
-            coefficients[(3 * quadrantLength) + index] = b1 - b3;
+            for (; index < length; index += (nuint)Vector512<int>.Count)
+            {
+                Vector512<int> a0 = Vector512.LoadUnsafe(ref quadrant0, index);
+                Vector512<int> a1 = Vector512.LoadUnsafe(ref quadrant1, index);
+                Vector512<int> a2 = Vector512.LoadUnsafe(ref quadrant2, index);
+                Vector512<int> a3 = Vector512.LoadUnsafe(ref quadrant3, index);
+                Vector512<int> b0 = (a0 + a1) >> shift;
+                Vector512<int> b1 = (a0 - a1) >> shift;
+                Vector512<int> b2 = (a2 + a3) >> shift;
+                Vector512<int> b3 = (a2 - a3) >> shift;
+                (b0 + b2).StoreUnsafe(ref quadrant0, index);
+                (b1 + b3).StoreUnsafe(ref quadrant1, index);
+                (b0 - b2).StoreUnsafe(ref quadrant2, index);
+                (b1 - b3).StoreUnsafe(ref quadrant3, index);
+            }
         }
 
-        return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..(size * size)]);
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; index < length; index += (nuint)Vector256<int>.Count)
+            {
+                Vector256<int> a0 = Vector256.LoadUnsafe(ref quadrant0, index);
+                Vector256<int> a1 = Vector256.LoadUnsafe(ref quadrant1, index);
+                Vector256<int> a2 = Vector256.LoadUnsafe(ref quadrant2, index);
+                Vector256<int> a3 = Vector256.LoadUnsafe(ref quadrant3, index);
+                Vector256<int> b0 = (a0 + a1) >> shift;
+                Vector256<int> b1 = (a0 - a1) >> shift;
+                Vector256<int> b2 = (a2 + a3) >> shift;
+                Vector256<int> b3 = (a2 - a3) >> shift;
+                (b0 + b2).StoreUnsafe(ref quadrant0, index);
+                (b1 + b3).StoreUnsafe(ref quadrant1, index);
+                (b0 - b2).StoreUnsafe(ref quadrant2, index);
+                (b1 - b3).StoreUnsafe(ref quadrant3, index);
+            }
+        }
+
+        for (; index < length; index += (nuint)Vector128<int>.Count)
+        {
+            Vector128<int> a0 = Vector128.LoadUnsafe(ref quadrant0, index);
+            Vector128<int> a1 = Vector128.LoadUnsafe(ref quadrant1, index);
+            Vector128<int> a2 = Vector128.LoadUnsafe(ref quadrant2, index);
+            Vector128<int> a3 = Vector128.LoadUnsafe(ref quadrant3, index);
+            Vector128<int> b0 = (a0 + a1) >> shift;
+            Vector128<int> b1 = (a0 - a1) >> shift;
+            Vector128<int> b2 = (a2 + a3) >> shift;
+            Vector128<int> b3 = (a2 - a3) >> shift;
+            (b0 + b2).StoreUnsafe(ref quadrant0, index);
+            (b1 + b3).StoreUnsafe(ref quadrant1, index);
+            (b0 - b2).StoreUnsafe(ref quadrant2, index);
+            (b1 - b3).StoreUnsafe(ref quadrant3, index);
+        }
     }
 
     /// <summary>

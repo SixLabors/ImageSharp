@@ -28,9 +28,10 @@ public class Av1SelfGuidedFilterTests
     private const int ProjectionBits = 7;
 
     /// <summary>
-    /// The hardware configuration required to exercise scalar execution beside the native vector path run in-process.
+    /// The hardware configurations covering every vector tier and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations = HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Gets the radii selected by each of the sixteen normative parameter sets.
@@ -73,10 +74,7 @@ public class Av1SelfGuidedFilterTests
     /// </summary>
     [Fact]
     public void FilterMatchesReference()
-    {
-        ValidateFilters();
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
-    }
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
 
     /// <summary>
     /// Validates the complete self-guided parameter matrix in the active hardware-intrinsic configuration.

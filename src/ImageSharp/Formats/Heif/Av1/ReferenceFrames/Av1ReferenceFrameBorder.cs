@@ -53,7 +53,7 @@ internal static class Av1ReferenceFrameBorder
     /// <param name="height">The visible plane height.</param>
     private static void ExtendPlane(
         Av1FrameBuffer<byte> frameBuffer,
-        Buffer2D<byte> buffer,
+        Av1PlaneRegion<byte> buffer,
         int originX,
         int originY,
         int width,
@@ -61,11 +61,11 @@ internal static class Av1ReferenceFrameBorder
     {
         if (frameBuffer.BytesPerSample == 2)
         {
-            ExtendPlane(MemoryMarshal.Cast<byte, ushort>(buffer.DangerousGetSingleSpan()), buffer.Width >> 1, originX, originY, width, height);
+            ExtendPlane(MemoryMarshal.Cast<byte, ushort>(buffer.Samples), buffer.Stride >> 1, originX, originY, width, height);
         }
         else
         {
-            ExtendPlane(buffer.DangerousGetSingleSpan(), buffer.Width, originX, originY, width, height);
+            ExtendPlane(buffer.Samples, buffer.Stride, originX, originY, width, height);
         }
     }
 

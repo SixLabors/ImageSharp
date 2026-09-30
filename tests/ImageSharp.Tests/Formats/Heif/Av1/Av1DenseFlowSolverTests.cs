@@ -13,7 +13,7 @@ public class Av1DenseFlowSolverTests
     /// The configuration set the other AV1 vector tests use.
     /// </summary>
     private const HwIntrinsics SolverConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     [Fact]
     public void SolveMatchesTheReferencePatchSolver()

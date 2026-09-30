@@ -1,12 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
+using System.Numerics.Tensors;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1CompoundInterPredictor;
-using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1TranslationalInterPredictor;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
@@ -16,23 +14,39 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 internal static partial class Av1InterIntraMaskBuilder
 {
     /// <summary>
-    /// Gets the reference decoder's one-dimensional inter-intra alpha curve.
+    /// Gets the reference decoder's inter-intra alpha curve sampled every fourth entry, the weights of a
+    /// 32-sample block. Reference: ii_weights1d[] at ii_size_scales[] of 4.
     /// </summary>
-    private static ReadOnlySpan<byte> InterIntraWeights =>
+    private static ReadOnlySpan<byte> Weights32 =>
     [
-        60, 58, 56, 54, 52, 50, 48, 47, 45, 44, 42, 41, 39, 38, 37, 35,
-        34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 22, 21, 20,
-        19, 19, 18, 18, 17, 16, 16, 15, 15, 14, 14, 13, 13, 12, 12, 12,
-        11, 11, 10, 10, 10, 9, 9, 9, 8, 8, 8, 8, 7, 7, 7, 7,
-        6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4,
-        4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        60, 52, 45, 39, 34, 30, 26, 22, 19, 17, 15, 13, 11, 10, 8, 7,
+        6, 6, 5, 4, 4, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1,
     ];
 
     /// <summary>
-    /// Fills a smooth inter-intra mask for one plane.
+    /// Gets the alpha curve sampled every eighth entry, the weights of a 16-sample block.
     /// </summary>
+    private static ReadOnlySpan<byte> Weights16 => [60, 45, 34, 26, 19, 15, 11, 8, 6, 5, 4, 3, 2, 2, 1, 1];
+
+    /// <summary>
+    /// Gets the alpha curve sampled every sixteenth entry, the weights of an 8-sample block.
+    /// </summary>
+    private static ReadOnlySpan<byte> Weights8 => [60, 34, 19, 11, 6, 4, 2, 1];
+
+    /// <summary>
+    /// Gets the alpha curve sampled every thirty-second entry, the weights of a 4-sample block.
+    /// </summary>
+    private static ReadOnlySpan<byte> Weights4 => [60, 19, 6, 2];
+
+    /// <summary>
+    /// Fills a smooth inter-intra mask for one plane. Reference: build_smooth_interintra_mask().
+    /// </summary>
+    /// <param name="mask">The mask destination.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="mode">The inter-intra mode.</param>
+    /// <param name="invert">Whether to complement the mask.</param>
     public static void FillInterIntraMask(
         Span<byte> mask,
         int maskStride,
@@ -41,21 +55,45 @@ internal static partial class Av1InterIntraMaskBuilder
         Av1InterIntraMode mode,
         bool invert)
     {
-        int sizeScale = 128 / Math.Max(width, height);
+        // The alpha at row r and column c is weights[r], weights[c] or weights[min(r, c)], where the weights are
+        // the curve sampled at the block's size scale. Each mask row is therefore a weight-row copy, a fill, or a
+        // prefix copy followed by a fill.
+        ReadOnlySpan<byte> curve = Math.Max(width, height) switch
+        {
+            32 => Weights32,
+            16 => Weights16,
+            8 => Weights8,
+            _ => Weights4,
+        };
+
+        Span<byte> weights = stackalloc byte[32];
+        weights = weights[..curve.Length];
+        curve.CopyTo(weights);
+        if (invert)
+        {
+            TensorPrimitives.Subtract((byte)MaximumMaskAlpha, weights, weights);
+        }
+
         for (int row = 0; row < height; row++)
         {
             Span<byte> maskRow = mask.Slice(row * maskStride, width);
-            for (int column = 0; column < width; column++)
+            switch (mode)
             {
-                int alpha = mode switch
-                {
-                    Av1InterIntraMode.Vertical => InterIntraWeights[row * sizeScale],
-                    Av1InterIntraMode.Horizontal => InterIntraWeights[column * sizeScale],
-                    Av1InterIntraMode.Smooth => InterIntraWeights[Math.Min(row, column) * sizeScale],
-                    _ => 32,
-                };
-
-                maskRow[column] = (byte)(invert ? MaximumMaskAlpha - alpha : alpha);
+                case Av1InterIntraMode.Vertical:
+                    maskRow.Fill(weights[row]);
+                    break;
+                case Av1InterIntraMode.Horizontal:
+                    weights[..width].CopyTo(maskRow);
+                    break;
+                case Av1InterIntraMode.Smooth:
+                    int split = Math.Min(row, width);
+                    weights[..split].CopyTo(maskRow);
+                    maskRow[split..].Fill(weights[row]);
+                    break;
+                default:
+                    // The DC mode weights both predictions equally, and 64 - 32 is 32.
+                    maskRow.Fill(MaximumMaskAlpha / 2);
+                    break;
             }
         }
     }

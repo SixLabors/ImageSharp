@@ -17,7 +17,7 @@ public class Av1WarpedInterPredictorTests
     /// <summary>
     /// The hardware configurations covering the native SIMD width and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies exact 8-, 10-, and 12-bit native and compound prediction against independent scalar equations.

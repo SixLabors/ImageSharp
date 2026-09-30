@@ -103,7 +103,7 @@ internal static class Av1LoopFilterEncoder
 
         // One pooled copy, sized for the largest plane, holds the unfiltered samples each trial restores
         // (the reference's last_frame_uf buffer).
-        Buffer2DRegion<TSample> lumaPlane = reconstruction.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> lumaPlane = reconstruction.CodedView.GetPlane(Av1Plane.Y);
         using IMemoryOwner<TSample> backupOwner = allocator.Allocate<TSample>(lumaPlane.Width * lumaPlane.Height);
         Span<TSample> backup = backupOwner.Memory.Span;
 
@@ -200,15 +200,15 @@ internal static class Av1LoopFilterEncoder
             return;
         }
 
-        Buffer2DRegion<TSample> samples = reconstruction.CodedView.GetPlane(plane);
+        Av1PlaneRegion<TSample> samples = reconstruction.CodedView.GetPlane(plane);
         int origin = (samples.Bounds.Y * samples.Stride) + samples.Bounds.X;
         int subX = plane == Av1Plane.Y ? 0 : reconstruction.ChromaSubsamplingX;
         int subY = plane == Av1Plane.Y ? 0 : reconstruction.ChromaSubsamplingY;
         int rowsPerBand = 1 << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
 
-        // The frame owner supplies one contiguous allocation. Retain its full bordered view so kernels may
+        // Each plane is one contiguous allocation. Retain its full bordered view so kernels may
         // access their edge neighborhoods without copying the plane or materializing decoder frame state.
-        Span<TSample> storage = samples.Buffer.DangerousGetSingleSpan();
+        Span<TSample> storage = samples.Samples;
         for (int rowStart = 0; rowStart < header.ModeInfoRowCount; rowStart += rowsPerBand)
         {
             int rowEnd = Math.Min(rowStart + rowsPerBand, header.ModeInfoRowCount);
@@ -293,7 +293,7 @@ internal static class Av1LoopFilterEncoder
         Span<long> errors = stackalloc long[maximumLevel + 1];
         errors.Fill(-1);
 
-        Buffer2DRegion<TSample> coded = reconstruction.CodedView.GetPlane(plane);
+        Av1PlaneRegion<TSample> coded = reconstruction.CodedView.GetPlane(plane);
         backup = backup[..(coded.Width * coded.Height)];
         CopyPlane(coded, backup);
 
@@ -441,7 +441,7 @@ internal static class Av1LoopFilterEncoder
     /// <param name="first">The first plane.</param>
     /// <param name="second">The second plane, of the same size.</param>
     /// <returns>The exact sum of squared sample differences.</returns>
-    private static long GetSumSquaredError<TSample>(Buffer2DRegion<TSample> first, Buffer2DRegion<TSample> second)
+    private static long GetSumSquaredError<TSample>(Av1PlaneRegion<TSample> first, Av1PlaneRegion<TSample> second)
         where TSample : unmanaged
     {
         int width = first.Width;
@@ -482,8 +482,8 @@ internal static class Av1LoopFilterEncoder
     /// <param name="height">The rectangle height.</param>
     /// <returns>The exact sum of squared sample differences.</returns>
     private static long GetSumSquaredError<TSample>(
-        Buffer2DRegion<TSample> first,
-        Buffer2DRegion<TSample> second,
+        Av1PlaneRegion<TSample> first,
+        Av1PlaneRegion<TSample> second,
         int x,
         int y,
         int width,
@@ -492,8 +492,8 @@ internal static class Av1LoopFilterEncoder
     {
         int firstOffset = ((first.Bounds.Y + y) * first.Stride) + first.Bounds.X + x;
         int secondOffset = ((second.Bounds.Y + y) * second.Stride) + second.Bounds.X + x;
-        ReadOnlySpan<TSample> firstSamples = first.Buffer.DangerousGetSingleSpan()[firstOffset..];
-        ReadOnlySpan<TSample> secondSamples = second.Buffer.DangerousGetSingleSpan()[secondOffset..];
+        ReadOnlySpan<TSample> firstSamples = first.Samples[firstOffset..];
+        ReadOnlySpan<TSample> secondSamples = second.Samples[secondOffset..];
 
         // The sample type is fixed by the closed generic frame path, so this folds to one direct call.
         if (typeof(TSample) == typeof(byte))
@@ -522,12 +522,12 @@ internal static class Av1LoopFilterEncoder
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <param name="plane">The coded plane.</param>
     /// <param name="destination">The contiguous destination rows.</param>
-    private static void CopyPlane<TSample>(Buffer2DRegion<TSample> plane, Span<TSample> destination)
+    private static void CopyPlane<TSample>(Av1PlaneRegion<TSample> plane, Span<TSample> destination)
         where TSample : unmanaged
     {
         for (int y = 0; y < plane.Height; y++)
         {
-            plane.DangerousGetRowSpan(y).CopyTo(destination.Slice(y * plane.Width, plane.Width));
+            plane.GetRowSpan(y).CopyTo(destination.Slice(y * plane.Width, plane.Width));
         }
     }
 
@@ -537,12 +537,12 @@ internal static class Av1LoopFilterEncoder
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <param name="source">The contiguous source rows.</param>
     /// <param name="plane">The coded plane.</param>
-    private static void RestorePlane<TSample>(ReadOnlySpan<TSample> source, Buffer2DRegion<TSample> plane)
+    private static void RestorePlane<TSample>(ReadOnlySpan<TSample> source, Av1PlaneRegion<TSample> plane)
         where TSample : unmanaged
     {
         for (int y = 0; y < plane.Height; y++)
         {
-            source.Slice(y * plane.Width, plane.Width).CopyTo(plane.DangerousGetRowSpan(y));
+            source.Slice(y * plane.Width, plane.Width).CopyTo(plane.GetRowSpan(y));
         }
     }
 

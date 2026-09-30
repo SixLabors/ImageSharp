@@ -40,6 +40,11 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         // of every unit sums all of it. Reference: the av1_zero_array() call of av1_first_pass_row().
         this.residual.AsSpan().Clear();
 
+        if (this.calculateWaveletEnergy)
+        {
+            this.AddWaveletEnergies(ref frame, unitRow, unitColumnsInTile, records);
+        }
+
         for (int unitColumn = 0; unitColumn < unitColumnsInTile; unitColumn++)
         {
             if (unitColumn == 0)
@@ -185,13 +190,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         intraError += IntraModePenalty;
         record.IntraError += intraError;
 
-        // The wavelet energy is measured over the whole unit even where the measured block is smaller.
-        if (this.calculateWaveletEnergy)
-        {
-            int blocks = frame.FirstPassBlockSize.GetWidth() / 8;
-            record.FrameAverageWaveletEnergy += GetWaveletEnergy(frame.Source, sourceIndex, frame.SourceStride, blocks);
-        }
-        else
+        // The row measures the wavelet energy of every unit before its units are predicted.
+        if (!this.calculateWaveletEnergy)
         {
             record.FrameAverageWaveletEnergy = InvalidWaveletEnergy;
         }

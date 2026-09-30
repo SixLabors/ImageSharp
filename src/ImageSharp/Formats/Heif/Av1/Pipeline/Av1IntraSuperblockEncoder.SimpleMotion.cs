@@ -39,10 +39,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 return default;
             }
 
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
-            ReadOnlySpan<TSample> reference = referencePlane.Buffer.DangerousGetSingleSpan();
+            ReadOnlySpan<TSample> reference = referencePlane.Samples;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size size = new(blockSize.GetWidth(), blockSize.GetHeight());
             Size frameSize = new(
@@ -82,7 +82,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 sites,
                 settings,
                 keyFrame: false,
-                fineMeshInterval: false,
+                fineMeshInterval: this.UsesFineSearchInterval,
                 intraBlockCopy: false,
                 [],
                 out _);

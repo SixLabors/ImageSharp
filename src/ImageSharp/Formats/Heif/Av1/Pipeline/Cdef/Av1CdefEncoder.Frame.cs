@@ -136,8 +136,8 @@ internal static partial class Av1CdefEncoder
                     int subY = planeIndex == 0 ? 0 : reconstruction.ChromaSubsamplingY;
                     int planeWidth = header.ModeInfoColumnCount << (2 - subX);
                     int row = ((unitRow + 16) << (2 - subY)) - VerticalBorder;
-                    Buffer2DRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
-                    ReadOnlySpan<TSample> storage = plane.Buffer.DangerousGetSingleSpan();
+                    Av1PlaneRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
+                    ReadOnlySpan<TSample> storage = plane.Samples;
                     int offset = ((plane.Bounds.Y + row) * plane.Stride) + plane.Bounds.X;
                     int lineOffset = lineOffsets[planeIndex] + ((rowIndex & 1) * VerticalBorder * planeWidth);
                     TOperator.Copy(storage[offset..], plane.Stride, borders[lineOffset..], planeWidth, planeWidth, VerticalBorder);
@@ -176,7 +176,7 @@ internal static partial class Av1CdefEncoder
                     int planeHeight = header.ModeInfoRowCount << (2 - subY);
                     int unitWidth = width << (2 - subX);
                     int unitHeight = height << (2 - subY);
-                    Buffer2DRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
+                    Av1PlaneRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
                     CopyUnit<TSample, TOperator>(plane, x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
                     if (unitRow != 0)
                     {
@@ -215,7 +215,7 @@ internal static partial class Av1CdefEncoder
                     // Capture the right edge before replacing any samples in this unit. Subsequent
                     // units restore these samples over their already-filtered left neighborhood.
                     Av1CdefFilter.CopyPlane(input, unitWidth, SourceStride, column, 0, HorizontalBorder, HorizontalBorder, preservedHeight);
-                    Span<TSample> storage = plane.Buffer.DangerousGetSingleSpan();
+                    Span<TSample> storage = plane.Samples;
                     int offset = ((plane.Bounds.Y + y) * plane.Stride) + plane.Bounds.X + x;
                     FilterUnit<TSample, TOperator>(
                         input,
@@ -229,7 +229,8 @@ internal static partial class Av1CdefEncoder
                         strength,
                         parameters.Damping,
                         shift,
-                        planeIndex == 0);
+                        planeIndex == 0,
+                        convertDirections: true);
 
                     leftFiltered[planeIndex] = true;
                 }

@@ -15,7 +15,7 @@ public class Av1PlaneDownsamplerTests
     /// scalar remainder are all exercised.
     /// </summary>
     private const HwIntrinsics DownsamplerConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     [Fact]
     public void HalveMatchesTheReferenceKernel()

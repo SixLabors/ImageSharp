@@ -20,7 +20,7 @@ public class Av1DeblockingFilterTests
     /// <summary>
     /// The hardware configurations required to exercise packed filtering and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The padded plane width used to expose horizontal and vertical edge traversal.
@@ -182,7 +182,7 @@ public class Av1DeblockingFilterTests
         for (int row = 0; row < height; row++)
         {
             Span<byte> expectedRow = expected.AsSpan(row * width, width);
-            Span<byte> actualRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+            Span<byte> actualRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(row);
             expectedRow[..edge].Fill(100);
             expectedRow[edge..].Fill(130);
             actualRow[..edge].Fill(100);
@@ -201,7 +201,7 @@ public class Av1DeblockingFilterTests
         for (int row = 0; row < height; row++)
         {
             ReadOnlySpan<byte> expectedRow = expected.AsSpan(row * width, width);
-            ReadOnlySpan<byte> actualRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+            ReadOnlySpan<byte> actualRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(row);
             Assert.Equal(expectedRow, actualRow);
         }
     }

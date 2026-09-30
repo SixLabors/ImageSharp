@@ -590,38 +590,32 @@ internal static class Av1Transform2dOperations
         ref Vector256<int> row6,
         ref Vector256<int> row7)
     {
-        Vector128<int> column0Lower = row0.GetLower();
-        Vector128<int> column1Lower = row1.GetLower();
-        Vector128<int> column2Lower = row2.GetLower();
-        Vector128<int> column3Lower = row3.GetLower();
-        Transpose(ref column0Lower, ref column1Lower, ref column2Lower, ref column3Lower);
+        Vector256<long> pair0 = Vector256_.UnpackLow(row0, row1).AsInt64();
+        Vector256<long> pair1 = Vector256_.UnpackHigh(row0, row1).AsInt64();
+        Vector256<long> pair2 = Vector256_.UnpackLow(row2, row3).AsInt64();
+        Vector256<long> pair3 = Vector256_.UnpackHigh(row2, row3).AsInt64();
+        Vector256<long> pair4 = Vector256_.UnpackLow(row4, row5).AsInt64();
+        Vector256<long> pair5 = Vector256_.UnpackHigh(row4, row5).AsInt64();
+        Vector256<long> pair6 = Vector256_.UnpackLow(row6, row7).AsInt64();
+        Vector256<long> pair7 = Vector256_.UnpackHigh(row6, row7).AsInt64();
+        Vector256<int> quad0 = Vector256_.UnpackLow(pair0, pair2).AsInt32();
+        Vector256<int> quad1 = Vector256_.UnpackHigh(pair0, pair2).AsInt32();
+        Vector256<int> quad2 = Vector256_.UnpackLow(pair1, pair3).AsInt32();
+        Vector256<int> quad3 = Vector256_.UnpackHigh(pair1, pair3).AsInt32();
+        Vector256<int> quad4 = Vector256_.UnpackLow(pair4, pair6).AsInt32();
+        Vector256<int> quad5 = Vector256_.UnpackHigh(pair4, pair6).AsInt32();
+        Vector256<int> quad6 = Vector256_.UnpackLow(pair5, pair7).AsInt32();
+        Vector256<int> quad7 = Vector256_.UnpackHigh(pair5, pair7).AsInt32();
 
-        Vector128<int> column0Upper = row4.GetLower();
-        Vector128<int> column1Upper = row5.GetLower();
-        Vector128<int> column2Upper = row6.GetLower();
-        Vector128<int> column3Upper = row7.GetLower();
-        Transpose(ref column0Upper, ref column1Upper, ref column2Upper, ref column3Upper);
-
-        Vector128<int> column4Lower = row0.GetUpper();
-        Vector128<int> column5Lower = row1.GetUpper();
-        Vector128<int> column6Lower = row2.GetUpper();
-        Vector128<int> column7Lower = row3.GetUpper();
-        Transpose(ref column4Lower, ref column5Lower, ref column6Lower, ref column7Lower);
-
-        Vector128<int> column4Upper = row4.GetUpper();
-        Vector128<int> column5Upper = row5.GetUpper();
-        Vector128<int> column6Upper = row6.GetUpper();
-        Vector128<int> column7Upper = row7.GetUpper();
-        Transpose(ref column4Upper, ref column5Upper, ref column6Upper, ref column7Upper);
-
-        row0 = Vector256.Create(column0Lower, column0Upper);
-        row1 = Vector256.Create(column1Lower, column1Upper);
-        row2 = Vector256.Create(column2Lower, column2Upper);
-        row3 = Vector256.Create(column3Lower, column3Upper);
-        row4 = Vector256.Create(column4Lower, column4Upper);
-        row5 = Vector256.Create(column5Lower, column5Upper);
-        row6 = Vector256.Create(column6Lower, column6Upper);
-        row7 = Vector256.Create(column7Lower, column7Upper);
+        // Each 128-bit lane now holds a 4x4 transpose; exchanging the lanes completes the 8x8 transpose.
+        row0 = Vector256.Create(quad0.GetLower(), quad4.GetLower());
+        row1 = Vector256.Create(quad1.GetLower(), quad5.GetLower());
+        row2 = Vector256.Create(quad2.GetLower(), quad6.GetLower());
+        row3 = Vector256.Create(quad3.GetLower(), quad7.GetLower());
+        row4 = Vector256.Create(quad0.GetUpper(), quad4.GetUpper());
+        row5 = Vector256.Create(quad1.GetUpper(), quad5.GetUpper());
+        row6 = Vector256.Create(quad2.GetUpper(), quad6.GetUpper());
+        row7 = Vector256.Create(quad3.GetUpper(), quad7.GetUpper());
     }
 
     /// <summary>

@@ -1169,4 +1169,36 @@ internal static class Vector128_
         // Sign-extend the even lanes in place, then multiply the 64-bit lanes.
         return ((left.AsInt64() << 32) >> 32) * ((right.AsInt64() << 32) >> 32);
     }
+
+    /// <summary>
+    /// Reads four 32-bit values from a table, one per lane, at the given element indices.
+    /// </summary>
+    /// <param name="table">The first element of the table.</param>
+    /// <param name="indices">The element index of each lane.</param>
+    /// <returns>The <see cref="Vector128{Int32}"/>.</returns>
+    /// <remarks>
+    /// A gather has no portable form, so every path other than AVX2 reads the four elements one at a time. The
+    /// indices are stored once and the result is built once. The caller is responsible for keeping every index
+    /// inside the table.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector128<int> Gather(ref int table, Vector128<int> indices)
+    {
+        if (Avx2.IsSupported)
+        {
+            fixed (int* pointer = &table)
+            {
+                return Avx2.GatherVector128(pointer, indices, sizeof(int));
+            }
+        }
+
+        InlineArray4<int> lanes = default;
+        ref int first = ref Unsafe.As<InlineArray4<int>, int>(ref lanes);
+        indices.StoreUnsafe(ref first);
+        return Vector128.Create(
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 0)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 1)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 2)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 3)));
+    }
 }

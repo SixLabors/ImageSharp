@@ -94,14 +94,14 @@ internal sealed class Av1FilmGrainDecoder
         int alignedWidth = Av1Math.AlignPowerOf2(visibleWidth, 1);
         int alignedHeight = Av1Math.AlignPowerOf2(visibleHeight, 1);
 
-        Buffer2D<byte> lumaBuffer = this.frameBuffer.GetPlaneBuffer(Av1Plane.Y);
+        Av1PlaneRegion<byte> lumaBuffer = this.frameBuffer.GetPlaneBuffer(Av1Plane.Y);
 
         // Frame planes are allocated as bytes even for high-bit-depth pictures. Convert their byte strides to
         // native sample strides once so every later offset is expressed consistently in samples.
-        int lumaStride = lumaBuffer.Width / this.frameBuffer.BytesPerSample;
+        int lumaStride = lumaBuffer.Stride / this.frameBuffer.BytesPerSample;
         int chromaStride = isMonochrome
             ? 0
-            : this.frameBuffer.GetPlaneBuffer(Av1Plane.U).Width / this.frameBuffer.BytesPerSample;
+            : this.frameBuffer.GetPlaneBuffer(Av1Plane.U).Stride / this.frameBuffer.BytesPerSample;
 
         // Closing ApplyGrain over byte or ushort keeps synthesis in the frame buffer's native representation.
         // This avoids an intermediate converted image while allowing the JIT to remove the sample-type branches.
@@ -205,11 +205,11 @@ internal sealed class Av1FilmGrainDecoder
     /// <param name="originX">The horizontal visible origin in samples.</param>
     /// <param name="originY">The vertical visible origin in rows.</param>
     /// <returns>The sample span beginning at the visible origin and retaining the padded row stride.</returns>
-    private static Span<TSample> GetPlaneSamples<TSample>(Buffer2D<byte> buffer, int originX, int originY)
+    private static Span<TSample> GetPlaneSamples<TSample>(Av1PlaneRegion<byte> buffer, int originX, int originY)
         where TSample : unmanaged
     {
-        Span<TSample> samples = MemoryMarshal.Cast<byte, TSample>(buffer.DangerousGetSingleSpan());
-        int stride = buffer.Width / Unsafe.SizeOf<TSample>();
+        Span<TSample> samples = MemoryMarshal.Cast<byte, TSample>(buffer.Samples);
+        int stride = buffer.Stride / Unsafe.SizeOf<TSample>();
 
         // The returned span intentionally retains the allocation beyond the visible rectangle. Film-grain overlap
         // and odd-dimension extension use the frame buffer's existing right and bottom padding through this stride.

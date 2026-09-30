@@ -105,6 +105,7 @@ public class Av1ReferenceDecoderVerificationTests
         _ = alpha
             ? Av1FrameEncoder.EncodeAlpha(Configuration.Default, image.Frames.RootFrame, stream, colorConfig, qIndex, speed)
             : Av1FrameEncoder.Encode(Configuration.Default, image.Frames.RootFrame, stream, colorConfig, qIndex, speed);
+
         byte[] payload = stream.ToArray();
         string dump = Environment.GetEnvironmentVariable("IMAGESHARP_AV1_DUMP");
         if (!string.IsNullOrEmpty(dump))
@@ -135,11 +136,11 @@ public class Av1ReferenceDecoderVerificationTests
             int planeSubY = planeIndex == 0 ? 0 : subY;
             int planeWidth = (width + planeSubX) >> planeSubX;
             int planeHeight = (height + planeSubY) >> planeSubY;
-            Buffer2DRegion<byte> managedPlane = managed.DeriveBlockPointer(plane, planeSubX, planeSubY);
+            Av1PlaneRegion<byte> managedPlane = managed.DeriveBlockPointer(plane, planeSubX, planeSubY);
             for (int y = 0; y < planeHeight; y++)
             {
                 ReadOnlySpan<byte> expected = reference.AsSpan(offset, planeWidth * bytesPerSample);
-                ReadOnlySpan<byte> actual = managedPlane.DangerousGetRowSpan(y)[..(planeWidth * bytesPerSample)];
+                ReadOnlySpan<byte> actual = managedPlane.GetRowSpan(y)[..(planeWidth * bytesPerSample)];
                 offset += planeWidth * bytesPerSample;
                 if (expected.SequenceEqual(actual))
                 {
@@ -151,9 +152,11 @@ public class Av1ReferenceDecoderVerificationTests
                     int expectedSample = bytesPerSample == 1
                         ? expected[x]
                         : MemoryMarshal.Cast<byte, ushort>(expected)[x];
+
                     int actualSample = bytesPerSample == 1
                         ? actual[x]
                         : MemoryMarshal.Cast<byte, ushort>(actual)[x];
+
                     if (expectedSample != actualSample)
                     {
                         if (mismatchCount < 12)

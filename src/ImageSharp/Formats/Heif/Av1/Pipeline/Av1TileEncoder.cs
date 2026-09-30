@@ -486,7 +486,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.FrameUpdateType,
             frameHeader.QuantizationParameters.BaseQIndex,
             sourceSize,
-            frameHeader.AllowScreenContentTools);
+            frameHeader.AllowScreenContentTools,
+            parent.ScreenContentToolsBeforeTrial);
 
         // Distortion stops at the coded boundary, or at the frame edge when the picture pads its border.
         // Reference: set_pixels_to_frame_edge() with cpi->do_border_pad.
@@ -537,9 +538,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         parent.TransformTypeCounts = blockWorkspace.TransformTypeCounts;
         parent.TransformTypeCounts.Span.Clear();
 
-        // copy_frame_prob_info() runs at a key frame, and at a golden refresh when warped motion is pruned further.
-        bool restoreProbabilities = frameHeader.FrameType == ObuFrameType.KeyFrame ||
-            (parent.SpeedSettings.ExtraPruneWarped && parent.RefreshesGolden);
+        // copy_frame_prob_info() runs at a key frame, and at a golden refresh when warped motion is pruned further. It
+        // runs once per frame, so a frame coded again after the screen content trial keeps what the trial updated.
+        bool restoreProbabilities = !parent.RetainsFrameProbabilities &&
+            (frameHeader.FrameType == ObuFrameType.KeyFrame || (parent.SpeedSettings.ExtraPruneWarped && parent.RefreshesGolden));
+
+        parent.RetainsFrameProbabilities = false;
+        parent.PalettePixelCount = 0;
 
         if (restoreProbabilities && parent.SpeedSettings.TransformTypeProbabilityPruning != 0)
         {
@@ -690,6 +695,55 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         blockWorkspace.RegularizedImportance = regularizedImportance;
         return allowed;
+    }
+
+    /// <summary>
+    /// Decides and reconstructs the blocks of an intra frame without filtering or packing it, as the screen content
+    /// trial does, and updates the frame probabilities that the coding keeps. Reference: av1_encode_frame() as
+    /// av1_determine_sc_tools_with_encoding() calls it.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+    /// <param name="writer">The symbol encoder whose frame context the trial starts from.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    internal static void AnalyzeIntraFrame<TSample, TOperator>(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<TSample> source,
+        Av1EncoderFrame<TSample> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderTileWorkspace tileWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+    {
+        Av1PictureParentControlSet parent = picture.Parent;
+        PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
+
+        // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate(), which precedes the
+        // trial.
+        parent.SsimRateMultiplierFactors = null;
+        if (parent.EncoderOptions.Tuning is Av1Tuning.Ssim or Av1Tuning.Iq)
+        {
+            Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
+        }
+
+        _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
+            writer, source, default, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+
+        // Reference: the tx_type_probs update at the end of encode_frame_internal().
+        if (parent.SpeedSettings.TrackTransformTypeProbabilities)
+        {
+            Av1TransformTypeProbabilities.Update(
+                blockWorkspace.TransformTypeProbabilities.Slice(
+                    (int)parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength, Av1TransformTypeProbabilities.FrameLength),
+                parent.TransformTypeCounts.Span);
+        }
     }
 
     private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
@@ -904,6 +958,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         int tileIndex = 0;
         int tileDataEnd = 0;
+        int tileCount = tileLayout.TileColumnCount * tileLayout.TileRowCount;
+        int largestTileLength = 0;
+        int largestTileIndex = 0;
         for (int tileRow = 0; tileRow < tileLayout.TileRowCount; tileRow++)
         {
             tile.SetTileRow(tileLayout, frameHeader.ModeInfoRowCount, tileRow);
@@ -1075,10 +1132,30 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                     tileDataOffsets[tileIndex] = tileDataEnd;
                     tileDataLengths[tileIndex] = tileDataLength;
                     tileDataEnd += tileDataLength;
+
+                    // The largest tile, the first of equal sizes, updates the frame context. Reference: the
+                    // largest_tile_id and max_tile_size of write_tiles_in_tg_obus().
+                    if (tileCount > 1 && tileDataLength > largestTileLength)
+                    {
+                        largestTileLength = tileDataLength;
+                        largestTileIndex = tileIndex;
+                        writer.RetainContextUpdateTile();
+                    }
                 }
 
                 tileIndex++;
             }
+        }
+
+        if (TSymbolOperation.WritesOutput && tileCount > 1)
+        {
+            // Reference: write_tile_obu_size(), which writes context_update_tile_id and the tile size bytes that
+            // remux_tiles() chooses with choose_size_bytes() for the largest tile.
+            tileLayout.ContextUpdateTileId = (uint)largestTileIndex;
+            tileLayout.TileSizeBytes = (uint)largestTileLength >> 24 != 0 ? 4
+                : (uint)largestTileLength >> 16 != 0 ? 3
+                : (uint)largestTileLength >> 8 != 0 ? 2
+                : 1;
         }
 
         return writer.GetOutput(tileDataEnd);

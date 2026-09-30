@@ -953,6 +953,12 @@ internal partial class Av1TileWriter
             if (frm_hdr.AllowScreenContentTools)
             {
                 pcs.BlockPalettes.Span[allocationOffset] = paletteInfo;
+
+                // Reference: the palette_pixels count of encode_superblock() for an OUTPUT_ENABLED block.
+                if (IsPaletteAllowed(true, blockSize) && paletteInfo.PaletteSizes[0] > 0)
+                {
+                    pcs.Parent.PalettePixelCount += blockSize.GetWidth() * blockSize.GetHeight();
+                }
             }
         }
 
@@ -1466,7 +1472,7 @@ internal partial class Av1TileWriter
                     }
                     else
                     {
-                        Buffer2DRegion<byte> colorIndexMap = tb_ptr.Workspace
+                        Av1PlaneRegion<byte> colorIndexMap = tb_ptr.Workspace
                             .GetPaletteMaps()
                             .GetMap(planeType, planeWidth, planeHeight);
 

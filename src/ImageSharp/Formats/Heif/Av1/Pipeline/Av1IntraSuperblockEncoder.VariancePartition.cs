@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -216,7 +217,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             ref VariancePartitionNode node = ref nodes[nodeIndex];
             node = default;
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             if (width == 8)
             {
                 if (blockOrigin.X < sourcePlane.Width && blockOrigin.Y < sourcePlane.Height)
@@ -550,17 +551,17 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize = this.picture.Sequence.SequenceHeader.SuperblockSize;
             int side = blockSize.GetWidth();
             Size frameSize = new(parent.FrameHeader.FrameSize.FrameWidth, parent.FrameHeader.FrameSize.FrameHeight);
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> lastPlane = this.reference.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> lastPlane = this.reference.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, origin);
-            ReadOnlySpan<TSample> lastStorage = lastPlane.Buffer.DangerousGetSingleSpan();
+            ReadOnlySpan<TSample> lastStorage = lastPlane.Samples;
             int lastOrigin = ((lastPlane.Bounds.Y + origin.Y) * lastPlane.Stride) + lastPlane.Bounds.X + origin.X;
             int precisionShift = this.bitDepth.GetBitCount() - 8;
             uint spatialVariance = this.sourceSadLevel > Av1SourceSadLevel.Low ? (uint)this.GetSourceVariance(origin, blockSize) : uint.MaxValue;
             uint goldenSad = uint.MaxValue;
             if (this.hasDistinctGoldenReference && this.sourceSadLevel != Av1SourceSadLevel.Zero)
             {
-                Buffer2DRegion<TSample> golden = this.goldenReference.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> golden = this.goldenReference.GetPlane(Av1Plane.Y);
                 goldenSad = (uint)TOperator.SumAbsoluteDifferences(
                     source, sourcePlane.Stride, Av1TransformBlockEncoder.GetPlaneSpan(golden, origin), golden.Stride, side, side, 1) >> precisionShift;
             }
@@ -572,7 +573,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (useAlternate && (parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Alternate)) != 0 &&
                 this.sourceSadLevel != Av1SourceSadLevel.Zero)
             {
-                Buffer2DRegion<TSample> alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y);
                 alternateSad = (uint)TOperator.SumAbsoluteDifferences(
                     source, sourcePlane.Stride, Av1TransformBlockEncoder.GetPlaneSpan(alternate, origin), alternate.Stride, side, side, 1) >> precisionShift;
             }
@@ -792,11 +793,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int index = 0; index < 2; index++)
                 {
                     Av1Plane plane = index == 0 ? Av1Plane.U : Av1Plane.V;
-                    Buffer2DRegion<TSample> chromaSource = this.source.GetPlane(plane);
+                    Av1PlaneRegion<TSample> chromaSource = this.source.GetPlane(plane);
 
                     // chroma_check() measures zero motion against LAST, whichever reference the partition chose:
                     // pre[0] when that is LAST, otherwise the LAST buffer through setup_pred_plane().
-                    Buffer2DRegion<TSample> chromaReference = this.references.Span[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
+                    Av1PlaneRegion<TSample> chromaReference = this.references.Span[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
                         : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;
@@ -814,7 +815,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.superblockColorSensitivity[index] = (byte)(sad > (lastSad >> upperShift) ? 1 : sad < (lastSad >> lowerShift) ? 0 : 2);
                     if (goldenSad != uint.MaxValue)
                     {
-                        Buffer2DRegion<TSample> golden = this.goldenReference.GetPlane(plane);
+                        Av1PlaneRegion<TSample> golden = this.goldenReference.GetPlane(plane);
                         uint sadGolden = (uint)TOperator.SumAbsoluteDifferences(
                             Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
                             chromaSource.Stride,
@@ -829,7 +830,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (alternateSad != uint.MaxValue)
                     {
-                        Buffer2DRegion<TSample> alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(plane);
+                        Av1PlaneRegion<TSample> alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(plane);
                         uint sadAlternate = (uint)TOperator.SumAbsoluteDifferences(
                             Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
                             chromaSource.Stride,
@@ -846,7 +847,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (zeroMotion)
             {
-                Buffer2DRegion<TSample> plane = selected.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> plane = selected.GetPlane(Av1Plane.Y);
                 predictionStride = plane.Stride;
                 return Av1TransformBlockEncoder.GetPlaneSpan(plane, origin);
             }
@@ -882,10 +883,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1PictureParentControlSet parent = this.picture.Parent;
             int side = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
-            Buffer2DRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<byte> previousLuma = parent.PreviousSource.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<byte> previousLuma = parent.PreviousSource.GetPlane(Av1Plane.Y);
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<TSample, byte>(Av1TransformBlockEncoder.GetPlaneSpan(luma, origin));
-            ReadOnlySpan<byte> previous = previousLuma.Buffer.DangerousGetSingleSpan();
+            ReadOnlySpan<byte> previous = previousLuma.Samples;
             int previousOffset = ((previousLuma.Bounds.Y + origin.Y) * previousLuma.Stride) + previousLuma.Bounds.X + origin.X;
             int columns = (parent.FrameHeader.ModeInfoColumnCount + 15) >> 4;
             uint stationarySad = (uint)parent.SourceBlockSad.Span[((origin.Y >> 6) * columns) + (origin.X >> 6)];
@@ -910,28 +911,67 @@ internal static partial class Av1IntraSuperblockEncoder
                 int subX = index == 0 ? 0 : this.source.ChromaSubsamplingX;
                 int subY = index == 0 ? 0 : this.source.ChromaSubsamplingY;
                 Point planeOrigin = new(origin.X >> subX, origin.Y >> subY);
-                Buffer2DRegion<TSample> currentPlane = this.source.GetPlane((Av1Plane)index);
-                Buffer2DRegion<byte> previousPlane = parent.PreviousSource.GetPlane((Av1Plane)index);
+                Av1PlaneRegion<TSample> currentPlane = this.source.GetPlane((Av1Plane)index);
+                Av1PlaneRegion<byte> previousPlane = parent.PreviousSource.GetPlane((Av1Plane)index);
                 Span<byte> currentSamples = MemoryMarshal.Cast<TSample, byte>(Av1TransformBlockEncoder.GetPlaneSpan(currentPlane, planeOrigin));
                 ReadOnlySpan<byte> previousSamples = Av1TransformBlockEncoder.GetPlaneSpan(previousPlane, planeOrigin);
                 int width = side >> subX;
                 int height = side >> subY;
                 for (int y = 0; y < height; y++)
                 {
-                    Span<byte> currentRow = currentSamples.Slice(y * currentPlane.Stride, width);
-                    ReadOnlySpan<byte> previousRow = previousSamples.Slice(y * previousPlane.Stride, width);
-                    for (int x = 0; x < width; x += Vector128<byte>.Count)
-                    {
-                        Vector128<byte> current = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(currentRow), (nuint)x);
-                        Vector128<byte> prior = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(previousRow), (nuint)x);
-
-                        // Eight unsigned sixteen-bit lanes hold each half's sums, bounded by 510.
-                        // Shifting before narrowing gives the floor average required at odd sums.
-                        Vector128<ushort> low = (Vector128.WidenLower(current) + Vector128.WidenLower(prior)) >> 1;
-                        Vector128<ushort> high = (Vector128.WidenUpper(current) + Vector128.WidenUpper(prior)) >> 1;
-                        Vector128.Narrow(low, high).StoreUnsafe(ref MemoryMarshal.GetReference(currentRow), (nuint)x);
-                    }
+                    AverageFloor(currentSamples.Slice(y * currentPlane.Stride, width), previousSamples.Slice(y * previousPlane.Stride, width));
                 }
+            }
+        }
+
+        /// <summary>
+        /// Replaces each current sample with the floor average of it and the previous sample, widest vectors first.
+        /// </summary>
+        /// <remarks>
+        /// (a &amp; b) + ((a ^ b) &gt;&gt; 1) is the floor of (a + b) / 2 without the carry out of a byte lane, so the
+        /// average needs no widening.
+        /// </remarks>
+        /// <param name="current">The current samples, replaced by the averages.</param>
+        /// <param name="previous">The previous samples.</param>
+        private static void AverageFloor(Span<byte> current, ReadOnlySpan<byte> previous)
+        {
+            ref byte currentBase = ref MemoryMarshal.GetReference(current);
+            ref byte previousBase = ref MemoryMarshal.GetReference(previous);
+            int length = current.Length;
+            int x = 0;
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= length - Vector512<byte>.Count; x += Vector512<byte>.Count)
+                {
+                    Vector512<byte> a = Vector512.LoadUnsafe(ref currentBase, (nuint)x);
+                    Vector512<byte> b = Vector512.LoadUnsafe(ref previousBase, (nuint)x);
+                    ((a & b) + ((a ^ b) >> 1)).StoreUnsafe(ref currentBase, (nuint)x);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= length - Vector256<byte>.Count; x += Vector256<byte>.Count)
+                {
+                    Vector256<byte> a = Vector256.LoadUnsafe(ref currentBase, (nuint)x);
+                    Vector256<byte> b = Vector256.LoadUnsafe(ref previousBase, (nuint)x);
+                    ((a & b) + ((a ^ b) >> 1)).StoreUnsafe(ref currentBase, (nuint)x);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= length - Vector128<byte>.Count; x += Vector128<byte>.Count)
+                {
+                    Vector128<byte> a = Vector128.LoadUnsafe(ref currentBase, (nuint)x);
+                    Vector128<byte> b = Vector128.LoadUnsafe(ref previousBase, (nuint)x);
+                    ((a & b) + ((a ^ b) >> 1)).StoreUnsafe(ref currentBase, (nuint)x);
+                }
+            }
+
+            for (; x < length; x++)
+            {
+                Unsafe.Add(ref currentBase, x) = (byte)((Unsafe.Add(ref currentBase, x) + Unsafe.Add(ref previousBase, x)) >> 1);
             }
         }
 
@@ -1036,7 +1076,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private void BuildVariancePartitions(
-            Buffer2DRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> sourcePlane,
             Av1TileInfo tile,
             Point blockOrigin,
             Av1BlockSize blockSize,

@@ -91,14 +91,14 @@ internal static partial class Av1IntraSuperblockEncoder
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
-        Buffer2DRegion<TSample> sourcePlane = source.GetPlane(plane);
-        Buffer2DRegion<TSample> reconstructionPlane = reconstruction.GetPlane(plane);
+        Av1PlaneRegion<TSample> sourcePlane = source.GetPlane(plane);
+        Av1PlaneRegion<TSample> reconstructionPlane = reconstruction.GetPlane(plane);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         bool hasLeft = blockOrigin.X > 0;
         bool hasAbove = blockOrigin.Y > 0;
         ReadOnlySpan<TSample> above = hasAbove
-            ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, width)
+            ? reconstructionPlane.GetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, width)
             : [];
 
         Span<TSample> left = TOperator.GetLeftReference(blockWorkspace.Residual, height);
@@ -106,7 +106,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             for (int row = 0; row < height; row++)
             {
-                left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
+                left[row] = reconstructionPlane.GetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
             }
         }
 

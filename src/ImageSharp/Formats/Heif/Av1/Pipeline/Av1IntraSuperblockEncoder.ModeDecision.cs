@@ -200,6 +200,13 @@ internal static partial class Av1IntraSuperblockEncoder
         private InlineArray8<uint> bestSingleReferenceSses;
 
         /// <summary>
+        /// The luma prediction error that the last model or fractional search of each first reference left in the block
+        /// being searched, or <see cref="int.MaxValue"/> before one. A forced integer vector skips the fractional search
+        /// and reads the value an earlier candidate left. Reference: x->pred_sse.
+        /// </summary>
+        private InlineArray8<uint> predictionSses;
+
+        /// <summary>
         /// The best estimate of the mode loop when the transform search of the retained candidates found no mode
         /// below the block budget, or invalid otherwise. The skip mode comparison still reads it. Reference: the
         /// rd_cost that update_search_state() fills during the mode loop, which tx_search_best_inter_candidates()
@@ -479,7 +486,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The recursive partition search gathers the model costs and vectors of the superblock's 16x16
                 // blocks; the variance-based partition search does not. Reference: the av1_get_tpl_stats_sb() call
                 // of encode_rd_sb().
-                if (!parent.SpeedSettings.UseVarianceBasedPartition)
+                if (!UsesGivenPartition(picture))
                 {
                     this.tplSuperblockBlockCount = Av1TplDecisions.GetSuperblockStatistics(
                         parent.TplStatisticsReady,
@@ -500,7 +507,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // variance-based partition search of the fastest speeds does not run it, so its rate weight
             // stays at 128 there.
             this.rateMultiplierModifier = 128;
-            if (picture.Sequence.SequenceHeader.IsStillPicture && !picture.Parent.SpeedSettings.UseVarianceBasedPartition)
+            if (picture.Sequence.SequenceHeader.IsStillPicture && !UsesGivenPartition(picture))
             {
                 // Measure 4x4 source variation once for the entire superblock. Mixed flat and detailed
                 // regions need a lower rate weight, shared by every partition and mode decision below it.
@@ -574,8 +581,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (measureMoments && this.bitDepth.GetBitCount() == 8)
                 {
-                    Buffer2DRegion<TSample> current = this.source.GetPlane(Av1Plane.Y);
-                    Buffer2DRegion<byte> previous = picture.Parent.PreviousSource.GetPlane(Av1Plane.Y);
+                    Av1PlaneRegion<TSample> current = this.source.GetPlane(Av1Plane.Y);
+                    Av1PlaneRegion<byte> previous = picture.Parent.PreviousSource.GetPlane(Av1Plane.Y);
                     Av1ResidualBuilder.GetMoments(
                         MemoryMarshal.Cast<TSample, byte>(Av1TransformBlockEncoder.GetPlaneSpan(current, origin)),
                         current.Stride,
@@ -653,6 +660,16 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly bool UsesEstimatedInterSearch =>
             !this.picture.Parent.FrameHeader.IsIntra && this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision;
 
+        /// <summary>
+        /// Gets a value indicating whether the full-pixel searches cap their first mesh interval: screen content
+        /// alternate references at good quality speeds up to 2. Reference: use_fine_search_interval().
+        /// </summary>
+        private readonly bool UsesFineSearchInterval =>
+            this.picture.Parent.IsScreenContent &&
+            this.picture.Parent.FrameUpdateType == Av1FrameUpdateType.Alternate &&
+            !this.picture.Parent.SpeedSettings.IsRealtime &&
+            this.picture.Parent.EncodingSpeed <= HeifEncodingSpeed.Level2;
+
         /// <inheritdoc/>
         public Av1PartitionType SelectPartition(
             Av1SymbolEncoder writer,
@@ -684,7 +701,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 localY &= nodeWidth - 1;
             }
 
-            if (this.picture.Parent.SpeedSettings.UseVarianceBasedPartition)
+            if (UsesGivenPartition(this.picture))
             {
                 bool searchesLeaves = SearchesVariancePartitionLeaves(this.picture);
                 if (this.superblock.Workspace.PartitionSearchTypes[0] == (byte)Av1PartitionType.Invalid)
@@ -702,7 +719,15 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.picture.Parent.Common.ModeInfoRowCount,
                         this.picture.Parent.Common.ModeInfoColumnCount);
 
-                    this.PrepareVariancePartitions(macroBlock, blockOrigin);
+                    if (this.picture.Parent.FixedPartitionSize != Av1BlockSize.Invalid)
+                    {
+                        this.PrepareFixedPartitions(macroBlock.Tile, blockOrigin);
+                    }
+                    else
+                    {
+                        this.PrepareVariancePartitions(macroBlock, blockOrigin);
+                    }
+
                     if (searchesLeaves)
                     {
                         // Every leaf of the superblock is searched before the writer encodes any of them.
@@ -900,7 +925,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // built last, which is what the frame buffer holds after the search. A split is not compared when
                 // their per-sample errors are within 1.5 of each other.
                 ReadOnlySpan<TSample> prediction = this.GetLastLumaPrediction();
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
                 double minimumError = double.MaxValue;
                 double maximumError = 0;
                 int quadrants = 0;
@@ -1027,6 +1052,14 @@ internal static partial class Av1IntraSuperblockEncoder
             out long noneCost,
             out byte rectangleWins)
         {
+            // The superblock retry keeps the rectangle decisions of the first search. Reference: the
+            // BEGIN_PARTITION_SEARCH label of av1_rd_pick_partition(), which follows the pruning before the search,
+            // and reset_part_limitations(), which leaves do_rectangular_split and prune_rect_part unchanged.
+            bool retrying = false;
+            bool retainedRectangularSplit = true;
+            bool retainedPruneHorizontal = false;
+            bool retainedPruneVertical = false;
+
         SearchPartitions:
             if (blockSize == Av1BlockSize.Block64x64 && this.picture.Parent.FrameHeader.IsIntra)
             {
@@ -1160,7 +1193,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool allowMotionNone = true;
             bool allowMotionSplit = !pruneSmallSplits && this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Split);
             bool squarePartitionsOnly = false;
-            int intraPruningLevel = partitionSettings.GetIntraPartitionPruningLevel(frameHeader.AllowScreenContentTools);
+            int intraPruningLevel = partitionSettings.GetIntraPartitionPruningLevel();
             if (!this.mustFindValidPartition && frameHeader.IsIntra && intraPruningLevel != 0 && blockSize <= Av1BlockSize.Block64x64 &&
                 blockOrigin.X + blockSize.GetWidth() <= (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) &&
                 blockOrigin.Y + blockSize.GetHeight() <= (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2))
@@ -1186,6 +1219,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref pruneVerticalRectangle);
 
                 squarePartitionsOnly |= !allowMotionNone;
+            }
+
+            if (retrying)
+            {
+                allowRectangularSplit = retainedRectangularSplit;
+                pruneHorizontalRectangle = retainedPruneHorizontal;
+                pruneVerticalRectangle = retainedPruneVertical;
             }
 
             // A block above the largest partition may only split, whatever the models above decided.
@@ -1507,7 +1547,14 @@ internal static partial class Av1IntraSuperblockEncoder
                             int firstChild = shape < 2 ? shape * 2 : shape - 2;
                             int secondChild = firstChild + (shape < 2 ? 1 : 2);
                             int directionBit = shape < 2 ? 1 : 2;
-                            int wins = (rectangleWins & directionBit) != 0 ? 1 : 0;
+
+                            // The superblock root has no rectangle win record, so a win there is the current best
+                            // partition being that rectangle. Reference: the rect_part_win_info == NULL case of
+                            // evaluate_ab_partition_based_on_split().
+                            int wins = nodeIndex == 0
+                                ? (selectedPartition == (shape < 2 ? Av1PartitionType.Horizontal : Av1PartitionType.Vertical) ? 1 : 0)
+                                : (rectangleWins & directionBit) != 0 ? 1 : 0;
+
                             Av1PartitionType firstPartition =
                                 (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[(nodeIndex * 4) + firstChild + 1];
 
@@ -1815,6 +1862,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 // A superblock must produce a legal partition. Retry with optional shape restrictions
                 // removed, while retaining frame-edge syntax and the configured minimum/maximum sizes.
                 this.mustFindValidPartition = true;
+                retrying = true;
+                retainedRectangularSplit = allowRectangularSplit;
+                retainedPruneHorizontal = pruneHorizontalRectangle;
+                retainedPruneVertical = pruneVerticalRectangle;
                 goto SearchPartitions;
             }
 
@@ -1863,7 +1914,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return variance;
         }
 
-        private double GetLogVariance(Buffer2DRegion<TSample> plane, Point origin)
+        private double GetLogVariance(Av1PlaneRegion<TSample> plane, Point origin)
         {
             InlineArray4<TSample> zero = default;
             TOperator.GetMoments(
@@ -1958,7 +2009,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int right = Math.Min(origin.X + blockSize.GetWidth(), this.picture.Parent.Common.ModeInfoColumnCount << 2);
             int bottom = Math.Min(origin.Y + blockSize.GetHeight(), this.picture.Parent.Common.ModeInfoRowCount << 2);
-            Buffer2DRegion<TSample> plane = this.reconstruction.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> plane = this.reconstruction.GetPlane(Av1Plane.Y);
             double sourceVariance = 0;
             double reconstructionVariance = 0;
             for (int y = origin.Y; y < bottom; y += 4)
@@ -2108,15 +2159,24 @@ internal static partial class Av1IntraSuperblockEncoder
                 splitInvalid;
 
         /// <summary>
-        /// Gets a value indicating whether a variance partition keeps its leaves' full mode search, rather than
-        /// the estimated one. Reference: encode_rd_sb(), which a frame reaches while use_nonrd_pick_mode is off.
+        /// Gets a value indicating whether a given partition keeps its leaves' full mode search, rather than
+        /// the estimated one: a fixed partition, or a variance partition while use_nonrd_pick_mode is off.
+        /// Reference: the FIXED_PARTITION and VAR_BASED_PARTITION branches of encode_rd_sb().
         /// </summary>
         private static bool SearchesVariancePartitionLeaves(Av1PictureControlSet picture)
-            => picture.Parent.SpeedSettings.UseVarianceBasedPartition &&
+            => picture.Parent.FixedPartitionSize != Av1BlockSize.Invalid ||
+                (picture.Parent.SpeedSettings.UseVarianceBasedPartition &&
                 picture.Parent.FrameHeader.IsIntra &&
                 picture.Parent.EncodingSpeed < (picture.Sequence.SequenceHeader.IsStillPicture
                     ? HeifEncodingSpeed.Level8
-                    : HeifEncodingSpeed.Level7);
+                    : HeifEncodingSpeed.Level7));
+
+        /// <summary>
+        /// Gets a value indicating whether the superblock searches only the modes of a given partition. Reference:
+        /// the VAR_BASED_PARTITION and FIXED_PARTITION partition_search_type of encode_rd_sb().
+        /// </summary>
+        private static bool UsesGivenPartition(Av1PictureControlSet picture)
+            => picture.Parent.SpeedSettings.UseVarianceBasedPartition || picture.Parent.FixedPartitionSize != Av1BlockSize.Invalid;
 
         /// <summary>
         /// Searches the modes of the partition the variance analysis chose. A finished subtree that a later
@@ -3679,6 +3739,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 // av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call of
                 // av1_rd_pick_intra_sby_mode().
                 CopyWinnerTransformStates(retainedLumaStates, winner.GetTransformStates(Av1Plane.Y));
+
+                // The palette search reads the mode search result and its chroma from before the winner refinement,
+                // which keeps its own best cost. Reference: search_state.best_rd, which refine_winner_mode_tx() leaves
+                // unchanged, as the bound and the comparison of av1_search_palette_mode(), and the rate_uv_intra and
+                // dist_uvs of the intra search that it adds.
+                Av1RateDistortionStatistics modeSearchStatistics = this.SelectedBlockStatistics;
+                Av1RateDistortionStatistics modeSearchChroma = chromaStatistics;
                 Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
                 if (!this.picture.Parent.FrameHeader.CodedLossless &&
                     (speedSettings.IntraTransformTypeSearchLevel != 0 ||
@@ -3778,7 +3845,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.codedAreaLuma = reconstructedLumaArea;
                 this.codedAreaChroma = reconstructedChromaArea;
 
-                Av1RateDistortionStatistics paletteStatistics = this.SelectedBlockStatistics;
+                Av1RateDistortionStatistics paletteStatistics = modeSearchStatistics;
                 Av1EncoderPaletteInfo candidatePalette = paletteInfo;
                 Av1TransformSize paletteTransformSize = modeInfo.Block.TransformSize;
                 if (Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize) &&
@@ -3796,17 +3863,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref candidatePalette,
                     ref paletteTransformSize))
                 {
-                    bool skip = !paletteStatistics.HasCoefficients && !chromaStatistics.HasCoefficients;
-                    int rate = skip
-                        ? writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) +
-                            chromaStatistics.Rate - chromaStatistics.ResidualRate
-                        : paletteStatistics.Rate + chromaStatistics.Rate;
+                    bool skip = !paletteStatistics.HasCoefficients && !modeSearchChroma.HasCoefficients;
+                    int rate = writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) + (skip
+                        ? modeSearchChroma.Rate - modeSearchChroma.ResidualRate
+                        : paletteStatistics.Rate + modeSearchChroma.Rate);
 
                     rate += writer.GetSkipCost(skip, Av1TileWriter.GetSkipContext(macroBlock));
                     Av1RateDistortionStatistics combinedStatistics = new(
-                        this.rateMultiplier, rate, paletteStatistics.Distortion + chromaStatistics.Distortion);
+                        this.rateMultiplier, rate, paletteStatistics.Distortion + modeSearchChroma.Distortion);
 
-                    if (combinedStatistics.Cost < this.SelectedBlockStatistics.Cost)
+                    if (combinedStatistics.Cost < modeSearchStatistics.Cost)
                     {
                         modeInfo.Block.Mode = Av1PredictionMode.DC;
                         modeInfo.Block.TransformSize = paletteTransformSize;
@@ -4159,11 +4225,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneType planeType = plane == Av1Plane.Y ? Av1PlaneType.Y : Av1PlaneType.Uv;
                 int width = planeSize.GetWidth();
                 int height = planeSize.GetHeight();
-                Buffer2DRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
+                Av1PlaneRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
                 Span<byte> retained = context.GetPaletteIndices(planeType);
                 for (int row = 0; row < height; row++)
                 {
-                    map.DangerousGetRowSpan(row).CopyTo(retained.Slice(row * width, width));
+                    map.GetRowSpan(row).CopyTo(retained.Slice(row * width, width));
                 }
             }
         }
@@ -4230,11 +4296,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PlaneType planeType = plane == Av1Plane.Y ? Av1PlaneType.Y : Av1PlaneType.Uv;
                     int width = planeSize.GetWidth();
                     int height = planeSize.GetHeight();
-                    Buffer2DRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
+                    Av1PlaneRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
                     Span<byte> retained = context.GetPaletteIndices(planeType);
                     for (int row = 0; row < height; row++)
                     {
-                        map.DangerousGetRowSpan(row).CopyTo(retained.Slice(row * width, width));
+                        map.GetRowSpan(row).CopyTo(retained.Slice(row * width, width));
                     }
                 }
             }
@@ -4479,8 +4545,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int sampleCount = transformSize.GetSize2d();
                 int coefficientOffset = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
                 Span<Av1EncoderTransformBlockState> states = context.GetTransformStates(plane);
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
-                Buffer2DRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+                Av1PlaneRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
                 ReadOnlySpan<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
 
                 // Prediction stays outside transient CfL storage. The zero-mean luma surface survives
@@ -4505,7 +4571,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
                 Av1ComponentType component = planeIndex == 0 ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
                 int paletteSize = snapshot.Palette.PaletteSizes[(int)planeType];
-                Buffer2DRegion<byte> paletteMap = default;
+                Av1PlaneRegion<byte> paletteMap = default;
                 if (paletteSize > 0)
                 {
                     paletteMap = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
@@ -4514,7 +4580,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ReadOnlySpan<byte> retainedMap = context.GetPaletteIndices(planeType);
                         for (int row = 0; row < height; row++)
                         {
-                            retainedMap.Slice(row * width, width).CopyTo(paletteMap.DangerousGetRowSpan(row));
+                            retainedMap.Slice(row * width, width).CopyTo(paletteMap.GetRowSpan(row));
                         }
                     }
                 }
@@ -5213,11 +5279,11 @@ internal static partial class Av1IntraSuperblockEncoder
             if (candidate.Palette.PaletteSizes[0] > 0)
             {
                 int width = blockSize.GetWidth();
-                Buffer2DRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, width, blockSize.GetHeight());
+                Av1PlaneRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, width, blockSize.GetHeight());
                 Span<byte> retainedMap = workspace.GetWinnerPaletteMap(position);
                 for (int row = 0; row < blockSize.GetHeight(); row++)
                 {
-                    map.DangerousGetRowSpan(row)[..width].CopyTo(retainedMap[(row * width)..]);
+                    map.GetRowSpan(row)[..width].CopyTo(retainedMap[(row * width)..]);
                 }
             }
         }
@@ -5476,7 +5542,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
-            Buffer2DRegion<byte> map = default;
+            Av1PlaneRegion<byte> map = default;
             bool paletteAllowed = Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize);
             if (paletteAllowed)
             {
@@ -5486,8 +5552,8 @@ internal static partial class Av1IntraSuperblockEncoder
             if (refine)
             {
                 this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Winner;
-                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-                Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
                 int sizeContext = Av1TileWriter.GetTransformSizeContext(
                     this.picture.TransformFunctionContexts[tileIndex], macroBlock, blockOrigin, blockSize);
 
@@ -5519,7 +5585,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         for (int row = 0; row < height; row++)
                         {
-                            workspace.GetWinnerPaletteMap(index).Slice(row * width, width).CopyTo(map.DangerousGetRowSpan(row));
+                            workspace.GetWinnerPaletteMap(index).Slice(row * width, width).CopyTo(map.GetRowSpan(row));
                         }
                     }
 
@@ -5624,7 +5690,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int row = 0; row < height; row++)
                 {
-                    workspace.GetWinnerPaletteMap(selectedMapIndex).Slice(row * width, width).CopyTo(map.DangerousGetRowSpan(row));
+                    workspace.GetWinnerPaletteMap(selectedMapIndex).Slice(row * width, width).CopyTo(map.GetRowSpan(row));
                 }
             }
 
@@ -5676,8 +5742,8 @@ internal static partial class Av1IntraSuperblockEncoder
             // The winner's storage is laid out from the size it records, so it names this block before
             // anything reads or writes its transform grid.
             winner.Snapshot.ModeInfo.Block.BlockSize = blockSize;
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
             int sampleCount = width * height;
@@ -6123,8 +6189,8 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics GetUniformLumaCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
-            Buffer2DRegion<TSample> sourcePlane,
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1TransformSize transformSize,
@@ -6153,8 +6219,8 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics GetUniformLumaCandidateCostCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
-            Buffer2DRegion<TSample> sourcePlane,
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1TransformSize transformSize,
@@ -6292,7 +6358,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 rate += writer.GetUseIntraBlockCopyCost(false);
             }
 
-            Buffer2DRegion<byte> colorIndexMap = default;
+            Av1PlaneRegion<byte> colorIndexMap = default;
             if (paletteSize > 0)
             {
                 colorIndexMap = this.superblock.Workspace
@@ -6309,7 +6375,10 @@ internal static partial class Av1IntraSuperblockEncoder
             // block_rd_txfm (L3122-3140) then adds the rate-distortion cost of each transform and drops the
             // candidate as soon as the running cost passes the reference.
             int noSkipRate = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
-            long runningCost = Av1RateDistortion.GetCost(this.rateMultiplier, noSkipRate + transformSizeRate, 0);
+
+            // Lossless coding starts the running cost at zero. Reference: the current_rd of 0 that
+            // choose_smallest_tx_size() passes to av1_txfm_rd_in_plane().
+            long runningCost = codedLossless ? 0 : Av1RateDistortion.GetCost(this.rateMultiplier, noSkipRate + transformSizeRate, 0);
 
             // Complete each bounded 64x64 region before moving to the next. Smaller transforms
             // consume the reconstructed edges and coefficient contexts produced earlier in that region.
@@ -6893,7 +6962,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private void PrepareTransformReferenceSamples(
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point lumaBlockOrigin,
             Point planeBlockOrigin,
             Av1BlockSize blockSize,
@@ -6916,7 +6985,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private void PrepareTransformReferenceSamplesCore(
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point lumaBlockOrigin,
             Point planeBlockOrigin,
             Av1BlockSize blockSize,
@@ -7208,8 +7277,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         private long GetLumaModelCost(
             Av1MacroBlockD macroBlock,
-            Buffer2DRegion<TSample> sourcePlane,
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1PredictionMode mode,
@@ -7224,8 +7293,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
         private long GetLumaModelCostCore(
             Av1MacroBlockD macroBlock,
-            Buffer2DRegion<TSample> sourcePlane,
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1PredictionMode mode,
@@ -7416,7 +7485,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="visibleWidth">The number of source columns inside the coded image.</param>
         /// <returns>The bit mask for the eight directional modes, or zero when HOG pruning is disabled.</returns>
         private byte GetDirectionalModeSkipMask(
-            Buffer2DRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> sourcePlane,
             Point blockOrigin,
             int visibleHeight,
             int visibleWidth)
@@ -7428,7 +7497,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private byte GetDirectionalModeSkipMaskCore(
-            Buffer2DRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> sourcePlane,
             Point blockOrigin,
             int visibleHeight,
             int visibleWidth)
@@ -7456,7 +7525,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private static void CopyCandidate(
             ReadOnlySpan<TSample> candidateReconstruction,
             ReadOnlySpan<int> candidateCoefficients,
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Span<int> retainedCoefficients,
             Av1TransformSize transformSize,
@@ -7510,7 +7579,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int coefficientOffset)
         {
             Av1WorkCounters.Count(Av1WorkCounters.EncodeBlockIntra);
-            Buffer2DRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
+            Av1PlaneRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
             Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
@@ -7617,7 +7686,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 reconLine.Append(" dst");
                 for (int r = 0; r < height && r < 8; r++)
                 {
-                    Span<TSample> reconRow = destinationPlane.DangerousGetRowSpan(planeOrigin.Y + r);
+                    Span<TSample> reconRow = destinationPlane.GetRowSpan(planeOrigin.Y + r);
                     for (int c = 0; c < width && c < 8; c++)
                     {
                         reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {TOperator.GetSampleValue(reconRow[planeOrigin.X + c])}");

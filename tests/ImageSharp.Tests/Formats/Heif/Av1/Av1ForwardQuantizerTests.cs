@@ -18,7 +18,7 @@ public class Av1ForwardQuantizerTests
     /// The hardware configurations covering every quantizer vector tier and the scalar fallback.
     /// </summary>
     private const HwIntrinsics QuantizerConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies raster quantization and scan-order EOB selection at every SIMD tier.

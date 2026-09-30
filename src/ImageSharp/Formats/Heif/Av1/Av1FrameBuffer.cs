@@ -128,8 +128,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         // One allocation owns every component plane. Restoration retains its capacity across frames;
         // new storage starts cleared so unwritten alignment and border slots cannot expose pooled data.
         AllocationOptions options = kind == FrameBufferKind.Restoration ? AllocationOptions.Clean : AllocationOptions.None;
-        IMemoryOwner<T> owner = allocator.Allocate<T>(layout.StorageLength, options);
-        this.planes = WrapPlanes(owner, layout, colorFormat);
+        this.planes = FramePlanes.Allocate(allocator, layout, colorFormat, options);
     }
 
     /// <summary>
@@ -148,19 +147,19 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     public Point StartPosition { get; private set; }
 
     /// <summary>
-    /// Gets the Y luma buffer.
+    /// Gets the complete padded luma plane, or <see langword="null"/> after disposal.
     /// </summary>
-    public Buffer2D<T>? BufferY => this.planes?.Luma;
+    public Av1PlaneRegion<T>? BufferY => this.planes?.Luma;
 
     /// <summary>
-    /// Gets the U chroma buffer.
+    /// Gets the complete padded blue-difference plane, or <see langword="null"/> for monochrome or after disposal.
     /// </summary>
-    public Buffer2D<T>? BufferCb => this.planes?.Chroma?.Blue;
+    public Av1PlaneRegion<T>? BufferCb => this.planes?.Blue;
 
     /// <summary>
-    /// Gets the V chroma buffer.
+    /// Gets the complete padded red-difference plane, or <see langword="null"/> for monochrome or after disposal.
     /// </summary>
-    public Buffer2D<T>? BufferCr => this.planes?.Chroma?.Red;
+    public Av1PlaneRegion<T>? BufferCr => this.planes?.Red;
 
     /// <summary>
     /// Gets or sets the horizontal padding distance.
@@ -325,19 +324,17 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
                 FrameBufferKind.Restoration);
 
             FramePlanes activePlanes = retainedPlanes.GetValueOrDefault();
-            if (retainedPlanes is null || activePlanes.Owner.Memory.Length < layout.StorageLength)
+            if (retainedPlanes is null || !activePlanes.CanHold(layout))
             {
                 // Restoration needs none of the previous target's samples. Release its old allocation
                 // before growing so two complete output frames never overlap in memory. A failed rent
                 // leaves an empty target that session disposal or the next resize can handle.
                 this.Dispose();
-                IMemoryOwner<T> owner = this.MemoryAllocator.Allocate<T>(layout.StorageLength, AllocationOptions.Clean);
-                this.planes = WrapPlanes(owner, layout, source.ColorFormat);
+                this.planes = FramePlanes.Allocate(this.MemoryAllocator, layout, source.ColorFormat, AllocationOptions.Clean);
             }
             else
             {
-                this.planes = WrapPlanes(activePlanes.Owner, layout, source.ColorFormat);
-                activePlanes.DisposeViews();
+                this.planes = activePlanes.WithLayout(layout, source.ColorFormat);
             }
         }
 
@@ -356,9 +353,9 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// </summary>
     /// <param name="plane">The requested component plane.</param>
     /// <returns>The requested plane allocation.</returns>
-    public Buffer2D<T> GetPlaneBuffer(Av1Plane plane)
+    public Av1PlaneRegion<T> GetPlaneBuffer(Av1Plane plane)
     {
-        this.GetPlaneLayout(plane, 0, 0, out Buffer2D<T> buffer, out _, out _, out _, out _);
+        this.GetPlaneLayout(plane, 0, 0, out Av1PlaneRegion<T> buffer, out _, out _, out _, out _);
         return buffer;
     }
 
@@ -386,7 +383,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
                 plane,
                 subX,
                 subY,
-                out Buffer2D<T> sourceBuffer,
+                out Av1PlaneRegion<T> sourceBuffer,
                 out int sourceOriginX,
                 out int sourceOriginY,
                 out int width,
@@ -396,7 +393,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
                 plane,
                 subX,
                 subY,
-                out Buffer2D<T> destinationBuffer,
+                out Av1PlaneRegion<T> destinationBuffer,
                 out int destinationOriginX,
                 out int destinationOriginY,
                 out _,
@@ -410,9 +407,9 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             // extension before reading it, so copying reference borders or unused sequence-sized storage is waste.
             for (int row = 0; row < height; row++)
             {
-                sourceBuffer.DangerousGetRowSpan(sourceOriginY + row)
+                sourceBuffer.GetPlaneRowSpan(sourceOriginY + row)
                     .Slice(sourceStorageX, storageWidth)
-                    .CopyTo(destinationBuffer.DangerousGetRowSpan(destinationOriginY + row).Slice(destinationStorageX, storageWidth));
+                    .CopyTo(destinationBuffer.GetPlaneRowSpan(destinationOriginY + row).Slice(destinationStorageX, storageWidth));
             }
         }
     }
@@ -429,9 +426,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             return;
         }
 
-        FramePlanes activePlanes = ownedPlanes.Value;
-        activePlanes.DisposeViews();
-        activePlanes.Owner.Dispose();
+        ownedPlanes.Value.Dispose();
     }
 
     /// <summary>
@@ -449,13 +444,13 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             plane,
             subX,
             subY,
-            out Buffer2D<T> buffer,
+            out Av1PlaneRegion<T> buffer,
             out int originX,
             out int originY,
             out _,
             out _);
 
-        int elementStride = buffer.Width;
+        int elementStride = buffer.Stride;
         stride = elementStride / this.storageElementsPerSample;
         int blockOffset = (((originY + locationInPixels.Y) * stride) + originX + locationInPixels.X) *
             this.storageElementsPerSample;
@@ -464,7 +459,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         blockOffset -= elementStride;
         Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
 
-        return buffer.DangerousGetSingleSpan()[blockOffset..];
+        return buffer.Samples[blockOffset..];
     }
 
     /// <summary>
@@ -482,18 +477,18 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             plane,
             subX,
             subY,
-            out Buffer2D<T> buffer,
+            out Av1PlaneRegion<T> buffer,
             out int originX,
             out int originY,
             out _,
             out _);
 
-        stride = buffer.Width / this.storageElementsPerSample;
+        stride = buffer.Stride / this.storageElementsPerSample;
         int blockOffset = ((originY + locationInPixels.Y - 1) * stride) + originX + locationInPixels.X;
         Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
 
         // High-bit-depth reconstruction uses native 16-bit samples in the byte-backed frame planes.
-        return MemoryMarshal.Cast<T, short>(buffer.DangerousGetSingleSpan())[blockOffset..];
+        return MemoryMarshal.Cast<T, short>(buffer.Samples)[blockOffset..];
     }
 
     /// <summary>
@@ -503,13 +498,13 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <param name="subX">The horizontal chroma subsampling shift.</param>
     /// <param name="subY">The vertical chroma subsampling shift.</param>
     /// <returns>The plane region excluding decoder padding.</returns>
-    public Buffer2DRegion<T> DeriveBlockPointer(Av1Plane plane, int subX, int subY)
+    public Av1PlaneRegion<T> DeriveBlockPointer(Av1Plane plane, int subX, int subY)
     {
         this.GetPlaneLayout(
             plane,
             subX,
             subY,
-            out Buffer2D<T> buffer,
+            out Av1PlaneRegion<T> buffer,
             out int originX,
             out int originY,
             out int width,
@@ -521,7 +516,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             width * this.storageElementsPerSample,
             height);
 
-        return new Buffer2DRegion<T>(buffer, region);
+        return buffer.GetSubRegion(region);
     }
 
     /// <summary>
@@ -538,13 +533,13 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             plane,
             subX,
             subY,
-            out Buffer2D<T> buffer,
+            out Av1PlaneRegion<T> buffer,
             out int originX,
             out int originY,
             out int width,
             out _);
 
-        Span<ushort> samples = MemoryMarshal.Cast<T, ushort>(buffer.DangerousGetRowSpan(originY + row));
+        Span<ushort> samples = MemoryMarshal.Cast<T, ushort>(buffer.GetPlaneRowSpan(originY + row));
         return samples.Slice(originX, width);
     }
 
@@ -563,15 +558,15 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             plane,
             subX,
             subY,
-            out Buffer2D<T> buffer,
+            out Av1PlaneRegion<T> buffer,
             out int originX,
             out int originY,
             out _,
             out _);
 
-        stride = buffer.Width / this.storageElementsPerSample;
+        stride = buffer.Stride / this.storageElementsPerSample;
         origin = new(originX, originY);
-        return buffer.DangerousGetSingleSpan();
+        return buffer.Samples;
     }
 
     /// <summary>
@@ -601,7 +596,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         Av1Plane plane,
         int subX,
         int subY,
-        out Buffer2D<T> buffer,
+        out Av1PlaneRegion<T> buffer,
         out int originX,
         out int originY,
         out int width,
@@ -621,7 +616,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
                 height = this.Height;
                 break;
             case Av1Plane.U:
-                buffer = activePlanes.Chroma?.Blue
+                buffer = activePlanes.Blue
                     ?? throw new InvalidOperationException("A monochrome AV1 frame has no blue-difference plane.");
 
                 originX = this.OriginX >> subX;
@@ -631,7 +626,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
                 break;
             case Av1Plane.V:
             default:
-                buffer = activePlanes.Chroma?.Red
+                buffer = activePlanes.Red
                     ?? throw new InvalidOperationException("A monochrome AV1 frame has no red-difference plane.");
 
                 originX = this.OriginX >> subX;
@@ -694,10 +689,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
 
         return new FrameBufferLayout(
             (int)lumaStorageWidth,
-            (int)lumaHeight,
             (int)lumaElementCount,
             (int)chromaStorageWidth,
-            (int)chromaHeight,
             (int)chromaElementCount,
             (int)chromaBlueOffset,
             (int)chromaRedOffset,
@@ -705,51 +698,26 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Builds non-owning row views over the complete frame allocation.
-    /// </summary>
-    private static FramePlanes WrapPlanes(IMemoryOwner<T> owner, FrameBufferLayout layout, Av1ColorFormat colorFormat)
-    {
-        Memory<T> storage = owner.Memory;
-        Buffer2D<T> luma = Buffer2D<T>.WrapMemory(
-            storage.Slice(0, layout.LumaElementCount),
-            layout.LumaStorageWidth,
-            layout.LumaHeight);
-
-        ChromaPlanes? chroma = null;
-        if (colorFormat != Av1ColorFormat.Yuv400)
-        {
-            Buffer2D<T> chromaBlue = Buffer2D<T>.WrapMemory(
-                storage.Slice(layout.ChromaBlueOffset, layout.ChromaElementCount),
-                layout.ChromaStorageWidth,
-                layout.ChromaHeight);
-
-            Buffer2D<T> chromaRed = Buffer2D<T>.WrapMemory(
-                storage.Slice(layout.ChromaRedOffset, layout.ChromaElementCount),
-                layout.ChromaStorageWidth,
-                layout.ChromaHeight);
-
-            chroma = new ChromaPlanes(chromaBlue, chromaRed);
-        }
-
-        return new(owner, luma, chroma);
-    }
-
-    /// <summary>
-    /// Carries the one frame owner, mandatory luma view, and optional complete chroma pair as one state.
+    /// Carries the one frame allocation and the component planes laid over it.
     /// </summary>
     private readonly struct FramePlanes
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="FramePlanes"/> struct.
         /// </summary>
-        /// <param name="owner">The owner.</param>
-        /// <param name="luma">The luma.</param>
-        /// <param name="chroma">The chroma.</param>
-        public FramePlanes(IMemoryOwner<T> owner, Buffer2D<T> luma, ChromaPlanes? chroma)
+        /// <param name="owner">The complete frame allocation.</param>
+        /// <param name="layout">The plane layout inside the allocation.</param>
+        /// <param name="colorFormat">The sampling layout, which decides whether chroma planes exist.</param>
+        public FramePlanes(IMemoryOwner<T> owner, FrameBufferLayout layout, Av1ColorFormat colorFormat)
         {
+            Memory<T> storage = owner.Memory;
             this.Owner = owner;
-            this.Luma = luma;
-            this.Chroma = chroma;
+            this.Luma = CreatePlane(storage[..layout.LumaElementCount], layout.LumaStorageWidth);
+            if (colorFormat != Av1ColorFormat.Yuv400)
+            {
+                this.Blue = CreatePlane(storage.Slice(layout.ChromaBlueOffset, layout.ChromaElementCount), layout.ChromaStorageWidth);
+                this.Red = CreatePlane(storage.Slice(layout.ChromaRedOffset, layout.ChromaElementCount), layout.ChromaStorageWidth);
+            }
         }
 
         /// <summary>
@@ -760,49 +728,79 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         /// <summary>
         /// Gets the padded luma plane.
         /// </summary>
-        public Buffer2D<T> Luma { get; }
+        public Av1PlaneRegion<T> Luma { get; }
 
         /// <summary>
-        /// Gets the padded chroma planes when the frame contains chroma.
+        /// Gets the padded blue-difference plane when the frame contains chroma.
         /// </summary>
-        public ChromaPlanes? Chroma { get; }
+        public Av1PlaneRegion<T>? Blue { get; }
 
         /// <summary>
-        /// Releases row views while leaving the complete allocation with its current owner.
+        /// Gets the padded red-difference plane when the frame contains chroma.
         /// </summary>
-        public void DisposeViews()
-        {
-            this.Luma.Dispose();
-            ChromaPlanes? chromaPlanes = this.Chroma;
-            if (chromaPlanes is not null)
-            {
-                chromaPlanes.Value.Blue.Dispose();
-                chromaPlanes.Value.Red.Dispose();
-            }
-        }
+        public Av1PlaneRegion<T>? Red { get; }
+
+        /// <summary>
+        /// Allocates the frame storage of a layout.
+        /// </summary>
+        /// <param name="allocator">The frame allocator.</param>
+        /// <param name="layout">The plane layout.</param>
+        /// <param name="colorFormat">The sampling layout, which decides whether chroma planes exist.</param>
+        /// <param name="options">The allocation options.</param>
+        /// <returns>The allocated planes.</returns>
+        public static FramePlanes Allocate(
+            MemoryAllocator allocator,
+            FrameBufferLayout layout,
+            Av1ColorFormat colorFormat,
+            AllocationOptions options)
+            => new(allocator.Allocate<T>(layout.StorageLength, options), layout, colorFormat);
+
+        /// <summary>
+        /// Determines whether the current allocation is large enough for a layout.
+        /// </summary>
+        /// <param name="layout">The required plane layout.</param>
+        /// <returns><see langword="true"/> when the layout fits the current allocation.</returns>
+        public bool CanHold(FrameBufferLayout layout)
+            => this.Owner.Memory.Length >= layout.StorageLength;
+
+        /// <summary>
+        /// Lays a layout that fits over the current allocation.
+        /// </summary>
+        /// <param name="layout">The new plane layout.</param>
+        /// <param name="colorFormat">The new sampling layout.</param>
+        /// <returns>The planes over the retained allocation.</returns>
+        public FramePlanes WithLayout(FrameBufferLayout layout, Av1ColorFormat colorFormat)
+            => new(this.Owner, layout, colorFormat);
+
+        /// <summary>
+        /// Releases the frame allocation.
+        /// </summary>
+        public void Dispose() => this.Owner.Dispose();
+
+        /// <summary>
+        /// Lays a complete padded plane over its slice of the frame allocation.
+        /// </summary>
+        private static Av1PlaneRegion<T> CreatePlane(Memory<T> plane, int stride)
+            => new(plane, stride, new Rectangle(0, 0, stride, plane.Length / stride));
     }
 
     /// <summary>
-    /// Describes the physical storage slices used by the component-plane views.
+    /// Describes the physical storage slices of the component planes.
     /// </summary>
     private readonly struct FrameBufferLayout
     {
         public FrameBufferLayout(
             int lumaStorageWidth,
-            int lumaHeight,
             int lumaElementCount,
             int chromaStorageWidth,
-            int chromaHeight,
             int chromaElementCount,
             int chromaBlueOffset,
             int chromaRedOffset,
             int storageLength)
         {
             this.LumaStorageWidth = lumaStorageWidth;
-            this.LumaHeight = lumaHeight;
             this.LumaElementCount = lumaElementCount;
             this.ChromaStorageWidth = chromaStorageWidth;
-            this.ChromaHeight = chromaHeight;
             this.ChromaElementCount = chromaElementCount;
             this.ChromaBlueOffset = chromaBlueOffset;
             this.ChromaRedOffset = chromaRedOffset;
@@ -811,13 +809,9 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
 
         public int LumaStorageWidth { get; }
 
-        public int LumaHeight { get; }
-
         public int LumaElementCount { get; }
 
         public int ChromaStorageWidth { get; }
-
-        public int ChromaHeight { get; }
 
         public int ChromaElementCount { get; }
 
@@ -826,29 +820,5 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         public int ChromaRedOffset { get; }
 
         public int StorageLength { get; }
-    }
-
-    private readonly struct ChromaPlanes
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ChromaPlanes"/> struct.
-        /// </summary>
-        /// <param name="blue">The blue.</param>
-        /// <param name="red">The red.</param>
-        public ChromaPlanes(Buffer2D<T> blue, Buffer2D<T> red)
-        {
-            this.Blue = blue;
-            this.Red = red;
-        }
-
-        /// <summary>
-        /// Gets the padded blue-difference plane.
-        /// </summary>
-        public Buffer2D<T> Blue { get; }
-
-        /// <summary>
-        /// Gets the padded red-difference plane.
-        /// </summary>
-        public Buffer2D<T> Red { get; }
     }
 }

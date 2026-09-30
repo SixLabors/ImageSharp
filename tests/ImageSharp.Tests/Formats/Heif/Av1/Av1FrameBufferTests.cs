@@ -48,10 +48,10 @@ public class Av1FrameBufferTests
                 using Av1FrameInfo frameInfo = new(sequence, header);
                 frameInfo.InitializeLoopRestoration(sequence, header);
                 using Av1FrameBuffer<byte> source = new(Configuration.Default, sequence, Av1ColorFormat.Yuv400, false, width, 64);
-                Buffer2DRegion<byte> visible = source.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+                Av1PlaneRegion<byte> visible = source.DeriveBlockPointer(Av1Plane.Y, 0, 0);
                 for (int row = 0; row < 64; row++)
                 {
-                    visible.DangerousGetRowSpan(row).Fill(17);
+                    visible.GetRowSpan(row).Fill(17);
                 }
 
                 boundary.SaveDeblockedRows(sequence, header, source);
@@ -71,7 +71,7 @@ public class Av1FrameBufferTests
                 Assert.Equal(allocationAttempts, allocator.AllocationAttemptCount);
                 for (int row = 0; row < 64; row++)
                 {
-                    Assert.True(visible.DangerousGetRowSpan(row).IndexOfAnyExcept((byte)17) < 0);
+                    Assert.True(visible.GetRowSpan(row).IndexOfAnyExcept((byte)17) < 0);
                 }
             }
         }

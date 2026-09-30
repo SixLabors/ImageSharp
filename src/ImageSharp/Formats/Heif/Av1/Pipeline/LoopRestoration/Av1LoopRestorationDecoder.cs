@@ -198,12 +198,12 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
             Av1Plane plane = (Av1Plane)planeIndex;
             int subsamplingX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
-            Buffer2DRegion<byte> restored = destinationBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
-            Buffer2DRegion<byte> target = frameBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
+            Av1PlaneRegion<byte> restored = destinationBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
+            Av1PlaneRegion<byte> target = frameBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
             int height = Av1Math.DivideLog2Ceiling(frameHeader.FrameSize.FrameHeight, subsamplingY);
             for (int row = 0; row < height; row++)
             {
-                restored.DangerousGetRowSpan(row).CopyTo(target.DangerousGetRowSpan(row));
+                restored.GetRowSpan(row).CopyTo(target.GetRowSpan(row));
             }
         }
     }

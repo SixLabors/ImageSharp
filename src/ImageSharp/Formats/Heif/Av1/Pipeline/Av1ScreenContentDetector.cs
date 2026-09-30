@@ -1,14 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
 /// Detects frames that can benefit from AV1 screen-content coding tools.
 /// </summary>
-internal static class Av1ScreenContentDetector
+internal static partial class Av1ScreenContentDetector
 {
     private const int DetectionBlockLength = 16;
     private const int DetectionBlockArea = DetectionBlockLength * DetectionBlockLength;
@@ -22,18 +22,19 @@ internal static class Av1ScreenContentDetector
         where TSample : unmanaged
     {
         /// <summary>
-        /// Converts one native sample to an integer without changing its precision.
-        /// </summary>
-        /// <param name="value">The source sample.</param>
-        /// <returns>The native sample value.</returns>
-        public static abstract int ToInt32(TSample value);
-
-        /// <summary>
         /// Converts an integer in the native sample range to a sample.
         /// </summary>
         /// <param name="value">The native sample value.</param>
         /// <returns>The sample.</returns>
         public static abstract TSample FromInt32(int value);
+
+        /// <summary>
+        /// Drops the bits above eight from one row of samples.
+        /// </summary>
+        /// <param name="source">The native samples.</param>
+        /// <param name="shift">The number of bits above eight.</param>
+        /// <param name="destination">Receives the eight-bit samples.</param>
+        public static abstract void ToEightBit(ReadOnlySpan<TSample> source, int shift, Span<byte> destination);
 
         /// <summary>
         /// Measures the signed sum and squared sum of the differences between a 16x16 block and a repeated row.
@@ -113,9 +114,13 @@ internal static class Av1ScreenContentDetector
         int bitDepthShift = source.LumaBitDepth - 8;
         int paletteBlockCount = 0;
         int intraBlockCopyBlockCount = 0;
-        Span<ulong> seenColors = stackalloc ulong[4];
+        Span<byte> block = stackalloc byte[DetectionBlockArea];
         allowScreenContentTools = false;
         allowIntraBlockCopy = false;
+
+        // The moments are measured against the middle of the native sample range.
+        Span<TSample> middle = stackalloc TSample[DetectionBlockLength];
+        middle.Fill(TOperator.FromInt32(128 << bitDepthShift));
 
         // Analyze complete 16x16 blocks in the source's eight-sample-aligned extent. Padding participates in
         // both color counting and the area thresholds, while any final partial block is omitted.
@@ -123,42 +128,13 @@ internal static class Av1ScreenContentDetector
         {
             for (int blockColumn = 0; blockColumn + DetectionBlockLength <= width; blockColumn += DetectionBlockLength)
             {
-                seenColors.Clear();
-                int colorCount = 0;
-                long sum = 0;
-                long sumOfSquares = 0;
-                for (int row = 0; row < DetectionBlockLength && colorCount <= MaximumPaletteColorCount; row++)
-                {
-                    ReadOnlySpan<TSample> samples = view
-                        .GetLumaRowSpan(blockRow + row)
-                        .Slice(blockColumn, DetectionBlockLength);
-
-                    // Histogram updates depend on each sample value, so a compact scalar bitset avoids gather/scatter overhead.
-                    for (int column = 0; column < samples.Length; column++)
-                    {
-                        int nativeValue = TOperator.ToInt32(samples[column]);
-                        int value = nativeValue >> bitDepthShift;
-                        int wordIndex = value >> 6;
-                        ulong mask = 1UL << (value & 63);
-                        ref ulong word = ref seenColors[wordIndex];
-                        int centeredValue = nativeValue - (128 << bitDepthShift);
-                        sum += centeredValue;
-                        sumOfSquares += (long)centeredValue * centeredValue;
-                        if ((word & mask) == 0)
-                        {
-                            word |= mask;
-                            colorCount++;
-                            if (colorCount > MaximumPaletteColorCount)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-
+                // Colors are counted in the eight-bit domain, and the moments only matter for a palette block.
+                CopyEightBitBlock<TSample, TOperator>(view, blockRow, blockColumn, bitDepthShift, block);
+                CountColorsWithThreshold(block, MaximumPaletteColorCount, out int colorCount);
                 if (colorCount > 1 && colorCount <= MaximumPaletteColorCount)
                 {
                     paletteBlockCount++;
+                    GetBlockMoments<TSample, TOperator>(view, blockRow, blockColumn, middle, out int sum, out long sumOfSquares);
                     long normalizedSum = sum;
                     long normalizedSumOfSquares = sumOfSquares;
                     if (bitDepthShift != 0)
@@ -305,16 +281,7 @@ internal static class Av1ScreenContentDetector
             for (int column = firstColumn; column + DetectionBlockLength <= width; column += DetectionBlockLength * multiplier)
             {
                 // Colors are counted in the eight-bit domain.
-                for (int y = 0; y < DetectionBlockLength; y++)
-                {
-                    ReadOnlySpan<TSample> samples = view.GetLumaRowSpan(row + y).Slice(column, DetectionBlockLength);
-                    Span<byte> blockRow = block.Slice(y * DetectionBlockLength, DetectionBlockLength);
-                    for (int x = 0; x < DetectionBlockLength; x++)
-                    {
-                        blockRow[x] = (byte)(TOperator.ToInt32(samples[x]) >> bitDepthShift);
-                    }
-                }
-
+                CopyEightBitBlock<TSample, TOperator>(view, row, column, bitDepthShift, block);
                 bool underThreshold = CountColorsWithThreshold(block, complexInitialColorThreshold, out int colorCount);
                 if (colorCount > 1 && underThreshold)
                 {
@@ -364,84 +331,6 @@ internal static class Av1ScreenContentDetector
     }
 
     /// <summary>
-    /// Counts the distinct values of a block, stopping once the count exceeds a threshold, as
-    /// <c>av1_count_colors_with_threshold</c> does.
-    /// </summary>
-    /// <param name="block">The eight-bit block samples.</param>
-    /// <param name="threshold">The largest count of interest.</param>
-    /// <param name="colorCount">Receives the count, which is one above the threshold when the scan stopped early.</param>
-    /// <returns><see langword="true"/> when the count does not exceed the threshold.</returns>
-    private static bool CountColorsWithThreshold(ReadOnlySpan<byte> block, int threshold, out int colorCount)
-    {
-        Span<ulong> seen = stackalloc ulong[4];
-        seen.Clear();
-        colorCount = 0;
-        for (int i = 0; i < block.Length; i++)
-        {
-            int value = block[i];
-            ref ulong word = ref seen[value >> 6];
-            ulong mask = 1UL << (value & 63);
-            if ((word & mask) == 0)
-            {
-                word |= mask;
-                if (++colorCount > threshold)
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Grows the most frequent value of a block over its eight neighbors, as <c>av1_dilate_block</c> does.
-    /// The first value to reach the highest count is the dominant one
-    /// (<c>av1_find_dominant_value</c>).
-    /// </summary>
-    /// <param name="block">The eight-bit block samples.</param>
-    /// <param name="dilated">The dilated block.</param>
-    private static void DilateBlock(ReadOnlySpan<byte> block, Span<byte> dilated)
-    {
-        Span<int> counts = stackalloc int[256];
-        counts.Clear();
-        int dominantCount = 0;
-        byte dominant = 0;
-        for (int i = 0; i < block.Length; i++)
-        {
-            byte value = block[i];
-            if (++counts[value] > dominantCount)
-            {
-                dominant = value;
-                dominantCount = counts[value];
-            }
-        }
-
-        block.CopyTo(dilated);
-        const int last = DetectionBlockLength - 1;
-        for (int row = 0; row < DetectionBlockLength; row++)
-        {
-            for (int column = 0; column < DetectionBlockLength; column++)
-            {
-                if (block[(row * DetectionBlockLength) + column] != dominant)
-                {
-                    continue;
-                }
-
-                // The dominant value covers every neighbor inside the block, including the diagonals.
-                int top = Math.Max(row - 1, 0);
-                int bottom = Math.Min(row + 1, last);
-                int left = Math.Max(column - 1, 0);
-                int right = Math.Min(column + 1, last);
-                for (int y = top; y <= bottom; y++)
-                {
-                    dilated.Slice((y * DetectionBlockLength) + left, right - left + 1).Fill(dominant);
-                }
-            }
-        }
-    }
-
-    /// <summary>
     /// Measures the per-sample variance of a 16x16 source block against a flat mid-range block, as
     /// <c>av1_get_perpixel_variance</c> does with the 8-, 10-, or 12-bit variance function.
     /// </summary>
@@ -462,14 +351,7 @@ internal static class Av1ScreenContentDetector
         where TSample : unmanaged
         where TOperator : struct, ISampleOperator<TSample>
     {
-        Buffer2DRegion<TSample> luma = view.GetPlane(Av1Plane.Y);
-        int offset = ((luma.Bounds.Y + row) * luma.Stride) + luma.Bounds.X + column;
-        TOperator.GetMoments(
-            luma.Buffer.DangerousGetSingleSpan()[offset..],
-            luma.Stride,
-            middle,
-            out int sum,
-            out long sumOfSquares);
+        GetBlockMoments<TSample, TOperator>(view, row, column, middle, out int sum, out long sumOfSquares);
 
         // High bit depths round both moments back to the eight-bit scale before combining them, and a
         // negative result clamps to zero.
@@ -485,6 +367,59 @@ internal static class Av1ScreenContentDetector
         return RoundPowerOfTwo(variance, 8);
     }
 
+    /// <summary>
+    /// Measures the signed sum and squared sum of the differences between a 16x16 luma block and a flat block.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The native sample operations.</typeparam>
+    /// <param name="view">The source planes.</param>
+    /// <param name="row">The block's top row.</param>
+    /// <param name="column">The block's left column.</param>
+    /// <param name="middle">One row of the flat block's samples.</param>
+    /// <param name="sum">Receives the sum of the differences.</param>
+    /// <param name="sumOfSquares">Receives the sum of the squared differences.</param>
+    private static void GetBlockMoments<TSample, TOperator>(
+        Av1EncoderFrame<TSample>.PlanarView view,
+        int row,
+        int column,
+        ReadOnlySpan<TSample> middle,
+        out int sum,
+        out long sumOfSquares)
+        where TSample : unmanaged
+        where TOperator : struct, ISampleOperator<TSample>
+    {
+        Av1PlaneRegion<TSample> luma = view.GetPlane(Av1Plane.Y);
+        TOperator.GetMoments(luma.Samples[luma.GetOffset(column, row)..], luma.Stride, middle, out sum, out sumOfSquares);
+    }
+
+    /// <summary>
+    /// Copies a 16x16 luma block to eight-bit samples.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The native sample operations.</typeparam>
+    /// <param name="view">The source planes.</param>
+    /// <param name="row">The block's top row.</param>
+    /// <param name="column">The block's left column.</param>
+    /// <param name="bitDepthShift">The number of bits above eight.</param>
+    /// <param name="block">Receives the eight-bit block, one row after another.</param>
+    private static void CopyEightBitBlock<TSample, TOperator>(
+        Av1EncoderFrame<TSample>.PlanarView view,
+        int row,
+        int column,
+        int bitDepthShift,
+        Span<byte> block)
+        where TSample : unmanaged
+        where TOperator : struct, ISampleOperator<TSample>
+    {
+        for (int y = 0; y < DetectionBlockLength; y++)
+        {
+            TOperator.ToEightBit(
+                view.GetLumaRowSpan(row + y).Slice(column, DetectionBlockLength),
+                bitDepthShift,
+                block.Slice(y * DetectionBlockLength, DetectionBlockLength));
+        }
+    }
+
     private static long RoundPowerOfTwo(long value, int shift)
         => (value + (1L << (shift - 1))) >> shift;
 
@@ -494,10 +429,11 @@ internal static class Av1ScreenContentDetector
     private readonly struct ByteSampleOperator : ISampleOperator<byte>
     {
         /// <inheritdoc/>
-        public static int ToInt32(byte value) => value;
+        public static byte FromInt32(int value) => (byte)value;
 
         /// <inheritdoc/>
-        public static byte FromInt32(int value) => (byte)value;
+        public static void ToEightBit(ReadOnlySpan<byte> source, int shift, Span<byte> destination)
+            => source.CopyTo(destination);
 
         /// <inheritdoc/>
         public static void GetMoments(
@@ -516,10 +452,11 @@ internal static class Av1ScreenContentDetector
     private readonly struct UShortSampleOperator : ISampleOperator<ushort>
     {
         /// <inheritdoc/>
-        public static int ToInt32(ushort value) => value;
+        public static ushort FromInt32(int value) => (ushort)value;
 
         /// <inheritdoc/>
-        public static ushort FromInt32(int value) => (ushort)value;
+        public static void ToEightBit(ReadOnlySpan<ushort> source, int shift, Span<byte> destination)
+            => Av1ImagePyramid.Narrow(source, destination, shift);
 
         /// <inheritdoc/>
         public static void GetMoments(

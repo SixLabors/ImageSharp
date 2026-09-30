@@ -144,7 +144,7 @@ public class Av1ReferenceFrameStoreTests
     /// <param name="planeIndex">The zero-based plane index mixed into the visible samples.</param>
     private static void InitializeVisiblePlane(
         Av1FrameBuffer<byte> frameBuffer,
-        Buffer2D<byte> buffer,
+        Av1PlaneRegion<byte> buffer,
         int originX,
         int originY,
         int width,
@@ -153,9 +153,9 @@ public class Av1ReferenceFrameStoreTests
     {
         if (frameBuffer.BytesPerSample == 1)
         {
-            Span<byte> samples = buffer.DangerousGetSingleSpan();
+            Span<byte> samples = buffer.Samples;
             samples.Fill(byte.MaxValue);
-            int stride = buffer.Width;
+            int stride = buffer.Stride;
 
             for (int row = 0; row < height; row++)
             {
@@ -168,9 +168,9 @@ public class Av1ReferenceFrameStoreTests
             return;
         }
 
-        Span<ushort> highBitDepthSamples = MemoryMarshal.Cast<byte, ushort>(buffer.DangerousGetSingleSpan());
+        Span<ushort> highBitDepthSamples = MemoryMarshal.Cast<byte, ushort>(buffer.Samples);
         highBitDepthSamples.Fill(ushort.MaxValue);
-        int highBitDepthStride = buffer.Width >> 1;
+        int highBitDepthStride = buffer.Stride >> 1;
 
         for (int row = 0; row < height; row++)
         {
@@ -194,19 +194,19 @@ public class Av1ReferenceFrameStoreTests
     /// <param name="planeIndex">The zero-based plane index mixed into the visible samples.</param>
     private static void AssertExtendedPlane(
         Av1FrameBuffer<byte> frameBuffer,
-        Buffer2D<byte> buffer,
+        Av1PlaneRegion<byte> buffer,
         int originX,
         int originY,
         int width,
         int height,
         int planeIndex)
     {
-        int stride = buffer.Width / frameBuffer.BytesPerSample;
-        int allocatedHeight = buffer.Height;
+        int stride = buffer.Stride / frameBuffer.BytesPerSample;
+        int allocatedHeight = buffer.PlaneHeight;
 
         if (frameBuffer.BytesPerSample == 1)
         {
-            ReadOnlySpan<byte> samples = buffer.DangerousGetSingleSpan();
+            ReadOnlySpan<byte> samples = buffer.Samples;
 
             for (int row = 0; row < allocatedHeight; row++)
             {
@@ -228,7 +228,7 @@ public class Av1ReferenceFrameStoreTests
             return;
         }
 
-        ReadOnlySpan<ushort> highBitDepthSamples = MemoryMarshal.Cast<byte, ushort>(buffer.DangerousGetSingleSpan());
+        ReadOnlySpan<ushort> highBitDepthSamples = MemoryMarshal.Cast<byte, ushort>(buffer.Samples);
 
         for (int row = 0; row < allocatedHeight; row++)
         {

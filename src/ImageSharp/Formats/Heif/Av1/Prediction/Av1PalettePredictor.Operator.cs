@@ -98,7 +98,7 @@ internal static class Av1PalettePredictor
     /// </summary>
     public static void Predict(
         ReadOnlySpan<ushort> paletteColors,
-        Buffer2DRegion<byte> colorIndexMap,
+        Av1PlaneRegion<byte> colorIndexMap,
         Span<byte> destination,
         int destinationStride,
         int width,
@@ -110,7 +110,7 @@ internal static class Av1PalettePredictor
     /// </summary>
     public static void Predict(
         ReadOnlySpan<ushort> paletteColors,
-        Buffer2DRegion<byte> colorIndexMap,
+        Av1PlaneRegion<byte> colorIndexMap,
         Span<short> destination,
         int destinationStride,
         int width,
@@ -185,7 +185,7 @@ internal static class Av1PalettePredictor
         /// </summary>
         public static void Predict(
             ReadOnlySpan<ushort> paletteColors,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<byte> destination,
             int destinationStride,
             int width,
@@ -206,7 +206,7 @@ internal static class Av1PalettePredictor
 
             for (int row = 0; row < height; row++)
             {
-                ref byte mapRow = ref MemoryMarshal.GetReference(colorIndexMap.DangerousGetRowSpan(row));
+                ref byte mapRow = ref MemoryMarshal.GetReference(colorIndexMap.GetRowSpan(row));
                 ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 
@@ -285,7 +285,7 @@ internal static class Av1PalettePredictor
         /// </summary>
         public static void Predict(
             ReadOnlySpan<ushort> paletteColors,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<short> destination,
             int destinationStride,
             int width,
@@ -300,7 +300,7 @@ internal static class Av1PalettePredictor
 
             for (int row = 0; row < height; row++)
             {
-                ref byte mapRow = ref MemoryMarshal.GetReference(colorIndexMap.DangerousGetRowSpan(row));
+                ref byte mapRow = ref MemoryMarshal.GetReference(colorIndexMap.GetRowSpan(row));
                 ref short destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 

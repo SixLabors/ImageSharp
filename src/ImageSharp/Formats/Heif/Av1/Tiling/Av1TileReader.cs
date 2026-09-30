@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -110,17 +111,18 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Reusable luma palette indices for the coding blocks in one superblock.
     /// </summary>
-    private readonly Buffer2D<byte> lumaPaletteColorIndexMap;
+    private readonly Av1PlaneRegion<byte> lumaPaletteColorIndexMap;
 
     /// <summary>
     /// Reusable chroma palette indices for the coding blocks in one superblock.
     /// </summary>
-    private readonly Buffer2D<byte> chromaPaletteColorIndexMap;
+    private readonly Av1PlaneRegion<byte> chromaPaletteColorIndexMap;
 
     /// <summary>
-    /// Indicates whether this reader owns and disposes the palette maps.
+    /// The allocation of both palette maps when this reader owns them, or <see langword="null"/> when the decoder
+    /// session shares its maps.
     /// </summary>
-    private readonly bool ownsPaletteColorIndexMaps;
+    private readonly IMemoryOwner<byte>? paletteColorIndexMapOwner;
 
     /// <summary>
     /// Reusable storage for the eight spatial displacement-vector candidates permitted by AV1.
@@ -222,8 +224,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1FrameEntropyContexts entropyContexts,
         Av1FrameEntropyContext? primaryReferenceContext,
         Av1ReferenceFrameStore referenceFrames,
-        Buffer2D<byte> lumaPaletteColorIndexMap,
-        Buffer2D<byte> chromaPaletteColorIndexMap)
+        Av1PlaneRegion<byte> lumaPaletteColorIndexMap,
+        Av1PlaneRegion<byte> chromaPaletteColorIndexMap)
         : this(
             configuration,
             sequenceHeader,
@@ -262,7 +264,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.SequenceHeader = sequenceHeader;
         this.entropyContexts = entropyContexts;
         this.referenceFrames = referenceFrames;
-        this.ownsPaletteColorIndexMaps = sharedPaletteColorIndexMaps is null;
         this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
 
@@ -328,23 +329,20 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (sharedPaletteColorIndexMaps is null)
         {
-            Buffer2D<byte>? ownedLumaPaletteColorIndexMap = null;
-            Buffer2D<byte>? ownedChromaPaletteColorIndexMap = null;
-
             try
             {
                 // Standalone syntax readers have no decoder-session owner. They still use the same fixed
                 // maximum-superblock bound and return both maps when the reader is disposed.
                 int paletteMapLength = 1 << Av1Constants.MaxSuperBlockSizeLog2;
-                ownedLumaPaletteColorIndexMap = configuration.MemoryAllocator.Allocate2D<byte>(paletteMapLength, paletteMapLength);
-                ownedChromaPaletteColorIndexMap = configuration.MemoryAllocator.Allocate2D<byte>(paletteMapLength, paletteMapLength);
-                this.lumaPaletteColorIndexMap = ownedLumaPaletteColorIndexMap;
-                this.chromaPaletteColorIndexMap = ownedChromaPaletteColorIndexMap;
+                int paletteMapArea = paletteMapLength * paletteMapLength;
+                this.paletteColorIndexMapOwner = configuration.MemoryAllocator.Allocate<byte>(2 * paletteMapArea);
+                Memory<byte> paletteMaps = this.paletteColorIndexMapOwner.Memory;
+                Rectangle paletteMapBounds = new(0, 0, paletteMapLength, paletteMapLength);
+                this.lumaPaletteColorIndexMap = new(paletteMaps[..paletteMapArea], paletteMapLength, paletteMapBounds);
+                this.chromaPaletteColorIndexMap = new(paletteMaps.Slice(paletteMapArea, paletteMapArea), paletteMapLength, paletteMapBounds);
             }
             catch
             {
-                ownedChromaPaletteColorIndexMap?.Dispose();
-                ownedLumaPaletteColorIndexMap?.Dispose();
                 this.coefficientLevels.Dispose();
                 this.leftNeighborContext.Dispose();
                 this.aboveNeighborContext.Dispose();
@@ -369,12 +367,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
             catch
             {
-                if (this.ownsPaletteColorIndexMaps)
-                {
-                    this.chromaPaletteColorIndexMap.Dispose();
-                    this.lumaPaletteColorIndexMap.Dispose();
-                }
-
+                this.paletteColorIndexMapOwner?.Dispose();
                 this.coefficientLevels.Dispose();
                 this.leftNeighborContext.Dispose();
                 this.aboveNeighborContext.Dispose();
@@ -475,12 +468,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.aboveNeighborContext.Dispose();
         this.leftNeighborContext.Dispose();
         this.coefficientLevels.Dispose();
-        if (this.ownsPaletteColorIndexMaps)
-        {
-            this.lumaPaletteColorIndexMap.Dispose();
-            this.chromaPaletteColorIndexMap.Dispose();
-        }
-
+        this.paletteColorIndexMapOwner?.Dispose();
         this.FrameInfo.Dispose();
     }
 
@@ -1987,7 +1975,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             Point position = modeInfo.PositionInSuperblock;
             Rectangle bounds = new(position.X << Av1Constants.ModeInfoSizeLog2, position.Y << Av1Constants.ModeInfoSizeLog2, planeWidth, planeHeight);
-            Buffer2DRegion<byte> colorIndexMap = new(this.lumaPaletteColorIndexMap, bounds);
+            Av1PlaneRegion<byte> colorIndexMap = this.lumaPaletteColorIndexMap.GetSubRegion(bounds);
 
             DecodePaletteColorMap(
                 ref reader,
@@ -2020,7 +2008,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int subY = this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
             Point position = modeInfo.PositionInSuperblock;
             Rectangle bounds = new((position.X << Av1Constants.ModeInfoSizeLog2) >> subX, (position.Y << Av1Constants.ModeInfoSizeLog2) >> subY, planeWidth, planeHeight);
-            Buffer2DRegion<byte> colorIndexMap = new(this.chromaPaletteColorIndexMap, bounds);
+            Av1PlaneRegion<byte> colorIndexMap = this.chromaPaletteColorIndexMap.GetSubRegion(bounds);
 
             DecodePaletteColorMap(
                 ref reader,
@@ -2825,7 +2813,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int planeHeight,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap)
+        Av1PlaneRegion<byte> colorIndexMap)
     {
         reader.ReadPaletteColorMap(paletteSize, planeType, rows, columns, colorIndexMap);
 
@@ -2834,17 +2822,17 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             // Blocks clipped by the right image edge repeat their final coded column into the padded block area.
             for (int row = 0; row < rows; row++)
             {
-                Span<byte> colorIndexRow = colorIndexMap.DangerousGetRowSpan(row);
+                Span<byte> colorIndexRow = colorIndexMap.GetRowSpan(row);
                 colorIndexRow.Slice(columns, planeWidth - columns)
                     .Fill(colorIndexRow[columns - 1]);
             }
         }
 
         // Blocks clipped by the bottom image edge repeat their final coded row for later transform reconstruction.
-        ReadOnlySpan<byte> finalRow = colorIndexMap.DangerousGetRowSpan(rows - 1);
+        ReadOnlySpan<byte> finalRow = colorIndexMap.GetRowSpan(rows - 1);
         for (int row = rows; row < planeHeight; row++)
         {
-            finalRow.CopyTo(colorIndexMap.DangerousGetRowSpan(row));
+            finalRow.CopyTo(colorIndexMap.GetRowSpan(row));
         }
     }
 
@@ -3507,7 +3495,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         /// </summary>
         /// <param name="luma">The luma.</param>
         /// <param name="chroma">The chroma.</param>
-        public PaletteColorIndexMaps(Buffer2D<byte> luma, Buffer2D<byte> chroma)
+        public PaletteColorIndexMaps(Av1PlaneRegion<byte> luma, Av1PlaneRegion<byte> chroma)
         {
             this.Luma = luma;
             this.Chroma = chroma;
@@ -3516,11 +3504,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         /// <summary>
         /// Gets the shared luma palette map.
         /// </summary>
-        public Buffer2D<byte> Luma { get; }
+        public Av1PlaneRegion<byte> Luma { get; }
 
         /// <summary>
         /// Gets the shared chroma palette map.
         /// </summary>
-        public Buffer2D<byte> Chroma { get; }
+        public Av1PlaneRegion<byte> Chroma { get; }
     }
 }

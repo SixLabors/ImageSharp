@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -318,34 +320,24 @@ internal sealed class Av1FlowField : IDisposable
     /// finer level spans half the samples that an entry of this level spans.
     /// Reference: upscale_flow_component().
     /// </remarks>
+    /// <param name="component">The component to double, in place.</param>
+    /// <param name="width">The entries across the level.</param>
+    /// <param name="height">The entries down the level.</param>
+    /// <param name="scratch">The storage of the horizontally doubled level.</param>
+    /// <param name="scratchOrigin">The index of the first entry of the scratch that is not border.</param>
     private void Upscale(Span<double> component, int width, int height, Span<double> scratch, int scratchOrigin)
     {
-        const int HalfTaps = UpscaleTaps / 2;
-        ReadOnlySpan<double> lowerPhase = LowerPhaseFilter;
-        ReadOnlySpan<double> upperPhase = UpperPhaseFilter;
-
+        int upscaledWidth = width * 2;
         for (int row = 0; row < height; row++)
         {
             int input = this.Origin + (row * this.Stride);
-            int output = scratchOrigin + (row * this.Stride);
-            for (int column = 0; column < width; column++)
-            {
-                double left = 0;
-                double right = 0;
-                for (int tap = 0; tap < UpscaleTaps; tap++)
-                {
-                    left += component[input + column + tap - HalfTaps] * lowerPhase[tap];
-                    right += component[input + column + tap - HalfTaps + 1] * upperPhase[tap];
-                }
-
-                scratch[output + (2 * column)] = 2.0 * left;
-                scratch[output + (2 * column) + 1] = 2.0 * right;
-            }
+            UpscaleRow(
+                component.Slice(input - BorderOuter, width + (2 * BorderOuter)),
+                scratch.Slice(scratchOrigin + (row * this.Stride), upscaledWidth));
         }
 
         // The vertical pass reads rows above and below the level, so the scratch keeps a copy of its
         // first and last rows there.
-        int upscaledWidth = width * 2;
         ReadOnlySpan<double> topRow = scratch.Slice(scratchOrigin, upscaledWidth);
         for (int row = -BorderOuter; row < 0; row++)
         {
@@ -361,20 +353,188 @@ internal sealed class Av1FlowField : IDisposable
         for (int row = 0; row < height; row++)
         {
             int output = this.Origin + (2 * row * this.Stride);
-            for (int column = 0; column < upscaledWidth; column++)
+            UpscaleColumns(
+                scratch[(scratchOrigin + ((row - BorderOuter) * this.Stride))..],
+                this.Stride,
+                component.Slice(output, upscaledWidth),
+                component.Slice(output + this.Stride, upscaledWidth));
+        }
+    }
+
+    /// <summary>
+    /// Doubles one row of a component horizontally, and doubles its magnitude, as the first pass of
+    /// <c>upscale_flow_component</c> does.
+    /// </summary>
+    /// <remarks>
+    /// The two outputs of one entry form a lane pair whose inputs are adjacent, so a pair loads two adjacent entries
+    /// and multiplies them by the two phases' taps at once. Each lane sums its taps in the reference order with
+    /// separate multiplies and adds, so every output is exact.
+    /// </remarks>
+    /// <param name="input">The row, beginning <see cref="BorderOuter"/> entries before its first entry and ending as
+    /// many after its last.</param>
+    /// <param name="output">Receives two entries for each entry of the row.</param>
+    internal static void UpscaleRow(ReadOnlySpan<double> input, Span<double> output)
+    {
+        ReadOnlySpan<double> lowerPhase = LowerPhaseFilter;
+        ReadOnlySpan<double> upperPhase = UpperPhaseFilter;
+        int width = output.Length / 2;
+        ref double inputBase = ref MemoryMarshal.GetReference(input);
+        ref double outputBase = ref MemoryMarshal.GetReference(output);
+        int column = 0;
+
+        // Each stage stops where its last load would pass the right border.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<long> pairs = Vector512.Create(0L, 1, 1, 2, 2, 3, 3, 4);
+            for (; column <= width - 7; column += 4)
             {
-                double top = 0;
-                double bottom = 0;
+                Vector512<double> sum = Vector512<double>.Zero;
                 for (int tap = 0; tap < UpscaleTaps; tap++)
                 {
-                    int input = scratchOrigin + ((row + tap - HalfTaps) * this.Stride) + column;
-                    top += scratch[input] * lowerPhase[tap];
-                    bottom += scratch[input + this.Stride] * upperPhase[tap];
+                    Vector256<double> taps = Vector256.Create(Vector128.Create(lowerPhase[tap], upperPhase[tap]));
+                    Vector512<double> entries = Vector512.Shuffle(Vector512.LoadUnsafe(ref inputBase, (nuint)(column + tap)), pairs);
+                    sum += entries * Vector512.Create(taps, taps);
                 }
 
-                component[output + column] = top;
-                component[output + this.Stride + column] = bottom;
+                (sum * 2.0).StoreUnsafe(ref outputBase, (nuint)(2 * column));
             }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<long> pairs = Vector256.Create(0L, 1, 1, 2);
+            for (; column <= width - 3; column += 2)
+            {
+                Vector256<double> sum = Vector256<double>.Zero;
+                for (int tap = 0; tap < UpscaleTaps; tap++)
+                {
+                    Vector128<double> taps = Vector128.Create(lowerPhase[tap], upperPhase[tap]);
+                    Vector256<double> entries = Vector256.Shuffle(Vector256.LoadUnsafe(ref inputBase, (nuint)(column + tap)), pairs);
+                    sum += entries * Vector256.Create(taps, taps);
+                }
+
+                (sum * 2.0).StoreUnsafe(ref outputBase, (nuint)(2 * column));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; column < width; column++)
+            {
+                Vector128<double> sum = Vector128<double>.Zero;
+                for (int tap = 0; tap < UpscaleTaps; tap++)
+                {
+                    sum += Vector128.LoadUnsafe(ref inputBase, (nuint)(column + tap)) * Vector128.Create(lowerPhase[tap], upperPhase[tap]);
+                }
+
+                (sum * 2.0).StoreUnsafe(ref outputBase, (nuint)(2 * column));
+            }
+        }
+
+        for (; column < width; column++)
+        {
+            double left = 0;
+            double right = 0;
+            for (int tap = 0; tap < UpscaleTaps; tap++)
+            {
+                left += input[column + tap] * lowerPhase[tap];
+                right += input[column + tap + 1] * upperPhase[tap];
+            }
+
+            output[2 * column] = 2.0 * left;
+            output[(2 * column) + 1] = 2.0 * right;
+        }
+    }
+
+    /// <summary>
+    /// Doubles one row of a horizontally doubled component vertically, as the second pass of
+    /// <c>upscale_flow_component</c> does.
+    /// </summary>
+    /// <remarks>
+    /// Each lane sums its taps in the reference order with separate multiplies and adds, so every output is exact.
+    /// </remarks>
+    /// <param name="input">The entries <see cref="BorderOuter"/> rows above the input row, followed by the rest of
+    /// the component.</param>
+    /// <param name="stride">The entries between one row and the next.</param>
+    /// <param name="top">Receives the output row a quarter of an entry above the input row.</param>
+    /// <param name="bottom">Receives the output row a quarter of an entry below the input row.</param>
+    internal static void UpscaleColumns(ReadOnlySpan<double> input, int stride, Span<double> top, Span<double> bottom)
+    {
+        ReadOnlySpan<double> lowerPhase = LowerPhaseFilter;
+        ReadOnlySpan<double> upperPhase = UpperPhaseFilter;
+        int width = top.Length;
+        _ = input[(UpscaleTaps * stride) + width - 1];
+        ref double inputBase = ref MemoryMarshal.GetReference(input);
+        ref double topBase = ref MemoryMarshal.GetReference(top);
+        ref double bottomBase = ref MemoryMarshal.GetReference(bottom);
+        int column = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector512<double>.Count; column += Vector512<double>.Count)
+            {
+                Vector512<double> upper = Vector512<double>.Zero;
+                Vector512<double> lower = Vector512<double>.Zero;
+                for (int tap = 0; tap < UpscaleTaps; tap++)
+                {
+                    nuint offset = (nuint)((tap * stride) + column);
+                    upper += Vector512.LoadUnsafe(ref inputBase, offset) * lowerPhase[tap];
+                    lower += Vector512.LoadUnsafe(ref inputBase, offset + (nuint)stride) * upperPhase[tap];
+                }
+
+                upper.StoreUnsafe(ref topBase, (nuint)column);
+                lower.StoreUnsafe(ref bottomBase, (nuint)column);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector256<double>.Count; column += Vector256<double>.Count)
+            {
+                Vector256<double> upper = Vector256<double>.Zero;
+                Vector256<double> lower = Vector256<double>.Zero;
+                for (int tap = 0; tap < UpscaleTaps; tap++)
+                {
+                    nuint offset = (nuint)((tap * stride) + column);
+                    upper += Vector256.LoadUnsafe(ref inputBase, offset) * lowerPhase[tap];
+                    lower += Vector256.LoadUnsafe(ref inputBase, offset + (nuint)stride) * upperPhase[tap];
+                }
+
+                upper.StoreUnsafe(ref topBase, (nuint)column);
+                lower.StoreUnsafe(ref bottomBase, (nuint)column);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector128<double>.Count; column += Vector128<double>.Count)
+            {
+                Vector128<double> upper = Vector128<double>.Zero;
+                Vector128<double> lower = Vector128<double>.Zero;
+                for (int tap = 0; tap < UpscaleTaps; tap++)
+                {
+                    nuint offset = (nuint)((tap * stride) + column);
+                    upper += Vector128.LoadUnsafe(ref inputBase, offset) * lowerPhase[tap];
+                    lower += Vector128.LoadUnsafe(ref inputBase, offset + (nuint)stride) * upperPhase[tap];
+                }
+
+                upper.StoreUnsafe(ref topBase, (nuint)column);
+                lower.StoreUnsafe(ref bottomBase, (nuint)column);
+            }
+        }
+
+        for (; column < width; column++)
+        {
+            double upper = 0;
+            double lower = 0;
+            for (int tap = 0; tap < UpscaleTaps; tap++)
+            {
+                upper += input[(tap * stride) + column] * lowerPhase[tap];
+                lower += input[((tap + 1) * stride) + column] * upperPhase[tap];
+            }
+
+            top[column] = upper;
+            bottom[column] = lower;
         }
     }
 

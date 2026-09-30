@@ -18,7 +18,7 @@ public class Av1InverseTransformTests
     /// <summary>
     /// The hardware configurations covering the native vector width and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics TransformConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics TransformConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies the DCT, ADST, identity, sparse, twelve-bit widened, and lossless Walsh-Hadamard operators against

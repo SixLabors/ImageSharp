@@ -24,7 +24,7 @@ public class Av1PredictorTests
     /// <summary>
     /// The hardware configurations covering the native vector width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Gets the cardinal, base, and adjusted angles covering every directional projection zone.

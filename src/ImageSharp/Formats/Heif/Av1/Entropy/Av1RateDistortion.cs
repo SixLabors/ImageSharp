@@ -251,6 +251,25 @@ internal static class Av1RateDistortion
     }
 
     /// <summary>
+    /// Gets a rate-distortion cost whose rate can be negative, rounding the magnitude of a negative weighted rate.
+    /// Reference: av1_calculate_rd_cost() with RDCOST_NEG_R.
+    /// </summary>
+    /// <param name="rateMultiplier">The rate weight selected by the encoder quality model.</param>
+    /// <param name="rate">The syntax rate in 1/512-bit units.</param>
+    /// <param name="distortion">The sample-domain distortion.</param>
+    /// <returns>The distortion plus the rounded weighted rate, or minus the rounded weighted magnitude.</returns>
+    public static long GetSignedCost(long rateMultiplier, int rate, long distortion)
+    {
+        if (rate >= 0)
+        {
+            return GetCost(rateMultiplier, rate, distortion);
+        }
+
+        long weightedRate = -(long)rate * rateMultiplier;
+        return (distortion << 7) - ((weightedRate + (1 << (Av1ProbabilityCost.CostShift - 1))) >> Av1ProbabilityCost.CostShift);
+    }
+
+    /// <summary>
     /// Gets a rate-distortion cost using the encoder probability-cost precision.
     /// </summary>
     /// <param name="rateMultiplier">The rate weight selected by the encoder quality model.</param>

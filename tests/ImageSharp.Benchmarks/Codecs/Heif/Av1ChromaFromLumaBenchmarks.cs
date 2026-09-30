@@ -120,12 +120,12 @@ public class Av1ChromaFromLumaBenchmarks
             this.AddJob(
                 Job.ShortRun
                     .WithId("Avx2")
-                    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0"));
+                    .WithEnvironmentVariable("DOTNET_EnableAVX512", "0"));
 
             this.AddJob(
                 Job.ShortRun
                     .WithId("Vector128")
-                    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0")
+                    .WithEnvironmentVariable("DOTNET_EnableAVX512", "0")
                     .WithEnvironmentVariable("DOTNET_EnableAVX2", "0"));
 
             this.AddJob(

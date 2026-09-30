@@ -17,7 +17,7 @@ public class Av1CompoundInterPredictorTests
     /// <summary>
     /// Exercises the native vector width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies rounded averaging, no-round intermediates, distance and mask blending, and difference masks at every

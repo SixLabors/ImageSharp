@@ -22,7 +22,7 @@ internal static class Av1PaletteColorMap
     /// <param name="colorOrderIndex">The current index in <paramref name="colorOrder" />, or a negative value while decoding.</param>
     /// <returns>The color-index entropy context in the range from zero through four.</returns>
     public static int GetContext(
-        Buffer2DRegion<byte> colorIndexMap,
+        Av1PlaneRegion<byte> colorIndexMap,
         int row,
         int column,
         int paletteSize,
@@ -32,7 +32,7 @@ internal static class Av1PaletteColorMap
     {
         Span<int> scores = stackalloc int[Av1Constants.PaletteMaxSize];
         scores.Clear();
-        ReadOnlySpan<byte> currentRow = colorIndexMap.DangerousGetRowSpan(row);
+        ReadOnlySpan<byte> currentRow = colorIndexMap.GetRowSpan(row);
         if (column > 0)
         {
             scores[currentRow[column - 1]] += 2;
@@ -40,7 +40,7 @@ internal static class Av1PaletteColorMap
 
         if (row > 0)
         {
-            ReadOnlySpan<byte> aboveRow = colorIndexMap.DangerousGetRowSpan(row - 1);
+            ReadOnlySpan<byte> aboveRow = colorIndexMap.GetRowSpan(row - 1);
             if (column > 0)
             {
                 scores[aboveRow[column - 1]]++;

@@ -50,7 +50,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="midpoint">Scratch for one row of mid-gray samples, at least <paramref name="width"/> long.</param>
         /// <returns>The rounded per-sample variance.</returns>
         private static int GetPerPixelVariance(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point origin,
             int width,
             int height,
@@ -128,8 +128,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? macroBlock.GetRelativeModeInfo(-1).Block.Mode
                 : Av1PredictionMode.DC;
 
-            Buffer2DRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> destination = this.reconstruction.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> destination = this.reconstruction.GetPlane(Av1Plane.Y);
             Span<TSample> predictedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destination, blockOrigin);
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
@@ -430,7 +430,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         for (int planeIndex = 1; planeIndex <= 2; planeIndex++)
                         {
                             Av1Plane plane = (Av1Plane)planeIndex;
-                            Buffer2DRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
+                            Av1PlaneRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
                             Span<TSample> prediction = planeIndex == 1 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
                             this.PrepareInterPlanePrediction(
                                 copyVector,
@@ -591,8 +591,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
             int sampleCount = transformSize.GetSize2d();
-            Buffer2DRegion<TSample> source = this.source.GetPlane(plane);
-            Buffer2DRegion<TSample> destination = this.reconstruction.GetPlane(plane);
+            Av1PlaneRegion<TSample> source = this.source.GetPlane(plane);
+            Av1PlaneRegion<TSample> destination = this.reconstruction.GetPlane(plane);
             Span<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destination, planeOrigin);
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
@@ -624,7 +624,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // map it was allocated with, for every transform block. Reference: the tx_type_map that
             // av1_nonrd_pick_intra_mode() copies into the context when palette wins and xd->tx_type_map[0] is
             // not DCT_DCT, read back by encode_block_intra().
-            Buffer2DRegion<byte> paletteMap = paletteColors.IsEmpty
+            Av1PlaneRegion<byte> paletteMap = paletteColors.IsEmpty
                 ? default
                 : this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, planeBlockSize.GetWidth(), planeBlockSize.GetHeight());
 

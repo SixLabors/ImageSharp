@@ -102,9 +102,9 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int planeIndex = 1; planeIndex < 3; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
-                Buffer2DRegion<TSample> source = this.source.GetPlane(plane);
+                Av1PlaneRegion<TSample> source = this.source.GetPlane(plane);
 
-                Buffer2DRegion<TSample> reconstruction = this.reconstruction.GetPlane(plane);
+                Av1PlaneRegion<TSample> reconstruction = this.reconstruction.GetPlane(plane);
                 Span<TSample> samples = workspace.GetCandidateReconstruction(planeIndex - 1)[..sampleCount];
                 Span<int> coefficients = workspace.GetCandidateCoefficients(planeIndex - 1)[..sampleCount];
                 Span<Av1EncoderTransformBlockState> states = workspace.CandidateTransformBlocks[..transformCount];
@@ -193,7 +193,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     int paletteSize = paletteInfo.PaletteSizes[(int)Av1PlaneType.Uv];
                     ReadOnlySpan<ushort> colors = paletteSize == 0 ? [] : paletteInfo.GetColors(plane)[..paletteSize];
-                    Buffer2DRegion<byte> map = paletteSize == 0
+                    Av1PlaneRegion<byte> map = paletteSize == 0
                         ? default
                         : this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Uv, width, planeSize.GetHeight());
 
@@ -511,10 +511,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingX,
                 subsamplingY);
 
-            Buffer2DRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
-            Buffer2DRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
-            Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
-            Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
+            Av1PlaneRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
+            Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
+            Av1PlaneRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
+            Av1PlaneRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
             Span<TSample> blueAboveStorage = workspace.GetReferenceSamples(0);
             Span<TSample> blueLeftStorage = workspace.GetReferenceSamples(1);
             Span<TSample> redAboveStorage = workspace.GetReferenceSamples(2);
@@ -789,6 +789,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         bool chromaFromLumaSelected = false;
                         int selectedBlueCandidateIndex = 0;
                         int selectedRedCandidateIndex = 0;
+                        Av1RateDistortionStatistics bestAlphaStatistics = Av1RateDistortionStatistics.Invalid;
+                        int bestAlphaBlueCandidateIndex = 0;
+                        int bestAlphaRedCandidateIndex = 0;
+                        int bestAlphaPackedIndex = 0;
+                        int bestAlphaJointSign = 0;
                         for (int blueCandidateIndex = firstBlueCandidate;
                             evaluateAlpha && blueCandidateIndex < lastBlueCandidate;
                             blueCandidateIndex++)
@@ -813,28 +818,48 @@ internal static partial class Av1IntraSuperblockEncoder
                                 int residualRate = blueRates[blueCandidateIndex] + redRates[redCandidateIndex] +
                                     writer.GetChromaFromLumaCost(packedIndex, jointSign);
 
-                                int rate = chromaFromLumaModeRate + residualRate;
-
                                 long distortion = blueDistortions[blueCandidateIndex] + redDistortions[redCandidateIndex];
-                                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion)
-                                {
-                                    ResidualRate = residualRate
-                                };
 
+                                // The alpha pair is chosen on its own cost, without the UV mode symbol, so rounding
+                                // ties resolve as in libaom. Reference: the joint loop of cfl_rd_pick_alpha().
+                                Av1RateDistortionStatistics alphaStatistics = new(this.rateMultiplier, residualRate, distortion);
                                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                                    $"UVCFL {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} cfl {packedIndex}:{jointSign} rate {rate} resrate {residualRate} dist {distortion} cost {candidateStatistics.Cost} best {bestStatistics.Cost}");
+                                    $"UVCFL {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} cfl {packedIndex}:{jointSign} resrate {residualRate} dist {distortion} cost {alphaStatistics.Cost} best {bestAlphaStatistics.Cost}");
 
-                                if (candidateStatistics.Cost < bestStatistics.Cost)
+                                if (alphaStatistics.Cost < bestAlphaStatistics.Cost)
                                 {
-                                    bestStatistics = candidateStatistics;
-                                    bestMode = Av1ChromaPredictionMode.ChromaFromLuma;
-                                    selectedAngleDelta = 0;
-                                    selectedBlueCandidateIndex = blueCandidateIndex;
-                                    selectedRedCandidateIndex = redCandidateIndex;
-                                    selectedChromaFromLumaIndex = (byte)packedIndex;
-                                    selectedChromaFromLumaSigns = (sbyte)jointSign;
-                                    chromaFromLumaSelected = true;
+                                    bestAlphaStatistics = alphaStatistics;
+                                    bestAlphaBlueCandidateIndex = blueCandidateIndex;
+                                    bestAlphaRedCandidateIndex = redCandidateIndex;
+                                    bestAlphaPackedIndex = packedIndex;
+                                    bestAlphaJointSign = jointSign;
                                 }
+                            }
+                        }
+
+                        // The best pair must beat the best mode before the mode symbol is added. Reference: the
+                        // ref_best_rd test at the end of cfl_rd_pick_alpha(), then the this_rd test of
+                        // av1_rd_pick_intra_sbuv_mode().
+                        if (bestAlphaStatistics.Cost < bestStatistics.Cost)
+                        {
+                            Av1RateDistortionStatistics candidateStatistics = new(
+                                this.rateMultiplier,
+                                chromaFromLumaModeRate + bestAlphaStatistics.Rate,
+                                bestAlphaStatistics.Distortion)
+                            {
+                                ResidualRate = bestAlphaStatistics.Rate
+                            };
+
+                            if (candidateStatistics.Cost < bestStatistics.Cost)
+                            {
+                                bestStatistics = candidateStatistics;
+                                bestMode = Av1ChromaPredictionMode.ChromaFromLuma;
+                                selectedAngleDelta = 0;
+                                selectedBlueCandidateIndex = bestAlphaBlueCandidateIndex;
+                                selectedRedCandidateIndex = bestAlphaRedCandidateIndex;
+                                selectedChromaFromLumaIndex = (byte)bestAlphaPackedIndex;
+                                selectedChromaFromLumaSigns = (sbyte)bestAlphaJointSign;
+                                chromaFromLumaSelected = true;
                             }
                         }
 
@@ -1103,10 +1128,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
             int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);
             int redLeftIndex = redNeighbors.GetLeftIndex(chromaOrigin);
-            Buffer2DRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
-            Buffer2DRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
-            Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
-            Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
+            Av1PlaneRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
+            Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
+            Av1PlaneRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
+            Av1PlaneRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
             Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
             int hogLevel = speedSettings.ChromaHogPruningLevel;
             float hogThreshold = this.picture.Parent.FrameHeader.IsIntra
@@ -1367,7 +1392,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample precision.</param>
         /// <returns>The rounded per-sample variance.</returns>
         private static int GetSourceVariance(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point origin,
             int width,
             int height,
@@ -1392,10 +1417,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode predictionMode,
             int angleDelta,
             Av1Plane plane,
-            Buffer2DRegion<TSample> source,
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> source,
+            Av1PlaneRegion<TSample> reconstruction,
             ReadOnlySpan<ushort> paletteColors,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             Span<Av1EncoderTransformBlockState> candidateStates,
@@ -1604,7 +1629,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> candidateReconstruction,
             ReadOnlySpan<int> candidateCoefficients,
             ReadOnlySpan<Av1EncoderTransformBlockState> candidateStates,
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> reconstruction,
             Point blockOrigin,
             int blockWidth,
             Size codedExtent,
@@ -1638,7 +1663,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Point chromaOrigin,
             Av1TransformSize transformSize,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             TSample dc,
             Av1TransformBlockContext context,
             ReadOnlySpan<short> lumaQ3,
@@ -1687,7 +1712,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private static int FindBestChromaFromLumaEstimate(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1Plane plane,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point chromaOrigin,
             TSample dc,
             ReadOnlySpan<short> lumaQ3,
@@ -1707,7 +1732,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private static int FindBestChromaFromLumaEstimateCore(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1Plane plane,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point chromaOrigin,
             TSample dc,
             ReadOnlySpan<short> lumaQ3,
@@ -1836,8 +1861,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Point chromaOrigin,
             Av1TransformSize transformSize,
-            Buffer2DRegion<TSample> blueSource,
-            Buffer2DRegion<TSample> redSource,
+            Av1PlaneRegion<TSample> blueSource,
+            Av1PlaneRegion<TSample> redSource,
             ReadOnlySpan<TSample> blueAbove,
             ReadOnlySpan<TSample> blueLeft,
             ReadOnlySpan<TSample> redAbove,
@@ -1871,8 +1896,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Point chromaOrigin,
             Av1TransformSize transformSize,
-            Buffer2DRegion<TSample> blueSource,
-            Buffer2DRegion<TSample> redSource,
+            Av1PlaneRegion<TSample> blueSource,
+            Av1PlaneRegion<TSample> redSource,
             ReadOnlySpan<TSample> blueAbove,
             ReadOnlySpan<TSample> blueLeft,
             ReadOnlySpan<TSample> redAbove,
@@ -2068,7 +2093,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="aboveStorage">The corner followed by at least width plus height top-edge samples.</param>
         /// <param name="leftStorage">The corner followed by at least width plus height left-edge samples.</param>
         public static void PrepareReferenceSamples(
-            Buffer2DRegion<TSample> reconstructionPlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             int width,
             int height,
@@ -2086,7 +2111,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> left = leftStorage.Slice(1, width + height);
             if (hasAbove)
             {
-                ReadOnlySpan<TSample> topRow = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1);
+                ReadOnlySpan<TSample> topRow = reconstructionPlane.GetRowSpan(blockOrigin.Y - 1);
                 int visibleTopCount = Math.Min(width, topRow.Length - blockOrigin.X);
                 topRow.Slice(blockOrigin.X, visibleTopCount).CopyTo(above);
                 above[visibleTopCount..width].Fill(above[visibleTopCount - 1]);
@@ -2097,7 +2122,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int visibleLeftCount = Math.Min(height, reconstructionPlane.Height - blockOrigin.Y);
                 for (int row = 0; row < visibleLeftCount; row++)
                 {
-                    left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
+                    left[row] = reconstructionPlane.GetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
                 }
 
                 left[visibleLeftCount..height].Fill(left[visibleLeftCount - 1]);
@@ -2122,7 +2147,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (hasTopRight)
             {
-                reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)
+                reconstructionPlane.GetRowSpan(blockOrigin.Y - 1)
                     .Slice(blockOrigin.X + width, topRightCount)
                     .CopyTo(above[width..]);
             }
@@ -2136,7 +2161,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             for (int row = height; row < height + bottomLeftCount; row++)
             {
-                left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
+                left[row] = reconstructionPlane.GetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
             }
 
             int leftCount = height + bottomLeftCount;
@@ -2145,7 +2170,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Zone-two projection and Paeth address the common corner immediately before both edges.
             // Missing edges derive it from the closest coded sample or the bit-depth midpoint.
             TSample corner = hasAbove && hasLeft
-                ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)[blockOrigin.X - 1]
+                ? reconstructionPlane.GetRowSpan(blockOrigin.Y - 1)[blockOrigin.X - 1]
                 : hasAbove
                     ? above[0]
                     : hasLeft

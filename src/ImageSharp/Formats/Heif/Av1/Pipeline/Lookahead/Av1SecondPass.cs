@@ -125,7 +125,7 @@ internal sealed partial class Av1SecondPass
     private readonly int maximumGoldenInterval;
     private readonly int staticSceneMaximumGoldenInterval;
     private readonly int gopLengthDecisionMethod;
-    private readonly IGopLengthEvaluator? gopLengthEvaluator;
+    private IGopLengthEvaluator? gopLengthEvaluator;
 
     /// <summary>
     /// The linear buffer of look-ahead statistics from the first frame not yet shown to the newest analysed frame.
@@ -308,6 +308,12 @@ internal sealed partial class Av1SecondPass
         /// <param name="gopEvaluation">The evaluation: 1 for the complete group, 2 for three layers, 3 for two.</param>
         /// <returns>The evaluation result: 0 to shorten, 1 to keep, 2 when undecided.</returns>
         int SetupTplStatistics(Av1SecondPass secondPass, int gopEvaluation);
+
+        /// <summary>
+        /// Discards the filtered frames of the previous group before a new group is defined. Reference:
+        /// av1_tf_info_reset() in av1_get_second_pass_params().
+        /// </summary>
+        void BeginGroup();
     }
 
     /// <summary>
@@ -373,6 +379,9 @@ internal sealed partial class Av1SecondPass
             return false;
         }
 
+        // Each frame starts without reusing the model's statistics; only the length test of a new group may reuse
+        // them. Reference: the skip_tpl_setup_stats reset of av1_encode_strategy().
+        this.skipTplSetupStatistics = false;
         bool startsGroup = this.groupFrameIndex == this.group.Size;
         this.GetSecondPassParameters();
 
@@ -401,6 +410,7 @@ internal sealed partial class Av1SecondPass
         bool showFrame = showExisting || sourceOffset == 0;
         bool keyFrame = this.group.KeyFrames[index] && !showExisting;
         bool resetsReferences = this.group.ReferenceResets[index];
+        int frameNumber = this.frameNumber;
         if (keyFrame && resetsReferences)
         {
             // av1_encode() restarts the display count at a key frame that resets the references.
@@ -420,6 +430,7 @@ internal sealed partial class Av1SecondPass
             ShowExistingFrame = showExisting,
             SourceOffset = sourceOffset,
             DisplayOrder = displayOrder,
+            FrameNumber = frameNumber,
             LayerDepth = this.group.LayerDepths[index],
             MaxLayerDepth = this.group.MaxLayerDepth,
             PyramidLevel = GetTruePyramidLevel(this.group.LayerDepths[index], displayOrder, this.group.MaxLayerDepth),
@@ -741,6 +752,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="thisFrame">The statistics of the current frame.</param>
     private void DefineNewGoldenGroup(ref Av1FirstPassStatistics thisFrame)
     {
+        this.gopLengthEvaluator?.BeginGroup();
         int maximumGopLength = this.lagInFrames >= 32
             ? Math.Min(MaximumGoldenInterval, this.lagInFrames - (ArnrMaximumFrames / 2))
             : MaximumLookaheadGoldenLength;
@@ -821,13 +833,9 @@ internal sealed partial class Av1SecondPass
             return false;
         }
 
-        // av1_tpl_preload_rc_estimate(): the model codes each frame of the trial group at its estimated quantizer.
-        // The screen content type is still that of the last coded frame, because the new key frame, if any, has
-        // not yet been classified.
-        for (int index = this.groupFrameIndex; index < this.group.Size; ++index)
-        {
-            this.group.QValues[index] = this.PickQIndex(index, this.screenContentType);
-        }
+        // The model codes each frame of the trial group at its estimated quantizer. The screen content type is still
+        // that of the last coded frame, because the new key frame, if any, has not yet been classified.
+        this.PreloadTplQuantizers();
 
         bool shorten;
         if (this.gopLengthDecisionMethod == 2)

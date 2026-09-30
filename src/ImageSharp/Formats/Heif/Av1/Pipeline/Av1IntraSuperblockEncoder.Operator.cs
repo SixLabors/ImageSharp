@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -57,7 +59,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="source">The coded source plane.</param>
         /// <param name="origin">The source block origin.</param>
         /// <returns>The average in the source sample precision.</returns>
-        public static abstract int GetAverage4x4(Buffer2DRegion<TSample> source, Point origin);
+        public static abstract int GetAverage4x4(Av1PlaneRegion<TSample> source, Point origin);
 
         /// <summary>
         /// Computes the rounded mean of an eight-by-eight sample block.
@@ -76,7 +78,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="columns">The active column count.</param>
         /// <param name="samples">The contiguous sample destination.</param>
         public static abstract void CopyPaletteSamples(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             int rows,
             int columns,
@@ -93,10 +95,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
         /// <param name="transformSize">The prediction dimensions.</param>
         public static abstract void PreparePalette(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             ReadOnlySpan<ushort> paletteColors,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<TSample> prediction,
             Span<short> residual,
             Av1TransformSize transformSize);
@@ -112,7 +114,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="subsamplingX">Whether luma is subsampled horizontally for chroma.</param>
         /// <param name="subsamplingY">Whether luma is subsampled vertically for chroma.</param>
         public static abstract void PrepareChromaFromLuma(
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> reconstruction,
             Point blockOrigin,
             Span<short> lumaQ3,
             Av1TransformSize transformSize,
@@ -175,13 +177,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="primaryPrepared">Whether <paramref name="firstIntermediate"/> already holds the primary predictor.</param>
         /// <param name="secondaryPrepared">Whether <paramref name="secondIntermediate"/> already holds the secondary predictor.</param>
         public static abstract void PrepareCompoundInterPrediction(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
-            Buffer2DRegion<TSample> primaryReference,
+            Av1PlaneRegion<TSample> primaryReference,
             Point primaryPredictionOrigin,
             int primaryHorizontalPhase,
             int primaryVerticalPhase,
-            Buffer2DRegion<TSample> secondaryReference,
+            Av1PlaneRegion<TSample> secondaryReference,
             Point secondaryPredictionOrigin,
             int secondaryHorizontalPhase,
             int secondaryVerticalPhase,
@@ -261,8 +263,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="state">The retained transform state.</param>
         public static abstract void Encode(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<TSample> source,
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> source,
+            Av1PlaneRegion<TSample> reconstruction,
             Point blockOrigin,
             ReadOnlySpan<TSample> above,
             ReadOnlySpan<TSample> left,
@@ -314,7 +316,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext context,
             int rateMultiplier,
             bool useChromaWeights,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> reconstruction,
             ReadOnlySpan<TSample> above,
@@ -358,7 +360,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareIntra(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> prediction,
             int predictionStride,
@@ -389,7 +391,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareFilterIntra(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> prediction,
             ReadOnlySpan<TSample> above,
@@ -412,9 +414,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
         /// <param name="predictionSize">The prediction dimensions.</param>
         public static abstract void PrepareIntraBlockCopyPrediction(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
-            Buffer2DRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> reconstruction,
             Point predictionOrigin,
             bool halfX,
             bool halfY,
@@ -432,7 +434,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="width">The plane block width.</param>
         /// <param name="height">The plane block height.</param>
         public static abstract void SubtractPrediction(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             ReadOnlySpan<TSample> prediction,
             Span<short> residual,
@@ -472,7 +474,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="scratch">The warp filter intermediate storage.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareWarpedInterPrediction(
-            Buffer2DRegion<TSample> reference,
+            Av1PlaneRegion<TSample> reference,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -503,7 +505,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="scratch">The warp filter intermediate storage.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareWarpedCompoundIntermediate(
-            Buffer2DRegion<TSample> reference,
+            Av1PlaneRegion<TSample> reference,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -533,9 +535,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareTranslationalInterPrediction(
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
-            Buffer2DRegion<TSample> reference,
+            Av1PlaneRegion<TSample> reference,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -584,7 +586,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PredictTranslationalInter(
-            Buffer2DRegion<TSample> reference,
+            Av1PlaneRegion<TSample> reference,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -653,7 +655,7 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
             ReadOnlySpan<int> dequantized,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             ReadOnlySpan<TSample> prediction,
             int inputStride,
@@ -699,7 +701,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int rateMultiplier,
             bool isInter,
             bool useChromaWeights,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             ReadOnlySpan<TSample> prediction,
             Span<short> residual,
@@ -746,7 +748,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext context,
             int rateMultiplier,
             bool useChromaWeights,
-            Buffer2DRegion<TSample> source,
+            Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> reconstruction,
             TSample dc,
@@ -963,14 +965,14 @@ internal static partial class Av1IntraSuperblockEncoder
         public static int GetSampleValue(byte sample) => sample;
 
         /// <inheritdoc/>
-        public static int GetAverage4x4(Buffer2DRegion<byte> source, Point origin)
+        public static int GetAverage4x4(Av1PlaneRegion<byte> source, Point origin)
         {
             // Four packed rows occupy sixteen byte lanes. Widen before summing to retain all eight sample bits.
             Vector128<byte> samples = Vector128.Create(
-                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y).Slice(origin.X, 4)),
-                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y + 1).Slice(origin.X, 4)),
-                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y + 2).Slice(origin.X, 4)),
-                MemoryMarshal.Read<uint>(source.DangerousGetRowSpan(origin.Y + 3).Slice(origin.X, 4))).AsByte();
+                MemoryMarshal.Read<uint>(source.GetRowSpan(origin.Y).Slice(origin.X, 4)),
+                MemoryMarshal.Read<uint>(source.GetRowSpan(origin.Y + 1).Slice(origin.X, 4)),
+                MemoryMarshal.Read<uint>(source.GetRowSpan(origin.Y + 2).Slice(origin.X, 4)),
+                MemoryMarshal.Read<uint>(source.GetRowSpan(origin.Y + 3).Slice(origin.X, 4))).AsByte();
 
             int sum = Vector128.Sum(Vector128.WidenLower(samples)) + Vector128.Sum(Vector128.WidenUpper(samples));
             return (sum + 8) >> 4;
@@ -995,15 +997,71 @@ internal static partial class Av1IntraSuperblockEncoder
         public static uint GetHashSample(byte sample) => sample;
 
         /// <inheritdoc/>
-        public static bool BlocksEqual(Buffer2DRegion<byte> plane, Point first, Point second)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<uint> LoadHashBytes(ref byte source, nuint offset, Vector128<uint> lanes)
+        {
+            Vector128<byte> samples = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref source, offset))).AsByte();
+            return Vector128.WidenLower(Vector128.WidenLower(samples));
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<uint> LoadHashBytes(ref byte source, nuint offset, Vector256<uint> lanes)
+            => Vector256.WidenLower(Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, offset))).AsByte()).ToVector256Unsafe());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<uint> LoadHashBytes(ref byte source, nuint offset, Vector512<uint> lanes)
+            => Vector512.WidenLower(Vector256.WidenLower(Vector128.LoadUnsafe(ref source, offset).ToVector256Unsafe()).ToVector512Unsafe());
+
+        /// <inheritdoc/>
+        public static bool BlocksEqual(Av1PlaneRegion<byte> plane, Point first, Point second)
+            => BlocksEqual(plane, first, plane, second);
+
+        /// <inheritdoc/>
+        public static bool BlocksEqual(Av1PlaneRegion<byte> first, Point firstOrigin, Av1PlaneRegion<byte> second, Point secondOrigin)
         {
             for (int row = 0; row < 8; row++)
             {
-                ReadOnlySpan<byte> firstRow = plane.DangerousGetRowSpan(first.Y + row)[first.X..];
-                ReadOnlySpan<byte> secondRow = plane.DangerousGetRowSpan(second.Y + row)[second.X..];
+                ReadOnlySpan<byte> firstRow = first.GetRowSpan(firstOrigin.Y + row)[firstOrigin.X..];
+                ReadOnlySpan<byte> secondRow = second.GetRowSpan(secondOrigin.Y + row)[secondOrigin.X..];
 
-                // Compare the complete row as byte lanes so collision rejection remains independent of native endianness.
-                if (Vector64.Create(firstRow) != Vector64.Create(secondRow))
+                // One 64-bit comparison covers the complete row. Equality of the packed bytes does not depend on
+                // native endianness.
+                if (MemoryMarshal.Read<ulong>(firstRow) != MemoryMarshal.Read<ulong>(secondRow))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public static bool IsHorizontalPerfect(Av1PlaneRegion<byte> plane, Point origin)
+        {
+            for (int row = 0; row < 8; row++)
+            {
+                // A row is flat when its packed bytes equal one of its bytes broadcast to all eight, which holds for
+                // either byte order.
+                ulong samples = MemoryMarshal.Read<ulong>(plane.GetRowSpan(origin.Y + row)[origin.X..]);
+                if (samples != (samples & 0xFF) * 0x0101010101010101UL)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public static bool IsVerticalPerfect(Av1PlaneRegion<byte> plane, Point origin)
+        {
+            // Every column repeats its first sample when every row equals the first row.
+            ulong first = MemoryMarshal.Read<ulong>(plane.GetRowSpan(origin.Y)[origin.X..]);
+            for (int row = 1; row < 8; row++)
+            {
+                if (MemoryMarshal.Read<ulong>(plane.GetRowSpan(origin.Y + row)[origin.X..]) != first)
                 {
                     return false;
                 }
@@ -1014,9 +1072,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static int GetSumOfAbsoluteDifferences(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point sourceOrigin,
-            Buffer2DRegion<byte> reconstruction,
+            Av1PlaneRegion<byte> reconstruction,
             Point predictionOrigin)
             => Av1ResidualBuilder.SumAbsoluteDifferences8x8(
                 Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
@@ -1026,9 +1084,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void GetFourSumsOfAbsoluteDifferences(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point sourceOrigin,
-            Buffer2DRegion<byte> reconstruction,
+            Av1PlaneRegion<byte> reconstruction,
             Point firstPredictionOrigin,
             Span<int> sums)
             => Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(
@@ -1040,9 +1098,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static int GetVariance(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point sourceOrigin,
-            Buffer2DRegion<byte> reconstruction,
+            Av1PlaneRegion<byte> reconstruction,
             Point predictionOrigin,
             Av1BitDepth bitDepth)
         {
@@ -1059,41 +1117,70 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void CopyPaletteSamples(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             int rows,
             int columns,
             Span<short> samples)
         {
-            int sampleOffset = 0;
             for (int row = 0; row < rows; row++)
             {
                 ReadOnlySpan<byte> sourceRow = source
-                    .DangerousGetRowSpan(blockOrigin.Y + row)
+                    .GetRowSpan(blockOrigin.Y + row)
                     .Slice(blockOrigin.X, columns);
 
-                // A complete row widens in one vector; clipped edge rows retain scalar bounds.
-                if (columns == 8 && Vector128.IsHardwareAccelerated)
-                {
-                    Vector128.WidenLower(Vector128.Create(Vector64.Create(sourceRow), Vector64<byte>.Zero)).AsInt16().CopyTo(samples[sampleOffset..]);
+                WidenSamples(sourceRow, samples.Slice(row * columns, columns));
+            }
+        }
 
-                    sampleOffset += columns;
-                    continue;
-                }
-
-                for (int column = 0; column < sourceRow.Length; column++)
+        /// <summary>
+        /// Widens eight-bit samples to sixteen bits, widest vectors first.
+        /// </summary>
+        /// <param name="source">The eight-bit samples.</param>
+        /// <param name="destination">Receives the widened samples.</param>
+        private static void WidenSamples(ReadOnlySpan<byte> source, Span<short> destination)
+        {
+            ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+            ref short destinationBase = ref MemoryMarshal.GetReference(destination);
+            int length = source.Length;
+            int column = 0;
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; column <= length - Vector256<byte>.Count; column += Vector256<byte>.Count)
                 {
-                    samples[sampleOffset++] = sourceRow[column];
+                    Vector512_.Widen(Vector256.LoadUnsafe(ref sourceBase, (nuint)column)).StoreUnsafe(ref destinationBase, (nuint)column);
                 }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; column <= length - Vector128<byte>.Count; column += Vector128<byte>.Count)
+                {
+                    Vector256_.Widen(Vector128.LoadUnsafe(ref sourceBase, (nuint)column)).StoreUnsafe(ref destinationBase, (nuint)column);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; column <= length - 8; column += 8)
+                {
+                    Vector128<byte> samples = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref sourceBase, column))).AsByte();
+                    Vector128.WidenLower(samples).AsInt16().StoreUnsafe(ref destinationBase, (nuint)column);
+                }
+            }
+
+            for (; column < length; column++)
+            {
+                Unsafe.Add(ref destinationBase, column) = Unsafe.Add(ref sourceBase, column);
             }
         }
 
         /// <inheritdoc/>
         public static void PreparePalette(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             ReadOnlySpan<ushort> paletteColors,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<byte> prediction,
             Span<short> residual,
             Av1TransformSize transformSize)
@@ -1121,7 +1208,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareChromaFromLuma(
-            Buffer2DRegion<byte> reconstruction,
+            Av1PlaneRegion<byte> reconstruction,
             Point blockOrigin,
             Span<short> lumaQ3,
             Av1TransformSize transformSize,
@@ -1162,8 +1249,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void Encode(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<byte> source,
-            Buffer2DRegion<byte> reconstruction,
+            Av1PlaneRegion<byte> source,
+            Av1PlaneRegion<byte> reconstruction,
             Point blockOrigin,
             ReadOnlySpan<byte> above,
             ReadOnlySpan<byte> left,
@@ -1202,7 +1289,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext context,
             int rateMultiplier,
             bool useChromaWeights,
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             Span<byte> reconstruction,
             ReadOnlySpan<byte> above,
@@ -1255,7 +1342,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareIntra(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             Span<byte> prediction,
             int predictionStride,
@@ -1290,7 +1377,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareFilterIntra(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             Span<byte> prediction,
             ReadOnlySpan<byte> above,
@@ -1324,9 +1411,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareIntraBlockCopyPrediction(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
-            Buffer2DRegion<byte> reconstruction,
+            Av1PlaneRegion<byte> reconstruction,
             Point predictionOrigin,
             bool halfX,
             bool halfY,
@@ -1359,7 +1446,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void SubtractPrediction(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             ReadOnlySpan<byte> prediction,
             Span<short> residual,
@@ -1386,7 +1473,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(
-            Buffer2DRegion<byte> reference,
+            Av1PlaneRegion<byte> reference,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -1399,7 +1486,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarped(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -1416,7 +1503,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareWarpedCompoundIntermediate(
-            Buffer2DRegion<byte> reference,
+            Av1PlaneRegion<byte> reference,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -1429,7 +1516,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarpedCompound(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -1458,7 +1545,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PredictTranslationalInter(
-            Buffer2DRegion<byte> reference,
+            Av1PlaneRegion<byte> reference,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -1478,7 +1565,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -1494,9 +1581,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
-            Buffer2DRegion<byte> reference,
+            Av1PlaneRegion<byte> reference,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -1517,7 +1604,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -1543,13 +1630,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareCompoundInterPrediction(
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
-            Buffer2DRegion<byte> primaryReference,
+            Av1PlaneRegion<byte> primaryReference,
             Point primaryPredictionOrigin,
             int primaryHorizontalPhase,
             int primaryVerticalPhase,
-            Buffer2DRegion<byte> secondaryReference,
+            Av1PlaneRegion<byte> secondaryReference,
             Point secondaryPredictionOrigin,
             int secondaryHorizontalPhase,
             int secondaryVerticalPhase,
@@ -1589,7 +1676,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!primaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    primaryReference.Buffer.DangerousGetSingleSpan(),
+                    primaryReference.Samples,
                     primaryReference.Stride,
                     primaryOrigin,
                     firstIntermediate,
@@ -1606,7 +1693,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!secondaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    secondaryReference.Buffer.DangerousGetSingleSpan(),
+                    secondaryReference.Samples,
                     secondaryReference.Stride,
                     secondaryOrigin,
                     secondIntermediate,
@@ -1782,7 +1869,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int rateMultiplier,
             bool isInter,
             bool useChromaWeights,
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             ReadOnlySpan<byte> prediction,
             Span<short> residual,
@@ -1827,7 +1914,7 @@ internal static partial class Av1IntraSuperblockEncoder
         public static long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
             ReadOnlySpan<int> dequantized,
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             ReadOnlySpan<byte> prediction,
             int inputStride,
@@ -1859,7 +1946,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext context,
             int rateMultiplier,
             bool useChromaWeights,
-            Buffer2DRegion<byte> source,
+            Av1PlaneRegion<byte> source,
             Point blockOrigin,
             Span<byte> reconstruction,
             byte dc,
@@ -2079,15 +2166,16 @@ internal static partial class Av1IntraSuperblockEncoder
         public static int GetSampleValue(ushort sample) => sample;
 
         /// <inheritdoc/>
-        public static int GetAverage4x4(Buffer2DRegion<ushort> source, Point origin)
+        public static int GetAverage4x4(Av1PlaneRegion<ushort> source, Point origin)
         {
             // Four ushort lanes accumulate matching columns. Twelve-bit samples keep both column and final sums within ushort.
-            Vector64<ushort> columns = Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y)[origin.X]) +
-                Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y + 1)[origin.X]) +
-                Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y + 2)[origin.X]) +
-                Vector64.LoadUnsafe(ref source.DangerousGetRowSpan(origin.Y + 3)[origin.X]);
+            // Each row loads as one 64-bit value into the low half of a 128-bit vector, so the upper lanes stay zero.
+            Vector128<ushort> columns = Vector128.CreateScalar(MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes(source.GetRowSpan(origin.Y).Slice(origin.X, 4)))).AsUInt16() +
+                Vector128.CreateScalar(MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes(source.GetRowSpan(origin.Y + 1).Slice(origin.X, 4)))).AsUInt16() +
+                Vector128.CreateScalar(MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes(source.GetRowSpan(origin.Y + 2).Slice(origin.X, 4)))).AsUInt16() +
+                Vector128.CreateScalar(MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes(source.GetRowSpan(origin.Y + 3).Slice(origin.X, 4)))).AsUInt16();
 
-            return (Vector64.Sum(columns) + 8) >> 4;
+            return (Vector128.Sum(columns) + 8) >> 4;
         }
 
         /// <inheritdoc/>
@@ -2109,22 +2197,48 @@ internal static partial class Av1IntraSuperblockEncoder
         public static uint GetHashSample(ushort sample) => sample;
 
         /// <inheritdoc/>
-        public static bool BlocksEqual(Buffer2DRegion<ushort> plane, Point first, Point second)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<uint> LoadHashBytes(ref ushort source, nuint offset, Vector128<uint> lanes)
+        {
+            Vector128<ushort> samples = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, offset)))).AsUInt16();
+            return Vector128.WidenLower((samples ^ (samples >>> 8)) & Vector128.Create((ushort)255));
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<uint> LoadHashBytes(ref ushort source, nuint offset, Vector256<uint> lanes)
+        {
+            Vector128<ushort> samples = Vector128.LoadUnsafe(ref source, offset);
+            return Vector256.WidenLower(((samples ^ (samples >>> 8)) & Vector128.Create((ushort)255)).ToVector256Unsafe());
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<uint> LoadHashBytes(ref ushort source, nuint offset, Vector512<uint> lanes)
+        {
+            Vector256<ushort> samples = Vector256.LoadUnsafe(ref source, offset);
+            return Vector512.WidenLower(((samples ^ (samples >>> 8)) & Vector256.Create((ushort)255)).ToVector512Unsafe());
+        }
+
+        /// <inheritdoc/>
+        public static bool BlocksEqual(Av1PlaneRegion<ushort> plane, Point first, Point second)
+            => BlocksEqual(plane, first, plane, second);
+
+        /// <inheritdoc/>
+        public static bool IsHorizontalPerfect(Av1PlaneRegion<ushort> plane, Point origin)
         {
             for (int row = 0; row < 8; row++)
             {
-                ReadOnlySpan<ushort> firstRow = plane.DangerousGetRowSpan(first.Y + row)[first.X..];
-                ReadOnlySpan<ushort> secondRow = plane.DangerousGetRowSpan(second.Y + row)[second.X..];
+                ReadOnlySpan<ushort> samples = plane.GetRowSpan(origin.Y + row)[origin.X..];
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    Vector128<ushort> firstSamples = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(firstRow));
-                    Vector128<ushort> secondSamples = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(secondRow));
-                    if (!Vector128.EqualsAll(firstSamples, secondSamples))
+                    Vector128<ushort> vector = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(samples));
+                    if (!Vector128.EqualsAll(vector, Vector128.Create(samples[0])))
                     {
                         return false;
                     }
                 }
-                else if (!firstRow[..8].SequenceEqual(secondRow[..8]))
+                else if (samples[1..8].ContainsAnyExcept(samples[0]))
                 {
                     return false;
                 }
@@ -2134,10 +2248,58 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        public static bool IsVerticalPerfect(Av1PlaneRegion<ushort> plane, Point origin)
+        {
+            // Every column repeats its first sample when every row equals the first row.
+            ReadOnlySpan<ushort> first = plane.GetRowSpan(origin.Y)[origin.X..];
+            for (int row = 1; row < 8; row++)
+            {
+                if (!RowsEqual(first, plane.GetRowSpan(origin.Y + row)[origin.X..]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public static bool BlocksEqual(
+            Av1PlaneRegion<ushort> first, Point firstOrigin, Av1PlaneRegion<ushort> second, Point secondOrigin)
+        {
+            for (int row = 0; row < 8; row++)
+            {
+                if (!RowsEqual(
+                    first.GetRowSpan(firstOrigin.Y + row)[firstOrigin.X..],
+                    second.GetRowSpan(secondOrigin.Y + row)[secondOrigin.X..]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Compares the first eight samples of two rows.
+        /// </summary>
+        private static bool RowsEqual(ReadOnlySpan<ushort> firstRow, ReadOnlySpan<ushort> secondRow)
+        {
+            if (Vector128.IsHardwareAccelerated)
+            {
+                Vector128<ushort> firstSamples = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(firstRow));
+                Vector128<ushort> secondSamples = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(secondRow));
+                return Vector128.EqualsAll(firstSamples, secondSamples);
+            }
+
+            return firstRow[..8].SequenceEqual(secondRow[..8]);
+        }
+
+        /// <inheritdoc/>
         public static int GetSumOfAbsoluteDifferences(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point sourceOrigin,
-            Buffer2DRegion<ushort> reconstruction,
+            Av1PlaneRegion<ushort> reconstruction,
             Point predictionOrigin)
             => Av1ResidualBuilder.SumAbsoluteDifferences8x8(
                 Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
@@ -2147,9 +2309,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void GetFourSumsOfAbsoluteDifferences(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point sourceOrigin,
-            Buffer2DRegion<ushort> reconstruction,
+            Av1PlaneRegion<ushort> reconstruction,
             Point firstPredictionOrigin,
             Span<int> sums)
             => Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(
@@ -2161,9 +2323,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static int GetVariance(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point sourceOrigin,
-            Buffer2DRegion<ushort> reconstruction,
+            Av1PlaneRegion<ushort> reconstruction,
             Point predictionOrigin,
             Av1BitDepth bitDepth)
         {
@@ -2180,7 +2342,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void CopyPaletteSamples(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             int rows,
             int columns,
@@ -2190,7 +2352,7 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int row = 0; row < rows; row++)
             {
                 ReadOnlySpan<ushort> sourceRow = source
-                    .DangerousGetRowSpan(blockOrigin.Y + row)
+                    .GetRowSpan(blockOrigin.Y + row)
                     .Slice(blockOrigin.X, columns);
 
                 MemoryMarshal.Cast<ushort, short>(sourceRow).CopyTo(samples[sampleOffset..]);
@@ -2200,10 +2362,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PreparePalette(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             ReadOnlySpan<ushort> paletteColors,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<ushort> prediction,
             Span<short> residual,
             Av1TransformSize transformSize)
@@ -2231,7 +2393,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareChromaFromLuma(
-            Buffer2DRegion<ushort> reconstruction,
+            Av1PlaneRegion<ushort> reconstruction,
             Point blockOrigin,
             Span<short> lumaQ3,
             Av1TransformSize transformSize,
@@ -2273,8 +2435,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void Encode(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<ushort> source,
-            Buffer2DRegion<ushort> reconstruction,
+            Av1PlaneRegion<ushort> source,
+            Av1PlaneRegion<ushort> reconstruction,
             Point blockOrigin,
             ReadOnlySpan<ushort> above,
             ReadOnlySpan<ushort> left,
@@ -2314,7 +2476,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext context,
             int rateMultiplier,
             bool useChromaWeights,
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> reconstruction,
             ReadOnlySpan<ushort> above,
@@ -2368,7 +2530,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareIntra(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> prediction,
             int predictionStride,
@@ -2404,7 +2566,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareFilterIntra(
             Av1EncoderBlockWorkspace workspace,
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> prediction,
             ReadOnlySpan<ushort> above,
@@ -2446,9 +2608,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareIntraBlockCopyPrediction(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
-            Buffer2DRegion<ushort> reconstruction,
+            Av1PlaneRegion<ushort> reconstruction,
             Point predictionOrigin,
             bool halfX,
             bool halfY,
@@ -2481,7 +2643,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void SubtractPrediction(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             ReadOnlySpan<ushort> prediction,
             Span<short> residual,
@@ -2508,7 +2670,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(
-            Buffer2DRegion<ushort> reference,
+            Av1PlaneRegion<ushort> reference,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -2521,7 +2683,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarped(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -2539,7 +2701,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareWarpedCompoundIntermediate(
-            Buffer2DRegion<ushort> reference,
+            Av1PlaneRegion<ushort> reference,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -2552,7 +2714,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarpedCompound(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -2582,7 +2744,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PredictTranslationalInter(
-            Buffer2DRegion<ushort> reference,
+            Av1PlaneRegion<ushort> reference,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -2602,7 +2764,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -2619,9 +2781,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
-            Buffer2DRegion<ushort> reference,
+            Av1PlaneRegion<ushort> reference,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -2642,7 +2804,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Samples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -2669,13 +2831,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareCompoundInterPrediction(
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
-            Buffer2DRegion<ushort> primaryReference,
+            Av1PlaneRegion<ushort> primaryReference,
             Point primaryPredictionOrigin,
             int primaryHorizontalPhase,
             int primaryVerticalPhase,
-            Buffer2DRegion<ushort> secondaryReference,
+            Av1PlaneRegion<ushort> secondaryReference,
             Point secondaryPredictionOrigin,
             int secondaryHorizontalPhase,
             int secondaryVerticalPhase,
@@ -2715,7 +2877,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!primaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    primaryReference.Buffer.DangerousGetSingleSpan(),
+                    primaryReference.Samples,
                     primaryReference.Stride,
                     primaryOrigin,
                     firstIntermediate,
@@ -2733,7 +2895,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!secondaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    secondaryReference.Buffer.DangerousGetSingleSpan(),
+                    secondaryReference.Samples,
                     secondaryReference.Stride,
                     secondaryOrigin,
                     secondIntermediate,
@@ -2918,7 +3080,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int rateMultiplier,
             bool isInter,
             bool useChromaWeights,
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             ReadOnlySpan<ushort> prediction,
             Span<short> residual,
@@ -2964,7 +3126,7 @@ internal static partial class Av1IntraSuperblockEncoder
         public static long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
             ReadOnlySpan<int> dequantized,
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             ReadOnlySpan<ushort> prediction,
             int inputStride,
@@ -2997,7 +3159,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext context,
             int rateMultiplier,
             bool useChromaWeights,
-            Buffer2DRegion<ushort> source,
+            Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> reconstruction,
             ushort dc,

@@ -4,8 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
@@ -117,14 +115,6 @@ internal static partial class Av1ChromaFromLumaPredictor
                 Vector128<short> alphaSign = Vector128.Create((short)alphaQ3);
                 Vector128<short> alphaQ12 = Vector128.Create((short)(Math.Abs(alphaQ3) << 9));
                 scaledLumaQ0 = Vector128_.MultiplyHighRoundScale(Vector128.Abs(lumaQ3), alphaQ12);
-                Vector128<short> signMask = (lumaQ3 ^ alphaSign) >> 15;
-                scaledLumaQ0 = (scaledLumaQ0 ^ signMask) - signMask;
-            }
-            else if (AdvSimd.IsSupported)
-            {
-                Vector128<short> alphaSign = Vector128.Create((short)alphaQ3);
-                Vector128<short> alphaQ12 = Vector128.Create((short)(Math.Abs(alphaQ3) << 9));
-                scaledLumaQ0 = AdvSimd.MultiplyRoundedDoublingSaturateHigh(Vector128.Abs(lumaQ3), alphaQ12);
                 Vector128<short> signMask = (lumaQ3 ^ alphaSign) >> 15;
                 scaledLumaQ0 = (scaledLumaQ0 ^ signMask) - signMask;
             }

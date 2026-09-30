@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -26,6 +28,24 @@ internal static class Av1FirstPassOperator
         /// <param name="value">The stored sample.</param>
         /// <returns>The sample value at native precision.</returns>
         public static abstract int ToInt32(TSample value);
+
+        /// <summary>
+        /// Loads four consecutive samples at native precision, one per 32-bit lane.
+        /// </summary>
+        /// <param name="source">The source plane.</param>
+        /// <param name="index">The index of the first sample.</param>
+        /// <param name="lanes">The overload-selection value.</param>
+        /// <returns>The samples.</returns>
+        public static abstract Vector128<int> LoadWidened(ReadOnlySpan<TSample> source, int index, Vector128<int> lanes);
+
+        /// <summary>
+        /// Loads eight consecutive samples at native precision, one per 32-bit lane.
+        /// </summary>
+        /// <param name="source">The source plane.</param>
+        /// <param name="index">The index of the first sample.</param>
+        /// <param name="lanes">The overload-selection value.</param>
+        /// <returns>The samples.</returns>
+        public static abstract Vector256<int> LoadWidened(ReadOnlySpan<TSample> source, int index, Vector256<int> lanes);
 
         /// <summary>
         /// Measures the raw absolute differences of every row of a block, as the high-bit-depth form does before
@@ -154,6 +174,16 @@ internal static class Av1FirstPassOperator
         public static int ToInt32(byte value) => value;
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<int> LoadWidened(ReadOnlySpan<byte> source, int index, Vector128<int> lanes)
+            => Vector128.WidenLower(Vector128.WidenLower(Vector128.CreateScalar(MemoryMarshal.Read<uint>(source.Slice(index, 4))).AsByte())).AsInt32();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<int> LoadWidened(ReadOnlySpan<byte> source, int index, Vector256<int> lanes)
+            => Vector256.WidenLower(Vector128.WidenLower(Vector128.CreateScalar(MemoryMarshal.Read<ulong>(source.Slice(index, 8))).AsByte()).ToVector256Unsafe()).AsInt32();
+
+        /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
             ReadOnlySpan<byte> source,
             int sourceStride,
@@ -234,6 +264,16 @@ internal static class Av1FirstPassOperator
     {
         /// <inheritdoc/>
         public static int ToInt32(ushort value) => value;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<int> LoadWidened(ReadOnlySpan<ushort> source, int index, Vector128<int> lanes)
+            => Vector128.WidenLower(Vector128.CreateScalar(MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes(source.Slice(index, 4)))).AsUInt16()).AsInt32();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<int> LoadWidened(ReadOnlySpan<ushort> source, int index, Vector256<int> lanes)
+            => Vector256.WidenLower(Vector128.Create(source.Slice(index, 8)).ToVector256Unsafe()).AsInt32();
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(

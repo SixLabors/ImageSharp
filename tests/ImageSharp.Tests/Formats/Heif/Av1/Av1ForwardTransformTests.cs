@@ -21,7 +21,7 @@ public class Av1ForwardTransformTests
     /// The hardware configurations covering every transform vector tier and the scalar fallback.
     /// </summary>
     private const HwIntrinsics TransformConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Gets every normative transform size, type, and bit-depth combination shared with the inverse suite.
@@ -49,7 +49,294 @@ public class Av1ForwardTransformTests
             {
                 AssertQuickHadamardCost(size, bitDepth);
             }
+
+            AssertModeEstimationHadamard(8, bitDepth);
+            AssertModeEstimationHadamard(16, bitDepth);
         }
+
+        AssertModeEstimationDct();
+        AssertModeEstimationRows();
+    }
+
+    /// <summary>
+    /// Verifies the 4x4 mode-estimation DCT against a scalar transcription of aom_fdct4x4_lp_c() for eight-bit
+    /// residuals, where libaom's C and x86 forms agree.
+    /// </summary>
+    private static void AssertModeEstimationDct()
+    {
+        const int stride = 7;
+        short[] residual = new short[stride * 4];
+        int[] coefficients = new int[16];
+        int[] expected = new int[16];
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        for (int pattern = 0; pattern < 6; pattern++)
+        {
+            for (int i = 0; i < residual.Length; i++)
+            {
+                residual[i] = (short)(pattern switch
+                {
+                    0 => 255,
+                    1 => i == 0 ? 0 : -255,
+                    2 => (i & 1) == 0 ? 255 : -255,
+                    3 => (((i / stride) + (i % stride)) & 1) == 0 ? 255 : -255,
+                    4 => i == 9 ? 1 : 0,
+                    _ => ((i * 7919) % 511) - 255
+                });
+            }
+
+            ReferenceForwardDct4x4(residual, stride, expected);
+            Av1ForwardTransformer.TransformForModeEstimation(residual, stride, 4, coefficients, workspace, false);
+            Assert.Equal(expected, coefficients);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that transforming a row of adjacent blocks at once gives each block's single-block coefficients,
+    /// for every row length that reaches the four-, two- and one-block steps.
+    /// </summary>
+    private static void AssertModeEstimationRows()
+    {
+        foreach (int size in new[] { 4, 8, 16 })
+        {
+            const int maximumBlocks = 7;
+            int stride = (size * maximumBlocks) + 5;
+            short[] residual = new short[stride * size];
+            for (int i = 0; i < residual.Length; i++)
+            {
+                residual[i] = (short)(((i * 7919) % 511) - 255);
+            }
+
+            int blockLength = size * size;
+            int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+            int[] expected = new int[blockLength];
+            for (int count = 1; count <= maximumBlocks; count++)
+            {
+                int[] row = new int[count * blockLength];
+                Av1ForwardTransformer.TransformRowForModeEstimation(residual, stride, size, count, row, workspace, false);
+                for (int block = 0; block < count; block++)
+                {
+                    Av1ForwardTransformer.TransformForModeEstimation(residual.AsSpan(block * size), stride, size, expected, workspace, false);
+                    Assert.Equal(expected, row.AsSpan(block * blockLength, blockLength).ToArray());
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Computes the 4x4 forward DCT with the arithmetic of aom_fdct4x4_lp_c().
+    /// </summary>
+    /// <param name="input">The residual samples.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="output">Receives the sixteen coefficients.</param>
+    private static void ReferenceForwardDct4x4(short[] input, int stride, int[] output)
+    {
+        short[] intermediate = new short[16];
+        short[] result = new short[16];
+        for (int pass = 0; pass < 2; pass++)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                int in0;
+                int in1;
+                int in2;
+                int in3;
+                if (pass == 0)
+                {
+                    in0 = input[i] * 16;
+                    in1 = input[stride + i] * 16;
+                    in2 = input[(2 * stride) + i] * 16;
+                    in3 = input[(3 * stride) + i] * 16;
+                    if (i == 0 && in0 != 0)
+                    {
+                        in0++;
+                    }
+                }
+                else
+                {
+                    in0 = intermediate[i];
+                    in1 = intermediate[4 + i];
+                    in2 = intermediate[8 + i];
+                    in3 = intermediate[12 + i];
+                }
+
+                int step0 = in0 + in3;
+                int step1 = in1 + in2;
+                int step2 = in1 - in2;
+                int step3 = in0 - in3;
+                short temp0 = (short)ReferenceRoundShift((step0 + step1) * 11585L);
+                short temp2 = (short)ReferenceRoundShift((step0 - step1) * 11585L);
+                short temp1 = (short)ReferenceRoundShift((step2 * 6270L) + (step3 * 15137L));
+                short temp3 = (short)ReferenceRoundShift((-step2 * 15137L) + (step3 * 6270L));
+                if (pass == 0)
+                {
+                    intermediate[(i * 4) + 0] = temp0;
+                    intermediate[(i * 4) + 1] = temp1;
+                    intermediate[(i * 4) + 2] = temp2;
+                    intermediate[(i * 4) + 3] = temp3;
+                }
+                else
+                {
+                    result[i] = temp0;
+                    result[4 + i] = temp1;
+                    result[8 + i] = temp2;
+                    result[12 + i] = temp3;
+                }
+            }
+        }
+
+        for (int i = 0; i < 16; i++)
+        {
+            output[i] = (short)((result[i] + 1) >> 2);
+        }
+    }
+
+    /// <summary>
+    /// Rounds a Q14 product to an integer, as fdct_round_shift() does.
+    /// </summary>
+    /// <param name="value">The Q14 product.</param>
+    /// <returns>The rounded integer.</returns>
+    private static long ReferenceRoundShift(long value) => (value + 8192) >> 14;
+
+    /// <summary>
+    /// Verifies the mode-estimation Hadamard coefficients, in order, against a scalar transcription of
+    /// aom_hadamard_lp_8x8_c() and the sixteen-bit 16x16 combine, including residuals that wrap sixteen-bit lanes.
+    /// </summary>
+    /// <param name="size">The square transform width, eight or sixteen.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    private static void AssertModeEstimationHadamard(int size, int bitDepth)
+    {
+        int maximum = (1 << bitDepth) - 1;
+        int stride = size + 3;
+        short[] residual = new short[stride * size];
+        int[] coefficients = new int[size * size];
+        int[] expected = new int[size * size];
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        for (int pattern = 0; pattern < 5; pattern++)
+        {
+            for (int i = 0; i < residual.Length; i++)
+            {
+                int row = i / stride;
+                int column = i % stride;
+                residual[i] = (short)(pattern switch
+                {
+                    0 => maximum,
+                    1 => i == 19 ? -maximum : 0,
+                    2 => (column & 1) == 0 ? maximum : -maximum,
+                    3 => ((row + column) & 1) == 0 ? maximum : -maximum,
+                    _ => ((i * 7919) % ((2 * maximum) + 1)) - maximum
+                });
+            }
+
+            ReferenceModeEstimationHadamard(residual, stride, size, bitDepth > 8, expected);
+            Av1ForwardTransformer.TransformForModeEstimation(residual, stride, size, coefficients, workspace, bitDepth > 8);
+            Assert.Equal(expected, coefficients);
+        }
+    }
+
+    /// <summary>
+    /// Computes the mode-estimation Hadamard coefficients with sixteen-bit scalar arithmetic.
+    /// </summary>
+    /// <param name="residual">The residual samples.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="size">The square transform width, eight or sixteen.</param>
+    /// <param name="highBitDepth">Whether the high-bit-depth coefficient layout applies.</param>
+    /// <param name="coefficients">Receives the coefficients.</param>
+    private static void ReferenceModeEstimationHadamard(short[] residual, int stride, int size, bool highBitDepth, int[] coefficients)
+    {
+        short[] packed = new short[size * size];
+        int blockCount = size == 8 ? 1 : 4;
+        for (int block = 0; block < blockCount; block++)
+        {
+            int offset = ((block >> 1) * 8 * stride) + ((block & 1) * 8);
+            short[] buffer = new short[64];
+            short[] buffer2 = new short[64];
+            for (int column = 0; column < 8; column++)
+            {
+                ReferenceHadamardColumn8(residual, offset + column, stride, buffer, 8 * column);
+            }
+
+            for (int column = 0; column < 8; column++)
+            {
+                ReferenceHadamardColumn8(buffer, column, 8, buffer2, 8 * column);
+            }
+
+            // aom_hadamard_lp_8x8_c() transposes its output to match the SSE2 layout.
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    packed[(block * 64) + (i * 8) + j] = buffer2[(j * 8) + i];
+                }
+            }
+        }
+
+        if (size == 16)
+        {
+            for (int i = 0; i < 64; i++)
+            {
+                short b0 = (short)((short)(packed[i] + packed[64 + i]) >> 1);
+                short b1 = (short)((short)(packed[i] - packed[64 + i]) >> 1);
+                short b2 = (short)((short)(packed[128 + i] + packed[192 + i]) >> 1);
+                short b3 = (short)((short)(packed[128 + i] - packed[192 + i]) >> 1);
+                packed[i] = (short)(b0 + b2);
+                packed[64 + i] = (short)(b1 + b3);
+                packed[128 + i] = (short)(b0 - b2);
+                packed[192 + i] = (short)(b1 - b3);
+            }
+        }
+
+        for (int i = 0; i < packed.Length; i++)
+        {
+            coefficients[i] = packed[i];
+        }
+
+        if (size == 16 && highBitDepth)
+        {
+            for (int row = 0; row < 16; row++)
+            {
+                for (int column = 0; column < 4; column++)
+                {
+                    int first = (row * 16) + 4 + column;
+                    (coefficients[first], coefficients[first + 4]) = (coefficients[first + 4], coefficients[first]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Transforms one column with the sixteen-bit butterflies of hadamard_col8().
+    /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="offset">The column's first sample.</param>
+    /// <param name="stride">The source row stride.</param>
+    /// <param name="destination">The destination samples.</param>
+    /// <param name="destinationOffset">The first destination sample.</param>
+    private static void ReferenceHadamardColumn8(short[] source, int offset, int stride, short[] destination, int destinationOffset)
+    {
+        short b0 = (short)(source[offset] + source[offset + stride]);
+        short b1 = (short)(source[offset] - source[offset + stride]);
+        short b2 = (short)(source[offset + (2 * stride)] + source[offset + (3 * stride)]);
+        short b3 = (short)(source[offset + (2 * stride)] - source[offset + (3 * stride)]);
+        short b4 = (short)(source[offset + (4 * stride)] + source[offset + (5 * stride)]);
+        short b5 = (short)(source[offset + (4 * stride)] - source[offset + (5 * stride)]);
+        short b6 = (short)(source[offset + (6 * stride)] + source[offset + (7 * stride)]);
+        short b7 = (short)(source[offset + (6 * stride)] - source[offset + (7 * stride)]);
+        short c0 = (short)(b0 + b2);
+        short c1 = (short)(b1 + b3);
+        short c2 = (short)(b0 - b2);
+        short c3 = (short)(b1 - b3);
+        short c4 = (short)(b4 + b6);
+        short c5 = (short)(b5 + b7);
+        short c6 = (short)(b4 - b6);
+        short c7 = (short)(b5 - b7);
+        destination[destinationOffset] = (short)(c0 + c4);
+        destination[destinationOffset + 7] = (short)(c1 + c5);
+        destination[destinationOffset + 3] = (short)(c2 + c6);
+        destination[destinationOffset + 4] = (short)(c3 + c7);
+        destination[destinationOffset + 2] = (short)(c0 - c4);
+        destination[destinationOffset + 6] = (short)(c1 - c5);
+        destination[destinationOffset + 1] = (short)(c2 - c6);
+        destination[destinationOffset + 5] = (short)(c3 - c7);
     }
 
     /// <summary>

@@ -41,10 +41,10 @@ internal sealed unsafe partial class LibaomBenchmarkEncoder : SafeHandleZeroOrMi
     /// </summary>
     public void Encode(Av1EncoderFrame<byte> frame, long frameIndex, Stream output)
     {
-        Buffer2DRegion<byte> y = frame.View.GetPlane(Av1Plane.Y);
-        Buffer2DRegion<byte> u = frame.View.GetPlane(Av1Plane.U);
-        Buffer2DRegion<byte> v = frame.View.GetPlane(Av1Plane.V);
-        fixed (byte* yPointer = y.DangerousGetRowSpan(0), uPointer = u.DangerousGetRowSpan(0), vPointer = v.DangerousGetRowSpan(0))
+        Av1PlaneRegion<byte> y = frame.View.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<byte> u = frame.View.GetPlane(Av1Plane.U);
+        Av1PlaneRegion<byte> v = frame.View.GetPlane(Av1Plane.V);
+        fixed (byte* yPointer = y.GetRowSpan(0), uPointer = u.GetRowSpan(0), vPointer = v.GetRowSpan(0))
         {
             // The native call is synchronous. Its input descriptors borrow these pinned rows only until
             // EncodeFrame returns; the encoder owns any retained reference and lookahead storage itself.

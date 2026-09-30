@@ -70,6 +70,7 @@ public class Av1CompoundBlockDecoderTests
             frameBuffer,
             referenceFrames,
             workspace.Memory);
+
         decoder.UpdateSuperblock(superblockInfo);
         decoder.BeginBlock(ref partitionInfo, tileInfo);
         var chromaFromLumaContext = partitionInfo.ChromaFromLumaContext;
@@ -244,7 +245,7 @@ public class Av1CompoundBlockDecoderTests
                 ushort expected = (ushort)(((alpha * firstValue) + ((64 - alpha) * secondValue) + 32) >> 6);
                 if (bitDepth == Av1BitDepth.EightBit)
                 {
-                    Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+                    Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(row);
                     Assert.Equal((byte)expected, samples[column]);
                 }
                 else
@@ -333,7 +334,7 @@ public class Av1CompoundBlockDecoderTests
 
                 if (bitDepth == Av1BitDepth.EightBit)
                 {
-                    Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(blockOrigin + row);
+                    Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(blockOrigin + row);
                     Assert.Equal((byte)first, samples[blockOrigin + column]);
                 }
                 else
@@ -387,7 +388,7 @@ public class Av1CompoundBlockDecoderTests
             {
                 if (sequenceHeader.ColorConfig.BitDepth == Av1BitDepth.EightBit)
                 {
-                    Span<byte> samples = frameBuffer.DeriveBlockPointer((Av1Plane)plane, subX, subY).DangerousGetRowSpan(row);
+                    Span<byte> samples = frameBuffer.DeriveBlockPointer((Av1Plane)plane, subX, subY).GetRowSpan(row);
                     for (int column = 0; column < planeWidth; column++)
                     {
                         samples[column] = (byte)(GetPlanePatternValue(plane, column, row) + sampleOffset);
@@ -434,7 +435,7 @@ public class Av1CompoundBlockDecoderTests
         {
             for (int row = 0; row < 8; row++)
             {
-                frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row).Fill((byte)value);
+                frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(row).Fill((byte)value);
             }
         }
         else

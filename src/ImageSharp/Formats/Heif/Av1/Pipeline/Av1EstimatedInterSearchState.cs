@@ -169,7 +169,11 @@ internal struct Av1EstimatedInterSearchState
     /// </summary>
     /// <param name="mode">The single-reference mode.</param>
     /// <param name="reference">The reference slot.</param>
-    /// <param name="referencePruning">The reference pruning level.</param>
+    /// <param name="referencePruning">
+    /// The reference pruning level of the speed features, not the block's level that the partition reference
+    /// choice clears. Reference: rt_sf->nonrd_prune_ref_frame_search in skip_inter_mode_nonrd() and the
+    /// thresh_sad_pred setup of av1_nonrd_pick_inter_mode_sb().
+    /// </param>
     /// <returns>Whether the candidate can be omitted.</returns>
     public readonly bool SkipByPredictorSad(Av1PredictionMode mode, Av1ReferenceFrameType reference, int referencePruning)
     {

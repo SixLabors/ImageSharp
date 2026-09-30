@@ -55,7 +55,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Av1WorkCounters.Count(Av1WorkCounters.PaletteYSearch);
             Av1EncoderPaletteWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
 
@@ -109,7 +109,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int neighborContext = Av1TileWriter.GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
             Span<ushort> colorCache = workspace.ColorCache;
             int colorCacheSize = Av1TileWriter.GetPaletteCache(paletteContexts, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
-            Buffer2DRegion<byte> colorIndexMap = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
+            Av1PlaneRegion<byte> colorIndexMap = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
             int transformSizeContext = Av1TileWriter.GetTransformSizeContext(
                 this.picture.TransformFunctionContexts[tileIndex],
                 macroBlock,
@@ -240,7 +240,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int row = 0; row < blockHeight; row++)
                 {
-                    workspace.RetainedIndices.Slice(row * blockWidth, blockWidth).CopyTo(colorIndexMap.DangerousGetRowSpan(row));
+                    workspace.RetainedIndices.Slice(row * blockWidth, blockWidth).CopyTo(colorIndexMap.GetRowSpan(row));
                 }
             }
 
@@ -262,7 +262,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int blockSizeContext,
             int neighborContext,
             Span<short> centroids,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int headerPruneLevel,
@@ -293,7 +293,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int blockSizeContext,
             int neighborContext,
             Span<short> centroids,
-            Buffer2DRegion<byte> colorIndexMap,
+            Av1PlaneRegion<byte> colorIndexMap,
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int headerPruneLevel,
@@ -360,7 +360,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PaletteKMeans.AssignIndices(samples, paletteCentroids, colorIndices);
             for (int row = 0; row < rows; row++)
             {
-                Span<byte> mapRow = colorIndexMap.DangerousGetRowSpan(row)[..blockWidth];
+                Span<byte> mapRow = colorIndexMap.GetRowSpan(row)[..blockWidth];
                 colorIndices.Slice(row * columns, columns).CopyTo(mapRow);
                 mapRow[columns..].Fill(mapRow[columns - 1]);
             }
@@ -368,17 +368,14 @@ internal static partial class Av1IntraSuperblockEncoder
             // Padding repeats the last active edge so transform prediction matches coded-frame edge extension.
             for (int row = rows; row < blockHeight; row++)
             {
-                colorIndexMap.DangerousGetRowSpan(rows - 1)[..blockWidth]
-                    .CopyTo(colorIndexMap.DangerousGetRowSpan(row));
+                colorIndexMap.GetRowSpan(rows - 1)[..blockWidth]
+                    .CopyTo(colorIndexMap.GetRowSpan(row));
             }
 
+            // The intra reference cost of an inter frame joins the total only after the search, so the header gate
+            // and the candidate comparison leave it out. Reference: intra_mode_info_cost_y() in palette_rd_y(), and
+            // the ref_frame_cost that av1_search_palette_mode() adds to rate2.
             int rate = dcModeCost;
-
-            if (!this.picture.Parent.FrameHeader.IsIntra && !this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision)
-            {
-                rate += writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock));
-            }
-
             rate += writer.GetPaletteYModeCost(true, blockSizeContext, neighborContext);
             rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Y);
             rate += Av1SymbolEncoder.GetPaletteYColorCost(colorCache, paletteColors, bitDepth);
@@ -396,8 +393,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
             int sampleCount = blockWidth * blockHeight;
             Span<TSample> candidateReconstruction = modeDecisionWorkspace.GetCandidateReconstruction(0)[..sampleCount];
             Span<int> candidateCoefficients = modeDecisionWorkspace.GetCandidateCoefficients(0)[..sampleCount];
@@ -474,7 +471,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     for (int row = 0; row < blockHeight; row++)
                     {
-                        colorIndexMap.DangerousGetRowSpan(row)[..blockWidth].CopyTo(workspace.RetainedIndices[(row * blockWidth)..]);
+                        colorIndexMap.GetRowSpan(row)[..blockWidth].CopyTo(workspace.RetainedIndices[(row * blockWidth)..]);
                     }
 
                     paletteInfo.PaletteSizes[0] = (byte)paletteSize;

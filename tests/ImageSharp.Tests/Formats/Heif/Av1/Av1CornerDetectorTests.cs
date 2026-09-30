@@ -14,7 +14,7 @@ public class Av1CornerDetectorTests
     /// scalar remainder are all exercised.
     /// </summary>
     private const HwIntrinsics DetectorConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     [Fact]
     public void DetectMatchesTheReferenceDetector()

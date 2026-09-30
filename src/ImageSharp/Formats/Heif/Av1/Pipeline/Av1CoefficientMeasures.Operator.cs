@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
@@ -84,6 +85,39 @@ internal static partial class Av1CoefficientMeasures
         /// <param name="maximum">The running maximum.</param>
         /// <returns>The updated maximum.</returns>
         public static abstract int AccumulateMaximumAbsolute(int value, int maximum);
+
+        /// <summary>
+        /// Adds the level bits of four coefficients to lane totals: the floored base-two logarithm of the magnitude
+        /// plus one, and one more for a nonzero coefficient.
+        /// </summary>
+        /// <param name="values">The quantized coefficients.</param>
+        /// <param name="total">The lane totals.</param>
+        /// <returns>The updated lane totals.</returns>
+        public static abstract Vector128<int> AccumulateLevelBits(Vector128<int> values, Vector128<int> total);
+
+        /// <summary>
+        /// Adds the level bits of eight coefficients to lane totals.
+        /// </summary>
+        /// <param name="values">The quantized coefficients.</param>
+        /// <param name="total">The lane totals.</param>
+        /// <returns>The updated lane totals.</returns>
+        public static abstract Vector256<int> AccumulateLevelBits(Vector256<int> values, Vector256<int> total);
+
+        /// <summary>
+        /// Adds the level bits of sixteen coefficients to lane totals.
+        /// </summary>
+        /// <param name="values">The quantized coefficients.</param>
+        /// <param name="total">The lane totals.</param>
+        /// <returns>The updated lane totals.</returns>
+        public static abstract Vector512<int> AccumulateLevelBits(Vector512<int> values, Vector512<int> total);
+
+        /// <summary>
+        /// Adds the level bits of one coefficient to a total.
+        /// </summary>
+        /// <param name="value">The quantized coefficient.</param>
+        /// <param name="total">The total.</param>
+        /// <returns>The updated total.</returns>
+        public static abstract int AccumulateLevelBits(int value, int total);
 
         /// <summary>
         /// Keeps, in each lane, the largest one-based scan position of a nonzero coefficient over four coefficients.
@@ -262,6 +296,87 @@ internal static partial class Av1CoefficientMeasures
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int AccumulateMaximumAbsolute(int value, int maximum) => Math.Max(Math.Abs(value), maximum);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<int> AccumulateLevelBits(Vector128<int> values, Vector128<int> total)
+        {
+            // A quantized block is mostly zero, and a zero coefficient adds nothing.
+            if (values == Vector128<int>.Zero)
+            {
+                return total;
+            }
+
+            // The vector has no leading-zero count, so the logarithm halves the remaining range in exact steps. The
+            // two widest steps run only when a lane needs them. A nonzero lane's all-ones equality complement
+            // subtracts as one.
+            Vector128<int> level = Vector128.Abs(values) + Vector128<int>.One;
+            Vector128<int> bits = total - ~Vector128.Equals(values, Vector128<int>.Zero);
+            for (int step = 16; step > 0; step >>= 1)
+            {
+                Vector128<int> above = Vector128.GreaterThanOrEqual(level, Vector128.Create(1 << step));
+                if (step < 4 || above != Vector128<int>.Zero)
+                {
+                    bits += above & Vector128.Create(step);
+                    level = Vector128.ConditionalSelect(above, level >>> step, level);
+                }
+            }
+
+            return bits;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<int> AccumulateLevelBits(Vector256<int> values, Vector256<int> total)
+        {
+            if (values == Vector256<int>.Zero)
+            {
+                return total;
+            }
+
+            Vector256<int> level = Vector256.Abs(values) + Vector256<int>.One;
+            Vector256<int> bits = total - ~Vector256.Equals(values, Vector256<int>.Zero);
+            for (int step = 16; step > 0; step >>= 1)
+            {
+                Vector256<int> above = Vector256.GreaterThanOrEqual(level, Vector256.Create(1 << step));
+                if (step < 4 || above != Vector256<int>.Zero)
+                {
+                    bits += above & Vector256.Create(step);
+                    level = Vector256.ConditionalSelect(above, level >>> step, level);
+                }
+            }
+
+            return bits;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> AccumulateLevelBits(Vector512<int> values, Vector512<int> total)
+        {
+            if (values == Vector512<int>.Zero)
+            {
+                return total;
+            }
+
+            Vector512<int> level = Vector512.Abs(values) + Vector512<int>.One;
+            Vector512<int> bits = total - ~Vector512.Equals(values, Vector512<int>.Zero);
+            for (int step = 16; step > 0; step >>= 1)
+            {
+                Vector512<int> above = Vector512.GreaterThanOrEqual(level, Vector512.Create(1 << step));
+                if (step < 4 || above != Vector512<int>.Zero)
+                {
+                    bits += above & Vector512.Create(step);
+                    level = Vector512.ConditionalSelect(above, level >>> step, level);
+                }
+            }
+
+            return bits;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int AccumulateLevelBits(int value, int total)
+            => total + BitOperations.Log2((uint)(Math.Abs(value) + 1)) + (value != 0 ? 1 : 0);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

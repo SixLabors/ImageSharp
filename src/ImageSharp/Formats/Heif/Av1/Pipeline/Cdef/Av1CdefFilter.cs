@@ -48,38 +48,32 @@ internal static partial class Av1CdefFilter
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        if (Vector256.IsHardwareAccelerated)
-        {
-            // AV1 plane dimensions are multiples of four, so the CDEF copy has an even row count. Processing two rows
-            // together follows the reference decoder's AVX2 scheduling while each conversion widens sixteen unsigned samples exactly.
-            for (int row = 0; row < height; row += 2)
-            {
-                int firstSourceRow = sourceOffset + (row * sourceStride);
-                int secondSourceRow = firstSourceRow + sourceStride;
-                int firstDestinationRow = destinationOffset + (row * destinationStride);
-                int secondDestinationRow = firstDestinationRow + destinationStride;
-                int column = 0;
-                nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
-                for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
-                {
-                    Vector128<byte> first = Vector128.LoadUnsafe(ref sourceBase, (nuint)(firstSourceRow + column));
-                    Vector128<byte> second = Vector128.LoadUnsafe(ref sourceBase, (nuint)(secondSourceRow + column));
-                    Vector256_.Widen(first).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(firstDestinationRow + column));
-                    Vector256_.Widen(second).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(secondDestinationRow + column));
-                }
-
-                CopyRemainingSamples(ref sourceBase, firstSourceRow, ref destinationBase, firstDestinationRow, column, width);
-                CopyRemainingSamples(ref sourceBase, secondSourceRow, ref destinationBase, secondDestinationRow, column, width);
-            }
-
-            return;
-        }
-
+        // Each row widens the widest runs first; every width widens the unsigned samples exactly, so the steps
+        // only change how many samples one instruction converts.
         for (int row = 0; row < height; row++)
         {
             int sourceRow = sourceOffset + (row * sourceStride);
             int destinationRow = destinationOffset + (row * destinationStride);
-            CopyRemainingSamples(ref sourceBase, sourceRow, ref destinationBase, destinationRow, 0, width);
+            int column = 0;
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector256<byte>.Count; column += Vector256<byte>.Count)
+                {
+                    Vector256<byte> samples = Vector256.LoadUnsafe(ref sourceBase, (nuint)(sourceRow + column));
+                    Vector512_.Widen(samples).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(destinationRow + column));
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector128<byte>.Count; column += Vector128<byte>.Count)
+                {
+                    Vector128<byte> samples = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRow + column));
+                    Vector256_.Widen(samples).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(destinationRow + column));
+                }
+            }
+
+            CopyRemainingSamples(ref sourceBase, sourceRow, ref destinationBase, destinationRow, column, width);
         }
     }
 
@@ -484,6 +478,28 @@ internal static partial class Av1CdefFilter
         where TOutputOperator : struct, IOutputOperator<TSample>
         where TFilterOperator : struct, IFilterOperator
     {
+        // Widest first. A 512-bit step holds 32 samples, so only 4x4 chroma blocks are too small for it.
+        if (Vector512.IsHardwareAccelerated && blockWidth * blockHeight >= 32)
+        {
+            FilterBlockVector512<TSample, TOutputOperator, TFilterOperator>(
+                ref source,
+                sourceOffset,
+                sourceStride,
+                ref destination,
+                destinationOffset,
+                destinationStride,
+                primaryStrength,
+                secondaryStrength,
+                direction,
+                primaryDamping,
+                secondaryDamping,
+                coefficientShift,
+                blockWidth,
+                blockHeight);
+
+            return;
+        }
+
         if (Vector256.IsHardwareAccelerated)
         {
             FilterBlockWideVector<TSample, TOutputOperator, TFilterOperator>(

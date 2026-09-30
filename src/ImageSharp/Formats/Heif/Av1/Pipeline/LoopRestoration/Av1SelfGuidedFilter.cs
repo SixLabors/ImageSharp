@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
@@ -10,10 +11,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 /// Applies the normative AV1 self-guided restoration filter and projection.
 /// </summary>
 /// <remarks>
-/// The accelerated paths process adjacent output columns in SIMD lanes and use the caller-provided scratch span for
-/// filtered samples, local coefficients, and padded integral images. The 256-bit and 128-bit paths use portable
-/// vector operations, with AVX2 selected locally for the prefix scan and variance-to-blend lookup when available.
-/// The scalar path uses the same fixed-point units and scratch partition.
+/// Every stage walks each row with the widest available register first and finishes with one column at a time. The
+/// window sums come from padded integral images kept in the caller-provided scratch span, beside the local
+/// coefficients and the two filtered planes. Reference: av1_selfguided_restoration_c() with calc_ab(),
+/// final_filter() and av1_apply_selfguided_restoration_c().
 /// </remarks>
 internal static partial class Av1SelfGuidedFilter
 {
@@ -48,9 +49,9 @@ internal static partial class Av1SelfGuidedFilter
     private const int ReciprocalBits = 12;
 
     /// <summary>
-    /// The base-two exponent used to align work-buffer rows to eight 32-bit lanes.
+    /// The base-two exponent used to align work-buffer rows to sixteen 32-bit lanes.
     /// </summary>
-    private const int BufferAlignmentLog2 = 3;
+    private const int BufferAlignmentLog2 = 4;
 
     /// <summary>
     /// The extra columns separating the active integral-image rows.
@@ -61,6 +62,27 @@ internal static partial class Av1SelfGuidedFilter
     /// The complete fixed-point self-guided blend range.
     /// </summary>
     private const int SelfGuidedScale = 1 << SelfGuidedBits;
+
+    /// <summary>
+    /// Names the 3x3 coefficient kernel of a filtered row.
+    /// </summary>
+    private enum FilterKind
+    {
+        /// <summary>
+        /// The radius-one kernel over the complete coefficient grid.
+        /// </summary>
+        RadiusOne,
+
+        /// <summary>
+        /// The radius-two kernel of an even row, over the coefficient rows above and below.
+        /// </summary>
+        RadiusTwoEven,
+
+        /// <summary>
+        /// The radius-two kernel of an odd row, over its own coefficient row.
+        /// </summary>
+        RadiusTwoOdd,
+    }
 
     /// <summary>
     /// Gets the radii selected by each of the sixteen self-guided parameter sets.
@@ -164,92 +186,49 @@ internal static partial class Av1SelfGuidedFilter
         GenerateFilters(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, scratch[(filteredLength * 2)..]);
 
         ReadOnlySpan<int> radii = ParameterRadii.Slice(parameterSetIndex * 2, 2);
-        if (Vector256.IsHardwareAccelerated)
-        {
-            DecodeProjectionCoefficients(radii, projectionCoefficients, out int first, out int second);
-            Project(
-                source,
-                sourceStride,
-                destination,
-                destinationStride,
-                width,
-                height,
-                bitDepth,
-                radii,
-                first,
-                second,
-                filtered0,
-                filtered1,
-                Vector256<int>.Zero);
-
-            return;
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            DecodeProjectionCoefficients(radii, projectionCoefficients, out int first, out int second);
-            Project(
-                source,
-                sourceStride,
-                destination,
-                destinationStride,
-                width,
-                height,
-                bitDepth,
-                radii,
-                first,
-                second,
-                filtered0,
-                filtered1,
-                Vector128<int>.Zero);
-
-            return;
-        }
-
-        int projection0;
-        int projection1;
-        if (radii[0] == 0)
-        {
-            projection0 = 0;
-            projection1 = (1 << ProjectionBits) - projectionCoefficients[1];
-        }
-        else if (radii[1] == 0)
-        {
-            projection0 = projectionCoefficients[0];
-            projection1 = 0;
-        }
-        else
-        {
-            projection0 = projectionCoefficients[0];
-            projection1 = (1 << ProjectionBits) - projection0 - projectionCoefficients[1];
-        }
-
-        int maximumSample = (1 << bitDepth) - 1;
+        DecodeProjectionCoefficients(radii, projectionCoefficients, out int projection0, out int projection1);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
+        ref int filtered0Base = ref MemoryMarshal.GetReference(filtered0);
+        ref int filtered1Base = ref MemoryMarshal.GetReference(filtered1);
+        ProjectionParameters parameters = new(radii[0] > 0 ? projection0 : 0, radii[1] > 0 ? projection1 : 0, (1 << bitDepth) - 1);
         for (int row = 0; row < height; row++)
         {
-            int sourceRowOffset = (row + Border) * sourceStride;
+            int sourceRowOffset = ((row + Border) * sourceStride) + Border;
             int destinationRowOffset = row * destinationStride;
             int filteredRowOffset = row * width;
-            for (int column = 0; column < width; column++)
+            int column = 0;
+            if (Vector512.IsHardwareAccelerated)
             {
-                int filteredOffset = filteredRowOffset + column;
-                int unfiltered = Av1RestorationSampleOperations.Load(source[sourceRowOffset + column + Border]) << RestorationBits;
-                int projected = unfiltered << ProjectionBits;
-                if (radii[0] > 0)
+                for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
                 {
-                    projected += projection0 * (filtered0[filteredOffset] - unfiltered);
+                    Project<TSample, Vector512<int>, Vector512LaneOperator>(
+                        ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
                 }
+            }
 
-                if (radii[1] > 0)
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
                 {
-                    projected += projection1 * (filtered1[filteredOffset] - unfiltered);
+                    Project<TSample, Vector256<int>, Vector256LaneOperator>(
+                        ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
                 }
+            }
 
-                destination[destinationRowOffset + column] =
-                    Av1RestorationSampleOperations.FromInt32<TSample>(Av1Math.Clip3(
-                        0,
-                        maximumSample,
-                        RoundPowerOfTwo(projected, ProjectionBits + RestorationBits)));
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
+                {
+                    Project<TSample, Vector128<int>, Vector128LaneOperator>(
+                        ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                Project<TSample, int, ScalarLaneOperator>(
+                    ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
             }
         }
     }
@@ -266,7 +245,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="parameterSetIndex">The radius and smoothing parameter pair.</param>
     /// <param name="filtered0">The packed radius-two results, written only when that radius is enabled.</param>
     /// <param name="filtered1">The packed radius-one results, written only when that radius is enabled.</param>
-    /// <param name="scratch">The coefficient workspace, excluding the two filtered result planes.</param>
+    /// <param name="scratch">The coefficient and integral-image workspace, excluding the two filtered planes.</param>
     public static void GenerateFilters<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -281,300 +260,530 @@ internal static partial class Av1SelfGuidedFilter
     {
         // Search retains these fixed-point values while it changes the projection coefficients.
         // Decoder output uses the same calculation and applies projection once afterward.
-        if (Vector256.IsHardwareAccelerated)
-        {
-            GenerateFilters256(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, scratch, Vector256<int>.Zero);
-            return;
-        }
+        int bufferLength = GetBufferLength(width, height);
+        int bufferStride = GetBufferStride(width);
+        Span<int> blendFactors = scratch[..bufferLength];
+        Span<int> localMeans = scratch.Slice(bufferLength, bufferLength);
+        Span<int> squareIntegral = scratch.Slice(bufferLength * 2, bufferLength);
+        Span<int> sumIntegral = scratch.Slice(bufferLength * 3, bufferLength);
 
-        if (Vector128.IsHardwareAccelerated)
-        {
-            GenerateFilters128(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, scratch, Vector128<int>.Zero);
-            return;
-        }
-
-        int coefficientLength = GetCoefficientBufferLength(width, height);
-        Span<int> blendFactors = scratch[..coefficientLength];
-        Span<int> localMeans = scratch.Slice(coefficientLength, coefficientLength);
+        BuildIntegralImages(source, sourceStride, width + (Border * 2), height + (Border * 2), bufferStride, squareIntegral, sumIntegral);
 
         int parameterOffset = parameterSetIndex * 2;
         ReadOnlySpan<int> radii = ParameterRadii.Slice(parameterOffset, 2);
         ReadOnlySpan<int> scales = ParameterScales.Slice(parameterOffset, 2);
         if (radii[0] > 0)
         {
-            CalculateIntermediateCoefficients(
-                source,
-                sourceStride,
-                width,
-                height,
-                bitDepth,
-                radii[0],
-                scales[0],
-                skipAlternateRows: true,
-                blendFactors,
-                localMeans);
-
-            CalculateRadiusTwoFilter(source, sourceStride, width, height, blendFactors, localMeans, filtered0);
+            CalculateIntermediateCoefficients(width, height, bitDepth, radii[0], scales[0], true, bufferStride, squareIntegral, sumIntegral, blendFactors, localMeans);
+            CalculateFilter(source, sourceStride, width, height, bufferStride, true, blendFactors, localMeans, filtered0);
         }
 
         if (radii[1] > 0)
         {
-            CalculateIntermediateCoefficients(
-                source,
-                sourceStride,
-                width,
-                height,
-                bitDepth,
-                radii[1],
-                scales[1],
-                skipAlternateRows: false,
-                blendFactors,
-                localMeans);
-
-            CalculateRadiusOneFilter(source, sourceStride, width, height, blendFactors, localMeans, filtered1);
+            CalculateIntermediateCoefficients(width, height, bitDepth, radii[1], scales[1], false, bufferStride, squareIntegral, sumIntegral, blendFactors, localMeans);
+            CalculateFilter(source, sourceStride, width, height, bufferStride, false, blendFactors, localMeans, filtered1);
         }
     }
 
     /// <summary>
-    /// Calculates the local blend factor and mean for the requested filter radius.
+    /// Builds the summed-area tables of the samples and of their squares.
+    /// </summary>
+    /// <remarks>
+    /// Each row is a prefix scan across the batch plus the row above. The carry holds the running row prefix
+    /// between batches and passes from each register width to the next. A table entry can wrap in 32 bits for a
+    /// twelve-bit unit, but every window sum is a difference of four entries and fits, so it stays exact.
+    /// </remarks>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
+    /// <param name="source">The complete bordered source rectangle.</param>
+    /// <param name="sourceStride">The number of samples between source rows.</param>
+    /// <param name="width">The bordered source width.</param>
+    /// <param name="height">The bordered source height.</param>
+    /// <param name="bufferStride">The padded work-buffer row stride.</param>
+    /// <param name="squareIntegral">The destination integral image of squared samples.</param>
+    /// <param name="sumIntegral">The destination integral image of samples.</param>
+    private static void BuildIntegralImages<TSample>(
+        ReadOnlySpan<TSample> source,
+        int sourceStride,
+        int width,
+        int height,
+        int bufferStride,
+        Span<int> squareIntegral,
+        Span<int> sumIntegral)
+        where TSample : unmanaged
+    {
+        squareIntegral[..(width + 1)].Clear();
+        sumIntegral[..(width + 1)].Clear();
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
+        ref int squareBase = ref MemoryMarshal.GetReference(squareIntegral);
+        ref int sumBase = ref MemoryMarshal.GetReference(sumIntegral);
+        for (int row = 0; row < height; row++)
+        {
+            IntegralRow integralRow = new(row * sourceStride, (row * bufferStride) + 1, ((row + 1) * bufferStride) + 1);
+            squareIntegral[integralRow.Current - 1] = 0;
+            sumIntegral[integralRow.Current - 1] = 0;
+            int sumCarry = 0;
+            int squareCarry = 0;
+            int column = 0;
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
+                {
+                    AccumulateIntegral<TSample, Vector512<int>, Vector512LaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
+                {
+                    AccumulateIntegral<TSample, Vector256<int>, Vector256LaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
+                {
+                    AccumulateIntegral<TSample, Vector128<int>, Vector128LaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                AccumulateIntegral<TSample, int, ScalarLaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adds one batch of samples to the current integral-image rows.
     /// </summary>
     /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
-    /// <param name="source">The bordered processing-unit source rectangle.</param>
-    /// <param name="sourceStride">The number of samples between source rows.</param>
+    /// <typeparam name="TLanes">The lane type.</typeparam>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="source">The first sample of the source rectangle.</param>
+    /// <param name="sumIntegral">The first entry of the sample integral image.</param>
+    /// <param name="squareIntegral">The first entry of the squared-sample integral image.</param>
+    /// <param name="row">The offsets of the row.</param>
+    /// <param name="column">The first column of the batch.</param>
+    /// <param name="sumCarry">The running sample prefix of the row.</param>
+    /// <param name="squareCarry">The running squared-sample prefix of the row.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AccumulateIntegral<TSample, TLanes, TOperator>(
+        ref TSample source,
+        ref int sumIntegral,
+        ref int squareIntegral,
+        IntegralRow row,
+        int column,
+        ref int sumCarry,
+        ref int squareCarry)
+        where TSample : unmanaged
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        TLanes samples = TOperator.LoadSamples(ref source, (nuint)(row.Source + column));
+        TLanes squares = TOperator.Multiply(samples, samples);
+        TLanes sumsAbove = TOperator.Load(ref sumIntegral, (nuint)(row.Previous + column));
+        TLanes squaresAbove = TOperator.Load(ref squareIntegral, (nuint)(row.Previous + column));
+        TLanes rowSums = TOperator.Add(TOperator.Add(TOperator.Scan(samples), sumsAbove), TOperator.Create(sumCarry));
+        TLanes rowSquares = TOperator.Add(TOperator.Add(TOperator.Scan(squares), squaresAbove), TOperator.Create(squareCarry));
+        TOperator.Store(rowSums, ref sumIntegral, (nuint)(row.Current + column));
+        TOperator.Store(rowSquares, ref squareIntegral, (nuint)(row.Current + column));
+        sumCarry = TOperator.Last(rowSums) - TOperator.Last(sumsAbove);
+        squareCarry = TOperator.Last(rowSquares) - TOperator.Last(squaresAbove);
+    }
+
+    /// <summary>
+    /// Calculates the local blend factor and mean for the requested filter radius. Reference: calc_ab().
+    /// </summary>
     /// <param name="width">The processing-unit width in samples.</param>
     /// <param name="height">The processing-unit height in samples.</param>
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     /// <param name="radius">The square-window radius.</param>
     /// <param name="scale">The variance scale for the selected parameter set and radius.</param>
     /// <param name="skipAlternateRows">Whether only the rows consumed by the radius-two filter are calculated.</param>
-    /// <param name="blendFactors">The destination buffer for local sample blend factors.</param>
-    /// <param name="localMeans">The destination buffer for scaled local means.</param>
-    private static void CalculateIntermediateCoefficients<TSample>(
-        ReadOnlySpan<TSample> source,
-        int sourceStride,
+    /// <param name="bufferStride">The padded work-buffer row stride.</param>
+    /// <param name="squareIntegral">The integral image of squared samples.</param>
+    /// <param name="sumIntegral">The integral image of samples.</param>
+    /// <param name="blendFactors">The destination local blend factors.</param>
+    /// <param name="localMeans">The destination scaled local means.</param>
+    private static void CalculateIntermediateCoefficients(
         int width,
         int height,
         int bitDepth,
         int radius,
         int scale,
         bool skipAlternateRows,
+        int bufferStride,
+        ReadOnlySpan<int> squareIntegral,
+        ReadOnlySpan<int> sumIntegral,
         Span<int> blendFactors,
         Span<int> localMeans)
-        where TSample : unmanaged
     {
-        int bufferStride = width + 2;
-        int bufferOrigin = bufferStride + 1;
         int windowDiameter = (radius * 2) + 1;
         int windowArea = windowDiameter * windowDiameter;
+        CoefficientParameters parameters = new(bufferStride, radius, bitDepth, windowArea, scale, OneByX[windowArea - 1]);
         int rowStep = skipAlternateRows ? 2 : 1;
-        ReadOnlySpan<int> xByXPlusOne = XByXPlusOne;
-        ReadOnlySpan<ushort> oneByX = OneByX;
+        int bufferOrigin = (Border + 1) * (bufferStride + 1);
+        ref int sumBase = ref MemoryMarshal.GetReference(sumIntegral);
+        ref int squareBase = ref MemoryMarshal.GetReference(squareIntegral);
+        ref int blendBase = ref MemoryMarshal.GetReference(blendFactors);
+        ref int meanBase = ref MemoryMarshal.GetReference(localMeans);
 
+        // The coefficients cover one column and one row beyond each side of the unit, which the 3x3 filter reads.
         for (int row = -1; row < height + 1; row += rowStep)
         {
-            int centerY = row + Border;
-            int centerX = Border - 1;
-            int sum = 0;
-            int squareSum = 0;
-            for (int windowY = centerY - radius; windowY <= centerY + radius; windowY++)
+            int rowOffset = bufferOrigin + (row * bufferStride);
+            int column = -1;
+            int end = width + 1;
+            if (Vector512.IsHardwareAccelerated)
             {
-                int sourceRowOffset = windowY * sourceStride;
-                for (int windowX = centerX - radius; windowX <= centerX + radius; windowX++)
+                for (; column <= end - Vector512<int>.Count; column += Vector512<int>.Count)
                 {
-                    int sample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + windowX]);
-                    sum += sample;
-                    squareSum += sample * sample;
+                    CalculateCoefficients<Vector512<int>, Vector512LaneOperator>(ref sumBase, ref squareBase, ref blendBase, ref meanBase, rowOffset + column, parameters);
                 }
             }
 
-            for (int column = -1; column < width + 1; column++)
+            if (Vector256.IsHardwareAccelerated)
             {
-                if (column > -1)
+                for (; column <= end - Vector256<int>.Count; column += Vector256<int>.Count)
                 {
-                    int departingX = centerX - radius;
-                    int arrivingX = centerX + radius + 1;
-                    for (int windowY = centerY - radius; windowY <= centerY + radius; windowY++)
-                    {
-                        int sourceRowOffset = windowY * sourceStride;
-                        int departingSample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + departingX]);
-                        int arrivingSample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + arrivingX]);
-                        sum += arrivingSample - departingSample;
-                        squareSum += (arrivingSample * arrivingSample) - (departingSample * departingSample);
-                    }
-
-                    centerX++;
+                    CalculateCoefficients<Vector256<int>, Vector256LaneOperator>(ref sumBase, ref squareBase, ref blendBase, ref meanBase, rowOffset + column, parameters);
                 }
+            }
 
-                int normalizedSquareSum = RoundPowerOfTwo(squareSum, 2 * (bitDepth - 8));
-                int normalizedSum = RoundPowerOfTwo(sum, bitDepth - 8);
-                uint squareOfSum = (uint)normalizedSum * (uint)normalizedSum;
-                uint scaledSquareSum = (uint)normalizedSquareSum * (uint)windowArea;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; column <= end - Vector128<int>.Count; column += Vector128<int>.Count)
+                {
+                    CalculateCoefficients<Vector128<int>, Vector128LaneOperator>(ref sumBase, ref squareBase, ref blendBase, ref meanBase, rowOffset + column, parameters);
+                }
+            }
 
-                // High-bit-depth normalization can round a nearly flat window's squared mean
-                // above its mean square. AV1 saturates that rounding artefact to zero variance.
-                uint variance = scaledSquareSum < squareOfSum ? 0 : scaledSquareSum - squareOfSum;
-                uint varianceIndex = RoundPowerOfTwo(variance * (uint)scale, ScaleBits);
-                int coefficientOffset = bufferOrigin + (row * bufferStride) + column;
-                int blendFactor = xByXPlusOne[(int)Math.Min(varianceIndex, 255U)];
-                blendFactors[coefficientOffset] = blendFactor;
-
-                // The zero-variance table entry is deliberately one rather than zero. This keeps
-                // the complementary factor below 256 and the scaled mean inside its proven range.
-                uint meanProduct =
-                    (uint)(SelfGuidedScale - blendFactor) * (uint)sum * oneByX[windowArea - 1];
-
-                localMeans[coefficientOffset] = (int)RoundPowerOfTwo(meanProduct, ReciprocalBits);
+            for (; column < end; column++)
+            {
+                CalculateCoefficients<int, ScalarLaneOperator>(ref sumBase, ref squareBase, ref blendBase, ref meanBase, rowOffset + column, parameters);
             }
         }
     }
 
     /// <summary>
-    /// Produces the radius-two filtered values from alternate coefficient rows.
+    /// Calculates the blend factors and means of one batch of window centers.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
-    /// <param name="source">The bordered processing-unit source rectangle.</param>
-    /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="width">The processing-unit width in samples.</param>
-    /// <param name="height">The processing-unit height in samples.</param>
-    /// <param name="blendFactors">The local sample blend factors.</param>
-    /// <param name="localMeans">The scaled local means.</param>
-    /// <param name="filtered">The destination fixed-point filtered values.</param>
-    private static void CalculateRadiusTwoFilter<TSample>(
-        ReadOnlySpan<TSample> source,
-        int sourceStride,
-        int width,
-        int height,
-        ReadOnlySpan<int> blendFactors,
-        ReadOnlySpan<int> localMeans,
-        Span<int> filtered)
-        where TSample : unmanaged
-    {
-        int bufferStride = width + 2;
-        int bufferOrigin = bufferStride + 1;
-        for (int row = 0; row < height; row++)
-        {
-            int sourceRowOffset = (row + Border) * sourceStride;
-            int filteredRowOffset = row * width;
-            for (int column = 0; column < width; column++)
-            {
-                int coefficientOffset = bufferOrigin + (row * bufferStride) + column;
-                int blendFactor;
-                int localMean;
-                int roundingBits;
-                if ((row & 1) == 0)
-                {
-                    blendFactor =
-                        (6 * (blendFactors[coefficientOffset - bufferStride] + blendFactors[coefficientOffset + bufferStride]))
-                        + (5 * (
-                            blendFactors[coefficientOffset - bufferStride - 1]
-                            + blendFactors[coefficientOffset - bufferStride + 1]
-                            + blendFactors[coefficientOffset + bufferStride - 1]
-                            + blendFactors[coefficientOffset + bufferStride + 1]));
-
-                    localMean =
-                        (6 * (localMeans[coefficientOffset - bufferStride] + localMeans[coefficientOffset + bufferStride]))
-                        + (5 * (
-                            localMeans[coefficientOffset - bufferStride - 1]
-                            + localMeans[coefficientOffset - bufferStride + 1]
-                            + localMeans[coefficientOffset + bufferStride - 1]
-                            + localMeans[coefficientOffset + bufferStride + 1]));
-
-                    roundingBits = SelfGuidedBits + 5 - RestorationBits;
-                }
-                else
-                {
-                    blendFactor =
-                        (6 * blendFactors[coefficientOffset])
-                        + (5 * (blendFactors[coefficientOffset - 1] + blendFactors[coefficientOffset + 1]));
-
-                    localMean =
-                        (6 * localMeans[coefficientOffset])
-                        + (5 * (localMeans[coefficientOffset - 1] + localMeans[coefficientOffset + 1]));
-
-                    roundingBits = SelfGuidedBits + 4 - RestorationBits;
-                }
-
-                int value =
-                    (blendFactor * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column + Border])) + localMean;
-
-                filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Produces the radius-one filtered values from the complete coefficient grid.
-    /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
-    /// <param name="source">The bordered processing-unit source rectangle.</param>
-    /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="width">The processing-unit width in samples.</param>
-    /// <param name="height">The processing-unit height in samples.</param>
-    /// <param name="blendFactors">The local sample blend factors.</param>
-    /// <param name="localMeans">The scaled local means.</param>
-    /// <param name="filtered">The destination fixed-point filtered values.</param>
-    private static void CalculateRadiusOneFilter<TSample>(
-        ReadOnlySpan<TSample> source,
-        int sourceStride,
-        int width,
-        int height,
-        ReadOnlySpan<int> blendFactors,
-        ReadOnlySpan<int> localMeans,
-        Span<int> filtered)
-        where TSample : unmanaged
-    {
-        int bufferStride = width + 2;
-        int bufferOrigin = bufferStride + 1;
-        int roundingBits = SelfGuidedBits + 5 - RestorationBits;
-        for (int row = 0; row < height; row++)
-        {
-            int sourceRowOffset = (row + Border) * sourceStride;
-            int filteredRowOffset = row * width;
-            for (int column = 0; column < width; column++)
-            {
-                int coefficientOffset = bufferOrigin + (row * bufferStride) + column;
-                int blendFactor =
-                    (4 * (
-                        blendFactors[coefficientOffset]
-                        + blendFactors[coefficientOffset - 1]
-                        + blendFactors[coefficientOffset + 1]
-                        + blendFactors[coefficientOffset - bufferStride]
-                        + blendFactors[coefficientOffset + bufferStride]))
-                    + (3 * (
-                        blendFactors[coefficientOffset - bufferStride - 1]
-                        + blendFactors[coefficientOffset - bufferStride + 1]
-                        + blendFactors[coefficientOffset + bufferStride - 1]
-                        + blendFactors[coefficientOffset + bufferStride + 1]));
-
-                int localMean =
-                    (4 * (
-                        localMeans[coefficientOffset]
-                        + localMeans[coefficientOffset - 1]
-                        + localMeans[coefficientOffset + 1]
-                        + localMeans[coefficientOffset - bufferStride]
-                        + localMeans[coefficientOffset + bufferStride]))
-                    + (3 * (
-                        localMeans[coefficientOffset - bufferStride - 1]
-                        + localMeans[coefficientOffset - bufferStride + 1]
-                        + localMeans[coefficientOffset + bufferStride - 1]
-                        + localMeans[coefficientOffset + bufferStride + 1]));
-
-                int value =
-                    (blendFactor * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column + Border])) + localMean;
-
-                filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the number of entries in one bordered intermediate-coefficient buffer.
-    /// </summary>
-    /// <param name="width">The processing-unit width.</param>
-    /// <param name="height">The processing-unit height.</param>
-    /// <returns>The number of required integer entries.</returns>
+    /// <remarks>
+    /// High bit depths round both window sums to the eight-bit scale before the variance. Rounding can put the squared
+    /// mean one step above the mean square; AV1 saturates that artifact to zero. The scaled variance and the mean
+    /// product are unsigned 32-bit values whose legal range can set the sign bit, so they shift logically.
+    /// </remarks>
+    /// <typeparam name="TLanes">The lane type.</typeparam>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="sumIntegral">The first entry of the sample integral image.</param>
+    /// <param name="squareIntegral">The first entry of the squared-sample integral image.</param>
+    /// <param name="blendFactors">The first entry of the blend factors.</param>
+    /// <param name="localMeans">The first entry of the local means.</param>
+    /// <param name="centerOffset">The work-buffer offset of the first window center.</param>
+    /// <param name="parameters">The window and scale parameters.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetCoefficientBufferLength(int width, int height) => (width + 2) * (height + 2);
+    private static void CalculateCoefficients<TLanes, TOperator>(
+        ref int sumIntegral,
+        ref int squareIntegral,
+        ref int blendFactors,
+        ref int localMeans,
+        int centerOffset,
+        CoefficientParameters parameters)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        TLanes sums = BoxSum<TLanes, TOperator>(ref sumIntegral, centerOffset, parameters.Stride, parameters.Radius);
+        TLanes squareSums = BoxSum<TLanes, TOperator>(ref squareIntegral, centerOffset, parameters.Stride, parameters.Radius);
+        TLanes normalizedSums = sums;
+        if (parameters.BitDepth > 8)
+        {
+            int depthShift = parameters.BitDepth - 8;
+            squareSums = TOperator.ShiftRightLogical(TOperator.Add(squareSums, TOperator.Create(1 << ((depthShift * 2) - 1))), depthShift * 2);
+            normalizedSums = TOperator.ShiftRightLogical(TOperator.Add(sums, TOperator.Create(1 << (depthShift - 1))), depthShift);
+        }
+
+        TLanes squareOfSums = TOperator.Multiply(normalizedSums, normalizedSums);
+        TLanes scaledSquareSums = TOperator.Multiply(squareSums, TOperator.Create(parameters.WindowArea));
+        TLanes variance = TOperator.Subtract(TOperator.Max(scaledSquareSums, squareOfSums), squareOfSums);
+        TLanes indices = TOperator.MinUnsigned(
+            TOperator.ShiftRightLogical(
+                TOperator.Add(TOperator.Multiply(variance, TOperator.Create(parameters.Scale)), TOperator.Create(1 << (ScaleBits - 1))),
+                ScaleBits),
+            TOperator.Create(255));
+
+        // The zero-variance table entry is deliberately one rather than zero. This keeps the complementary factor below
+        // 256 and the scaled mean inside its proven range.
+        TLanes factors = TOperator.Gather(ref MemoryMarshal.GetReference(XByXPlusOne), indices);
+        TLanes meanProducts = TOperator.Multiply(
+            TOperator.Multiply(TOperator.Subtract(TOperator.Create(SelfGuidedScale), factors), TOperator.Create(parameters.Reciprocal)),
+            sums);
+
+        TLanes means = TOperator.ShiftRightLogical(TOperator.Add(meanProducts, TOperator.Create(1 << (ReciprocalBits - 1))), ReciprocalBits);
+        TOperator.Store(factors, ref blendFactors, (nuint)centerOffset);
+        TOperator.Store(means, ref localMeans, (nuint)centerOffset);
+    }
+
+    /// <summary>
+    /// Calculates adjacent square-window sums from one integral image.
+    /// </summary>
+    /// <typeparam name="TLanes">The lane type.</typeparam>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="integral">The first entry of the integral image.</param>
+    /// <param name="centerOffset">The integral-image offset corresponding to the first window center.</param>
+    /// <param name="stride">The integral-image row stride.</param>
+    /// <param name="radius">The square-window radius.</param>
+    /// <returns>The window sums.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static TLanes BoxSum<TLanes, TOperator>(ref int integral, int centerOffset, int stride, int radius)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        int upperOffset = centerOffset - ((radius + 1) * stride);
+        int lowerOffset = centerOffset + (radius * stride);
+        TLanes topLeft = TOperator.Load(ref integral, (nuint)(upperOffset - radius - 1));
+        TLanes topRight = TOperator.Load(ref integral, (nuint)(upperOffset + radius));
+        TLanes bottomLeft = TOperator.Load(ref integral, (nuint)(lowerOffset - radius - 1));
+        TLanes bottomRight = TOperator.Load(ref integral, (nuint)(lowerOffset + radius));
+        return TOperator.Subtract(TOperator.Subtract(bottomRight, bottomLeft), TOperator.Subtract(topRight, topLeft));
+    }
+
+    /// <summary>
+    /// Produces the filtered values of one radius from its coefficient grid. Reference: final_filter() and the fast
+    /// radius-two variant of av1_selfguided_restoration_c().
+    /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
+    /// <param name="source">The bordered processing-unit source rectangle.</param>
+    /// <param name="sourceStride">The number of samples between source rows.</param>
+    /// <param name="width">The processing-unit width in samples.</param>
+    /// <param name="height">The processing-unit height in samples.</param>
+    /// <param name="bufferStride">The padded coefficient-buffer row stride.</param>
+    /// <param name="radiusTwo">Whether the coefficients belong to the radius-two filter, which fills alternate rows.</param>
+    /// <param name="blendFactors">The local sample blend factors.</param>
+    /// <param name="localMeans">The scaled local means.</param>
+    /// <param name="filtered">The destination fixed-point filtered values.</param>
+    private static void CalculateFilter<TSample>(
+        ReadOnlySpan<TSample> source,
+        int sourceStride,
+        int width,
+        int height,
+        int bufferStride,
+        bool radiusTwo,
+        ReadOnlySpan<int> blendFactors,
+        ReadOnlySpan<int> localMeans,
+        Span<int> filtered)
+        where TSample : unmanaged
+    {
+        int bufferOrigin = (Border + 1) * (bufferStride + 1);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
+        ref int blendBase = ref MemoryMarshal.GetReference(blendFactors);
+        ref int meanBase = ref MemoryMarshal.GetReference(localMeans);
+        ref int filteredBase = ref MemoryMarshal.GetReference(filtered);
+        for (int row = 0; row < height; row++)
+        {
+            // The radius-one filter and the even radius-two rows weigh by 32 in all; the odd radius-two rows by 16.
+            FilterKind kind = !radiusTwo ? FilterKind.RadiusOne : (row & 1) == 0 ? FilterKind.RadiusTwoEven : FilterKind.RadiusTwoOdd;
+            FilterRow filterRow = new(
+                ((row + Border) * sourceStride) + Border,
+                bufferOrigin + (row * bufferStride),
+                row * width,
+                bufferStride,
+                SelfGuidedBits + (kind == FilterKind.RadiusTwoOdd ? 4 : 5) - RestorationBits,
+                kind);
+
+            int column = 0;
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
+                {
+                    Filter<TSample, Vector512<int>, Vector512LaneOperator>(ref sourceBase, ref blendBase, ref meanBase, ref filteredBase, filterRow, column);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
+                {
+                    Filter<TSample, Vector256<int>, Vector256LaneOperator>(ref sourceBase, ref blendBase, ref meanBase, ref filteredBase, filterRow, column);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
+                {
+                    Filter<TSample, Vector128<int>, Vector128LaneOperator>(ref sourceBase, ref blendBase, ref meanBase, ref filteredBase, filterRow, column);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                Filter<TSample, int, ScalarLaneOperator>(ref sourceBase, ref blendBase, ref meanBase, ref filteredBase, filterRow, column);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Filters one batch of samples with the weighted neighborhoods of their coefficients.
+    /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
+    /// <typeparam name="TLanes">The lane type.</typeparam>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="source">The first sample of the source rectangle.</param>
+    /// <param name="blendFactors">The first entry of the blend factors.</param>
+    /// <param name="localMeans">The first entry of the local means.</param>
+    /// <param name="filtered">The first entry of the filtered plane.</param>
+    /// <param name="row">The offsets and kernel of the row.</param>
+    /// <param name="column">The first column of the batch.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Filter<TSample, TLanes, TOperator>(
+        ref TSample source,
+        ref int blendFactors,
+        ref int localMeans,
+        ref int filtered,
+        FilterRow row,
+        int column)
+        where TSample : unmanaged
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        int offset = row.Coefficients + column;
+        TLanes factors = CrossSum<TLanes, TOperator>(ref blendFactors, offset, row.Stride, row.Kind);
+        TLanes means = CrossSum<TLanes, TOperator>(ref localMeans, offset, row.Stride, row.Kind);
+        TLanes samples = TOperator.LoadSamples(ref source, (nuint)(row.Source + column));
+        TLanes value = TOperator.Add(TOperator.Add(TOperator.Multiply(factors, samples), means), TOperator.Create(1 << (row.RoundingBits - 1)));
+        TOperator.Store(TOperator.ShiftRightArithmetic(value, row.RoundingBits), ref filtered, (nuint)(row.Filtered + column));
+    }
+
+    /// <summary>
+    /// Weighs the 3x3 coefficient neighborhoods of adjacent centers.
+    /// </summary>
+    /// <remarks>
+    /// The radius-one kernel weighs the cross by four and the corners by three. The radius-two kernel reads only the
+    /// coefficient rows it computed: the rows above and below for an even row, with six for the centers and five for
+    /// the corners; its own row for an odd row, with six for the center and five for the sides.
+    /// </remarks>
+    /// <typeparam name="TLanes">The lane type.</typeparam>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="buffer">The first entry of the coefficient buffer.</param>
+    /// <param name="offset">The first center coefficient.</param>
+    /// <param name="stride">The coefficient-buffer row stride.</param>
+    /// <param name="kind">The kernel of the row.</param>
+    /// <returns>The weighted sums.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static TLanes CrossSum<TLanes, TOperator>(ref int buffer, int offset, int stride, FilterKind kind)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        if (kind == FilterKind.RadiusTwoOdd)
+        {
+            TLanes center = TOperator.Load(ref buffer, (nuint)offset);
+            TLanes combined = TOperator.Add(TOperator.Add(TOperator.Load(ref buffer, (nuint)(offset - 1)), center), TOperator.Load(ref buffer, (nuint)(offset + 1)));
+            return TOperator.Add(TOperator.Add(TOperator.ShiftLeft(combined, 2), combined), center);
+        }
+
+        TLanes topLeft = TOperator.Load(ref buffer, (nuint)(offset - stride - 1));
+        TLanes top = TOperator.Load(ref buffer, (nuint)(offset - stride));
+        TLanes topRight = TOperator.Load(ref buffer, (nuint)(offset - stride + 1));
+        TLanes bottomLeft = TOperator.Load(ref buffer, (nuint)(offset + stride - 1));
+        TLanes bottom = TOperator.Load(ref buffer, (nuint)(offset + stride));
+        TLanes bottomRight = TOperator.Load(ref buffer, (nuint)(offset + stride + 1));
+        TLanes corners = TOperator.Add(TOperator.Add(topLeft, topRight), TOperator.Add(bottomLeft, bottomRight));
+        if (kind == FilterKind.RadiusTwoEven)
+        {
+            TLanes centers = TOperator.Add(top, bottom);
+            TLanes combinedRows = TOperator.Add(corners, centers);
+            return TOperator.Add(TOperator.Add(TOperator.ShiftLeft(combinedRows, 2), combinedRows), centers);
+        }
+
+        TLanes middle = TOperator.Add(
+            TOperator.Add(TOperator.Load(ref buffer, (nuint)(offset - 1)), TOperator.Load(ref buffer, (nuint)offset)),
+            TOperator.Load(ref buffer, (nuint)(offset + 1)));
+
+        TLanes remainder = TOperator.Add(TOperator.Add(top, bottom), middle);
+        return TOperator.Subtract(TOperator.ShiftLeft(TOperator.Add(corners, remainder), 2), corners);
+    }
+
+    /// <summary>
+    /// Projects one batch of samples onto the two restored signals and stores the clipped result.
+    /// Reference: av1_apply_selfguided_restoration_c().
+    /// </summary>
+    /// <remarks>
+    /// Filtered signals use Q4 precision. Projection applies the signaled Q7 weights to their difference from the
+    /// unfiltered Q4 sample, then rounds by the combined eleven bits once before clipping. A disabled radius has a zero
+    /// weight, which adds nothing.
+    /// </remarks>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
+    /// <typeparam name="TLanes">The lane type.</typeparam>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="source">The first sample of the source rectangle.</param>
+    /// <param name="sourceOffset">The source index of the first sample.</param>
+    /// <param name="destination">The first sample of the destination.</param>
+    /// <param name="destinationOffset">The destination index of the first sample.</param>
+    /// <param name="filtered0">The first entry of the radius-two filtered plane.</param>
+    /// <param name="filtered1">The first entry of the radius-one filtered plane.</param>
+    /// <param name="filteredOffset">The filtered-plane index of the first sample.</param>
+    /// <param name="parameters">The projection weights and sample range.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Project<TSample, TLanes, TOperator>(
+        ref TSample source,
+        int sourceOffset,
+        ref TSample destination,
+        int destinationOffset,
+        ref int filtered0,
+        ref int filtered1,
+        int filteredOffset,
+        ProjectionParameters parameters)
+        where TSample : unmanaged
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        const int projectionShift = ProjectionBits + RestorationBits;
+        TLanes unfiltered = TOperator.ShiftLeft(TOperator.LoadSamples(ref source, (nuint)sourceOffset), RestorationBits);
+        TLanes projected = TOperator.ShiftLeft(unfiltered, ProjectionBits);
+        if (parameters.Projection0 != 0)
+        {
+            TLanes restored = TOperator.Load(ref filtered0, (nuint)filteredOffset);
+            projected = TOperator.Add(projected, TOperator.Multiply(TOperator.Create(parameters.Projection0), TOperator.Subtract(restored, unfiltered)));
+        }
+
+        if (parameters.Projection1 != 0)
+        {
+            TLanes restored = TOperator.Load(ref filtered1, (nuint)filteredOffset);
+            projected = TOperator.Add(projected, TOperator.Multiply(TOperator.Create(parameters.Projection1), TOperator.Subtract(restored, unfiltered)));
+        }
+
+        TLanes result = TOperator.ShiftRightArithmetic(TOperator.Add(projected, TOperator.Create(1 << (projectionShift - 1))), projectionShift);
+        result = TOperator.Min(TOperator.Max(result, TOperator.Create(0)), TOperator.Create(parameters.MaximumSample));
+        TOperator.StoreSamples(result, ref destination, (nuint)destinationOffset);
+    }
+
+    /// <summary>
+    /// Decodes the transmitted projection coefficients for the active radius pair. Reference: av1_decode_xq().
+    /// </summary>
+    /// <param name="radii">The two selected filter radii.</param>
+    /// <param name="transmitted">The two transmitted projection coefficients.</param>
+    /// <param name="projection0">The first decoded projection coefficient.</param>
+    /// <param name="projection1">The second decoded projection coefficient.</param>
+    private static void DecodeProjectionCoefficients(ReadOnlySpan<int> radii, ReadOnlySpan<int> transmitted, out int projection0, out int projection1)
+    {
+        if (radii[0] == 0)
+        {
+            projection0 = 0;
+            projection1 = (1 << ProjectionBits) - transmitted[1];
+        }
+        else if (radii[1] == 0)
+        {
+            projection0 = transmitted[0];
+            projection1 = 0;
+        }
+        else
+        {
+            projection0 = transmitted[0];
+            projection1 = (1 << ProjectionBits) - projection0 - transmitted[1];
+        }
+    }
 
     /// <summary>
     /// Gets the padded row stride shared by coefficient and integral-image buffers.
@@ -583,8 +792,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <returns>The aligned number of integers reserved for each work-buffer row.</returns>
     private static int GetBufferStride(int width)
     {
-        // The widest implemented arithmetic batch contains eight integers. Include border samples
-        // and row separation before aligning; both the coefficient and integral views use this stride.
+        // Include the border samples and the row separation before aligning to the widest batch; the coefficient and
+        // integral views share this stride.
         return Av1Math.AlignPowerOf2(width + (Border * 2) + BufferPadding, BufferAlignmentLog2);
     }
 
@@ -598,22 +807,180 @@ internal static partial class Av1SelfGuidedFilter
         => GetBufferStride(width) * (height + (Border * 2) + 1);
 
     /// <summary>
-    /// Rounds a signed fixed-point value to the requested lower precision.
+    /// Holds the offsets of one integral-image row.
     /// </summary>
-    /// <param name="value">The signed fixed-point value.</param>
-    /// <param name="bitCount">The number of low bits to discard.</param>
-    /// <returns>The rounded signed value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int RoundPowerOfTwo(int value, int bitCount)
-        => bitCount == 0 ? value : (value + (1 << (bitCount - 1))) >> bitCount;
+    private readonly struct IntegralRow
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IntegralRow"/> struct.
+        /// </summary>
+        /// <param name="source">The source index of the row's first sample.</param>
+        /// <param name="previous">The integral-image index of the row above, at the entry after its zero column.</param>
+        /// <param name="current">The integral-image index of the row, at the entry after its zero column.</param>
+        public IntegralRow(int source, int previous, int current)
+        {
+            this.Source = source;
+            this.Previous = previous;
+            this.Current = current;
+        }
+
+        /// <summary>
+        /// Gets the source index of the row's first sample.
+        /// </summary>
+        public int Source { get; }
+
+        /// <summary>
+        /// Gets the integral-image index of the row above, at the entry after its zero column.
+        /// </summary>
+        public int Previous { get; }
+
+        /// <summary>
+        /// Gets the integral-image index of the row, at the entry after its zero column.
+        /// </summary>
+        public int Current { get; }
+    }
 
     /// <summary>
-    /// Rounds an unsigned fixed-point value to the requested lower precision.
+    /// Holds the window and scale parameters of one coefficient pass.
     /// </summary>
-    /// <param name="value">The unsigned fixed-point value.</param>
-    /// <param name="bitCount">The number of low bits to discard.</param>
-    /// <returns>The rounded unsigned value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint RoundPowerOfTwo(uint value, int bitCount)
-        => bitCount == 0 ? value : (value + (1U << (bitCount - 1))) >> bitCount;
+    private readonly struct CoefficientParameters
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CoefficientParameters"/> struct.
+        /// </summary>
+        /// <param name="stride">The work-buffer row stride.</param>
+        /// <param name="radius">The square-window radius.</param>
+        /// <param name="bitDepth">The encoded sample bit depth.</param>
+        /// <param name="windowArea">The square-window area.</param>
+        /// <param name="scale">The variance scale.</param>
+        /// <param name="reciprocal">The fixed-point reciprocal of the window area.</param>
+        public CoefficientParameters(int stride, int radius, int bitDepth, int windowArea, int scale, int reciprocal)
+        {
+            this.Stride = stride;
+            this.Radius = radius;
+            this.BitDepth = bitDepth;
+            this.WindowArea = windowArea;
+            this.Scale = scale;
+            this.Reciprocal = reciprocal;
+        }
+
+        /// <summary>
+        /// Gets the work-buffer row stride.
+        /// </summary>
+        public int Stride { get; }
+
+        /// <summary>
+        /// Gets the square-window radius.
+        /// </summary>
+        public int Radius { get; }
+
+        /// <summary>
+        /// Gets the encoded sample bit depth.
+        /// </summary>
+        public int BitDepth { get; }
+
+        /// <summary>
+        /// Gets the square-window area.
+        /// </summary>
+        public int WindowArea { get; }
+
+        /// <summary>
+        /// Gets the variance scale.
+        /// </summary>
+        public int Scale { get; }
+
+        /// <summary>
+        /// Gets the fixed-point reciprocal of the window area.
+        /// </summary>
+        public int Reciprocal { get; }
+    }
+
+    /// <summary>
+    /// Holds the offsets and kernel of one filtered row.
+    /// </summary>
+    private readonly struct FilterRow
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FilterRow"/> struct.
+        /// </summary>
+        /// <param name="source">The source index of the row's first unit sample.</param>
+        /// <param name="coefficients">The coefficient index of the row's first center.</param>
+        /// <param name="filtered">The filtered-plane index of the row's first value.</param>
+        /// <param name="stride">The coefficient-buffer row stride.</param>
+        /// <param name="roundingBits">The rounding shift of the row's kernel.</param>
+        /// <param name="kind">The kernel of the row.</param>
+        public FilterRow(int source, int coefficients, int filtered, int stride, int roundingBits, FilterKind kind)
+        {
+            this.Source = source;
+            this.Coefficients = coefficients;
+            this.Filtered = filtered;
+            this.Stride = stride;
+            this.RoundingBits = roundingBits;
+            this.Kind = kind;
+        }
+
+        /// <summary>
+        /// Gets the source index of the row's first unit sample.
+        /// </summary>
+        public int Source { get; }
+
+        /// <summary>
+        /// Gets the coefficient index of the row's first center.
+        /// </summary>
+        public int Coefficients { get; }
+
+        /// <summary>
+        /// Gets the filtered-plane index of the row's first value.
+        /// </summary>
+        public int Filtered { get; }
+
+        /// <summary>
+        /// Gets the coefficient-buffer row stride.
+        /// </summary>
+        public int Stride { get; }
+
+        /// <summary>
+        /// Gets the rounding shift of the row's kernel.
+        /// </summary>
+        public int RoundingBits { get; }
+
+        /// <summary>
+        /// Gets the kernel of the row.
+        /// </summary>
+        public FilterKind Kind { get; }
+    }
+
+    /// <summary>
+    /// Holds the decoded projection weights and the sample range.
+    /// </summary>
+    private readonly struct ProjectionParameters
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProjectionParameters"/> struct.
+        /// </summary>
+        /// <param name="projection0">The radius-two weight, or zero when that radius is disabled.</param>
+        /// <param name="projection1">The radius-one weight, or zero when that radius is disabled.</param>
+        /// <param name="maximumSample">The largest sample value.</param>
+        public ProjectionParameters(int projection0, int projection1, int maximumSample)
+        {
+            this.Projection0 = projection0;
+            this.Projection1 = projection1;
+            this.MaximumSample = maximumSample;
+        }
+
+        /// <summary>
+        /// Gets the radius-two weight, or zero when that radius is disabled.
+        /// </summary>
+        public int Projection0 { get; }
+
+        /// <summary>
+        /// Gets the radius-one weight, or zero when that radius is disabled.
+        /// </summary>
+        public int Projection1 { get; }
+
+        /// <summary>
+        /// Gets the largest sample value.
+        /// </summary>
+        public int MaximumSample { get; }
+    }
 }

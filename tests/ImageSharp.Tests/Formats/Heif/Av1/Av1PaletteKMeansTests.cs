@@ -16,7 +16,7 @@ public class Av1PaletteKMeansTests
     /// The hardware configurations covering every descending SIMD width and the scalar fallback.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies nearest-color indices, squared distortion, tie order, and destination bounds.

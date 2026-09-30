@@ -23,17 +23,17 @@ internal readonly struct Av1PlanarSampleBuffer<TSample> : IHeifPlanarSampleBuffe
     /// <summary>
     /// The visible luma plane in byte-backed storage.
     /// </summary>
-    private readonly Buffer2DRegion<byte> luma;
+    private readonly Av1PlaneRegion<byte> luma;
 
     /// <summary>
     /// The visible blue-difference plane in byte-backed storage.
     /// </summary>
-    private readonly Buffer2DRegion<byte> chromaBlue;
+    private readonly Av1PlaneRegion<byte> chromaBlue;
 
     /// <summary>
     /// The visible red-difference plane in byte-backed storage.
     /// </summary>
-    private readonly Buffer2DRegion<byte> chromaRed;
+    private readonly Av1PlaneRegion<byte> chromaRed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1PlanarSampleBuffer{TSample}"/> struct.
@@ -101,7 +101,7 @@ internal readonly struct Av1PlanarSampleBuffer<TSample> : IHeifPlanarSampleBuffe
     {
         if (typeof(TSample) == typeof(byte))
         {
-            return MemoryMarshal.Cast<byte, TSample>(this.luma.DangerousGetRowSpan(row));
+            return MemoryMarshal.Cast<byte, TSample>(this.luma.GetRowSpan(row));
         }
 
         return MemoryMarshal.Cast<ushort, TSample>(this.frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, row, 0, 0));
@@ -112,7 +112,7 @@ internal readonly struct Av1PlanarSampleBuffer<TSample> : IHeifPlanarSampleBuffe
     {
         if (typeof(TSample) == typeof(byte))
         {
-            return MemoryMarshal.Cast<byte, TSample>(this.chromaBlue.DangerousGetRowSpan(row));
+            return MemoryMarshal.Cast<byte, TSample>(this.chromaBlue.GetRowSpan(row));
         }
 
         return MemoryMarshal.Cast<ushort, TSample>(
@@ -124,7 +124,7 @@ internal readonly struct Av1PlanarSampleBuffer<TSample> : IHeifPlanarSampleBuffe
     {
         if (typeof(TSample) == typeof(byte))
         {
-            return MemoryMarshal.Cast<byte, TSample>(this.chromaRed.DangerousGetRowSpan(row));
+            return MemoryMarshal.Cast<byte, TSample>(this.chromaRed.GetRowSpan(row));
         }
 
         return MemoryMarshal.Cast<ushort, TSample>(

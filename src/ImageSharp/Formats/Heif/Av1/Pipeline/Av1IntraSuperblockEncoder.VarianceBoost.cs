@@ -29,7 +29,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<uint> variances = stackalloc uint[Av1VarianceBoost.SubblockCount];
             Span<TSample> zeros = stackalloc TSample[Av1VarianceBoost.SubblockSize];
             zeros.Clear();
-            Buffer2DRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
             int shift = this.bitDepth.GetBitCount() - 8;
             int index = 0;
             for (int row = 0; row < Av1VarianceBoost.SuperblockSize; row += Av1VarianceBoost.SubblockSize)

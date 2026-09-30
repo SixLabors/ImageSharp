@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 
@@ -26,8 +29,8 @@ internal static partial class Av1LoopRestorationEncoder
     /// <param name="scratch">The shared processing-block workspace.</param>
     /// <returns>The selected self-guided parameters.</returns>
     private static Av1LoopRestorationUnit SearchSelfGuided<TSample>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> reconstruction,
         int bitDepth,
         int processingWidth,
         int processingHeight,
@@ -120,8 +123,8 @@ internal static partial class Av1LoopRestorationEncoder
     /// </summary>
     /// <typeparam name="TSample">The physical component sample type.</typeparam>
     private static void EvaluateParameterSet<TSample>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> reconstruction,
         int bitDepth,
         int processingWidth,
         int processingHeight,
@@ -200,8 +203,8 @@ internal static partial class Av1LoopRestorationEncoder
     /// <param name="bestError">The lowest error found so far.</param>
     /// <param name="best">The parameters associated with that error.</param>
     private static void EvaluateSelfGuided<TSample, TProjection>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> reconstruction,
         int bitDepth,
         int processingWidth,
         int processingHeight,
@@ -215,12 +218,8 @@ internal static partial class Av1LoopRestorationEncoder
         where TProjection : struct, IProjectionOperator
     {
         ReadOnlySpan<int> radii = Av1SelfGuidedFilter.ParameterRadii.Slice(parameterSet * 2, 2);
-        ReadOnlySpan<TSample> storage = reconstruction.Buffer.DangerousGetSingleSpan();
-        long h00 = 0;
-        long h01 = 0;
-        long h11 = 0;
-        long c0 = 0;
-        long c1 = 0;
+        ReadOnlySpan<TSample> storage = reconstruction.Samples;
+        ProjectionMoments moments = default;
         int offset = 0;
         for (int y = 0; y < source.Height; y += processingHeight)
         {
@@ -240,20 +239,12 @@ internal static partial class Av1LoopRestorationEncoder
                 // complete unit has been accumulated, so block boundaries introduce no rounding.
                 for (int row = 0; row < height; row++)
                 {
-                    ReadOnlySpan<TSample> original = source.DangerousGetRowSpan(y + row).Slice(x, width);
-                    ReadOnlySpan<TSample> reconstructed = reconstruction.DangerousGetRowSpan(y + row).Slice(x, width);
-                    for (int column = 0; column < width; column++)
-                    {
-                        int center = Av1RestorationSampleOperations.Load(reconstructed[column]) << 4;
-                        int target = (Av1RestorationSampleOperations.Load(original[column]) << 4) - center;
-                        int a = !TProjection.UsesRadiusTwo ? 0 : first[(row * width) + column] - center;
-                        int b = !TProjection.UsesRadiusOne ? 0 : second[(row * width) + column] - center;
-                        h00 += (long)a * a;
-                        h01 += (long)a * b;
-                        h11 += (long)b * b;
-                        c0 += (long)a * target;
-                        c1 += (long)b * target;
-                    }
+                    AccumulateProjectionMoments<TSample, TProjection, ProjectionStatisticsOperator>(
+                        source.GetRowSpan(y + row).Slice(x, width),
+                        reconstruction.GetRowSpan(y + row).Slice(x, width),
+                        first.Slice(row * width, width),
+                        second.Slice(row * width, width),
+                        ref moments);
                 }
 
                 offset += length;
@@ -261,11 +252,11 @@ internal static partial class Av1LoopRestorationEncoder
         }
 
         int area = source.Width * source.Height;
-        h00 /= area;
-        h01 /= area;
-        h11 /= area;
-        c0 /= area;
-        c1 /= area;
+        long h00 = moments.Sum(0) / area;
+        long h01 = moments.Sum(1) / area;
+        long h11 = moments.Sum(2) / area;
+        long c0 = moments.Sum(3) / area;
+        long c1 = moments.Sum(4) / area;
         int projection0 = 0;
         int projection1 = 0;
         if (!TProjection.UsesRadiusTwo)
@@ -388,8 +379,8 @@ internal static partial class Av1LoopRestorationEncoder
     /// <param name="filtered1">The radius-one results.</param>
     /// <returns>The sum of squared component errors.</returns>
     private static long GetProjectionError<TSample, TProjection>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> reconstruction,
         int processingWidth,
         int processingHeight,
         Av1LoopRestorationUnit candidate,
@@ -400,7 +391,8 @@ internal static partial class Av1LoopRestorationEncoder
     {
         int firstWeight = !TProjection.UsesRadiusTwo ? 0 : candidate.SgrProjectionCoefficients[0];
         int secondWeight = !TProjection.UsesRadiusOne ? 0 : 128 - firstWeight - candidate.SgrProjectionCoefficients[1];
-        long error = 0;
+        ProjectionWeights weights = new(firstWeight, secondWeight);
+        LaneTotals totals = default;
         int offset = 0;
         for (int y = 0; y < source.Height; y += processingHeight)
         {
@@ -408,32 +400,180 @@ internal static partial class Av1LoopRestorationEncoder
             for (int x = 0; x < source.Width; x += processingWidth)
             {
                 int width = Math.Min(processingWidth, source.Width - x);
-                for (int row = 0; row < height; row++)
+                for (int row = 0; row < height; row++, offset += width)
                 {
-                    ReadOnlySpan<TSample> original = source.DangerousGetRowSpan(y + row).Slice(x, width);
-                    ReadOnlySpan<TSample> reconstructed = reconstruction.DangerousGetRowSpan(y + row).Slice(x, width);
-                    for (int column = 0; column < width; column++, offset++)
-                    {
-                        int center = Av1RestorationSampleOperations.Load(reconstructed[column]);
-                        int difference = 1024;
-                        if (TProjection.UsesRadiusTwo)
-                        {
-                            difference += firstWeight * (filtered0[offset] - (center << 4));
-                        }
-
-                        if (TProjection.UsesRadiusOne)
-                        {
-                            difference += secondWeight * (filtered1[offset] - (center << 4));
-                        }
-
-                        int delta = (difference >> 11) + center - Av1RestorationSampleOperations.Load(original[column]);
-                        error += (long)delta * delta;
-                    }
+                    AccumulateProjectionError<TSample, TProjection, ProjectionStatisticsOperator>(
+                        source.GetRowSpan(y + row).Slice(x, width),
+                        reconstruction.GetRowSpan(y + row).Slice(x, width),
+                        filtered0.Slice(offset, width),
+                        filtered1.Slice(offset, width),
+                        weights,
+                        ref totals);
                 }
             }
         }
 
-        return error;
+        return totals.Sum();
+    }
+
+    /// <summary>
+    /// Adds the projection moments of one row, walking the widest register first.
+    /// </summary>
+    /// <typeparam name="TSample">The physical component sample type.</typeparam>
+    /// <typeparam name="TProjection">The active self-guided radius combination.</typeparam>
+    /// <typeparam name="TOperator">The statistics arithmetic.</typeparam>
+    /// <param name="original">The original samples.</param>
+    /// <param name="reconstructed">The reconstructed samples.</param>
+    /// <param name="first">The radius-two filtered values.</param>
+    /// <param name="second">The radius-one filtered values.</param>
+    /// <param name="moments">The lane totals of every register width.</param>
+    private static void AccumulateProjectionMoments<TSample, TProjection, TOperator>(
+        ReadOnlySpan<TSample> original,
+        ReadOnlySpan<TSample> reconstructed,
+        ReadOnlySpan<int> first,
+        ReadOnlySpan<int> second,
+        ref ProjectionMoments moments)
+        where TSample : unmanaged
+        where TProjection : struct, IProjectionOperator
+        where TOperator : struct, IProjectionStatisticsOperator
+    {
+        ref TSample originalBase = ref MemoryMarshal.GetReference(original);
+        ref TSample reconstructedBase = ref MemoryMarshal.GetReference(reconstructed);
+        ref int firstBase = ref MemoryMarshal.GetReference(first);
+        ref int secondBase = ref MemoryMarshal.GetReference(second);
+        int width = original.Length;
+        int column = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
+            {
+                TOperator.AccumulateMoments<TSample, TProjection>(
+                    ref Unsafe.Add(ref originalBase, column),
+                    ref Unsafe.Add(ref reconstructedBase, column),
+                    ref Unsafe.Add(ref firstBase, column),
+                    ref Unsafe.Add(ref secondBase, column),
+                    ref moments.Lanes512);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
+            {
+                TOperator.AccumulateMoments<TSample, TProjection>(
+                    ref Unsafe.Add(ref originalBase, column),
+                    ref Unsafe.Add(ref reconstructedBase, column),
+                    ref Unsafe.Add(ref firstBase, column),
+                    ref Unsafe.Add(ref secondBase, column),
+                    ref moments.Lanes256);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
+            {
+                TOperator.AccumulateMoments<TSample, TProjection>(
+                    ref Unsafe.Add(ref originalBase, column),
+                    ref Unsafe.Add(ref reconstructedBase, column),
+                    ref Unsafe.Add(ref firstBase, column),
+                    ref Unsafe.Add(ref secondBase, column),
+                    ref moments.Lanes128);
+            }
+        }
+
+        for (; column < width; column++)
+        {
+            TOperator.AccumulateMoments<TSample, TProjection>(
+                ref Unsafe.Add(ref originalBase, column),
+                ref Unsafe.Add(ref reconstructedBase, column),
+                ref Unsafe.Add(ref firstBase, column),
+                ref Unsafe.Add(ref secondBase, column),
+                ref moments.Scalar);
+        }
+    }
+
+    /// <summary>
+    /// Adds the squared projection errors of one row, walking the widest register first.
+    /// </summary>
+    /// <typeparam name="TSample">The physical component sample type.</typeparam>
+    /// <typeparam name="TProjection">The active self-guided radius combination.</typeparam>
+    /// <typeparam name="TOperator">The statistics arithmetic.</typeparam>
+    /// <param name="original">The original samples.</param>
+    /// <param name="reconstructed">The reconstructed samples.</param>
+    /// <param name="first">The radius-two filtered values.</param>
+    /// <param name="second">The radius-one filtered values.</param>
+    /// <param name="weights">The decoded projection weights.</param>
+    /// <param name="totals">The lane totals of every register width.</param>
+    private static void AccumulateProjectionError<TSample, TProjection, TOperator>(
+        ReadOnlySpan<TSample> original,
+        ReadOnlySpan<TSample> reconstructed,
+        ReadOnlySpan<int> first,
+        ReadOnlySpan<int> second,
+        ProjectionWeights weights,
+        ref LaneTotals totals)
+        where TSample : unmanaged
+        where TProjection : struct, IProjectionOperator
+        where TOperator : struct, IProjectionStatisticsOperator
+    {
+        ref TSample originalBase = ref MemoryMarshal.GetReference(original);
+        ref TSample reconstructedBase = ref MemoryMarshal.GetReference(reconstructed);
+        ref int firstBase = ref MemoryMarshal.GetReference(first);
+        ref int secondBase = ref MemoryMarshal.GetReference(second);
+        int width = original.Length;
+        int column = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
+            {
+                totals.Lanes512 = TOperator.AccumulateError<TSample, TProjection>(
+                    ref Unsafe.Add(ref originalBase, column),
+                    ref Unsafe.Add(ref reconstructedBase, column),
+                    ref Unsafe.Add(ref firstBase, column),
+                    ref Unsafe.Add(ref secondBase, column),
+                    weights,
+                    totals.Lanes512);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
+            {
+                totals.Lanes256 = TOperator.AccumulateError<TSample, TProjection>(
+                    ref Unsafe.Add(ref originalBase, column),
+                    ref Unsafe.Add(ref reconstructedBase, column),
+                    ref Unsafe.Add(ref firstBase, column),
+                    ref Unsafe.Add(ref secondBase, column),
+                    weights,
+                    totals.Lanes256);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
+            {
+                totals.Lanes128 = TOperator.AccumulateError<TSample, TProjection>(
+                    ref Unsafe.Add(ref originalBase, column),
+                    ref Unsafe.Add(ref reconstructedBase, column),
+                    ref Unsafe.Add(ref firstBase, column),
+                    ref Unsafe.Add(ref secondBase, column),
+                    weights,
+                    totals.Lanes128);
+            }
+        }
+
+        for (; column < width; column++)
+        {
+            totals.Scalar = TOperator.AccumulateError<TSample, TProjection>(
+                ref Unsafe.Add(ref originalBase, column),
+                ref Unsafe.Add(ref reconstructedBase, column),
+                ref Unsafe.Add(ref firstBase, column),
+                ref Unsafe.Add(ref secondBase, column),
+                weights,
+                totals.Scalar);
+        }
     }
 
     /// <summary>

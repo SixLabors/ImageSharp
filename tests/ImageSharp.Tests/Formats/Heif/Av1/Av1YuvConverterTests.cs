@@ -24,7 +24,7 @@ public class Av1YuvConverterTests
     /// The hardware configurations covering 512-bit, 256-bit, 128-bit, and scalar conversion paths.
     /// </summary>
     private const HwIntrinsics AlphaConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies known RGB and YUV values in both conversion directions across coefficient, identity, and YCgCo
@@ -61,9 +61,9 @@ public class Av1YuvConverterTests
         Av1YuvConverter.ConvertFromRgb(Configuration.Default, frame, frameBuffer);
 
         // Assert
-        byte actualY = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0)[0];
-        byte actualU = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(0)[0];
-        byte actualV = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0)[0];
+        byte actualY = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(0)[0];
+        byte actualU = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).GetRowSpan(0)[0];
+        byte actualV = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).GetRowSpan(0)[0];
         Assert.Equal(y, actualY);
         Assert.Equal(u, actualU);
         Assert.Equal(v, actualV);
@@ -76,9 +76,9 @@ public class Av1YuvConverterTests
         ImageFrame<Rgb24> frame = image.Frames.RootFrame;
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(1, 1, fullRange, (ObuMatrixCoefficients)matrixCoefficients);
         using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
-        frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0)[0] = (byte)y;
-        frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(0)[0] = (byte)u;
-        frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0)[0] = (byte)v;
+        frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(0)[0] = (byte)y;
+        frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).GetRowSpan(0)[0] = (byte)u;
+        frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).GetRowSpan(0)[0] = (byte)v;
 
         // Act
         Av1YuvConverter.ConvertToRgb(
@@ -113,9 +113,9 @@ public class Av1YuvConverterTests
         using Av1FrameBuffer<byte> buffer = new(Configuration.Default, header, Av1ColorFormat.Yuv444, false);
         for (int y = 0; y < 3; y++)
         {
-            Span<byte> green = buffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(y);
-            Span<byte> blue = buffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(y);
-            Span<byte> red = buffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(y);
+            Span<byte> green = buffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(y);
+            Span<byte> blue = buffer.DeriveBlockPointer(Av1Plane.U, 0, 0).GetRowSpan(y);
+            Span<byte> red = buffer.DeriveBlockPointer(Av1Plane.V, 0, 0).GetRowSpan(y);
             for (int x = 0; x < 4; x++)
             {
                 red[x] = (byte)(10 + x);
@@ -204,7 +204,7 @@ public class Av1YuvConverterTests
             for (int y = 0; y < byteSequenceHeader.MaxFrameHeight; y++)
             {
                 sourceSamples.AsSpan(y * byteSequenceHeader.MaxFrameWidth, byteSequenceHeader.MaxFrameWidth).CopyTo(
-                    frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(y));
+                    frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(y));
             }
 
             Av1PlanarSampleBuffer<byte> source = new(frameBuffer);
@@ -279,9 +279,9 @@ public class Av1YuvConverterTests
 
         // Assert
         Span<Rgb24> actual = new Rgb24[frameBuffer.Width];
-        Span<byte> yRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0);
-        Span<byte> uRow = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(0);
-        Span<byte> vRow = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0);
+        Span<byte> yRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(0);
+        Span<byte> uRow = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).GetRowSpan(0);
+        Span<byte> vRow = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).GetRowSpan(0);
         for (int i = 0; i < frameBuffer.Width; i++)
         {
             Rgb24 pixel = default;
@@ -327,6 +327,7 @@ public class Av1YuvConverterTests
             false,
             HeifChromaUpsampling.Auto,
             frameBuffer.ColorConfig.ColorRange);
+
         Span<Rgb24> referenceOutput = Av1ReferenceYuvConverter.YuvToRgb(frameBuffer, true);
 
         // Assert
@@ -363,10 +364,10 @@ public class Av1YuvConverterTests
     private static void CreateTestData(Random rnd, Av1FrameBuffer<byte> frameBuffer, Av1Plane plane)
     {
         const int bitCount = 8;
-        Buffer2DRegion<byte> region = frameBuffer.DeriveBlockPointer(plane, 0, 0);
+        Av1PlaneRegion<byte> region = frameBuffer.DeriveBlockPointer(plane, 0, 0);
         for (int y = 0; y < region.Height; y++)
         {
-            CreateTestData(rnd, region.DangerousGetRowSpan(y), bitCount);
+            CreateTestData(rnd, region.GetRowSpan(y), bitCount);
         }
     }
 
@@ -536,10 +537,10 @@ public class Av1YuvConverterTests
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(width, height, colorFormat: Av1ColorFormat.Yuv400);
         using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
         using Image<Rgba64> destination = new(width, height);
-        Buffer2DRegion<byte> luma = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+        Av1PlaneRegion<byte> luma = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
         for (int y = 0; y < height; y++)
         {
-            Span<byte> sourceRow = luma.DangerousGetRowSpan(y);
+            Span<byte> sourceRow = luma.GetRowSpan(y);
             Span<Rgba64> destinationRow = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
             for (int x = 0; x < width; x++)
             {
@@ -559,7 +560,7 @@ public class Av1YuvConverterTests
 
         for (int y = 0; y < height; y++)
         {
-            Span<byte> sourceRow = luma.DangerousGetRowSpan(y);
+            Span<byte> sourceRow = luma.GetRowSpan(y);
             Span<Rgba64> actualRow = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
             for (int x = 0; x < width; x++)
             {
@@ -707,7 +708,7 @@ public class Av1YuvConverterTests
             using Image<Rgba64> destination = new(4, 1, new Rgba64(1000, 2000, 3000, ushort.MaxValue));
             if (bitDepth == Av1BitDepth.EightBit)
             {
-                Span<byte> luma = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0);
+                Span<byte> luma = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(0);
                 luma[0] = 0;
                 luma[1] = (byte)minimum;
                 luma[2] = (byte)maximum;

@@ -475,9 +475,8 @@ internal struct Av1BlockModeInfo
     /// <param name="plane">The color plane.</param>
     /// <param name="colorIndexMap">The decoder-session palette map for the selected plane class.</param>
     /// <returns>The luma map for <see cref="Av1Plane.Y"/> or the shared chroma map for either chroma plane.</returns>
-    public Buffer2DRegion<byte> GetPaletteColorIndexMap(Av1Plane plane, Buffer2D<byte> colorIndexMap)
-        => new(
-            colorIndexMap,
+    public Av1PlaneRegion<byte> GetPaletteColorIndexMap(Av1Plane plane, Av1PlaneRegion<byte> colorIndexMap)
+        => colorIndexMap.GetSubRegion(
             plane == Av1Plane.Y ? this.lumaPaletteColorIndexBounds : this.chromaPaletteColorIndexBounds);
 
     /// <summary>

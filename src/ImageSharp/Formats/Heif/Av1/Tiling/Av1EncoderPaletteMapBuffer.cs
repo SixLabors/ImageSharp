@@ -1,14 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Memory;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
 /// Exposes reusable luma and chroma palette color-index maps over superblock-workspace storage.
 /// </summary>
-internal sealed class Av1EncoderPaletteMapBuffer : IDisposable
+internal sealed class Av1EncoderPaletteMapBuffer
 {
     /// <summary>
     /// The width and height of each maximum-superblock map.
@@ -20,8 +18,8 @@ internal sealed class Av1EncoderPaletteMapBuffer : IDisposable
     /// </summary>
     public const int StorageLength = 2 * MapLength * MapLength;
 
-    private readonly Buffer2D<byte> luma;
-    private readonly Buffer2D<byte> chroma;
+    private readonly Av1PlaneRegion<byte> luma;
+    private readonly Av1PlaneRegion<byte> chroma;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderPaletteMapBuffer"/> class.
@@ -30,9 +28,9 @@ internal sealed class Av1EncoderPaletteMapBuffer : IDisposable
     public Av1EncoderPaletteMapBuffer(Memory<byte> storage)
     {
         int mapArea = MapLength * MapLength;
-        Memory<byte> mapStorage = storage[..StorageLength];
-        this.luma = Buffer2D<byte>.WrapMemory(mapStorage[..mapArea], MapLength, MapLength);
-        this.chroma = Buffer2D<byte>.WrapMemory(mapStorage[mapArea..], MapLength, MapLength);
+        Rectangle bounds = new(0, 0, MapLength, MapLength);
+        this.luma = new Av1PlaneRegion<byte>(storage[..mapArea], MapLength, bounds);
+        this.chroma = new Av1PlaneRegion<byte>(storage.Slice(mapArea, mapArea), MapLength, bounds);
     }
 
     /// <summary>
@@ -42,17 +40,6 @@ internal sealed class Av1EncoderPaletteMapBuffer : IDisposable
     /// <param name="width">The padded plane-block width.</param>
     /// <param name="height">The padded plane-block height.</param>
     /// <returns>The reusable map region beginning at the workspace origin.</returns>
-    public Buffer2DRegion<byte> GetMap(Av1PlaneType planeType, int width, int height)
-        => new(
-            planeType == Av1PlaneType.Y ? this.luma : this.chroma,
-            new Rectangle(0, 0, width, height));
-
-    /// <summary>
-    /// Releases the non-owning two-dimensional wrappers.
-    /// </summary>
-    public void Dispose()
-    {
-        this.luma.Dispose();
-        this.chroma.Dispose();
-    }
+    public Av1PlaneRegion<byte> GetMap(Av1PlaneType planeType, int width, int height)
+        => (planeType == Av1PlaneType.Y ? this.luma : this.chroma).GetSubRegion(0, 0, width, height);
 }

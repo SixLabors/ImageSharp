@@ -48,8 +48,8 @@ internal static partial class Av1IntraSuperblockEncoder
             this.CalculateObmcTarget(blockSize, weightedSource, mask);
 
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
-            Buffer2DRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> reference = referencePlane.Buffer.DangerousGetSingleSpan();
+            Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
+            ReadOnlySpan<TSample> reference = referencePlane.Samples;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size frameSize = new(
                 this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
@@ -553,7 +553,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> sourceSamples = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, this.obmcBlockOrigin);
             for (int row = 0; row < height; row++)
             {

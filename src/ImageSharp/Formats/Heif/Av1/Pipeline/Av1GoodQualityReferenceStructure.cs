@@ -199,6 +199,43 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
+    /// Fills the display order and pyramid level of the frame in each slot, as the frame about to be coded sees them.
+    /// Reference: init_ref_map_pair().
+    /// </summary>
+    /// <param name="keyFrame">Whether the frame is a key frame, which sees no references.</param>
+    /// <param name="pairOrder">Receives the display order of each slot, or -1.</param>
+    /// <param name="pairLevel">Receives the pyramid level of each slot, or -1.</param>
+    public void GetReferenceMapPairs(bool keyFrame, Span<int> pairOrder, Span<int> pairLevel)
+        => this.InitializeReferenceMapPairs(keyFrame, pairOrder, pairLevel);
+
+    /// <summary>
+    /// Maps the named references of a frame to slots. Reference: av1_get_ref_frames().
+    /// </summary>
+    /// <param name="pairOrder">The display order of each slot, or -1.</param>
+    /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
+    /// <param name="displayOrder">The display order of the frame.</param>
+    /// <param name="remapped">Receives the slot of each named reference, LAST first.</param>
+    public static void MapReferences(ReadOnlySpan<int> pairOrder, ReadOnlySpan<int> pairLevel, int displayOrder, Span<int> remapped)
+        => GetReferenceFrames(pairOrder, pairLevel, displayOrder, remapped);
+
+    /// <summary>
+    /// Chooses the slots a frame of a lookahead golden group refreshes. Reference: av1_get_refresh_frame_flags().
+    /// </summary>
+    /// <param name="pairOrder">The display order of each slot, or -1.</param>
+    /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
+    /// <param name="frame">The role of the frame in its golden group.</param>
+    /// <returns>The refresh mask, one bit per slot.</returns>
+    public static int GetRefreshFlags(ReadOnlySpan<int> pairOrder, ReadOnlySpan<int> pairLevel, in GroupFrame frame)
+        => frame.IsNonReference ? 0 : (int)GetLaggedRefreshFrameFlags(pairOrder, pairLevel, frame.DisplayOrder, in frame, []);
+
+    /// <summary>
+    /// Returns the display order of the frame in a slot, or -1 for an empty slot.
+    /// </summary>
+    /// <param name="slot">The slot.</param>
+    /// <returns>The display order.</returns>
+    public int GetSlotDisplayOrder(int slot) => this.slotDisplayOrder[slot];
+
+    /// <summary>
     /// Returns the slot of the frame that a show-existing frame displays. Reference: the existing_fb_idx_to_show
     /// search of av1_encode_strategy().
     /// </summary>

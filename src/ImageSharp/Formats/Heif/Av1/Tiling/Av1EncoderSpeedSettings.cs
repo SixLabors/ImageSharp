@@ -34,6 +34,11 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <param name="qIndex">The current base quantizer index.</param>
     /// <param name="frameSize">The visible frame dimensions.</param>
     /// <param name="screenContent">Whether the frame allows the screen content tools.</param>
+    /// <param name="frameSizeScreenContent">
+    /// Whether the frame allowed the screen content tools when the frame-size speed features were set, or
+    /// <see langword="null"/> when it is <paramref name="screenContent"/>. A key frame whose screen content trial turns
+    /// the tools on keeps its detected value here.
+    /// </param>
     public Av1EncoderSpeedSettings(
         HeifEncodingSpeed speed,
         bool allIntra,
@@ -41,12 +46,14 @@ internal readonly struct Av1EncoderSpeedSettings
         Av1FrameUpdateType updateType,
         int qIndex,
         Size frameSize,
-        bool screenContent = false)
+        bool screenContent = false,
+        bool? frameSizeScreenContent = null)
     {
         this.Speed = speed;
         this.qIndex = qIndex;
         this.allIntra = allIntra;
         this.screenContent = screenContent;
+        this.FrameSizeScreenContentTools = frameSizeScreenContent ?? screenContent;
         this.intraFrame = intraFrame;
         this.minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
 
@@ -761,6 +768,13 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets a value indicating whether all-intra variance-based partitioning replaces rate-distortion partition search.
     /// </summary>
     public bool UseVarianceBasedPartition { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the frame allowed the screen content tools when the frame-size speed features
+    /// were set, which is before the screen content trial of a key frame. Reference: the allow_screen_content_tools
+    /// that set_good_speed_features_framesize_independent() reads through set_size_independent_vars().
+    /// </summary>
+    public bool FrameSizeScreenContentTools { get; }
 
     /// <summary>
     /// Gets the smallest square partition permitted by the speed and resolution policy.
@@ -1521,11 +1535,12 @@ internal readonly struct Av1EncoderSpeedSettings
         => screenContent ? this.Speed >= HeifEncodingSpeed.Level9 ? 3 : 1 : this.Speed >= HeifEncodingSpeed.Level8 ? 2 : 1;
 
     /// <summary>
-    /// Gets whether intra convolution pruning retains unsplit screen-content candidates.
+    /// Gets whether intra convolution pruning retains unsplit screen-content candidates. A frame-size speed feature.
+    /// Reference: intra_cnn_based_part_prune_level.
     /// </summary>
-    public int GetIntraPartitionPruningLevel(bool screenContent)
+    public int GetIntraPartitionPruningLevel()
         => this.realtime || this.Speed == HeifEncodingSpeed.Level0 ? 0
-            : screenContent ? this.allIntra && this.Speed >= HeifEncodingSpeed.Level5 ? 1 : 0 : 2;
+            : this.FrameSizeScreenContentTools ? this.allIntra && this.Speed >= HeifEncodingSpeed.Level5 ? 1 : 0 : 2;
 
     /// <summary>
     /// Gets the gate level that compares a prediction-only cost with the best one before an inter transform search.
@@ -1704,7 +1719,7 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <returns>The block size above which extended partitions can be searched.</returns>
     public Av1BlockSize GetExtendedPartitionThreshold(bool screenContent, bool intraFrame, Av1FrameUpdateType updateType)
     {
-        Av1BlockSize threshold = !this.realtime && this.Speed >= HeifEncodingSpeed.Level5 && !screenContent
+        Av1BlockSize threshold = !this.realtime && this.Speed >= HeifEncodingSpeed.Level5 && !this.FrameSizeScreenContentTools
             ? Av1BlockSize.Block16x16 : Av1BlockSize.Block8x8;
 
         if (this.realtime || this.Speed < HeifEncodingSpeed.Level2)
@@ -1780,8 +1795,8 @@ internal readonly struct Av1EncoderSpeedSettings
         }
 
         return this.allIntra
-            ? this.Speed >= HeifEncodingSpeed.Level6 && !screenContent ? 1 : 0
-            : this.Speed >= HeifEncodingSpeed.Level5 ? screenContent ? 1 : 2 : 0;
+            ? this.Speed >= HeifEncodingSpeed.Level6 && !this.FrameSizeScreenContentTools ? 1 : 0
+            : this.Speed >= HeifEncodingSpeed.Level5 ? this.FrameSizeScreenContentTools ? 1 : 2 : 0;
     }
 
     /// <summary>

@@ -54,8 +54,8 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
     public static void EncodeIntraDcLossy(
         Av1EncoderBlockWorkspace workspace,
-        Buffer2DRegion<byte> source,
-        Buffer2DRegion<byte> reconstruction,
+        Av1PlaneRegion<byte> source,
+        Av1PlaneRegion<byte> reconstruction,
         Point blockOrigin,
         ReadOnlySpan<byte> above,
         ReadOnlySpan<byte> left,
@@ -133,7 +133,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformBlockContext context,
         int rateMultiplier,
         bool useChromaWeights,
-        Buffer2DRegion<byte> source,
+        Av1PlaneRegion<byte> source,
         Point blockOrigin,
         Span<byte> reconstruction,
         ReadOnlySpan<byte> above,
@@ -322,7 +322,7 @@ internal static partial class Av1TransformBlockEncoder
         int rateMultiplier,
         bool isInter,
         bool useChromaWeights,
-        Buffer2DRegion<byte> source,
+        Av1PlaneRegion<byte> source,
         Point blockOrigin,
         ReadOnlySpan<byte> prediction,
         Span<short> residual,
@@ -490,7 +490,7 @@ internal static partial class Av1TransformBlockEncoder
     public static long ReconstructPredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Buffer2DRegion<byte> source,
+        Av1PlaneRegion<byte> source,
         Point blockOrigin,
         ReadOnlySpan<byte> prediction,
         int inputStride,
@@ -510,7 +510,7 @@ internal static partial class Av1TransformBlockEncoder
     public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Buffer2DRegion<byte> source,
+        Av1PlaneRegion<byte> source,
         Point blockOrigin,
         ReadOnlySpan<byte> prediction,
         int inputStride,
@@ -626,7 +626,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformBlockContext context,
         int rateMultiplier,
         bool useChromaWeights,
-        Buffer2DRegion<byte> source,
+        Av1PlaneRegion<byte> source,
         Point blockOrigin,
         Span<byte> reconstruction,
         byte dc,
@@ -784,8 +784,8 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
     public static void EncodeIntraDcLossy(
         Av1EncoderBlockWorkspace workspace,
-        Buffer2DRegion<ushort> source,
-        Buffer2DRegion<ushort> reconstruction,
+        Av1PlaneRegion<ushort> source,
+        Av1PlaneRegion<ushort> reconstruction,
         Point blockOrigin,
         ReadOnlySpan<ushort> above,
         ReadOnlySpan<ushort> left,
@@ -866,7 +866,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformBlockContext context,
         int rateMultiplier,
         bool useChromaWeights,
-        Buffer2DRegion<ushort> source,
+        Av1PlaneRegion<ushort> source,
         Point blockOrigin,
         Span<ushort> reconstruction,
         ReadOnlySpan<ushort> above,
@@ -1063,7 +1063,7 @@ internal static partial class Av1TransformBlockEncoder
         int rateMultiplier,
         bool isInter,
         bool useChromaWeights,
-        Buffer2DRegion<ushort> source,
+        Av1PlaneRegion<ushort> source,
         Point blockOrigin,
         ReadOnlySpan<ushort> prediction,
         Span<short> residual,
@@ -1234,7 +1234,7 @@ internal static partial class Av1TransformBlockEncoder
     public static long ReconstructPredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Buffer2DRegion<ushort> source,
+        Av1PlaneRegion<ushort> source,
         Point blockOrigin,
         ReadOnlySpan<ushort> prediction,
         int inputStride,
@@ -1255,7 +1255,7 @@ internal static partial class Av1TransformBlockEncoder
     public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Buffer2DRegion<ushort> source,
+        Av1PlaneRegion<ushort> source,
         Point blockOrigin,
         ReadOnlySpan<ushort> prediction,
         int inputStride,
@@ -1340,7 +1340,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformBlockContext context,
         int rateMultiplier,
         bool useChromaWeights,
-        Buffer2DRegion<ushort> source,
+        Av1PlaneRegion<ushort> source,
         Point blockOrigin,
         Span<ushort> reconstruction,
         ushort dc,
@@ -3122,7 +3122,7 @@ internal static partial class Av1TransformBlockEncoder
         return scaleShift >= 0 ? error >> scaleShift : error << -scaleShift;
     }
 
-    public static Span<TSample> GetPlaneSpan<TSample>(Buffer2DRegion<TSample> plane, Point blockOrigin)
+    public static Span<TSample> GetPlaneSpan<TSample>(Av1PlaneRegion<TSample> plane, Point blockOrigin)
         where TSample : unmanaged
     {
         int offset =
@@ -3130,7 +3130,7 @@ internal static partial class Av1TransformBlockEncoder
             plane.Bounds.X +
             blockOrigin.X;
 
-        // Encoder planes wrap one contiguous frame owner, so direct segment access retains physical strides without an enumerator or row copy.
-        return plane.Buffer.FastMemoryGroup[0].Span[offset..];
+        // Encoder planes are single contiguous allocations, so the block keeps the physical stride without a row copy.
+        return plane.Samples[offset..];
     }
 }

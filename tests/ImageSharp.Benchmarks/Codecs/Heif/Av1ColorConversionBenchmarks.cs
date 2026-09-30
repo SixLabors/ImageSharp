@@ -129,6 +129,7 @@ public class Av1ColorConversionBenchmarks
             false,
             HeifChromaUpsampling.Auto,
             frameBuffer.ColorConfig.ColorRange);
+
         return destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(Height - 1)[Width - 1];
     }
 
@@ -143,7 +144,7 @@ public class Av1ColorConversionBenchmarks
         Av1FrameBuffer<byte> frameBuffer = this.frameBuffer;
         Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
         return this.BitDepth == 8
-            ? frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(Height - 1)[Width - 1]
+            ? frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).GetRowSpan(Height - 1)[Width - 1]
             : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, Height - 1, 0, 0)[Width - 1];
     }
 }

@@ -287,9 +287,9 @@ internal static partial class Av1TemporalFilter
 
             // The reference buffer of av1_init_inter_params() spans the coded plane: libaom's widths[] and heights[]
             // are the dimensions aligned to eight luma samples, shifted for chroma.
-            Buffer2DRegion<TSample> region = reference.CodedView.GetPlane((Av1Plane)plane);
-            ReadOnlySpan<TSample> samples = region.Buffer.DangerousGetSingleSpan();
-            int stride = region.Buffer.Width;
+            Av1PlaneRegion<TSample> region = reference.CodedView.GetPlane((Av1Plane)plane);
+            ReadOnlySpan<TSample> samples = region.Samples;
+            int stride = region.Stride;
             int origin = (region.Bounds.Y * stride) + region.Bounds.X;
             Span<TSample> planePrediction = prediction.Slice(planeOffset, planeWidth * planeHeight);
             for (int quadrant = 0; quadrant < 4; quadrant++)

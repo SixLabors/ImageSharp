@@ -66,6 +66,13 @@ internal readonly struct Av1SecondPassFrame
     public int DisplayOrder { get; init; }
 
     /// <summary>
+    /// Gets the number of frames shown since the last key frame when the frame begins, before a key frame that resets
+    /// the references restarts the count. The temporal dependency model runs at that point. Reference:
+    /// current_frame.frame_number in av1_tpl_setup_stats().
+    /// </summary>
+    public int FrameNumber { get; init; }
+
+    /// <summary>
     /// Gets the pyramid layer of the frame. Reference: layer_depth.
     /// </summary>
     public int LayerDepth { get; init; }

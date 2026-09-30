@@ -267,8 +267,8 @@ internal sealed class Av1RateControl
         uint frameNumber,
         bool screenContent,
         in SourceSadStatistics sourceSad,
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> lastReconstruction)
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> lastReconstruction)
         where TSample : unmanaged
         where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
         where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
@@ -319,7 +319,7 @@ internal sealed class Av1RateControl
     /// <typeparam name="TBlock">The block averaging operations.</typeparam>
     /// <param name="source">The bordered source luma plane.</param>
     /// <param name="lastReconstruction">The bordered LAST reconstruction luma plane.</param>
-    private void MeasureReconstructionError<TSample, TMotion, TBlock>(Buffer2DRegion<TSample> source, Buffer2DRegion<TSample> lastReconstruction)
+    private void MeasureReconstructionError<TSample, TMotion, TBlock>(Av1PlaneRegion<TSample> source, Av1PlaneRegion<TSample> lastReconstruction)
         where TSample : unmanaged
         where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
         where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
@@ -331,7 +331,7 @@ internal sealed class Av1RateControl
         Span<TSample> averaged = stackalloc TSample[64 * 64];
 
         // Edge blocks reach into the replicated border, so the averages read the complete bordered buffer.
-        Buffer2DRegion<TSample> bordered = new(source.Buffer);
+        Av1PlaneRegion<TSample> bordered = source.GetFullPlane();
         Point sourceOffset = source.Bounds.Location;
         ulong total = 0;
         for (int row = 0; row < rows; row++)

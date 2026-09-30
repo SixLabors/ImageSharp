@@ -65,7 +65,7 @@ public class Av1ScaledInterPredictorTests
     /// <summary>
     /// Exercises the native vector path and the complete scalar fallback in separate processes.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies the reference decoder's Q14 scale factors, Q10 steps, and signed coordinate rounding.

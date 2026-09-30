@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -13,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1ResidualBuilderTests
 {
     private const HwIntrinsics ResidualConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies rectangular search costs, 8-bit, 10-bit, and 12-bit residuals, residual energy, neighbor correlation,
@@ -30,6 +32,142 @@ public class Av1ResidualBuilderTests
         ValidateSumSquares();
         ValidateCorrelation();
         ValidateCompoundSearchMetrics();
+        ValidateResidueOutsideFrame();
+    }
+
+    /// <summary>
+    /// Compares the outside-frame residue fill with the per-sample definition of fill_residue_outside_frame() for
+    /// every transform class and clipped extent.
+    /// </summary>
+    private static void ValidateResidueOutsideFrame()
+    {
+        Av1TransformType[] types =
+        [
+            Av1TransformType.DctDct, Av1TransformType.AdstFlipAdst, Av1TransformType.Identity,
+            Av1TransformType.VerticalDct, Av1TransformType.HorizontalDct
+        ];
+
+        foreach (int columns in new[] { 4, 8, 16, 32, 64 })
+        {
+            foreach (int rows in new[] { 4, 8, 16, 32, 64 })
+            {
+                int stride = columns + 5;
+                foreach (Av1TransformType type in types)
+                {
+                    foreach (int visibleColumns in new[] { 0, 1, columns / 2, columns - 1, columns })
+                    {
+                        foreach (int visibleRows in new[] { 0, 1, rows / 2, rows - 1, rows })
+                        {
+                            short[] expected = new short[stride * rows];
+                            for (int i = 0; i < expected.Length; i++)
+                            {
+                                expected[i] = (short)(((i * 7919) % 8191) - 4095);
+                            }
+
+                            short[] actual = (short[])expected.Clone();
+                            ReferenceFillResidueOutsideFrame(expected, stride, columns, rows, visibleColumns, visibleRows, type);
+                            Av1ResidualBuilder.FillResidueOutsideFrame(actual, stride, columns, rows, visibleColumns, visibleRows, type);
+                            Assert.Equal(expected, actual);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void ReferenceFillResidueOutsideFrame(
+        short[] residual,
+        int stride,
+        int columns,
+        int rows,
+        int visibleColumns,
+        int visibleRows,
+        Av1TransformType type)
+    {
+        static int DivideAndRoundSigned(int numerator, int denominator)
+            => numerator < 0 ? (numerator - (denominator / 2)) / denominator : (numerator + (denominator / 2)) / denominator;
+
+        bool outside = visibleColumns == 0 || visibleRows == 0;
+        if (type <= Av1TransformType.Identity)
+        {
+            int sum = 0;
+            for (int row = 0; row < visibleRows; row++)
+            {
+                for (int column = 0; column < visibleColumns; column++)
+                {
+                    sum += residual[(row * stride) + column];
+                }
+            }
+
+            short average = type != Av1TransformType.Identity && !outside
+                ? (short)DivideAndRoundSigned(sum, visibleColumns * visibleRows)
+                : (short)0;
+
+            for (int row = 0; row < rows; row++)
+            {
+                for (int column = 0; column < columns; column++)
+                {
+                    if (row >= visibleRows || column >= visibleColumns)
+                    {
+                        residual[(row * stride) + column] = average;
+                    }
+                }
+            }
+
+            return;
+        }
+
+        bool horizontalIdentity = type is Av1TransformType.VerticalDct or Av1TransformType.VerticalAdst or Av1TransformType.VerticalFlipAdst;
+        if (horizontalIdentity)
+        {
+            for (int column = 0; column < visibleColumns; column++)
+            {
+                int sum = 0;
+                for (int row = 0; row < visibleRows; row++)
+                {
+                    sum += residual[(row * stride) + column];
+                }
+
+                short average = outside ? (short)0 : (short)DivideAndRoundSigned(sum, visibleRows);
+                for (int row = visibleRows; row < rows; row++)
+                {
+                    residual[(row * stride) + column] = average;
+                }
+            }
+
+            for (int row = 0; row < rows; row++)
+            {
+                for (int column = visibleColumns; column < columns; column++)
+                {
+                    residual[(row * stride) + column] = 0;
+                }
+            }
+
+            return;
+        }
+
+        for (int row = 0; row < visibleRows; row++)
+        {
+            int sum = 0;
+            for (int column = 0; column < visibleColumns; column++)
+            {
+                sum += residual[(row * stride) + column];
+            }
+
+            short average = outside ? (short)0 : (short)DivideAndRoundSigned(sum, visibleColumns);
+            for (int column = visibleColumns; column < columns; column++)
+            {
+                residual[(row * stride) + column] = average;
+            }
+        }
+
+        for (int row = visibleRows; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                residual[(row * stride) + column] = 0;
+            }
+        }
     }
 
     /// <summary>
@@ -463,6 +601,7 @@ public class Av1ResidualBuilderTests
                                     ToBytes(source), sourceStride, ToBytes(prediction), predictionStride, ToBytes(second), mask, width, height, rowStep)
                                 : Av1ResidualBuilder.SumCompoundAbsoluteDifferences(
                                     source, sourceStride, prediction, predictionStride, second, mask, width, height, rowStep);
+
                             Assert.Equal(expectedSad, actualSad);
                         }
 

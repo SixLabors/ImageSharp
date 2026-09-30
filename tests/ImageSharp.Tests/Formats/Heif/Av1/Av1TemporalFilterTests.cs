@@ -103,10 +103,10 @@ public class Av1TemporalFilterTests
             int width = 64 >> (plane == 0 ? 0 : subsamplingX);
             int height = 64 >> (plane == 0 ? 0 : subsamplingY);
             planes[plane] = new int[width * height];
-            Buffer2DRegion<TSample> region = frame.CodedView.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> region = frame.CodedView.GetPlane((Av1Plane)plane);
             for (int y = 0; y < height; y++)
             {
-                Span<TSample> row = region.DangerousGetRowSpan(y);
+                Span<TSample> row = region.GetRowSpan(y);
                 for (int x = 0; x < width; x++)
                 {
                     // The extreme trial alternates the full range, which gives the largest squared errors.

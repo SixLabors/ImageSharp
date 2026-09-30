@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Components;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -35,7 +34,7 @@ internal readonly struct Av1EncoderFrame<TSample>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
     /// <param name="bitDepth">The native component precision.</param>
-    public Av1EncoderFrame(Buffer2DRegion<TSample> luma, int width, int height, int bitDepth)
+    public Av1EncoderFrame(Av1PlaneRegion<TSample> luma, int width, int height, int bitDepth)
         : this(luma, default, default, width, height, bitDepth, Av1ColorFormat.Yuv400, 0, 0)
     {
     }
@@ -53,9 +52,9 @@ internal readonly struct Av1EncoderFrame<TSample>
     /// <param name="chromaPositionX">The horizontal chroma position in half-luma-sample units.</param>
     /// <param name="chromaPositionY">The vertical chroma position in half-luma-sample units.</param>
     public Av1EncoderFrame(
-        Buffer2DRegion<TSample> luma,
-        Buffer2DRegion<TSample> chromaBlue,
-        Buffer2DRegion<TSample> chromaRed,
+        Av1PlaneRegion<TSample> luma,
+        Av1PlaneRegion<TSample> chromaBlue,
+        Av1PlaneRegion<TSample> chromaRed,
         int width,
         int height,
         int bitDepth,
@@ -76,11 +75,11 @@ internal readonly struct Av1EncoderFrame<TSample>
         this.CodedHeight = luma.Height;
         int visibleChromaWidth = (width + this.ChromaSubsamplingX) >> this.ChromaSubsamplingX;
         int visibleChromaHeight = (height + this.ChromaSubsamplingY) >> this.ChromaSubsamplingY;
-        Buffer2DRegion<TSample> visibleChromaBlue = this.IsMonochrome
+        Av1PlaneRegion<TSample> visibleChromaBlue = this.IsMonochrome
             ? default
             : chromaBlue.GetSubRegion(0, 0, visibleChromaWidth, visibleChromaHeight);
 
-        Buffer2DRegion<TSample> visibleChromaRed = this.IsMonochrome
+        Av1PlaneRegion<TSample> visibleChromaRed = this.IsMonochrome
             ? default
             : chromaRed.GetSubRegion(0, 0, visibleChromaWidth, visibleChromaHeight);
 
@@ -213,13 +212,14 @@ internal readonly struct Av1EncoderFrame<TSample>
     /// <summary>
     /// Replicates the visible edge samples through a plane's complete physical border.
     /// </summary>
-    private static void ExtendPlane(Buffer2DRegion<TSample> plane, int visibleWidth, int visibleHeight)
+    private static void ExtendPlane(Av1PlaneRegion<TSample> plane, int visibleWidth, int visibleHeight)
     {
-        Buffer2D<TSample> buffer = plane.Buffer;
+        Span<TSample> samples = plane.Samples;
+        int stride = plane.Stride;
         Rectangle bounds = plane.Bounds;
         for (int y = 0; y < visibleHeight; y++)
         {
-            Span<TSample> row = buffer.DangerousGetRowSpan(bounds.Y + y);
+            Span<TSample> row = samples.Slice((bounds.Y + y) * stride, stride);
 
             // libaom fills both physical borders and the right-hand coded alignment from the nearest visible sample.
             row[..bounds.X].Fill(row[bounds.X]);
@@ -227,16 +227,16 @@ internal readonly struct Av1EncoderFrame<TSample>
         }
 
         // Horizontal extension runs first so copying the first and last visible rows also initializes both corners.
-        ReadOnlySpan<TSample> firstVisibleRow = buffer.DangerousGetRowSpan(bounds.Y);
+        ReadOnlySpan<TSample> firstVisibleRow = samples.Slice(bounds.Y * stride, stride);
         for (int y = 0; y < bounds.Y; y++)
         {
-            firstVisibleRow.CopyTo(buffer.DangerousGetRowSpan(y));
+            firstVisibleRow.CopyTo(samples.Slice(y * stride, stride));
         }
 
-        ReadOnlySpan<TSample> finalVisibleRow = buffer.DangerousGetRowSpan(bounds.Y + visibleHeight - 1);
-        for (int y = bounds.Y + visibleHeight; y < buffer.Height; y++)
+        ReadOnlySpan<TSample> finalVisibleRow = samples.Slice((bounds.Y + visibleHeight - 1) * stride, stride);
+        for (int y = bounds.Y + visibleHeight; y < plane.PlaneHeight; y++)
         {
-            finalVisibleRow.CopyTo(buffer.DangerousGetRowSpan(y));
+            finalVisibleRow.CopyTo(samples.Slice(y * stride, stride));
         }
     }
 
@@ -248,25 +248,25 @@ internal readonly struct Av1EncoderFrame<TSample>
         /// <summary>
         /// The writable luma plane.
         /// </summary>
-        private readonly Buffer2DRegion<TSample> luma;
+        private readonly Av1PlaneRegion<TSample> luma;
 
         /// <summary>
         /// The writable blue-difference plane, or the default region for monochrome frames.
         /// </summary>
-        private readonly Buffer2DRegion<TSample> chromaBlue;
+        private readonly Av1PlaneRegion<TSample> chromaBlue;
 
         /// <summary>
         /// The writable red-difference plane, or the default region for monochrome frames.
         /// </summary>
-        private readonly Buffer2DRegion<TSample> chromaRed;
+        private readonly Av1PlaneRegion<TSample> chromaRed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PlanarView"/> struct.
         /// </summary>
         public PlanarView(
-            Buffer2DRegion<TSample> luma,
-            Buffer2DRegion<TSample> chromaBlue,
-            Buffer2DRegion<TSample> chromaRed,
+            Av1PlaneRegion<TSample> luma,
+            Av1PlaneRegion<TSample> chromaBlue,
+            Av1PlaneRegion<TSample> chromaRed,
             int width,
             int height,
             int bitDepth,
@@ -338,7 +338,7 @@ internal readonly struct Av1EncoderFrame<TSample>
         /// </summary>
         /// <param name="plane">The requested component plane.</param>
         /// <returns>The complete coded plane region.</returns>
-        public Buffer2DRegion<TSample> GetPlane(Av1Plane plane)
+        public Av1PlaneRegion<TSample> GetPlane(Av1Plane plane)
             => plane switch
             {
                 Av1Plane.Y => this.luma,
@@ -364,11 +364,11 @@ internal readonly struct Av1EncoderFrame<TSample>
 
             int chromaWidth = (width + this.ChromaSubsamplingX) >> this.ChromaSubsamplingX;
             int chromaHeight = (height + this.ChromaSubsamplingY) >> this.ChromaSubsamplingY;
-            Buffer2DRegion<TSample> blue = this.IsMonochrome
+            Av1PlaneRegion<TSample> blue = this.IsMonochrome
                 ? default
                 : this.chromaBlue.GetSubRegion(0, 0, chromaWidth, chromaHeight);
 
-            Buffer2DRegion<TSample> red = this.IsMonochrome
+            Av1PlaneRegion<TSample> red = this.IsMonochrome
                 ? default
                 : this.chromaRed.GetSubRegion(0, 0, chromaWidth, chromaHeight);
 
@@ -385,12 +385,12 @@ internal readonly struct Av1EncoderFrame<TSample>
         }
 
         /// <inheritdoc/>
-        public Span<TSample> GetLumaRowSpan(int row) => this.luma.DangerousGetRowSpan(row);
+        public Span<TSample> GetLumaRowSpan(int row) => this.luma.GetRowSpan(row);
 
         /// <inheritdoc/>
-        public Span<TSample> GetChromaBlueRowSpan(int row) => this.chromaBlue.DangerousGetRowSpan(row);
+        public Span<TSample> GetChromaBlueRowSpan(int row) => this.chromaBlue.GetRowSpan(row);
 
         /// <inheritdoc/>
-        public Span<TSample> GetChromaRedRowSpan(int row) => this.chromaRed.DangerousGetRowSpan(row);
+        public Span<TSample> GetChromaRedRowSpan(int row) => this.chromaRed.GetRowSpan(row);
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
@@ -58,8 +60,8 @@ internal static partial class Av1LoopRestorationEncoder
         long selfGuidedError = long.MaxValue;
         totalErrors[0] += unfilteredError;
         bool skipSelfGuided = false;
-        Buffer2DRegion<TSample> original = context.Source.GetSubRegion(bounds);
-        Buffer2DRegion<TSample> degraded = context.Reconstruction.GetSubRegion(bounds);
+        Av1PlaneRegion<TSample> original = context.Source.GetSubRegion(bounds);
+        Av1PlaneRegion<TSample> degraded = context.Reconstruction.GetSubRegion(bounds);
         bool chroma = context.Plane != 0;
 
         if (settings.EnableWiener)
@@ -70,19 +72,7 @@ internal static partial class Av1LoopRestorationEncoder
             bool pruneWiener = false;
             if (settings.WienerVariancePruning != 0)
             {
-                long sum = 0;
-                long squares = 0;
-                for (int row = 0; row < original.Height; row++)
-                {
-                    ReadOnlySpan<TSample> samples = original.DangerousGetRowSpan(row);
-                    for (int column = 0; column < samples.Length; column++)
-                    {
-                        int value = Av1RestorationSampleOperations.Load(samples[column]);
-                        sum += value;
-                        squares += (long)value * value;
-                    }
-                }
-
+                GetSampleMoments(original, out long sum, out long squares);
                 int area = original.Width * original.Height;
 
                 // Compute population variance at native sample precision. The integer divisions
@@ -234,6 +224,41 @@ internal static partial class Av1LoopRestorationEncoder
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Sums the samples of a unit and their squares. Reference: aom_var_2d_u8() and aom_var_2d_u16() as
+    /// var_restoration_unit() calls them.
+    /// </summary>
+    /// <remarks>
+    /// The residual moments against a row of zeros are the sample moments. A restoration unit spans at most 383x391
+    /// samples, so the twelve-bit sample sum stays inside its 32-bit result.
+    /// </remarks>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
+    /// <param name="region">The unit samples.</param>
+    /// <param name="sum">Receives the sample sum.</param>
+    /// <param name="squares">Receives the sum of the squared samples.</param>
+    private static void GetSampleMoments<TSample>(Av1PlaneRegion<TSample> region, out long sum, out long squares)
+        where TSample : unmanaged
+    {
+        int offset = region.GetOffset(0, 0);
+        int moment;
+        if (Unsafe.SizeOf<TSample>() == 1)
+        {
+            Span<byte> zeros = stackalloc byte[region.Width];
+            zeros.Clear();
+            Av1ResidualBuilder.GetMoments(
+                MemoryMarshal.Cast<TSample, byte>(region.Samples)[offset..], region.Stride, zeros, 0, region.Width, region.Height, out moment, out squares);
+        }
+        else
+        {
+            Span<ushort> zeros = stackalloc ushort[region.Width];
+            zeros.Clear();
+            Av1ResidualBuilder.GetMoments(
+                MemoryMarshal.Cast<TSample, ushort>(region.Samples)[offset..], region.Stride, zeros, 0, region.Width, region.Height, out moment, out squares);
+        }
+
+        sum = moment;
     }
 
     /// <summary>

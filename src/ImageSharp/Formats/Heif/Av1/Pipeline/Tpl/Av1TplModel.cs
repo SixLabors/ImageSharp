@@ -269,6 +269,13 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     public int BaseLayerQIndex { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether the last run measured a frame, which sets the encoder's base quantizer
+    /// index to <see cref="BaseLayerQIndex"/>. Reference: the cm->quant_params.base_qindex assignment of
+    /// init_mc_flow_dispenser().
+    /// </summary>
+    public bool MeasuredFrame { get; private set; }
+
+    /// <summary>
     /// Gets the display order of the saved alternate reference of the previous group, or -1. Reference:
     /// prev_gop_arf_disp_order.
     /// </summary>
@@ -395,13 +402,13 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         int planes = source.IsMonochrome ? 1 : 3;
         for (int plane = 0; plane < planes; plane++)
         {
-            Buffer2DRegion<TSample> from = source.CodedView.GetPlane((Av1Plane)plane);
-            Buffer2DRegion<TSample> to = destination.CodedView.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> from = source.CodedView.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> to = destination.CodedView.GetPlane((Av1Plane)plane);
             int rows = plane == 0 ? source.Height : (source.Height + source.ChromaSubsamplingY) >> source.ChromaSubsamplingY;
             int columns = plane == 0 ? source.Width : (source.Width + source.ChromaSubsamplingX) >> source.ChromaSubsamplingX;
             for (int row = 0; row < rows; row++)
             {
-                from.DangerousGetRowSpan(row)[..columns].CopyTo(to.DangerousGetRowSpan(row));
+                from.GetRowSpan(row)[..columns].CopyTo(to.GetRowSpan(row));
             }
         }
 

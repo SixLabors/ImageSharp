@@ -16,7 +16,7 @@ public class Av1IntraBlockCopyPredictorTests
     /// <summary>
     /// Exercises the native SIMD width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies all four source phases for 8-bit and high-bit-depth samples at every AV1 transform size, and the four

@@ -34,6 +34,16 @@ internal static partial class Av1CoefficientMeasures
         => GetMaximumAbsolute<CoefficientMeasureOperator>(coefficients);
 
     /// <summary>
+    /// Returns the level bits of the coefficients: for each, the floored base-two logarithm of its magnitude plus
+    /// one, and one more when it is nonzero. Reference: the per-coefficient terms of rate_estimator(), which are
+    /// independent of the scan order.
+    /// </summary>
+    /// <param name="quantized">The quantized coefficients.</param>
+    /// <returns>The sum of the level bits.</returns>
+    public static int SumLevelBits(ReadOnlySpan<int> quantized)
+        => SumLevelBits<CoefficientMeasureOperator>(quantized);
+
+    /// <summary>
     /// Returns the one-based scan position of the last nonzero coefficient. Reference: the eob search of
     /// av1_quantize_fp_avx2, which takes the largest inverse-scan index of a nonzero lane.
     /// </summary>
@@ -104,6 +114,54 @@ internal static partial class Av1CoefficientMeasures
         for (; i < length; i++)
         {
             total = TOperator.AccumulateAbsolute(Unsafe.Add(ref coefficientBase, i), total);
+        }
+
+        total256 += total512.GetLower() + total512.GetUpper();
+        total128 += total256.GetLower() + total256.GetUpper();
+        return total + Vector128.Sum(total128);
+    }
+
+    /// <summary>
+    /// Traverses <see cref="SumLevelBits(ReadOnlySpan{int})"/> at descending register widths.
+    /// </summary>
+    private static int SumLevelBits<TOperator>(ReadOnlySpan<int> quantized)
+        where TOperator : struct, ICoefficientMeasureOperator
+    {
+        // A coefficient adds at most 32 bits, so a lane total of the largest block stays far below 2^31.
+        ref int coefficientBase = ref MemoryMarshal.GetReference(quantized);
+        int length = quantized.Length;
+        Vector512<int> total512 = Vector512<int>.Zero;
+        Vector256<int> total256 = Vector256<int>.Zero;
+        Vector128<int> total128 = Vector128<int>.Zero;
+        int total = 0;
+        int i = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector512<int>.Count; i += Vector512<int>.Count)
+            {
+                total512 = TOperator.AccumulateLevelBits(Vector512.LoadUnsafe(ref coefficientBase, (nuint)i), total512);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector256<int>.Count; i += Vector256<int>.Count)
+            {
+                total256 = TOperator.AccumulateLevelBits(Vector256.LoadUnsafe(ref coefficientBase, (nuint)i), total256);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; i <= length - Vector128<int>.Count; i += Vector128<int>.Count)
+            {
+                total128 = TOperator.AccumulateLevelBits(Vector128.LoadUnsafe(ref coefficientBase, (nuint)i), total128);
+            }
+        }
+
+        for (; i < length; i++)
+        {
+            total = TOperator.AccumulateLevelBits(Unsafe.Add(ref coefficientBase, i), total);
         }
 
         total256 += total512.GetLower() + total512.GetUpper();

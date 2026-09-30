@@ -226,7 +226,7 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <param name="source">The row to read.</param>
     /// <param name="destination">The row to write.</param>
     /// <param name="shift">The low bits to drop.</param>
-    private static void Narrow(ReadOnlySpan<ushort> source, Span<byte> destination, int shift)
+    internal static void Narrow(ReadOnlySpan<ushort> source, Span<byte> destination, int shift)
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
         ref byte destinationBase = ref MemoryMarshal.GetReference(destination);

@@ -132,6 +132,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     private readonly int[] slots = [-1, -1, -1];
     private readonly FrameStatistics[] unitStatistics;
     private readonly int[] rawMotionErrors;
+    private readonly int[] waveletEnergies;
     private readonly short[] residual = new short[MacroblockArea];
     private readonly int[] transformed = new int[16];
     private readonly int[] quantized = new int[16];
@@ -217,6 +218,10 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         this.unitStatistics = new FrameStatistics[unitCount];
         this.rawMotionErrors = new int[unitCount];
 
+        // A row of 16x16 units holds two 8x8 blocks per unit, which is at most two more than half the mode-info
+        // columns. A row of 8x8 units holds fewer.
+        this.waveletEnergies = new int[(this.miColumns >> 1) + 2];
+
         // Three reference slots can hold three distinct buffers, so a fourth is always free for the frame.
         this.buffers = new Av1EncoderFrameBuffer<TSample>[4];
         for (int i = 0; i < this.buffers.Length; i++)
@@ -293,8 +298,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
             current++;
         }
 
-        Buffer2DRegion<TSample> sourcePlane = source.CodedView.GetPlane(Av1Plane.Y);
-        Buffer2DRegion<TSample> reconstructionPlane = this.buffers[current].Frame.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> sourcePlane = source.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> reconstructionPlane = this.buffers[current].Frame.CodedView.GetPlane(Av1Plane.Y);
         FrameContext frame = new()
         {
             IntraOnly = intraOnly,
@@ -302,10 +307,10 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
             FirstPassBlockSize = unitLog2 == 1 ? Av1BlockSize.Block8x8 : Av1BlockSize.Block16x16,
             UnitRows = unitRows,
             UnitColumns = unitColumns,
-            Source = sourcePlane.Buffer.DangerousGetSingleSpan(),
+            Source = sourcePlane.Samples,
             SourceStride = sourcePlane.Stride,
             SourceOrigin = (sourcePlane.Bounds.Y * sourcePlane.Stride) + sourcePlane.Bounds.X,
-            Reconstruction = reconstructionPlane.Buffer.DangerousGetSingleSpan(),
+            Reconstruction = reconstructionPlane.Samples,
             ReconstructionStride = reconstructionPlane.Stride,
             ReconstructionOrigin = (reconstructionPlane.Bounds.Y * reconstructionPlane.Stride) + reconstructionPlane.Bounds.X,
             Costs = new Av1MotionVectorCosts(this.motionCostOwner!.Memory.Span, Av1MotionVectorPrecision.EighthSample),
@@ -322,8 +327,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
         if (!intraOnly)
         {
-            Buffer2DRegion<TSample> previousPlane = previousSource.CodedView.GetPlane(Av1Plane.Y);
-            frame.PreviousSource = previousPlane.Buffer.DangerousGetSingleSpan();
+            Av1PlaneRegion<TSample> previousPlane = previousSource.CodedView.GetPlane(Av1Plane.Y);
+            frame.PreviousSource = previousPlane.Samples;
             frame.PreviousSourceStride = previousPlane.Stride;
             frame.PreviousSourceOrigin = (previousPlane.Bounds.Y * previousPlane.Stride) + previousPlane.Bounds.X;
             frame.Last = this.GetReference(LastSlot);
@@ -684,5 +689,5 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     /// <param name="slot">The reference slot.</param>
     /// <returns>The reference samples.</returns>
     private ReadOnlySpan<TSample> GetReference(int slot)
-        => this.buffers[this.slots[slot]].Frame.CodedView.GetPlane(Av1Plane.Y).Buffer.DangerousGetSingleSpan();
+        => this.buffers[this.slots[slot]].Frame.CodedView.GetPlane(Av1Plane.Y).Samples;
 }

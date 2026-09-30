@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -64,14 +65,15 @@ public class Av1EncoderFrameTests
         int width = transpose ? 16 : 4;
         int height = transpose ? 4 : 16;
         int scale = 1 << (bitDepth.GetBitCount() - 8);
-        using Buffer2D<TSample> plane = Configuration.Default.MemoryAllocator.Allocate2D<TSample>(33, 33);
+        using IMemoryOwner<TSample> planeOwner = Configuration.Default.MemoryAllocator.Allocate<TSample>(33 * 33);
+        Av1PlaneRegion<TSample> plane = new(planeOwner.Memory, 33, new Rectangle(0, 0, 33, 33));
         for (int i = 0; i < 32; i++)
         {
-            plane.DangerousGetRowSpan(0)[i + 1] = TOperator.CreateSample((10 + i) * scale);
-            plane.DangerousGetRowSpan(i + 1)[0] = TOperator.CreateSample((50 + i) * scale);
+            plane.GetRowSpan(0)[i + 1] = TOperator.CreateSample((10 + i) * scale);
+            plane.GetRowSpan(i + 1)[0] = TOperator.CreateSample((50 + i) * scale);
         }
 
-        plane.DangerousGetRowSpan(0)[0] = TOperator.CreateSample(100 * scale);
+        plane.GetRowSpan(0)[0] = TOperator.CreateSample(100 * scale);
 
         // The reference extends a four-sample edge through its four-sample neighbor, then
         // repeats sample seven to cover the twenty samples required by a 4x16 directional ray.
@@ -100,7 +102,7 @@ public class Av1EncoderFrameTests
         // The exact-sized interior includes the corner and twenty projected samples. Sentinel samples
         // on either side detect writes outside the reference view, including the former 2*long-edge span.
         Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>.PrepareReferenceSamples(
-            plane.GetRegion(0, 0, limitedExtent ? width + 3 : 33, limitedExtent ? height + 3 : 33),
+            plane.GetSubRegion(0, 0, limitedExtent ? width + 3 : 33, limitedExtent ? height + 3 : 33),
             new Point(1, 1),
             width,
             height,
@@ -524,10 +526,10 @@ public class Av1EncoderFrameTests
 
         foreach (Av1Plane plane in new[] { Av1Plane.Y, Av1Plane.U, Av1Plane.V })
         {
-            Buffer2DRegion<ushort> expectedPlane = expected.Frame.View.GetPlane(plane);
+            Av1PlaneRegion<ushort> expectedPlane = expected.Frame.View.GetPlane(plane);
             for (int row = 0; row < height; row++)
             {
-                ReadOnlySpan<ushort> expectedRow = expectedPlane.DangerousGetRowSpan(row);
+                ReadOnlySpan<ushort> expectedRow = expectedPlane.GetRowSpan(row);
                 Assert.Equal(expectedRow, actual.GetHighBitDepthRowSpan(plane, row, 0, 0));
             }
         }
@@ -554,11 +556,11 @@ public class Av1EncoderFrameTests
         using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _);
         Assert.Equal(width, decoded.Width);
         Assert.Equal(height, decoded.Height);
-        Buffer2DRegion<byte> actual = decoded.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+        Av1PlaneRegion<byte> actual = decoded.DeriveBlockPointer(Av1Plane.Y, 0, 0);
         for (int y = 0; y < height; y++)
         {
             ReadOnlySpan<byte> expectedRow = MemoryMarshal.AsBytes(source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y));
-            Assert.Equal(expectedRow, actual.DangerousGetRowSpan(y));
+            Assert.Equal(expectedRow, actual.GetRowSpan(y));
         }
     }
 
@@ -781,9 +783,9 @@ public class Av1EncoderFrameTests
             1,
             lumaBorder);
 
-        Buffer2D<byte> luma = frameBuffer.Luma;
-        Buffer2D<byte> chromaBlue = Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaBlue);
-        Buffer2D<byte> chromaRed = Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaRed);
+        Av1PlaneRegion<byte> luma = frameBuffer.Luma;
+        Av1PlaneRegion<byte> chromaBlue = frameBuffer.ChromaBlue;
+        Av1PlaneRegion<byte> chromaRed = frameBuffer.ChromaRed;
 
         FillVisible(luma, lumaBorder, lumaBorder, visibleWidth, visibleHeight, 10);
         FillVisible(chromaBlue, chromaBorder, chromaBorder, (visibleWidth + 1) / 2, (visibleHeight + 1) / 2, 80);
@@ -820,9 +822,6 @@ public class Av1EncoderFrameTests
             Assert.Empty(allocator.ReturnLog);
             Assert.Equal(typeof(byte), allocation.ElementType);
             Assert.Equal(expectedLength, allocation.Length);
-            Assert.Single(frameBuffer.Luma.MemoryGroup);
-            Assert.Single(Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaBlue).MemoryGroup);
-            Assert.Single(Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaRed).MemoryGroup);
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
@@ -909,11 +908,11 @@ public class Av1EncoderFrameTests
         return image;
     }
 
-    private static void FillVisible(Buffer2D<byte> plane, int originX, int originY, int width, int height, int seed)
+    private static void FillVisible(Av1PlaneRegion<byte> plane, int originX, int originY, int width, int height, int seed)
     {
         for (int y = 0; y < height; y++)
         {
-            Span<byte> row = plane.DangerousGetRowSpan(originY + y);
+            Span<byte> row = plane.GetRowSpan(originY + y);
             for (int x = 0; x < width; x++)
             {
                 row[originX + x] = (byte)(seed + (y * width) + x);
@@ -921,11 +920,11 @@ public class Av1EncoderFrameTests
         }
     }
 
-    private static void AssertReplicatedPlane(Buffer2D<byte> plane, int originX, int originY, int width, int height, int seed)
+    private static void AssertReplicatedPlane(Av1PlaneRegion<byte> plane, int originX, int originY, int width, int height, int seed)
     {
         for (int y = 0; y < plane.Height; y++)
         {
-            ReadOnlySpan<byte> row = plane.DangerousGetRowSpan(y);
+            ReadOnlySpan<byte> row = plane.GetRowSpan(y);
             int sourceY = Math.Clamp(y - originY, 0, height - 1);
             for (int x = 0; x < row.Length; x++)
             {
@@ -936,14 +935,14 @@ public class Av1EncoderFrameTests
     }
 
     private static void AssertReplicatedSingleRow<TSample>(
-        Buffer2D<TSample> plane,
+        Av1PlaneRegion<TSample> plane,
         int originX,
         ReadOnlySpan<TSample> expected)
         where TSample : unmanaged, IEquatable<TSample>
     {
         for (int y = 0; y < plane.Height; y++)
         {
-            ReadOnlySpan<TSample> row = plane.DangerousGetRowSpan(y);
+            ReadOnlySpan<TSample> row = plane.GetRowSpan(y);
             for (int x = 0; x < row.Length; x++)
             {
                 int sourceX = Math.Clamp(x - originX, 0, expected.Length - 1);

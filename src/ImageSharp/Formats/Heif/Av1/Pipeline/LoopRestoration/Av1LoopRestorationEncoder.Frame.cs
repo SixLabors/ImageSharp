@@ -37,7 +37,7 @@ internal static partial class Av1LoopRestorationEncoder
         boundary.PrepareFrame(sequence, header, Unsafe.SizeOf<TSample>(), (1 << planeCount) - 1);
         for (int plane = 0; plane < planeCount; plane++)
         {
-            Buffer2DRegion<TSample> region = reconstruction.View.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> region = reconstruction.View.GetPlane((Av1Plane)plane);
             int subX = plane == 0 ? 0 : reconstruction.ChromaSubsamplingX;
             int subY = plane == 0 ? 0 : reconstruction.ChromaSubsamplingY;
             int border = header.FrameSize.FrameWidth != header.FrameSize.SuperResolutionUpscaledWidth
@@ -45,7 +45,7 @@ internal static partial class Av1LoopRestorationEncoder
                 : 0;
 
             int origin = (region.Bounds.Y * region.Stride) + region.Bounds.X - border;
-            Span<TSample> samples = region.Buffer.DangerousGetSingleSpan()[origin..];
+            Span<TSample> samples = region.Samples[origin..];
             Span<byte> low = default;
             Span<ushort> high = default;
             if (typeof(TSample) == typeof(byte))
@@ -94,15 +94,15 @@ internal static partial class Av1LoopRestorationEncoder
             qIndex,
             picture.Parent.SpeedSettings.IsBoosted,
             picture.Parent.FrameUpdateType == Av1FrameUpdateType.IntermediateAlternate,
-            header.AllowScreenContentTools,
+            picture.Parent.SpeedSettings.FrameSizeScreenContentTools,
             1 << sequence.SuperblockSizeLog2);
 
         for (int plane = 0; plane < planeCount; plane++)
         {
             header.LoopRestorationParameters.Items[plane].Type = ObuRestorationType.None;
-            Buffer2DRegion<TSample> region = reconstruction.View.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> region = reconstruction.View.GetPlane((Av1Plane)plane);
             int origin = (region.Bounds.Y * region.Stride) + region.Bounds.X;
-            ReadOnlySpan<TSample> samples = region.Buffer.DangerousGetSingleSpan()[origin..];
+            ReadOnlySpan<TSample> samples = region.Samples[origin..];
             ReadOnlySpan<byte> low = default;
             ReadOnlySpan<ushort> high = default;
             if (typeof(TSample) == typeof(byte))
@@ -128,7 +128,7 @@ internal static partial class Av1LoopRestorationEncoder
         int searchCapacity = 0;
         for (int plane = 0; plane < planeCount; plane++)
         {
-            Buffer2DRegion<TSample> region = source.View.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> region = source.View.GetPlane((Av1Plane)plane);
             searchOffsets[plane] = searchCapacity;
             searchCapacity += Math.Max(1, (region.Width + (settings.MinimumUnitSize >> 1)) / settings.MinimumUnitSize) *
                 Math.Max(1, (region.Height + (settings.MinimumUnitSize >> 1)) / settings.MinimumUnitSize);
@@ -237,7 +237,7 @@ internal static partial class Av1LoopRestorationEncoder
                 }
 
                 allNone = false;
-                Buffer2DRegion<TSample> region = source.View.GetPlane((Av1Plane)plane);
+                Av1PlaneRegion<TSample> region = source.View.GetPlane((Av1Plane)plane);
                 int count = Math.Max(1, (region.Width + (unitSize >> 1)) / unitSize) *
                     Math.Max(1, (region.Height + (unitSize >> 1)) / unitSize);
 
@@ -273,10 +273,10 @@ internal static partial class Av1LoopRestorationEncoder
 
             header.LoopRestorationParameters.UsesLoopRestoration = true;
             header.LoopRestorationParameters.UsesChromaLoopRestoration |= plane != 0;
-            Buffer2DRegion<TSample> region = reconstruction.View.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> region = reconstruction.View.GetPlane((Av1Plane)plane);
             int subX = plane == 0 ? 0 : source.ChromaSubsamplingX;
             int subY = plane == 0 ? 0 : source.ChromaSubsamplingY;
-            Buffer2DRegion<TSample> trial = trialFrame.View.GetPlane((Av1Plane)plane);
+            Av1PlaneRegion<TSample> trial = trialFrame.View.GetPlane((Av1Plane)plane);
             UnitSearchContext<TSample> context = new(
                 source.View.GetPlane((Av1Plane)plane),
                 region,
@@ -306,7 +306,7 @@ internal static partial class Av1LoopRestorationEncoder
             // consume the same reconstruction even when they choose different filter families.
             for (int row = 0; row < region.Height; row++)
             {
-                trial.DangerousGetRowSpan(row).CopyTo(region.DangerousGetRowSpan(row));
+                trial.GetRowSpan(row).CopyTo(region.GetRowSpan(row));
             }
         }
     }

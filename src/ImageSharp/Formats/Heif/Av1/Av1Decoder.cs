@@ -54,12 +54,12 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <summary>
     /// Reusable luma palette indices for the coding blocks in one superblock.
     /// </summary>
-    private readonly Buffer2D<byte> lumaPaletteColorIndexMap;
+    private readonly Av1PlaneRegion<byte> lumaPaletteColorIndexMap;
 
     /// <summary>
     /// Reusable chroma palette indices for the coding blocks in one superblock.
     /// </summary>
-    private readonly Buffer2D<byte> chromaPaletteColorIndexMap;
+    private readonly Av1PlaneRegion<byte> chromaPaletteColorIndexMap;
 
     /// <summary>
     /// The shared backing owner for both reusable palette maps.
@@ -135,15 +135,9 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         int paletteMapArea = paletteMapLength * paletteMapLength;
         this.paletteColorIndexMapOwner = configuration.MemoryAllocator.Allocate<byte>(2 * paletteMapArea);
         Memory<byte> paletteMaps = this.paletteColorIndexMapOwner.Memory;
-        this.lumaPaletteColorIndexMap = Buffer2D<byte>.WrapMemory(
-            paletteMaps[..paletteMapArea],
-            paletteMapLength,
-            paletteMapLength);
-
-        this.chromaPaletteColorIndexMap = Buffer2D<byte>.WrapMemory(
-            paletteMaps[paletteMapArea..],
-            paletteMapLength,
-            paletteMapLength);
+        Rectangle paletteMapBounds = new(0, 0, paletteMapLength, paletteMapLength);
+        this.lumaPaletteColorIndexMap = new(paletteMaps[..paletteMapArea], paletteMapLength, paletteMapBounds);
+        this.chromaPaletteColorIndexMap = new(paletteMaps.Slice(paletteMapArea, paletteMapArea), paletteMapLength, paletteMapBounds);
     }
 
     /// <summary>
@@ -929,8 +923,6 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.restorationDecoder.Dispose();
         this.FrameInfo?.ReleaseOwner();
         this.FrameInfo = null;
-        this.lumaPaletteColorIndexMap.Dispose();
-        this.chromaPaletteColorIndexMap.Dispose();
         this.paletteColorIndexMapOwner.Dispose();
     }
 

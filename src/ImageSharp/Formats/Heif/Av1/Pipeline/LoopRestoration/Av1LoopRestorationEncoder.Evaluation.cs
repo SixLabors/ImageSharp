@@ -133,17 +133,17 @@ internal static partial class Av1LoopRestorationEncoder
         /// <summary>
         /// The original visible samples.
         /// </summary>
-        public readonly Buffer2DRegion<TSample> Source;
+        public readonly Av1PlaneRegion<TSample> Source;
 
         /// <summary>
         /// The unfiltered reconstruction with addressable borders.
         /// </summary>
-        public readonly Buffer2DRegion<TSample> Reconstruction;
+        public readonly Av1PlaneRegion<TSample> Reconstruction;
 
         /// <summary>
         /// The separate trial destination, reused by every candidate.
         /// </summary>
-        public readonly Buffer2DRegion<TSample> Trial;
+        public readonly Av1PlaneRegion<TSample> Trial;
 
         /// <summary>
         /// The saved pre-CDEF internal rows and post-CDEF frame edges.
@@ -189,9 +189,9 @@ internal static partial class Av1LoopRestorationEncoder
         /// Initializes a new instance of the <see cref="UnitSearchContext{TSample}"/> struct.
         /// </summary>
         public UnitSearchContext(
-            Buffer2DRegion<TSample> source,
-            Buffer2DRegion<TSample> reconstruction,
-            Buffer2DRegion<TSample> trial,
+            Av1PlaneRegion<TSample> source,
+            Av1PlaneRegion<TSample> reconstruction,
+            Av1PlaneRegion<TSample> trial,
             Av1LoopRestorationBoundary boundary,
             int plane,
             int bitDepth,
@@ -241,10 +241,10 @@ internal static partial class Av1LoopRestorationEncoder
                 this.Plane,
                 this.SubsamplingX,
                 this.SubsamplingY,
-                this.Reconstruction.Buffer.DangerousGetSingleSpan(),
+                this.Reconstruction.Samples,
                 sourceOrigin,
                 this.Reconstruction.Stride,
-                this.Trial.Buffer.DangerousGetSingleSpan()[trialOrigin..],
+                this.Trial.Samples[trialOrigin..],
                 this.Trial.Stride,
                 this.Reconstruction.Height,
                 bounds.X,
@@ -263,12 +263,12 @@ internal static partial class Av1LoopRestorationEncoder
         /// <param name="bounds">The exact unit rectangle.</param>
         /// <param name="candidate">The plane containing the candidate samples.</param>
         /// <returns>The exact squared error at the stored sample precision.</returns>
-        public long MeasureError(Rectangle bounds, Buffer2DRegion<TSample> candidate)
+        public long MeasureError(Rectangle bounds, Av1PlaneRegion<TSample> candidate)
         {
             int sourceOffset = ((this.Source.Bounds.Y + bounds.Y) * this.Source.Stride) + this.Source.Bounds.X + bounds.X;
             int candidateOffset = ((candidate.Bounds.Y + bounds.Y) * candidate.Stride) + candidate.Bounds.X + bounds.X;
-            ReadOnlySpan<TSample> source = this.Source.Buffer.DangerousGetSingleSpan()[sourceOffset..];
-            ReadOnlySpan<TSample> samples = candidate.Buffer.DangerousGetSingleSpan()[candidateOffset..];
+            ReadOnlySpan<TSample> source = this.Source.Samples[sourceOffset..];
+            ReadOnlySpan<TSample> samples = candidate.Samples[candidateOffset..];
 
             // Sample storage is fixed by the enclosing closed generic frame path. Dispatch once per
             // unit to the existing vectorized error calculation; no sample conversion is required.

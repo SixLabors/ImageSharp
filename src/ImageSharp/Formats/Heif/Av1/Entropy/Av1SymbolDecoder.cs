@@ -260,9 +260,9 @@ internal ref struct Av1SymbolDecoder
         Av1PlaneType planeType,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap)
+        Av1PlaneRegion<byte> colorIndexMap)
     {
-        colorIndexMap.DangerousGetRowSpan(0)[0] = (byte)this.ReadUniform(paletteSize);
+        colorIndexMap.GetRowSpan(0)[0] = (byte)this.ReadUniform(paletteSize);
         Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
         for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
         {
@@ -281,7 +281,7 @@ internal ref struct Av1SymbolDecoder
                     out _);
 
                 int colorOrderIndex = this.ReadPaletteColorIndex(paletteSize, colorContext, planeType);
-                colorIndexMap.DangerousGetRowSpan(row)[column] = colorOrder[colorOrderIndex];
+                colorIndexMap.GetRowSpan(row)[column] = colorOrder[colorOrderIndex];
             }
         }
     }

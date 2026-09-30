@@ -124,13 +124,13 @@ internal static partial class Av1FrameEncoder
         // Reference: disable_gm_search_based_on_stats(), on for every good-quality speed.
         bool searchDisabledByStatistics = search.DisabledByStatistics;
 
-        Buffer2DRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
         for (int frame = (int)Av1ReferenceFrameType.Alternate; frame >= (int)Av1ReferenceFrameType.Last; frame--)
         {
             Av1EncoderFrame<TSample> reference = references[frame];
             int slot = (int)slots[frame - 1];
             bool pruned = pruningEnabled && PrunesReferenceForGlobalMotion(frame, slots, search.SlotDisplayOrders, selectiveLevel);
-            Buffer2DRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
             if ((search.RecodeAllowed && (search.ReferenceFrameFlags & (1 << frame)) == 0) ||
                 reference.Width != source.Width ||
                 reference.Height != source.Height ||
@@ -245,14 +245,14 @@ internal static partial class Av1FrameEncoder
     {
         // The search measures the visible frame, not its coded extent. Reference: the y_crop_width and
         // y_crop_height of cpi->source that compute_global_motion_for_ref_frame() passes on.
-        Buffer2DRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
-        Buffer2DRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
+        Av1PlaneRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
         int width = source.Width;
         int height = source.Height;
         int stride = sourceLuma.Stride;
         int depth = bitDepth.GetBitCount();
-        ReadOnlySpan<TSample> sourcePlane = sourceLuma.Buffer.DangerousGetSingleSpan();
-        ReadOnlySpan<TSample> referencePlane = referenceLuma.Buffer.DangerousGetSingleSpan();
+        ReadOnlySpan<TSample> sourcePlane = sourceLuma.Samples;
+        ReadOnlySpan<TSample> referencePlane = referenceLuma.Samples;
         int sourceOrigin = (sourceLuma.Bounds.Y * stride) + sourceLuma.Bounds.X;
         int referenceOrigin = (referenceLuma.Bounds.Y * stride) + referenceLuma.Bounds.X;
 

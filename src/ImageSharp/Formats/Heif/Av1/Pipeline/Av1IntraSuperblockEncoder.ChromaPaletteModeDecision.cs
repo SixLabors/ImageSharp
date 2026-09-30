@@ -93,8 +93,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
             int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);
             int redLeftIndex = redNeighbors.GetLeftIndex(chromaOrigin);
-            Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
-            Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
+            Av1PlaneRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
+            Av1PlaneRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
 
             // Clip against the coded mode-info boundary before subsampling, as the decoder does. Visible odd
             // dimensions still have complete coded chroma samples; truncating them here can leave an empty palette input.
@@ -108,8 +108,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int activeSampleCount = rows * columns;
             Span<short> blueSamples = workspace.GetSamples(0)[..activeSampleCount];
             Span<short> redSamples = workspace.GetSamples(1)[..activeSampleCount];
-            Buffer2DRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
-            Buffer2DRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
+            Av1PlaneRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
+            Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
             TOperator.CopyPaletteSamples(blueSource, chromaOrigin, rows, columns, blueSamples);
             TOperator.CopyPaletteSamples(redSource, chromaOrigin, rows, columns, redSamples);
 
@@ -142,7 +142,7 @@ internal static partial class Av1IntraSuperblockEncoder
             colorCache = colorCache[..colorCacheSize];
             int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(blockSize);
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
-            Buffer2DRegion<byte> colorIndexMap = this.superblock.Workspace
+            Av1PlaneRegion<byte> colorIndexMap = this.superblock.Workspace
                 .GetPaletteMaps()
                 .GetMap(Av1PlaneType.Uv, width, height);
 
@@ -232,7 +232,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 for (int row = 0; row < rows; row++)
                 {
-                    Span<byte> mapRow = colorIndexMap.DangerousGetRowSpan(row)[..width];
+                    Span<byte> mapRow = colorIndexMap.GetRowSpan(row)[..width];
                     colorIndices.Slice(row * columns, columns).CopyTo(mapRow);
                     mapRow[columns..].Fill(mapRow[columns - 1]);
                 }
@@ -240,8 +240,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The shared U/V map covers the complete declared chroma block even at visible frame edges.
                 for (int row = rows; row < height; row++)
                 {
-                    colorIndexMap.DangerousGetRowSpan(rows - 1)[..width]
-                        .CopyTo(colorIndexMap.DangerousGetRowSpan(row));
+                    colorIndexMap.GetRowSpan(rows - 1)[..width]
+                        .CopyTo(colorIndexMap.GetRowSpan(row));
                 }
 
                 Span<ushort> bluePaletteColors = bluePaletteColorStorage[..paletteSize];
@@ -403,7 +403,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     for (int row = 0; row < height; row++)
                     {
-                        colorIndexMap.DangerousGetRowSpan(row)[..width]
+                        colorIndexMap.GetRowSpan(row)[..width]
                             .CopyTo(retainedColorIndexMap[(row * width)..]);
                     }
 
@@ -420,7 +420,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int row = 0; row < height; row++)
                 {
                     retainedColorIndexMap.Slice(row * width, width)
-                        .CopyTo(colorIndexMap.DangerousGetRowSpan(row));
+                        .CopyTo(colorIndexMap.GetRowSpan(row));
                 }
             }
 

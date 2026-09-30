@@ -105,14 +105,7 @@ internal static partial class Av1PaletteKMeans
         Span<int> sums = stackalloc int[Av1Constants.PaletteMaxSize];
         counts = counts[..centroids.Length];
         sums = sums[..centroids.Length];
-        counts.Clear();
-        sums.Clear();
-        for (int index = 0; index < samples.Length; index++)
-        {
-            int centroidIndex = indices[index];
-            counts[centroidIndex]++;
-            sums[centroidIndex] += samples[index];
-        }
+        SumByIndex(samples, indices, sums, counts);
 
         uint randomState = (uint)samples[0];
         for (int centroidIndex = 0; centroidIndex < centroids.Length; centroidIndex++)

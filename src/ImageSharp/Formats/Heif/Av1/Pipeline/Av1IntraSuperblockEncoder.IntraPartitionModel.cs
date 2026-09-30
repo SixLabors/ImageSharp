@@ -1532,9 +1532,83 @@ internal static partial class Av1IntraSuperblockEncoder
         int outputArea = outputWidth * outputWidth;
         int weightStep = inputChannels * outputChannels;
 
-        // Four lanes hold four output channels. Kernel positions and input channels are accumulated
-        // in the same order for every lane; channel-major output is scattered only after rectification.
-        for (int channel = 0; channel < outputChannels; channel += 4)
+        // Each lane holds one output channel. Kernel positions and input channels are accumulated in the same order
+        // for every lane, so the channel groups of every width give the same sums; channel-major output is scattered
+        // only after rectification. Output channel counts are multiples of four.
+        int channel = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; channel <= outputChannels - Vector512<float>.Count; channel += Vector512<float>.Count)
+            {
+                Vector512<float> bias = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(biases), (nuint)channel);
+                for (int y = 0; y < outputWidth; y++)
+                {
+                    for (int x = 0; x < outputWidth; x++)
+                    {
+                        Vector512<float> sum = bias;
+                        for (int inputChannel = 0; inputChannel < inputChannels; inputChannel++)
+                        {
+                            int weightIndex = (inputChannel * outputChannels) + channel;
+                            for (int filterY = 0; filterY < filterWidth; filterY++)
+                            {
+                                int inputIndex = (inputChannel * inputArea) + (((y * step) + filterY) * inputWidth) + (x * step);
+                                for (int filterX = 0; filterX < filterWidth; filterX++)
+                                {
+                                    Vector512<float> weight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(weights), (nuint)weightIndex);
+                                    sum += weight * Vector512.Create(input[inputIndex + filterX]);
+                                    weightIndex += weightStep;
+                                }
+                            }
+                        }
+
+                        sum = Vector512.Max(sum, Vector512<float>.Zero);
+                        int outputIndex = (channel * outputArea) + (y * outputWidth) + x;
+                        for (int lane = 0; lane < Vector512<float>.Count; lane++)
+                        {
+                            output[outputIndex + (lane * outputArea)] = sum.GetElement(lane);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; channel <= outputChannels - Vector256<float>.Count; channel += Vector256<float>.Count)
+            {
+                Vector256<float> bias = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(biases), (nuint)channel);
+                for (int y = 0; y < outputWidth; y++)
+                {
+                    for (int x = 0; x < outputWidth; x++)
+                    {
+                        Vector256<float> sum = bias;
+                        for (int inputChannel = 0; inputChannel < inputChannels; inputChannel++)
+                        {
+                            int weightIndex = (inputChannel * outputChannels) + channel;
+                            for (int filterY = 0; filterY < filterWidth; filterY++)
+                            {
+                                int inputIndex = (inputChannel * inputArea) + (((y * step) + filterY) * inputWidth) + (x * step);
+                                for (int filterX = 0; filterX < filterWidth; filterX++)
+                                {
+                                    Vector256<float> weight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(weights), (nuint)weightIndex);
+                                    sum += weight * Vector256.Create(input[inputIndex + filterX]);
+                                    weightIndex += weightStep;
+                                }
+                            }
+                        }
+
+                        sum = Vector256.Max(sum, Vector256<float>.Zero);
+                        int outputIndex = (channel * outputArea) + (y * outputWidth) + x;
+                        for (int lane = 0; lane < Vector256<float>.Count; lane++)
+                        {
+                            output[outputIndex + (lane * outputArea)] = sum.GetElement(lane);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (; channel < outputChannels; channel += 4)
         {
             Vector128<float> bias = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(biases), (nuint)channel);
             for (int y = 0; y < outputWidth; y++)
@@ -1603,14 +1677,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<float> scratch = this.blockWorkspace.IntraPartitionScratch;
                 Span<float> input = scratch[..(65 * 65)];
                 Span<float> firstLayer = scratch[(65 * 65)..];
-                Buffer2DRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
                 float maximum = (1 << this.bitDepth.GetBitCount()) - 1;
 
                 // Include the padded source row and column above/left. The complete 64x64 parent
                 // was checked by the partition controller; the frame owner supplies its physical border.
                 for (int y = 0; y < 65; y++)
                 {
-                    ReadOnlySpan<TSample> row = source.Buffer.DangerousGetRowSpan(source.Bounds.Y + blockOrigin.Y + y - 1)
+                    ReadOnlySpan<TSample> row = source.GetPlaneRowSpan(source.Bounds.Y + blockOrigin.Y + y - 1)
                         .Slice(source.Bounds.X + blockOrigin.X - 1, 65);
 
                     for (int x = 0; x < 65; x++)

@@ -26,8 +26,8 @@ internal static partial class Av1LoopRestorationEncoder
     /// <param name="correlation">The window-squared source correlation output.</param>
     /// <param name="covariance">The square covariance matrix output.</param>
     private static void ComputeWienerStatistics<TSample>(
-        Buffer2DRegion<TSample> source,
-        Buffer2DRegion<TSample> reconstruction,
+        Av1PlaneRegion<TSample> source,
+        Av1PlaneRegion<TSample> reconstruction,
         int window,
         int bitDepth,
         bool downsample,
@@ -35,19 +35,11 @@ internal static partial class Av1LoopRestorationEncoder
         Span<long> covariance)
         where TSample : unmanaged
     {
-        long sum = 0;
-        for (int row = 0; row < reconstruction.Height; row++)
-        {
-            ReadOnlySpan<TSample> samples = reconstruction.DangerousGetRowSpan(row);
-            for (int column = 0; column < samples.Length; column++)
-            {
-                sum += Av1RestorationSampleOperations.Load(samples[column]);
-            }
-        }
-
+        // The mean of the reconstructed unit centers every product. Reference: find_average().
+        GetSampleMoments(reconstruction, out long sum, out _);
         int average = (int)(sum / (reconstruction.Width * reconstruction.Height));
-        ReadOnlySpan<TSample> original = source.Buffer.DangerousGetSingleSpan();
-        ReadOnlySpan<TSample> degraded = reconstruction.Buffer.DangerousGetSingleSpan();
+        ReadOnlySpan<TSample> original = source.Samples;
+        ReadOnlySpan<TSample> degraded = reconstruction.Samples;
         int sourceOrigin = (source.Bounds.Y * source.Stride) + source.Bounds.X;
         int degradedOrigin = (reconstruction.Bounds.Y * reconstruction.Stride) + reconstruction.Bounds.X;
         int count = window * window;
@@ -112,70 +104,75 @@ internal static partial class Av1LoopRestorationEncoder
         int rowStep)
         where TSample : unmanaged
     {
-        ref TSample firstReference = ref MemoryMarshal.GetReference(first);
-        ref TSample secondReference = ref MemoryMarshal.GetReference(second);
-        long total = 0;
+        // Every sampled row stands for rowStep rows except a short final group, which stands for the rows left. The
+        // full groups share one set of lane totals and the short group keeps its own, so each is weighted once.
+        LaneTotals full = default;
+        LaneTotals last = default;
+        int lastRow = ((height - 1) / rowStep) * rowStep;
+        int lastWeight = height - lastRow;
         for (int row = 0; row < height; row += rowStep)
         {
-            int column = 0;
-            long rowTotal = 0;
-            if (Vector256.IsHardwareAccelerated)
-            {
-                Vector256<long> lower = Vector256<long>.Zero;
-                Vector256<long> upper = Vector256<long>.Zero;
-                Vector256<int> center = Vector256.Create(average);
-                for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
-                {
-                    Vector256<int> a = Av1RestorationSampleOperations.LoadToInt32(
-                        ref Unsafe.Add(ref firstReference, (row * firstStride) + column), Vector256<int>.Zero) - center;
-
-                    Vector256<int> b = Av1RestorationSampleOperations.LoadToInt32(
-                        ref Unsafe.Add(ref secondReference, (row * secondStride) + column), Vector256<int>.Zero) - center;
-
-                    // Each lane is one neighboring sample product. Twelve-bit centered products fit
-                    // in Int32, but a full unit's sum does not; widen before accumulating across rows.
-                    Vector256<int> product = a * b;
-                    lower += Vector256.WidenLower(product);
-                    upper += Vector256.WidenUpper(product);
-                }
-
-                rowTotal += Vector256.Sum(lower + upper);
-            }
-
-            if (Vector128.IsHardwareAccelerated)
-            {
-                Vector128<long> lower = Vector128<long>.Zero;
-                Vector128<long> upper = Vector128<long>.Zero;
-                Vector128<int> center = Vector128.Create(average);
-                for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
-                {
-                    Vector128<int> a = Av1RestorationSampleOperations.LoadToInt32(
-                        ref Unsafe.Add(ref firstReference, (row * firstStride) + column), Vector128<int>.Zero) - center;
-
-                    Vector128<int> b = Av1RestorationSampleOperations.LoadToInt32(
-                        ref Unsafe.Add(ref secondReference, (row * secondStride) + column), Vector128<int>.Zero) - center;
-
-                    Vector128<int> product = a * b;
-                    lower += Vector128.WidenLower(product);
-                    upper += Vector128.WidenUpper(product);
-                }
-
-                rowTotal += Vector128.Sum(lower + upper);
-            }
-
-            // The scalar tail reads only visible samples. A short final sampling group receives its
-            // actual remaining row count instead of the nominal factor of four.
-            for (; column < width; column++)
-            {
-                int a = Av1RestorationSampleOperations.Load(Unsafe.Add(ref firstReference, (row * firstStride) + column)) - average;
-                int b = Av1RestorationSampleOperations.Load(Unsafe.Add(ref secondReference, (row * secondStride) + column)) - average;
-                rowTotal += (long)a * b;
-            }
-
-            total += rowTotal * Math.Min(rowStep, height - row);
+            ref LaneTotals totals = ref row == lastRow && lastWeight != rowStep ? ref last : ref full;
+            AccumulateCorrelationRow<TSample, CorrelationOperator>(
+                first.Slice(row * firstStride, width), second.Slice(row * secondStride, width), average, ref totals);
         }
 
-        return total;
+        return (full.Sum() * rowStep) + (last.Sum() * lastWeight);
+    }
+
+    /// <summary>
+    /// Adds the centered products of one row, walking the widest register first.
+    /// </summary>
+    /// <typeparam name="TSample">The physical component sample type.</typeparam>
+    /// <typeparam name="TOperator">The correlation arithmetic.</typeparam>
+    /// <param name="first">The first row.</param>
+    /// <param name="second">The second row.</param>
+    /// <param name="average">The common reconstructed-sample average.</param>
+    /// <param name="totals">The lane totals of every register width.</param>
+    private static void AccumulateCorrelationRow<TSample, TOperator>(
+        ReadOnlySpan<TSample> first,
+        ReadOnlySpan<TSample> second,
+        int average,
+        ref LaneTotals totals)
+        where TSample : unmanaged
+        where TOperator : struct, ICorrelationOperator
+    {
+        ref TSample firstBase = ref MemoryMarshal.GetReference(first);
+        ref TSample secondBase = ref MemoryMarshal.GetReference(second);
+        int width = first.Length;
+        int column = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector512<short>.Count; column += Vector512<short>.Count)
+            {
+                totals.Lanes512 = TOperator.AccumulateProducts(
+                    ref Unsafe.Add(ref firstBase, column), ref Unsafe.Add(ref secondBase, column), average, totals.Lanes512);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector256<short>.Count; column += Vector256<short>.Count)
+            {
+                totals.Lanes256 = TOperator.AccumulateProducts(
+                    ref Unsafe.Add(ref firstBase, column), ref Unsafe.Add(ref secondBase, column), average, totals.Lanes256);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
+            {
+                totals.Lanes128 = TOperator.AccumulateProducts(
+                    ref Unsafe.Add(ref firstBase, column), ref Unsafe.Add(ref secondBase, column), average, totals.Lanes128);
+            }
+        }
+
+        for (; column < width; column++)
+        {
+            totals.Scalar = TOperator.AccumulateProducts(
+                ref Unsafe.Add(ref firstBase, column), ref Unsafe.Add(ref secondBase, column), average, totals.Scalar);
+        }
     }
 
     /// <summary>

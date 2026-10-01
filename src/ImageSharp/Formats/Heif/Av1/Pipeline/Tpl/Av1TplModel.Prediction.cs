@@ -140,7 +140,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             this.qIndex,
             0,
             0,
-            this.bitDepth);
+            this.bitDepth,
+            this.quantizerSharpness);
 
         // The error is scaled down by four below 32x32 transforms, and normalized to 8-bit precision first.
         reconstructionError = Av1TransformBlockEncoder.GetTransformErrorCore(coefficientSpan, dequantizedSpan, transformSize, this.bitDepth, out sse);

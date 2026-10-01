@@ -378,6 +378,7 @@ internal static partial class Av1MotionSearchBase
         private readonly Av1BlockSize blockSize;
         private readonly Point blockOrigin;
         private readonly Rectangle frameBounds;
+        private readonly Size visibleFrameSize;
         private readonly Av1EncoderBlockWorkspace workspace;
         private readonly Span<TSample> prediction;
         private readonly Span<short> residual;
@@ -408,6 +409,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="blockSize">The containing prediction block size.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="frameBounds">The full-sample frame search limits before differential-vector limits.</param>
+        /// <param name="visibleFrameSize">The visible frame size, which bounds the search at sharpness 3.</param>
         /// <param name="workspace">The worker transform and search-site storage.</param>
         /// <param name="prediction">The worker search prediction buffer, also reused for final predictions.</param>
         /// <param name="residual">The packed block residual destination.</param>
@@ -419,7 +421,9 @@ internal static partial class Av1MotionSearchBase
         /// <param name="bitDepth">The coded sample precision.</param>
         /// <param name="qIndex">The effective segment quantizer index.</param>
         /// <param name="dcDeltaQ">The luma DC quantizer adjustment.</param>
-        /// <param name="sharpness">The quantization sharpness setting.</param>
+        /// <param name="sharpness">
+        /// The encoder sharpness, which sets the quantizer rounding and, at 3, keeps the search near the frame.
+        /// </param>
         /// <param name="lossless">Whether the segment is coded losslessly.</param>
         /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
         /// <param name="transformSizeRate">The transform partition rate used by winner estimation.</param>
@@ -435,6 +439,7 @@ internal static partial class Av1MotionSearchBase
             Av1BlockSize blockSize,
             Point blockOrigin,
             Rectangle frameBounds,
+            Size visibleFrameSize,
             Av1EncoderBlockWorkspace workspace,
             Span<TSample> prediction,
             Span<short> residual,
@@ -462,6 +467,7 @@ internal static partial class Av1MotionSearchBase
             this.blockSize = blockSize;
             this.blockOrigin = blockOrigin;
             this.frameBounds = frameBounds;
+            this.visibleFrameSize = visibleFrameSize;
             this.workspace = workspace;
             this.prediction = prediction;
             this.residual = residual;
@@ -481,6 +487,41 @@ internal static partial class Av1MotionSearchBase
             this.skipRate = skipRate;
             this.motionCosts = motionCosts;
         }
+
+        /// <summary>
+        /// Returns the full-pixel search range around a reference vector. Reference: av1_set_mv_search_range() and
+        /// the sharpness margins of av1_make_default_fullpel_ms_params().
+        /// </summary>
+        /// <param name="referenceVector">The differential coding predictor.</param>
+        /// <returns>The range, with exclusive right and bottom edges.</returns>
+        private Rectangle GetFullPixelBounds(Av1MotionVector referenceVector)
+        {
+            Rectangle bounds = referenceVector.GetFullPixelSearchBounds(this.frameBounds);
+            return this.sharpness == 3
+                ? Av1MotionVector.ClampToSharpnessMargins(bounds, this.blockOrigin, this.GetBlockDimensions(), this.visibleFrameSize, 1)
+                : bounds;
+        }
+
+        /// <summary>
+        /// Returns the eighth-sample search range around a reference vector. Reference:
+        /// av1_set_subpel_mv_search_range() and the sharpness margins of av1_make_default_subpel_ms_params().
+        /// </summary>
+        /// <param name="referenceVector">The differential coding predictor.</param>
+        /// <returns>The range, with exclusive right and bottom edges.</returns>
+        private Rectangle GetSubpixelBounds(Av1MotionVector referenceVector)
+        {
+            Rectangle bounds = referenceVector.GetSubpixelSearchBounds(this.frameBounds);
+            return this.sharpness == 3
+                ? Av1MotionVector.ClampToSharpnessMargins(
+                    bounds, this.blockOrigin, this.GetBlockDimensions(), this.visibleFrameSize, Av1MotionVector.SubpixelScale)
+                : bounds;
+        }
+
+        /// <summary>
+        /// Returns the luma size of the searched block.
+        /// </summary>
+        /// <returns>The block width and height.</returns>
+        private Size GetBlockDimensions() => new(this.blockSize.GetWidth(), this.blockSize.GetHeight());
 
         /// <summary>
         /// Searches a new-motion candidate using prediction error and motion rate.
@@ -525,7 +566,7 @@ internal static partial class Av1MotionSearchBase
                 this.referenceStride,
                 this.referenceOrigin,
                 size,
-                referenceVector.GetFullPixelSearchBounds(this.frameBounds),
+                this.GetFullPixelBounds(referenceVector),
                 referenceVector,
                 this.motionCosts,
                 this.bitDepth,
@@ -587,7 +628,7 @@ internal static partial class Av1MotionSearchBase
                     this.referenceOrigin,
                     this.prediction,
                     size,
-                    referenceVector.GetSubpixelSearchBounds(this.frameBounds),
+                    this.GetSubpixelBounds(referenceVector),
                     referenceVector,
                     this.motionCosts,
                     this.bitDepth,
@@ -659,7 +700,7 @@ internal static partial class Av1MotionSearchBase
                 this.referenceOrigin,
                 this.prediction,
                 size,
-                referenceVector.GetSubpixelSearchBounds(this.frameBounds),
+                this.GetSubpixelBounds(referenceVector),
                 referenceVector,
                 this.motionCosts,
                 this.bitDepth,
@@ -808,7 +849,7 @@ internal static partial class Av1MotionSearchBase
                 this.referenceStride,
                 this.referenceOrigin,
                 size,
-                referenceVector.GetFullPixelSearchBounds(this.frameBounds),
+                this.GetFullPixelBounds(referenceVector),
                 referenceVector,
                 this.motionCosts,
                 this.bitDepth,
@@ -897,7 +938,7 @@ internal static partial class Av1MotionSearchBase
             result = new FractionalResult(integerVector, best.Variance, best.SquaredError, best.MotionCost);
             if (!forceInteger && best.Cost < int.MaxValue)
             {
-                Rectangle fractionalBounds = referenceVector.GetSubpixelSearchBounds(this.frameBounds);
+                Rectangle fractionalBounds = this.GetSubpixelBounds(referenceVector);
                 FractionalSearch<TSample, TOperator> fractionalSearch = new(
                     this.source,
                     this.sourceStride,

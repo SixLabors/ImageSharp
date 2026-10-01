@@ -59,7 +59,7 @@ internal sealed class Av1EncoderOptions
             this.EnableQuantizationMatrices = true;
             this.QuantizationMatrixMinimum = FirstIqQuantizationMatrix;
             this.QuantizationMatrixMaximum = LastIqQuantizationMatrix;
-            this.Sharpness = 7;
+            this.Sharpness = GetDefaultSharpness(tuning);
             this.DistortionMetric = Av1DistortionMetric.QuantizationMatrixPsnr;
             this.CdefControl = Av1CdefControl.Adaptive;
             this.EnableChromaDeltaQ = true;
@@ -105,7 +105,7 @@ internal sealed class Av1EncoderOptions
     public int QuantizationMatrixMaximum { get; init; }
 
     /// <summary>
-    /// Gets the loop filter sharpness. Reference: sharpness.
+    /// Gets the encoder sharpness, 0 to 7. Reference: algo_cfg.sharpness.
     /// </summary>
     public int Sharpness { get; init; }
 
@@ -188,6 +188,15 @@ internal sealed class Av1EncoderOptions
     /// Gets the number of tile rows as a power of two: 0 is one row, 1 is two, 2 is four.
     /// </summary>
     public int TileRowsLog2 { get; init; }
+
+    /// <summary>
+    /// Returns the sharpness a tune sets: 7 for the image tune, 0 for every other tune. A sharpness the caller sets
+    /// replaces it, because libavif applies its codec options after the tune. Reference: handle_tuning(), and the
+    /// order of the AOME_SET_TUNING control and avifProcessAOMOptionsPostInit() in aomCodecEncodeImage().
+    /// </summary>
+    /// <param name="tuning">The tune metric.</param>
+    /// <returns>The sharpness.</returns>
+    public static int GetDefaultSharpness(Av1Tuning tuning) => tuning == Av1Tuning.Iq ? 7 : 0;
 
     /// <summary>
     /// Creates the options of an encoding.

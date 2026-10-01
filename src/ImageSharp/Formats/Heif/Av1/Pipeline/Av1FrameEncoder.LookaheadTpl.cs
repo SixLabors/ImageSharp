@@ -471,6 +471,13 @@ internal static partial class Av1FrameEncoder
                 this.input.TileModeInfoRowEnd = firstTile.ModeInfoRowEnd;
                 this.input.TileModeInfoColumnEnd = firstTile.ModeInfoColumnEnd;
                 this.input.Tuning = options.Tuning;
+
+                // The quantizer tables are built when the compressor is created, before libavif sets the sharpness,
+                // and rebuilt with it only when a frame is coded. So the model of the first group rounds as sharpness
+                // zero. Reference: the av1_init_quantizer() calls of av1_create_compressor() and
+                // encode_without_recode().
+                this.input.Sharpness = options.Sharpness;
+                this.input.QuantizerSharpness = this.lastContext is null ? 0 : options.Sharpness;
                 this.input.SuperblockSize = this.owner.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
                 this.input.SpeedFeatures = new Av1TplSpeedFeatures(
                     options.Speed, this.width, this.height, this.lastQIndex, this.lastTrialQIndex);

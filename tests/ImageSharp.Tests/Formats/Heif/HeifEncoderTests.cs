@@ -923,6 +923,78 @@ public class HeifEncoderTests
         throw new InvalidOperationException("The file has no movie box.");
     }
 
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(8)]
+    public void SharpnessRejectsValuesOutsideRange(int value)
+        => Assert.Throws<ArgumentException>(() => new HeifEncoder { Sharpness = value });
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(3, 3)]
+    [InlineData(7, 7)]
+    [InlineData(null, 7)]
+    public void Av1StillUsesRequestedSharpnessForTheLoopFilter(int? sharpness, int expected)
+    {
+        // A still image filters block edges with the requested sharpness, and the image tune defaults to 7. At this
+        // quality the image tune does not lower it.
+        using Image<Rgb24> image = new(64, 64);
+        for (int y = 0; y < image.Height; y++)
+        {
+            Span<Rgb24> row = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 13) ^ (y * 7)) & 0xFF;
+                row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Quality = 90, Speed = HeifEncodingSpeed.Level9, Sharpness = sharpness });
+        Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.Equal(expected, decoder.FrameHeader.LoopFilterParameters.SharpnessLevel);
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6, false)]
+    [InlineData(HeifEncodingSpeed.Level6, true)]
+    [InlineData(HeifEncodingSpeed.Level9, false)]
+    public void Av1AnimationWithSharpness3RoundTrips(HeifEncodingSpeed speed, bool withAlpha)
+    {
+        // Sharpness 3 changes the motion search, the group structure and the mode search of an animation.
+        using Image<Rgba32> image = new(64, 48);
+        for (int frameIndex = 0; frameIndex < 5; frameIndex++)
+        {
+            ImageFrame<Rgba32> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = (2 * (x + (3 * frameIndex))) + y;
+                    byte alpha = withAlpha ? (byte)(255 - (2 * x)) : (byte)255;
+                    row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), alpha);
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Quality = 90, AlphaQuality = 90, Speed = speed, Sharpness = 3 });
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgba32> expected = image.Frames.CloneFrame(i);
+            using Image<Rgba32> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(90).VerifySimilarity(expected, actual);
+        }
+    }
+
     [Fact]
     public void KeyFrameIntervalRejectsValuesBelowOne()
         => Assert.Throws<ArgumentException>(() => new HeifEncoder { KeyFrameInterval = 0 });

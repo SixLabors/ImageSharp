@@ -148,7 +148,8 @@ public class Av1PrimitiveBenchmarks
             QIndex,
             0,
             0,
-            Av1BitDepth.EightBit);
+            Av1BitDepth.EightBit,
+            0);
 
     /// <summary>
     /// Measures the regular quantizer.

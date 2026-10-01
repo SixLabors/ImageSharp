@@ -487,7 +487,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.QuantizationParameters.BaseQIndex,
             sourceSize,
             frameHeader.AllowScreenContentTools,
-            parent.ScreenContentToolsBeforeTrial);
+            parent.ScreenContentToolsBeforeTrial,
+            parent.EncoderOptions.Sharpness);
 
         // Distortion stops at the coded boundary, or at the frame edge when the picture pads its border.
         // Reference: set_pixels_to_frame_edge() with cpi->do_border_pad.

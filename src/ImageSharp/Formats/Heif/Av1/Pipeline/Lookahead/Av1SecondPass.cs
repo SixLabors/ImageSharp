@@ -202,6 +202,11 @@ internal sealed partial class Av1SecondPass
     private readonly int keyFrameMaximumDistance;
 
     /// <summary>
+    /// The encoder sharpness. Reference: oxcf->algo_cfg.sharpness.
+    /// </summary>
+    private readonly int sharpness;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1SecondPass"/> class for libavif's color sequence
     /// configuration: good-quality usage, AOM_Q, automatic key frames up to the largest key frame distance apart, automatic alternate
     /// references with a pyramid of up to five layers, and the temporal dependency model on. Reference:
@@ -218,6 +223,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="lagInFrames">The requested look-ahead, at least 1. Reference: g_lag_in_frames.</param>
     /// <param name="framerate">The frame rate that sets the golden interval range. Reference: framerate.</param>
     /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames. Reference: kf_max_dist.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7. Reference: oxcf->algo_cfg.sharpness.</param>
     /// <param name="gopLengthEvaluator">
     /// The temporal dependency test that may shorten a golden interval above 16 frames at speeds 0 to 5, or null
     /// to keep every interval.
@@ -233,9 +239,11 @@ internal sealed partial class Av1SecondPass
         int lagInFrames,
         double framerate,
         int keyFrameMaximumDistance,
+        int sharpness,
         IGopLengthEvaluator? gopLengthEvaluator)
     {
         this.keyFrameMaximumDistance = keyFrameMaximumDistance;
+        this.sharpness = sharpness;
         this.width = width;
         this.height = height;
         this.bitDepth = bitDepth;

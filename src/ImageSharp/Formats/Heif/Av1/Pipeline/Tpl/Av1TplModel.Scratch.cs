@@ -153,6 +153,11 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private int qIndex;
 
     /// <summary>
+    /// The sharpness of the quantizer tables, which sets the quantizer rounding.
+    /// </summary>
+    private int quantizerSharpness;
+
+    /// <summary>
     /// The rate multiplier of the motion search. Reference: the rdmult of init_mc_flow_dispenser().
     /// </summary>
     private int rateMultiplier;

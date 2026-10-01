@@ -3617,6 +3617,13 @@ internal static partial class Av1IntraSuperblockEncoder
                             bestSkip, blockSize, tplIntraCost, tplInterCost, qIndex, this.bitDepth, minimumFrameDimension);
                     }
                 }
+
+                // Any sharpness skips the intra search of a block wider or taller than 16 samples. Reference: the
+                // sharpness return at the start of search_intra_modes_in_interframe().
+                if (this.blockWorkspace.EncoderOptions.Sharpness != 0 && (blockSize.GetWidth() > 16 || blockSize.GetHeight() > 16))
+                {
+                    skipIntra = true;
+                }
             }
 
             int lumaAngleDelta = 0;
@@ -4046,10 +4053,12 @@ internal static partial class Av1IntraSuperblockEncoder
             if (isInterFrame)
             {
                 // Skip mode is a one-sided compound when every reference is in the past, so a frame that drops those
-                // pairs neither searches it nor prices the non-skip-mode symbol. Reference: the
-                // disable_onesided_comp return of rd_pick_skip_mode().
+                // pairs neither searches it nor prices the non-skip-mode symbol. Sharpness 3 never searches it.
+                // Reference: the disable_onesided_comp return of rd_pick_skip_mode(), and the sharpness test before its
+                // call in av1_rd_pick_inter_mode().
                 ObuSkipModeParameters skipModeParameters = this.picture.Parent.FrameHeader.SkipModeParameters;
                 if (skipModeParameters.SkipModeFlag && Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8 &&
+                    this.blockWorkspace.EncoderOptions.Sharpness != 3 &&
                     !this.picture.Parent.PrunesAllCompoundReferences)
                 {
                     int skipModeContext = Av1TileWriter.GetSkipModeContext(macroBlock);

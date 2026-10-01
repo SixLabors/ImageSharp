@@ -150,7 +150,8 @@ internal static class Av1IntraModeEstimator
                     qIndex,
                     dcDeltaQ,
                     acDeltaQ,
-                    bitDepth);
+                    bitDepth,
+                    workspace.EncoderOptions.Sharpness);
 
                 skip &= endOfBlock == 0;
                 endOfBlockCost += BitOperations.Log2((uint)endOfBlock + 1);

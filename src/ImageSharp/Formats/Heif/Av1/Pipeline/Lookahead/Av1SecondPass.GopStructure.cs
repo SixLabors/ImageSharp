@@ -12,8 +12,7 @@ internal sealed partial class Av1SecondPass
     /// Builds the coding order of the golden frame group: a key or golden frame first when the group starts with
     /// one, then the alternate reference, a pyramid of internal alternate references over the frames before it,
     /// and its overlay; without an alternate reference the frames follow in display order in a low-delay pyramid.
-    /// Reference: av1_gop_setup_structure() without an external rate control, a key frame pyramid limit or
-    /// sharpness 3.
+    /// Reference: av1_gop_setup_structure() without an external rate control or a key frame pyramid limit.
     /// </summary>
     private void SetupGopStructure()
     {
@@ -25,6 +24,12 @@ internal sealed partial class Av1SecondPass
         else if (!this.arfGoldenBoostLast)
         {
             firstUpdateType = Av1FrameUpdateType.Golden;
+        }
+
+        // Sharpness 3 limits the pyramid to two layers.
+        if (this.sharpness == 3)
+        {
+            this.group.MaxLayerDepthAllowed = Math.Min(this.group.MaxLayerDepthAllowed, 2);
         }
 
         this.group.Size = this.ConstructMultiLayerGoldenStructure(this.baselineGoldenInterval, firstUpdateType);

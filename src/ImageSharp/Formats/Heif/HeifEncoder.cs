@@ -24,6 +24,11 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private int? keyFrameInterval;
 
     /// <summary>
+    /// Backing field for <see cref="Sharpness"/>.
+    /// </summary>
+    private int? sharpness;
+
+    /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
     /// enable <see cref="Lossless"/> encoding.
@@ -75,6 +80,26 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// Defaults to <see cref="HeifEncodingSpeed.Level6"/>.
     /// </summary>
     public HeifEncodingSpeed Speed { get; init; } = HeifEncodingSpeed.Level6;
+
+    /// <summary>
+    /// Gets the sharpness, from 0 to 7, or <see langword="null"/> to let the encoder decide. Higher values keep
+    /// more fine detail and sharper edges, and make a larger file. At lower quality the encoder reduces how much
+    /// the sharpness changes block edges.
+    /// </summary>
+    /// <exception cref="ArgumentException">The sharpness is outside the range 0 to 7.</exception>
+    public int? Sharpness
+    {
+        get => this.sharpness;
+        init
+        {
+            if (value is < 0 or > 7)
+            {
+                throw new ArgumentException("Sharpness must be in the range [0..7].");
+            }
+
+            this.sharpness = value;
+        }
+    }
 
     /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit

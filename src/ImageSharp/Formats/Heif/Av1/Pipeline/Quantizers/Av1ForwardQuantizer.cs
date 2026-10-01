@@ -25,6 +25,7 @@ internal static partial class Av1ForwardQuantizer
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7, which sets the rounding. Reference: algo_cfg.sharpness.</param>
     /// <param name="weights">The forward quantization matrix, or an empty span for a flat matrix.</param>
     /// <param name="inverseWeights">The inverse quantization matrix, or an empty span for a flat matrix.</param>
     /// <returns>The one-based end position in coefficient scan order.</returns>
@@ -38,6 +39,7 @@ internal static partial class Av1ForwardQuantizer
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
+        int sharpness,
         ReadOnlySpan<byte> weights = default,
         ReadOnlySpan<byte> inverseWeights = default)
     {
@@ -45,18 +47,18 @@ internal static partial class Av1ForwardQuantizer
         if (!weights.IsEmpty)
         {
             return QuantizeWithMatrix(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, 0, weights, inverseWeights, regular: false);
+                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights, regular: false);
         }
 
         ReadOnlySpan<short> inverseScan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan;
         if (bitDepth != Av1BitDepth.EightBit)
         {
             return Quantize<HighBitDepthFastQuantizationOperator>(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth);
+                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness);
         }
 
         return Quantize<FastQuantizationOperator>(
-            coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth);
+            coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness);
     }
 
     /// <summary>
@@ -81,7 +83,8 @@ internal static partial class Av1ForwardQuantizer
             0,
             0,
             0,
-            bitDepth);
+            bitDepth,
+            0);
 
     /// <summary>
     /// Quantizes estimation coefficients in their specified scan order.
@@ -95,6 +98,7 @@ internal static partial class Av1ForwardQuantizer
     /// <param name="dcDeltaQ">The DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The AC quantizer adjustment.</param>
     /// <param name="bitDepth">The source sample precision.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7, which sets the rounding. Reference: algo_cfg.sharpness.</param>
     /// <returns>The one-based end position in the supplied scan.</returns>
     public static ushort QuantizeForModeEstimation(
         ReadOnlySpan<int> coefficients,
@@ -105,7 +109,8 @@ internal static partial class Av1ForwardQuantizer
         int qIndex,
         int dcDeltaQ,
         int acDeltaQ,
-        Av1BitDepth bitDepth)
+        Av1BitDepth bitDepth,
+        int sharpness)
         => Quantize<FastQuantizationOperator>(
             coefficients,
             quantizedCoefficients,
@@ -116,6 +121,7 @@ internal static partial class Av1ForwardQuantizer
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
+            sharpness,
             scanOrder: true);
 
     /// <summary>
@@ -131,6 +137,7 @@ internal static partial class Av1ForwardQuantizer
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
+        int sharpness,
         bool scanOrder = false)
         where TOperator : struct, IForwardQuantizationOperator
     {
@@ -140,8 +147,12 @@ internal static partial class Av1ForwardQuantizer
         int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
         int dcQuantizer = Av1QuantizationLookup.GetDcQuantizer(qIndex, dcDeltaQ, bitDepth);
         int acQuantizer = Av1QuantizationLookup.GetAcQuantizer(qIndex, acDeltaQ, bitDepth);
-        int dcRounding = RoundPowerOfTwo((64 * dcDequantizer) >> 7, logScale);
-        int acRounding = RoundPowerOfTwo((64 * acDequantizer) >> 7, logScale);
+
+        // Sharpness raises the fast rounding of every nonzero quantizer. Reference: the round_fp tables of
+        // av1_build_quantizer().
+        int roundingFactor = sharpness != 0 && qIndex != 0 ? 64 - (16 * (7 - sharpness) / 7) : 64;
+        int dcRounding = RoundPowerOfTwo((roundingFactor * dcDequantizer) >> 7, logScale);
+        int acRounding = RoundPowerOfTwo((roundingFactor * acDequantizer) >> 7, logScale);
 
         ref int sourceBase = ref MemoryMarshal.GetReference(coefficients);
         ref int quantizedBase = ref MemoryMarshal.GetReference(quantizedCoefficients);

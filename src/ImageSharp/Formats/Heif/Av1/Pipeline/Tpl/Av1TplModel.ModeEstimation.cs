@@ -111,6 +111,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(quantizerQIndex, this.bitDepth);
         frame.IsValid = true;
         this.qIndex = quantizerQIndex;
+        this.quantizerSharpness = input.QuantizerSharpness;
         frame.BaseRateMultiplier = Av1RateDistortion.GetRateMultiplier(modelQIndex, this.bitDepth, group.UpdateType[0], input.Tuning, false) / 6;
 
         // The model runs before the frame level speed features, so the key frame exception is applied here.
@@ -417,6 +418,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                     referencePlane,
                     referenceIndex,
                     frameBounds,
+                    new Point(x, y),
                     centers[index],
                     keyFrameUpdate,
                     out Av1MotionVector vector);
@@ -705,6 +707,26 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
+    /// Keeps a motion search range of a model block within eight samples of the visible frame when the sharpness is
+    /// 3, and returns it unchanged otherwise. Reference: the sharpness margins of av1_make_default_fullpel_ms_params()
+    /// and av1_make_default_subpel_ms_params().
+    /// </summary>
+    /// <param name="input">The model input.</param>
+    /// <param name="bounds">The search range, with exclusive right and bottom edges.</param>
+    /// <param name="blockOrigin">The luma origin of the model block.</param>
+    /// <param name="scale">One for full-pixel ranges, eight for eighth-sample ranges.</param>
+    /// <returns>The search range.</returns>
+    private Rectangle ApplySharpnessMargins(Av1TplSetupInput<TSample> input, Rectangle bounds, Point blockOrigin, int scale)
+        => input.Sharpness == 3
+            ? Av1MotionVector.ClampToSharpnessMargins(
+                bounds,
+                blockOrigin,
+                new Size(Av1TplModelConstants.BlockSize, Av1TplModelConstants.BlockSize),
+                new Size(this.width, this.height),
+                scale)
+            : bounds;
+
+    /// <summary>
     /// Searches one starting vector: the full-pixel search with the model method, then a fractional refinement with
     /// bilinear interpolation and no vector cost. Reference: motion_estimation().
     /// </summary>
@@ -716,6 +738,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         PlaneAccess reference,
         int referenceIndex,
         Rectangle frameBounds,
+        Point blockOrigin,
         Av1MotionVector center,
         bool keyFrameUpdate,
         out Av1MotionVector best)
@@ -734,7 +757,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             reference.Stride,
             referenceIndex,
             new Size(Size, Size),
-            center.GetFullPixelSearchBounds(frameBounds),
+            this.ApplySharpnessMargins(input, center.GetFullPixelSearchBounds(frameBounds), blockOrigin, 1),
             center,
             costs,
             this.bitDepth,
@@ -773,7 +796,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             referenceIndex,
             this.searchPrediction,
             new Size(Size, Size),
-            center.GetSubpixelSearchBounds(frameBounds),
+            this.ApplySharpnessMargins(input, center.GetSubpixelSearchBounds(frameBounds), blockOrigin, Av1MotionVector.SubpixelScale),
             center,
             noCosts,
             this.bitDepth,
@@ -863,7 +886,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 moving.Stride,
                 movingIndex,
                 new Size(Size, Size),
-                referenceVector.GetFullPixelSearchBounds(frameBounds),
+                this.ApplySharpnessMargins(input, referenceVector.GetFullPixelSearchBounds(frameBounds), new Point(x, y), 1),
                 referenceVector,
                 costs,
                 this.bitDepth,
@@ -884,7 +907,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                     movingIndex,
                     this.searchPrediction,
                     new Size(Size, Size),
-                    referenceVector.GetSubpixelSearchBounds(frameBounds),
+                    this.ApplySharpnessMargins(
+                        input, referenceVector.GetSubpixelSearchBounds(frameBounds), new Point(x, y), Av1MotionVector.SubpixelScale),
                     referenceVector,
                     noCosts,
                     this.bitDepth,

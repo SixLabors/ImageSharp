@@ -300,6 +300,7 @@ internal sealed partial class HeifEncoderCore
                 MaximumQuantizer = !constantBitRate ? 63 : quantizer == 0 ? 0 : Math.Min(quantizer + 4, 63),
                 LagInFrames = lagInFrames,
                 KeyFrameMaximumDistance = this.encoder.KeyFrameInterval ?? Av1EncoderOptions.DefaultKeyFrameMaximumDistance,
+                Sharpness = this.encoder.Sharpness ?? Av1EncoderOptions.GetDefaultSharpness(tuning),
                 TileRowsLog2 = tileRowsLog2,
                 TileColumnsLog2 = tileColumnsLog2
             };

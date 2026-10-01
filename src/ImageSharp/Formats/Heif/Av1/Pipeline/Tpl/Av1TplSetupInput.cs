@@ -201,6 +201,18 @@ internal sealed class Av1TplSetupInput<TSample>
     public Av1Tuning Tuning { get; set; }
 
     /// <summary>
+    /// Gets or sets the encoder sharpness, which at 3 keeps the motion search near the frame. Reference:
+    /// oxcf->algo_cfg.sharpness.
+    /// </summary>
+    public int Sharpness { get; set; }
+
+    /// <summary>
+    /// Gets or sets the sharpness of the quantizer tables, which sets the quantizer rounding. Reference: the
+    /// sharpness that av1_init_quantizer() last built cpi->enc_quant_dequant_params with.
+    /// </summary>
+    public int QuantizerSharpness { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the encoder consumes first-pass statistics, which applies the layer and
     /// boost adjustments of the rate multiplier. One-pass good quality with look-ahead does. Reference:
     /// is_stat_consumption_stage().

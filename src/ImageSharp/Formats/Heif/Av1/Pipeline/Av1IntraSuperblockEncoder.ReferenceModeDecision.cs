@@ -881,6 +881,14 @@ internal static partial class Av1IntraSuperblockEncoder
             redStates = default;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1BlockSize blockSize = candidate.BlockSize;
+
+            // Sharpness 3 searches neither OBMC nor warped motion. Reference: the sharpness test of the mode_index
+            // loop of motion_mode_rd().
+            if (this.blockWorkspace.EncoderOptions.Sharpness == 3)
+            {
+                return Av1RateDistortionStatistics.Invalid;
+            }
+
             candidate.MotionMode = motionMode;
             int motionModeRate;
             int filterRate = 0;
@@ -1625,9 +1633,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Skipping removes the entire transform tree, including every partition and coefficient
             // symbol. Compare that complete syntax once both luma and chroma have been evaluated. An empty
-            // residual still codes as non-skip when its skip flag costs more. Reference: the skip_blk test of
-            // refine_winner_mode_tx().
-            bool skip = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, candidateStatistics.PredictionDistortion) <
+            // residual still codes as non-skip when its skip flag costs more. Any sharpness keeps the residual of a
+            // compound prediction. Reference: the skip_blk test of refine_winner_mode_tx().
+            bool compound = candidateModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+            bool skip = (this.blockWorkspace.EncoderOptions.Sharpness == 0 || !compound) &&
+                Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, candidateStatistics.PredictionDistortion) <
                 Av1RateDistortion.GetCost(this.rateMultiplier, noSkipRate + candidateStatistics.Rate, candidateStatistics.Distortion);
 
             if (skip)
@@ -2155,9 +2165,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Reference: predict_skip_levels, indexed by use_skip_flag_prediction and the mode evaluation type.
         /// </summary>
         private int GetSkipPredictionLevel()
-            => this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate
-                ? this.picture.Parent.SpeedSettings.SkipFlagPredictionLevel
-                : 1;
+        {
+            // Rows of predict_skip_levels: { 0, 0, 0 }, { 1, 1, 1 } and { 1, 2, 1 }.
+            int level = this.picture.Parent.SpeedSettings.SkipFlagPredictionLevel;
+            return level == 0 ? 0 : this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate ? level : 1;
+        }
 
         /// <summary>
         /// Predicts whether the whole luma residual of an inter or copied block quantizes to nothing.
@@ -3136,6 +3148,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockSize,
                 blockOrigin,
                 frameBounds,
+                new Size(frameHeader.FrameSize.FrameWidth, frameHeader.FrameSize.FrameHeight),
                 this.blockWorkspace,
                 this.blockWorkspace.GetMotionSearchPrediction<TSample>(),
                 this.blockWorkspace.Residual,
@@ -3147,7 +3160,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.bitDepth,
                 this.superblockQIndex,
                 this.quantization.DeltaQDc[0],
-                0,
+                this.blockWorkspace.EncoderOptions.Sharpness,
                 frameHeader.CodedLossless,
                 this.rateMultiplier,
                 transformPartitionRate,
@@ -4347,7 +4360,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     referencePlane.Stride,
                     referenceOrigin,
                     size,
-                    referenceVector.GetFullPixelSearchBounds(bounds),
+                    this.ApplySharpnessMargins(referenceVector.GetFullPixelSearchBounds(bounds), blockOrigin, size, 1),
                     referenceVector,
                     costs,
                     this.bitDepth,
@@ -4381,7 +4394,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         referenceOrigin,
                         workspace.BluePrediction,
                         size,
-                        referenceVector.GetSubpixelSearchBounds(bounds),
+                        this.ApplySharpnessMargins(referenceVector.GetSubpixelSearchBounds(bounds), blockOrigin, size, Av1MotionVector.SubpixelScale),
                         referenceVector,
                         costs,
                         this.bitDepth,
@@ -7324,7 +7337,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     movingPlane.Stride,
                     referenceOrigin,
                     size,
-                    referenceVector.GetFullPixelSearchBounds(bounds),
+                    this.ApplySharpnessMargins(referenceVector.GetFullPixelSearchBounds(bounds), blockOrigin, size, 1),
                     referenceVector,
                     costs,
                     this.bitDepth,
@@ -7374,7 +7387,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         referenceOrigin,
                         workspace.RedPrediction,
                         size,
-                        referenceVector.GetSubpixelSearchBounds(bounds),
+                        this.ApplySharpnessMargins(referenceVector.GetSubpixelSearchBounds(bounds), blockOrigin, size, Av1MotionVector.SubpixelScale),
                         referenceVector,
                         costs,
                         this.bitDepth,
@@ -7399,7 +7412,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         motionSettings.SecondCandidateSelection == Av1MotionSearchSettings.CandidateSelection.RateDistortion)
                     {
                         Av1MotionVector secondVector = new(second.Value.Y * 8, second.Value.X * 8);
-                        Rectangle fractionalBounds = referenceVector.GetSubpixelSearchBounds(bounds);
+                        Rectangle fractionalBounds = this.ApplySharpnessMargins(
+                            referenceVector.GetSubpixelSearchBounds(bounds), blockOrigin, size, Av1MotionVector.SubpixelScale);
+
                         if (fractionalBounds.Contains(secondVector.Column, secondVector.Row))
                         {
                             int secondCost = fractionalSearch.Search(
@@ -7863,6 +7878,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     if (probabilities[(verticalContext * filterCount) + filter] < threshold &&
                         probabilities[(horizontalContext * filterCount) + filter] < threshold)
+                    {
+                        allowedMask &= ~(1 << filter);
+                    }
+
+                    // Sharpness 3 never tries the smooth filter.
+                    if (this.blockWorkspace.EncoderOptions.Sharpness == 3 && filter == (int)Av1InterpolationFilter.Smooth)
                     {
                         allowedMask &= ~(1 << filter);
                     }
@@ -9007,6 +9028,28 @@ internal static partial class Av1IntraSuperblockEncoder
 
             return !(mode is Av1PredictionMode.NewNewMotionVector or Av1PredictionMode.NearestNewMotionVector or Av1PredictionMode.NearNewMotionVector &&
                 secondaryVector == referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 1));
+        }
+
+        /// <summary>
+        /// Keeps a motion search range within eight samples of the visible frame when the sharpness is 3, and returns
+        /// it unchanged otherwise. Reference: the sharpness margins of av1_make_default_fullpel_ms_params() and
+        /// av1_make_default_subpel_ms_params().
+        /// </summary>
+        /// <param name="bounds">The search range, with exclusive right and bottom edges.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="scale">One for full-pixel ranges, eight for eighth-sample ranges.</param>
+        /// <returns>The search range.</returns>
+        private Rectangle ApplySharpnessMargins(Rectangle bounds, Point blockOrigin, Size blockSize, int scale)
+        {
+            if (this.blockWorkspace.EncoderOptions.Sharpness != 3)
+            {
+                return bounds;
+            }
+
+            ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
+            return Av1MotionVector.ClampToSharpnessMargins(
+                bounds, blockOrigin, blockSize, new Size(frameSize.FrameWidth, frameSize.FrameHeight), scale);
         }
 
         /// <summary>

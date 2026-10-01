@@ -128,6 +128,7 @@ internal static partial class Av1FrameEncoder
                 this.Options.LagInFrames,
                 (double)TicksPerSecond / frameDurationTicks,
                 this.Options.KeyFrameMaximumDistance,
+                this.Options.Sharpness,
                 null);
         }
 
@@ -663,7 +664,8 @@ internal static partial class Av1FrameEncoder
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,
-                new Size(source.Frame.Width, source.Frame.Height));
+                new Size(source.Frame.Width, source.Frame.Height),
+                sharpness: this.Options.Sharpness);
 
             parent.BorderPad = this.UsesBorderPad;
             this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));
@@ -815,7 +817,8 @@ internal static partial class Av1FrameEncoder
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,
-                new Size(source.Frame.Width, source.Frame.Height));
+                new Size(source.Frame.Width, source.Frame.Height),
+                sharpness: this.Options.Sharpness);
 
             parent.BorderPad = this.UsesBorderPad;
             this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));

@@ -3216,7 +3216,8 @@ internal static partial class Av1FrameEncoder
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,
-                image.Size);
+                image.Size,
+                sharpness: this.Options.Sharpness);
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
@@ -3469,7 +3470,8 @@ internal static partial class Av1FrameEncoder
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,
-                image.Size);
+                image.Size,
+                sharpness: this.Options.Sharpness);
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().

@@ -336,7 +336,8 @@ public class Av1TransformBlockEncoderTests
             qIndex,
             -1,
             3,
-            bitDepth);
+            bitDepth,
+            0);
 
         Av1EncoderTransformBlockState actualState = default;
         Av1TransformBlockEncoder.EncodeLossy(

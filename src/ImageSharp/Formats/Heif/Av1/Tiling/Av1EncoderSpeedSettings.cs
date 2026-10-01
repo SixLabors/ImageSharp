@@ -39,6 +39,7 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <see langword="null"/> when it is <paramref name="screenContent"/>. A key frame whose screen content trial turns
     /// the tools on keeps its detected value here.
     /// </param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7. Reference: oxcf->algo_cfg.sharpness.</param>
     public Av1EncoderSpeedSettings(
         HeifEncodingSpeed speed,
         bool allIntra,
@@ -47,7 +48,8 @@ internal readonly struct Av1EncoderSpeedSettings
         int qIndex,
         Size frameSize,
         bool screenContent = false,
-        bool? frameSizeScreenContent = null)
+        bool? frameSizeScreenContent = null,
+        int sharpness = 0)
     {
         this.Speed = speed;
         this.qIndex = qIndex;
@@ -274,7 +276,10 @@ internal readonly struct Av1EncoderSpeedSettings
         this.FastInterIntraWedgeSearch = speed >= HeifEncodingSpeed.Level2;
         this.InterIntraWedgeVarianceThreshold = realtime || speed >= HeifEncodingSpeed.Level3 ? int.MaxValue :
             speed == HeifEncodingSpeed.Level2 ? minimumDimension >= 480 ? 100 : int.MaxValue : 0;
-        this.InterModeEstimation = allIntra || intraFrame ? 0 : realtime ? 2 : 1;
+
+        // Good quality estimates inter residuals with the curve-fitted model unless sharpness is set. Reference:
+        // inter_mode_rd_model_estimation in set_good_speed_features_framesize_independent().
+        this.InterModeEstimation = allIntra || intraFrame ? 0 : realtime ? 2 : sharpness != 0 ? 0 : 1;
 
         // limit_inter_mode_cands limits only the last-frame updates of good quality, and limit_txfm_eval_per_mode
         // and inter_mode_txfm_breakout the frames that are not boosted.
@@ -368,8 +373,10 @@ internal readonly struct Av1EncoderSpeedSettings
         this.PruneOddIntraAngleDeltas = allIntra && speed >= HeifEncodingSpeed.Level6;
 
         // adaptive_txb_search_level: all-intra keeps 2 from speed 1. Good quality raises unboosted frames to 3 from
-        // speed 3, and turns the level off only for sharpness 3, which this encoder does not configure.
+        // speed 3, and turns the level off for sharpness 3.
+        bool goodQualitySharpness3 = !allIntra && !realtime && sharpness == 3;
         this.InterAdaptiveTransformSearchLevel = realtime ? 2
+            : goodQualitySharpness3 ? 0
             : speed >= HeifEncodingSpeed.Level3 && !boosted ? 3
             : speed >= HeifEncodingSpeed.Level1 ? 2 : 1;
 
@@ -418,7 +425,9 @@ internal readonly struct Av1EncoderSpeedSettings
             _ => defaultInterTypePruning
         };
 
-        this.SkipFlagPredictionLevel = realtime || speed >= HeifEncodingSpeed.Level3 ? 2 : 1;
+        // use_skip_flag_prediction: good quality with sharpness 3 never predicts an empty residual. Reference: the
+        // sharpness 3 overrides at the end of set_good_speed_features_framesize_independent().
+        this.SkipFlagPredictionLevel = goodQualitySharpness3 ? 0 : realtime || speed >= HeifEncodingSpeed.Level3 ? 2 : 1;
         this.InterTransformSizePruningLevel = realtime ? 0 : speed >= HeifEncodingSpeed.Level3
             ? 3
             : speed >= HeifEncodingSpeed.Level2 ? minimumDimension >= 480 ? 2 : 3 : minimumDimension < 480 ? 1 : 0;

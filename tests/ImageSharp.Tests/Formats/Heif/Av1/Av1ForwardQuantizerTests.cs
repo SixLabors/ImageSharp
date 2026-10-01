@@ -44,6 +44,7 @@ public class Av1ForwardQuantizerTests
 
         ReadOnlySpan<int> quantizerIndices = [1, 73, 173, 255];
         ReadOnlySpan<Av1BitDepth> bitDepths = [Av1BitDepth.EightBit, Av1BitDepth.TenBit, Av1BitDepth.TwelveBit];
+        ReadOnlySpan<int> sharpnessLevels = [0, 3, 7];
 
         foreach (Av1TransformSize transformSize in transformSizes)
         {
@@ -56,7 +57,7 @@ public class Av1ForwardQuantizerTests
 
             foreach (int qIndex in quantizerIndices)
             {
-                foreach (Av1BitDepth bitDepth in bitDepths)
+                foreach ((Av1BitDepth bitDepth, int sharpness) in GetDepthAndSharpness(bitDepths, sharpnessLevels))
                 {
                     FillCoefficients(coefficients, qIndex);
                     if (bitDepth == Av1BitDepth.EightBit)
@@ -78,7 +79,8 @@ public class Av1ForwardQuantizerTests
                         qIndex,
                         -1,
                         3,
-                        bitDepth);
+                        bitDepth,
+                        sharpness);
 
                     ushort actualEndOfBlock = Av1ForwardQuantizer.QuantizeLossy(
                         coefficients,
@@ -89,7 +91,8 @@ public class Av1ForwardQuantizerTests
                         qIndex,
                         -1,
                         3,
-                        bitDepth);
+                        bitDepth,
+                        sharpness);
 
                     Assert.Equal(expectedEndOfBlock, actualEndOfBlock);
                     Assert.Equal(expectedQuantized, actualQuantized);
@@ -97,6 +100,23 @@ public class Av1ForwardQuantizerTests
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Pairs every sample precision with every sharpness level.
+    /// </summary>
+    private static List<(Av1BitDepth BitDepth, int Sharpness)> GetDepthAndSharpness(ReadOnlySpan<Av1BitDepth> bitDepths, ReadOnlySpan<int> sharpnessLevels)
+    {
+        List<(Av1BitDepth BitDepth, int Sharpness)> pairs = [];
+        foreach (Av1BitDepth bitDepth in bitDepths)
+        {
+            foreach (int sharpness in sharpnessLevels)
+            {
+                pairs.Add((bitDepth, sharpness));
+            }
+        }
+
+        return pairs;
     }
 
     /// <summary>
@@ -128,18 +148,22 @@ public class Av1ForwardQuantizerTests
         int qIndex,
         int dcDeltaQ,
         int acDeltaQ,
-        Av1BitDepth bitDepth)
+        Av1BitDepth bitDepth,
+        int sharpness)
     {
         quantizedCoefficients.Clear();
         dequantizedCoefficients.Clear();
 
+        // av1_build_quantizer(): qrounding_factor_fp is 64, and 64 - 16 * (7 - sharpness) / 7 for a sharpness above
+        // zero and a nonzero quantizer.
+        int roundingFactor = sharpness != 0 && qIndex != 0 ? 64 - (16 * (7 - sharpness) / 7) : 64;
         int logScale = transformSize.GetScale();
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
         int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
         int dcQuantizer = (1 << 16) / dcDequantizer;
         int acQuantizer = (1 << 16) / acDequantizer;
-        int dcRounding = RoundPowerOfTwo((64 * dcDequantizer) >> 7, logScale);
-        int acRounding = RoundPowerOfTwo((64 * acDequantizer) >> 7, logScale);
+        int dcRounding = RoundPowerOfTwo((roundingFactor * dcDequantizer) >> 7, logScale);
+        int acRounding = RoundPowerOfTwo((roundingFactor * acDequantizer) >> 7, logScale);
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         ushort endOfBlock = 0;
 

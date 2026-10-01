@@ -1388,6 +1388,7 @@ internal static partial class Av1TransformBlockEncoder
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
+            workspace.EncoderOptions.Sharpness,
             workspace.GetQuantizationMatrix(componentType, transformSize, transformType),
             workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType));
 
@@ -1498,7 +1499,7 @@ internal static partial class Av1TransformBlockEncoder
         ReadOnlySpan<byte> inverseWeights = satdMeasured ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
         state.EndOfBlock = optimize
             ? Av1ForwardQuantizer.QuantizeLossy(
-                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, weights, inverseWeights)
+                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights)
             : Av1ForwardQuantizer.QuantizeRegular(
                 transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
 
@@ -1670,7 +1671,7 @@ internal static partial class Av1TransformBlockEncoder
             ReadOnlySpan<byte> inverseWeights = matricesDropped ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
             state.EndOfBlock = optimize
                 ? Av1ForwardQuantizer.QuantizeLossy(
-                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, weights, inverseWeights)
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights)
                 : Av1ForwardQuantizer.QuantizeRegular(
                     transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
 

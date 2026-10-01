@@ -125,6 +125,34 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     }
 
     /// <summary>
+    /// Restricts a search range so the block stays within eight samples of the visible frame, as a sharpness of
+    /// three requires. Reference: the sharpness == 3 margins of av1_make_default_fullpel_ms_params() and
+    /// av1_make_default_subpel_ms_params().
+    /// </summary>
+    /// <param name="bounds">The range to restrict, with exclusive right and bottom edges.</param>
+    /// <param name="blockOrigin">The luma origin of the block, which is xd->mi_row and xd->mi_col in samples.</param>
+    /// <param name="blockSize">The luma size of the searched block.</param>
+    /// <param name="visibleFrameSize">The visible frame size. Reference: cm->width and cm->height.</param>
+    /// <param name="scale">One for full-pixel ranges, eight for eighth-sample ranges.</param>
+    /// <returns>The restricted range.</returns>
+    public static Rectangle ClampToSharpnessMargins(Rectangle bounds, Point blockOrigin, Size blockSize, Size visibleFrameSize, int scale)
+    {
+        // Both functions allow eight samples beyond the visible frame on each side; the full-pixel form writes the
+        // far margin as height - block height - top margin + 16, which is the same value. Like libaom, the clamp
+        // does not repair an empty range. It cannot arise: the reference vector stays within 16 samples of the
+        // block, and the frame limits lie at least the border less 12 samples beyond the margins.
+        int topMargin = (blockOrigin.Y + 8) * scale;
+        int leftMargin = (blockOrigin.X + 8) * scale;
+        int bottomMargin = Math.Max((visibleFrameSize.Height - blockSize.Height - blockOrigin.Y + 8) * scale, -topMargin);
+        int rightMargin = Math.Max((visibleFrameSize.Width - blockSize.Width - blockOrigin.X + 8) * scale, -leftMargin);
+        int left = Math.Max(bounds.Left, -leftMargin);
+        int top = Math.Max(bounds.Top, -topMargin);
+        int right = Math.Min(bounds.Right - 1, rightMargin);
+        int bottom = Math.Min(bounds.Bottom - 1, bottomMargin);
+        return Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
+    }
+
+    /// <summary>
     /// Returns whether the vector, rounded to full samples, lies in the frame displacement region. A mode whose
     /// vector does not is not searched. The margin clamp that precedes the test never moves an out-of-region
     /// vector into it. Reference: clamp_and_check_mv() with GET_MV_RAWPEL() and av1_is_fullmv_in_range().

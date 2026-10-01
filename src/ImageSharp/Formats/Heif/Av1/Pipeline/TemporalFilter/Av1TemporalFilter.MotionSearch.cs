@@ -516,7 +516,9 @@ internal static partial class Av1TemporalFilter
             Rectangle bounds = default(Av1MotionVector).GetSubpixelSearchBounds(frameBounds);
             if (parameters.Sharpness == 3)
             {
-                bounds = ClampToSharpnessMargins(bounds, block, searched, parameters.FrameWidth, parameters.FrameHeight, Av1MotionVector.SubpixelScale);
+                // The margins sit at the whole filter block's origin, with the searched block's size.
+                bounds = Av1MotionVector.ClampToSharpnessMargins(
+                    bounds, block.Location, searched.Size, new Size(parameters.FrameWidth, parameters.FrameHeight), Av1MotionVector.SubpixelScale);
             }
 
             FractionalSearch<TSample, TSearch> search = new(
@@ -569,7 +571,8 @@ internal static partial class Av1TemporalFilter
             Rectangle bounds = default(Av1MotionVector).GetFullPixelSearchBounds(this.GetFrameBounds(block, searched));
             if (parameters.Sharpness == 3)
             {
-                bounds = ClampToSharpnessMargins(bounds, block, searched, parameters.FrameWidth, parameters.FrameHeight, 1);
+                bounds = Av1MotionVector.ClampToSharpnessMargins(
+                    bounds, block.Location, searched.Size, new Size(parameters.FrameWidth, parameters.FrameHeight), 1);
             }
 
             return bounds;
@@ -587,32 +590,5 @@ internal static partial class Av1TemporalFilter
                 searched,
                 new Size(this.context.CodedWidth, this.context.CodedHeight),
                 this.context.BorderInPixels);
-
-        /// <summary>
-        /// Restricts a search range to the frame plus eight samples, as a sharpness of three requires.
-        /// Reference: the sharpness == 3 margins of av1_make_default_fullpel_ms_params() and
-        /// av1_make_default_subpel_ms_params().
-        /// </summary>
-        /// <param name="bounds">The range to restrict, with exclusive right and bottom edges.</param>
-        /// <param name="block">The luma rectangle of the whole filter block, whose origin is xd->mi_row and xd->mi_col.</param>
-        /// <param name="searched">The luma rectangle of the searched block, whose size is the block size.</param>
-        /// <param name="frameWidth">The visible frame width.</param>
-        /// <param name="frameHeight">The visible frame height.</param>
-        /// <param name="scale">One for full-pixel ranges, eight for eighth-sample ranges.</param>
-        /// <returns>The restricted range.</returns>
-        private static Rectangle ClampToSharpnessMargins(Rectangle bounds, Rectangle block, Rectangle searched, int frameWidth, int frameHeight, int scale)
-        {
-            // Both functions allow eight samples beyond the visible frame on each side; the full-pixel form writes the
-            // far margin as height - block height - top margin + 16, which is the same value.
-            int topMargin = (block.Y + 8) * scale;
-            int leftMargin = (block.X + 8) * scale;
-            int bottomMargin = Math.Max((frameHeight - searched.Height - block.Y + 8) * scale, -topMargin);
-            int rightMargin = Math.Max((frameWidth - searched.Width - block.X + 8) * scale, -leftMargin);
-            int left = Math.Max(bounds.Left, -leftMargin);
-            int top = Math.Max(bounds.Top, -topMargin);
-            int right = Math.Min(bounds.Right - 1, rightMargin);
-            int bottom = Math.Min(bounds.Bottom - 1, bottomMargin);
-            return Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
-        }
     }
 }

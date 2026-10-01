@@ -488,7 +488,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             sourceSize,
             frameHeader.AllowScreenContentTools,
             parent.ScreenContentToolsBeforeTrial,
-            parent.EncoderOptions.Sharpness);
+            parent.EncoderOptions.Sharpness,
+            parent.EncoderOptions.Tuning);
 
         // Distortion stops at the coded boundary, or at the frame edge when the picture pads its border.
         // Reference: set_pixels_to_frame_edge() with cpi->do_border_pad.
@@ -622,7 +623,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.ScreenContentTrialQIndex,
             parent.SpeedSettings.IsBoosted,
             parent.IsScreenContent,
-            parent.IsGraphicsAnimation || screenContentToolsBeforeTrial);
+            parent.IsGraphicsAnimation || screenContentToolsBeforeTrial,
+            parent.EncoderOptions.Tuning);
 
         parent.MotionSearchSettings = motionSettings;
         int maximumDimension = Math.Max(sourceSize.Width, sourceSize.Height);

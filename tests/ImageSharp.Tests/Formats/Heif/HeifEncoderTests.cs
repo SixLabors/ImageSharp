@@ -995,6 +995,108 @@ public class HeifEncoderTests
         }
     }
 
+    [Theory]
+    [InlineData(HeifTuning.Psnr, false, 0)]
+    [InlineData(HeifTuning.Ssim, false, 0)]
+    [InlineData(HeifTuning.ImageQuality, true, 7)]
+    [InlineData(null, true, 7)]
+    public void Av1StillUsesRequestedTuning(HeifTuning? tuning, bool expectedMatrices, int expectedSharpness)
+    {
+        // The image tune, which a still color image uses by default, turns on the quantization matrices and sharpness 7.
+        using Image<Rgb24> image = new(64, 64);
+        for (int y = 0; y < image.Height; y++)
+        {
+            Span<Rgb24> row = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 13) ^ (y * 7)) & 0xFF;
+                row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Quality = 90, Speed = HeifEncodingSpeed.Level9, Tuning = tuning });
+        Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.Equal(expectedMatrices, decoder.FrameHeader.QuantizationParameters.IsUsingQMatrix);
+        Assert.Equal(expectedSharpness, decoder.FrameHeader.LoopFilterParameters.SharpnessLevel);
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6, false)]
+    [InlineData(HeifEncodingSpeed.Level6, true)]
+    [InlineData(HeifEncodingSpeed.Level9, false)]
+    public void Av1AnimationWithImageQualityTuningRoundTrips(HeifEncodingSpeed speed, bool withAlpha)
+    {
+        // The image tune changes the speed features and biases the mode search of an animation toward intra prediction.
+        using Image<Rgba32> image = new(64, 48);
+        for (int frameIndex = 0; frameIndex < 5; frameIndex++)
+        {
+            ImageFrame<Rgba32> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = (2 * (x + (3 * frameIndex))) + y;
+                    byte alpha = withAlpha ? (byte)(255 - (2 * x)) : (byte)255;
+                    row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), alpha);
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Quality = 90, AlphaQuality = 90, Speed = speed, Tuning = HeifTuning.ImageQuality });
+
+        // Only the image tune turns on the quantization matrices of an animation.
+        byte[] file = stream.ToArray();
+        HeifSequenceSample first = ParseSequence(file).ColorTrack.Samples[0];
+        using (Av1Decoder decoder = new(Configuration.Default))
+        {
+            decoder.DecodeSequenceReference(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null);
+            Assert.True(decoder.FrameHeader.QuantizationParameters.IsUsingQMatrix);
+        }
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgba32> expected = image.Frames.CloneFrame(i);
+            using Image<Rgba32> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(90).VerifySimilarity(expected, actual);
+        }
+    }
+
+    [Theory]
+    [InlineData(HeifTuning.ImageQuality)]
+    [InlineData(HeifTuning.Ssim)]
+    public void Av1LosslessStaysExactWithRequestedTuning(HeifTuning tuning)
+    {
+        using Image<Rgb24> image = new(40, 24);
+        for (int y = 0; y < image.Height; y++)
+        {
+            Span<Rgb24> row = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 29) ^ (y * 11)) & 0xFF;
+                row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 3));
+            }
+        }
+
+        // An identity matrix keeps RGB exact, and a tune the caller sets applies to lossless coding too.
+        image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Lossless = true, Speed = HeifEncodingSpeed.Level9, Tuning = tuning });
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+
+        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+    }
+
     [Fact]
     public void KeyFrameIntervalRejectsValuesBelowOne()
         => Assert.Throws<ArgumentException>(() => new HeifEncoder { KeyFrameInterval = 0 });

@@ -45,7 +45,7 @@ internal static partial class Av1FrameEncoder
         /// <summary>
         /// Gets the constant-quality index of the sequence. Reference: cq_level.
         /// </summary>
-        private protected int LaggedQualityIndex => this.constantQualityIndex;
+        private protected int ConstantQualityIndex => this.constantQualityIndex;
 
         /// <summary>
         /// Gets a value indicating whether the encoder replaces residuals outside the visible frame. Good-quality
@@ -204,7 +204,7 @@ internal static partial class Av1FrameEncoder
 
             using LookaheadTemporalFilter<TSample, TFilterOperator, TSearchOperator>? filter =
                 this.Options.EnableTemporalFilter
-                    ? new(this.Configuration, image.Width, image.Height, bitDepth, colorFormat, lumaBorder, this.Options, this.LaggedQualityIndex)
+                    ? new(this.Configuration, image.Width, image.Height, bitDepth, colorFormat, lumaBorder, this.Options, this.ConstantQualityIndex)
                     : null;
 
             // Before the first frame the filter and the model read the motion settings of a key frame, which no
@@ -657,7 +657,7 @@ internal static partial class Av1FrameEncoder
             parent.GoldenBoost = secondPass.GoldenBoost;
 
             parent.EncoderOptions = this.Options;
-            parent.ConstantQualityIndex = this.QIndex;
+            parent.ConstantQualityIndex = this.ConstantQualityIndex;
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,
@@ -665,7 +665,8 @@ internal static partial class Av1FrameEncoder
                 parent.FrameUpdateType,
                 this.QIndex,
                 new Size(source.Frame.Width, source.Frame.Height),
-                sharpness: this.Options.Sharpness);
+                sharpness: this.Options.Sharpness,
+                tuning: this.Options.Tuning);
 
             parent.BorderPad = this.UsesBorderPad;
             this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));
@@ -810,7 +811,7 @@ internal static partial class Av1FrameEncoder
             parent.GoldenBoost = secondPass.GoldenBoost;
 
             parent.EncoderOptions = this.Options;
-            parent.ConstantQualityIndex = this.QIndex;
+            parent.ConstantQualityIndex = this.ConstantQualityIndex;
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,
@@ -818,7 +819,8 @@ internal static partial class Av1FrameEncoder
                 parent.FrameUpdateType,
                 this.QIndex,
                 new Size(source.Frame.Width, source.Frame.Height),
-                sharpness: this.Options.Sharpness);
+                sharpness: this.Options.Sharpness,
+                tuning: this.Options.Tuning);
 
             parent.BorderPad = this.UsesBorderPad;
             this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));

@@ -107,6 +107,32 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
+    /// Adds an eighth to the distortion and the luma cost of a valid inter prediction, and prices it again. The image
+    /// tune favors intra prediction in this way. Reference: the AOM_TUNE_IQ branches of adjust_cost() and
+    /// adjust_rdcost() in motion_mode_rd(), whose caller prices the adjusted distortion with RDCOST.
+    /// </summary>
+    /// <param name="rateMultiplier">The rate multiplier for the current block.</param>
+    public void AddInterPredictionBias(int rateMultiplier)
+    {
+        this.Distortion += this.Distortion >> 3;
+        this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
+        if (this.LumaCost != long.MaxValue)
+        {
+            this.LumaCost += this.LumaCost >> 3;
+        }
+    }
+
+    /// <summary>
+    /// Adds an eighth to the distortion and the cost of a valid inter mode, after its prediction took the same bias.
+    /// Reference: the AOM_TUNE_IQ branches of adjust_cost() and adjust_rdcost() in av1_rd_pick_inter_mode().
+    /// </summary>
+    public void AddInterModeBias()
+    {
+        this.Distortion += this.Distortion >> 3;
+        this.Cost += this.Cost >> 3;
+    }
+
+    /// <summary>
     /// Recomputes the cost at another rate multiplier, keeping an invalid candidate invalid.
     /// Reference: av1_rd_cost_update().
     /// </summary>

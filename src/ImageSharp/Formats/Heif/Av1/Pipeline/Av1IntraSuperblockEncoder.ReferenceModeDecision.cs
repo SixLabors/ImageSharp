@@ -50,6 +50,12 @@ internal static partial class Av1IntraSuperblockEncoder
         ];
 
         /// <summary>
+        /// Gets a value indicating whether the image tune biases inter costs toward intra prediction. Reference: the
+        /// AOM_TUNE_IQ test of adjust_rdcost() and adjust_cost().
+        /// </summary>
+        private readonly bool BiasesInterCosts => this.blockWorkspace.EncoderOptions.Tuning == Av1Tuning.Iq;
+
+        /// <summary>
         /// Compares legal same-frame displacements with the retained intra winner.
         /// </summary>
         private Av1RateDistortionStatistics SelectIntraBlockCopy(
@@ -559,6 +565,14 @@ internal static partial class Av1IntraSuperblockEncoder
                         bestSingleModes[(int)reference] = mode;
                     }
 
+                    // The mode takes its bias after the single-reference records and before the winner records and
+                    // the comparison. Reference: adjust_cost() and adjust_rdcost() in the mode loop of
+                    // av1_rd_pick_inter_mode().
+                    if (candidateStatistics.Cost != long.MaxValue && this.BiasesInterCosts)
+                    {
+                        candidateStatistics.AddInterModeBias();
+                    }
+
                     // A reference kept only because a compound pair uses it searches no motion mode.
                     // Reference: the skip_motion_mode result of inter_mode_search_order_independent_skip().
                     if (!skipMotionModes)
@@ -879,6 +893,7 @@ internal static partial class Av1IntraSuperblockEncoder
             lumaSizes = default;
             blueStates = default;
             redStates = default;
+            this.unbiasedInterTrialCost = long.MaxValue;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1BlockSize blockSize = candidate.BlockSize;
 
@@ -1100,6 +1115,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 long candidateBestCost = long.MaxValue;
                 bool candidateBestSkip = false;
 
+                // A completed trial bounds the later trials of the candidate by its cost before the image tune bias.
+                // Reference: the ref_best_rd update of motion_mode_rd().
+                long candidateTrialCost = long.MaxValue;
+
                 // OBMC first, then warped motion, each from the simple-translation decisions of the winner.
                 // Reference: the mode_index loop of motion_mode_rd() from update_mode_start_end_index().
                 for (Av1MotionMode motionMode = Av1MotionMode.Obmc; motionMode <= lastAllowed; motionMode++)
@@ -1132,7 +1151,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         motionMode,
                         lastAllowed,
                         baseRate,
-                        costLimit,
+                        Math.Min(costLimit, candidateTrialCost),
                         candidateBlock.HasChroma,
                         candidateBlock.ReferenceMotionVectorIndex,
                         in singleReferenceVectors[(int)candidate.ReferenceFrame],
@@ -1150,6 +1169,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         out InlineArray16<Av1EncoderTransformBlockState> blueStates,
                         out InlineArray16<Av1EncoderTransformBlockState> redStates);
 
+                    candidateTrialCost = Math.Min(candidateTrialCost, this.unbiasedInterTrialCost);
                     if (statistics.Cost < candidateBestCost)
                     {
                         candidateBestCost = statistics.Cost;
@@ -1680,7 +1700,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 AllTransformsEmpty = allEmpty
             };
 
-            if (refinedStatistics.Cost >= selectedStatistics.Cost)
+            // The winner is priced again from its rate and distortion, which drops the cost bias of the image tune but
+            // keeps its distortion bias. Reference: the best_rd of refine_winner_mode_tx().
+            if (refinedStatistics.Cost >= Av1RateDistortion.GetCost(this.rateMultiplier, selectedStatistics.Rate, selectedStatistics.Distortion))
             {
                 return;
             }
@@ -3561,6 +3583,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 // lowers it to each trial it completes. Reference: the ref_best_rd update of the full transform
                 // search path of motion_mode_rd(), which the estimation path does not have.
                 long candidateLimit = Math.Min(bestCost, selectedStatistics.Cost);
+
+                // A completed trial bounds the later trials of the entry by its cost before the image tune bias.
+                // Reference: the ref_best_rd update of motion_mode_rd().
+                long entryTrialCost = long.MaxValue;
                 modeInfo.Block.HorizontalInterpolationFilter = defaultFilter;
                 modeInfo.Block.VerticalInterpolationFilter = defaultFilter;
                 int filterCostIndex = (((((int)requestedMode - (int)Av1PredictionMode.InterModeStart) * 3) +
@@ -3702,6 +3728,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         out candidateLumaSizes,
                         out candidateBlueState,
                         out candidateRedState);
+
+                    entryTrialCost = this.unbiasedInterTrialCost;
                 }
 
                 this.blockWorkspace.SingleReferenceSimpleCosts[filterCostIndex] = candidateStatistics.Cost;
@@ -3810,7 +3838,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             motionMode,
                             lastAllowed,
                             baseRate,
-                            this.estimateInterCandidates ? candidateLimit : Math.Min(bestCost, selectedStatistics.Cost),
+                            this.estimateInterCandidates ? candidateLimit : Math.Min(Math.Min(bestCost, selectedStatistics.Cost), entryTrialCost),
                             block.HasChroma,
                             candidateReferenceIndices[candidateIndex],
                             in referenceMotionVectors,
@@ -3828,6 +3856,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             out InlineArray16<Av1EncoderTransformBlockState> motionBlueState,
                             out InlineArray16<Av1EncoderTransformBlockState> motionRedState);
 
+                        entryTrialCost = Math.Min(entryTrialCost, this.unbiasedInterTrialCost);
                         lastTrialVector = motionVector;
                         lastTrialHorizontalFilter = motionModeInfo.HorizontalInterpolationFilter;
                         lastTrialVerticalFilter = motionModeInfo.VerticalInterpolationFilter;
@@ -3941,7 +3970,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     horizontalFilter,
                     verticalFilter,
                     interIntraMotionRate,
-                    this.estimateInterCandidates ? candidateLimit : Math.Min(bestCost, selectedStatistics.Cost),
+                    this.estimateInterCandidates ? candidateLimit : Math.Min(Math.Min(bestCost, selectedStatistics.Cost), entryTrialCost),
                     ref cachedInterIntraMode,
                     out Av1InterIntraMode interIntraMode,
                     out bool useWedge,
@@ -3986,7 +4015,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
-                    this.estimateInterCandidates ? candidateLimit : Math.Min(bestCost, selectedStatistics.Cost),
+                    this.estimateInterCandidates ? candidateLimit : Math.Min(Math.Min(bestCost, selectedStatistics.Cost), entryTrialCost),
                     block.HasChroma,
                     commonPredictionRate + filterRate + interIntraRate,
                     referenceFrame,
@@ -5942,7 +5971,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool startsMode = mode != previousMode;
                 if (startsMode)
                 {
-                    this.RecordMotionModeWinner(modeBestCost, true, default, default, default);
+                    this.RecordMotionModeWinner(this.GetBiasedInterModeCost(modeBestCost), true, default, default, default);
                     modeBestCost = long.MaxValue;
                     previousMode = mode;
                     previousVectorMask = 0;
@@ -5997,6 +6026,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
+                // The entries of one mode share a budget that their own results lower before the image tune biases
+                // them. Reference: the ref_best_rd update in the ref_mv_idx loop of handle_inter_mode().
+                long modeCostLimit = Math.Min(Math.Min(this.blockCostLimit, selectedStatistics.Cost), modeBestCost);
                 if (startsMode && !rejectMode)
                 {
                     bool nearMode = mode is Av1PredictionMode.NearNearMotionVector or
@@ -6050,14 +6082,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             int drlRate = translationModeRate - writer.GetInterCompoundModeCost(mode, referenceMotionVectors.ModeContext);
 
-                            if (Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + drlRate, 0) > Math.Min(this.blockCostLimit, selectedStatistics.Cost))
+                            if (Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + drlRate, 0) > modeCostLimit)
                             {
                                 candidateMask &= ~(1 << referenceIndices[index]);
                                 continue;
                             }
 
                             if (modelTranslation &&
-                                Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + translationModeRate, 0) <= Math.Min(this.blockCostLimit, selectedStatistics.Cost))
+                                Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + translationModeRate, 0) <= modeCostLimit)
                             {
                                 long translationLumaSquaredError = 0;
                                 Av1RateDistortionStatistics estimate = this.GetInterFilterModelCost(
@@ -6092,7 +6124,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             for (int index = 0; index < referenceCount; index++)
                             {
                                 if (!((double)translationCosts[index] / bestTranslation < 1.05 &&
-                                    (double)translationCosts[index] / Math.Min(this.blockCostLimit, selectedStatistics.Cost) < 5))
+                                    (double)translationCosts[index] / modeCostLimit < 5))
                                 {
                                     candidateMask &= ~(1 << index);
                                 }
@@ -6109,7 +6141,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 if (tplPruning && this.PrunesInterModeByTpl(
-                    Math.Min(this.blockCostLimit, selectedStatistics.Cost),
+                    modeCostLimit,
                     primaryReference,
                     secondaryReference,
                     referenceIndices[candidateIndex],
@@ -6149,7 +6181,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer, mode, candidatePrimary, candidateSecondary, referenceIndices[candidateIndex], in referenceMotionVectors);
 
                 if (mode != Av1PredictionMode.NearestNearestMotionVector &&
-                    Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > Math.Min(this.blockCostLimit, selectedStatistics.Cost))
+                    Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > modeCostLimit)
                 {
                     continue;
                 }
@@ -6199,7 +6231,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
-                    Math.Min(this.blockCostLimit, selectedStatistics.Cost),
+                    modeCostLimit,
                     commonPredictionRate,
                     modes[candidateIndex],
                     primaryReference,
@@ -6269,7 +6301,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidatePrimary,
                     candidateSecondary,
                     ref candidateMode,
-                    Math.Min(this.blockCostLimit, selectedStatistics.Cost),
+                    modeCostLimit,
                     singleReferenceCost,
                     out int filterRate,
                     out long filterModelCost);
@@ -6280,9 +6312,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 // the block winner when the speed setting allows it, and always against the better
                 // half of this compound pair.
                 if (filterModelCost == long.MaxValue ||
-                    (Math.Min(this.blockCostLimit, selectedStatistics.Cost) != long.MaxValue &&
+                    (modeCostLimit != long.MaxValue &&
                         ((this.picture.Parent.SpeedSettings.ModelBasedInterpolationBreakout &&
-                            (filterModelCost >> 3) * 3 > Math.Min(this.blockCostLimit, selectedStatistics.Cost)) ||
+                            (filterModelCost >> 3) * 3 > modeCostLimit) ||
                         (filterModelCost >> 3) * 6 > singleReferenceCost)))
                 {
                     continue;
@@ -6302,7 +6334,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
-                    Math.Min(this.blockCostLimit, selectedStatistics.Cost),
+                    modeCostLimit,
                     block.HasChroma,
                     commonPredictionRate + filterRate,
                     primaryReference,
@@ -6337,6 +6369,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     out InlineArray16<Av1EncoderTransformBlockState> candidateRedState);
 
                 modeBestCost = Math.Min(modeBestCost, candidateStatistics.Cost);
+
+                // The comparison takes the mode-loop bias. Reference: adjust_cost() and adjust_rdcost() in the mode loop
+                // of av1_rd_pick_inter_mode().
+                if (candidateStatistics.Cost != long.MaxValue && this.BiasesInterCosts)
+                {
+                    candidateStatistics.AddInterModeBias();
+                }
+
                 if (candidateStatistics.Cost >= Math.Min(this.blockCostLimit, selectedStatistics.Cost))
                 {
                     continue;
@@ -6373,8 +6413,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 block.ReferenceMotionVectorIndex = referenceIndices[candidateIndex];
             }
 
-            this.RecordMotionModeWinner(modeBestCost, true, default, default, default);
+            this.RecordMotionModeWinner(this.GetBiasedInterModeCost(modeBestCost), true, default, default, default);
         }
+
+        /// <summary>
+        /// Returns a mode-loop cost with the bias the image tune adds to an inter mode. Reference: adjust_cost() in the
+        /// mode loop of av1_rd_pick_inter_mode().
+        /// </summary>
+        /// <param name="cost">The cost of the mode's best entry.</param>
+        /// <returns>The biased cost.</returns>
+        private readonly long GetBiasedInterModeCost(long cost)
+            => cost != long.MaxValue && this.BiasesInterCosts ? cost + (cost >> 3) : cost;
 
         /// <summary>
         /// Selects compound syntax using luma estimates before full residual coding.
@@ -8343,6 +8392,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             bool isCompound = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
             this.lumaSearchFailed = false;
+            this.unbiasedInterTrialCost = long.MaxValue;
             skip = false;
             lumaStates = default;
             lumaTransformSizes = default;
@@ -8556,6 +8606,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 candidate.EstimatedCost = estimate.Cost;
                 this.blockWorkspace.InterModeCandidates[this.interCandidateCount++] = candidate;
+
+                // The bias follows the estimate's records. Reference: adjust_rdcost() after the !do_tx_search branch of
+                // motion_mode_rd().
+                if (referenceFrame != Av1ReferenceFrameType.Intra && this.BiasesInterCosts)
+                {
+                    estimate.AddInterPredictionBias(this.rateMultiplier);
+                }
+
                 return estimate;
             }
 
@@ -8564,7 +8622,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return Av1RateDistortionStatistics.Invalid;
             }
 
-            return this.EvaluatePreparedInterCandidate(
+            Av1RateDistortionStatistics statistics = this.EvaluatePreparedInterCandidate(
                 writer,
                 macroBlock,
                 blockOrigin,
@@ -8583,6 +8641,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 out lumaTransformSizes,
                 out blueState,
                 out redState);
+
+            // A completed search takes the bias after the residual model records it, and later trials of the entry are
+            // bounded by its cost before the bias. Reference: the ref_best_rd update before adjust_cost() and
+            // adjust_rdcost() in motion_mode_rd().
+            this.unbiasedInterTrialCost = statistics.Cost;
+            if (referenceFrame != Av1ReferenceFrameType.Intra && statistics.Cost != long.MaxValue && this.BiasesInterCosts)
+            {
+                statistics.AddInterPredictionBias(this.rateMultiplier);
+            }
+
+            return statistics;
         }
 
         /// <summary>

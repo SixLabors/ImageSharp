@@ -40,6 +40,7 @@ internal readonly struct Av1EncoderSpeedSettings
     /// the tools on keeps its detected value here.
     /// </param>
     /// <param name="sharpness">The encoder sharpness, 0 to 7. Reference: oxcf->algo_cfg.sharpness.</param>
+    /// <param name="tuning">The tune metric. Reference: oxcf->tune_cfg.tuning.</param>
     public Av1EncoderSpeedSettings(
         HeifEncodingSpeed speed,
         bool allIntra,
@@ -49,8 +50,15 @@ internal readonly struct Av1EncoderSpeedSettings
         Size frameSize,
         bool screenContent = false,
         bool? frameSizeScreenContent = null,
-        int sharpness = 0)
+        int sharpness = 0,
+        Av1Tuning tuning = Av1Tuning.Psnr)
     {
+        // The image tune searches intra modes more thoroughly in inter frames, because a layered image can code its key
+        // frame at a lower quality than its inter frames. Reference: the AOM_TUNE_IQ blocks of
+        // set_good_speed_features_framesize_independent(), set_good_speed_feature_framesize_dependent() and
+        // set_rt_speed_features_framesize_independent().
+        bool imageTuning = tuning == Av1Tuning.Iq;
+
         this.Speed = speed;
         this.qIndex = qIndex;
         this.allIntra = allIntra;
@@ -115,8 +123,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.PruneSkippableInterModes = !allIntra && (realtime || speed >= HeifEncodingSpeed.Level5);
 
         // skip_intra_in_interframe: good quality uses 2 in an inter frame from speed 2, and from speed 3 keeps 1 in a
-        // boosted frame and uses 2 or 3 by resolution in the others.
-        this.IntraInInterPruningLevel = allIntra ? 0 : realtime ? 5 : speed >= HeifEncodingSpeed.Level4 ? 4 :
+        // boosted frame and uses 2 or 3 by resolution in the others. The image tune turns it off.
+        this.IntraInInterPruningLevel = allIntra || imageTuning ? 0 : realtime ? 5 : speed >= HeifEncodingSpeed.Level4 ? 4 :
             speed >= HeifEncodingSpeed.Level3 ? boosted ? 1 : minimumDimension >= 720 ? 2 : 3 :
             speed >= HeifEncodingSpeed.Level2 && !intraFrame ? 2 : 1;
 
@@ -277,9 +285,9 @@ internal readonly struct Av1EncoderSpeedSettings
         this.InterIntraWedgeVarianceThreshold = realtime || speed >= HeifEncodingSpeed.Level3 ? int.MaxValue :
             speed == HeifEncodingSpeed.Level2 ? minimumDimension >= 480 ? 100 : int.MaxValue : 0;
 
-        // Good quality estimates inter residuals with the curve-fitted model unless sharpness is set. Reference:
-        // inter_mode_rd_model_estimation in set_good_speed_features_framesize_independent().
-        this.InterModeEstimation = allIntra || intraFrame ? 0 : realtime ? 2 : sharpness != 0 ? 0 : 1;
+        // Good quality estimates inter residuals with the curve-fitted model unless sharpness or the image tune is set.
+        // Reference: inter_mode_rd_model_estimation in set_good_speed_features_framesize_independent().
+        this.InterModeEstimation = allIntra || intraFrame ? 0 : realtime ? 2 : sharpness != 0 || imageTuning ? 0 : 1;
 
         // limit_inter_mode_cands limits only the last-frame updates of good quality, and limit_txfm_eval_per_mode
         // and inter_mode_txfm_breakout the frames that are not boosted.
@@ -351,9 +359,12 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.PartitionBreakoutDistortionThreshold = partitionDistortionThreshold;
         this.PartitionBreakoutRateThreshold = partitionRateThreshold;
+
+        // Good quality with the image tune caps both gradient pruning levels at 3.
+        bool goodQualityImageTuning = imageTuning && !allIntra && !realtime;
         this.IntraHogPruningLevel = realtime
             ? speed >= HeifEncodingSpeed.Level8 ? 1 : 0
-            : speed >= HeifEncodingSpeed.Level6 ? 4 : speed >= HeifEncodingSpeed.Level3 ? 3 : speed >= HeifEncodingSpeed.Level2 ? 2 : 1;
+            : speed >= HeifEncodingSpeed.Level6 && !goodQualityImageTuning ? 4 : speed >= HeifEncodingSpeed.Level3 ? 3 : speed >= HeifEncodingSpeed.Level2 ? 2 : 1;
 
         this.IntraModelCandidateCount = realtime ? 4 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 2 : speed >= HeifEncodingSpeed.Level1 ? 3 : 4
@@ -362,7 +373,7 @@ internal readonly struct Av1EncoderSpeedSettings
         this.PruneChromaModesUsingLumaWinner = allIntra && speed >= HeifEncodingSpeed.Level4;
         this.ChromaHogPruningLevel = realtime || this.PruneChromaModesUsingLumaWinner || speed < HeifEncodingSpeed.Level3
             ? 0
-            : speed >= HeifEncodingSpeed.Level6 ? 4 : speed >= HeifEncodingSpeed.Level5 ? 3 : 2;
+            : speed >= HeifEncodingSpeed.Level6 && !goodQualityImageTuning ? 4 : speed >= HeifEncodingSpeed.Level5 ? 3 : 2;
 
         this.PruneChromaSmoothByVariance = allIntra && speed >= HeifEncodingSpeed.Level6;
         this.ChromaFromLumaSearchRange = this.PruneChromaSmoothByVariance ? 1 : 3;

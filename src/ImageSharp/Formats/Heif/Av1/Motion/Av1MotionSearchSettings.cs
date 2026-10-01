@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <summary>
@@ -24,14 +26,16 @@ internal readonly struct Av1MotionSearchSettings
     /// <param name="qIndex">The base quantizer index.</param>
     /// <param name="boostedFrame">Whether this is a key, golden, or alternate-reference frame with boosted quality.</param>
     /// <param name="screenContent">Whether the content classification identifies graphics or screen content.</param>
+    /// <param name="tuning">The tune metric.</param>
     public Av1MotionSearchSettings(
         HeifEncodingSpeed speed,
         bool intraOnly,
         Size frameSize,
         int qIndex,
         bool boostedFrame,
-        bool screenContent)
-        : this(speed, intraOnly, frameSize, qIndex, -1, boostedFrame, screenContent, screenContent)
+        bool screenContent,
+        Av1Tuning tuning = Av1Tuning.Psnr)
+        : this(speed, intraOnly, frameSize, qIndex, -1, boostedFrame, screenContent, screenContent, tuning)
     {
     }
 
@@ -52,6 +56,7 @@ internal readonly struct Av1MotionSearchSettings
     /// Whether the frame is graphics or animation, or used the screen content tools when its speed features were set.
     /// Reference: the fr_content_type and use_screen_content_tools test of exhaustive_searches_thresh.
     /// </param>
+    /// <param name="tuning">The tune metric.</param>
     public Av1MotionSearchSettings(
         HeifEncodingSpeed speed,
         bool intraOnly,
@@ -60,7 +65,8 @@ internal readonly struct Av1MotionSearchSettings
         int trialQIndex,
         bool boostedFrame,
         bool screenContent,
-        bool lowMeshThreshold)
+        bool lowMeshThreshold,
+        Av1Tuning tuning = Av1Tuning.Psnr)
     {
         this.speed = speed;
         this.qIndex = qIndex;
@@ -152,7 +158,10 @@ internal readonly struct Av1MotionSearchSettings
                 this.fullPixelMethod = FullPixelSearchMethod.Diamond;
                 this.SecondCandidateSelection = CandidateSelection.FirstOnly;
                 this.MeshPruningLevel = 1;
-                this.AllowIntraBlockCopy = false;
+
+                // The image tune keeps intra block copy. Reference: the use_intrabc override of the AOM_TUNE_IQ block
+                // of set_good_speed_features_framesize_independent().
+                this.AllowIntraBlockCopy = tuning == Av1Tuning.Iq;
                 this.MotionCostUpdate = CostUpdateFrequency.SuperblockRow;
             }
 

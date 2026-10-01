@@ -931,7 +931,8 @@ internal static partial class Av1FrameEncoder
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
-            isScreenContent);
+            isScreenContent,
+            options.Tuning);
 
         int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
 
@@ -1050,7 +1051,8 @@ internal static partial class Av1FrameEncoder
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
-            isScreenContent);
+            isScreenContent,
+            options.Tuning);
 
         int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
 
@@ -1227,7 +1229,8 @@ internal static partial class Av1FrameEncoder
             sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
-            decision.IsScreenContent);
+            decision.IsScreenContent,
+            options.Tuning);
 
         frameHeader.AllowIntraBlockCopy =
             motionSettings.AllowIntraBlockCopy &&
@@ -2005,7 +2008,8 @@ internal static partial class Av1FrameEncoder
                     new Size(width, height),
                     qIndex,
                     this.FrameHeader.IsIntra,
-                    screenContent: true);
+                    screenContent: true,
+                    options.Tuning);
 
                 bool allocateIntraBlockCopySearch =
                     allocateScreenContentState &&
@@ -3209,7 +3213,7 @@ internal static partial class Av1FrameEncoder
                 previousAverageSourceSad);
 
             parent.EncoderOptions = this.Options;
-            parent.ConstantQualityIndex = this.QIndex;
+            parent.ConstantQualityIndex = this.ConstantQualityIndex;
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,
@@ -3217,7 +3221,8 @@ internal static partial class Av1FrameEncoder
                 parent.FrameUpdateType,
                 this.QIndex,
                 image.Size,
-                sharpness: this.Options.Sharpness);
+                sharpness: this.Options.Sharpness,
+                tuning: this.Options.Tuning);
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().
@@ -3463,7 +3468,7 @@ internal static partial class Av1FrameEncoder
                 this.averageSourceSad,
                 previousAverageSourceSad);
 
-            parent.ConstantQualityIndex = this.QIndex;
+            parent.ConstantQualityIndex = this.ConstantQualityIndex;
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,
@@ -3471,7 +3476,8 @@ internal static partial class Av1FrameEncoder
                 parent.FrameUpdateType,
                 this.QIndex,
                 image.Size,
-                sharpness: this.Options.Sharpness);
+                sharpness: this.Options.Sharpness,
+                tuning: this.Options.Tuning);
 
             // Good-quality usage with the default objective delta-q mode and the temporal model enabled pads the
             // border. Real-time usage does not. Reference: the do_border_pad test in av1_encode().

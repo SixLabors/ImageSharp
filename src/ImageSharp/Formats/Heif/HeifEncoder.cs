@@ -102,6 +102,15 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     }
 
     /// <summary>
+    /// Gets the quality measure that the encoder optimizes for, or <see langword="null"/> to let the encoder decide.
+    /// The setting applies to the primary and auxiliary alpha images. When it is <see langword="null"/>, lossless
+    /// images and the auxiliary alpha image use <see cref="HeifTuning.Psnr"/>, other still color images use
+    /// <see cref="HeifTuning.ImageQuality"/> unless they are stored as RGB, and other color images use
+    /// <see cref="HeifTuning.Ssim"/>.
+    /// </summary>
+    public HeifTuning? Tuning { get; init; }
+
+    /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit
     /// depth. Metadata that does not specify a bit depth defaults to <see cref="HeifBitDepth.Bit8"/>.
     /// </summary>

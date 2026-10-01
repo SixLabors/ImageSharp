@@ -233,20 +233,29 @@ internal sealed partial class HeifEncoderCore
             BitDepth = av1BitDepth
         };
 
-        // libavif picks the tune: lossless coding keeps the libaom default, alpha uses PSNR to limit ringing, and color
-        // uses the image tune for all-intra images whose matrix is not identity, else SSIM. Reference: the default
-        // tune metric of aomCodecEncodeImage().
-        Av1Tuning colorTuning = this.encoder.Lossless
-            ? Av1Tuning.Psnr
-            : allIntra && colorProfile.MatrixCoefficients != CicpMatrixCoefficients.Identity ? Av1Tuning.Iq : Av1Tuning.Ssim;
+        // A tune that the caller sets applies to color and alpha. Otherwise libavif picks it: lossless coding keeps the
+        // libaom default, alpha uses PSNR to limit ringing, and color uses the image tune for all-intra images whose
+        // matrix is not identity, else SSIM. Reference: avifAOMOptionsContainExplicitTuning() and the default tune
+        // metric of aomCodecEncodeImage().
+        Av1Tuning? requestedTuning = this.encoder.Tuning switch
+        {
+            HeifTuning.Psnr => Av1Tuning.Psnr,
+            HeifTuning.Ssim => Av1Tuning.Ssim,
+            HeifTuning.ImageQuality => Av1Tuning.Iq,
+            _ => null
+        };
 
-        Av1Tuning alphaTuning = Av1Tuning.Psnr;
+        Av1Tuning colorTuning = requestedTuning ?? (this.encoder.Lossless
+            ? Av1Tuning.Psnr
+            : allIntra && colorProfile.MatrixCoefficients != CicpMatrixCoefficients.Identity ? Av1Tuning.Iq : Av1Tuning.Ssim);
+
+        Av1Tuning alphaTuning = requestedTuning ?? Av1Tuning.Psnr;
 
         // Reference: DEFAULT_QUALITY of avifenc.
         int quality = this.encoder.Quality ?? 60;
         int colorQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuality = this.encoder.AlphaQuality ?? quality;
-        int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality);
+        int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality, alphaTuning == Av1Tuning.Iq);
         bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
 
         // libavif turns loop restoration off for 12-bit images, where the encoder can overflow. Reference: the
@@ -260,7 +269,7 @@ internal sealed partial class HeifEncoderCore
         // adjustment of aomCodecEncodeImage().
         bool constantBitRate = !allIntra && this.encoder.Speed >= HeifEncodingSpeed.Level7;
         int colorQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(quality, colorTuning == Av1Tuning.Iq);
-        int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality);
+        int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality, alphaTuning == Av1Tuning.Iq);
 
         // Good-quality sequences keep libaom's default lookahead of 35 frames, except when alpha is present.
         // Reference: the g_lag_in_frames default of the good-quality usage, and disableLaggedOutput of

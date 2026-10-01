@@ -232,6 +232,9 @@ internal static partial class Av1IntraSuperblockEncoder
         private InlineArray16<long> interTransformNoSplitCosts;
         private bool estimateInterCandidates;
         private bool lumaSearchFailed;
+
+        // The cost of the last completed inter trial before the image tune bias. Reference: curr_rd in motion_mode_rd().
+        private long unbiasedInterTrialCost;
         private int interCandidateCount;
         private int compoundSearchRecordCount;
         private int interpolationSearchRecordCount;
@@ -1787,9 +1790,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     // A failed unsplit search leaves no cost. Reference: the rate != INT_MAX test before part_none_rd
                     // is set in none_partition_search().
                     nonePartitionCost = noneInvalid ? long.MaxValue : accumulatedCost;
-                    noneCost = noneInvalid
-                        ? long.MaxValue
-                        : this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.Statistics.Cost;
+
+                    // The unsplit cost is priced again from the block's rate and distortion at the multiplier of the
+                    // node, which drops the cost bias of the image tune. Reference: the av1_rd_cost_update() before
+                    // none_rd is set in none_partition_search().
+                    Av1RateDistortionStatistics noneStatistics =
+                        this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.Statistics;
+
+                    noneStatistics.UpdateCost(this.rateMultiplier);
+                    noneCost = noneInvalid ? long.MaxValue : noneStatistics.Cost;
 
                     if (!noneInvalid && !this.picture.Parent.FrameHeader.IsIntra &&
                         this.picture.Parent.SpeedSettings.GetRectangularPartitionReferencePruning(this.picture.Parent.FrameUpdateType) != 0)

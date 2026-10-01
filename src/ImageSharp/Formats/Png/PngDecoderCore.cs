@@ -263,7 +263,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 this.InitializeImage(metadata, currentFrameControl.Value, out image);
 
                                 // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                this.AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata, this.pngColorType == PngColorType.Palette ? metadata.IccProfile : null);
+                                this.AssignColorPalette<TPixel>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
                             }
 
                             this.ReadScanlines(
@@ -460,7 +460,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
                                 // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                this.AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata, null);
+                                // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
+                                this.AssignColorPalette<RgbaVector>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
                             }
 
                             this.SkipChunkDataAndCrc(chunk);
@@ -1342,11 +1343,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <summary>
     /// Decodes and assigns the color palette to the metadata
     /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format for converted palette entries.</typeparam>
     /// <param name="palette">The palette buffer.</param>
     /// <param name="alpha">The alpha palette buffer.</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    /// <param name="profile">The source profile when decoding indexed samples.</param>
-    private void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata, IccProfile? profile)
+    /// <param name="profile">The embedded ICC profile.</param>
+    private void AssignColorPalette<TPixel>(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata, IccProfile? profile)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         if (palette.Length == 0)
         {
@@ -1356,7 +1359,23 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Rgb24>()];
         ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
 
-        if (IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? sourceProfile))
+        // The tRNS chunk must not contain more alpha values than there are palette entries.
+        if (alpha.Length > colorTable.Length)
+        {
+            alpha = alpha.Slice(0, colorTable.Length);
+        }
+
+        Color.FromPixel(rgbTable, colorTable);
+
+        // The alpha chunk may contain as many transparency entries as there are palette entries
+        // (more than that would not make any sense) or as few as one.
+        for (int i = 0; i < alpha.Length; i++)
+        {
+            ref Color color = ref colorTable[i];
+            color = color.WithAlpha(alpha[i] / 255F);
+        }
+
+        if (this.pngColorType == PngColorType.Palette && IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? sourceProfile))
         {
             ColorConversionOptions options = new()
             {
@@ -1367,29 +1386,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             ColorProfileConverter converter = new(options);
 
-            // PLTE stores RGB samples; convert those source pixels before applying tRNS alpha.
-            converter.Convert(this.configuration, rgbTable, colorTable);
-        }
-        else
-        {
-            Color.FromPixel(rgbTable, colorTable);
-        }
-
-        // The tRNS chunk must not contain more alpha values than there are palette entries.
-        if (alpha.Length > colorTable.Length)
-        {
-            alpha = alpha.Slice(0, colorTable.Length);
-        }
-
-        if (alpha.Length > 0)
-        {
-            // The alpha chunk may contain as many transparency entries as there are palette entries
-            // (more than that would not make any sense) or as few as one.
-            for (int i = 0; i < alpha.Length; i++)
-            {
-                ref Color color = ref colorTable[i];
-                color = color.WithAlpha(alpha[i] / 255F);
-            }
+            // tRNS alpha is present before the destination pixel format packs the converted RGB.
+            converter.Convert<TPixel>(colorTable);
         }
 
         pngMetadata.ColorTable = colorTable;

@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -214,6 +215,19 @@ internal class TiffDecoderCore : ImageDecoderCore
         {
             (ImageFrameMetadata FrameMetadata, TiffFrameMetadata TiffMetadata) meta
                 = this.CreateFrameMetadata(directories[i]);
+
+            if (meta.TiffMetadata.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor)
+            {
+                if (!directories[i].TryGetValue(ExifTag.ColorMap, out IExifValue<ushort[]> colorMap))
+                {
+                    TiffThrowHelper.ThrowNotSupported("The TIFF ColorMap entry is missing for a palette color image.");
+                }
+
+                // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
+                Color[] palette = TiffUtilities.DecodeColorMap<RgbaVector>(colorMap.Value, meta.TiffMetadata.BitsPerSample, meta.FrameMetadata.IccProfile, this.memoryAllocator);
+
+                meta.TiffMetadata.LocalColorTable = palette;
+            }
 
             framesMetadata.Add(meta.FrameMetadata);
 

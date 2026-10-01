@@ -667,6 +667,7 @@ public static class TestImages
         public const string Bit16PalRle = "Tga/ccm8.tga";
         public const string Bit16RleBottomLeft = "Tga/targa_16bit_rle.tga";
         public const string Bit16PalBottomLeft = "Tga/targa_16bit_pal.tga";
+        public const string ColorMapOffset = "Tga/cmap_offset.tga";
 
         public const string Gray16BitTopLeft = "Tga/grayscale_a_UL.tga";
         public const string Gray16BitBottomLeft = "Tga/grayscale_a_LL.tga";
@@ -829,6 +830,7 @@ public static class TestImages
             public const string WithXmp = "Webp/xmp_lossy.webp";
             public const string BikeSmall = "Webp/bike_lossy_small.webp";
             public const string Animated = "Webp/leo_animated_lossy.webp";
+            public const string AnimatedWithIccp = "Webp/chromium_animated_icc_xmp.webp";
             public const string AnimatedIssue2528 = "Webp/issues/Issue2528.webp";
 
             // Lossy images without macroblock filtering.

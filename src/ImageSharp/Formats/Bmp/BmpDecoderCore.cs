@@ -127,8 +127,13 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         Image<TPixel>? image = null;
         try
         {
-            this.ReadImageHeaders(stream, true, out bool inverted, out bool isIndexed, out Color[] palette);
+            this.ReadImageHeaders(stream, out bool inverted, out bool isIndexed, out Color[] palette);
             ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
+
+            if (isIndexed)
+            {
+                this.ConvertColorPalette<TPixel>(palette, this.metadata.IccProfile);
+            }
 
             image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
@@ -229,8 +234,40 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <inheritdoc />
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        this.ReadImageHeaders(stream, false, out _, out _, out _);
+        this.ReadImageHeaders(stream, out _, out bool isIndexed, out Color[] palette);
+
+        if (isIndexed)
+        {
+            // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
+            this.ConvertColorPalette<RgbaVector>(palette, this.metadata.IccProfile);
+        }
+
         return new ImageInfo(new Size(this.infoHeader.Width, this.infoHeader.Height), this.metadata);
+    }
+
+    /// <summary>
+    /// Converts an indexed BMP palette through its embedded ICC profile for the requested destination pixel format.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="palette">The palette shared with metadata and pixel expansion.</param>
+    /// <param name="profile">The embedded ICC profile.</param>
+    private void ConvertColorPalette<TPixel>(Color[] palette, IccProfile? profile)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (!IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? sourceProfile))
+        {
+            return;
+        }
+
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = sourceProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = this.memoryAllocator
+        };
+
+        ColorProfileConverter converter = new(options);
+        converter.Convert<TPixel>(palette);
     }
 
     /// <summary>
@@ -933,13 +970,13 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
                 for (int j = 0; j < 8 && x + j < width; j++)
                 {
-                    Vector4 color = colors[indices[newY, x + j]].ToScaledVector4();
+                    Vector4 color = colors[indices[newY, x + j]].ToScaledVector4(PixelAlphaRepresentation.Unassociated);
 
                     // AND-mask bits run from most significant to least significant across the pixels.
                     // A set bit makes the pixel transparent (alpha 0); a clear bit makes it opaque (alpha 1).
                     color.W = (maskByte & (0b10000000 >> j)) != 0 ? 0f : 1f;
 
-                    // Apply mask alpha to the converted color before the destination format quantizes it.
+                    // Replace alpha on straight RGB before the destination format applies its alpha association.
                     pixelRow[x + j] = TPixel.FromUnassociatedScaledVector4(color);
                 }
             }
@@ -1514,13 +1551,12 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// Reads the <see cref="BmpFileHeader"/> and <see cref="BmpInfoHeader"/> from the stream and sets the corresponding fields.
     /// </summary>
     /// <param name="stream">The input stream.</param>
-    /// <param name="convertPalette">Whether indexed palette colors should be converted for decoding.</param>
     /// <param name="inverted">Whether the image orientation is inverted.</param>
     /// <param name="isIndexed">Whether the image uses its palette for pixel indices.</param>
     /// <param name="palette">The color palette.</param>
     [MemberNotNull(nameof(metadata))]
     [MemberNotNull(nameof(bmpMetadata))]
-    private void ReadImageHeaders(BufferedReadStream stream, bool convertPalette, out bool inverted, out bool isIndexed, out Color[] palette)
+    private void ReadImageHeaders(BufferedReadStream stream, out bool inverted, out bool isIndexed, out Color[] palette)
     {
         if (!this.skipFileHeader)
         {
@@ -1633,22 +1669,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 SimdUtils.Shuffle4Slice3<XYZWShuffle4Slice3>(paletteBytes[..(palette.Length * Unsafe.SizeOf<Bgra32>())], MemoryMarshal.AsBytes(source));
             }
 
-            if (convertPalette && isIndexed && IccProfile.TryGetIccProfileForColorConversion(this.metadata.IccProfile, out IccProfile? profile))
-            {
-                ColorConversionOptions options = new()
-                {
-                    SourceIccProfile = profile,
-                    TargetIccProfile = CompactSrgbV4Profile.Profile,
-                    MemoryAllocator = this.memoryAllocator
-                };
-
-                ColorProfileConverter converter = new(options);
-                converter.Convert(this.configuration, (ReadOnlySpan<Bgr24>)source, palette);
-            }
-            else
-            {
-                Color.FromPixel((ReadOnlySpan<Bgr24>)source, palette);
-            }
+            Color.FromPixel((ReadOnlySpan<Bgr24>)source, palette);
 
             this.bmpMetadata.ColorTable = palette;
         }

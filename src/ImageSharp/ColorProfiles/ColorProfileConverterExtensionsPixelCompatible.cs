@@ -88,23 +88,48 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     }
 
     /// <summary>
-    /// Converts source pixels through the configured ICC profiles into straight colors.
+    /// Converts encoded colors in place through the configured ICC profiles and packs them in the destination pixel format.
     /// </summary>
-    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
     /// <param name="converter">The converter configured with source and target ICC profiles.</param>
-    /// <param name="configuration">The configuration used for pixel conversion.</param>
-    /// <param name="source">The source pixels, which remain unchanged.</param>
-    /// <param name="destination">The converted colors.</param>
-    public static void Convert<TPixel>(this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Color> destination)
+    /// <param name="colors">The encoded colors to convert.</param>
+    public static void Convert<TPixel>(this ColorProfileConverter converter, Span<Color> colors)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Separate scratch preserves the source pixels and their alpha while the existing bulk path converts RGB.
-        using IMemoryOwner<Vector4> vectorBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
-        using IMemoryOwner<Rgb> rgbBuffer = converter.Options.MemoryAllocator.Allocate<Rgb>(source.Length);
+        using IMemoryOwner<Vector4> vectorBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(colors.Length);
+        using IMemoryOwner<Rgb> rgbBuffer = converter.Options.MemoryAllocator.Allocate<Rgb>(colors.Length);
         Span<Vector4> vectors = vectorBuffer.Memory.Span;
 
-        converter.Convert(configuration, source, vectors, rgbBuffer.Memory.Span);
-        Color.FromScaledVector(vectors, destination);
+        // Color preserves the encoded sample precision and alpha until the ICC result reaches the destination pixel format.
+        for (int i = 0; i < colors.Length; i++)
+        {
+            vectors[i] = colors[i].ToScaledVector4(PixelAlphaRepresentation.Unassociated);
+        }
+
+        converter.Convert(vectors[..colors.Length], rgbBuffer.Memory.Span[..colors.Length]);
+
+        for (int i = 0; i < colors.Length; i++)
+        {
+            colors[i] = Color.FromPixel(TPixel.FromUnassociatedScaledVector4(vectors[i]));
+        }
+    }
+
+    /// <summary>
+    /// Converts a color through the configured ICC profiles and returns it with the destination pixel format's precision and alpha representation.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="converter">The converter configured with source and target ICC profiles.</param>
+    /// <param name="color">The encoded color to convert.</param>
+    /// <returns>The converted color.</returns>
+    public static Color Convert<TPixel>(this ColorProfileConverter converter, Color color)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Vector4 source = color.ToScaledVector4(PixelAlphaRepresentation.Unassociated);
+        Rgb converted = converter.ConvertUsingIccProfile<Rgb, Rgb>(Rgb.FromScaledVector4(source));
+
+        // ICC transforms straight RGB; the original alpha is packed by the destination pixel's own rules.
+        Vector4 result = new(converted.ToScaledVector3(), source.W);
+        return Color.FromPixel(TPixel.FromUnassociatedScaledVector4(result));
     }
 
     /// <summary>

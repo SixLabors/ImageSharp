@@ -1,14 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
-using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -44,67 +40,14 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         this.bitsPerSample1 = bitsPerSample.Channel1;
         this.extraSamplesType = extraSamplesType;
 
-        MemoryAllocator allocator = configuration.MemoryAllocator;
-        int colorCount = 1 << this.bitsPerSample0;
-
-        // Match libtiff's legacy palette detection. Values in 0-255 represent 8-bit samples;
-        // multiplying by 257 maps them to Rgb48's 16-bit range without quantizing other ColorMaps.
-        bool legacy8Bit = !colorMap.AsSpan().ContainsAnyExceptInRange((ushort)0, (ushort)255);
-        this.paletteColors = new Color[colorCount];
-
-        if (IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? profile))
-        {
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = profile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-                MemoryAllocator = allocator
-            };
-
-            ColorProfileConverter converter = new(options);
-
-            // A temporary typed source lets the ICC span transform initialize once for the whole ColorMap.
-            // It is released after conversion; metadata uses the resulting Color table.
-            using IMemoryOwner<Rgb48> sourceBuffer = allocator.Allocate<Rgb48>(colorCount);
-            Span<Rgb48> source = sourceBuffer.GetSpan();
-
-            for (int i = 0; i < colorCount; i++)
-            {
-                ushort r = colorMap[i];
-                ushort g = colorMap[colorCount + i];
-                ushort b = colorMap[(colorCount * 2) + i];
-
-                source[i] = legacy8Bit
-                    ? new Rgb48((ushort)(r * 257), (ushort)(g * 257), (ushort)(b * 257))
-                    : new Rgb48(r, g, b);
-            }
-
-            converter.Convert(configuration, source, this.paletteColors);
-        }
-        else
-        {
-            // ColorMap (tag 320) stores planar RGB without palette alpha. Unprofiled entries
-            // go straight to the retained table without staging a second full palette.
-            for (int i = 0; i < colorCount; i++)
-            {
-                ushort r = colorMap[i];
-                ushort g = colorMap[colorCount + i];
-                ushort b = colorMap[(colorCount * 2) + i];
-
-                Rgb48 source = legacy8Bit
-                    ? new Rgb48((ushort)(r * 257), (ushort)(g * 257), (ushort)(b * 257))
-                    : new Rgb48(r, g, b);
-
-                this.paletteColors[i] = Color.FromPixel(source);
-            }
-        }
-
         // ExtraSamples (tag 338 / 0x0152) describes extra per-pixel samples stored in the image data stream.
         // For PaletteColor, any alpha is per pixel (stored alongside the index), not per palette entry.
         this.hasAlpha =
             this.bitsPerSample1 > 0
             && this.extraSamplesType.HasValue
             && this.extraSamplesType != TiffExtraSampleType.UnspecifiedData;
+
+        this.paletteColors = TiffUtilities.DecodeColorMap<TPixel>(colorMap, bitsPerSample, metadata.IccProfile, configuration.MemoryAllocator);
 
         if (this.hasAlpha)
         {
@@ -120,7 +63,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     }
 
     /// <summary>
-    /// Gets the decoded color table, including any per-pixel alpha updates from decoded extra samples.
+    /// Gets the decoded color table.
     /// </summary>
     public Color[] PaletteColors => this.paletteColors;
 
@@ -149,14 +92,11 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                         index = 0;
                     }
 
+                    // Different pixels may share an index but carry different alpha, so the palette entry stays unchanged.
                     Vector4 color = this.paletteColors[index].ToScaledVector4(PixelAlphaRepresentation.Unassociated);
                     color.W = alpha;
 
                     pixelRow[x] = TPixel.FromUnassociatedScaledVector4(color);
-
-                    // Best-effort palette update for downstream conversions.
-                    // This is intentionally "last writer wins" with no per-pixel branch.
-                    this.paletteColors[index] = Color.FromScaledVector(color);
                 }
 
                 bitReader.NextRow();

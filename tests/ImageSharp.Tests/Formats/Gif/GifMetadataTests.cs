@@ -30,13 +30,13 @@ public class GifMetadataTests
         };
 
     /// <summary>
-    /// Identifying an ICC-bearing GIF retains the encoded palette and assembles the complete profile.
+    /// Identifying an ICC-bearing GIF assembles the complete profile when optional metadata is skipped or retained.
     /// </summary>
     /// <param name="skipMetadata">Whether optional metadata is skipped.</param>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Identify_ExifToolIcc_RetainsEncodedPaletteAndProfile(bool skipMetadata)
+    public void Identify_ExifToolIcc_AssemblesCompleteProfile(bool skipMetadata)
     {
         TestFile testFile = TestFile.Create(TestImages.Gif.ExifToolIcc);
         DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
@@ -44,14 +44,13 @@ public class GifMetadataTests
         // ICC remains available for color handling even when optional metadata is skipped.
         ImageInfo info = Image.Identify(options, testFile.Bytes);
         GifMetadata metadata = info.Metadata.GetGifMetadata();
+
+        Assert.NotNull(metadata.GlobalColorTable);
         ReadOnlySpan<Color> palette = metadata.GlobalColorTable.Value.Span;
 
         Assert.Equal(new Size(8, 8), info.Size);
         Assert.Single(info.FrameMetadataCollection);
         Assert.Equal(256, palette.Length);
-        Assert.Equal(Color.White, palette[0]);
-        Assert.Equal(Color.Red, palette[35]);
-        Assert.Equal(Color.FromPixel(new Rgb24(153, 51, 51)), palette[100]);
         Assert.Equal(palette[0], metadata.BackgroundColor);
 
         // The source profile spans two GIF application sub-blocks; its checksum detects truncated assembly.

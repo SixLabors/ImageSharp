@@ -4,6 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.PixelFormats;
 using Wacton.Unicolour;
 using Wacton.Unicolour.Icc;
 using Rgb = SixLabors.ImageSharp.ColorProfiles.Rgb;
@@ -66,6 +67,59 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     {
         List<Vector4> actual = GetBulkActualTargetValues(Inputs, sourceProfile, targetProfile);
         AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
+    }
+
+    /// <summary>
+    /// Verifies that scalar and bulk Color conversion preserve source alpha and pack through the requested pixel format.
+    /// </summary>
+    /// <param name="associated">Whether the destination pixel format stores associated alpha.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConvertColor_ScalarAndBulkPreserveAlpha(bool associated)
+    {
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.RommRgb),
+            TargetIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2)
+        });
+
+        Color[] sources =
+        [
+            Color.FromPixel(RgbaVectorP.FromUnassociatedScaledVector4(new Vector4(0.25F, 0.5F, 0.75F, 0.4F))),
+            Color.FromScaledVector(new Vector4(0.3F, 0.6F, 0.2F, 1.25F))
+        ];
+
+        Color[] bulk = [.. sources];
+        if (associated)
+        {
+            converter.Convert<RgbaVectorP>(bulk);
+        }
+        else
+        {
+            converter.Convert<RgbaVector>(bulk);
+        }
+
+        for (int i = 0; i < sources.Length; i++)
+        {
+            Vector4 source = sources[i].ToScaledVector4(PixelAlphaRepresentation.Unassociated);
+            Rgb expectedRgb = converter.Convert<Rgb, Rgb>(Rgb.FromScaledVector4(source));
+            Vector4 expectedVector = new(expectedRgb.ToScaledVector3(), source.W);
+
+            // The existing RGB converter independently establishes the ICC result before target alpha packing.
+            Color expected = associated
+                ? Color.FromPixel(RgbaVectorP.FromUnassociatedScaledVector4(expectedVector))
+                : Color.FromPixel(RgbaVector.FromUnassociatedScaledVector4(expectedVector));
+
+            Color scalar = associated
+                ? converter.Convert<RgbaVectorP>(sources[i])
+                : converter.Convert<RgbaVector>(sources[i]);
+
+            Assert.Equal(expected, scalar);
+            Assert.Equal(scalar, bulk[i]);
+            Assert.Equal(associated ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated, scalar.AlphaRepresentation);
+            Assert.Equal(source.W, scalar.ToScaledVector4(PixelAlphaRepresentation.Unassociated).W);
+        }
     }
 
     /// <summary>

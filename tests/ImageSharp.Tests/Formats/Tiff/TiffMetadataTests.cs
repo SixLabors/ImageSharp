@@ -604,10 +604,15 @@ public class TiffMetadataTests
     public void TiffDecoder_CanAssign_ColorPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        ImageInfo info = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+        TiffFrameMetadata identified = info.FrameMetadataCollection[0].GetTiffMetadata();
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         ImageFrame<TPixel> frame = image.Frames.RootFrame;
         TiffFrameMetadata tiffMeta = frame.Metadata.GetTiffMetadata();
+
         Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffMeta.PhotometricInterpretation);
         Assert.NotNull(tiffMeta.LocalColorTable);
+        Assert.NotNull(identified.LocalColorTable);
+        Assert.Equal(tiffMeta.LocalColorTable.Value.ToArray(), identified.LocalColorTable.Value.ToArray());
     }
 }

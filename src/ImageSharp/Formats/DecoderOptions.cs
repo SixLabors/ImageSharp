@@ -63,7 +63,7 @@ public sealed class DecoderOptions
     public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreAncillary;
 
     /// <summary>
-    /// Gets a value that controls how ICC profiles are handled during decode.
+    /// Gets a value that controls ICC color conversion and profile retention during decoding and identification.
     /// </summary>
     public ColorProfileHandling ColorProfileHandling { get; init; }
 

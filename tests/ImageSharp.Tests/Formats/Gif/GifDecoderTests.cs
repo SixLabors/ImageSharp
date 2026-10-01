@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics.X86;
+using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
@@ -37,20 +38,27 @@ public class GifDecoderTests
     [WithFile(TestImages.Gif.ExifToolIcc, PixelTypes.Rgba32 | PixelTypes.Rgba64 | PixelTypes.RgbaVector, true)]
     public void Decode_ExifToolIcc_ConvertsPaletteAndAppliesRetention<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        TestFile testFile = TestFile.Create(TestImages.Gif.ExifToolIcc);
-        ImageInfo info = Image.Identify(testFile.Bytes);
-        ReadOnlySpan<Color> encodedPalette = info.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+        => AssertExifToolIccPaletteAndRetention<TPixel>(TestFile.Create(provider.SourceFileOrDescription).Bytes, skipMetadata);
 
+    // Use the same fixture bytes and assertions for ordinary and associated destination pixel types.
+    private static void AssertExifToolIccPaletteAndRetention<TPixel>(byte[] source, bool skipMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
         DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = skipMetadata };
 
-        using Image<TPixel> preserved = provider.GetImage(GifDecoder.Instance, preserveOptions);
-        using Image<TPixel> converted = provider.GetImage(GifDecoder.Instance, convertOptions);
+        ImageInfo preservedInfo = Image.Identify(preserveOptions, source);
+        ImageInfo convertedInfo = Image.Identify(convertOptions, source);
+
+        // GIF's six-byte header and seven-byte logical screen descriptor precede this fixture's 256-entry global RGB table.
+        ReadOnlySpan<Rgb24> encodedPalette = MemoryMarshal.Cast<byte, Rgb24>(source.AsSpan(13, 256 * 3));
+
+        using Image<TPixel> preserved = Image.Load<TPixel>(preserveOptions, source);
+        using Image<TPixel> converted = Image.Load<TPixel>(convertOptions, source);
 
         ColorConversionOptions conversionOptions = new()
         {
-            SourceIccProfile = info.Metadata.IccProfile,
+            SourceIccProfile = preservedInfo.Metadata.IccProfile,
             TargetIccProfile = CompactSrgbV4Profile.Profile
         };
 
@@ -65,23 +73,34 @@ public class GifDecoderTests
 
         converter.Convert<Rgb, Rgb>(expectedPalette, expectedPalette);
 
+        ReadOnlySpan<Color> identifiedPalette = preservedInfo.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+        ReadOnlySpan<Color> convertedInfoPalette = convertedInfo.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
         ReadOnlySpan<Color> preservedPalette = preserved.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
         ReadOnlySpan<Color> convertedPalette = converted.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
 
+        Assert.Equal(256, identifiedPalette.Length);
+        Assert.Equal(256, convertedInfoPalette.Length);
         Assert.Equal(256, preservedPalette.Length);
         Assert.Equal(256, convertedPalette.Length);
 
         for (int i = 0; i < encodedPalette.Length; i++)
         {
-            Color expected = Color.FromScaledVector(expectedPalette[i].ToScaledVector4());
+            Color expectedIdentified = Color.FromScaledVector(expectedPalette[i].ToScaledVector4());
+            Color expected = Color.FromPixel(TPixel.FromUnassociatedScaledVector4(expectedPalette[i].ToScaledVector4()));
+
+            Assert.Equal(expectedIdentified, identifiedPalette[i]);
+            Assert.Equal(expectedIdentified, convertedInfoPalette[i]);
             Assert.Equal(expected, preservedPalette[i]);
             Assert.Equal(expected, convertedPalette[i]);
         }
 
-        Assert.NotEqual(encodedPalette[100], preservedPalette[100]);
+        Assert.NotEqual(Color.FromPixel(encodedPalette[100]), identifiedPalette[100]);
+        Assert.Equal(identifiedPalette[0], preservedInfo.Metadata.GetGifMetadata().BackgroundColor);
+        Assert.Equal(convertedInfoPalette[0], convertedInfo.Metadata.GetGifMetadata().BackgroundColor);
         Assert.Equal(preservedPalette[0], preserved.Metadata.GetGifMetadata().BackgroundColor);
         Assert.Equal(convertedPalette[0], converted.Metadata.GetGifMetadata().BackgroundColor);
-        Assert.Equal(info.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(preservedInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Null(convertedInfo.Metadata.IccProfile);
         Assert.Null(converted.Metadata.IccProfile);
 
         // Every encoded pixel uses palette index 35, so one expected color covers the whole 8x8 frame.
@@ -96,6 +115,20 @@ public class GifDecoderTests
         }
 
         ImageComparer.Exact.VerifySimilarity(preserved, converted);
+    }
+
+    /// <summary>
+    /// Verifies that associated destination pixels retain their alpha representation in converted GIF palettes.
+    /// </summary>
+    /// <param name="skipMetadata">Whether optional metadata is skipped.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Decode_ExifToolIcc_ConvertsAssociatedPaletteAndAppliesRetention(bool skipMetadata)
+    {
+        byte[] source = TestFile.Create(TestImages.Gif.ExifToolIcc).Bytes;
+        AssertExifToolIccPaletteAndRetention<Rgba32P>(source, skipMetadata);
+        AssertExifToolIccPaletteAndRetention<RgbaVectorP>(source, skipMetadata);
     }
 
     [Theory]

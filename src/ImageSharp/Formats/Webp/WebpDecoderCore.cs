@@ -3,11 +3,14 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -89,7 +92,15 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.backgroundColorHandling,
                         this.ExecuteAncillarySegmentAction);
 
-                    return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
+                    image = animationDecoder.Decode<TPixel>(stream, metadata, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
+
+                    // Convert the image even when its background is ignored; this call must run before checking the background policy.
+                    if (TryConvertIccProfile(image) && this.backgroundColorHandling != BackgroundColorHandling.Ignore)
+                    {
+                        this.ConvertBackgroundColor<TPixel>(metadata);
+                    }
+
+                    return image;
                 }
 
                 // A VP8X header alone describes a canvas, not decodable image data.
@@ -155,18 +166,48 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.backgroundColorHandling,
                     this.ExecuteAncillarySegmentAction);
 
-                return animationDecoder.Identify(
+                ImageInfo info = animationDecoder.Identify(
                     stream,
+                    metadata,
                     this.webImageInfo.Features,
                     this.webImageInfo.Width,
                     this.webImageInfo.Height,
                     fileSize);
+
+                if (this.backgroundColorHandling != BackgroundColorHandling.Ignore && IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out _))
+                {
+                    // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
+                    this.ConvertBackgroundColor<RgbaVector>(metadata);
+                }
+
+                return info;
             }
 
             return new ImageInfo(
                 new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
         }
+    }
+
+    /// <summary>
+    /// Converts the retained animation background through its embedded ICC profile for the requested pixel format.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="metadata">The image metadata containing the ICC profile and background color.</param>
+    private void ConvertBackgroundColor<TPixel>(ImageMetadata metadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = metadata.IccProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = this.memoryAllocator
+        };
+
+        ColorProfileConverter converter = new(options);
+        WebpMetadata webpMetadata = metadata.GetWebpMetadata();
+
+        webpMetadata.BackgroundColor = converter.Convert<TPixel>(webpMetadata.BackgroundColor);
     }
 
     /// <summary>

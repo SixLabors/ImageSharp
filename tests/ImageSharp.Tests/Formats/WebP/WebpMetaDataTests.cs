@@ -109,6 +109,37 @@ public class WebpMetaDataTests
     }
 
     [Theory]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32, false)]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32, true)]
+    public void AnimatedIccp_PreservedThroughDecodeAndIdentify<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = skipMetadata };
+        byte[] source = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+        using Image<TPixel> preserved = provider.GetImage(WebpDecoder.Instance, preserveOptions);
+        using Image<TPixel> converted = provider.GetImage(WebpDecoder.Instance, convertOptions);
+        ImageInfo preservedInfo = Image.Identify(preserveOptions, source);
+        ImageInfo convertedInfo = Image.Identify(convertOptions, source);
+
+        // Chromium's unmodified fixture stores ColorSpin before ANIM: 12 RIFF bytes + 18 VP8X bytes
+        // + 8 ICCP header bytes place the 474-byte profile at offset 38.
+        byte[] sourceProfile = source.AsSpan(38, 474).ToArray();
+
+        Assert.Equal(13, preserved.Frames.Count);
+        Assert.Equal(13, converted.Frames.Count);
+        Assert.Equal(13, preservedInfo.FrameCount);
+        Assert.Equal(13, convertedInfo.FrameCount);
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.NotNull(preservedInfo.Metadata.IccProfile);
+        Assert.Equal(sourceProfile, preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(sourceProfile, preservedInfo.Metadata.IccProfile.ToByteArray());
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.Null(convertedInfo.Metadata.IccProfile);
+    }
+
+    [Theory]
     [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, false)]
     [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, true)]
     public async Task IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)

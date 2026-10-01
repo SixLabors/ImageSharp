@@ -5,6 +5,10 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Utils;
@@ -23,6 +27,65 @@ internal static class TiffUtilities
     public static Rgba64 Rgba64Default { get; } = new(0, 0, 0, 0);
 
     public static L16 L16Default { get; } = new(0);
+
+    /// <summary>
+    /// Decodes the planar RGB ColorMap values for an indexed TIFF frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format used when applying the ICC profile.</typeparam>
+    /// <param name="colorMap">The encoded ColorMap tag values.</param>
+    /// <param name="bitsPerSample">The frame's index sample layout.</param>
+    /// <param name="profile">The source ICC profile, if present.</param>
+    /// <param name="memoryAllocator">The allocator used for color conversion.</param>
+    /// <returns>The decoded colors in index order, converted to sRGB when an applicable profile is present.</returns>
+    public static Color[] DecodeColorMap<TPixel>(ushort[] colorMap, TiffBitsPerSample bitsPerSample, IccProfile? profile, MemoryAllocator memoryAllocator)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int indexBits = bitsPerSample.Channel0;
+        if (indexBits is < 1 or > 16)
+        {
+            TiffThrowHelper.ThrowNotSupported("The TIFF palette index depth is not supported.");
+        }
+
+        int colorCount = 1 << indexBits;
+        if (colorMap.Length < 3 * colorCount)
+        {
+            throw TiffThrowHelper.ThrowInvalidImageContentException("The TIFF ColorMap is shorter than the declared index depth.");
+        }
+
+        // TIFF stores red, green and blue as separate 16-bit planes. Match libtiff's
+        // legacy detection: values all within 0..255 are byte samples, and multiplying
+        // by 257 maps each byte exactly into the full 0..65535 range before Color retains it.
+        bool legacy8Bit = !colorMap.AsSpan().ContainsAnyExceptInRange((ushort)0, (ushort)255);
+        Color[] colors = new Color[colorCount];
+
+        for (int i = 0; i < colorCount; i++)
+        {
+            ushort r = colorMap[i];
+            ushort g = colorMap[colorCount + i];
+            ushort b = colorMap[(colorCount * 2) + i];
+
+            Rgb48 source = legacy8Bit
+                ? new Rgb48((ushort)(r * 257), (ushort)(g * 257), (ushort)(b * 257))
+                : new Rgb48(r, g, b);
+
+            colors[i] = Color.FromPixel(source);
+        }
+
+        if (IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? convertibleProfile))
+        {
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = convertibleProfile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+                MemoryAllocator = memoryAllocator
+            };
+
+            ColorProfileConverter converter = new(options);
+            converter.Convert<TPixel>(colors);
+        }
+
+        return colors;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort ConvertToUShortBigEndian(ReadOnlySpan<byte> buffer) => BinaryPrimitives.ReadUInt16BigEndian(buffer);

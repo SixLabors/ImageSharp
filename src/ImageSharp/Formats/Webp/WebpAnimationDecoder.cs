@@ -97,19 +97,23 @@ internal class WebpAnimationDecoder : IDisposable
     /// Reads the animated webp image information from the specified stream.
     /// </summary>
     /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
+    /// <param name="metadata">The image metadata populated before the animation chunk.</param>
     /// <param name="features">The webp features.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="completeDataSize">The size of the image data in bytes.</param>
     public ImageInfo Identify(
         BufferedReadStream stream,
+        ImageMetadata metadata,
         WebpFeatures features,
         uint width,
         uint height,
         uint completeDataSize)
     {
         List<ImageFrameMetadata> framesMetadata = [];
-        this.metadata = new ImageMetadata();
+
+        // Keep ICCP and other chunks parsed before ANIM on the metadata returned by Identify.
+        this.metadata = metadata;
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
@@ -161,12 +165,14 @@ internal class WebpAnimationDecoder : IDisposable
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
+    /// <param name="metadata">The image metadata populated before the animation chunk.</param>
     /// <param name="features">The webp features.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="completeDataSize">The size of the image data in bytes.</param>
     public Image<TPixel> Decode<TPixel>(
         BufferedReadStream stream,
+        ImageMetadata metadata,
         WebpFeatures features,
         uint width,
         uint height,
@@ -177,7 +183,8 @@ internal class WebpAnimationDecoder : IDisposable
         ImageFrame<TPixel>? previousFrame = null;
         WebpFrameData? prevFrameData = null;
 
-        this.metadata = new ImageMetadata();
+        // Frame creation and later optional chunks must share the pre-ANIM ICC metadata.
+        this.metadata = metadata;
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 

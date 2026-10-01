@@ -188,6 +188,18 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private bool leftAvailable;
 
     /// <summary>
+    /// The mode-information row that ends the first tile, which bounds every block of the model. Reference:
+    /// xd->tile.mi_row_end after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// </summary>
+    private int tileModeInfoRowEnd;
+
+    /// <summary>
+    /// The mode-information column that ends the first tile, which bounds every block of the model. Reference:
+    /// xd->tile.mi_col_end after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// </summary>
+    private int tileModeInfoColumnEnd;
+
+    /// <summary>
     /// Gets the reference types in the order that duplicate buffers are removed. Reference: ref_frame_priority_order.
     /// </summary>
     private static ReadOnlySpan<byte> ReferencePriorityOrder => [1, 7, 5, 4, 6, 2, 3];

@@ -26,7 +26,11 @@ internal readonly struct Av1TplSpeedFeatures
     /// The base quantizer index of the most recent av1_set_speed_features_qindex_dependent() call, that is of the
     /// previous coded frame, or -1 when no frame has been coded yet.
     /// </param>
-    public Av1TplSpeedFeatures(HeifEncodingSpeed speed, int width, int height, int lastQIndex)
+    /// <param name="lastTrialQIndex">
+    /// The quantizer of the screen content trial of the previous coded frame, whose update precedes the frame's own,
+    /// or -1 when that frame ran no trial.
+    /// </param>
+    public Av1TplSpeedFeatures(HeifEncodingSpeed speed, int width, int height, int lastQIndex, int lastTrialQIndex)
     {
         int minimumDimension = Math.Min(width, height);
         bool is480pOrLarger = minimumDimension >= 480;
@@ -105,35 +109,22 @@ internal readonly struct Av1TplSpeedFeatures
         }
 
         // av1_set_speed_features_qindex_dependent(): coarse quantizers select a cheaper full-pixel pattern at the
-        // slower speeds. It has not run before the first frame is coded.
-        if (lastQIndex >= 0 && speed <= HeifEncodingSpeed.Level2)
+        // slower speeds. It has not run before the first frame is coded. A screen content trial calls it at its own
+        // quantizer before the frame calls it at the frame quantizer, and each call only overrides.
+        if (speed <= HeifEncodingSpeed.Level2)
         {
-            int aggressiveness = (int)speed;
-            if (!is720pOrLarger)
+            if (lastTrialQIndex >= 0)
             {
-                ReadOnlySpan<int> coarseThresholds = [200, 170, 170];
-                if (lastQIndex > coarseThresholds[aggressiveness])
-                {
-                    searchMethod = FullPixelSearchMethod.ClampedDiamond;
-                }
-            }
-            else
-            {
-                ReadOnlySpan<int> coarseThresholds = [Av1Constants.MaxQ, Av1Constants.MaxQ, 200];
-                ReadOnlySpan<int> intermediateThresholds = [200, -1, -1];
-                if (lastQIndex > coarseThresholds[aggressiveness])
-                {
-                    searchMethod = FullPixelSearchMethod.Diamond;
-                }
-                else if (lastQIndex > intermediateThresholds[aggressiveness])
-                {
-                    searchMethod = aggressiveness == 0 ? FullPixelSearchMethod.EightPointNStep : FullPixelSearchMethod.Diamond;
-                }
+                searchMethod = ApplyQIndexDependentMethod(speed, is720pOrLarger, lastTrialQIndex, searchMethod);
             }
 
-            if (speed == HeifEncodingSpeed.Level0 && is1080pOrLarger && lastQIndex <= 108)
+            if (lastQIndex >= 0)
             {
-                selectiveReferenceFrame = 2;
+                searchMethod = ApplyQIndexDependentMethod(speed, is720pOrLarger, lastQIndex, searchMethod);
+                if (speed == HeifEncodingSpeed.Level0 && is1080pOrLarger && lastQIndex <= 108)
+                {
+                    selectiveReferenceFrame = 2;
+                }
             }
         }
 
@@ -217,4 +208,42 @@ internal readonly struct Av1TplSpeedFeatures
     /// Gets the selective reference frame level. Reference: inter_sf.selective_ref_frame.
     /// </summary>
     public int SelectiveReferenceFrame { get; }
+
+    /// <summary>
+    /// Returns the model's full-pixel pattern after one quantizer-dependent update at speeds zero to two: coarse
+    /// quantizers select a cheaper pattern, and other quantizers keep the current one. Reference: the tpl_sf
+    /// search_method choices of av1_set_speed_features_qindex_dependent().
+    /// </summary>
+    /// <param name="speed">The good-quality speed, zero to two.</param>
+    /// <param name="is720pOrLarger">Whether the shorter frame dimension is at least 720.</param>
+    /// <param name="qIndex">The base quantizer index of the update.</param>
+    /// <param name="method">The pattern before the update.</param>
+    /// <returns>The pattern after the update.</returns>
+    private static FullPixelSearchMethod ApplyQIndexDependentMethod(
+        HeifEncodingSpeed speed,
+        bool is720pOrLarger,
+        int qIndex,
+        FullPixelSearchMethod method)
+    {
+        int aggressiveness = (int)speed;
+        if (!is720pOrLarger)
+        {
+            ReadOnlySpan<int> coarseThresholds = [200, 170, 170];
+            return qIndex > coarseThresholds[aggressiveness] ? FullPixelSearchMethod.ClampedDiamond : method;
+        }
+
+        ReadOnlySpan<int> largeCoarseThresholds = [Av1Constants.MaxQ, Av1Constants.MaxQ, 200];
+        ReadOnlySpan<int> intermediateThresholds = [200, -1, -1];
+        if (qIndex > largeCoarseThresholds[aggressiveness])
+        {
+            return FullPixelSearchMethod.Diamond;
+        }
+
+        if (qIndex > intermediateThresholds[aggressiveness])
+        {
+            return aggressiveness == 0 ? FullPixelSearchMethod.EightPointNStep : FullPixelSearchMethod.Diamond;
+        }
+
+        return method;
+    }
 }

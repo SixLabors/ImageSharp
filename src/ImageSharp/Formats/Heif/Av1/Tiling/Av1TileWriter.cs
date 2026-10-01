@@ -1247,6 +1247,37 @@ internal partial class Av1TileWriter
                             pcs.Parent.MaximumMotionVectorMagnitude = Math.Max(pcs.Parent.MaximumMotionVectorMagnitude, magnitude);
                         }
                     }
+
+                    if (TOperation.WritesOutput && pcs.Parent.MotionVectorStatistics is Av1MotionVectorStatistics statistics)
+                    {
+                        // The final blocks are visited in the coding order the reference walks the frame in after
+                        // encoding it. Reference: av1_collect_mv_stats().
+                        statistics.CollectInterBlock(
+                            lumaMode,
+                            macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra,
+                            new Av1MotionVector(
+                                referenceContext.References[newReferenceIndex].Row,
+                                referenceContext.References[newReferenceIndex].Column),
+                            pcs.GetDisplacementVector(modeInfoPosition),
+                            new Av1MotionVector(
+                                referenceContext.SecondaryReferences[newReferenceIndex].Row,
+                                referenceContext.SecondaryReferences[newReferenceIndex].Column),
+                            pcs.GetSecondaryDisplacementVector(modeInfoPosition),
+                            blockOrigin,
+                            blockSize);
+                    }
+                }
+                else if (TOperation.WritesOutput)
+                {
+                    pcs.Parent.MotionVectorStatistics?.CollectInterBlock(
+                        lumaMode,
+                        macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra,
+                        default,
+                        default,
+                        default,
+                        default,
+                        blockOrigin,
+                        blockSize);
                 }
 
                 if (TOperation.WritesOutput && macroBlockModeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Last)
@@ -1370,6 +1401,11 @@ internal partial class Av1TileWriter
                     modeInfoPosition,
                     macroBlockModeInfo,
                     TBlockEncoder.UsesRetainedDecisions);
+            }
+
+            if (TOperation.WritesOutput && !isInterBlock)
+            {
+                pcs.Parent.MotionVectorStatistics?.CollectIntraBlock();
             }
 
             if (!isInterBlock && !macroBlockModeInfo.Block.UseIntraBlockCopy)

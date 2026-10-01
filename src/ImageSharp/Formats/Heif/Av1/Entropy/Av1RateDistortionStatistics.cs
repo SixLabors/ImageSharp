@@ -30,7 +30,8 @@ internal struct Av1RateDistortionStatistics
         Rate = int.MaxValue,
         Distortion = long.MaxValue,
         Cost = long.MaxValue,
-        LumaCost = long.MaxValue
+        LumaCost = long.MaxValue,
+        TransformCost = long.MaxValue
     };
 
     /// <summary>

@@ -225,112 +225,6 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Computes the rate multiplier scaling of every 16x16 block of the frame: the ratio of its reconstruction cost to
-    /// its reconstruction plus dependency cost, relative to r0, plus 1.2. Reference: av1_tpl_rdmult_setup().
-    /// </summary>
-    /// <param name="frame">The statistics of the frame being coded.</param>
-    /// <param name="r0">The importance of the frame. Reference: cpi->rd.r0.</param>
-    /// <param name="scalingFactors">
-    /// Receives one factor per 16x16 block in raster order, with (mi_cols + 3) / 4 columns. Reference:
-    /// tpl_rdmult_scaling_factors.
-    /// </param>
-    public static void SetupRateMultiplierScaling(Av1TplFrameStatistics frame, double r0, Span<double> scalingFactors)
-    {
-        if (!frame.IsValid)
-        {
-            return;
-        }
-
-        ReadOnlySpan<Av1TplBlockStatistics> statistics = frame.Statistics;
-        const int BlockModeInfo = 4;
-        int columns = (frame.ModeInfoColumns + BlockModeInfo - 1) / BlockModeInfo;
-        int rows = (frame.ModeInfoRows + BlockModeInfo - 1) / BlockModeInfo;
-        const double Offset = 1.2;
-        const int Step = 1 << Av1TplModelConstants.BlockModeInfoLog2;
-        for (int row = 0; row < rows; row++)
-        {
-            for (int column = 0; column < columns; column++)
-            {
-                double intraCost = 0.0;
-                double dependencyCost = 0.0;
-                for (int modeInfoRow = row * BlockModeInfo; modeInfoRow < (row + 1) * BlockModeInfo; modeInfoRow += Step)
-                {
-                    for (int modeInfoColumn = column * BlockModeInfo; modeInfoColumn < (column + 1) * BlockModeInfo; modeInfoColumn += Step)
-                    {
-                        if (modeInfoRow >= frame.ModeInfoRows || modeInfoColumn >= frame.ModeInfoColumns)
-                        {
-                            continue;
-                        }
-
-                        ref readonly Av1TplBlockStatistics block = ref statistics[Av1TplFrameStatistics.GetPosition(
-                            modeInfoRow, modeInfoColumn, frame.Stride, Av1TplModelConstants.BlockModeInfoLog2)];
-
-                        long dependencyDelta = Av1TplModelConstants.GetCost(frame.BaseRateMultiplier, block.DependencyRate, block.DependencyDistortion);
-                        intraCost += block.ReconstructedReferenceDistortion << Av1TplModelConstants.RateDistortionDivisorBits;
-                        dependencyCost += (block.ReconstructedReferenceDistortion << Av1TplModelConstants.RateDistortionDivisorBits) + dependencyDelta;
-                    }
-                }
-
-                double ratio = intraCost / dependencyCost;
-                scalingFactors[(row * columns) + column] = (ratio / r0) + Offset;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Computes the superblock rate multiplier scaling: the frame scaling of its 16x16 blocks, normalized so that their
-    /// geometric mean equals the ratio of the rate multipliers at the superblock and frame quantizers. The reference
-    /// encoder writes the result to tpl_sb_rdmult_scaling_factors, which no decision reads. Reference:
-    /// av1_tpl_rdmult_setup_sb().
-    /// </summary>
-    /// <param name="frame">The statistics of the frame being coded.</param>
-    /// <param name="scalingFactors">The frame scaling of <see cref="SetupRateMultiplierScaling"/>.</param>
-    /// <param name="superblockScalingFactors">Receives the superblock scaling at the same indices.</param>
-    /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
-    /// <param name="modeInfoRow">The superblock row in mode-information units.</param>
-    /// <param name="modeInfoColumn">The superblock column in mode-information units.</param>
-    /// <param name="frameRateMultiplier">The rate multiplier at the frame quantizer plus the luma DC delta.</param>
-    /// <param name="superblockRateMultiplier">The rate multiplier at the superblock quantizer plus the luma DC delta.</param>
-    public static void SetupSuperblockRateMultiplierScaling(
-        Av1TplFrameStatistics frame,
-        ReadOnlySpan<double> scalingFactors,
-        Span<double> superblockScalingFactors,
-        int superblockModeInfoSize,
-        int modeInfoRow,
-        int modeInfoColumn,
-        int frameRateMultiplier,
-        int superblockRateMultiplier)
-    {
-        const int BlockModeInfo = 4;
-        int columns = (frame.ModeInfoColumns + BlockModeInfo - 1) / BlockModeInfo;
-        int rows = (frame.ModeInfoRows + BlockModeInfo - 1) / BlockModeInfo;
-        int blockColumns = (superblockModeInfoSize + BlockModeInfo - 1) / BlockModeInfo;
-        int blockRows = (superblockModeInfoSize + BlockModeInfo - 1) / BlockModeInfo;
-        double baseBlockCount = 0.0;
-        double logSum = 0.0;
-        for (int row = modeInfoRow / BlockModeInfo; row < rows && row < (modeInfoRow / BlockModeInfo) + blockRows; row++)
-        {
-            for (int column = modeInfoColumn / BlockModeInfo; column < columns && column < (modeInfoColumn / BlockModeInfo) + blockColumns; column++)
-            {
-                logSum += Math.Log(scalingFactors[(row * columns) + column]);
-                baseBlockCount += 1.0;
-            }
-        }
-
-        double scalingFactor = superblockRateMultiplier / (double)frameRateMultiplier;
-        double scaleAdjustment = Math.Log(scalingFactor) - (logSum / baseBlockCount);
-        scaleAdjustment = ExpBounded(scaleAdjustment);
-        for (int row = modeInfoRow / BlockModeInfo; row < rows && row < (modeInfoRow / BlockModeInfo) + blockRows; row++)
-        {
-            for (int column = modeInfoColumn / BlockModeInfo; column < columns && column < (modeInfoColumn / BlockModeInfo) + blockColumns; column++)
-            {
-                int index = (row * columns) + column;
-                superblockScalingFactors[index] = scaleAdjustment * scalingFactors[index];
-            }
-        }
-    }
-
-    /// <summary>
     /// Returns the objective quantizer of a superblock: the frame quantizer moved by the offset whose DC step scales by
     /// the inverse square root of the ratio of r0 to the superblock's importance, limited to nine resolution steps. It
     /// also returns the regularized importance that the coding-block rate multiplier divides by, and optionally the
@@ -398,7 +292,7 @@ internal static class Av1TplDecisions
                 dependencyRegularized += Math.Log((3 * scaledDistortion) + dependencyDelta) * weight;
                 sourceDistortion += block.SourceReferenceDistortion << Av1TplModelConstants.RateDistortionDivisorBits;
                 sourceSse += block.SourceReferenceSse << Av1TplModelConstants.RateDistortionDivisorBits;
-                sourceRate += (long)block.SourceReferenceRate << Av1TplModelConstants.DependencyCostScaleLog2;
+                sourceRate += block.SourceReferenceRate << Av1TplModelConstants.DependencyCostScaleLog2;
                 weightBase += weight;
             }
         }
@@ -744,8 +638,9 @@ internal static class Av1TplDecisions
                 ref readonly Av1TplBlockStatistics block = ref statistics[Av1TplFrameStatistics.GetPosition(
                     row, column, frame.Stride, Av1TplModelConstants.BlockModeInfoLog2)];
 
-                interCosts[count] = (long)block.InterCost << Av1TplModelConstants.DependencyCostScaleLog2;
-                intraCosts[count] = (long)block.IntraCost << Av1TplModelConstants.DependencyCostScaleLog2;
+                // The 32-bit costs shift before they widen.
+                interCosts[count] = block.InterCost << Av1TplModelConstants.DependencyCostScaleLog2;
+                intraCosts[count] = block.IntraCost << Av1TplModelConstants.DependencyCostScaleLog2;
                 for (int reference = 0; reference < Av1TplModelConstants.InterReferenceCount; reference++)
                 {
                     blockVectors[reference] = block.MotionVectors[reference];
@@ -757,23 +652,5 @@ internal static class Av1TplDecisions
         }
 
         return blocksInside;
-    }
-
-    /// <summary>
-    /// Returns bounded exponentials, zero below -700 and the largest double above 700. Reference: exp_bounded().
-    /// </summary>
-    private static double ExpBounded(double value)
-    {
-        if (value > 700)
-        {
-            return double.MaxValue;
-        }
-
-        if (value < -700)
-        {
-            return 0;
-        }
-
-        return Math.Exp(value);
     }
 }

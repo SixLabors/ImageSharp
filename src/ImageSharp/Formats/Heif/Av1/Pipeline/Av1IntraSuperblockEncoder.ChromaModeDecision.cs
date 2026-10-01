@@ -1471,6 +1471,21 @@ internal static partial class Av1IntraSuperblockEncoder
             predictionDistortion = 0;
             rate = 0;
 
+            // Both candidate planes hold this block, so the type search swaps its candidate and winner through the
+            // block workspace.
+            Span<TSample> typeCandidateReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(0)[..transformSampleCount];
+            Span<TSample> typeWinnerReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(1)[..transformSampleCount];
+            Span<int> typeWinnerCoefficients = this.blockWorkspace.SearchCoefficients;
+
+            // A predicted empty block is priced with the contexts at the block origin, before any transform block
+            // of this plane updates them. Reference: av1_get_entropy_contexts() in predict_dc_only_block().
+            Av1TransformBlockContext originContext = Av1TileWriter.GetTransformBlockContexts(
+                componentType,
+                topContexts[..transformWidth4x4],
+                leftContexts[..transformHeight4x4],
+                chromaBlockSize,
+                transformSize);
+
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
             // moving to the next region. Candidate coefficients and states must retain that exact order.
             for (int regionRow = 0; regionRow < codedExtent.Height; regionRow += maximumUnitHeight)
@@ -1550,46 +1565,60 @@ internal static partial class Av1IntraSuperblockEncoder
                                 coefficientOffset,
                                 transformSampleCount);
 
-                            ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
-                            long transformDistortion = TOperator.EncodePredictionCandidate(
-                                this.blockWorkspace,
+                            // The candidate quantizes into this block's retained coefficients and the winner of a
+                            // predicted skip clears the search storage, so the winner is copied at most once.
+                            Span<TSample> candidateTransformReconstruction = typeCandidateReconstruction;
+                            Span<TSample> bestTransformReconstruction = typeWinnerReconstruction;
+                            Span<int> candidateTransformCoefficients = transformCoefficients;
+                            Span<int> bestTransformCoefficients = typeWinnerCoefficients;
+                            Span<int> candidateDequantized = this.blockWorkspace.DequantizedCoefficients;
+                            Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
+
+                            // A chroma block of an intra mode searches the one type that it derives from its mode.
+                            // Reference: the uv_tx_type of get_tx_mask(), from av1_get_tx_type().
+                            TransformTypeSearchResult searchResult = this.SearchTransformType(
                                 writer,
-                                blockContext,
-                                this.rateMultiplier,
+                                plane,
                                 false,
-                                this.picture.Sequence.SequenceHeader.IsStillPicture,
+                                blockContext,
+                                originContext,
                                 source,
                                 transformOrigin,
+                                transformSize,
+                                lumaMode,
+                                Av1FilterIntraMode.AllFilterIntraModes,
+                                transformType,
+                                false,
+                                costLimit == long.MaxValue ? long.MaxValue : costLimit - accumulatedCost,
                                 prediction,
                                 residual,
-                                transformSize.GetWidth(),
-                                candidateReconstruction[reconstructionOffset..],
-                                blockWidth,
-                                transformCoefficients,
-                                transformSize,
-                                transformType,
-                                plane,
-                                this.superblockQIndex,
-                                this.quantization.DeltaQDc[(int)plane],
-                                this.quantization.DeltaQAc[(int)plane],
-                                this.bitDepth,
-                                ref state,
-                                out long transformSse);
+                                transformWidth,
+                                ref candidateTransformReconstruction,
+                                ref bestTransformReconstruction,
+                                ref candidateTransformCoefficients,
+                                ref bestTransformCoefficients,
+                                ref candidateDequantized,
+                                ref bestDequantized);
+
+                            if (bestTransformCoefficients != transformCoefficients)
+                            {
+                                bestTransformCoefficients[..transformSampleCount].CopyTo(transformCoefficients);
+                            }
+
+                            for (int row = 0; row < transformHeight; row++)
+                            {
+                                bestTransformReconstruction.Slice(row * transformWidth, transformWidth)
+                                    .CopyTo(candidateReconstruction.Slice(reconstructionOffset + (row * blockWidth), transformWidth));
+                            }
+
+                            ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
+                            state = searchResult.State;
+                            long transformDistortion = searchResult.Distortion;
 
                             // The uncoded cost uses the energy the transform search reports, which is measured in
                             // the transform domain whenever the distortion is. Reference: the sse of search_tx_type().
-                            predictionDistortion += transformSse;
-                            int transformRate = writer.GetCoefficientCost(
-                                transformSize,
-                                transformType,
-                                lumaMode,
-                                transformCoefficients,
-                                componentType,
-                                blockContext,
-                                state.EndOfBlock,
-                                this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                                Av1FilterIntraMode.AllFilterIntraModes,
-                                usesInterTransformSet: false);
+                            predictionDistortion += searchResult.Sse;
+                            int transformRate = searchResult.Rate;
 
                             rate += transformRate;
                             distortion += transformDistortion;
@@ -1673,40 +1702,59 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state,
             out int rate)
         {
-            long distortion = TOperator.EncodeChromaFromLumaCandidate(
-                this.blockWorkspace,
+            // CfL adds the scaled luma AC contribution to the DC predictor. The prediction is built in the caller's
+            // reconstruction, which receives the winner after the search.
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            int sampleCount = transformSize.GetSize2d();
+            Span<TSample> prediction = reconstruction[..sampleCount];
+            prediction.Fill(dc);
+            TOperator.ApplyChromaFromLuma(lumaQ3, prediction, alphaQ3, transformSize, this.bitDepth);
+            Span<short> residual = this.blockWorkspace.Residual[..sampleCount];
+            TOperator.SubtractPrediction(source, chromaOrigin, prediction, residual, width, height);
+
+            Span<TSample> candidateReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(0)[..sampleCount];
+            Span<TSample> bestReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(1)[..sampleCount];
+            Span<int> candidateCoefficients = coefficients;
+            Span<int> bestCoefficients = this.blockWorkspace.SearchCoefficients;
+            Span<int> candidateDequantized = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
+
+            // A CfL block is one transform at the block origin, and searches the DCT_DCT that its chroma mode
+            // derives. Reference: av1_txfm_rd_in_plane() of cfl_compute_rd().
+            TransformTypeSearchResult result = this.SearchTransformType(
                 writer,
+                plane,
+                false,
                 context,
-                this.rateMultiplier,
-                this.picture.Sequence.SequenceHeader.IsStillPicture,
+                context,
                 source,
                 chromaOrigin,
-                reconstruction,
-                dc,
-                lumaQ3,
-                alphaQ3,
-                coefficients,
                 transformSize,
-                plane,
-                this.superblockQIndex,
-                this.quantization.DeltaQDc[(int)plane],
-                this.quantization.DeltaQAc[(int)plane],
-                this.bitDepth,
-                ref state);
-
-            rate = writer.GetCoefficientCost(
-                transformSize,
-                Av1TransformType.DctDct,
                 lumaMode,
-                coefficients,
-                Av1ComponentType.Chroma,
-                context,
-                state.EndOfBlock,
-                this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 Av1FilterIntraMode.AllFilterIntraModes,
-                usesInterTransformSet: false);
+                Av1TransformType.DctDct,
+                false,
+                long.MaxValue,
+                prediction,
+                residual,
+                width,
+                ref candidateReconstruction,
+                ref bestReconstruction,
+                ref candidateCoefficients,
+                ref bestCoefficients,
+                ref candidateDequantized,
+                ref bestDequantized);
 
-            return distortion;
+            if (bestCoefficients != coefficients)
+            {
+                bestCoefficients[..sampleCount].CopyTo(coefficients);
+            }
+
+            bestReconstruction.CopyTo(reconstruction);
+            state = result.State;
+            rate = result.Rate;
+            return result.Distortion;
         }
 
         private static int FindBestChromaFromLumaEstimate(

@@ -42,7 +42,7 @@ internal static partial class Av1FrameEncoder
         private readonly Av1BitDepth bitDepth;
         private readonly int width;
         private readonly int height;
-        private readonly int lagInFrames;
+        private readonly bool temporalFilterOn;
 
         public LookaheadTemporalFilter(
             Configuration configuration,
@@ -74,7 +74,9 @@ internal static partial class Av1FrameEncoder
             this.bitDepth = (Av1BitDepth)((bitDepth - 8) >> 1);
             this.width = width;
             this.height = height;
-            this.lagInFrames = options.LagInFrames;
+            this.temporalFilterOn = Av1TemporalFilter.IsTemporalFilterOn(
+                Av1TemporalFilterSettings.DefaultMaximumFrames,
+                options.LagInFrames);
         }
 
         /// <summary>
@@ -94,16 +96,8 @@ internal static partial class Av1FrameEncoder
         /// <returns>The filtered frame.</returns>
         public Av1EncoderFrame<TSample>? GetFilteredFrame(int groupIndex)
         {
-            Av1EncoderFrame<TSample>? frame = null;
-            for (int buffer = 0; buffer < 2; buffer++)
-            {
-                if (this.lookaheadIndices[buffer] >= 0 && this.groupIndices[buffer] == groupIndex)
-                {
-                    frame = this.buffers[buffer].Frame;
-                }
-            }
-
-            return frame;
+            int buffer = this.FindFilteredBuffer(groupIndex);
+            return buffer < 0 ? null : this.buffers[buffer].Frame;
         }
 
         /// <summary>
@@ -114,15 +108,22 @@ internal static partial class Av1FrameEncoder
         /// <param name="lookahead">The lookahead.</param>
         /// <param name="secondPass">The frame-level decisions.</param>
         /// <param name="allowHighPrecisionMotion">The high precision flag the encoder holds.</param>
+        /// <param name="forceIntegerMotion">The integer motion flag of the last coded frame.</param>
         /// <param name="allowScreenContentTools">The screen content flag the encoder holds.</param>
         /// <param name="motionSettings">The motion search settings the encoder holds.</param>
         public void FilterGroup(
             Av1LookaheadQueue<TSample> lookahead,
             Av1SecondPass secondPass,
             bool allowHighPrecisionMotion,
+            bool forceIntegerMotion,
             bool allowScreenContentTools,
             Av1MotionSearchSettings motionSettings)
         {
+            if (!this.temporalFilterOn)
+            {
+                return;
+            }
+
             Av1GopStructure group = secondPass.Group;
             for (int index = 0; index < group.Size; index++)
             {
@@ -148,6 +149,7 @@ internal static partial class Av1FrameEncoder
                     currentIndex: 0,
                     secondPass,
                     allowHighPrecisionMotion,
+                    forceIntegerMotion,
                     allowScreenContentTools,
                     motionSettings);
             }
@@ -163,8 +165,10 @@ internal static partial class Av1FrameEncoder
         /// <param name="frame">The decisions of the frame, whose showable flag the filter decides.</param>
         /// <param name="source">The lookahead source of the frame.</param>
         /// <param name="allowHighPrecisionMotion">The high precision flag the encoder holds.</param>
+        /// <param name="forceIntegerMotion">The integer motion flag of the last coded frame.</param>
         /// <param name="allowScreenContentTools">The screen content flag the encoder holds.</param>
         /// <param name="motionSettings">The motion search settings the encoder holds.</param>
+        /// <param name="screenContent">Whether the frames are classified as screen content.</param>
         /// <returns>The source to code.</returns>
         public Av1EncoderFrameBuffer<TSample> SelectSource(
             Av1LookaheadQueue<TSample> lookahead,
@@ -172,17 +176,21 @@ internal static partial class Av1FrameEncoder
             ref Av1SecondPassFrame frame,
             Av1EncoderFrameBuffer<TSample> source,
             bool allowHighPrecisionMotion,
+            bool forceIntegerMotion,
             bool allowScreenContentTools,
-            Av1MotionSearchSettings motionSettings)
+            Av1MotionSearchSettings motionSettings,
+            bool screenContent)
         {
-            Av1TemporalFilterSettings settings = new(this.options.Speed, this.width, this.height, allowScreenContentTools, motionSettings);
+            Av1TemporalFilterSettings settings = new(
+                this.options.Speed, this.options.Sharpness, this.width, this.height, allowScreenContentTools, motionSettings);
+
             bool secondAlternate = Av1TemporalFilter.IsSecondAlternateReference(frame.UpdateType, frame.SourceOffset);
             double noise = frame.IsKeyFrame
                 ? Av1TemporalFilter.EstimateNoiseLevel<TSample, TOperator>(source.Frame, Av1Plane.Y)
                 : 0;
 
             bool apply = Av1TemporalFilter.ShouldApplyFiltering(
-                Av1TemporalFilter.IsTemporalFilterOn(settings.MaximumFrames, this.lagInFrames),
+                this.temporalFilterOn,
                 frame.UpdateType,
                 frame.IsKeyFrame,
                 secondAlternate,
@@ -197,12 +205,19 @@ internal static partial class Av1FrameEncoder
             }
 
             // av1_rc_pick_q_and_bounds() before the filter decisions.
-            int qIndex = secondPass.PickQIndex(frame.GroupIndex, false);
+            int qIndex = secondPass.PickQIndex(frame.GroupIndex, screenContent);
             if (frame.UpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Alternate)
             {
-                int buffer = frame.IsKeyFrame ? 0 : 1;
-                if (this.groupIndices[buffer] != frame.GroupIndex)
+                int buffer = this.FindFilteredBuffer(frame.GroupIndex);
+                if (buffer < 0)
                 {
+                    // Without a filtered frame an alternate reference is not shown again. Reference: the
+                    // show_existing_alt_ref store of denoise_and_encode() that follows a NULL filtered buffer.
+                    if (!frame.IsKeyFrame)
+                    {
+                        secondPass.ShowExistingAlternateReference = false;
+                    }
+
                     return source;
                 }
 
@@ -228,6 +243,7 @@ internal static partial class Av1FrameEncoder
                 frame.GroupIndex,
                 secondPass,
                 allowHighPrecisionMotion,
+                forceIntegerMotion,
                 allowScreenContentTools,
                 motionSettings);
 
@@ -245,6 +261,32 @@ internal static partial class Av1FrameEncoder
             }
         }
 
+        /// <summary>
+        /// Returns the key-frame or alternate-reference buffer that holds the filtered frame of a group entry, the
+        /// last one when both do, or -1 when the filter is off or neither does. Reference: the buffer loop of
+        /// av1_tf_info_get_filtered_buf().
+        /// </summary>
+        /// <param name="groupIndex">The group index of the entry.</param>
+        /// <returns>The buffer index.</returns>
+        private int FindFilteredBuffer(int groupIndex)
+        {
+            int found = -1;
+            if (!this.temporalFilterOn)
+            {
+                return found;
+            }
+
+            for (int buffer = 0; buffer < 2; buffer++)
+            {
+                if (this.lookaheadIndices[buffer] >= 0 && this.groupIndices[buffer] == groupIndex)
+                {
+                    found = buffer;
+                }
+            }
+
+            return found;
+        }
+
         private void Filter(
             int buffer,
             Av1LookaheadQueue<TSample> lookahead,
@@ -253,6 +295,7 @@ internal static partial class Av1FrameEncoder
             int currentIndex,
             Av1SecondPass secondPass,
             bool allowHighPrecisionMotion,
+            bool forceIntegerMotion,
             bool allowScreenContentTools,
             Av1MotionSearchSettings motionSettings)
         {
@@ -265,7 +308,9 @@ internal static partial class Av1FrameEncoder
 
             double[] coefficients = new double[secondPass.StatisticsCount];
             secondPass.CopyCorrelationCoefficients(coefficients);
-            Av1TemporalFilterSettings settings = new(this.options.Speed, this.width, this.height, allowScreenContentTools, motionSettings);
+            Av1TemporalFilterSettings settings = new(
+                this.options.Speed, this.options.Sharpness, this.width, this.height, allowScreenContentTools, motionSettings);
+
             Av1TemporalFilterFrameParameters parameters = new()
             {
                 UpdateType = group.UpdateTypes[groupIndex],
@@ -277,7 +322,7 @@ internal static partial class Av1FrameEncoder
                 FramesToKey = secondPass.FramesToKey,
                 FilterQIndex = this.constantQualityIndex,
                 AllowHighPrecisionMotion = allowHighPrecisionMotion,
-                ForceIntegerMotion = false,
+                ForceIntegerMotion = forceIntegerMotion,
                 BorderInPixels = this.border
             };
 

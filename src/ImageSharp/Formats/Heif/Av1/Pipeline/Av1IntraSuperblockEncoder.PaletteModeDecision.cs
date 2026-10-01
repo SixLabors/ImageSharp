@@ -379,7 +379,13 @@ internal static partial class Av1IntraSuperblockEncoder
             rate += writer.GetPaletteYModeCost(true, blockSizeContext, neighborContext);
             rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Y);
             rate += Av1SymbolEncoder.GetPaletteYColorCost(colorCache, paletteColors, bitDepth);
-            rate += writer.GetPaletteColorMapCost(paletteSize, Av1PlaneType.Y, rows, columns, colorIndexMap);
+
+            // Real-time mode search prices only the first map index; the rest of the color map is discounted.
+            // Reference: rt_sf.discount_color_cost in intra_mode_info_cost_y().
+            rate += this.picture.Parent.SpeedSettings.DiscountPaletteColorCost
+                ? Av1SymbolEncoder.GetUniformCost(paletteSize, colorIndexMap.GetRowSpan(0)[0])
+                : writer.GetPaletteColorMapCost(paletteSize, Av1PlaneType.Y, rows, columns, colorIndexMap);
+
             if (headerPruneLevel != 0)
             {
                 long headerCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0);
@@ -399,96 +405,57 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> candidateReconstruction = modeDecisionWorkspace.GetCandidateReconstruction(0)[..sampleCount];
             Span<int> candidateCoefficients = modeDecisionWorkspace.GetCandidateCoefficients(0)[..sampleCount];
             bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
-            Av1TransformSize transformSize = lossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             int maximumDepth = lossless || this.picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select ||
                 (settings.DeferTransformSizeSearch && this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate)
                     ? 0
                     : blockWidth == blockHeight ? settings.IntraSquareTransformSearchDepth : settings.IntraRectangularTransformSearchDepth;
 
-            // Every depth opens with the best candidate cost so far. With the breakout, a later depth also
-            // stops at the best depth this candidate already measured, taken without its palette syntax,
-            // because the running cost inside a depth carries only the non-skip flag, the size syntax and
-            // the coefficients.
-            // Reference: the rd_thresh of choose_tx_size_type_from_rd(), which palette_rd_y() reaches
-            // through av1_pick_uniform_tx_size_type_yrd() with *best_rd.
-            long costLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
-            long bestDepthCost = long.MaxValue;
-            long previousCost = long.MaxValue;
-            bool selected = false;
-            long candidateCost = long.MaxValue;
+            // The palette search bounds every depth by the best candidate so far, and a depth is retained when its
+            // cost with the palette syntax beats that candidate. Reference: the *best_rd that palette_rd_y() passes
+            // to av1_pick_uniform_tx_size_type_yrd(), then its this_rd < *best_rd test.
+            long candidateLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
+            Av1RateDistortionStatistics candidateStatistics = this.ChooseUniformTransformSize(
+                writer,
+                macroBlock,
+                sourcePlane,
+                reconstructionPlane,
+                blockOrigin,
+                blockSize,
+                lossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize(),
+                maximumDepth,
+                tileIndex,
+                sourceVariance,
+                Av1PredictionMode.DC,
+                0,
+                Av1FilterIntraMode.AllFilterIntraModes,
+                paletteSize,
+                paletteColors,
+                rate,
+                0,
+                transformSizeContext,
+                candidateLimit,
+                candidateLimit,
+                candidateReconstruction,
+                candidateCoefficients,
+                modeDecisionWorkspace.CandidateTransformBlocks,
+                retainedCoefficients,
+                retainedStates,
+                out Av1TransformSize transformSize);
 
-            // Each size covers the complete coding block. Preserve only improving mosaics before the
-            // next size reuses candidate storage; coefficient states retain their transform-unit spacing.
-            for (int depth = 0; depth <= maximumDepth; depth++, transformSize = transformSize.GetSubSize())
+            long candidateCost = candidateStatistics.Cost;
+            bool selected = candidateCost < candidateLimit;
+            if (selected)
             {
-                int transformCount = sampleCount / transformSize.GetSize2d();
-                Span<Av1EncoderTransformBlockState> candidateStates = modeDecisionWorkspace.CandidateTransformBlocks[..transformCount];
-                Av1RateDistortionStatistics candidateStatistics = this.GetUniformLumaCandidateCost(
-                    writer,
-                    macroBlock,
-                    sourcePlane,
-                    reconstructionPlane,
-                    blockOrigin,
-                    blockSize,
-                    transformSize,
-                    tileIndex,
-                    sourceVariance,
-                    Av1PredictionMode.DC,
-                    0,
-                    Av1FilterIntraMode.AllFilterIntraModes,
-                    paletteSize,
-                    paletteColors,
-                    rate,
-                    0,
-                    transformSizeContext,
-                    costLimit,
-                    candidateReconstruction,
-                    candidateCoefficients,
-                    candidateStates,
-                    out bool skipSmallerTransforms);
-
-                candidateCost = Math.Min(candidateCost, candidateStatistics.Cost);
-                if (settings.UseIntraTransformRdBreakout && candidateStatistics.Cost < bestDepthCost)
+                for (int row = 0; row < blockHeight; row++)
                 {
-                    bestDepthCost = candidateStatistics.Cost;
-                    costLimit = Math.Min(costLimit, candidateStatistics.TransformCost);
+                    colorIndexMap.GetRowSpan(row)[..blockWidth].CopyTo(workspace.RetainedIndices[(row * blockWidth)..]);
                 }
 
-                if (candidateStatistics.Cost < Math.Min(this.blockCostLimit, bestStatistics.Cost))
-                {
-                    CopyTiledCandidate(
-                        candidateReconstruction,
-                        candidateCoefficients,
-                        candidateStates,
-                        reconstructionPlane,
-                        blockOrigin,
-                        blockWidth,
-                        GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0),
-                        transformSize,
-                        retainedCoefficients,
-                        retainedStates);
-
-                    for (int row = 0; row < blockHeight; row++)
-                    {
-                        colorIndexMap.GetRowSpan(row)[..blockWidth].CopyTo(workspace.RetainedIndices[(row * blockWidth)..]);
-                    }
-
-                    paletteInfo.PaletteSizes[0] = (byte)paletteSize;
-                    paletteInfo.SetColors(Av1Plane.Y, paletteColors);
-                    selectedTransformSize = transformSize;
-                    bestStatistics = candidateStatistics;
-                    selected = true;
-                }
-
-                if (skipSmallerTransforms || transformSize == Av1TransformSize.Size4x4 ||
-                    (depth > 0 && depth < maximumDepth && sourceVariance < 256 &&
-                        previousCost != long.MaxValue && candidateStatistics.Cost > previousCost))
-                {
-                    break;
-                }
-
-                previousCost = candidateStatistics.Cost;
+                paletteInfo.PaletteSizes[0] = (byte)paletteSize;
+                paletteInfo.SetColors(Av1Plane.Y, paletteColors);
+                selectedTransformSize = transformSize;
+                bestStatistics = candidateStatistics;
             }
 
             Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(

@@ -176,6 +176,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         private const int ModeContextReferenceFrameCount = Av1Constants.ReferenceFrameCount + (4 * 3) + 9;
 
+        /// <summary>
+        /// The leaf bound that stands for a bound already negative at the multiplier of the caller, with which the
+        /// leaf search returns before it sets up the block. Reference: the use_best_rd_for_pruning return of
+        /// pick_sb_modes().
+        /// </summary>
+        private const long NegativeLeafBound = long.MinValue;
+
         private readonly Av1EncoderFrame<TSample>.PlanarView source;
         private readonly ReadOnlyMemory<Av1EncoderFrame<TSample>> references;
         private readonly Av1EncoderFrame<TSample>.PlanarView reference;
@@ -396,6 +403,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 (int)picture.Sequence.SequenceHeader.SuperblockSize);
 
             this.blockCostLimit = long.MaxValue;
+
+            // Each superblock starts without a block variance, which reads as the largest unsigned value until a block
+            // search measures one. Reference: the x->source_variance = UINT_MAX of encode_sb_row().
+            this.interSourceVariance = -1;
             blockWorkspace.SourceLogVariances.Fill(-1D);
             blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
             this.quantization = picture.Parent.FrameHeader.QuantizationParameters;
@@ -458,11 +469,18 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 int anchorQIndex = estimated ? baseQIndex : picture.Parent.PreviousQIndex.Span[superblock.TileIndex];
                 this.superblockQIndex = Av1VarianceBoost.AdjustToResolution(deltaQ.Resolution, anchorQIndex, wantedQIndex);
+                picture.Parent.SuperblockDeltaQIndex = this.superblockQIndex - baseQIndex;
                 picture.Parent.DeltaQUsed |= this.superblockQIndex != baseQIndex;
                 if (!estimated)
                 {
                     rateQIndex = this.superblockQIndex;
                 }
+
+                // The quantizer setup derives the motion vector error per bit from the multiplier at the superblock
+                // quantizer, without the coding block scaling. Reference: the av1_set_error_per_bit() call of
+                // av1_init_plane_quantizers(), which setup_delta_q() and setup_delta_q_nonrd() make.
+                blockWorkspace.ErrorPerBitRateMultiplier = parent.GetRateMultiplier(
+                    this.superblockQIndex + this.quantization.DeltaQDc[0], this.bitDepth);
             }
 
             // The multiplier at the frame quantizer is cpi->rd.RDMULT; at the superblock quantizer it is
@@ -470,7 +488,9 @@ internal static partial class Av1IntraSuperblockEncoder
             this.baseRateMultiplier = parent.GetRateMultiplier(rateQIndex + this.quantization.DeltaQDc[0], this.bitDepth);
 
             // The superblock starts from the references the temporal dependency model keeps against the selective
-            // reference pruning. Reference: init_ref_frame_space() in init_encode_rd_sb().
+            // reference pruning, and from none without statistics. Reference: init_ref_frame_space() in
+            // init_encode_rd_sb().
+            this.tplKeepReferenceFrames[..].Clear();
             if (parent.TplFrame is { } superblockTplFrame)
             {
                 Av1TplDecisions.GetKeptReferenceFrames(
@@ -979,8 +999,12 @@ internal static partial class Av1IntraSuperblockEncoder
             out long noneCost,
             out byte rectangleWins)
         {
+            // A negative bound returns before the block setup. Reference: the best_rdc.rdcost test that precedes
+            // setup_block_rdmult() in av1_rd_pick_partition().
             int savedRateMultiplier = this.rateMultiplier;
-            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize);
+            this.rateMultiplier = costLimit.Cost < 0
+                ? this.GetBlockRateMultiplier(blockOrigin, blockSize)
+                : this.SetupBlockRateMultiplier(blockOrigin, blockSize);
 
             // The bound arrives at the multiplier of the parent. Reference: the av1_rd_cost_update() call of
             // av1_rd_pick_partition().
@@ -996,12 +1020,36 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="remainingCost">The remaining bound at the multiplier of the node.</param>
         /// <param name="leafOrigin">The leaf origin in luma samples.</param>
         /// <param name="leafSize">The leaf size.</param>
-        /// <returns>The remaining cost bound.</returns>
-        private readonly long GetLeafCostLimit(Av1RateDistortionStatistics remainingCost, Point leafOrigin, Av1BlockSize leafSize)
+        /// <param name="searchesOwnPartition">
+        /// Whether the leaf is a 4x4 child of a split, which runs a partition search of its own.
+        /// </param>
+        /// <returns>The remaining cost bound, or <see cref="NegativeLeafBound"/> when the bound is already negative.</returns>
+        private readonly long GetLeafCostLimit(
+            Av1RateDistortionStatistics remainingCost,
+            Point leafOrigin,
+            Av1BlockSize leafSize,
+            bool searchesOwnPartition)
         {
+            // The leaf search tests the bound at the multiplier of the caller before it sets up the block.
+            // Reference: the use_best_rd_for_pruning return of pick_sb_modes(), and the best_rdc test that opens
+            // av1_rd_pick_partition().
+            if (remainingCost.Cost < 0)
+            {
+                return NegativeLeafBound;
+            }
+
             // The leaf search measures the remaining bound at its own multiplier. Reference: the av1_rd_cost_update()
             // call of pick_sb_modes().
             remainingCost.UpdateCost(this.GetBlockRateMultiplier(leafOrigin, leafSize));
+
+            // A 4x4 child measures the bound at its own multiplier when its partition search opens, and its unsplit
+            // search tests it again before the block setup. Reference: the av1_rd_cost_update() call of
+            // av1_rd_pick_partition() and the best_remain_rdcost that none_partition_search() passes to pick_sb_modes().
+            if (searchesOwnPartition && remainingCost.Cost < 0)
+            {
+                return NegativeLeafBound;
+            }
+
             return remainingCost.Cost;
         }
 
@@ -1015,6 +1063,41 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <returns>The rate multiplier, at least one.</returns>
         private readonly int GetBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
+        {
+            int multiplier = this.GetTunedRateMultiplier(blockOrigin, blockSize);
+
+            // The reference widens the product before the shift.
+            multiplier = (int)(((long)multiplier * this.rateMultiplierModifier) >> 7);
+            return Math.Max(multiplier, 1);
+        }
+
+        /// <summary>
+        /// Gets the rate multiplier of a block as <see cref="GetBlockRateMultiplier"/> does, and with the SSIM and image
+        /// tunes records the multiplier the motion vector error per bit derives from. Reference: setup_block_rdmult(),
+        /// whose av1_set_ssim_rdmult() call sets x->errorperbit before the all-intra modifier.
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The rate multiplier, at least one.</returns>
+        private readonly int SetupBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
+        {
+            if (this.picture.Parent.SsimRateMultiplierFactors is not null)
+            {
+                this.blockWorkspace.ErrorPerBitRateMultiplier = this.GetTunedRateMultiplier(blockOrigin, blockSize);
+            }
+
+            return this.GetBlockRateMultiplier(blockOrigin, blockSize);
+        }
+
+        /// <summary>
+        /// Gets the rate multiplier of a block before the all-intra superblock modifier: the superblock multiplier,
+        /// scaled by the coding block importance and by the SSIM factors. Reference: setup_block_rdmult() up to its
+        /// av1_set_ssim_rdmult() call.
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The rate multiplier, at least zero.</returns>
+        private readonly int GetTunedRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
         {
             int multiplier = this.baseRateMultiplier;
             Av1PictureParentControlSet parent = this.picture.Parent;
@@ -1035,9 +1118,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 multiplier = this.ScaleSsimRateMultiplier(multiplier, blockOrigin, blockSize);
             }
 
-            // The reference widens the product before the shift.
-            multiplier = (int)(((long)multiplier * this.rateMultiplierModifier) >> 7);
-            return Math.Max(multiplier, 1);
+            return multiplier;
         }
 
         private Av1PartitionType SelectBestPartitionCore(
@@ -1411,7 +1492,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         bool boosted = this.picture.Parent.FrameUpdateType is Av1FrameUpdateType.Key or
                             Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
 
+                        // The strips are searched only when the frame keeps the simple motion reference. Reference: the
+                        // ref_frame_flags return of prune_part4_using_sms().
                         if (fourStripMask == 3 && !frameHeader.IsIntra && bestStatistics.Cost != long.MaxValue &&
+                            (this.picture.Parent.AvailableReferenceMask & (1 << (int)this.simpleMotionReference)) != 0 &&
                             partitionSettings.Speed >= HeifEncodingSpeed.Level1 && partitionSettings.Speed <= HeifEncodingSpeed.Level6 &&
                             (!boosted || partitionSettings.Speed >= HeifEncodingSpeed.Level3) &&
                             blockOrigin.X + blockSize.GetWidth() <=
@@ -1716,10 +1800,11 @@ internal static partial class Av1IntraSuperblockEncoder
                             in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo.Block);
                     }
 
-                    if (!noneInvalid)
-                    {
-                        parentSourceVariance = this.interSourceVariance;
-                    }
+                    // The unsplit search leaves the block variance it measured, whether or not it found a mode. A search
+                    // that returned on a negative bound leaves the variance of the block searched before it, and none
+                    // at all before the first search of the superblock. Reference: the pb_source_variance assignment of
+                    // none_partition_search().
+                    parentSourceVariance = this.interSourceVariance;
 
                     if (candidateStatistics.Cost < bestStatistics.Cost && !this.picture.Parent.FrameHeader.IsIntra &&
                         !this.picture.Parent.FrameHeader.CodedLossless && (allowMotionSplit || allowRectangularSplit) &&
@@ -1778,8 +1863,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
+                // The model runs in the retry that must find a partition too. Reference: the gate of
+                // av1_simple_motion_search_early_term_none() in prune_partitions_after_none().
                 if (partitionType == Av1PartitionType.None && candidateStatistics.Cost < bestStatistics.Cost &&
-                    !terminateAfterNone && !this.mustFindValidPartition &&
+                    !terminateAfterNone &&
                     motionTerminateNone && frameHeader.ShowFrame && !frameHeader.IsIntra && blockSize >= Av1BlockSize.Block16x16 &&
                     blockOrigin.X + halfWidth < (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) &&
                     blockOrigin.Y + halfHeight < (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) &&
@@ -2089,13 +2176,18 @@ internal static partial class Av1IntraSuperblockEncoder
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             if (!noneInvalid && blockSize >= Av1BlockSize.Block16x16 && settings.SkippablePartitionPruningLevel != 0)
             {
-                Av1MacroBlockModeInfo noneModeInfo = this.blockWorkspace.PartitionTree
-                    .GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo;
+                ref Av1EncoderPartitionTree.ModeSnapshot noneSnapshot = ref this.blockWorkspace.PartitionTree
+                    .GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot;
 
-                // A zero-residual square makes further shape refinement optional. The stronger
-                // setting also excludes ordinary rectangles, but only for inherited motion at lower quantizers.
-                pruneExtendedPartitions = !this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 1 && noneModeInfo.Block.Skip;
-                if (!this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 2 && noneModeInfo.Block.Skip &&
+                Av1MacroBlockModeInfo noneModeInfo = noneSnapshot.ModeInfo;
+
+                // A zero-residual square makes further shape refinement optional. The stronger setting also excludes
+                // ordinary rectangles, but only for inherited motion at lower quantizers. Both read the search's
+                // skippable result, not the skip flag that the cost comparison chooses. Reference:
+                // pc_tree->none->skippable in prune_ext_part_none_skippable() and av1_rd_pick_partition().
+                bool noneSkippable = IsSkippable(in noneSnapshot);
+                pruneExtendedPartitions = !this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 1 && noneSkippable;
+                if (!this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 2 && noneSkippable &&
                     this.superblockQIndex <= 200 &&
                     noneModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
                     noneModeInfo.Block.Mode is not (Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector or
@@ -2109,7 +2201,10 @@ internal static partial class Av1IntraSuperblockEncoder
             bool rectangleAllowed = this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Horizontal) ||
                 this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Vertical);
 
-            if (!terminated && !this.mustFindValidPartition && !frameHeader.IsIntra && settings.AfterSplitTerminationLevel != 0 &&
+            // The model runs in the retry that must find a partition too. Reference: the gate of
+            // av1_ml_early_term_after_split() in prune_partitions_after_split(), which does not read
+            // must_find_valid_partition.
+            if (!terminated && !frameHeader.IsIntra && settings.AfterSplitTerminationLevel != 0 &&
                 allowRectangularSplit && rectangleAllowed)
             {
                 terminated = this.ShouldTerminateAfterSplit(
@@ -2139,13 +2234,15 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets whether a selected mode kept no coefficient in any plane during mode evaluation. This is not the
-        /// coded skip flag. Reference: ctx->skippable, which store_coding_context() takes from best_mode_skippable.
+        /// Gets whether a selected mode is skippable for the partition search: the skip_txfm of its rate statistics.
+        /// An inter mode is skippable when its transform search left every block empty. A regular intra mode of an
+        /// inter frame never is, because its statistics always code the non-skip flag; a palette winner is when both
+        /// its luma and its chroma quantized to nothing. This is not the coded skip flag. Reference: ctx->skippable,
+        /// which store_coding_context() takes from best_mode_skippable, with the intra_rd_stats.skip_txfm = 0 of
+        /// handle_intra_y_mode() callers and the this_skippable of av1_search_palette_mode().
         /// </summary>
         private static bool IsSkippable(in Av1EncoderPartitionTree.ModeSnapshot snapshot)
-            => snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra
-                ? snapshot.Statistics.AllTransformsEmpty
-                : !snapshot.Statistics.HasCoefficients;
+            => snapshot.Statistics.AllTransformsEmpty;
 
         internal static bool ShouldTerminatePartitionSearchAfterNoneAndSplit(
             bool enabled,
@@ -2197,8 +2294,13 @@ internal static partial class Av1IntraSuperblockEncoder
             int nodeIndex,
             bool reconstruct)
         {
+            // A block outside the frame returns before the block setup. Reference: the mi_rows and mi_cols test that
+            // precedes setup_block_rdmult() in av1_rd_use_partition().
             int savedRateMultiplier = this.rateMultiplier;
-            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize);
+            this.rateMultiplier = this.IsBlockOriginInsideFrame(blockOrigin)
+                ? this.SetupBlockRateMultiplier(blockOrigin, blockSize)
+                : this.GetBlockRateMultiplier(blockOrigin, blockSize);
+
             bool result = this.SearchVariancePartitionCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, nodeIndex, reconstruct);
             this.rateMultiplier = savedRateMultiplier;
             return result;
@@ -2506,7 +2608,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics leafLimit = costLimit;
                 if (asymmetric)
                 {
-                    this.rateMultiplier = this.GetBlockRateMultiplier(leafOrigin, leafSize);
+                    // Reference: the setup_block_rdmult() call of rd_try_subblock().
+                    this.rateMultiplier = this.SetupBlockRateMultiplier(leafOrigin, leafSize);
                     leafLimit.UpdateCost(this.rateMultiplier);
                 }
 
@@ -2523,14 +2626,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 // reads the neighbours' contexts, not the leaf's own. Reference: pick_sb_modes(), which updates
                 // no entropy context, against the encode_superblock() that rd_try_subblock() and
                 // rectangular_partition_search() make after it, and the dry run encode_sb() of a 4x4 child.
-                bool encodeFollows = searchChildren && this.picture.Parent.FrameHeader.IsIntra &&
+                bool siblingEncodeFollows = searchChildren &&
                     leafIndex + 1 < leafCount && (partitionType != Av1PartitionType.Split || blockSize <= Av1BlockSize.Block8x8);
+
+                bool encodeFollows = siblingEncodeFollows && this.picture.Parent.FrameHeader.IsIntra;
 
                 // A replay of a finished subtree encodes every leaf at the multiplier of that leaf. Reference: the
                 // setup_block_rdmult() call of encode_b(), which encode_sb() reaches for each leaf.
                 if (!searchChildren && !(partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8))
                 {
-                    this.rateMultiplier = this.GetBlockRateMultiplier(leafOrigin, leafSize);
+                    this.rateMultiplier = this.SetupBlockRateMultiplier(leafOrigin, leafSize);
                 }
 
                 Av1RateDistortionStatistics childStatistics = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
@@ -2556,9 +2661,10 @@ internal static partial class Av1IntraSuperblockEncoder
                             leafSize,
                             partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType,
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
-                            this.GetLeafCostLimit(remainingCost, leafOrigin, leafSize),
+                            this.GetLeafCostLimit(remainingCost, leafOrigin, leafSize, partitionType == Av1PartitionType.Split),
                             publishContexts,
-                            !encodeFollows)
+                            !encodeFollows,
+                            siblingEncodeFollows)
                         : this.ReconstructPartitionLeaf(
                             writer,
                             macroBlock,
@@ -2652,26 +2758,27 @@ internal static partial class Av1IntraSuperblockEncoder
                     (asymmetric || statistics.Cost < costLimit.Cost) &&
                     this.IsPartitionSiblingInsideFrame(blockOrigin, blockSize, partitionType, leafIndex);
 
-                // An inter frame leaves the leaf's samples from its own search, but the encode it stands for
-                // still writes DCT_DCT for each luma block that quantized to nothing. An intra leaf runs
-                // encode_block_intra() even when it is skipped.
-                if (searchChildren && !this.picture.Parent.FrameHeader.IsIntra &&
-                    (reconstructSplitLeaf || reconstructSibling))
+                // An inter leaf keeps the samples of its own search, but the encode it stands for still writes
+                // DCT_DCT for each luma block that quantized to nothing. An intra leaf, in an inter frame as in an
+                // intra frame, is quantized again by encode_block_intra(), which a leaf whose search was reused
+                // also needs for its samples.
+                bool siblingIsIntra = (reconstructSplitLeaf || reconstructSibling) &&
+                    (this.picture.Parent.FrameHeader.IsIntra ||
+                     this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex).Snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra);
+
+                if (searchChildren && !siblingIsIntra && (reconstructSplitLeaf || reconstructSibling))
                 {
                     Av1EncoderPartitionTree.ModeContext sibling =
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
 
-                    if (!this.picture.Parent.FrameHeader.CodedLossless &&
-                        (sibling.Snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra ||
-                         !sibling.Snapshot.ModeInfo.Block.Skip))
+                    if (!this.picture.Parent.FrameHeader.CodedLossless && !sibling.Snapshot.ModeInfo.Block.Skip)
                     {
                         Span<Av1EncoderTransformBlockState> siblingStates = sibling.GetTransformStates(Av1Plane.Y);
                         RetainEncodedZeroBlockTypes(siblingStates, siblingStates);
                     }
                 }
 
-                if (searchChildren && this.picture.Parent.FrameHeader.IsIntra &&
-                    (reconstructSplitLeaf || reconstructSibling))
+                if (searchChildren && siblingIsIntra)
                 {
                     Av1EncoderPartitionTree.ModeContext sibling =
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
@@ -3136,7 +3243,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo)
         {
             int savedRateMultiplier = this.rateMultiplier;
-            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, modeInfo.Block.BlockSize);
+            this.rateMultiplier = this.SetupBlockRateMultiplier(blockOrigin, modeInfo.Block.BlockSize);
             this.EncodeSelectedBlock(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo);
             this.rateMultiplier = savedRateMultiplier;
         }
@@ -3863,20 +3970,25 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref candidatePalette,
                     ref paletteTransformSize))
                 {
-                    bool skip = !paletteStatistics.HasCoefficients && !modeSearchChroma.HasCoefficients;
-                    int rate = writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) + (skip
-                        ? modeSearchChroma.Rate - modeSearchChroma.ResidualRate
-                        : paletteStatistics.Rate + modeSearchChroma.Rate);
+                    // An intra transform block always signals coefficients in the rate-distortion search, so a palette
+                    // is never skippable, even when it quantized to nothing, and pays for its residual syntax and the
+                    // cleared skip flag. Reference: the skip_txfm of 0 that block_rd_txfm() gives an intra block, which
+                    // makes this_skippable of av1_search_palette_mode() zero.
+                    int rate = writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) +
+                        paletteStatistics.Rate + modeSearchChroma.Rate +
+                        writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
 
-                    rate += writer.GetSkipCost(skip, Av1TileWriter.GetSkipContext(macroBlock));
                     Av1RateDistortionStatistics combinedStatistics = new(
                         this.rateMultiplier, rate, paletteStatistics.Distortion + modeSearchChroma.Distortion);
 
                     if (combinedStatistics.Cost < modeSearchStatistics.Cost)
                     {
+                        // The coded skip flag stays clear, so the final encode quantizes every transform block again.
+                        // Reference: the skip_txfm of 0 that av1_search_palette_mode() leaves, which
+                        // encode_block_intra() reads.
                         modeInfo.Block.Mode = Av1PredictionMode.DC;
                         modeInfo.Block.TransformSize = paletteTransformSize;
-                        modeInfo.Block.Skip = skip;
+                        modeInfo.Block.Skip = false;
                         block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = 0;
                         block.FilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
                         paletteInfo = candidatePalette;
@@ -4081,11 +4193,22 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPartitionTree.ModeContext context,
             long costLimit,
             bool publishContexts,
-            bool publishCoefficientContexts)
+            bool publishCoefficientContexts,
+            bool intraEncodeFollows = false)
         {
+            // A bound already negative returns before the block setup, so neither the block variance nor the error per
+            // bit changes. Reference: the use_best_rd_for_pruning return of pick_sb_modes().
+            if (costLimit == NegativeLeafBound)
+            {
+                return Av1RateDistortionStatistics.Invalid;
+            }
+
+            // The search sets the motion vector error per bit from the block multiplier. Reference: the
+            // av1_set_error_per_bit() call of pick_sb_modes().
             int savedRateMultiplier = this.rateMultiplier;
             this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize);
-            Av1RateDistortionStatistics result = this.EvaluatePartitionLeafCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, partitionType, context, costLimit, publishContexts, publishCoefficientContexts);
+            this.blockWorkspace.ErrorPerBitRateMultiplier = this.rateMultiplier;
+            Av1RateDistortionStatistics result = this.EvaluatePartitionLeafCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, partitionType, context, costLimit, publishContexts, publishCoefficientContexts, intraEncodeFollows);
             this.rateMultiplier = savedRateMultiplier;
             return result;
         }
@@ -4100,7 +4223,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPartitionTree.ModeContext context,
             long costLimit,
             bool publishContexts,
-            bool publishCoefficientContexts)
+            bool publishCoefficientContexts,
+            bool intraEncodeFollows)
         {
             this.blockCostLimit = costLimit;
 
@@ -4181,6 +4305,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // An intra winner is quantized again by the encode that follows it, which publishes the coefficient
+            // contexts it codes. Reference: the encode_superblock() after pick_sb_modes().
+            bool publishSearchCoefficientContexts = publishCoefficientContexts &&
+                !(intraEncodeFollows && modeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra);
+
             if (publishContexts)
             {
                 this.PublishPartitionLeafContexts(
@@ -4192,7 +4321,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo,
                     block,
                     paletteInfo,
-                    publishCoefficientContexts);
+                    publishSearchCoefficientContexts);
             }
 
             return this.SelectedBlockStatistics;
@@ -5288,75 +5417,6 @@ internal static partial class Av1IntraSuperblockEncoder
             }
         }
 
-        /// <summary>
-        /// Resolves transform types permitted by the prediction mode and evaluation stage.
-        /// </summary>
-        /// <param name="mode">The spatial prediction mode.</param>
-        /// <param name="filterMode">The filter-intra predictor, or its disabled sentinel.</param>
-        /// <param name="transformSize">The residual transform dimensions.</param>
-        /// <returns>The allowed transform-type bits.</returns>
-        private ushort GetIntraTransformMask(Av1PredictionMode mode, Av1FilterIntraMode filterMode, Av1TransformSize transformSize)
-        {
-            if (this.picture.Parent.FrameHeader.CodedLossless)
-            {
-                return 1;
-            }
-
-            Av1TransformSetType set = Av1SymbolContextHelper.GetExtendedTransformSetType(
-                transformSize,
-                this.picture.Parent.FrameHeader.UseReducedTransformSet);
-
-            // get_tx_mask takes the direction of a filter-intra block from
-            // fimode_to_intradir, where the Paeth filter is a DC direction.
-            Av1PredictionMode direction = filterMode == Av1FilterIntraMode.AllFilterIntraModes
-                ? mode
-                : filterMode.ToIntraDirection();
-
-            // Each bit selects one transform type in syntax enumeration order. The reduced set omits
-            // one-dimensional transforms whose direction is inconsistent with the predictor.
-            ReadOnlySpan<ushort> setMasks = [0x0001, 0x0201, 0x020F, 0x0E0F, 0x0FFF, 0xFFFF];
-            ReadOnlySpan<ushort> reducedMasks =
-                [0x080F, 0x040F, 0x080F, 0x020F, 0x080F, 0x040F, 0x080F, 0x080F, 0x040F, 0x080F, 0x040F, 0x080F, 0x0C0E];
-
-            ushort mask = set == Av1TransformSetType.IntraSet1 ? reducedMasks[(int)direction] : setMasks[(int)set];
-            int level = this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate
-                ? this.picture.Parent.SpeedSettings.IntraTransformTypeSearchLevel
-                : 0;
-
-            if (level == 2)
-            {
-                Av1TransformType type = transformSize >= Av1TransformSize.Size32x32 || this.picture.Parent.FrameHeader.AllowScreenContentTools
-                    ? Av1TransformType.DctDct
-                    : mode.ToTransformType();
-
-                mask = (ushort)(mask & (1 << (int)type));
-            }
-
-            if (level == 1)
-            {
-                ReadOnlySpan<ushort> derivedMasks =
-                    [0x0209, 0x0403, 0x0805, 0x020F, 0x0009, 0x0009, 0x0009, 0x0805, 0x0403, 0x0205, 0x0403, 0x0805, 0x0209];
-
-                mask &= derivedMasks[(int)direction];
-            }
-
-            int probabilityPruning = this.picture.Parent.SpeedSettings.TransformTypeProbabilityPruning;
-            if (level == 0 && probabilityPruning != 0 && mask != 0)
-            {
-                int probabilityOffset = ((int)this.picture.Parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength) +
-                    ((int)transformSize * Av1TransformTypeProbabilities.TypeCount);
-
-                mask = Av1TransformTypeProbabilities.Prune(
-                    this.blockWorkspace.TransformTypeProbabilities.Slice(probabilityOffset, Av1TransformTypeProbabilities.TypeCount),
-                    mask,
-                    probabilityPruning,
-                    this.picture.Parent.FrameUpdateType);
-            }
-
-            // A restricted default can be absent from the reduced set. DCT remains the fallback.
-            return mask == 0 ? (ushort)1 : mask;
-        }
-
         private Av1PredictionMode SelectLumaMode(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -5589,95 +5649,58 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
                     }
 
-                    Av1TransformSize size = blockSize.GetMaximumTransformSize();
-                    long previousCost = long.MaxValue;
+                    // With the breakout, the depths are bounded by the best candidate so far; without it the winner
+                    // stage searches every depth in full. Reference: the ref_best_rd of intra_block_yrd().
+                    long candidateLimit = selectedStatistics.Cost;
+                    Av1RateDistortionStatistics statistics = this.ChooseUniformTransformSize(
+                        writer,
+                        macroBlock,
+                        sourcePlane,
+                        reconstructionPlane,
+                        blockOrigin,
+                        blockSize,
+                        blockSize.GetMaximumTransformSize(),
+                        maximumDepth,
+                        tileIndex,
+                        sourceVariance,
+                        candidate.Mode,
+                        candidate.AngleDelta,
+                        candidate.FilterMode,
+                        paletteSize,
+                        candidate.Palette.GetColors(Av1Plane.Y),
+                        candidate.PaletteHeaderRate,
+                        paletteDisabledCost,
+                        sizeContext,
+                        settings.UseIntraTransformRdBreakout ? candidateLimit : long.MaxValue,
+                        candidateLimit,
+                        samples,
+                        coefficients,
+                        workspace.CandidateTransformBlocks,
+                        retainedCoefficients,
+                        retainedStates,
+                        out Av1TransformSize size);
 
-                    // The budget of a later depth is the smaller of the bound this block arrived with
-                    // and the best depth this block has already measured. The two are not on one scale:
-                    // the arriving bound is a whole candidate cost and carries the mode syntax, while
-                    // the running cost inside a depth carries only the non-skip flag, the size syntax
-                    // and the coefficients. The block's own best therefore has its mode syntax removed
-                    // before it becomes a budget. Reference: the rd_thresh of
-                    // choose_tx_size_type_from_rd() against the current_rd of block_rd_txfm().
-                    long blockBest = long.MaxValue;
-                    for (int depth = 0; depth <= maximumDepth; depth++)
+                    if (statistics.Cost < candidateLimit)
                     {
-                        long depthLimit = settings.UseIntraTransformRdBreakout
-                            ? Math.Min(selectedStatistics.Cost, blockBest)
-                            : long.MaxValue;
+                        mode = candidate.Mode;
+                        selectedAngleDelta = candidate.AngleDelta;
+                        selectedFilterIntraMode = candidate.FilterMode;
 
-                        Av1RateDistortionStatistics statistics = this.GetUniformLumaCandidateCost(
-                            writer,
-                            macroBlock,
-                            sourcePlane,
-                            reconstructionPlane,
-                            blockOrigin,
-                            blockSize,
-                            size,
-                            tileIndex,
-                            sourceVariance,
-                            candidate.Mode,
-                            candidate.AngleDelta,
-                            candidate.FilterMode,
-                            paletteSize,
-                            candidate.Palette.GetColors(Av1Plane.Y),
-                            candidate.PaletteHeaderRate,
-                            paletteDisabledCost,
-                            sizeContext,
-                            depthLimit,
-                            samples,
-                            coefficients,
-                            workspace.CandidateTransformBlocks,
-                            out bool skipSmallerTransforms);
+                        // The winner keeps the chroma palette that its chroma search chose; an inter frame searches
+                        // chroma before this refinement. Reference: the winner_mode_stats mbmi that
+                        // refine_winner_mode_tx() restores, which carries palette_size[1] and the chroma colors.
+                        paletteInfo.PaletteSizes[0] = (byte)paletteSize;
+                        paletteInfo.SetColors(Av1Plane.Y, candidate.Palette.GetColors(Av1Plane.Y));
+                        selectedTransformSize = size;
+                        selectedStatistics = statistics;
+                        selectedMapIndex = paletteSize > 0 ? index : -1;
 
-                        Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                            $"TXWINNER {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)candidate.Mode} filter {(int)candidate.FilterMode} depth {depth} txsize {(int)size} rate {statistics.Rate} dist {statistics.Distortion} rd {statistics.Cost} best {selectedStatistics.Cost} var {sourceVariance}");
-
-                        if (statistics.Cost != long.MaxValue)
-                        {
-                            blockBest = Math.Min(blockBest, statistics.TransformCost);
-                        }
-
-                        if (statistics.Cost < selectedStatistics.Cost)
-                        {
-                            CopyTiledCandidate(
-                                samples,
-                                coefficients,
-                                workspace.CandidateTransformBlocks,
-                                reconstructionPlane,
-                                blockOrigin,
-                                width,
-                                GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0),
-                                size,
-                                retainedCoefficients,
-                                retainedStates);
-
-                            mode = candidate.Mode;
-                            selectedAngleDelta = candidate.AngleDelta;
-                            selectedFilterIntraMode = candidate.FilterMode;
-                            paletteInfo = candidate.Palette;
-                            selectedTransformSize = size;
-                            selectedStatistics = statistics;
-                            selectedMapIndex = paletteSize > 0 ? index : -1;
-
-                            // The winner keeps the transform grid this candidate produced, so a later
-                            // candidate that writes over the shared buffers cannot lend it a type its own
-                            // size does not allow. Reference: the
-                            // av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call inside
-                            // the this_rd < best_rd branch of intra_block_yrd().
-                            Size winnerExtent = GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0);
-                            CopyWinnerTransformStates(
-                                retainedStates, this.blockWorkspace.GetIntraWinnerContext(1).GetTransformStates(Av1Plane.Y));
-                        }
-
-                        if (skipSmallerTransforms || size == Av1TransformSize.Size4x4 ||
-                            (depth > 0 && depth < maximumDepth && sourceVariance < 256 && statistics.Cost > previousCost))
-                        {
-                            break;
-                        }
-
-                        previousCost = statistics.Cost;
-                        size = size.GetSubSize();
+                        // The winner keeps the transform grid this candidate produced, so a later candidate that
+                        // writes over the shared buffers cannot lend it a type its own size does not allow.
+                        // Reference: the av1_copy_array(ctx->tx_type_map, xd->tx_type_map, ctx->num_4x4_blk) call
+                        // inside the this_rd < best_rd branch of intra_block_yrd().
+                        CopyWinnerTransformStates(
+                            retainedStates, this.blockWorkspace.GetIntraWinnerContext(1).GetTransformStates(Av1Plane.Y));
                     }
                 }
             }
@@ -5978,80 +6001,36 @@ internal static partial class Av1IntraSuperblockEncoder
                     dcEvaluated = true;
                 }
 
-                Av1RateDistortionStatistics modeStatistics = Av1RateDistortionStatistics.Invalid;
-                Av1TransformSize bestSize = maximumSize;
-                Av1TransformSize lastSize = maximumSize;
-                Av1TransformSize size = maximumSize;
-                long previousCost = long.MaxValue;
-                long costLimit = intraFrame ? Math.Min(bestStatistics.Cost, interCostLimit) : interCostLimit;
-                for (int depth = 0; depth <= maximumDepth; depth++, size = size.GetSubSize())
-                {
-                    Av1RateDistortionStatistics statistics = this.GetUniformLumaCandidateCost(
-                        writer,
-                        macroBlock,
-                        sourcePlane,
-                        reconstructionPlane,
-                        blockOrigin,
-                        blockSize,
-                        size,
-                        tileIndex,
-                        sourceVariance,
-                        mode,
-                        angleDelta,
-                        filterMode,
-                        0,
-                        [],
-                        0,
-                        paletteDisabledCost,
-                        sizeContext,
-                        costLimit,
-                        samples,
-                        coefficients,
-                        workspace.CandidateTransformBlocks,
-                        out bool skipSmaller);
-
-                    Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                        $"TXDEPTH {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)mode} filter {(int)filterMode} depth {depth} txsize {(int)size} rate {statistics.Rate} dist {statistics.Distortion} rd {statistics.Cost} limit {costLimit} var {sourceVariance}");
-
-                    if (statistics.Cost < modeStatistics.Cost)
-                    {
-                        CopyTiledCandidate(
-                            samples,
-                            coefficients,
-                            workspace.CandidateTransformBlocks,
-                            reconstructionPlane,
-                            blockOrigin,
-                            width,
-                            GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0),
-                            size,
-                            retainedCoefficients,
-                            retainedStates);
-
-                        modeStatistics = statistics;
-                        bestSize = size;
-                        if (settings.UseIntraTransformRdBreakout)
-                        {
-                            // The budget a later depth receives is the smaller of the bound this mode
-                            // arrived with and the best depth already measured. Those two are on
-                            // different scales, because a measured depth is a whole candidate cost and
-                            // carries the mode syntax, while the running cost inside a depth carries
-                            // only the non-skip flag, the size syntax and the coefficients. The mode
-                            // syntax therefore comes off before the measured depth becomes a budget.
-                            // Reference: the rd_thresh of choose_tx_size_type_from_rd() against the
-                            // current_rd of block_rd_txfm().
-                            costLimit = Math.Min(costLimit, statistics.TransformCost);
-                        }
-                    }
-
-                    lastSize = size;
-                    if (skipSmaller || size == Av1TransformSize.Size4x4 ||
-                        (depth > 0 && depth < maximumDepth && sourceVariance < 256 && statistics.Cost > previousCost))
-                    {
-                        break;
-                    }
-
-                    previousCost = statistics.Cost;
-                }
+                // The search of a mode arrives bounded by the best mode of an intra frame, and by the inter bound.
+                // Reference: the best_rd that av1_rd_pick_intra_sby_mode() passes to
+                // av1_pick_uniform_tx_size_type_yrd().
+                Av1RateDistortionStatistics modeStatistics = this.ChooseUniformTransformSize(
+                    writer,
+                    macroBlock,
+                    sourcePlane,
+                    reconstructionPlane,
+                    blockOrigin,
+                    blockSize,
+                    maximumSize,
+                    maximumDepth,
+                    tileIndex,
+                    sourceVariance,
+                    mode,
+                    angleDelta,
+                    filterMode,
+                    0,
+                    [],
+                    0,
+                    paletteDisabledCost,
+                    sizeContext,
+                    intraFrame ? Math.Min(bestStatistics.Cost, interCostLimit) : interCostLimit,
+                    long.MaxValue,
+                    samples,
+                    coefficients,
+                    workspace.CandidateTransformBlocks,
+                    retainedCoefficients,
+                    retainedStates,
+                    out Av1TransformSize bestSize);
 
                 if (this.picture.Sequence.SequenceHeader.IsStillPicture && modeStatistics.Cost != long.MaxValue)
                 {
@@ -6184,6 +6163,146 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
+        /// Chooses the uniform transform size of one luma candidate. Every depth from the start size is measured; the
+        /// depths compete on the transform cost alone (coefficients, non-skip flag and size syntax), because the
+        /// candidate's own mode or palette syntax is the same at every depth. Only the depth that wins that comparison
+        /// represents the candidate, and it is copied into the retained storage when its whole cost, with the mode
+        /// syntax, is below the selection limit. Reference: choose_tx_size_type_from_rd(), which
+        /// av1_pick_uniform_tx_size_type_yrd() runs for the intra mode search, palette_rd_y() and intra_block_yrd().
+        /// </summary>
+        /// <remarks>
+        /// A depth with a lower transform cost never has a higher whole cost, because the two costs differ only by
+        /// the fixed mode rate and one rounding step. A depth that replaces a copied depth is therefore copied too,
+        /// and the retained storage always holds the final best depth when that depth passes the selection limit.
+        /// </remarks>
+        /// <param name="writer">The tile symbol encoder.</param>
+        /// <param name="macroBlock">The block's neighbor state.</param>
+        /// <param name="sourcePlane">The source luma plane.</param>
+        /// <param name="reconstructionPlane">The reconstruction luma plane.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="startSize">The largest transform size searched.</param>
+        /// <param name="maximumDepth">The number of splits the search can make below the start size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="sourceVariance">The source variance that gates the depth prune.</param>
+        /// <param name="mode">The luma prediction mode.</param>
+        /// <param name="angleDelta">The luma angle delta.</param>
+        /// <param name="filterMode">The filter intra mode.</param>
+        /// <param name="paletteSize">The luma palette size, or zero.</param>
+        /// <param name="paletteColors">The luma palette colors.</param>
+        /// <param name="paletteHeaderRate">The palette syntax rate.</param>
+        /// <param name="paletteDisabledCost">The rate that signals no palette.</param>
+        /// <param name="sizeContext">The transform size context.</param>
+        /// <param name="referenceLimit">The bound the search arrives with. Reference: ref_best_rd.</param>
+        /// <param name="selectionLimit">The whole cost the best depth must be below to be retained.</param>
+        /// <param name="samples">The candidate reconstruction storage.</param>
+        /// <param name="coefficients">The candidate coefficient storage.</param>
+        /// <param name="candidateStates">The candidate transform block storage.</param>
+        /// <param name="retainedCoefficients">The retained coefficients.</param>
+        /// <param name="retainedStates">The retained transform block states.</param>
+        /// <param name="bestSize">The transform size of the best depth.</param>
+        /// <returns>The statistics of the best depth, or invalid statistics when no depth completed.</returns>
+        private Av1RateDistortionStatistics ChooseUniformTransformSize(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Av1PlaneRegion<TSample> sourcePlane,
+            Av1PlaneRegion<TSample> reconstructionPlane,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1TransformSize startSize,
+            int maximumDepth,
+            ushort tileIndex,
+            int sourceVariance,
+            Av1PredictionMode mode,
+            int angleDelta,
+            Av1FilterIntraMode filterMode,
+            int paletteSize,
+            scoped ReadOnlySpan<ushort> paletteColors,
+            int paletteHeaderRate,
+            int paletteDisabledCost,
+            int sizeContext,
+            long referenceLimit,
+            long selectionLimit,
+            Span<TSample> samples,
+            Span<int> coefficients,
+            Span<Av1EncoderTransformBlockState> candidateStates,
+            Span<int> retainedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedStates,
+            out Av1TransformSize bestSize)
+        {
+            bool breakout = this.picture.Parent.SpeedSettings.UseIntraTransformRdBreakout;
+            Av1RateDistortionStatistics best = Av1RateDistortionStatistics.Invalid;
+            long previousTransformCost = long.MaxValue;
+            bestSize = startSize;
+            Av1TransformSize size = startSize;
+            for (int depth = 0; depth <= maximumDepth; depth++, size = size.GetSubSize())
+            {
+                // With the breakout, a later depth also stops once it passes the best depth measured so far.
+                // Reference: the rd_thresh of choose_tx_size_type_from_rd().
+                long costLimit = breakout ? Math.Min(referenceLimit, best.TransformCost) : referenceLimit;
+                Av1RateDistortionStatistics statistics = this.GetUniformLumaCandidateCost(
+                    writer,
+                    macroBlock,
+                    sourcePlane,
+                    reconstructionPlane,
+                    blockOrigin,
+                    blockSize,
+                    size,
+                    tileIndex,
+                    sourceVariance,
+                    mode,
+                    angleDelta,
+                    filterMode,
+                    paletteSize,
+                    paletteColors,
+                    paletteHeaderRate,
+                    paletteDisabledCost,
+                    sizeContext,
+                    costLimit,
+                    samples,
+                    coefficients,
+                    candidateStates,
+                    out bool skipSmaller);
+
+                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
+                    $"TXDEPTH {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)mode} filter {(int)filterMode} palette {paletteSize} depth {depth} txsize {(int)size} rate {statistics.Rate} dist {statistics.Distortion} rd {statistics.Cost} txrd {statistics.TransformCost} limit {costLimit} var {sourceVariance}");
+
+                if (statistics.TransformCost < best.TransformCost)
+                {
+                    best = statistics;
+                    bestSize = size;
+                    if (statistics.Cost < selectionLimit)
+                    {
+                        CopyTiledCandidate(
+                            samples,
+                            coefficients,
+                            candidateStates,
+                            reconstructionPlane,
+                            blockOrigin,
+                            blockSize.GetWidth(),
+                            GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0),
+                            size,
+                            retainedCoefficients,
+                            retainedStates);
+                    }
+                }
+
+                // A low-contrast block stops splitting once a split costs more than the depth above it; a depth
+                // that did not complete never stops the search. Reference: the source_variance < 256 prune of
+                // choose_tx_size_type_from_rd().
+                if (skipSmaller || size == Av1TransformSize.Size4x4 ||
+                    (depth > 0 && depth < maximumDepth && sourceVariance < 256 && statistics.TransformCost > previousTransformCost))
+                {
+                    break;
+                }
+
+                previousTransformCost = statistics.TransformCost;
+            }
+
+            return best;
+        }
+
+        /// <summary>
         /// Evaluates an intra transform grid with local reconstruction and coefficient contexts, stopping at the supplied cost bound.
         /// </summary>
         private Av1RateDistortionStatistics GetUniformLumaCandidateCost(
@@ -6295,10 +6414,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int leftIndex = coefficientNeighbors.GetLeftIndex(blockOrigin);
             coefficientNeighbors.Top.Slice(topIndex, contextWidth).CopyTo(topContexts);
             coefficientNeighbors.Left.Slice(leftIndex, contextHeight).CopyTo(leftContexts);
-            bool useReducedTransformSet = this.picture.Parent.FrameHeader.UseReducedTransformSet;
-            ushort transformMask = paletteSize > 0 && !this.picture.Parent.FrameHeader.IsIntra &&
-                this.picture.Parent.IsScreenContent && this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision
-                    ? (ushort)1 : this.GetIntraTransformMask(mode, filterIntraMode, transformSize);
+
+            // The non-RD palette search of screen content codes DCT_DCT alone. Reference: dct_only_palette_nonrd.
+            bool dctOnlyPalette = paletteSize > 0 && !this.picture.Parent.FrameHeader.IsIntra &&
+                this.picture.Parent.IsScreenContent && this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision;
 
             // Prediction and transform-size syntax belongs to the coding block. Each residual transform
             // contributes its own coefficient cost; lossless and fixed-size modes do not signal a size choice.
@@ -6384,7 +6503,6 @@ internal static partial class Av1IntraSuperblockEncoder
             // consume the reconstructed edges and coefficient contexts produced earlier in that region.
             Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
             int transformIndex = 0;
-            InlineArray16<Av1TransformType> transformOrder = default;
             for (int regionY = 0; regionY < codedExtent.Height; regionY += Av1Constants.MaxTransformSize)
             {
                 int bottom = Math.Min(regionY + Av1Constants.MaxTransformSize, codedExtent.Height);
@@ -6504,391 +6622,42 @@ internal static partial class Av1IntraSuperblockEncoder
                                 blockSize,
                                 transformSize);
 
-                            long bestTransformCost = long.MaxValue;
-                            Av1TransformType bestTransformType = Av1TransformType.DctDct;
-                            int bestTransformRate = 0;
-                            long bestTransformDistortion = 0;
-                            Av1EncoderTransformBlockState bestTransformState = default;
                             Span<int> retainedTransformCoefficients = candidateCoefficients.Slice(
                                 transformIndex * transformSampleCount,
                                 transformSampleCount);
 
-                            for (int type = 0; type < Av1TransformTypeProbabilities.TypeCount; type++)
-                            {
-                                transformOrder[type] = (Av1TransformType)type;
-                            }
-
-                            // search_tx_type() subtracts a block crossing the frame edge with the DCT_DCT padding
-                            // before the skip prediction and the type pruning read the residual.
-                            Av1TransformBlockEncoder.PadBorderResidual(
-                                this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, transformWidth, transformWidth, transformHeight, Av1TransformType.DctDct);
-
-                            ushort candidateTransformMask = transformMask;
-                            Av1EncoderSpeedSettings typeSettings = this.picture.Parent.SpeedSettings;
-                            if (typeSettings.EstimateTransformTypeRateDistortion &&
-                                System.Numerics.BitOperations.PopCount((uint)candidateTransformMask) > 2)
-                            {
-                                int pruningLevel = this.blockWorkspace.EvaluationStage switch
-                                {
-                                    Av1EncoderEvaluationStage.Candidate => typeSettings.CandidateInterTransformTypePruning,
-                                    Av1EncoderEvaluationStage.Winner => typeSettings.WinnerInterTransformTypePruning,
-                                    _ => typeSettings.DefaultInterTransformTypePruning
-                                };
-
-                                candidateTransformMask = this.PruneTransformTypesByEstimatedCost(
-                                    writer,
-                                    residual,
-                                    transformWidth,
-                                    transformSize,
-                                    blockContext,
-                                    mode,
-                                    filterIntraMode,
-                                    false,
-                                    candidateTransformMask,
-                                    pruningLevel,
-                                    costLimit,
-                                    candidateTransformCoefficients,
-                                    transformOrder);
-
-                                if (candidateTransformMask == 0)
-                                {
-                                    candidateTransformMask = 1;
-                                }
-                            }
-
-                            // Block-level decisions of search_tx_type. The residual energy of
-                            // the visible samples gates coefficient refinement for every type, and selects
-                            // transform-domain distortion by the speed policy of the current evaluation stage.
-                            Size visibleSize = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, transformOrigin, transformWidth, transformHeight);
-                            int visibleWidth = visibleSize.Width;
-                            int visibleHeight = visibleSize.Height;
-                            bool borderBlock = this.blockWorkspace.BorderPad &&
-                                (visibleWidth < transformWidth || visibleHeight < transformHeight);
-
-                            int predictDcLevel = this.blockWorkspace.EvaluationStage switch
-                            {
-                                Av1EncoderEvaluationStage.Candidate => typeSettings.ModePredictDcLevel,
-                                Av1EncoderEvaluationStage.Winner => typeSettings.WinnerPredictDcLevel,
-                                _ => typeSettings.DefaultPredictDcLevel
-                            };
-
-                            // A 64-point transform is excluded from skip prediction, because its DC coefficient
-                            // carries no scaling term. Its residual is measured without mean and variance.
-                            bool predictDcBlock = predictDcLevel >= 1 && transformWidth != 64 && transformHeight != 64;
-                            long perPixelMean = 0;
-                            ulong blockVariance = 0;
-                            uint blockMseQ8;
-                            long blockError = predictDcBlock
-                                ? Av1TransformBlockEncoder.GetBlockStatistics(
-                                    residual,
-                                    transformWidth,
-                                    visibleWidth,
-                                    visibleHeight,
-                                    this.bitDepth,
-                                    out blockMseQ8,
-                                    out perPixelMean,
-                                    out blockVariance)
-                                : Av1TransformBlockEncoder.GetBlockError(
-                                    residual,
-                                    transformWidth,
-                                    visibleWidth,
-                                    visibleHeight,
-                                    this.bitDepth,
-                                    out blockMseQ8);
-
-                            int acDequantizer = Av1QuantizationLookup.GetAcQuant(
-                                this.superblockQIndex,
-                                this.quantization.DeltaQAc[(int)Av1Plane.Y],
-                                this.bitDepth);
-
-                            // predict_dc_only_block settles a block whose residual cannot survive quantization,
-                            // and from level two keeps only the DC coefficient of a low-variance luma block. A
-                            // DC-only block searches DCT_DCT alone and measures its distortion in the pixel domain.
-                            bool dcOnlyCandidate = false;
-                            bool predictedSkip = predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
-                                transformSize,
-                                Av1QuantizationLookup.GetDcQuant(
-                                    this.superblockQIndex,
-                                    this.quantization.DeltaQDc[(int)Av1Plane.Y],
-                                    this.bitDepth),
-                                acDequantizer,
-                                this.bitDepth,
-                                perPixelMean,
-                                blockVariance,
-                                out dcOnlyCandidate);
-
-                            bool dcOnlyBlock = predictDcBlock && dcOnlyCandidate && predictDcLevel > 1;
-                            if (dcOnlyBlock)
-                            {
-                                candidateTransformMask = 1;
-                            }
-
-                            (uint Distortion, uint Satd) refinementThresholds = this.blockWorkspace.EvaluationStage switch
-                            {
-                                Av1EncoderEvaluationStage.Candidate => typeSettings.ModeCoefficientOptimizationThresholds,
-                                Av1EncoderEvaluationStage.Winner => typeSettings.WinnerCoefficientOptimizationThresholds,
-                                _ => typeSettings.DefaultCoefficientOptimizationThresholds
-                            };
-
-                            (int Type, uint Threshold) distortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(
-                                this.blockWorkspace, typeSettings);
-
-                            int dequantShift = this.bitDepth == Av1BitDepth.EightBit ? 3 : this.bitDepth.GetBitCount() - 5;
-                            ulong quantizerStep = (uint)(acDequantizer >> dequantShift);
-                            bool skipTrellis = !typeSettings.EnableCoefficientOptimization ||
-                                blockMseQ8 > refinementThresholds.Distortion * quantizerStep * quantizerStep;
-
-                            // Any 64-point transform keeps half of its coefficients, so its transform-domain error is
-                            // not comparable. A search with one permitted type has nothing to compare, so it measures
-                            // that type in the pixel domain directly instead of twice.
-                            bool useTransformDomainDistortion = distortionPolicy.Type > 0 &&
-                                blockMseQ8 >= distortionPolicy.Threshold &&
-                                transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64 &&
-                                !dcOnlyBlock;
-
-                            bool measureWinnerInPixelDomain = distortionPolicy.Type == 1 && useTransformDomainDistortion;
-                            if (measureWinnerInPixelDomain &&
-                                (System.Numerics.BitOperations.PopCount((uint)transformMask) == 1 || candidateTransformMask == 1))
-                            {
-                                measureWinnerInPixelDomain = useTransformDomainDistortion = false;
-                            }
-
-                            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
-                            long highEnergyThreshold = 128L * 128 * transformSampleCount;
-                            bool isHighEnergy = !dcOnlyBlock && blockError >= highEnergyThreshold;
-                            int adaptiveSearchLevel = typeSettings.InterAdaptiveTransformSearchLevel;
-
-                            // search_tx_type receives what is left of the budget (block_rd_txfm).
+                            // The type search receives the budget that this block has left after its earlier transform
+                            // blocks. Reference: the ref_best_rd that block_rd_txfm() gives search_tx_type().
                             long remainingCostLimit = costLimit == long.MaxValue ? long.MaxValue : costLimit - runningCost;
-                            bool bestReconstructed = false;
-                            Av1WorkCounters.Count(Av1WorkCounters.SearchTxTypeY);
+                            TransformTypeSearchResult searchResult = this.SearchTransformType(
+                                writer,
+                                Av1Plane.Y,
+                                false,
+                                blockContext,
+                                Av1TileWriter.GetTransformBlockContexts(
+                                    Av1ComponentType.Luminance, coefficientNeighbors, blockOrigin, blockSize, transformSize),
+                                sourcePlane,
+                                transformOrigin,
+                                transformSize,
+                                mode,
+                                filterIntraMode,
+                                Av1TransformType.AllTransformTypes,
+                                dctOnlyPalette,
+                                remainingCostLimit,
+                                prediction,
+                                residual,
+                                transformWidth,
+                                ref candidateTransformReconstruction,
+                                ref bestTransformReconstruction,
+                                ref candidateTransformCoefficients,
+                                ref bestTransformCoefficients,
+                                ref candidateDequantizedCoefficients,
+                                ref bestDequantizedCoefficients);
 
-                            // A predicted skip block searches no transform type: the prediction stands as the
-                            // reconstruction, and the block costs the all-zero flag alone.
-                            if (predictedSkip)
-                            {
-                                // The all-zero flag is priced with the contexts that av1_get_entropy_contexts()
-                                // reads at the block origin, not with the contexts that earlier transform blocks of
-                                // this search have updated. Every predicted transform block reads the same corner.
-                                Av1TransformBlockContext originContext = Av1TileWriter.GetTransformBlockContexts(
-                                    Av1ComponentType.Luminance,
-                                    coefficientNeighbors,
-                                    blockOrigin,
-                                    blockSize,
-                                    transformSize);
-
-                                candidateTransformMask = 0;
-                                bestTransformType = Av1TransformType.DctDct;
-                                bestTransformState = default;
-                                bestTransformRate = writer.GetTransformBlockSkipCost(
-                                    true,
-                                    Av1SymbolContextHelper.GetTransformSizeContext(transformSize),
-                                    originContext.SkipContext);
-
-                                bestTransformDistortion = blockError;
-                                bestTransformCoefficients.Clear();
-                                prediction.CopyTo(bestTransformReconstruction);
-                                bestReconstructed = true;
-                            }
-
-                            // Each transform writes into the compact buffers that do not hold the current best.
-                            // Swapping spans on improvement keeps the winner without copying it inside the search loop.
-                            for (int type = 0; type < Av1TransformTypeProbabilities.TypeCount; type++)
-                            {
-                                Av1TransformType transformType = transformOrder[type];
-                                if ((candidateTransformMask & (1 << (int)transformType)) == 0)
-                                {
-                                    continue;
-                                }
-
-                                // A block crossing the frame edge fills its hidden residual for each transform type.
-                                if (borderBlock)
-                                {
-                                    Av1TransformBlockEncoder.PadBorderResidual(
-                                        this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, transformWidth, transformWidth, transformHeight, transformType);
-                                }
-
-                                Av1EncoderTransformBlockState candidateState = default;
-                                Av1WorkCounters.Count(Av1WorkCounters.TxTypeIterY);
-                                int candidateRate = Av1TransformBlockEncoder.EncodeTypeSearchCandidate(
-                                    this.blockWorkspace,
-                                    writer,
-                                    blockContext,
-                                    residual,
-                                    transformWidth,
-                                    candidateTransformCoefficients,
-                                    candidateDequantizedCoefficients,
-                                    transformSize,
-                                    transformType,
-                                    mode,
-                                    filterIntraMode,
-                                    useReducedTransformSet,
-                                    false,
-                                    this.superblockQIndex,
-                                    this.quantization.DeltaQDc[(int)Av1Plane.Y],
-                                    this.quantization.DeltaQAc[(int)Av1Plane.Y],
-                                    this.bitDepth,
-                                    Av1ComponentType.Luminance,
-                                    this.rateMultiplier,
-                                    false,
-                                    this.picture.Sequence.SequenceHeader.IsStillPicture,
-                                    skipTrellis,
-                                    refinementThresholds.Satd,
-                                    dcOnlyBlock,
-                                    perPixelMean,
-                                    ref candidateState,
-                                    out bool candidateMatricesDropped);
-
-                                // Distortion is never negative. A candidate whose rate alone already costs more than
-                                // the current winner cannot replace it, so it needs no distortion measurement.
-                                if (Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, 0) > bestTransformCost)
-                                {
-                                    continue;
-                                }
-
-                                long candidateDistortion;
-                                bool candidateReconstructed = false;
-                                if (candidateState.EndOfBlock == 0)
-                                {
-                                    // An empty block reconstructs the prediction, so its error is the residual energy.
-                                    candidateDistortion = blockError;
-                                }
-                                else if (useTransformDomainDistortion)
-                                {
-                                    candidateDistortion = Av1TransformBlockEncoder.GetTransformError(
-                                        this.blockWorkspace,
-                                        Av1ComponentType.Luminance,
-                                        this.blockWorkspace.TransformCoefficients[..codedCoefficientCount],
-                                        candidateDequantizedCoefficients[..codedCoefficientCount],
-                                        transformSize,
-                                        transformType,
-                                        this.bitDepth,
-                                        out _,
-                                        useMatrix: !candidateMatricesDropped);
-                                }
-                                else
-                                {
-                                    // A 64x64 transform drops three coefficient quadrants and a high-energy block can
-                                    // clamp during reconstruction. The transform-domain error then decides whether
-                                    // the pixel-domain measurement is trustworthy and serves as its floor.
-                                    bool is64x64 = transformSize == Av1TransformSize.Size64x64;
-                                    long transformDomainDistortion = 0;
-                                    long transformDomainEnergy = 0;
-                                    long energyDifference = long.MaxValue;
-                                    if (is64x64 || isHighEnergy)
-                                    {
-                                        transformDomainDistortion = Av1TransformBlockEncoder.GetTransformError(
-                                            this.blockWorkspace,
-                                            Av1ComponentType.Luminance,
-                                            this.blockWorkspace.TransformCoefficients[..codedCoefficientCount],
-                                            candidateDequantizedCoefficients[..codedCoefficientCount],
-                                            transformSize,
-                                            transformType,
-                                            this.bitDepth,
-                                            out transformDomainEnergy,
-                                            useMatrix: !candidateMatricesDropped);
-
-                                        energyDifference = blockError - transformDomainEnergy;
-                                    }
-
-                                    if (!is64x64 || !isHighEnergy || energyDifference * 2 < transformDomainEnergy)
-                                    {
-                                        candidateDistortion = TOperator.ReconstructPredictionCandidate(
-                                            this.blockWorkspace,
-                                            candidateDequantizedCoefficients,
-                                            sourcePlane,
-                                            transformOrigin,
-                                            prediction,
-                                            transformWidth,
-                                            candidateTransformReconstruction,
-                                            transformWidth,
-                                            transformSize,
-                                            Av1Plane.Y,
-                                            this.superblockQIndex,
-                                            this.bitDepth,
-                                            in candidateState);
-
-                                        candidateReconstructed = true;
-                                        if (isHighEnergy && candidateDistortion < transformDomainDistortion)
-                                        {
-                                            candidateDistortion = transformDomainDistortion;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        candidateDistortion = transformDomainDistortion + energyDifference;
-                                    }
-                                }
-
-                                long candidateCost = Av1RateDistortion.GetCost(
-                                    this.rateMultiplier,
-                                    candidateRate,
-                                    candidateDistortion);
-
-                                if (candidateCost < bestTransformCost)
-                                {
-                                    Span<TSample> previousBestReconstruction = bestTransformReconstruction;
-                                    bestTransformReconstruction = candidateTransformReconstruction;
-                                    candidateTransformReconstruction = previousBestReconstruction;
-
-                                    Span<int> previousBestCoefficients = bestTransformCoefficients;
-                                    bestTransformCoefficients = candidateTransformCoefficients;
-                                    candidateTransformCoefficients = previousBestCoefficients;
-
-                                    Span<int> previousBestDequantized = bestDequantizedCoefficients;
-                                    bestDequantizedCoefficients = candidateDequantizedCoefficients;
-                                    candidateDequantizedCoefficients = previousBestDequantized;
-
-                                    bestTransformCost = candidateCost;
-                                    bestTransformType = transformType;
-                                    bestTransformRate = candidateRate;
-                                    bestTransformDistortion = candidateDistortion;
-                                    bestTransformState = candidateState;
-                                    bestReconstructed = candidateReconstructed;
-                                }
-
-                                // adaptive_txb_search_level: a winner already far above the remaining budget ends the
-                                // search; skip_tx_search ends it once a type quantizes the block to zero.
-                                if (adaptiveSearchLevel != 0 &&
-                                    bestTransformCost - (bestTransformCost >> adaptiveSearchLevel) > remainingCostLimit)
-                                {
-                                    break;
-                                }
-
-                                if (typeSettings.SkipTransformSearchAfterEmptyBlock && bestTransformState.EndOfBlock == 0)
-                                {
-                                    break;
-                                }
-                            }
-
-                            // Later transforms predict from the winner's samples, so it is reconstructed once when the
-                            // search measured it in the transform domain. Policy 1 then also replaces its distortion.
-                            if (!bestReconstructed)
-                            {
-                                Av1WorkCounters.Count(Av1WorkCounters.ReconIntraInv);
-                                long workRecon = Av1WorkCounters.Start();
-                                long pixelDistortion = TOperator.ReconstructPredictionCandidate(
-                                    this.blockWorkspace,
-                                    bestDequantizedCoefficients,
-                                    sourcePlane,
-                                    transformOrigin,
-                                    prediction,
-                                    transformWidth,
-                                    bestTransformReconstruction,
-                                    transformWidth,
-                                    transformSize,
-                                    Av1Plane.Y,
-                                    this.superblockQIndex,
-                                    this.bitDepth,
-                                    in bestTransformState);
-
-                                Av1WorkCounters.Stop(Av1WorkCounters.ReconIntraInv, workRecon);
-
-                                if (measureWinnerInPixelDomain && bestTransformState.EndOfBlock != 0)
-                                {
-                                    bestTransformDistortion = pixelDistortion;
-                                }
-                            }
+                            Av1TransformType bestTransformType = searchResult.Type;
+                            int bestTransformRate = searchResult.Rate;
+                            long bestTransformDistortion = searchResult.Distortion;
+                            Av1EncoderTransformBlockState bestTransformState = searchResult.State;
 
                             // Publish the winner once after transform search. Later transforms consume its pixels
                             // from the block mosaic and its coefficient context from the local edge arrays.
@@ -6935,7 +6704,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 this.rateMultiplier, bestTransformRate, bestTransformDistortion);
 
                             Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                                $"TXBLOCK {blockOrigin.X},{blockOrigin.Y} blk {transformColumn},{transformRow} txsize {(int)transformSize} mode {(int)mode} filter {(int)filterIntraMode} rate {bestTransformRate} dist {bestTransformDistortion} sse {blockError} mse {blockMseQ8} eob {bestTransformState.EndOfBlock} type {(int)bestTransformType} current {runningCost} best {costLimit} sctx {blockContext.SkipContext} dctx {blockContext.DcSignContext}");
+                                $"TXBLOCK {blockOrigin.X},{blockOrigin.Y} blk {transformColumn},{transformRow} txsize {(int)transformSize} mode {(int)mode} filter {(int)filterIntraMode} rate {bestTransformRate} dist {bestTransformDistortion} sse {searchResult.Sse} eob {bestTransformState.EndOfBlock} type {(int)bestTransformType} current {runningCost} best {costLimit} sctx {blockContext.SkipContext} dctx {blockContext.DcSignContext}");
 
                             if (runningCost > costLimit)
                             {
@@ -7664,7 +7433,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 System.Text.StringBuilder reconLine = new();
                 reconLine.Append(
                     System.Globalization.CultureInfo.InvariantCulture,
-                    $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} pred");
+                    $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} qidx={this.superblockQIndex} dqdc={this.quantization.DeltaQDc[planeIndex]} dqac={this.quantization.DeltaQAc[planeIndex]} pred");
 
                 for (int i = 0; i < width && i < 8; i++)
                 {
@@ -7679,6 +7448,18 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 reconLine.Append(" q");
                 for (int i = 0; i < 8; i++)
+                {
+                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {coefficients[i]}");
+                }
+
+                reconLine.Append(" dqfull");
+                for (int i = 0; i < 16; i++)
+                {
+                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {this.blockWorkspace.DequantizedCoefficients[i]}");
+                }
+
+                reconLine.Append(" qfull");
+                for (int i = 0; i < 16; i++)
                 {
                     reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {coefficients[i]}");
                 }

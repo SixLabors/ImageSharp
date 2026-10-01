@@ -43,6 +43,9 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         ResidualStorageLength +
         MaximumCoefficientCount +
         MaximumCoefficientCount +
+        MaximumCoefficientCount +
+        MaximumCoefficientCount +
+        (2 * SearchReconstructionStorageLength) +
         Av1TransformWorkspace.MaximumLength +
         SharedModeDecisionStorageLength +
         PartitionContextStorageLength;
@@ -53,7 +56,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     private const int MotionSearchPredictionSampleCount = 128 * (128 + 8);
     private const int TransformCoefficientOffset = ResidualStorageLength;
     private const int DequantizedCoefficientOffset = TransformCoefficientOffset + MaximumCoefficientCount;
-    private const int TransformWorkspaceOffset = DequantizedCoefficientOffset + MaximumCoefficientCount;
+    private const int SearchDequantizedCoefficientOffset = DequantizedCoefficientOffset + MaximumCoefficientCount;
+    private const int SearchCoefficientOffset = SearchDequantizedCoefficientOffset + MaximumCoefficientCount;
+    private const int SearchReconstructionOffset = SearchCoefficientOffset + MaximumCoefficientCount;
+    private const int SearchReconstructionSampleCount = Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize;
+    private const int SearchReconstructionStorageLength = SearchReconstructionSampleCount * sizeof(ushort) / sizeof(int);
+    private const int TransformWorkspaceOffset = SearchReconstructionOffset + (2 * SearchReconstructionStorageLength);
     private const int InterPredictionSampleStorageOffset = TransformWorkspaceOffset + Av1TransformWorkspace.MaximumLength;
     private const int InterPredictionSampleStorageLength =
         ((Av1EncoderInterPredictionWorkspace<ushort>.SampleBufferCount *
@@ -453,6 +461,14 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public double RegularizedImportance { get; set; }
 
     /// <summary>
+    /// Gets or sets the rate multiplier that the motion vector error per bit derives from. It persists across blocks,
+    /// superblocks and frames: the frame setup, the superblock quantizer setup, the block setups of the SSIM tunes and
+    /// each block mode search set it, and the simple motion searches of the partition search read the value set last.
+    /// Reference: x->errorperbit, which av1_set_error_per_bit() derives.
+    /// </summary>
+    public int ErrorPerBitRateMultiplier { get; set; }
+
+    /// <summary>
     /// Gets the temporal dependency inter cost of each 16x16 block of the current superblock, scaled by sixteen, in
     /// raster order with the superblock's block stride. Reference: sb_enc->tpl_inter_cost.
     /// </summary>
@@ -583,10 +599,33 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         => this.owner.Memory.Span.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
 
     /// <summary>
+    /// Gets the coefficients of one row of mode-estimation transforms across the widest block, eight 16x16
+    /// transforms of a 128-sample row. It spans the forward and dequantized coefficient workspaces. Reference: the
+    /// coeff buffer that av1_block_yrd() fills.
+    /// </summary>
+    public Span<int> EstimationRowCoefficients
+        => this.owner.Memory.Span.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
+
+    /// <summary>
     /// Gets the maximum-size dequantized reconstruction coefficient workspace.
     /// </summary>
     public Span<int> DequantizedCoefficients
         => this.owner.Memory.Span.Slice(DequantizedCoefficientOffset, MaximumCoefficientCount);
+
+    /// <summary>
+    /// Gets the dequantized coefficients of the best candidate of a transform type search, which the search swaps
+    /// with <see cref="DequantizedCoefficients"/> on each improvement. Mode estimation reconstructs each of its
+    /// transforms here, because its row of coefficients spans <see cref="DequantizedCoefficients"/>.
+    /// </summary>
+    public Span<int> SearchDequantizedCoefficients
+        => this.owner.Memory.Span.Slice(SearchDequantizedCoefficientOffset, MaximumCoefficientCount);
+
+    /// <summary>
+    /// Gets the quantized coefficients of the best candidate of a transform type search whose caller has no
+    /// spare coefficient storage of its own.
+    /// </summary>
+    public Span<int> SearchCoefficients
+        => this.owner.Memory.Span.Slice(SearchCoefficientOffset, MaximumCoefficientCount);
 
     /// <summary>
     /// Gets the reusable two-dimensional transform workspace.
@@ -603,6 +642,20 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the real-time candidate state owned by this worker.
     /// </summary>
     public ref Av1EstimatedInterSearchState EstimatedInterSearchState => ref this.estimatedInterSearchState;
+
+    /// <summary>
+    /// Gets one of the two transform-sized reconstructions that a transform type search swaps between its
+    /// candidate and its winner, for a caller whose candidate planes are both live.
+    /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample type.</typeparam>
+    /// <param name="index">The reconstruction slot, zero or one.</param>
+    /// <returns>The reconstruction storage.</returns>
+    public Span<TSample> GetSearchReconstruction<TSample>(int index)
+        where TSample : unmanaged
+        => MemoryMarshal.Cast<int, TSample>(
+            this.owner.Memory.Span.Slice(
+                SearchReconstructionOffset + (index * SearchReconstructionStorageLength),
+                SearchReconstructionStorageLength))[..SearchReconstructionSampleCount];
 
     /// <summary>
     /// Selects the quantization matrix levels of a frame. Reference: set_qmatrix().

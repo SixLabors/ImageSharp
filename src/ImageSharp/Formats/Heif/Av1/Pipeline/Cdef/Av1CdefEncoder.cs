@@ -393,8 +393,8 @@ internal static partial class Av1CdefEncoder
     /// <param name="shift">The number of sample bits above eight.</param>
     private static void FindDirections(ReadOnlySpan<ushort> input, ReadOnlySpan<ushort> blocks, Span<int> directions, Span<int> variances, int shift)
     {
-        // A 64x64 unit holds at most 64 8x8 blocks.
-        Span<int> offsets = stackalloc int[64];
+        // A unit that a 128x128, 128x64 or 64x128 block spans holds up to 256 8x8 blocks.
+        Span<int> offsets = stackalloc int[MaximumBlockCount];
         offsets = offsets[..blocks.Length];
         for (int index = 0; index < blocks.Length; index++)
         {

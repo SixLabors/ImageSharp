@@ -59,6 +59,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionSearchSettings.FullPixelSearchMethod method = settings.GetFullPixelMethod(blockSize);
             Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(method, referencePlane.Stride);
             int step = Math.Min(this.picture.Parent.MotionSearchStepParameter + this.picture.Parent.SpeedSettings.SimpleMotionStepReduction, 9);
+
+            // The search prices vectors with the error per bit set last, which the partition search does not set
+            // for itself. Reference: x->errorperbit in av1_make_default_fullpel_ms_params() and
+            // av1_make_default_subpel_ms_params().
+            int errorPerBitRateMultiplier = this.blockWorkspace.ErrorPerBitRateMultiplier;
             Av1MotionSearchBase.FullPixelSearch<TSample, TOperator> fullSearch = new(
                 source,
                 sourcePlane.Stride,
@@ -71,7 +76,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 costs,
                 this.bitDepth,
                 Av1RateDistortion.GetMotionSearchSadPerBit(this.superblockQIndex, this.bitDepth),
-                this.rateMultiplier,
+                errorPerBitRateMultiplier,
                 [],
                 []);
 
@@ -106,7 +111,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     zero,
                     costs,
                     this.bitDepth,
-                    this.rateMultiplier,
+                    errorPerBitRateMultiplier,
                     [],
                     []);
 

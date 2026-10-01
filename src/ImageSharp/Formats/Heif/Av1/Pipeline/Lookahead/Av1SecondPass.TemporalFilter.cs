@@ -26,6 +26,11 @@ internal sealed partial class Av1SecondPass : IAv1ArfBoostSource
     public int FramesSinceKey => this.framesSinceKey;
 
     /// <summary>
+    /// Gets the number of shown frames since the last golden refresh. Reference: rc->frames_since_golden.
+    /// </summary>
+    public int FramesSinceGolden => this.framesSinceGolden;
+
+    /// <summary>
     /// Gets the position of the current frame's statistics in the lookahead statistics. Reference: the offset of
     /// twopass_frame.stats_in from stats_in_start.
     /// </summary>

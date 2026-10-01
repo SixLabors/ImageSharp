@@ -224,7 +224,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.reconstructionIds.AsSpan().Fill(NoPicture);
 
         Av1TplFrameStatistics first = this.frames[0];
-        this.modeInfo = new Av1TplModeInfoGrid(first.Width, first.Height);
+        this.modeInfo = new Av1TplModeInfoGrid(this.ModeInfoColumns, this.ModeInfoRows);
         this.statisticsPool = new IMemoryOwner<Av1TplBlockStatistics>[this.lagInFrames];
         this.reconstructionPool = new Av1EncoderFrameBuffer<TSample>[this.lagInFrames];
         for (int frame = 0; frame < this.lagInFrames; frame++)
@@ -321,6 +321,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
+    /// Marks the saved alternate reference of the previous group as unusable. Reference: the prev_gop_arf_disp_order
+    /// reset of av1_get_second_pass_params() at a key frame.
+    /// </summary>
+    public void ForgetPreviousGroupAlternate() => this.PreviousArfDisplayOrder = -1;
+
+    /// <summary>
     /// Returns whether a frame of the current group has complete statistics. Reference: av1_tpl_stats_ready().
     /// </summary>
     /// <param name="groupIndex">The group index of the frame.</param>
@@ -348,11 +354,13 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// </summary>
     /// <param name="group">The golden group.</param>
     /// <param name="groupIndex">The group index of the coded frame.</param>
+    /// <param name="statisticsReady">Whether the statistics of the frame were ready before the frame processed them.</param>
     /// <param name="source">The source the frame was coded from, after temporal filtering. Reference: cpi->source.</param>
     /// <param name="displayOrderHint">The display order of the frame. Reference: display_order_hint.</param>
-    public void SavePreviousGroupAlternate(Av1TplGroup group, int groupIndex, Av1EncoderFrame<TSample> source, int displayOrderHint)
+    public void SavePreviousGroupAlternate(
+        Av1TplGroup group, int groupIndex, bool statisticsReady, Av1EncoderFrame<TSample> source, int displayOrderHint)
     {
-        if (!this.IsStatisticsReady(groupIndex) ||
+        if (!statisticsReady ||
             group.UpdateType[groupIndex] is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay)
         {
             return;

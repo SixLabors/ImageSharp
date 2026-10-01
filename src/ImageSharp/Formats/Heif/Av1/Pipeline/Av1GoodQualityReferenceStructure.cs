@@ -267,8 +267,10 @@ internal sealed class Av1GoodQualityReferenceStructure
         {
             this.contextTypeSlots.AsSpan().Fill(-1);
 
-            // A shown intra frame records the slot of GOLDEN. A key frame maps every reference to slot 0.
-            this.contextTypeSlots[referenceType] = (int)frameHeader.GetReferenceFrameIndices()[(int)Av1ReferenceFrameType.Golden - 1];
+            // A shown intra frame records the slot of GOLDEN and a hidden one the slot of ALTREF. A key frame maps
+            // every reference to slot 0.
+            Av1ReferenceFrameType recorded = frameHeader.ShowFrame ? Av1ReferenceFrameType.Golden : Av1ReferenceFrameType.Alternate;
+            this.contextTypeSlots[referenceType] = (int)frameHeader.GetReferenceFrameIndices()[(int)recorded - 1];
         }
 
         if (frameHeader.FrameType == ObuFrameType.KeyFrame)

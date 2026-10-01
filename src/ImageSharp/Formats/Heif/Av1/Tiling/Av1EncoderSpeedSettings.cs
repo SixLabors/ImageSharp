@@ -440,6 +440,10 @@ internal readonly struct Av1EncoderSpeedSettings
         // side of the frame. Reference: disable_onesided_comp.
         this.DisableOneSidedCompound = realtime || (!allIntra && speed >= HeifEncodingSpeed.Level3);
 
+        // Good quality from speed 1 searches no compound mode in an alternate reference frame of the base layer.
+        // Reference: skip_arf_compound.
+        this.SkipAlternateReferenceCompound = !realtime && !allIntra && speed >= HeifEncodingSpeed.Level1;
+
         // selective_ref_frame: good quality starts at 1 and raises the level with speed; speed 0 uses 2 for a
         // 1080p frame at a low quantizer; real-time usage uses 4.
         // prune_comp_ref_frames: good quality prunes compound pairs from speed 3 above 480p; at speed 4 from 720p,
@@ -1149,6 +1153,18 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool SkipSingleInterpolationSearch { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the luma palette search leaves the color map rate out of the palette cost.
+    /// Real-time speed 7 and above set it. Reference: rt_sf.discount_color_cost.
+    /// </summary>
+    public bool DiscountPaletteColorCost => this.realtime && this.Speed >= HeifEncodingSpeed.Level7;
+
+    /// <summary>
+    /// Gets a value indicating whether an inter frame chooses its motion vector precision from the statistics of the
+    /// last coded frame. Good-quality speeds 0 to 2 set it. Reference: hl_sf.high_precision_mv_usage = LAST_MV_DATA.
+    /// </summary>
+    public bool UsesLastMotionVectorData => !this.realtime && !this.allIntra && this.Speed <= HeifEncodingSpeed.Level2;
+
+    /// <summary>
     /// Gets a value indicating whether the selected single-reference prediction searches filters during refinement.
     /// </summary>
     public bool UseWinnerInterpolation { get; }
@@ -1372,6 +1388,11 @@ internal readonly struct Av1EncoderSpeedSettings
     /// disabled.
     /// </summary>
     public bool DisableOneSidedCompound { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether an alternate reference frame of the base layer searches no compound mode.
+    /// </summary>
+    public bool SkipAlternateReferenceCompound { get; }
 
     /// <summary>
     /// Gets a value indicating whether candidate and winner coefficient thresholds differ.
@@ -1666,6 +1687,26 @@ internal readonly struct Av1EncoderSpeedSettings
 
         bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
         return boosted ? 0 : updateType == Av1FrameUpdateType.IntermediateAlternate ? 10 : 3;
+    }
+
+    /// <summary>
+    /// Gets the level of the model-based early exit of the recursive transform search. Speed 0 enables it, except
+    /// at low quantizers. Reference: tx_sf.model_based_prune_tx_search_level, with the speed 0 quantizer rules of
+    /// av1_set_speed_features_qindex_dependent().
+    /// </summary>
+    /// <param name="updateType">The frame update type.</param>
+    /// <returns>The level; 0 disables the exit.</returns>
+    public int GetModelBasedTransformPruneLevel(Av1FrameUpdateType updateType)
+    {
+        if (this.realtime || this.Speed != HeifEncodingSpeed.Level0)
+        {
+            return 0;
+        }
+
+        bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
+        int threshold = boosted ? 70 : updateType == Av1FrameUpdateType.IntermediateAlternate ? 110 : 140;
+        bool disabled = this.minimumDimension < 720 ? this.qIndex <= threshold : this.qIndex <= 128;
+        return disabled ? 0 : 1;
     }
 
     /// <summary>

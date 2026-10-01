@@ -28,6 +28,11 @@ internal static partial class Av1FrameEncoder
         /// Gets or sets a value indicating whether the frames are classified as screen content.
         /// </summary>
         public bool IsScreenContent { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the content detection allows intra block copy.
+        /// </summary>
+        public bool AllowIntraBlockCopy { get; set; }
     }
 
     internal abstract partial class SequenceEncoder
@@ -56,6 +61,14 @@ internal static partial class Av1FrameEncoder
         private protected int CommonBaseQIndex { get; set; }
 
         /// <summary>
+        /// Gets a value indicating whether the last coded frame allowed the screen content tools when it set its
+        /// speed features, before any screen content trial, which the filter and the model read until the next frame
+        /// sets them. Reference: the cm->features.allow_screen_content_tools that set_size_independent_vars() reads.
+        /// </summary>
+        private protected bool SpeedFeatureScreenContentTools
+            => this.PictureBuffer.Picture.Parent.ScreenContentToolsBeforeTrial ?? this.FrameHeader.AllowScreenContentTools;
+
+        /// <summary>
         /// Codes a key frame whose content detection left the screen content tools off twice, on a fixed 32x32
         /// partition at a high quantizer, without and then with the tools, and turns the tools on when they code it
         /// much better. The frame is then ready to be coded at its own quantizer. Reference:
@@ -81,6 +94,7 @@ internal static partial class Av1FrameEncoder
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             this.PictureBuffer.Picture.Parent.ScreenContentToolsBeforeTrial = null;
+            this.PictureBuffer.Picture.Parent.ScreenContentTrialQIndex = -1;
 
             // Speed 6 and above skip the trial, as does a frame that already allows the tools. Reference:
             // disable_extra_sc_testing, and the use_screen_content_tools and KEY_FRAME tests of
@@ -101,6 +115,7 @@ internal static partial class Av1FrameEncoder
             int modelQIndex = this.CommonBaseQIndex;
             parent.FixedPartitionSize = Av1BlockSize.Block32x32;
             parent.ScreenContentToolsBeforeTrial = false;
+            parent.ScreenContentTrialQIndex = trialQIndex;
             frameHeader.AllowIntraBlockCopy = false;
             Span<double> psnr = stackalloc double[2];
             int palettePixelCount = 0;

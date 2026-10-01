@@ -610,18 +610,26 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             }
         }
 
+        // The frame-size features read the screen content tools as the frame set them, before any trial, and the
+        // trial updates the quantizer-dependent features before the frame does.
+        bool screenContentToolsBeforeTrial = parent.ScreenContentToolsBeforeTrial ?? frameHeader.AllowScreenContentTools;
         Av1MotionSearchSettings motionSettings = new(
             parent.EncodingSpeed,
             picture.Sequence.SequenceHeader.IsStillPicture,
             sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
+            parent.ScreenContentTrialQIndex,
             parent.SpeedSettings.IsBoosted,
-            parent.IsScreenContent);
+            parent.IsScreenContent,
+            parent.IsGraphicsAnimation || screenContentToolsBeforeTrial);
 
         parent.MotionSearchSettings = motionSettings;
         int maximumDimension = Math.Max(sourceSize.Width, sourceSize.Height);
         int stepParameter = Av1MotionSearchBase.GetInitialStepParameter(maximumDimension);
-        if (frameHeader.IsIntra)
+
+        // Only adaptive steps keep the vector magnitude between frames. Reference: the auto_mv_step_size test of
+        // av1_set_mv_search_params().
+        if (motionSettings.AutomaticStepSizeLevel != 0 && frameHeader.IsIntra)
         {
             // A key frame seeds the following inter frame with the complete frame range.
             parent.MaximumMotionVectorMagnitude = maximumDimension;
@@ -661,6 +669,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         loopFilter.FilterLevelV = 0;
         loopFilter.ReferenceDeltaModeEnabled = true;
         parent.MotionSearchStepParameter = stepParameter;
+
+        // The frame starts its motion vector error per bit from the frame multiplier. Reference: the
+        // av1_set_error_per_bit() call of av1_initialize_rd_consts().
+        blockWorkspace.ErrorPerBitRateMultiplier = parent.GetRateMultiplier(
+            frameHeader.QuantizationParameters.BaseQIndex + frameHeader.QuantizationParameters.DeltaQDc[0],
+            colorConfig.BitDepth);
     }
 
     /// <summary>
@@ -802,6 +816,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.TransformMode = Av1TransformMode.Largest;
         }
 
+        // The filter probabilities update at the end of encode_frame_internal(), before fix_interp_filter() narrows
+        // the frame filter. Reference: the interp_filter == SWITCHABLE test of encode_frame_internal().
+        bool switchableBeforeFix = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable;
         if (!frameHeader.IsIntra)
         {
             // The same branch of av1_encode_frame codes single references when no block used a compound
@@ -880,7 +897,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
 
         if (frameHeader.FrameType != ObuFrameType.KeyFrame && parent.SpeedSettings.InterpolationPruningLevel == 2 &&
-            frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable)
+            switchableBeforeFix)
         {
             Av1InterpolationProbabilities.Update(
                 blockWorkspace.InterpolationProbabilities.Slice(
@@ -971,6 +988,11 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 // Each pass begins every tile from the same frame probabilities. Only the packing pass
                 // advances the output offset; the analysis operation does not touch range-coder state.
                 writer.Reset(tileDataEnd);
+                if (TSymbolOperation.WritesOutput)
+                {
+                    picture.Parent.MotionVectorStatistics?.BeginTile(writer.FrameMotionVectorContext);
+                }
+
                 if (!TSymbolOperation.WritesOutput && !frameHeader.IsIntra)
                 {
                     blockWorkspace.InterModeModels.Clear();

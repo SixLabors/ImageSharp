@@ -162,6 +162,12 @@ internal class Av1PictureParentControlSet
     public bool DeltaQUsed { get; set; }
 
     /// <summary>
+    /// Gets or sets the quantizer delta of the last superblock that chose one, which later frames keep until another
+    /// superblock chooses one. Reference: x->delta_qindex.
+    /// </summary>
+    public int SuperblockDeltaQIndex { get; set; }
+
+    /// <summary>
     /// Gets or sets the temporal dependency statistics of the frame, or <see langword="null"/> when the encoder does
     /// not run the temporal dependency model for it. The statistics are read only when
     /// <see cref="TplStatisticsReady"/> is set. Reference: tpl_data->tpl_frame[cpi->gf_frame_index].
@@ -253,6 +259,19 @@ internal class Av1PictureParentControlSet
     public bool? ScreenContentToolsBeforeTrial { get; set; }
 
     /// <summary>
+    /// Gets or sets the quantizer of the frame's screen content trial, or -1 when the frame ran none. The trial
+    /// updates the quantizer-dependent speed features before the frame does. Reference: q_for_screen_content_quick_run
+    /// in av1_determine_sc_tools_with_encoding().
+    /// </summary>
+    public int ScreenContentTrialQIndex { get; set; } = -1;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the look-ahead statistics classify the frame as graphics or animation.
+    /// Reference: cpi->twopass_frame.fr_content_type == FC_GRAPHICS_ANIMATION.
+    /// </summary>
+    public bool IsGraphicsAnimation { get; set; }
+
+    /// <summary>
     /// Gets or sets the preceding eight-bit source planes, borrowed for temporal source analysis and filtering.
     /// </summary>
     public Av1EncoderFrame<byte>.PlanarView PreviousSource { get; set; }
@@ -340,6 +359,12 @@ internal class Av1PictureParentControlSet
     /// Gets or sets the largest whole-sample magnitude written by a new-motion mode in the preceding frame.
     /// </summary>
     public int MaximumMotionVectorMagnitude { get; set; } = -1;
+
+    /// <summary>
+    /// Gets or sets the motion vector statistics the packing pass collects for the next frame's precision choice, or
+    /// <see langword="null"/> when the frame does not collect them.
+    /// </summary>
+    public Av1MotionVectorStatistics? MotionVectorStatistics { get; set; }
 
     /// <summary>
     /// Returns the rate multiplier of a quantizer for the frame. With stat consumption, a frame other than a key

@@ -33,6 +33,11 @@ internal static partial class Av1FrameEncoder
         private readonly int[] validGlobalMotionFound = new int[(int)Av1FrameUpdateType.Count];
 
         /// <summary>
+        /// The motion vector statistics of the last coded frame. Reference: ppi->mv_stats.
+        /// </summary>
+        private readonly Av1MotionVectorStatistics motionVectorStatistics = new();
+
+        /// <summary>
         /// Whether the current frame skips the global motion search. Reference: disable_gm_search_based_on_stats().
         /// </summary>
         private bool globalMotionDisabledByStatistics;
@@ -199,10 +204,11 @@ internal static partial class Av1FrameEncoder
                     ? new(this.Configuration, image.Width, image.Height, bitDepth, colorFormat, lumaBorder, this.Options, this.LaggedQualityIndex)
                     : null;
 
-            // Before the first frame the filter and the model read the motion settings of a key frame. High precision
-            // vectors are always allowed. Reference: the av1_set_high_precision_mv(cpi, 1, 0) call that starts
+            // Before the first frame the filter and the model read the motion settings of a key frame, which no
+            // quantizer-dependent update has changed yet. High precision vectors are always allowed. Reference: the
+            // speed features of av1_change_config(), and the av1_set_high_precision_mv(cpi, 1, 0) call that starts
             // av1_get_compressed_data().
-            Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, this.QIndex, true, false);
+            Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false);
             using LookaheadTemporalModel<TSample, TSearchOperator, TTplOperator>? temporalModel =
                 this.Options.EnableTemporalModel && this.Options.LagInFrames > 1
                     ? new(this, lookahead, coder.ReferencePool, filter, image.Width, image.Height, colorFormat, secondPass.LagInFrames) { MotionSettings = keyFrameMotionSettings }
@@ -272,14 +278,23 @@ internal static partial class Av1FrameEncoder
                                 filter.Reset();
                             }
 
-                            filter.FilterGroup(lookahead, secondPass, true, this.FrameHeader.AllowScreenContentTools, motionSettings);
+                            filter.FilterGroup(
+                                lookahead,
+                                secondPass,
+                                true,
+                                this.FrameHeader.ForceIntegerMotionVector,
+                                this.SpeedFeatureScreenContentTools,
+                                motionSettings);
                         }
 
-                        // The model measures a new group after its frames are filtered. Reference: the "perform tpl after
-                        // filtering" block of av1_encode_strategy().
-                        temporalModel?.BeginFrame(secondPass, in frame);
-
+                        // An intra frame decides its screen content from the unfiltered source before its quantizer,
+                        // filtering and model read the decision. Reference: av1_set_screen_content_options() before
+                        // denoise_and_encode() in av1_encode_strategy().
                         Av1EncoderFrameBuffer<TSample> source = lookahead.Peek(frame.SourceOffset)!;
+                        bool isScreenContent = coder.DecideLaggedScreenContent(source, frame.IsKeyFrame);
+                        secondPass.SetScreenContentType(isScreenContent);
+
+                        // denoise_and_encode() picks the quantizer and the filtered source first.
                         if (filter is not null)
                         {
                             source = filter.SelectSource(
@@ -288,9 +303,22 @@ internal static partial class Av1FrameEncoder
                                 ref frame,
                                 source,
                                 true,
-                                this.FrameHeader.AllowScreenContentTools,
-                                motionSettings);
+                                this.FrameHeader.ForceIntegerMotionVector,
+                                this.SpeedFeatureScreenContentTools,
+                                motionSettings,
+                                isScreenContent);
                         }
+
+                        // It then sets the motion search step of a key frame, an alternate reference or a golden frame
+                        // once before the frame sets it again for its own search.
+                        if (frame.IsKeyFrame || frame.UpdateType is Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden)
+                        {
+                            this.PrepareMotionSearchStep(frame.IsKeyFrame, image.Size, motionSettings);
+                        }
+
+                        // The model measures a new group after its frames are filtered. Reference: the "perform tpl after
+                        // filtering" block of av1_encode_strategy().
+                        temporalModel?.BeginFrame(secondPass, in frame);
 
                         Av1EncoderFrameBuffer<TSample>? lastSource = frame.ShowFrame && frame.SourceOffset == 0 && frame.FrameNumber > 0
                             ? lookahead.Peek(-1)
@@ -369,6 +397,27 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
+        /// Sets the motion search step of a key frame, an alternate reference or a golden frame once before the frame
+        /// sets it again for its own search. Only the vector magnitude it leaves behind lasts: a key frame seeds it with
+        /// the frame range, and an inter frame discards the previous frame's maximum, so the frame's own search starts
+        /// from the default step. Reference: the av1_set_mv_search_params() call of denoise_and_encode().
+        /// </summary>
+        /// <param name="isKeyFrame">Whether the frame is a key frame.</param>
+        /// <param name="frameSize">The frame dimensions.</param>
+        /// <param name="motionSettings">The motion search settings the encoder holds.</param>
+        private protected void PrepareMotionSearchStep(bool isKeyFrame, Size frameSize, Av1MotionSearchSettings motionSettings)
+        {
+            if (motionSettings.AutomaticStepSizeLevel == 0)
+            {
+                return;
+            }
+
+            this.PictureBuffer.Picture.Parent.MaximumMotionVectorMagnitude = isKeyFrame
+                ? Math.Max(frameSize.Width, frameSize.Height)
+                : -1;
+        }
+
+        /// <summary>
         /// Decides whether the frame searches global motion from the models its golden group found so far. A group
         /// with an alternate reference stops searching once its alternate, intermediate alternate and leaf frames
         /// have all been coded without a model. Reference: the valid_gm_model_found reset of
@@ -387,6 +436,69 @@ internal static partial class Av1FrameEncoder
                 this.validGlobalMotionFound[(int)Av1FrameUpdateType.Alternate] == 0 &&
                 this.validGlobalMotionFound[(int)Av1FrameUpdateType.IntermediateAlternate] == 0 &&
                 this.validGlobalMotionFound[(int)Av1FrameUpdateType.Last] == 0;
+        }
+
+        /// <summary>
+        /// Chooses the motion vector precision of an inter frame from its quantizer and the statistics of the last
+        /// coded frame, then discards those statistics and, at the speeds that read them, lets the packing pass
+        /// collect the frame's own. Reference: the av1_pick_and_set_high_precision_mv() call of
+        /// encode_with_recode_loop() and the mv_stats reset and collection after av1_encode_frame().
+        /// </summary>
+        /// <param name="frame">The decisions of the frame.</param>
+        /// <param name="parent">The frame state.</param>
+        /// <param name="frameSize">The frame dimensions.</param>
+        private protected void BeginLaggedMotionVectorStatistics(in Av1SecondPassFrame frame, Av1PictureParentControlSet parent, Size frameSize)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            bool readsLastFrameData = parent.SpeedSettings.UsesLastMotionVectorData;
+            bool allowsSmartPrecision = !frameHeader.IsIntra &&
+                frame.UpdateType is not (Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay);
+
+            if (!frameHeader.IsIntra)
+            {
+                bool highPrecision = this.motionVectorStatistics.PickHighPrecision(
+                    this.QIndex,
+                    readsLastFrameData,
+                    allowsSmartPrecision,
+                    (int)frameHeader.OrderHint,
+                    frameSize);
+
+                frameHeader.AllowHighPrecisionMotionVector = highPrecision && !frameHeader.ForceIntegerMotionVector;
+            }
+
+            this.motionVectorStatistics.DiscardIfValid();
+            bool collects = readsLastFrameData && allowsSmartPrecision;
+            parent.MotionVectorStatistics = collects ? this.motionVectorStatistics : null;
+            if (collects)
+            {
+                this.motionVectorStatistics.BeginFrame(frameHeader.AllowHighPrecisionMotionVector);
+            }
+        }
+
+        /// <summary>
+        /// Completes the motion vector statistics the packing pass collected from a frame. Reference: the texture sums
+        /// of collect_mv_stats_b() and the end of av1_collect_mv_stats().
+        /// </summary>
+        /// <typeparam name="TSample">The sample type.</typeparam>
+        /// <typeparam name="TOperator">The texture operator of the sample type.</typeparam>
+        /// <param name="parent">The frame state.</param>
+        /// <param name="source">The frame source.</param>
+        private protected void CompleteLaggedMotionVectorStatistics<TSample, TOperator>(Av1PictureParentControlSet parent, Av1EncoderFrame<TSample> source)
+            where TSample : unmanaged
+            where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
+        {
+            if (parent.MotionVectorStatistics is null)
+            {
+                return;
+            }
+
+            parent.MotionVectorStatistics.CompleteFrame<TSample, TOperator>(
+                source.View.GetPlane(Av1Plane.Y),
+                source.LumaBitDepth,
+                this.QIndex,
+                (int)this.FrameHeader.OrderHint);
+
+            parent.MotionVectorStatistics = null;
         }
 
         /// <summary>
@@ -468,6 +580,17 @@ internal static partial class Av1FrameEncoder
                 this, image, firstFrameIndex, frameCount, frameDurationTicks, stream, sampleEnds, syncSamples, cancellationToken);
 
         /// <inheritdoc/>
+        public bool DecideLaggedScreenContent(Av1EncoderFrameBuffer<byte> unfilteredSource, bool isKeyFrame)
+        {
+            if (isKeyFrame)
+            {
+                DecideScreenContent(unfilteredSource.Frame, this.SequenceHeader, this.Options, ref this.ScreenContent);
+            }
+
+            return this.ScreenContent.IsScreenContent;
+        }
+
+        /// <inheritdoc/>
         public void EncodeLaggedFrame(
             Av1EncoderFrameBuffer<byte> source,
             in Av1SecondPassFrame frame,
@@ -481,15 +604,10 @@ internal static partial class Av1FrameEncoder
             this.ConfigureLaggedFrameHeader(in frame);
 
             Av1EncoderReferencePool<byte>.Entry current = this.referencePool.Acquire();
-            Av1EncoderReferencePool<byte>.Entry? last = frameHeader.IsIntra ? null : this.referencePool.GetSlot(this.GetLastSlot());
-            bool isScreenContent = ConfigureFrameTools(
-                this.Configuration,
-                source.Frame,
-                (last ?? current).Buffer.Frame,
-                this.SequenceHeader,
-                frameHeader,
-                this.Options,
-                ref this.ScreenContent);
+            ApplyScreenContentTools(
+                this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), in this.ScreenContent);
+
+            bool isScreenContent = this.ScreenContent.IsScreenContent;
 
             this.DecideIntegerMotionVectors<byte, Av1IntraSuperblockEncoder.ByteOperator>(source.Frame, lastSource?.Frame);
 
@@ -500,14 +618,13 @@ internal static partial class Av1FrameEncoder
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
             parent.SourceMotionPercentage = 0;
-            if (frameHeader.IsIntra)
-            {
-                this.framesSinceKey = 0;
-            }
 
-            parent.FramesSinceKey = this.framesSinceKey;
-            parent.FramesSinceGolden = this.FramesSinceGolden;
+            // The rate control keeps the key and golden counters. Reference: rc->frames_since_key and
+            // rc->frames_since_golden.
+            parent.FramesSinceKey = secondPass.FramesSinceKey;
+            parent.FramesSinceGolden = secondPass.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
+            parent.IsGraphicsAnimation = frame.IsGraphicsAnimation;
 
             this.ConfigureLaggedReferenceStructure(parent, in frame);
 
@@ -519,14 +636,15 @@ internal static partial class Av1FrameEncoder
             // The model statistics of the frame feed its quantizer choice. Reference: process_tpl_stats_frame() before
             // av1_rc_pick_q_and_bounds() in set_size_dependent_vars().
             double qStepRatio = 1;
-            bool tplValid = temporalModel?.ApplyToFrame(parent, frame.GroupIndex, out qStepRatio) ?? false;
+            bool tplFrameValid = false;
+            bool tplReady = temporalModel?.ApplyToFrame(parent, frame.GroupIndex, out qStepRatio, out tplFrameValid) ?? false;
             if (temporalModel is null)
             {
                 parent.TplFrame = null;
                 parent.TplStatisticsReady = false;
             }
 
-            int qIndex = secondPass.ChooseBaseQIndex(isScreenContent, tplValid, parent.TplImportance, qStepRatio);
+            int qIndex = secondPass.ChooseBaseQIndex(isScreenContent, tplReady, tplFrameValid, parent.TplImportance, qStepRatio);
             this.ApplyLaggedQuantizer(qIndex);
 
             // The lookahead makes this a statistics-consuming stage, so inter frames scale the rate multiplier by
@@ -546,6 +664,7 @@ internal static partial class Av1FrameEncoder
                 new Size(source.Frame.Width, source.Frame.Height));
 
             parent.BorderPad = this.UsesBorderPad;
+            this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));
 
             this.ConfigureReferenceTools(parent);
 
@@ -581,6 +700,7 @@ internal static partial class Av1FrameEncoder
                 writeTemporalDelimiter);
 
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
+            this.CompleteLaggedMotionVectorStatistics<byte, Av1MotionVectorStatistics.ByteTextureOperator>(parent, source.Frame);
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
             this.CompleteFrameHeader();
@@ -588,7 +708,6 @@ internal static partial class Av1FrameEncoder
             secondPass.CompleteFrame(qIndex);
             temporalModel?.CompleteFrame(in frame, source.Frame, this.PictureBuffer.Picture, current.Context, qIndex);
 
-            this.framesSinceKey++;
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
         }
@@ -613,6 +732,17 @@ internal static partial class Av1FrameEncoder
                 this, image, firstFrameIndex, frameCount, frameDurationTicks, stream, sampleEnds, syncSamples, cancellationToken);
 
         /// <inheritdoc/>
+        public bool DecideLaggedScreenContent(Av1EncoderFrameBuffer<ushort> unfilteredSource, bool isKeyFrame)
+        {
+            if (isKeyFrame)
+            {
+                DecideScreenContent(unfilteredSource.Frame, this.SequenceHeader, this.Options, ref this.ScreenContent);
+            }
+
+            return this.ScreenContent.IsScreenContent;
+        }
+
+        /// <inheritdoc/>
         public void EncodeLaggedFrame(
             Av1EncoderFrameBuffer<ushort> source,
             in Av1SecondPassFrame frame,
@@ -626,15 +756,10 @@ internal static partial class Av1FrameEncoder
             this.ConfigureLaggedFrameHeader(in frame);
 
             Av1EncoderReferencePool<ushort>.Entry current = this.referencePool.Acquire();
-            Av1EncoderReferencePool<ushort>.Entry? last = frameHeader.IsIntra ? null : this.referencePool.GetSlot(this.GetLastSlot());
-            bool isScreenContent = ConfigureFrameTools(
-                this.Configuration,
-                source.Frame,
-                (last ?? current).Buffer.Frame,
-                this.SequenceHeader,
-                frameHeader,
-                this.Options,
-                ref this.ScreenContent);
+            ApplyScreenContentTools(
+                this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), in this.ScreenContent);
+
+            bool isScreenContent = this.ScreenContent.IsScreenContent;
 
             this.DecideIntegerMotionVectors<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(source.Frame, lastSource?.Frame);
 
@@ -645,14 +770,13 @@ internal static partial class Av1FrameEncoder
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
             parent.SourceMotionPercentage = 0;
-            if (frameHeader.IsIntra)
-            {
-                this.framesSinceKey = 0;
-            }
 
-            parent.FramesSinceKey = this.framesSinceKey;
-            parent.FramesSinceGolden = this.FramesSinceGolden;
+            // The rate control keeps the key and golden counters. Reference: rc->frames_since_key and
+            // rc->frames_since_golden.
+            parent.FramesSinceKey = secondPass.FramesSinceKey;
+            parent.FramesSinceGolden = secondPass.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
+            parent.IsGraphicsAnimation = frame.IsGraphicsAnimation;
 
             this.ConfigureLaggedReferenceStructure(parent, in frame);
 
@@ -664,14 +788,15 @@ internal static partial class Av1FrameEncoder
             // The model statistics of the frame feed its quantizer choice. Reference: process_tpl_stats_frame() before
             // av1_rc_pick_q_and_bounds() in set_size_dependent_vars().
             double qStepRatio = 1;
-            bool tplValid = temporalModel?.ApplyToFrame(parent, frame.GroupIndex, out qStepRatio) ?? false;
+            bool tplFrameValid = false;
+            bool tplReady = temporalModel?.ApplyToFrame(parent, frame.GroupIndex, out qStepRatio, out tplFrameValid) ?? false;
             if (temporalModel is null)
             {
                 parent.TplFrame = null;
                 parent.TplStatisticsReady = false;
             }
 
-            int qIndex = secondPass.ChooseBaseQIndex(isScreenContent, tplValid, parent.TplImportance, qStepRatio);
+            int qIndex = secondPass.ChooseBaseQIndex(isScreenContent, tplReady, tplFrameValid, parent.TplImportance, qStepRatio);
             this.ApplyLaggedQuantizer(qIndex);
 
             // The lookahead makes this a statistics-consuming stage, so inter frames scale the rate multiplier by
@@ -691,6 +816,7 @@ internal static partial class Av1FrameEncoder
                 new Size(source.Frame.Width, source.Frame.Height));
 
             parent.BorderPad = this.UsesBorderPad;
+            this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));
 
             this.ConfigureReferenceTools(parent);
 
@@ -726,6 +852,7 @@ internal static partial class Av1FrameEncoder
                 writeTemporalDelimiter);
 
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
+            this.CompleteLaggedMotionVectorStatistics<ushort, Av1MotionVectorStatistics.UInt16TextureOperator>(parent, source.Frame);
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
             this.CompleteFrameHeader();
@@ -733,7 +860,6 @@ internal static partial class Av1FrameEncoder
             secondPass.CompleteFrame(qIndex);
             temporalModel?.CompleteFrame(in frame, source.Frame, this.PictureBuffer.Picture, current.Context, qIndex);
 
-            this.framesSinceKey++;
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
         }

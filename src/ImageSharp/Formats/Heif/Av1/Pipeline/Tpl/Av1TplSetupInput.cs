@@ -176,6 +176,26 @@ internal sealed class Av1TplSetupInput<TSample>
     public bool ForceIntegerMotionVector { get; set; }
 
     /// <summary>
+    /// Gets or sets the superblock quantizer delta that the model's quantizers add to its quantizer: the delta of the
+    /// last superblock when the previous coded frame codes delta quantizers, and zero otherwise. Reference:
+    /// x->delta_qindex with cm->delta_q_info.delta_q_present_flag in the av1_init_plane_quantizers() call of
+    /// av1_frame_init_quantizer().
+    /// </summary>
+    public int QuantizerDeltaQIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mode-information row that ends the first tile of the frame. Reference: xd->tile.mi_row_end
+    /// after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// </summary>
+    public int TileModeInfoRowEnd { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mode-information column that ends the first tile of the frame. Reference:
+    /// xd->tile.mi_col_end after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// </summary>
+    public int TileModeInfoColumnEnd { get; set; }
+
+    /// <summary>
     /// Gets or sets the tune metric. Reference: oxcf->tune_cfg.tuning.
     /// </summary>
     public Av1Tuning Tuning { get; set; }

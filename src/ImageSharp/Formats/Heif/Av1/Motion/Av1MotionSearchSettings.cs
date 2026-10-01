@@ -31,6 +31,36 @@ internal readonly struct Av1MotionSearchSettings
         int qIndex,
         bool boostedFrame,
         bool screenContent)
+        : this(speed, intraOnly, frameSize, qIndex, -1, boostedFrame, screenContent, screenContent)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1MotionSearchSettings"/> struct as a frame leaves them after
+    /// every quantizer-dependent update it made. Reference: av1_set_speed_features_framesize_independent() and
+    /// av1_set_speed_features_qindex_dependent(), which the screen content trial calls at its own quantizer before
+    /// the frame calls it at the frame quantizer.
+    /// </summary>
+    /// <param name="speed">The encoding speed.</param>
+    /// <param name="intraOnly">Whether every frame is coded independently.</param>
+    /// <param name="frameSize">The visible frame dimensions.</param>
+    /// <param name="qIndex">The base quantizer index, or -1 before the quantizer-dependent features first run.</param>
+    /// <param name="trialQIndex">The quantizer of the screen content trial of the frame, or -1 without one.</param>
+    /// <param name="boostedFrame">Whether this is a key, golden, or alternate-reference frame with boosted quality.</param>
+    /// <param name="screenContent">Whether the content classification identifies graphics or screen content.</param>
+    /// <param name="lowMeshThreshold">
+    /// Whether the frame is graphics or animation, or used the screen content tools when its speed features were set.
+    /// Reference: the fr_content_type and use_screen_content_tools test of exhaustive_searches_thresh.
+    /// </param>
+    public Av1MotionSearchSettings(
+        HeifEncodingSpeed speed,
+        bool intraOnly,
+        Size frameSize,
+        int qIndex,
+        int trialQIndex,
+        bool boostedFrame,
+        bool screenContent,
+        bool lowMeshThreshold)
     {
         this.speed = speed;
         this.qIndex = qIndex;
@@ -44,7 +74,7 @@ internal readonly struct Av1MotionSearchSettings
         this.SimpleMotionPrecision = SearchPrecision.EighthSample;
         this.SecondCandidateSelection = CandidateSelection.RateDistortion;
         this.AllowIntraBlockCopy = true;
-        this.MeshErrorThreshold = 1 << (screenContent ? 20 : 25);
+        this.MeshErrorThreshold = 1 << (lowMeshThreshold ? 20 : 25);
 
         // Apply coding-mode choices before resolution and quantizer overrides. Reversing that order can
         // incorrectly suppress a second motion candidate or replace a quantizer-selected search pattern.
@@ -181,38 +211,16 @@ internal readonly struct Av1MotionSearchSettings
             }
         }
 
-        // Coarse quantization selects a less expensive full-pixel pattern even at the slower speed levels.
-        // These thresholds apply to the coding pass; first-pass statistics use a separate configuration.
-        if (speed <= HeifEncodingSpeed.Level2)
+        // Each quantizer-dependent update only overrides the pattern, so a trial update stays unless the frame
+        // update replaces it.
+        if (trialQIndex >= 0)
         {
-            int coarseThreshold;
-            int intermediateThreshold;
-            if (is720pOrLarger)
-            {
-                coarseThreshold = speed == HeifEncodingSpeed.Level2 ? 200 : 255;
-                intermediateThreshold = speed == HeifEncodingSpeed.Level0 ? 200 : -1;
-            }
-            else
-            {
-                coarseThreshold = speed == HeifEncodingSpeed.Level0 ? 200 : 170;
-                intermediateThreshold = speed switch
-                {
-                    HeifEncodingSpeed.Level0 => 70,
-                    HeifEncodingSpeed.Level1 => 50,
-                    _ => 40
-                };
-            }
+            this.fullPixelMethod = ApplyQIndexDependentMethod(speed, is720pOrLarger, trialQIndex, this.fullPixelMethod);
+        }
 
-            if (qIndex > coarseThreshold)
-            {
-                this.fullPixelMethod = is720pOrLarger
-                    ? FullPixelSearchMethod.Diamond
-                    : FullPixelSearchMethod.ClampedDiamond;
-            }
-            else if (qIndex > intermediateThreshold)
-            {
-                this.fullPixelMethod = FullPixelSearchMethod.EightPointNStep;
-            }
+        if (qIndex >= 0)
+        {
+            this.fullPixelMethod = ApplyQIndexDependentMethod(speed, is720pOrLarger, qIndex, this.fullPixelMethod);
         }
     }
 
@@ -630,5 +638,52 @@ internal readonly struct Av1MotionSearchSettings
             HeifEncodingSpeed.Level2 => [64, 8, 14, 2, 7, 1, 7, 1],
             _ => [64, 16, 24, 8, 12, 4, 7, 1]
         };
+    }
+
+    /// <summary>
+    /// Returns the full-pixel pattern after one quantizer-dependent update: coarse quantizers select a less
+    /// expensive pattern at the slower speeds, and other quantizers keep the current one. Reference: the mv_sf
+    /// search_method choices of av1_set_speed_features_qindex_dependent().
+    /// </summary>
+    /// <param name="speed">The encoding speed.</param>
+    /// <param name="is720pOrLarger">Whether the shorter frame dimension is at least 720.</param>
+    /// <param name="qIndex">The base quantizer index of the update.</param>
+    /// <param name="method">The pattern before the update.</param>
+    /// <returns>The pattern after the update.</returns>
+    private static FullPixelSearchMethod ApplyQIndexDependentMethod(
+        HeifEncodingSpeed speed,
+        bool is720pOrLarger,
+        int qIndex,
+        FullPixelSearchMethod method)
+    {
+        if (speed > HeifEncodingSpeed.Level2)
+        {
+            return method;
+        }
+
+        int coarseThreshold;
+        int intermediateThreshold;
+        if (is720pOrLarger)
+        {
+            coarseThreshold = speed == HeifEncodingSpeed.Level2 ? 200 : 255;
+            intermediateThreshold = speed == HeifEncodingSpeed.Level0 ? 200 : -1;
+        }
+        else
+        {
+            coarseThreshold = speed == HeifEncodingSpeed.Level0 ? 200 : 170;
+            intermediateThreshold = speed switch
+            {
+                HeifEncodingSpeed.Level0 => 70,
+                HeifEncodingSpeed.Level1 => 50,
+                _ => 40
+            };
+        }
+
+        if (qIndex > coarseThreshold)
+        {
+            return is720pOrLarger ? FullPixelSearchMethod.Diamond : FullPixelSearchMethod.ClampedDiamond;
+        }
+
+        return qIndex > intermediateThreshold ? FullPixelSearchMethod.EightPointNStep : method;
     }
 }

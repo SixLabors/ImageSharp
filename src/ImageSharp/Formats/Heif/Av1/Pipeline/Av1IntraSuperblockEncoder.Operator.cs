@@ -666,102 +666,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int qIndex,
             Av1BitDepth bitDepth,
             in Av1EncoderTransformBlockState state);
-
-        /// <summary>
-        /// Encodes one prepared prediction with the selected transform into decision scratch.
-        /// </summary>
-        /// <param name="workspace">The reusable block workspace.</param>
-        /// <param name="writer">The coefficient entropy costs.</param>
-        /// <param name="context">The neighboring coefficient contexts.</param>
-        /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
-        /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
-        /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
-        /// <param name="prediction">The prediction samples at the transform origin.</param>
-        /// <param name="residual">The source-minus-prediction samples at the transform origin.</param>
-        /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
-        /// <param name="reconstruction">The candidate reconstruction.</param>
-        /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
-        /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
-        /// <param name="transformSize">The transform dimensions.</param>
-        /// <param name="transformType">The compound transform applied to the residual.</param>
-        /// <param name="plane">The component plane containing the block.</param>
-        /// <param name="qIndex">The effective segment quantizer index.</param>
-        /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
-        /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="state">The candidate transform state.</param>
-        /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
-        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
-        public static abstract long EncodePredictionCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool isInter,
-            bool useChromaWeights,
-            Av1PlaneRegion<TSample> source,
-            Point blockOrigin,
-            ReadOnlySpan<TSample> prediction,
-            Span<short> residual,
-            int inputStride,
-            Span<TSample> reconstruction,
-            int reconstructionStride,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            Av1TransformType transformType,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state,
-            out long sse);
-
-        /// <summary>
-        /// Encodes one chroma-from-luma candidate into contiguous decision scratch.
-        /// </summary>
-        /// <param name="workspace">The reusable block workspace.</param>
-        /// <param name="writer">The coefficient entropy costs.</param>
-        /// <param name="context">The neighboring coefficient contexts.</param>
-        /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
-        /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
-        /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
-        /// <param name="dc">The cached DC predictor sample shared by every alpha.</param>
-        /// <param name="lumaQ3">The zero-mean reconstructed-luma predictor surface.</param>
-        /// <param name="alphaQ3">The signed chroma-from-luma multiplier.</param>
-        /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
-        /// <param name="transformSize">The transform dimensions.</param>
-        /// <param name="plane">The component plane containing the block.</param>
-        /// <param name="qIndex">The effective segment quantizer index.</param>
-        /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
-        /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="state">The candidate transform state.</param>
-        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
-        public static abstract long EncodeChromaFromLumaCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool useChromaWeights,
-            Av1PlaneRegion<TSample> source,
-            Point blockOrigin,
-            Span<TSample> reconstruction,
-            TSample dc,
-            ReadOnlySpan<short> lumaQ3,
-            int alphaQ3,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state);
     }
 
     private static int GetNormalizedVariance(int sum, int sumOfSquares, Av1BitDepth bitDepth)
@@ -1862,55 +1766,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 workspace.TransformWorkspace);
 
         /// <inheritdoc/>
-        public static long EncodePredictionCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool isInter,
-            bool useChromaWeights,
-            Av1PlaneRegion<byte> source,
-            Point blockOrigin,
-            ReadOnlySpan<byte> prediction,
-            Span<short> residual,
-            int inputStride,
-            Span<byte> reconstruction,
-            int reconstructionStride,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            Av1TransformType transformType,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state,
-            out long sse)
-            => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
-                workspace,
-                writer,
-                context,
-                rateMultiplier,
-                isInter,
-                useChromaWeights,
-                source,
-                blockOrigin,
-                prediction,
-                residual,
-                inputStride,
-                reconstruction,
-                reconstructionStride,
-                quantizedCoefficients,
-                transformSize,
-                transformType,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                ref state,
-                out sse);
-
-        /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
             ReadOnlySpan<int> dequantized,
@@ -1938,47 +1793,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 qIndex,
                 plane,
                 in state);
-
-        /// <inheritdoc/>
-        public static long EncodeChromaFromLumaCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool useChromaWeights,
-            Av1PlaneRegion<byte> source,
-            Point blockOrigin,
-            Span<byte> reconstruction,
-            byte dc,
-            ReadOnlySpan<short> lumaQ3,
-            int alphaQ3,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state)
-            => Av1TransformBlockEncoder.EncodeChromaFromLumaLossyCandidate(
-                workspace,
-                writer,
-                context,
-                rateMultiplier,
-                useChromaWeights,
-                source,
-                blockOrigin,
-                reconstruction,
-                dc,
-                lumaQ3,
-                alphaQ3,
-                quantizedCoefficients,
-                transformSize,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                ref state);
     }
 
     /// <summary>
@@ -3073,56 +2887,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 workspace.TransformWorkspace);
 
         /// <inheritdoc/>
-        public static long EncodePredictionCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool isInter,
-            bool useChromaWeights,
-            Av1PlaneRegion<ushort> source,
-            Point blockOrigin,
-            ReadOnlySpan<ushort> prediction,
-            Span<short> residual,
-            int inputStride,
-            Span<ushort> reconstruction,
-            int reconstructionStride,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            Av1TransformType transformType,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state,
-            out long sse)
-            => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
-                workspace,
-                writer,
-                context,
-                rateMultiplier,
-                isInter,
-                useChromaWeights,
-                source,
-                blockOrigin,
-                prediction,
-                residual,
-                inputStride,
-                reconstruction,
-                reconstructionStride,
-                quantizedCoefficients,
-                transformSize,
-                transformType,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                bitDepth,
-                ref state,
-                out sse);
-
-        /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
             ReadOnlySpan<int> dequantized,
@@ -3151,47 +2915,5 @@ internal static partial class Av1IntraSuperblockEncoder
                 plane,
                 bitDepth,
                 in state);
-
-        /// <inheritdoc/>
-        public static long EncodeChromaFromLumaCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool useChromaWeights,
-            Av1PlaneRegion<ushort> source,
-            Point blockOrigin,
-            Span<ushort> reconstruction,
-            ushort dc,
-            ReadOnlySpan<short> lumaQ3,
-            int alphaQ3,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state)
-            => Av1TransformBlockEncoder.EncodeChromaFromLumaLossyCandidate(
-                workspace,
-                writer,
-                context,
-                rateMultiplier,
-                useChromaWeights,
-                source,
-                blockOrigin,
-                reconstruction,
-                dc,
-                lumaQ3,
-                alphaQ3,
-                quantizedCoefficients,
-                transformSize,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                bitDepth,
-                ref state);
     }
 }

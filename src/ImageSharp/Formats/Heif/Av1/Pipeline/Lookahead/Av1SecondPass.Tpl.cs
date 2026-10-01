@@ -41,9 +41,17 @@ internal sealed partial class Av1SecondPass
     public void AttachGopLengthEvaluator(IGopLengthEvaluator evaluator) => this.gopLengthEvaluator = evaluator;
 
     /// <summary>
+    /// Records the screen content type that the quantizer choices read, which an intra frame decides before its
+    /// filtering and its temporal dependency model. Reference: cpi->is_screen_content_type, as
+    /// av1_set_screen_content_options() sets it in av1_encode_strategy().
+    /// </summary>
+    /// <param name="screenContent">Whether the frames are classified as screen content.</param>
+    public void SetScreenContentType(bool screenContent) => this.screenContentType = screenContent;
+
+    /// <summary>
     /// Estimates the quantizer of every frame of the group from the current frame on, which the model codes each
-    /// frame at. The screen content type is still that of the last coded frame. Reference:
-    /// av1_tpl_preload_rc_estimate().
+    /// frame at. The group length test reads the screen content type of the last coded frame, the coding run that
+    /// of the current frame. Reference: av1_tpl_preload_rc_estimate().
     /// </summary>
     public void PreloadTplQuantizers()
     {

@@ -618,9 +618,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 singleReferenceCutoff = 110 * singleReferenceCutoff / 100;
             }
 
+            // An alternate reference frame of the base layer searches no compound mode at the speeds that skip them.
+            // Reference: the skip_arf_compound test of inter_mode_search_order_independent_skip().
+            bool skipsCompound = this.picture.Parent.PrunesAllCompoundReferences ||
+                (this.picture.Parent.SpeedSettings.SkipAlternateReferenceCompound &&
+                 this.picture.Parent.FrameUpdateType == Av1FrameUpdateType.Alternate);
+
             // Nearest pairs establish a bound across all admitted references first. The remaining
             // motion families then complete each pair in order, retaining that pair's mask history.
-            for (int phase = 0; !this.picture.Parent.PrunesAllCompoundReferences && phase < 2; phase++)
+            for (int phase = 0; !skipsCompound && phase < 2; phase++)
             {
                 for (int index = 0; index < compoundSearchOrder.Length; index++)
                 {
@@ -1954,6 +1960,32 @@ internal static partial class Av1IntraSuperblockEncoder
             transformNeighbors.Left.Slice(transformNeighbors.GetLeftIndex(blockOrigin), height4).CopyTo(transformLeft);
 
             stateCount = 0;
+            int initialDepth = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
+                !modeInfo.Skip &&
+                (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
+                    this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate)
+                ? this.picture.Parent.SpeedSettings.InterTransformSearchInitialDepth
+                : Av1Constants.MaxVarTransform;
+
+            int blockWidth = modeInfo.BlockSize.GetWidth();
+            int blockHeight = modeInfo.BlockSize.GetHeight();
+            Span<short> residual = workspace.Residual[..(blockWidth * blockHeight)];
+            bool residualPrepared = false;
+
+            // The recursive search exits early when the modeled luma cost is already well above its bound.
+            // Reference: model_based_tx_search_prune() in av1_pick_recursive_tx_size_type_yrd().
+            if (costLimit != long.MaxValue && initialDepth != Av1Constants.MaxVarTransform &&
+                this.picture.Parent.SpeedSettings.GetModelBasedTransformPruneLevel(this.picture.Parent.FrameUpdateType) != 0)
+            {
+                TOperator.SubtractPrediction(
+                    this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, blockWidth, blockHeight);
+
+                residualPrepared = true;
+                if (this.PrunesTransformSearchByModel(blockOrigin, modeInfo.BlockSize, modeInfo.ReferenceFrame, residual, costLimit))
+                {
+                    return Av1RateDistortionStatistics.Invalid;
+                }
+            }
 
             // A block inside the tile reuses the result of an earlier search of the same residual in the superblock,
             // unless the search has no cost bound. Reference: the use_mb_rd_hash lookup of
@@ -1965,11 +1997,11 @@ internal static partial class Av1IntraSuperblockEncoder
             uint hash = 0;
             if (useRecord)
             {
-                int width = modeInfo.BlockSize.GetWidth();
-                int height = modeInfo.BlockSize.GetHeight();
-                Span<short> residual = workspace.Residual[..(width * height)];
-                TOperator.SubtractPrediction(
-                    this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, width, height);
+                if (!residualPrepared)
+                {
+                    TOperator.SubtractPrediction(
+                        this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, blockWidth, blockHeight);
+                }
 
                 hash = Av1MacroblockRateDistortionRecord.GetHash(residual, modeInfo.BlockSize);
                 int match = record.Find(costLimit, hash);
@@ -2011,13 +2043,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 return skipStatistics;
             }
-
-            int initialDepth = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
-                !modeInfo.Skip &&
-                (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
-                    this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate)
-                ? this.picture.Parent.SpeedSettings.InterTransformSearchInitialDepth
-                : Av1Constants.MaxVarTransform;
 
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
             int skipRate = writer.GetSkipCost(true, skipContext);
@@ -2075,6 +2100,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         macroBlock,
                         blockOrigin,
+                        coefficientNeighbors,
                         ref modeInfo,
                         rootSize,
                         row,
@@ -2314,6 +2340,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
+            Av1NeighborArrayUnit<byte> coefficientNeighbors,
             ref Av1EncoderBlockModeInfo modeInfo,
             Av1TransformSize transformSize,
             int row,
@@ -2459,12 +2486,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.EvaluateInterTransform(
                     writer,
                     Av1Plane.Y,
-                    Av1ComponentType.Luminance,
                     modeInfo.Mode,
                     origin,
                     transformSize,
                     Av1TransformType.AllTransformTypes,
                     context,
+                    Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Luminance, coefficientNeighbors, blockOrigin, blockSize, transformSize),
                     prediction,
                     workspace.Residual,
                     width,
@@ -2617,6 +2644,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             macroBlock,
                             blockOrigin,
+                            coefficientNeighbors,
                             ref modeInfo,
                             childSize,
                             row + y,
@@ -2738,16 +2766,20 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Returns whether the reference lists that skip mode reads exist for the block. A pair that the rectangular
-        /// partition mask or the selective reference search drops has no list of its own, and skip mode then builds
-        /// it only when both single references have theirs. Reference: the ref_mv_count UINT8_MAX return of
-        /// rd_pick_skip_mode(), with the lists that set_params_rd_pick_inter_mode() builds.
+        /// partition mask drops, unless the cached decision of an asymmetric sub-block uses it, or that the frame or
+        /// the selective reference search prunes, has no list of its own, and skip mode then builds it only when both
+        /// single references have theirs. Reference: the ref_mv_count UINT8_MAX return of rd_pick_skip_mode(), with
+        /// the lists that set_params_rd_pick_inter_mode() builds under prune_ref_frame().
         /// </summary>
         /// <param name="first">The first skip-mode reference.</param>
         /// <param name="second">The second skip-mode reference.</param>
         /// <returns><see langword="true"/> when skip mode is searched.</returns>
         private bool HasSkipModeReferenceLists(Av1ReferenceFrameType first, Av1ReferenceFrameType second)
         {
-            bool pairListBuilt = (this.skipReferenceFrameMask & (1 << GetReferenceFrameType(first, second))) == 0 &&
+            bool pairListBuilt = ((this.skipReferenceFrameMask & (1 << GetReferenceFrameType(first, second))) == 0 ||
+                    this.IsCachedCompoundPair(first, second)) &&
+                !this.picture.Parent.PrunesAllCompoundReferences &&
+                !this.PrunesCompoundReferencePair(first, second) &&
                 !this.PrunesReferenceBySelectiveReferenceFrame(first, second);
 
             return pairListBuilt || (!this.IsSingleReferenceSkipped((int)first) && !this.IsSingleReferenceSkipped((int)second));
@@ -3406,7 +3438,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         int bestMatch = 0;
                         for (int index = 0; index < referenceIndex; index++)
                         {
-                            Av1MotionVector previousReference = motionState.References[index].ReferenceVector;
+                            // Every earlier list entry is compared, searched or not. Reference: the
+                            // av1_get_ref_mv_from_stack() call of handle_newmv().
+                            Av1MotionVector previousReference = candidateVectors[index];
                             int difference = Math.Max(
                                 Math.Abs(referenceVector.Row - previousReference.Row),
                                 Math.Abs(referenceVector.Column - previousReference.Column));
@@ -3424,9 +3458,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref Av1MotionSearchBase.ReferenceSearchResult previous = ref motionState.References[bestMatch];
                         if (minimumDifference < 16 * 8 && previous.IsValid)
                         {
+                            Av1MotionVector matchReference = candidateVectors[bestMatch];
                             int displacement = Math.Max(
-                                Math.Abs(previous.Vector.Row - previous.ReferenceVector.Row),
-                                Math.Abs(previous.Vector.Column - previous.ReferenceVector.Column));
+                                Math.Abs(previous.Vector.Row - matchReference.Row),
+                                Math.Abs(previous.Vector.Column - matchReference.Column));
 
                             searchRange = (minimumDifference + displacement + 4) >> 3;
                         }
@@ -5146,15 +5181,22 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.activeModeCache.SecondaryReferenceFrame == second;
 
         /// <summary>
-        /// Returns whether the block searches no mode of a single reference: the rectangular pruning skips it and no
-        /// compound pair that the pruning keeps uses it.
-        /// Reference: is_ref_frame_used_by_compound_ref() with the skip_ref_frame_mask tests.
+        /// Returns whether the block searches no mode of a single reference: the rectangular pruning skips it, no
+        /// compound pair that the pruning keeps uses it, and the cached decision of an asymmetric sub-block does not
+        /// predict from it. Reference: is_ref_frame_used_by_compound_ref() and is_ref_frame_used_in_cache() with the
+        /// skip_ref_frame_mask tests.
         /// </summary>
         /// <param name="reference">The reference type.</param>
         /// <returns><see langword="true"/> when the reference is skipped.</returns>
         private readonly bool IsSingleReferenceSkipped(int reference)
         {
             if ((this.skipReferenceFrameMask & (1 << reference)) == 0)
+            {
+                return false;
+            }
+
+            Av1AsymmetricModeCacheEntry cache = this.activeModeCache;
+            if (cache.Active && ((int)cache.ReferenceFrame == reference || (int)cache.SecondaryReferenceFrame == reference))
             {
                 return false;
             }
@@ -5292,6 +5334,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 sads[reference] = best;
             }
 
+            // The best past and future SADs are measured only when the alternate reference search or the single
+            // reference pruning reads them; otherwise both stay at the maximum. Reference: the alt_ref_search_fp and
+            // prune_single_ref test of set_params_rd_pick_inter_mode().
+            int pruneLevel = parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType);
+            bool measuresBestSads = parent.SpeedSettings.AlternateReferenceSearchLevel != 0 || pruneLevel != 0;
             int minimum = int.MaxValue;
             InlineArray2<int> bestByDirection = default;
             bestByDirection[0] = int.MaxValue;
@@ -5299,15 +5346,17 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
                 minimum = Math.Min(minimum, sads[reference]);
-                int direction = parent.ReferenceDistances[reference] < 0 ? 0 : 1;
-                bestByDirection[direction] = Math.Min(bestByDirection[direction], sads[reference]);
+                if (measuresBestSads)
+                {
+                    int direction = parent.ReferenceDistances[reference] < 0 ? 0 : 1;
+                    bestByDirection[direction] = Math.Min(bestByDirection[direction], sads[reference]);
+                }
             }
 
             sads[..Av1Constants.ReferenceFrameCount].CopyTo(this.predictionVectorSads);
             this.bestPastPredictionVectorSad = bestByDirection[0];
             this.bestFuturePredictionVectorSad = bestByDirection[1];
 
-            int pruneLevel = parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType);
             double pruneThreshold = pruneLevel <= 3 ? 1.20 : 1.05;
             Span<uint> masks = stackalloc uint[Av1Constants.ReferenceFrameCount];
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
@@ -5477,12 +5526,23 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 int firstReference = direction == 0 ? (int)Av1ReferenceFrameType.Last : (int)Av1ReferenceFrameType.Golden + 1;
                 int lastReference = direction == 0 ? (int)Av1ReferenceFrameType.Golden : (int)Av1ReferenceFrameType.Alternate;
+
+                // The bound is the best GLOBALMV or NEWMV state of the direction, and only a searched reference has
+                // a state; a mode skipped for a repeated vector keeps a copied modeled cost but no state. Reference:
+                // the state[INTER_OFFSET(NEWMV)][0] and state[INTER_OFFSET(GLOBALMV)][0] bound of
+                // analyze_single_states(), with collect_single_states().
                 long bestSimple = long.MaxValue;
                 long bestModel = long.MaxValue;
                 for (int reference = firstReference; reference <= lastReference; reference++)
                 {
                     for (int mode = (int)Av1PredictionMode.GlobalMotionVector; mode <= (int)Av1PredictionMode.NewMotionVector; mode++)
                     {
+                        int modeOffset = mode - (int)Av1PredictionMode.InterModeStart;
+                        if ((searchedModes & (1U << ((modeOffset * Av1Constants.ReferenceFrameCount) + reference))) == 0)
+                        {
+                            continue;
+                        }
+
                         for (int index = 0; index < 3; index++)
                         {
                             int offset = ((((mode - (int)Av1PredictionMode.InterModeStart) * 3) + index) *
@@ -6142,7 +6202,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Av1CompoundType compoundType,
                     out int wedgeIndex,
                     out bool wedgeSign,
-                    out Av1DifferenceWeightedMaskType maskType))
+                    out Av1DifferenceWeightedMaskType maskType,
+                    out int blendRate))
                 {
                     continue;
                 }
@@ -6221,14 +6282,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     continue;
                 }
-
-                int blendRate = writer.GetCompoundBlendCost(
-                    blockSize,
-                    compoundType,
-                    compoundGroupContext,
-                    compoundIndexContext,
-                    wedgeIndex,
-                    maskedCompoundEnabled);
 
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                     writer,
@@ -6335,7 +6388,8 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1CompoundType selectedType,
             out int selectedWedgeIndex,
             out bool selectedWedgeSign,
-            out Av1DifferenceWeightedMaskType selectedMaskType)
+            out Av1DifferenceWeightedMaskType selectedMaskType,
+            out int selectedTypeRate)
         {
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
@@ -6432,16 +6486,25 @@ internal static partial class Av1IntraSuperblockEncoder
             if (matchIndex >= 0 && settings.ReuseCompoundTypeDecision)
             {
                 ref Av1CompoundSearchRecord previous = ref records[matchIndex];
+                int typeIndex = (int)previous.SelectedType;
+                if (record.Rates[typeIndex] == int.MaxValue)
+                {
+                    // Without stored statistics the mode keeps the average blend at no type cost and no estimate,
+                    // which only a block without a best cost survives. Reference: the early return of
+                    // populate_reuse_comp_type_data() and the ref_best_rd test of process_compound_inter_mode().
+                    selectedType = Av1CompoundType.Average;
+                    selectedWedgeIndex = 0;
+                    selectedWedgeSign = false;
+                    selectedMaskType = Av1DifferenceWeightedMaskType.Type38;
+                    selectedTypeRate = 0;
+                    return bestCost == long.MaxValue;
+                }
+
                 selectedType = previous.SelectedType;
                 selectedWedgeIndex = previous.WedgeIndex;
                 selectedWedgeSign = previous.WedgeSign;
                 selectedMaskType = previous.MaskType;
-                int typeIndex = (int)selectedType;
-                if (record.Rates[typeIndex] == int.MaxValue)
-                {
-                    return false;
-                }
-
+                selectedTypeRate = record.BlendRates[typeIndex];
                 long estimate = Av1RateDistortion.GetCost(
                     this.rateMultiplier,
                     record.BlendRates[typeIndex] + initialMotionRate + record.Rates[typeIndex],
@@ -6874,6 +6937,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (currentBest != long.MaxValue && topAverageCosts[retainedCount - 1] != long.MaxValue &&
                         typeEstimate > topAverageCosts[retainedCount - 1])
                     {
+                        selectedTypeRate = 0;
                         return false;
                     }
                 }
@@ -6893,7 +6957,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 records[this.compoundSearchRecordCount++] = record;
             }
 
-            return bestEstimate != long.MaxValue && (bestCost == long.MaxValue || (bestEstimate >> 4) * 11 <= bestCost);
+            // The mode carries the syntax cost of the best type, or none when no type produced an estimate; then
+            // only a block without a best cost keeps it. Reference: best_compmode_interinter_cost of
+            // av1_compound_type_rd() and the ref_best_rd test of process_compound_inter_mode().
+            if (bestEstimate == long.MaxValue)
+            {
+                selectedTypeRate = 0;
+                return bestCost == long.MaxValue;
+            }
+
+            selectedTypeRate = writer.GetCompoundBlendCost(blockSize, selectedType, groupContext, indexContext, selectedWedgeIndex, masked);
+            return bestCost == long.MaxValue || (bestEstimate >> 4) * 11 <= bestCost;
         }
 
         /// <summary>
@@ -7632,6 +7706,55 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return new Size(width, height);
+        }
+
+        /// <summary>
+        /// Returns whether the modeled luma cost of a prepared residual exceeds the transform search bound by the
+        /// level 1 margin. The model stores its luma prediction error as the reference's prediction error.
+        /// Reference: model_based_tx_search_prune(), with model_rd_for_sb_with_curvfit() for the luma plane.
+        /// </summary>
+        /// <param name="blockOrigin">The luma coding-block origin.</param>
+        /// <param name="blockSize">The coding-block size.</param>
+        /// <param name="reference">The first reference of the candidate.</param>
+        /// <param name="residual">The luma residual of the candidate's prediction.</param>
+        /// <param name="costLimit">The bound of the transform search.</param>
+        /// <returns><see langword="true"/> when the transform search can be skipped.</returns>
+        private bool PrunesTransformSearchByModel(
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1ReferenceFrameType reference,
+            ReadOnlySpan<short> residual,
+            long costLimit)
+        {
+            Size visible = this.GetPredictionModelSize(blockOrigin, blockSize, 0, 0);
+            long squaredError = Av1ResidualBuilder.SumSquares(residual, blockSize.GetWidth(), visible.Width, visible.Height);
+            int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
+            if (normalizationShift != 0)
+            {
+                squaredError = (squaredError + (1L << (normalizationShift - 1))) >> normalizationShift;
+            }
+
+            this.SetPredictionSse(reference, squaredError);
+            int acQuantizer = Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
+            Av1RateDistortion.ModelPredictionError(
+                blockSize,
+                squaredError,
+                visible.Width * visible.Height,
+                acQuantizer,
+                this.bitDepth,
+                this.rateMultiplier,
+                out int rate,
+                out long distortion);
+
+            // A model that predicts no coded coefficients keeps the search. Reference: the model_skip return.
+            if (rate == 0)
+            {
+                return false;
+            }
+
+            // Level 1 compares three eighths of the modeled cost. Reference: prune_factor_by8.
+            long modelCost = new Av1RateDistortionStatistics(this.rateMultiplier, rate, distortion).Cost;
+            return ((modelCost * 3) >> 3) > costLimit;
         }
 
         /// <summary>
@@ -9173,12 +9296,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.EvaluateInterTransform(
                         writer,
                         plane,
-                        Av1ComponentType.Chroma,
                         predictionMode,
                         planeOrigin + new Size(x, y),
                         transformSize,
                         transformType,
                         context,
+                        Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Chroma, neighbors, planeOrigin, planeBlockSize, transformSize),
                         prediction[inputOffset..],
                         workspace.Residual[inputOffset..],
                         width,
@@ -9923,12 +10046,12 @@ internal static partial class Av1IntraSuperblockEncoder
         private void EvaluateInterTransform(
             Av1SymbolEncoder writer,
             Av1Plane plane,
-            Av1ComponentType componentType,
             Av1PredictionMode predictionMode,
             Point planeOrigin,
             Av1TransformSize transformSize,
-            Av1TransformType transformTypeSelection,
+            Av1TransformType derivedTransformType,
             Av1TransformBlockContext blockContext,
+            Av1TransformBlockContext originContext,
             ReadOnlySpan<TSample> prediction,
             Span<short> residual,
             int inputStride,
@@ -9942,281 +10065,52 @@ internal static partial class Av1IntraSuperblockEncoder
             out long selectedDistortion,
             out long predictionDistortion)
         {
-            if (this.picture.Parent.FrameHeader.CodedLossless)
-            {
-                transformTypeSelection = Av1TransformType.DctDct;
-            }
-
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             int sampleCount = transformSize.GetSize2d();
 
-            // Prediction-only error remains available even when every transform quantizes to nonzero coefficients.
-            // Normalize squared sample precision with rounding before adding four fractional distortion bits.
-            // The visible samples end at the frame edge when the frame pads its border, and at the coded edge
-            // otherwise. Reference: set_pixels_to_frame_edge() and av1_pixel_diff_dist().
-            int width = transformSize.GetWidth();
-            Size visibleSize = this.blockWorkspace.GetVisibleSize(plane, planeOrigin, width, transformSize.GetHeight());
-            int visibleWidth = visibleSize.Width;
-            int visibleHeight = visibleSize.Height;
-            long predictionSquaredError = Av1ResidualBuilder.SumSquares(residual, inputStride, visibleWidth, visibleHeight);
-
-            int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
-            predictionDistortion = normalizationShift == 0
-                ? predictionSquaredError << 4
-                : ((predictionSquaredError + (1L << (normalizationShift - 1))) >> normalizationShift) << 4;
-
-            // search_tx_type() subtracts a block crossing the frame edge with the DCT_DCT padding before the
-            // skip prediction and the type pruning read the residual.
-            Av1TransformBlockEncoder.PadBorderResidual(
-                this.blockWorkspace, plane, planeOrigin, residual, inputStride, width, transformSize.GetHeight(), Av1TransformType.DctDct);
-
-            // Motion compensation and subtraction are shared by all transform types for this prediction.
-            Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
-                transformSize,
-                isInter: true,
-                this.picture.Parent.FrameHeader.UseReducedTransformSet);
-
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-            if (plane == Av1Plane.Y && transformTypeSelection == Av1TransformType.AllTransformTypes &&
-                this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate)
-            {
-                int threshold = settings.InterTransformTypeProbabilityThreshold;
-                if (threshold == 0)
-                {
-                    transformTypeSelection = Av1TransformType.DctDct;
-                }
-                else if (threshold != int.MaxValue)
-                {
-                    int probabilityOffset = ((int)this.picture.Parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength) +
-                        ((int)transformSize * Av1TransformTypeProbabilities.TypeCount);
-
-                    ReadOnlySpan<int> probabilities = this.blockWorkspace.TransformTypeProbabilities.Slice(
-                        probabilityOffset, Av1TransformTypeProbabilities.TypeCount);
-
-                    if (probabilities[0] > threshold)
-                    {
-                        transformTypeSelection = Av1TransformType.DctDct;
-                    }
-                    else
-                    {
-                        const int alternateTypeThresholdOffset = 100;
-                        int bestType = 0;
-                        int bestProbability = 0;
-                        for (int type = 1; type < Av1TransformTypeProbabilities.TypeCount; type++)
-                        {
-                            if (probabilities[type] > bestProbability)
-                            {
-                                bestProbability = probabilities[type];
-                                bestType = type;
-                            }
-                        }
-
-                        if (bestProbability > threshold + alternateTypeThresholdOffset)
-                        {
-                            transformTypeSelection = (Av1TransformType)bestType;
-                        }
-                    }
-                }
-            }
-
-            // A DC-only luma block searches DCT_DCT alone. A chroma block has one type, which the candidate encoder
-            // replaces. Reference: the dc_only_blk mask of search_tx_type().
-            if (plane == Av1Plane.Y && Av1TransformBlockEncoder.IsDcOnlyBlock(
-                this.blockWorkspace,
-                residual,
-                inputStride,
-                plane,
-                planeOrigin,
-                transformSize,
-                this.superblockQIndex,
-                this.quantization.DeltaQDc[(int)plane],
-                this.quantization.DeltaQAc[(int)plane],
-                this.bitDepth,
-                isInter: true))
-            {
-                transformTypeSelection = Av1TransformType.DctDct;
-            }
-
-            InlineArray16<Av1TransformType> transformOrder = default;
-            ushort allowedMask = 0;
-            int allowedCount = 0;
-            for (int index = 0; index < 16; index++)
-            {
-                Av1TransformType type = (Av1TransformType)index;
-                transformOrder[index] = type;
-                if (type.IsExtendedSetUsed(transformSetType) &&
-                    (transformTypeSelection == Av1TransformType.AllTransformTypes || type == transformTypeSelection))
-                {
-                    allowedMask |= (ushort)(1 << index);
-                    allowedCount++;
-                }
-            }
-
-            if (plane == Av1Plane.Y && transformTypeSelection == Av1TransformType.AllTransformTypes &&
-                settings.TransformTypeProbabilityPruning != 0 && allowedCount > 1)
-            {
-                int probabilityOffset = ((int)this.picture.Parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength) +
-                    ((int)transformSize * Av1TransformTypeProbabilities.TypeCount);
-
-                allowedMask = Av1TransformTypeProbabilities.Prune(
-                    this.blockWorkspace.TransformTypeProbabilities.Slice(probabilityOffset, Av1TransformTypeProbabilities.TypeCount),
-                    allowedMask,
-                    settings.TransformTypeProbabilityPruning,
-                    this.picture.Parent.FrameUpdateType);
-
-                allowedCount = System.Numerics.BitOperations.PopCount((uint)allowedMask);
-            }
-
-            int pruningLevel = this.blockWorkspace.EvaluationStage switch
-            {
-                Av1EncoderEvaluationStage.Candidate => settings.CandidateInterTransformTypePruning,
-                Av1EncoderEvaluationStage.Winner => settings.WinnerInterTransformTypePruning,
-                _ => settings.DefaultInterTransformTypePruning
-            };
-
-            int minimumCandidates = pruningLevel >= 4 ? 1 : 5;
-            if (plane == Av1Plane.Y && settings.EstimateTransformTypeRateDistortion && allowedCount > 2)
-            {
-                allowedMask = this.PruneTransformTypesByEstimatedCost(
-                    writer,
-                    residual,
-                    inputStride,
-                    transformSize,
-                    blockContext,
-                    predictionMode,
-                    Av1FilterIntraMode.AllFilterIntraModes,
-                    true,
-                    allowedMask,
-                    pruningLevel,
-                    costLimit,
-                    transformCoefficients,
-                    transformOrder);
-            }
-            else if (plane == Av1Plane.Y && pruningLevel > 0 && allowedCount > minimumCandidates)
-            {
-                allowedMask = PruneInterTransformTypes(
-                    residual, inputStride, transformSize, transformSetType, pruningLevel, allowedMask, transformOrder);
-            }
-
-            // A forced type can be absent from the legal set for this size. Preserve the canonical fallback.
-            if (allowedMask == 0)
-            {
-                allowedMask = 1;
-            }
-
-            long bestCost = long.MaxValue;
-            selectedState = default;
-            selectedRate = 0;
-            selectedDistortion = 0;
-
-            // Alternate candidate and best spans on improvement. The winning storage stays intact during
-            // later trials, with at most one normalization copy into the caller's destination after the search.
+            // The candidate uses the transform scratch and the winner the caller's selected storage. The search swaps
+            // them on each improvement, so the winner is copied at most once, after the search.
             Span<TSample> candidateReconstruction = transformReconstruction[..sampleCount];
             Span<int> candidateCoefficients = transformCoefficients[..sampleCount];
             Span<TSample> bestReconstruction = selectedReconstruction[..sampleCount];
             Span<int> bestCoefficients = selectedCoefficients[..sampleCount];
-            bool bestUsesSelectedStorage = true;
+            Span<int> candidateDequantized = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
+            TransformTypeSearchResult result = this.SearchTransformType(
+                writer,
+                plane,
+                true,
+                blockContext,
+                originContext,
+                sourcePlane,
+                planeOrigin,
+                transformSize,
+                predictionMode,
+                Av1FilterIntraMode.AllFilterIntraModes,
+                derivedTransformType,
+                false,
+                costLimit,
+                prediction,
+                residual,
+                inputStride,
+                ref candidateReconstruction,
+                ref bestReconstruction,
+                ref candidateCoefficients,
+                ref bestCoefficients,
+                ref candidateDequantized,
+                ref bestDequantized);
 
-            // The winning type reports the residual energy that the block would leave unskipped: the transform-domain
-            // energy where the type search measured distortion there, and the visible pixel energy otherwise.
-            // Reference: this_rd_stats.sse in search_tx_type(), which best_rd_stats keeps.
-            long selectedSse = predictionDistortion;
-            for (int transformIndex = 0; transformIndex < 16; transformIndex++)
-            {
-                Av1TransformType transformType = transformOrder[transformIndex];
-                if (transformType == Av1TransformType.Invalid || (allowedMask & (1 << (int)transformType)) == 0)
-                {
-                    continue;
-                }
+            selectedState = result.State;
+            selectedRate = result.Rate;
+            selectedDistortion = result.Distortion;
 
-                Av1EncoderTransformBlockState candidateState = default;
-                long candidateDistortion = TOperator.EncodePredictionCandidate(
-                    this.blockWorkspace,
-                    writer,
-                    blockContext,
-                    this.rateMultiplier,
-                    true,
-                    this.picture.Sequence.SequenceHeader.IsStillPicture,
-                    sourcePlane,
-                    planeOrigin,
-                    prediction,
-                    residual,
-                    inputStride,
-                    candidateReconstruction,
-                    transformSize.GetWidth(),
-                    candidateCoefficients,
-                    transformSize,
-                    transformType,
-                    plane,
-                    this.superblockQIndex,
-                    this.quantization.DeltaQDc[(int)plane],
-                    this.quantization.DeltaQAc[(int)plane],
-                    this.bitDepth,
-                    ref candidateState,
-                    out long candidateSse);
+            // The winning type reports the residual energy that the block would leave unskipped. Reference: the sse
+            // of search_tx_type(), which best_rd_stats keeps.
+            predictionDistortion = result.Sse;
 
-                // A DC-only block codes DCT_DCT whatever type it derives. Reference: the tx_type of search_tx_type()
-                // that the DCT_DCT mask of a DC-only block leaves.
-                int candidateRate = writer.GetCoefficientCost(
-                    transformSize,
-                    candidateState.TransformType,
-                    predictionMode,
-                    candidateCoefficients,
-                    componentType,
-                    blockContext,
-                    candidateState.EndOfBlock,
-                    this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                    Av1FilterIntraMode.AllFilterIntraModes,
-                    usesInterTransformSet: true);
-
-                long candidateCost = Av1RateDistortion.GetCost(
-                    this.rateMultiplier,
-                    candidateRate,
-                    candidateDistortion);
-
-                if (candidateCost < bestCost)
-                {
-                    Span<TSample> previousBestReconstruction = bestReconstruction;
-                    bestReconstruction = candidateReconstruction;
-                    candidateReconstruction = previousBestReconstruction;
-
-                    Span<int> previousBestCoefficients = bestCoefficients;
-                    bestCoefficients = candidateCoefficients;
-                    candidateCoefficients = previousBestCoefficients;
-                    bestUsesSelectedStorage = !bestUsesSelectedStorage;
-                    bestCost = candidateCost;
-                    selectedState = candidateState;
-                    selectedRate = candidateRate;
-                    selectedDistortion = candidateDistortion;
-                    selectedSse = candidateSse;
-                }
-
-                // A winner already far above the remaining budget ends the search, and so does a winner that
-                // quantized the block to nothing. Reference: the adaptive_txb_search_level and skip_tx_search
-                // breaks that close the transform type loop of search_tx_type().
-                int adaptiveSearchLevel = settings.InterAdaptiveTransformSearchLevel;
-                if (adaptiveSearchLevel != 0 && bestCost - (bestCost >> adaptiveSearchLevel) > costLimit)
-                {
-                    break;
-                }
-
-                if (settings.SkipTransformSearchAfterEmptyBlock && selectedState.EndOfBlock == 0)
-                {
-                    break;
-                }
-            }
-
-            // A block crossing the frame edge leaves the residual with the border padding of the winning type,
-            // which the transform split model then reads. Reference: the final av1_subtract_txb() of
-            // search_tx_type().
-            Av1TransformBlockEncoder.PadBorderResidual(
-                this.blockWorkspace, plane, planeOrigin, residual, inputStride, width, transformSize.GetHeight(), selectedState.TransformType);
-
-            // Callers retain the designated selected spans after this scratch workspace is reused by the
-            // next plane or motion vector, so normalize only when the final best result occupies scratch.
-            predictionDistortion = selectedSse;
-
-            if (!bestUsesSelectedStorage)
+            // Callers retain the designated selected spans after this scratch workspace is reused by the next plane
+            // or motion vector.
+            if (bestReconstruction != selectedReconstruction[..sampleCount])
             {
                 bestReconstruction.CopyTo(selectedReconstruction);
                 bestCoefficients.CopyTo(selectedCoefficients);

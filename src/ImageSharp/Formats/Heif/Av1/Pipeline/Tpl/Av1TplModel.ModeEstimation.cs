@@ -91,10 +91,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
         }
 
+        // The quantizers, the vector error per bit and the SAD per bit use the model quantizer plus the superblock
+        // delta that the previous coded frame left. Reference: the av1_frame_init_quantizer() call that follows
+        // av1_set_error_per_bit() and av1_set_sad_per_bit() in init_mc_flow_dispenser().
+        int quantizerQIndex = Math.Clamp(modelQIndex + input.QuantizerDeltaQIndex, 0, Av1Constants.MaxQ);
         this.rateMultiplier = Math.Max(
             1,
             Av1TplRateDistortion.GetRateMultiplier(
-                modelQIndex,
+                quantizerQIndex,
                 this.bitDepth,
                 group.UpdateType[0],
                 layerDepth,
@@ -104,9 +108,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 input.IsStatConsumptionStage,
                 input.Tuning));
 
-        this.sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(modelQIndex, this.bitDepth);
+        this.sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(quantizerQIndex, this.bitDepth);
         frame.IsValid = true;
-        this.qIndex = modelQIndex;
+        this.qIndex = quantizerQIndex;
         frame.BaseRateMultiplier = Av1RateDistortion.GetRateMultiplier(modelQIndex, this.bitDepth, group.UpdateType[0], input.Tuning, false) / 6;
 
         // The model runs before the frame level speed features, so the key frame exception is applied here.
@@ -257,8 +261,6 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         int sourceIndex = source.IndexOf(x, y);
         int reconstructionIndex = reconstruction.IndexOf(x, y);
         Span<TSample> predictorSamples = this.predictor;
-        int gridColumn = modeInfoColumn >> Av1TplModelConstants.BlockModeInfoLog2;
-        int gridRow = modeInfoRow >> Av1TplModelConstants.BlockModeInfoLog2;
         long reconstructionError = 1;
         long predictionError = 1;
 
@@ -269,12 +271,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.upAvailable = modeInfoRow > 0;
         this.leftAvailable = modeInfoColumn > 0;
 
-        // The intra search starts from an intra reference field.
-        this.modeInfo.SetInter(gridColumn, gridRow, false);
+        // The block lends its own mode-information record, and the intra search starts from an intra reference
+        // field. Reference: set_mode_info_offsets() in mode_estimation().
+        this.modeInfo.LendRecord(modeInfoRow, modeInfoColumn);
+        this.modeInfo.SetInter(modeInfoRow, modeInfoColumn, false);
 
         // The bottom-left neighbors belong to the next block row, which the model has not reconstructed, while the
         // availability rules of a superblock may declare them present. Repeat the last left sample below the block.
-        if (this.leftAvailable && modeInfoRow + ModeInfoSize < this.ModeInfoRows)
+        if (this.leftAvailable && modeInfoRow + ModeInfoSize < this.tileModeInfoRowEnd)
         {
             Span<TSample> samples = reconstruction.Samples;
             int stride = reconstruction.Stride;
@@ -361,7 +365,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 }
             }
 
-            if (this.upAvailable && modeInfoColumn + ModeInfoSize < this.ModeInfoColumns)
+            if (this.upAvailable && modeInfoColumn + ModeInfoSize < this.tileModeInfoColumnEnd)
             {
                 Av1MotionVector vector = frame.GetBlock(modeInfoRow - ModeInfoSize, modeInfoColumn + ModeInfoSize).MotionVectors[reference];
                 if (!IsAlike(vector, centers[..startCount], speedFeatures.SkipAlikeStartingMotionVector))
@@ -450,7 +454,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         if (bestReference != -1 && bestInterCost < bestIntraCost)
         {
             bestMode = Av1PredictionMode.NewMotionVector;
-            this.modeInfo.SetInter(gridColumn, gridRow, true);
+            this.modeInfo.SetInter(modeInfoRow, modeInfoColumn, true);
         }
 
         // The compound search tries three reference pairs with a joint motion search from the single vectors.
@@ -468,8 +472,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
 
             // The trial writes the pair and NEW_NEWMV into the block's mode-information fields.
-            this.modeInfo.SetInter(gridColumn, gridRow, true);
-            this.modeInfo.SetMode(gridColumn, gridRow, Av1PredictionMode.NewNewMotionVector);
+            this.modeInfo.SetInter(modeInfoRow, modeInfoColumn, true);
+            this.modeInfo.SetMode(modeInfoRow, modeInfoColumn, Av1PredictionMode.NewNewMotionVector);
             trialVectors[0] = singleVectors[first];
             trialVectors[1] = singleVectors[second];
             this.SearchJointMotion(input, source.Samples[sourceIndex..], source.Stride, first, second, x, y, frameBounds, trialVectors);
@@ -569,7 +573,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         // Final encode. D203_PRED reads the chroma below the left neighbor, which the next block row has not
         // reconstructed yet; repeat the last left chroma sample below the block.
         int planes = speedFeatures.LumaOnlyRateDistortion ? 1 : this.planeCount;
-        if (bestMode == Av1PredictionMode.Directional203Degrees && this.leftAvailable && modeInfoRow + ModeInfoSize < this.ModeInfoRows)
+        if (bestMode == Av1PredictionMode.Directional203Degrees && this.leftAvailable && modeInfoRow + ModeInfoSize < this.tileModeInfoRowEnd)
         {
             for (int plane = 1; plane < planes; plane++)
             {

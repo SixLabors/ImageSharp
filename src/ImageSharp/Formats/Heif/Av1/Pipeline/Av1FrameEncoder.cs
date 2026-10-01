@@ -1139,41 +1139,76 @@ internal static partial class Av1FrameEncoder
         Av1EncoderOptions options,
         ref ScreenContentDecision decision)
     {
-        if (!frameHeader.IsIntra)
+        if (frameHeader.IsIntra)
         {
-            // Inter frames keep the tools and the content type of the last intra frame. Reference: the
-            // is_intra_frame test around av1_set_screen_content_options() in av1_encode_strategy().
-            frameHeader.AllowScreenContentTools = decision.AllowScreenContentTools;
-            frameHeader.AllowIntraBlockCopy = false;
-            return decision.IsScreenContent;
+            DecideScreenContent(source, sequenceHeader, options, ref decision);
         }
 
-        bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
+        ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), in decision);
+        return decision.IsScreenContent;
+    }
+
+    /// <summary>
+    /// Classifies the eight-bit source of an intra frame as screen content or not. Inter frames keep the decision of
+    /// the last intra frame. Reference: av1_set_screen_content_options(), which reads the unfiltered source.
+    /// </summary>
+    /// <param name="source">The unfiltered source frame.</param>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="options">The encoder options.</param>
+    /// <param name="decision">Receives the decision.</param>
+    private static void DecideScreenContent(
+        Av1EncoderFrame<byte> source,
+        ObuSequenceHeader sequenceHeader,
+        Av1EncoderOptions options,
+        ref ScreenContentDecision decision)
+    {
+        decision.IsScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
             options.Speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
+        decision.AllowScreenContentTools = allowScreenContentTools;
+        decision.AllowIntraBlockCopy = allowIntraBlockCopy;
+    }
+
+    /// <summary>
+    /// Writes the screen content decision to the frame header. Inter frames keep the tools of the last intra frame
+    /// and never copy blocks. Reference: the is_intra_frame test around av1_set_screen_content_options() in
+    /// av1_encode_strategy().
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="frameHeader">The frame header to configure.</param>
+    /// <param name="options">The encoder options.</param>
+    /// <param name="sourceSize">The source dimensions.</param>
+    /// <param name="decision">The screen content decision.</param>
+    private static void ApplyScreenContentTools(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1EncoderOptions options,
+        Size sourceSize,
+        in ScreenContentDecision decision)
+    {
+        frameHeader.AllowScreenContentTools = decision.AllowScreenContentTools;
+        if (!frameHeader.IsIntra)
+        {
+            frameHeader.AllowIntraBlockCopy = false;
+            return;
+        }
+
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
             sequenceHeader.IsStillPicture,
-            new Size(source.Width, source.Height),
+            sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
-            isScreenContent);
-
-        frameHeader.AllowScreenContentTools = allowScreenContentTools;
+            decision.IsScreenContent);
 
         frameHeader.AllowIntraBlockCopy =
-            frameHeader.IsIntra &&
             motionSettings.AllowIntraBlockCopy &&
             frameHeader.AllowScreenContentTools &&
-            allowIntraBlockCopy;
-
-        decision.AllowScreenContentTools = allowScreenContentTools;
-        decision.IsScreenContent = isScreenContent;
-        return isScreenContent;
+            decision.AllowIntraBlockCopy;
     }
 
     /// <summary>
@@ -1255,41 +1290,38 @@ internal static partial class Av1FrameEncoder
         Av1EncoderOptions options,
         ref ScreenContentDecision decision)
     {
-        if (!frameHeader.IsIntra)
+        if (frameHeader.IsIntra)
         {
-            // Inter frames keep the tools and the content type of the last intra frame. Reference: the
-            // is_intra_frame test around av1_set_screen_content_options() in av1_encode_strategy().
-            frameHeader.AllowScreenContentTools = decision.AllowScreenContentTools;
-            frameHeader.AllowIntraBlockCopy = false;
-            return decision.IsScreenContent;
+            DecideScreenContent(source, sequenceHeader, options, ref decision);
         }
 
-        bool isScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
+        ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), in decision);
+        return decision.IsScreenContent;
+    }
+
+    /// <summary>
+    /// Classifies the high-bit-depth source of an intra frame as screen content or not. Reference:
+    /// av1_set_screen_content_options(), which reads the unfiltered source.
+    /// </summary>
+    /// <param name="source">The unfiltered source frame.</param>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="options">The encoder options.</param>
+    /// <param name="decision">Receives the decision.</param>
+    private static void DecideScreenContent(
+        Av1EncoderFrame<ushort> source,
+        ObuSequenceHeader sequenceHeader,
+        Av1EncoderOptions options,
+        ref ScreenContentDecision decision)
+    {
+        decision.IsScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
             sequenceHeader.IsStillPicture,
             options.Speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
-        Av1MotionSearchSettings motionSettings = new(
-            options.Speed,
-            sequenceHeader.IsStillPicture,
-            new Size(source.Width, source.Height),
-            frameHeader.QuantizationParameters.BaseQIndex,
-            frameHeader.IsIntra,
-            isScreenContent);
-
-        frameHeader.AllowScreenContentTools = allowScreenContentTools;
-
-        frameHeader.AllowIntraBlockCopy =
-            frameHeader.IsIntra &&
-            motionSettings.AllowIntraBlockCopy &&
-            frameHeader.AllowScreenContentTools &&
-            allowIntraBlockCopy;
-
         decision.AllowScreenContentTools = allowScreenContentTools;
-        decision.IsScreenContent = isScreenContent;
-        return isScreenContent;
+        decision.AllowIntraBlockCopy = allowIntraBlockCopy;
     }
 
     private static void Encode(

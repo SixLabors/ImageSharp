@@ -11,12 +11,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 internal readonly struct Av1TemporalFilterSettings
 {
     /// <summary>
+    /// The default number of filter frames. Reference: the arnr_max_frames of default_extra_cfg.
+    /// </summary>
+    public const int DefaultMaximumFrames = 7;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1TemporalFilterSettings"/> struct with the default_extra_cfg
-    /// values for good-quality encoding (seven filter frames, strength five, key frame filtering, overlays and
-    /// sharpness zero) and the temporal filter speed features. Reference:
+    /// values for good-quality encoding (seven filter frames, strength five, key frame filtering and overlays), the
+    /// configured sharpness and the temporal filter speed features. Reference:
     /// set_good_speed_features_framesize_independent() and set_good_speed_feature_framesize_dependent().
     /// </summary>
     /// <param name="speed">The encoding speed, 0 to 6.</param>
+    /// <param name="sharpness">The configured sharpness, algo_cfg.sharpness.</param>
     /// <param name="frameWidth">The visible frame width.</param>
     /// <param name="frameHeight">The visible frame height.</param>
     /// <param name="allowScreenContentTools">Whether the frame allows the screen content tools, which disables the
@@ -24,16 +30,17 @@ internal readonly struct Av1TemporalFilterSettings
     /// <param name="motionSearch">The motion search speed features of the frame.</param>
     public Av1TemporalFilterSettings(
         HeifEncodingSpeed speed,
+        int sharpness,
         int frameWidth,
         int frameHeight,
         bool allowScreenContentTools,
         Av1MotionSearchSettings motionSearch)
     {
-        this.MaximumFrames = 7;
+        this.MaximumFrames = DefaultMaximumFrames;
         this.Strength = 5;
         this.KeyFrameFiltering = 1;
         this.EnableOverlay = true;
-        this.Sharpness = 0;
+        this.Sharpness = sharpness;
         this.MotionSearch = motionSearch;
 
         // hl_sf.weight_calc_level_in_tf: the approximated exponential from speed 3.
@@ -74,8 +81,8 @@ internal readonly struct Av1TemporalFilterSettings
     public bool EnableOverlay { get; init; }
 
     /// <summary>
-    /// Gets the sharpness, 0 to 7. Only three changes the filter: it limits the motion search to the frame and
-    /// lowers the strength of low-contrast blocks.
+    /// Gets the sharpness, 0 to 7. Any nonzero value measures the source variance of each block for the motion
+    /// search, and three also limits the motion search to the frame and lowers the strength of low-contrast blocks.
     /// </summary>
     public int Sharpness { get; init; }
 

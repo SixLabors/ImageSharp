@@ -170,6 +170,7 @@ internal sealed partial class Av1SecondPass
     private int groupFrameIndex;
     private int framesToKey;
     private int framesSinceKey = 8;
+    private int framesSinceGolden;
     private int framesToForwardKeyFrame;
     private int activeWorstQuality;
     private int currentGoldenIndex;
@@ -299,10 +300,15 @@ internal sealed partial class Av1SecondPass
     internal interface IGopLengthEvaluator
     {
         /// <summary>
-        /// Filters the alternate reference of <see cref="Group"/> when the trial group asks for it and then runs the
-        /// temporal dependency model for a group length evaluation, reading the preloaded
-        /// <see cref="Av1GopStructure.QValues"/>. Reference: av1_tf_info_filtering() once per trial group, then
-        /// av1_tpl_setup_stats().
+        /// Filters the key frame and alternate reference of the trial <see cref="Group"/>. Reference: the
+        /// av1_tf_info_filtering() call before is_shorter_gf_interval_better().
+        /// </summary>
+        /// <param name="secondPass">The decisions that own the trial group.</param>
+        void FilterGroup(Av1SecondPass secondPass);
+
+        /// <summary>
+        /// Runs the temporal dependency model for a group length evaluation, reading the preloaded
+        /// <see cref="Av1GopStructure.QValues"/>. Reference: av1_tpl_setup_stats().
         /// </summary>
         /// <param name="secondPass">The decisions that own the trial group.</param>
         /// <param name="gopEvaluation">The evaluation: 1 for the complete group, 2 for three layers, 3 for two.</param>
@@ -314,6 +320,12 @@ internal sealed partial class Av1SecondPass
         /// av1_tf_info_reset() in av1_get_second_pass_params().
         /// </summary>
         void BeginGroup();
+
+        /// <summary>
+        /// Marks the source of the previous group's alternate reference as unusable at a new key frame. Reference: the
+        /// prev_gop_arf_disp_order reset of av1_get_second_pass_params().
+        /// </summary>
+        void BeginKeyFrameInterval();
     }
 
     /// <summary>
@@ -452,18 +464,24 @@ internal sealed partial class Av1SecondPass
     /// av1_rc_pick_q_and_bounds() and av1_tpl_get_q_index() in AOM_Q mode.
     /// </summary>
     /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
-    /// <param name="tplValid">
-    /// Whether the temporal dependency model has valid statistics for the frame. Reference: av1_tpl_stats_ready()
-    /// with a nonzero mc_dep_cost_base.
+    /// <param name="tplReady">
+    /// Whether the temporal dependency model has ready statistics for the frame that show a dependency, which gates
+    /// the boost blend. Reference: av1_tpl_stats_ready() with a nonzero mc_dep_cost_base.
+    /// </param>
+    /// <param name="tplFrameValid">
+    /// Whether the frame's statistics entry is valid, ready or not, which gates the quantizer replacement. Reference:
+    /// tpl_frame[gf_frame_index].is_valid in av1_set_size_dependent_vars().
     /// </param>
     /// <param name="tplR0">The frame's ratio of propagated to intra cost. Reference: r0.</param>
-    /// <param name="tplQStepRatio">The frame's quantizer step ratio. Reference: av1_tpl_get_qstep_ratio().</param>
+    /// <param name="tplQStepRatio">
+    /// The frame's quantizer step ratio, one without ready statistics. Reference: av1_tpl_get_qstep_ratio().
+    /// </param>
     /// <returns>The base quantizer index.</returns>
-    public int ChooseBaseQIndex(bool screenContent, bool tplValid, double tplR0, double tplQStepRatio)
+    public int ChooseBaseQIndex(bool screenContent, bool tplReady, bool tplFrameValid, double tplR0, double tplQStepRatio)
     {
         int index = this.groupFrameIndex;
         Av1FrameUpdateType updateType = this.group.UpdateTypes[index];
-        if (tplValid && updateType is Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Key)
+        if (tplReady && updateType is Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Key)
         {
             // process_tpl_stats_frame(): the model's boost, projected to the frames the boost was meant to cover,
             // is blended with the boost from the statistics.
@@ -484,7 +502,7 @@ internal sealed partial class Av1SecondPass
 
         this.screenContentType = screenContent;
         int q = this.PickQIndex(index, screenContent);
-        if (tplValid && !this.lossless)
+        if (tplFrameValid && !this.lossless)
         {
             int tplQ = Av1ConstantQuality.GetQIndexFromQStepRatio(this.activeWorstQuality, tplQStepRatio, this.bitDepth);
             q = Math.Clamp(tplQ, this.bestQuality, this.worstQuality);
@@ -576,7 +594,9 @@ internal sealed partial class Av1SecondPass
                 break;
         }
 
-        if (frame.IsKeyFrame && frame.ShowFrame)
+        // A shown key frame that is coded, not shown from a slot, refreshes every reference. Reference: the
+        // force_refresh_all of av1_encode_strategy().
+        if (frame.IsKeyFrame && frame.ShowFrame && !frame.ShowExistingFrame)
         {
             refreshGolden = true;
             refreshAlternate = true;
@@ -603,7 +623,21 @@ internal sealed partial class Av1SecondPass
         if (frame.IsKeyFrame)
         {
             this.lastKeyFrameQIndex = q;
-            this.framesSinceKey = 0;
+        }
+
+        // An alternate reference restarts the golden count, as does a golden refresh or an overlay; any other
+        // shown frame advances it. Reference: update_alt_ref_frame_stats() and update_golden_frame_stats().
+        if (this.lagInFrames >= AlternateReferenceMinimumLag && refreshAlternate && !frame.IsKeyFrame)
+        {
+            this.framesSinceGolden = 0;
+        }
+        else if (refreshGolden || sourceIsAlternate)
+        {
+            this.framesSinceGolden = 0;
+        }
+        else if (frame.ShowFrame)
+        {
+            this.framesSinceGolden++;
         }
 
         // av1_twopass_postencode_update(): a frame that is not an alternate reference consumes the statistics of
@@ -723,6 +757,10 @@ internal sealed partial class Av1SecondPass
         if (this.framesToKey <= 0)
         {
             this.FindNextKeyFrame(in thisFrame);
+
+            // The source of the previous group's alternate reference cannot be used after a key frame. Reference: the
+            // prev_gop_arf_disp_order reset of av1_get_second_pass_params().
+            this.gopLengthEvaluator?.BeginKeyFrameInterval();
         }
 
         if (this.framesToForwardKeyFrame <= 0)
@@ -784,7 +822,11 @@ internal sealed partial class Av1SecondPass
         }
 
         this.CalculateGoldenLength(maximumGopLength);
+
+        // The test needs the temporal dependency model. Reference: the enable_tpl_model condition of the group length
+        // test in av1_get_second_pass_params().
         if (maximumGopLength > MaximumLookaheadGoldenLength &&
+            this.gopLengthEvaluator is not null &&
             this.lagInFrames >= 32 &&
             this.gopLengthDecisionMethod != 3)
         {
@@ -799,8 +841,11 @@ internal sealed partial class Av1SecondPass
             if (this.goldenIntervals[this.currentGoldenIndex] > MaximumLookaheadGoldenLength &&
                 this.minimumGoldenInterval <= MaximumLookaheadGoldenLength)
             {
-                // A trial definition of the long group lets the temporal dependency model judge its length.
+                // A trial definition of the long group, filtered once, lets the temporal dependency model judge its
+                // length. Reference: the define_gf_group() and av1_tf_info_filtering() calls before
+                // is_shorter_gf_interval_better().
                 this.DefineGoldenGroup(false);
+                this.gopLengthEvaluator!.FilterGroup(this);
                 if (this.IsShorterGoldenIntervalBetter())
                 {
                     this.CalculateGoldenLength(MaximumLookaheadGoldenLength);

@@ -45,6 +45,11 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         // av1_init_mv_probs() and av1_fill_mv_costs().
         this.FillMotionVectorCosts(input);
 
+        // Every block of the model takes its bounds from the first tile. Reference: av1_tile_init(&xd->tile, cm, 0, 0)
+        // in init_mc_flow_dispenser().
+        this.tileModeInfoRowEnd = input.TileModeInfoRowEnd;
+        this.tileModeInfoColumnEnd = input.TileModeInfoColumnEnd;
+
         // As the model runs before the frame level speed features are set, the leaf frame reduction is disabled for
         // the first group of a key frame interval here.
         bool reduceNumberOfFrames = input.SpeedFeatures.ReduceNumberOfFrames &&

@@ -396,11 +396,11 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         bool needBottomLeft = angle > 180;
         int transformWidthUnits = transformSize.Get4x4WideCount();
         int transformHeightUnits = transformSize.Get4x4HighCount();
-        bool rightAvailable = modeInfoColumn + (transformWidthUnits << subX) < this.ModeInfoColumns;
-        bool bottomAvailable = bottomDistance > 0 && modeInfoRow + (transformHeightUnits << subY) < this.ModeInfoRows;
-        int gridColumn = modeInfoColumn >> Av1TplModelConstants.BlockModeInfoLog2;
-        int gridRow = modeInfoRow >> Av1TplModelConstants.BlockModeInfoLog2;
-        Av1PartitionType partition = this.modeInfo.GetPartition(gridColumn, gridRow);
+        bool rightAvailable = modeInfoColumn + (transformWidthUnits << subX) < this.tileModeInfoColumnEnd;
+        bool bottomAvailable = bottomDistance > 0 && modeInfoRow + (transformHeightUnits << subY) < this.tileModeInfoRowEnd;
+        int blockRow = (modeInfoRow >> Av1TplModelConstants.BlockModeInfoLog2) << Av1TplModelConstants.BlockModeInfoLog2;
+        int blockColumn = (modeInfoColumn >> Av1TplModelConstants.BlockModeInfoLog2) << Av1TplModelConstants.BlockModeInfoLog2;
+        Av1PartitionType partition = this.modeInfo.GetPartition(blockRow, blockColumn);
         int haveTopRight = needTopRight
             ? (Av1IntraReferenceAvailability.HasTopRight(input.SuperblockSize, Av1BlockSize.Block16x16, modeInfoRow, modeInfoColumn, haveTop, rightAvailable, partition, transformSize, 0, 0, subX, subY) ? 1 : 0)
             : -1;
@@ -409,10 +409,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             ? (Av1IntraReferenceAvailability.HasBottomLeft(input.SuperblockSize, Av1BlockSize.Block16x16, modeInfoRow, modeInfoColumn, bottomAvailable, haveLeft, partition, transformSize, 0, 0, subX, subY) ? 1 : 0)
             : -1;
 
-        // A smooth neighbor above or to the left selects the stronger edge filter. The chroma neighbors of a 16x16
-        // block are the records of the same neighboring blocks.
-        bool filterType = (haveTop && this.modeInfo.IsSmooth(gridColumn, gridRow - 1, plane)) ||
-            (haveLeft && this.modeInfo.IsSmooth(gridColumn - 1, gridRow, plane));
+        // A smooth neighbor above or to the left selects the stronger edge filter. The neighbors are the records the
+        // grid positions above and to the left point to; a chroma block of a subsampled plane reads the position one
+        // step right above it and one step down left of it. Reference: the above_mbmi, left_mbmi,
+        // chroma_above_mbmi and chroma_left_mbmi of set_mi_row_col(), read by get_intra_edge_filter_type().
+        bool filterType = (haveTop && this.modeInfo.IsSmooth(blockRow - 1, blockColumn + subX, plane)) ||
+            (haveLeft && this.modeInfo.IsSmooth(blockRow + subY, blockColumn - 1, plane));
 
         int topRightCount = haveTopRight > 0 ? Math.Clamp(rightDistance, 0, transformWidth) : haveTopRight;
         int bottomLeftCount = haveBottomLeft > 0 ? Math.Clamp(bottomDistance, 0, transformHeight) : haveBottomLeft;

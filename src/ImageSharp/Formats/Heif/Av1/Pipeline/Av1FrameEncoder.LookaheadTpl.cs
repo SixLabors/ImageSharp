@@ -33,12 +33,14 @@ internal static partial class Av1FrameEncoder
         /// <param name="lookahead">The lookahead.</param>
         /// <param name="secondPass">The frame-level decisions.</param>
         /// <param name="allowHighPrecisionMotion">The high precision flag the encoder holds.</param>
+        /// <param name="forceIntegerMotion">The integer motion flag of the last coded frame.</param>
         /// <param name="allowScreenContentTools">The screen content flag the encoder holds.</param>
         /// <param name="motionSettings">The motion search settings the encoder holds.</param>
         public void FilterGroup(
             Av1LookaheadQueue<TSample> lookahead,
             Av1SecondPass secondPass,
             bool allowHighPrecisionMotion,
+            bool forceIntegerMotion,
             bool allowScreenContentTools,
             Av1MotionSearchSettings motionSettings);
 
@@ -66,8 +68,12 @@ internal static partial class Av1FrameEncoder
             /// <param name="parent">The frame state.</param>
             /// <param name="groupIndex">The group index of the frame.</param>
             /// <param name="qStepRatio">Receives the quantizer step ratio of the frame.</param>
-            /// <returns>Whether the frame has valid statistics.</returns>
-            public bool ApplyToFrame(Av1PictureParentControlSet parent, int groupIndex, out double qStepRatio);
+            /// <param name="frameValid">
+            /// Receives whether the frame's statistics entry is valid, ready or not, which gates the quantizer
+            /// replacement. Reference: tpl_frame[gf_frame_index].is_valid in av1_set_size_dependent_vars().
+            /// </param>
+            /// <returns>Whether the frame has ready and valid statistics. Reference: av1_tpl_stats_ready().</returns>
+            public bool ApplyToFrame(Av1PictureParentControlSet parent, int groupIndex, out double qStepRatio, out bool frameValid);
 
             /// <summary>
             /// Records the state a coded frame leaves for the next model run.
@@ -96,6 +102,17 @@ internal static partial class Av1FrameEncoder
             /// Gets the reconstructions in the reference slots.
             /// </summary>
             public Av1EncoderReferencePool<TSample> ReferencePool { get; }
+
+            /// <summary>
+            /// Classifies an intra frame as screen content from its unfiltered source, before the frame's quantizer,
+            /// filtering and temporal dependency model read the decision. An inter frame keeps the decision of the
+            /// last intra frame. Reference: the av1_set_screen_content_options() call of av1_encode_strategy() before
+            /// denoise_and_encode().
+            /// </summary>
+            /// <param name="unfilteredSource">The lookahead source of the frame.</param>
+            /// <param name="isKeyFrame">Whether the frame is a key frame.</param>
+            /// <returns>Whether the frames are classified as screen content.</returns>
+            public bool DecideLaggedScreenContent(Av1EncoderFrameBuffer<TSample> unfilteredSource, bool isKeyFrame);
 
             /// <summary>
             /// Codes one frame of a lookahead golden group from its source. Reference: av1_encode() through
@@ -147,7 +164,15 @@ internal static partial class Av1FrameEncoder
             private Av1GopStructure group = new();
             private Av1FrameEntropyContext? lastContext;
             private int lastQIndex = -1;
+            private int lastTrialQIndex = -1;
             private double importance;
+
+            /// <summary>
+            /// Whether the statistics of the coded frame were ready before the frame processed them, which decides the
+            /// copy of the group's last frame. Reference: the av1_tpl_stats_ready() test of av1_encode(), which runs
+            /// before process_tpl_stats_frame().
+            /// </summary>
+            private bool statisticsReadyBeforeCoding;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="LookaheadTemporalModel{TSample, TSearchOperator, TTplOperator}"/>
@@ -200,13 +225,21 @@ internal static partial class Av1FrameEncoder
             public void BeginGroup() => this.filter?.Reset();
 
             /// <inheritdoc/>
+            public void BeginKeyFrameInterval() => this.model.ForgetPreviousGroupAlternate();
+
+            /// <inheritdoc/>
+            public void FilterGroup(Av1SecondPass secondPass)
+                => this.filter?.FilterGroup(
+                    this.lookahead,
+                    secondPass,
+                    true,
+                    this.owner.FrameHeader.ForceIntegerMotionVector,
+                    this.owner.SpeedFeatureScreenContentTools,
+                    this.MotionSettings);
+
+            /// <inheritdoc/>
             public int SetupTplStatistics(Av1SecondPass secondPass, int gopEvaluation)
             {
-                // The trial group is filtered before it is measured. Reference: the av1_tf_info_filtering() call before
-                // is_shorter_gf_interval_better().
-                this.filter?.FilterGroup(
-                    this.lookahead, secondPass, true, this.owner.FrameHeader.AllowScreenContentTools, this.MotionSettings);
-
                 this.BuildInput(secondPass, secondPass.Group.KeyFrames[0], secondPass.FrameNumber);
                 int evaluation = this.model.SetupStatistics(this.input, gopEvaluation);
                 this.RecordModelQuantizer();
@@ -269,10 +302,12 @@ internal static partial class Av1FrameEncoder
             /// <param name="parent">The frame state.</param>
             /// <param name="groupIndex">The group index of the frame.</param>
             /// <param name="qStepRatio">Receives the quantizer step ratio of the frame.</param>
-            /// <returns>Whether the frame has valid statistics.</returns>
-            public bool ApplyToFrame(Av1PictureParentControlSet parent, int groupIndex, out double qStepRatio)
+            /// <param name="frameValid">Receives whether the frame's statistics entry is valid, ready or not.</param>
+            /// <returns>Whether the frame has ready and valid statistics.</returns>
+            public bool ApplyToFrame(Av1PictureParentControlSet parent, int groupIndex, out double qStepRatio, out bool frameValid)
             {
                 parent.TplFrame = groupIndex < Av1TplModelConstants.MaximumFrameIndex ? this.model.GetFrame(groupIndex) : null;
+                this.statisticsReadyBeforeCoding = this.model.IsStatisticsReady(groupIndex);
                 if (this.model.IsStatisticsReady(groupIndex))
                 {
                     // The golden boost blend of process_tpl_stats_frame() is part of the quantizer choice, so only
@@ -285,6 +320,7 @@ internal static partial class Av1FrameEncoder
                 parent.TplStatisticsReady = ready;
                 parent.TplImportance = this.importance;
                 qStepRatio = ready ? Math.Sqrt(1 / Av1TplDecisions.GetFrameImportance(this.model.GetFrame(groupIndex))) : 1;
+                frameValid = groupIndex < Av1TplModelConstants.FrameStatisticsLength && this.model.GetFrame(groupIndex).IsValid;
                 return ready;
             }
 
@@ -306,10 +342,13 @@ internal static partial class Av1FrameEncoder
                 Av1FrameEntropyContext context,
                 int qIndex)
             {
-                this.model.SavePreviousGroupAlternate(this.input.Group, frame.GroupIndex, source, frame.DisplayOrder);
+                this.model.SavePreviousGroupAlternate(
+                    this.input.Group, frame.GroupIndex, this.statisticsReadyBeforeCoding, source, frame.DisplayOrder);
+
                 this.CaptureModeInfo(picture);
                 this.lastContext = context;
                 this.lastQIndex = qIndex;
+                this.lastTrialQIndex = picture.Parent.ScreenContentTrialQIndex;
                 this.MotionSettings = picture.Parent.MotionSearchSettings;
             }
 
@@ -424,9 +463,18 @@ internal static partial class Av1FrameEncoder
                 // frame left. Reference: av1_set_high_precision_mv(cpi, 1, 0) in av1_get_compressed_data().
                 this.input.AllowHighPrecisionMotionVector = true;
                 this.input.ForceIntegerMotionVector = this.owner.FrameHeader.ForceIntegerMotionVector;
+                this.input.QuantizerDeltaQIndex = this.owner.FrameHeader.DeltaQParameters.IsPresent
+                    ? this.owner.PictureBuffer.Picture.Parent.SuperblockDeltaQIndex
+                    : 0;
+
+                Av1TileInfo firstTile = new(0, 0, this.owner.FrameHeader);
+                this.input.TileModeInfoRowEnd = firstTile.ModeInfoRowEnd;
+                this.input.TileModeInfoColumnEnd = firstTile.ModeInfoColumnEnd;
                 this.input.Tuning = options.Tuning;
                 this.input.SuperblockSize = this.owner.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-                this.input.SpeedFeatures = new Av1TplSpeedFeatures(options.Speed, this.width, this.height, this.lastQIndex);
+                this.input.SpeedFeatures = new Av1TplSpeedFeatures(
+                    options.Speed, this.width, this.height, this.lastQIndex, this.lastTrialQIndex);
+
                 this.input.MotionSettings = this.MotionSettings;
                 if (this.lastContext is not null)
                 {
@@ -435,27 +483,11 @@ internal static partial class Av1FrameEncoder
             }
 
             /// <summary>
-            /// Copies the fields the model reads at the top-left of each 16x16 block from the mode-information records a
-            /// coded frame left. Reference: the mi_alloc entries that set_mode_info_offsets() lends to mode_estimation().
+            /// Takes the mode-information grid and records a coded frame left, which the model borrows. Reference: the
+            /// mi_grid_base and mi_alloc that set_mode_info_offsets() lends to mode_estimation().
             /// </summary>
             /// <param name="picture">The coded picture.</param>
-            private void CaptureModeInfo(Av1PictureControlSet picture)
-            {
-                Av1TplModeInfoGrid grid = this.model.ModeInfo;
-                ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
-                int shift = picture.Disallow4x4AllFrames ? 1 : 0;
-                int stride = picture.ModeInfoStride >> shift;
-                for (int row = 0; row < grid.Rows; row++)
-                {
-                    for (int column = 0; column < grid.Columns; column++)
-                    {
-                        int modeInfoRow = row << 2;
-                        int modeInfoColumn = column << 2;
-                        ref readonly Av1EncoderBlockModeInfo block = ref allocation[((modeInfoRow >> shift) * stride) + (modeInfoColumn >> shift)].Block;
-                        grid.Set(column, row, block.PartitionType, block.Mode, block.UvMode, block.ReferenceFrame > Av1ReferenceFrameType.Intra);
-                    }
-                }
-            }
+            private void CaptureModeInfo(Av1PictureControlSet picture) => this.model.ModeInfo.Capture(picture);
         }
     }
 }

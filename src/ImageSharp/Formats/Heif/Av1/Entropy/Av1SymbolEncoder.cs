@@ -512,6 +512,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     public HeifEncodingSpeed EncodingSpeed { get; set; }
 
     /// <summary>
+    /// Gets the motion vector distributions every tile of the frame starts from, or <see langword="null"/> when tiles
+    /// start from the defaults.
+    /// </summary>
+    public Av1MotionVectorContext? FrameMotionVectorContext => this.frameBase?.MotionVector;
+
+    /// <summary>
     /// Gets the retained coefficient rates.
     /// </summary>
     private Av1CoefficientCosts CoefficientCosts => new(
@@ -1977,7 +1983,18 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetTransformBlockSkipCost(bool skip, Av1TransformSize transformSizeContext, int skipContext)
-        => Av1CoefficientCosts.GetSkip(this.CoefficientCosts.GetPlane((int)transformSizeContext, 0), skipContext, skip ? 1 : 0);
+        => this.GetTransformBlockSkipCost(skip, transformSizeContext, skipContext, Av1ComponentType.Luminance);
+
+    /// <summary>
+    /// Gets the rate of signaling whether a transform block of a component has no coded coefficients.
+    /// </summary>
+    /// <param name="skip">Indicates whether the transform block is empty.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
+    public int GetTransformBlockSkipCost(bool skip, Av1TransformSize transformSizeContext, int skipContext, Av1ComponentType componentType)
+        => Av1CoefficientCosts.GetSkip(this.CoefficientCosts.GetPlane((int)transformSizeContext, (int)componentType), skipContext, skip ? 1 : 0);
 
     /// <summary>
     /// Writes whether a transform block has no coded coefficients.

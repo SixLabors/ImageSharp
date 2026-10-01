@@ -111,6 +111,14 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     public HeifTuning? Tuning { get; init; }
 
     /// <summary>
+    /// Gets how the encoder varies the compression between areas of a frame. The compression varies between areas only
+    /// in animations without alpha at <see cref="HeifEncodingSpeed.Level0"/> to <see cref="HeifEncodingSpeed.Level6"/>.
+    /// Other lossy animations can change slightly. Lossless encoding ignores this setting.
+    /// Defaults to <see cref="HeifAdaptiveQuantization.None"/>.
+    /// </summary>
+    public HeifAdaptiveQuantization AdaptiveQuantization { get; init; }
+
+    /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit
     /// depth. Metadata that does not specify a bit depth defaults to <see cref="HeifBitDepth.Bit8"/>.
     /// </summary>

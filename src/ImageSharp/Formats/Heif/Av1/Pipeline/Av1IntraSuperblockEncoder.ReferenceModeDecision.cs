@@ -56,6 +56,21 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly bool BiasesInterCosts => this.blockWorkspace.EncoderOptions.Tuning == Av1Tuning.Iq;
 
         /// <summary>
+        /// Gets the Q12 mode threshold multiplier of the block, from 2.5 at quantizer zero to 1 at quantizer 255 when
+        /// skippable inter modes are pruned, else 1. Reference: mode_threshold_mul_factor[x->qindex] in
+        /// av1_rd_pick_inter_mode(), with the table's nearest-integer rounding.
+        /// </summary>
+        private readonly int ModeThresholdSkipMultiplier => this.picture.Parent.SpeedSettings.PruneSkippableInterModes
+            ? 10240 - (((this.blockQIndex * 6144) + 127) / 255)
+            : 4096;
+
+        /// <summary>
+        /// Gets the quantizer scale of the mode thresholds of the block's segment. Reference: the segment_id index of
+        /// rd->threshes in av1_rd_pick_inter_mode().
+        /// </summary>
+        private readonly int ModeThresholdQuantizerFactor => this.blockWorkspace.ModeThresholdQuantizerFactors[this.blockSegmentId];
+
+        /// <summary>
         /// Compares legal same-frame displacements with the retained intra winner.
         /// </summary>
         private Av1RateDistortionStatistics SelectIntraBlockCopy(
@@ -97,7 +112,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Sequence.SequenceHeader,
                 costs,
                 reference,
-                this.superblockQIndex,
+                this.blockQIndex,
                 this.rateMultiplier,
                 this.picture.Parent.MotionSearchStepParameter,
                 settings,
@@ -414,8 +429,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     // from the skip_txfm of the winner's RD_STATS.
                     if (Av1ModeThresholds.ShouldSkip(
                         this.blockWorkspace.ModeThresholdFactors,
-                        this.blockWorkspace.ModeThresholdQuantizerFactor,
-                        this.blockWorkspace.ModeThresholdSkipMultiplier,
+                        this.ModeThresholdQuantizerFactor,
+                        this.ModeThresholdSkipMultiplier,
                         blockSize,
                         mode,
                         reference,
@@ -1533,12 +1548,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         if (skip)
                         {
                             ReadOnlySpan<int> limits = [2, 3, 5, 7, 9];
-                            candidateCount = Math.Min(candidateCount, limits[(5 * this.superblockQIndex) >> 8]);
+                            candidateCount = Math.Min(candidateCount, limits[(5 * this.blockQIndex) >> 8]);
                         }
                         else if (predictionModeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                         {
                             ReadOnlySpan<int> limits = settings.InterModeTransformBreakout == 1 ? [10, 7, 5, 4] : [10, 7, 5, 3];
-                            candidateCount = Math.Min(candidateCount, limits[(4 * this.superblockQIndex) >> 8]);
+                            candidateCount = Math.Min(candidateCount, limits[(4 * this.blockQIndex) >> 8]);
                         }
                     }
                 }
@@ -2221,7 +2236,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int visibleHeight = visibleSize.Height;
             distortion = Av1ResidualBuilder.SumSquares(residual, width, visibleWidth, visibleHeight);
 
-            int qIndex = this.superblockQIndex;
+            int qIndex = this.blockQIndex;
             int dcQuantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, this.bitDepth);
             long meanSquaredError = distortion / width / height;
             long normalizedDcQuantizer = dcQuantizer >> 3;
@@ -2490,10 +2505,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 float averageVariance = varianceSum / (subCount + 1);
                 float varianceOfVariances = (float)(squaredVarianceSum / (subCount + 1)) - (averageVariance * averageVariance);
                 int dcQuantizer = Av1QuantizationLookup.GetDcQuant(
-                    this.superblockQIndex, this.quantization.DeltaQDc[0], this.bitDepth) >> 3;
+                    this.blockQIndex, this.quantization.DeltaQDc[0], this.bitDepth) >> 3;
 
                 int acQuantizer = Av1QuantizationLookup.GetAcQuant(
-                    this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth) >> 3;
+                    this.blockQIndex, this.quantization.DeltaQAc[0], this.bitDepth) >> 3;
 
                 int noSplitScale = pruningLevel == 1 ? 24 : 8;
                 int splitScale = pruningLevel == 1 ? 24 : pruningLevel == 2 ? 10 : 8;
@@ -3180,7 +3195,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 aboveContexts,
                 leftContexts,
                 this.bitDepth,
-                this.superblockQIndex,
+                this.blockQIndex,
                 this.quantization.DeltaQDc[0],
                 this.blockWorkspace.EncoderOptions.Sharpness,
                 frameHeader.CodedLossless,
@@ -3232,7 +3247,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     int weightIndex = candidateReferenceIndices[index] + (requestedMode == Av1PredictionMode.NearMotionVector ? 1 : 0);
                     bool pruneByQuantizer = reductionLevel >= 3 ||
-                        candidateReferenceIndices[index] >= (this.superblockQIndex * 3 / 256) + 1;
+                        candidateReferenceIndices[index] >= (this.blockQIndex * 3 / 256) + 1;
 
                     if ((secondaryPastReference || (distantNewReference && pruneByQuantizer)) &&
                         referenceMotionVectors.Weights[weightIndex] < Av1ReferenceMotionVectors.NearestCandidateWeight)
@@ -4226,7 +4241,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 interResidual);
 
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
-            int acQuantizer = Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
+            int acQuantizer = Av1QuantizationLookup.GetAcQuant(this.blockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
             selectedMode = Av1InterIntraMode.DC;
             selectedWedge = false;
             selectedWedgeIndex = 0;
@@ -4393,7 +4408,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     referenceVector,
                     costs,
                     this.bitDepth,
-                    Av1RateDistortion.GetMotionSearchSadPerBit(this.superblockQIndex, this.bitDepth),
+                    Av1RateDistortion.GetMotionSearchSadPerBit(this.blockQIndex, this.bitDepth),
                     this.rateMultiplier,
                     selectedIntra,
                     mask);
@@ -4589,7 +4604,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockSize,
                 GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0),
                 transformSize,
-                this.superblockQIndex,
+                this.blockQIndex,
                 this.quantization.DeltaQDc[0],
                 this.bitDepth,
                 this.blockWorkspace.EncoderOptions.Sharpness,
@@ -5509,7 +5524,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             ReadOnlySpan<byte> thresholds = [1, 0, 0, 1, 1, 0, 2, 1, 0];
-            int threshold = thresholds[((level - 1) * 3) + (this.superblockQIndex * 3 / 256)];
+            int threshold = thresholds[((level - 1) * 3) + (this.blockQIndex * 3 / 256)];
             Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
             Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
             int matches = left.ReferenceFrame == primary && left.SecondaryReferenceFrame == secondary ? 1 : 0;
@@ -5978,8 +5993,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeImproved = false;
                     rejectMode = Av1ModeThresholds.ShouldSkip(
                         this.blockWorkspace.ModeThresholdFactors,
-                        this.blockWorkspace.ModeThresholdQuantizerFactor,
-                        this.blockWorkspace.ModeThresholdSkipMultiplier,
+                        this.ModeThresholdQuantizerFactor,
+                        this.ModeThresholdSkipMultiplier,
                         blockSize,
                         mode,
                         primaryReference,
@@ -7051,7 +7066,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> lumaMultipliers = [int.MaxValue, 32, 29, 17, 17, 17];
             int factor = 4;
             if (this.bestInterLumaPredictionCost > this.interSourceVarianceCost &&
-                this.superblockQIndex >= quantizerThresholds[level])
+                this.blockQIndex >= quantizerThresholds[level])
             {
                 factor *= scales[level];
             }
@@ -7173,7 +7188,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int acQuantizer = Av1QuantizationLookup.GetAcQuant(
-                this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
+                this.blockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
 
             long bestCost = long.MaxValue;
             selectedError = 0;
@@ -7280,7 +7295,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int acQuantizer = Av1QuantizationLookup.GetAcQuant(
-                this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
+                this.blockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
 
             Av1RateDistortion.ModelPredictionError(
                 blockSize,
@@ -7390,7 +7405,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     referenceVector,
                     costs,
                     this.bitDepth,
-                    Av1RateDistortion.GetMotionSearchSadPerBit(this.superblockQIndex, this.bitDepth),
+                    Av1RateDistortion.GetMotionSearchSadPerBit(this.blockQIndex, this.bitDepth),
                     this.rateMultiplier,
                     workspace.BluePrediction,
                     mask);
@@ -7538,6 +7553,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector secondaryVector,
             ReadOnlySpan<Av1EncoderTransformBlockState> states)
         {
+            this.SetCodedBlockSegment(modeInfo.Block.SegmentId);
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             bool isInterIntra = modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
             if (isInterIntra)
@@ -7799,7 +7815,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.SetPredictionSse(reference, squaredError);
-            int acQuantizer = Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
+            int acQuantizer = Av1QuantizationLookup.GetAcQuant(this.blockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
             Av1RateDistortion.ModelPredictionError(
                 blockSize,
                 squaredError,
@@ -8312,7 +8328,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 int acQuantizer = Av1QuantizationLookup.GetAcQuant(
-                    this.superblockQIndex,
+                    this.blockQIndex,
                     this.quantization.DeltaQAc[planeIndex],
                     this.bitDepth);
 
@@ -8552,7 +8568,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (this.estimateInterCandidates && this.picture.Parent.SpeedSettings.InterModeEstimation == 2)
                     {
                         int acQuantizer = Av1QuantizationLookup.GetAcQuant(
-                            this.superblockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth);
+                            this.blockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth);
 
                         Av1RateDistortion.ModelPredictionError(
                             planeSize,
@@ -8679,7 +8695,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return true;
             }
 
-            int quantizer = this.superblockQIndex;
+            int quantizer = this.blockQIndex;
             int factor = level <= 2 ? 4 * Math.Max(1, (((255 - quantizer) * 2) + 128) >> 8) : 4;
             ReadOnlySpan<int> quantizerThresholds = [0, 0, 0, 80, 100, 140];
             if (this.bestInterPredictionCost > this.interSourceVarianceCost && quantizer >= quantizerThresholds[level])

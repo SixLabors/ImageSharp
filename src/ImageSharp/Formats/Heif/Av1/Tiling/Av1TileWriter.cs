@@ -3530,7 +3530,7 @@ internal partial class Av1TileWriter
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuSegmentationParameters segmentation_params = pcs.Parent.FrameHeader.SegmentationParameters;
-        if (!segmentation_params.Enabled)
+        if (!segmentation_params.Enabled || segmentation_params.SegmentationUpdateMap != 1)
         {
             return;
         }
@@ -3539,13 +3539,34 @@ internal partial class Av1TileWriter
         if (!beforeSkip && skip)
         {
             // Post-skip segment syntax can infer the spatial predictor once the decoder already knows the block is skipped.
+            // The bitstream also records it in the encoder's own map. Reference: the skip_txfm branch of
+            // write_segment_id().
             pcs.UpdateSegmentation(blockSize, blockOrigin, spatial_pred);
+            if (TOperation.WritesOutput)
+            {
+                pcs.UpdateSegmentation(pcs.Parent.EncoderSegmentMap.Span, blockSize, blockOrigin, spatial_pred);
+            }
+
             block.SegmentId = spatial_pred;
             return;
         }
 
-        int coded_id = Av1SymbolContextHelper.NegativeDeinterleave(block.SegmentId, spatial_pred, segmentation_params.LastActiveSegmentId + 1);
-        writer.WriteSegmentId<TOperation>(coded_id, cdf_num);
+        // The segment syntax is only coded into the bitstream; the encoding pass never adapts its distributions.
+        // Reference: update_stats(), which updates no segment distribution.
+        if (TOperation.WritesOutput)
+        {
+            // An inter frame that codes its map against the primary reference first signals the prediction flag.
+            // The encoder never sets the flag, so every identifier is then coded spatially. Reference: the
+            // seg_id_predicted of write_inter_segment_id(), which only the skip path writes.
+            if (!pcs.Parent.FrameHeader.IsIntra && segmentation_params.SegmentationTemporalUpdate == 1)
+            {
+                writer.WriteSegmentIdPredicted<TOperation>(false, 0);
+            }
+
+            int coded_id = Av1SymbolContextHelper.NegativeInterleave(block.SegmentId, spatial_pred, segmentation_params.LastActiveSegmentId + 1);
+            writer.WriteSegmentId<TOperation>(coded_id, cdf_num);
+        }
+
         pcs.UpdateSegmentation(blockSize, blockOrigin, block.SegmentId);
     }
 
@@ -3562,6 +3583,24 @@ internal partial class Av1TileWriter
         Av1MacroBlockD xd,
         Point blockOrigin,
         out int cdf_index)
+        => GetSpatialSegmentationPrediction(pcs.Parent.Common, pcs.SegmentationNeighborMap.Span, xd, blockOrigin, out cdf_index);
+
+    /// <summary>
+    /// Derives a segment identifier predictor and entropy context from the upper-left, above, and left neighbors of a
+    /// segment map. Reference: av1_get_spatial_seg_pred().
+    /// </summary>
+    /// <param name="cm">The frame dimensions in mode-information units.</param>
+    /// <param name="segmentation_map">The segment map that holds the neighbors.</param>
+    /// <param name="xd">The current macroblock and its neighbor availability.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="cdf_index">The entropy context selected by matching neighbor identifiers.</param>
+    /// <returns>The spatially predicted segment identifier.</returns>
+    public static int GetSpatialSegmentationPrediction(
+        Av1EncoderCommon cm,
+        ReadOnlySpan<byte> segmentation_map,
+        Av1MacroBlockD xd,
+        Point blockOrigin,
+        out int cdf_index)
     {
         const int unavailableSegmentId = -1;
         int prev_ul = unavailableSegmentId;
@@ -3572,8 +3611,6 @@ internal partial class Av1TileWriter
         int mi_row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
         bool left_available = xd.IsLeftAvailable;
         bool up_available = xd.IsUpAvailable;
-        Av1EncoderCommon cm = pcs.Parent.Common;
-        Span<byte> segmentation_map = pcs.SegmentationNeighborMap.Span;
 
         if (up_available && left_available)
         {

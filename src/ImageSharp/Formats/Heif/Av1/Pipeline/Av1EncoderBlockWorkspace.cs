@@ -145,6 +145,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     private readonly int motionSearchSiteStorageOffset;
 
+    private readonly int[] modeThresholdQuantizerFactors = new int[Av1Constants.MaxSegmentCount];
+
     private readonly int displacementCostStorageOffset;
     private readonly int transformProbabilityStorageOffset;
     private readonly int interpolationProbabilityStorageOffset;
@@ -494,14 +496,16 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.modeThresholdStorageOffset, (int)Av1BlockSize.AllSizes * Av1ModeThresholds.ModeCount);
 
     /// <summary>
-    /// Gets or sets the quantizer-dependent base scale shared by the frame's mode thresholds.
+    /// Gets the quantizer-dependent base scale of the frame's mode thresholds, one per segment. Reference: the
+    /// segment loop of set_block_thresholds().
     /// </summary>
-    public int ModeThresholdQuantizerFactor { get; set; }
+    public Span<int> ModeThresholdQuantizerFactors => this.modeThresholdQuantizerFactors;
 
     /// <summary>
-    /// Gets or sets the Q12 threshold multiplier used when the best mode has no residual.
+    /// Gets or sets the variance segment that the last 16x16 partition node measured, which the blocks of 16x16 and
+    /// smaller take. Like the reference's, it keeps its value across superblocks and frames. Reference: x->mb_energy.
     /// </summary>
-    public int ModeThresholdSkipMultiplier { get; set; }
+    public int MacroblockEnergy { get; set; }
 
     /// <summary>
     /// Gets the worker's motion-feature nodes in breadth-first quadtree order.

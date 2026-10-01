@@ -1974,7 +1974,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ((this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Horizontal) && !pruneHorizontal) ||
                  (this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Vertical) && !pruneVertical)))
             {
-                int rectangleAggressiveness = aggressiveness == 6 ? this.superblockQIndex <= 90 ? 4 : 3 : aggressiveness;
+                int rectangleAggressiveness = aggressiveness == 6 ? this.blockQIndex <= 90 ? 4 : 3 : aggressiveness;
                 float threshold = MotionPruneRectThresh[(rectangleAggressiveness * 15) + (resolution * 5) + sizeIndex];
                 if (threshold == 0F)
                 {

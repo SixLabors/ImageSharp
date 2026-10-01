@@ -513,6 +513,18 @@ internal readonly ref struct Av1ModeCosts
     private Span<int> ChromaFromLuma => this.storage.Slice(ChromaFromLumaOffset, ChromaFromLumaLength);
 
     /// <summary>
+    /// Gets a retained spatially predicted segment identifier rate in 1/512-bit units. Reference: spatial_pred_cost.
+    /// </summary>
+    public int GetSegmentId(int row, int symbol)
+        => this.SegmentId[(row * SegmentIdAlphabetSize) + symbol];
+
+    /// <summary>
+    /// Gets a retained temporal segment prediction flag rate in 1/512-bit units. Reference: tmp_pred_cost.
+    /// </summary>
+    public int GetSegmentIdPredicted(int row, int symbol)
+        => this.SegmentIdPredicted[(row * SegmentIdPredictedAlphabetSize) + symbol];
+
+    /// <summary>
     /// Gets a retained partition types rate in 1/512-bit units.
     /// </summary>
     public int GetPartitionTypes(int row, int symbol)

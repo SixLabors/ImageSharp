@@ -1630,6 +1630,45 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
+    /// Codes a segment identifier as an alternating distance from its spatial predictor, the inverse of
+    /// <see cref="NegativeDeinterleave"/>. Reference: av1_neg_interleave().
+    /// </summary>
+    /// <param name="value">The segment identifier, below <paramref name="max"/>.</param>
+    /// <param name="reference">The predicted segment identifier.</param>
+    /// <param name="max">The exclusive upper bound of the segment identifier range.</param>
+    /// <returns>The coded nonnegative distance symbol.</returns>
+    public static int NegativeInterleave(int value, int reference, int max)
+    {
+        int difference = value - reference;
+        if (reference == 0)
+        {
+            return value;
+        }
+
+        if (reference >= max - 1)
+        {
+            return -value + max - 1;
+        }
+
+        if (2 * reference < max)
+        {
+            if (Math.Abs(difference) <= reference)
+            {
+                return difference > 0 ? (difference << 1) - 1 : (-difference) << 1;
+            }
+
+            return value;
+        }
+
+        if (Math.Abs(difference) < max - reference)
+        {
+            return difference > 0 ? (difference << 1) - 1 : (-difference) << 1;
+        }
+
+        return max - value - 1;
+    }
+
+    /// <summary>
     /// Reconstructs a segment identifier coded as an alternating distance from its spatial predictor.
     /// </summary>
     /// <param name="diff">The coded nonnegative distance symbol.</param>

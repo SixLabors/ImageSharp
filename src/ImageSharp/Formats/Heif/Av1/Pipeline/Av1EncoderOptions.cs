@@ -130,6 +130,11 @@ internal sealed class Av1EncoderOptions
     public Av1DeltaQMode DeltaQMode { get; init; }
 
     /// <summary>
+    /// Gets the adaptive quantization mode. Reference: aq_mode, NO_AQ by default.
+    /// </summary>
+    public Av1AdaptiveQuantizationMode AdaptiveQuantizationMode { get; init; }
+
+    /// <summary>
     /// Gets the screen content detection mode. Reference: screen_detection_mode.
     /// </summary>
     public Av1ScreenDetectionMode ScreenDetectionMode { get; init; }

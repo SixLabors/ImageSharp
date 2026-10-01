@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -26,7 +27,7 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
     private readonly int qIndex;
     private readonly Av1EncoderMotionField motionField;
     private readonly Entry?[] slots = new Entry?[Av1Constants.ReferenceFrameCount];
-    private readonly Stack<Entry> free = new();
+    private readonly List<Entry> free = [];
     private readonly List<Entry> entries = [];
 
     /// <summary>
@@ -67,13 +68,24 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Returns an unused frame buffer for the frame about to be coded. Reference: get_free_fb().
+    /// Returns the unused frame buffer with the lowest index for the frame about to be coded, which keeps whatever
+    /// segment map its last frame left. Reference: get_free_fb().
     /// </summary>
     /// <returns>A buffer that no slot points at.</returns>
     public Entry Acquire()
     {
-        if (this.free.TryPop(out Entry? entry))
+        Entry? entry = null;
+        foreach (Entry candidate in this.free)
         {
+            if (entry is null || candidate.Id < entry.Id)
+            {
+                entry = candidate;
+            }
+        }
+
+        if (entry is not null)
+        {
+            this.free.Remove(entry);
             return entry;
         }
 
@@ -127,13 +139,13 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
             this.slots[slot] = current;
             if (previous is not null && --previous.ReferenceCount == 0)
             {
-                this.free.Push(previous);
+                this.free.Add(previous);
             }
         }
 
         if (current.ReferenceCount == 0)
         {
-            this.free.Push(current);
+            this.free.Add(current);
         }
     }
 
@@ -156,6 +168,8 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
     /// </summary>
     internal sealed class Entry
     {
+        private byte[] segmentMap = [];
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Entry"/> class.
         /// </summary>
@@ -195,5 +209,26 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
         /// Gets or sets the number of slots that point at this buffer.
         /// </summary>
         public int ReferenceCount { get; set; }
+
+        /// <summary>
+        /// Gets the segmentation state of the frame in the buffer. Reference: cur_frame->seg.
+        /// </summary>
+        public ObuSegmentationParameters Segmentation { get; } = new();
+
+        /// <summary>
+        /// Gets the segment map that the last frame coded into the buffer left, one identifier per 4x4 block, or
+        /// zeros before any frame wrote it. Reference: cur_frame->seg_map, which aom_calloc() clears once.
+        /// </summary>
+        /// <param name="length">The number of 4x4 blocks in the frame.</param>
+        /// <returns>The segment map.</returns>
+        public Memory<byte> GetSegmentMap(int length)
+        {
+            if (this.segmentMap.Length != length)
+            {
+                this.segmentMap = new byte[length];
+            }
+
+            return this.segmentMap;
+        }
     }
 }

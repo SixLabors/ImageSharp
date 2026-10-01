@@ -72,7 +72,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 dequantized,
                 size,
                 type,
-                this.superblockQIndex,
+                this.blockQIndex,
                 this.quantization.DeltaQDc[0],
                 this.quantization.DeltaQAc[0],
                 this.bitDepth,
@@ -528,7 +528,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     residual, inputStride, visibleWidth, visibleHeight, this.bitDepth, out blockMseQ8);
 
             int acDequantizer = Av1QuantizationLookup.GetAcQuant(
-                this.superblockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth);
+                this.blockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth);
 
             // predict_dc_only_block settles a block whose residual cannot survive quantization, and from level two
             // keeps only the DC coefficient of a low-variance block. Chroma of an intra block keeps its full
@@ -536,7 +536,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool dcOnlyCandidate = false;
             bool predictedSkip = predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
                 transformSize,
-                Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, this.quantization.DeltaQDc[planeIndex], this.bitDepth),
+                Av1QuantizationLookup.GetDcQuant(this.blockQIndex, this.quantization.DeltaQDc[planeIndex], this.bitDepth),
                 acDequantizer,
                 this.bitDepth,
                 perPixelMean,
@@ -669,7 +669,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     filterIntraMode,
                     useReducedTransformSet,
                     isInter,
-                    this.superblockQIndex,
+                    this.blockQIndex,
                     this.quantization.DeltaQDc[planeIndex],
                     this.quantization.DeltaQAc[planeIndex],
                     this.bitDepth,
@@ -757,7 +757,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformWidth,
                             transformSize,
                             plane,
-                            this.superblockQIndex,
+                            this.blockQIndex,
                             this.bitDepth,
                             in reconstructionState);
 
@@ -828,7 +828,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformWidth,
                     transformSize,
                     plane,
-                    this.superblockQIndex,
+                    this.blockQIndex,
                     this.bitDepth,
                     in best.ReconstructionState);
 

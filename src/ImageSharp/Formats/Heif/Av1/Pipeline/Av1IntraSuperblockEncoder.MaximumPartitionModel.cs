@@ -215,7 +215,7 @@ internal static partial class Av1IntraSuperblockEncoder
             float meanRow = rowSum / 64F;
             float meanColumn = columnSum / 64F;
             float meanError = errorSum / 64F;
-            int dcStep = Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+            int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
             InlineArray16<float> features = default;
             features[0] = meanError;
             features[1] = meanColumn;

@@ -333,6 +333,49 @@ internal class Av1PictureParentControlSet
     public bool RefreshesGolden { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the frame refreshes the alternate reference.
+    /// Reference: cpi->refresh_frame.alt_ref_frame.
+    /// </summary>
+    public bool RefreshesAlternate { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether variance adaptive quantization chooses the segment of each block from
+    /// its source variance in this frame, rather than taking it from the previous map. Reference: cpi->vaq_refresh.
+    /// </summary>
+    public bool VarianceSegmentRefresh { get; set; }
+
+    /// <summary>
+    /// Gets or sets the segment map of the primary reference frame, or an empty map when the frame has none or that
+    /// frame did not use segmentation. Reference: cm->last_frame_seg_map.
+    /// </summary>
+    public ReadOnlyMemory<byte> PreviousSegmentMap { get; set; }
+
+    /// <summary>
+    /// Gets or sets the segment map the encoder keeps across frames, which a frame that updates its map but does not
+    /// refresh its variance segments reads, and whose skipped blocks write their predicted segment. Reference:
+    /// cpi->enc_seg.map.
+    /// </summary>
+    public Memory<byte> EncoderSegmentMap { get; set; }
+
+    /// <summary>
+    /// Gets or sets the segment map that the frame buffer holds while the frame is searched, which is what its previous
+    /// frame left until the bitstream is written. Reference: cm->cur_frame->seg_map in av1_get_spatial_seg_pred().
+    /// </summary>
+    public ReadOnlyMemory<byte> SearchSegmentMap { get; set; }
+
+    /// <summary>
+    /// Gets or sets the estimated rate of coding the segment identifiers spatially. Reference:
+    /// rd_counts.seg_tmp_pred_cost[0].
+    /// </summary>
+    public long SpatialSegmentCost { get; set; }
+
+    /// <summary>
+    /// Gets or sets the estimated rate of coding the segment identifiers against the primary reference frame's map.
+    /// Reference: rd_counts.seg_tmp_pred_cost[1].
+    /// </summary>
+    public long TemporalSegmentCost { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether distortion stops at the frame edge rather than at the coded
     /// eight-sample boundary, and the residual beyond the frame edge is filled from its visible part. Good-quality
     /// sequences enable it. Reference: cpi->do_border_pad.

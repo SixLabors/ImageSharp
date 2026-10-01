@@ -1098,8 +1098,24 @@ internal sealed class ObuWriter : IDisposable
             return;
         }
 
-        // A frame with no primary reference starts a new segmentation domain. AV1 therefore infers
-        // update-map and update-data as enabled and carries the complete feature state directly.
+        // A frame with no primary reference starts a new segmentation domain, so AV1 infers update-map and
+        // update-data as enabled. Any other frame signals them, and keeps the features of its primary reference unless
+        // it updates the data. Reference: encode_segmentation().
+        if (frameHeader.PrimaryReferenceFrame != Av1Constants.PrimaryReferenceFrameNone)
+        {
+            writer.WriteBoolean(segmentation.SegmentationUpdateMap == 1);
+            if (segmentation.SegmentationUpdateMap == 1)
+            {
+                writer.WriteBoolean(segmentation.SegmentationTemporalUpdate == 1);
+            }
+
+            writer.WriteBoolean(segmentation.SegmentationUpdateData == 1);
+            if (segmentation.SegmentationUpdateData != 1)
+            {
+                return;
+            }
+        }
+
         for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
         {
             for (int featureId = 0; featureId < Av1Constants.SegmentationLevelMax; featureId++)

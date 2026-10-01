@@ -311,7 +311,13 @@ internal sealed partial class HeifEncoderCore
                 KeyFrameMaximumDistance = this.encoder.KeyFrameInterval ?? Av1EncoderOptions.DefaultKeyFrameMaximumDistance,
                 Sharpness = this.encoder.Sharpness ?? Av1EncoderOptions.GetDefaultSharpness(tuning),
                 TileRowsLog2 = tileRowsLog2,
-                TileColumnsLog2 = tileColumnsLog2
+                TileColumnsLog2 = tileColumnsLog2,
+
+                // libaom refuses adaptive quantization with lossless coding. Reference: the lossless test of
+                // validate_config().
+                AdaptiveQuantizationMode = !this.encoder.Lossless && this.encoder.AdaptiveQuantization == HeifAdaptiveQuantization.Variance
+                    ? Av1AdaptiveQuantizationMode.Variance
+                    : Av1AdaptiveQuantizationMode.None
             };
     }
 

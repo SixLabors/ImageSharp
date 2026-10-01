@@ -258,6 +258,11 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[] segmentId;
 
     /// <summary>
+    /// The tile-adaptive temporal segment-prediction flag distributions.
+    /// </summary>
+    private readonly Av1Distribution[] segmentIdPredicted;
+
+    /// <summary>
     /// The tile-adaptive directional angle-delta distributions.
     /// </summary>
     private readonly Av1Distribution[] angleDelta;
@@ -372,6 +377,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         this.transformSize = this.entropyContext.TransformSize;
         this.transformPartition = this.entropyContext.TransformPartition;
         this.segmentId = this.entropyContext.SegmentId;
+        this.segmentIdPredicted = this.entropyContext.SegmentIdPredicted;
         this.angleDelta = this.entropyContext.AngleDelta;
         this.skip = this.entropyContext.Skip;
         this.skipMode = this.entropyContext.SkipMode;
@@ -2374,6 +2380,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     {
         ref Av1SymbolWriter w = ref this.writer;
         _ = TOperation.ProcessSymbol(ref w, segmentId, this.segmentId[context]);
+    }
+
+    /// <summary>
+    /// Writes whether a segment identifier is taken from the primary reference frame's map.
+    /// </summary>
+    /// <param name="predicted">Whether the identifier is predicted.</param>
+    /// <param name="context">The context derived from the neighbors' prediction flags.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSegmentIdPredicted<TOperation>(bool predicted, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, predicted ? 1 : 0, this.segmentIdPredicted[context]);
     }
 
     /// <summary>

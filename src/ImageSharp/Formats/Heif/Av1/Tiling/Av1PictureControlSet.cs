@@ -280,9 +280,18 @@ internal class Av1PictureControlSet
     /// <param name="origin">The block origin in samples.</param>
     /// <param name="segmentId">The segment identifier.</param>
     public void UpdateSegmentation(Av1BlockSize blockSize, Point origin, int segmentId)
+        => this.UpdateSegmentation(this.SegmentationNeighborMap.Span, blockSize, origin, segmentId);
+
+    /// <summary>
+    /// Writes a segment identifier to every entry of a segment map that a block covers. Reference: set_segment_id().
+    /// </summary>
+    /// <param name="segment_ids">The segment map, one entry per 4x4 block.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="origin">The block origin in samples.</param>
+    /// <param name="segmentId">The segment identifier.</param>
+    public void UpdateSegmentation(Span<byte> segment_ids, Av1BlockSize blockSize, Point origin, int segmentId)
     {
         Av1EncoderCommon cm = this.Parent.Common;
-        Span<byte> segment_ids = this.SegmentationNeighborMap.Span;
         int mi_col = origin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_row = origin.Y >> Av1Constants.ModeInfoSizeLog2;
         int mi_offset = (mi_row * cm.ModeInfoColumnCount) + mi_col;

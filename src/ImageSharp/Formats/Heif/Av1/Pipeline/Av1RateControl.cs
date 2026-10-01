@@ -1069,15 +1069,38 @@ internal sealed class Av1RateControl
     /// <param name="rateTargetRatio">The rate ratio.</param>
     /// <returns>The quantizer index change.</returns>
     private int GetQDeltaByRate(bool keyFrame, bool screenContent, int qIndex, double rateTargetRatio)
+        => GetQDeltaByRate(keyFrame, screenContent, qIndex, rateTargetRatio, this.bitDepth, this.bestQuality, this.worstQuality);
+
+    /// <summary>
+    /// Returns the quantizer index change that scales the expected rate by a ratio, at the base rate correction and
+    /// without the accurate estimate. Reference: av1_compute_qdelta_by_rate() and find_qindex_by_rate().
+    /// </summary>
+    /// <param name="keyFrame">Whether the rate is of a key frame.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
+    /// <param name="qIndex">The base quantizer index.</param>
+    /// <param name="rateTargetRatio">The rate ratio.</param>
+    /// <param name="bitDepth">The coded bit depth.</param>
+    /// <param name="bestQIndex">The lowest allowed quantizer index. Reference: rc->best_quality.</param>
+    /// <param name="worstQIndex">The highest allowed quantizer index. Reference: rc->worst_quality.</param>
+    /// <returns>The quantizer index change.</returns>
+    public static int GetQDeltaByRate(
+        bool keyFrame,
+        bool screenContent,
+        int qIndex,
+        double rateTargetRatio,
+        Av1BitDepth bitDepth,
+        int bestQIndex,
+        int worstQIndex)
     {
-        int baseBitsPerMacroblock = this.GetBitsPerMacroblock(keyFrame, screenContent, qIndex, 1.0, false);
+        int enumerator = GetBitsPerMacroblockEnumerator(keyFrame, screenContent);
+        int baseBitsPerMacroblock = (int)(enumerator * 1.0 / ConvertQIndexToQ(qIndex, bitDepth));
         int targetBitsPerMacroblock = (int)(rateTargetRatio * baseBitsPerMacroblock);
-        int low = this.bestQuality;
-        int high = this.worstQuality;
+        int low = bestQIndex;
+        int high = worstQIndex;
         while (low < high)
         {
             int middle = (low + high) >> 1;
-            if (this.GetBitsPerMacroblock(keyFrame, screenContent, middle, 1.0, false) > targetBitsPerMacroblock)
+            if ((int)(enumerator * 1.0 / ConvertQIndexToQ(middle, bitDepth)) > targetBitsPerMacroblock)
             {
                 low = middle + 1;
             }

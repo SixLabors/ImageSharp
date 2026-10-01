@@ -49,14 +49,15 @@ internal static partial class Av1FrameEncoder
 
         /// <summary>
         /// Gets a value indicating whether the encoder replaces residuals outside the visible frame. Good-quality
-        /// usage does so with the default objective delta-q mode and the temporal dependency model on, unless the
-        /// sharpness is 3. Reference: the do_border_pad test of av1_encode().
+        /// usage does so with the default objective delta-q mode and the temporal dependency model on, without adaptive
+        /// quantization, unless the sharpness is 3. Reference: the do_border_pad test of av1_encode().
         /// </summary>
         private protected bool UsesBorderPad =>
             !this.SequenceHeader.IsStillPicture &&
             this.Options.Speed < HeifEncodingSpeed.Level7 &&
             this.Options.DeltaQMode == Av1DeltaQMode.Objective &&
             this.Options.EnableTemporalModel &&
+            this.Options.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.None &&
             this.Options.Sharpness != 3;
 
         /// <summary>
@@ -392,6 +393,10 @@ internal static partial class Av1FrameEncoder
             parent.RefreshesGolden = frame.UpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or
                 Av1FrameUpdateType.Overlay || (frame.UpdateType == Av1FrameUpdateType.Alternate && frame.ResetsReferences);
 
+            // av1_configure_buffer_updates(): the alternate reference refresh of the update role.
+            parent.RefreshesAlternate = frame.UpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Alternate ||
+                (frame.UpdateType == Av1FrameUpdateType.Overlay && frame.ResetsReferences);
+
             if (frameHeader.FrameType == ObuFrameType.KeyFrame)
             {
                 this.warpedProbabilities.AsSpan().Fill(64);
@@ -672,6 +677,7 @@ internal static partial class Av1FrameEncoder
             this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));
 
             this.ConfigureReferenceTools(parent);
+            this.ResetIntraSegmentation();
 
             // Reference: the av1_determine_sc_tools_with_encoding() call of encode_with_recode_loop(), which a
             // lookahead sequence reaches because its statistics allow recoding.
@@ -687,6 +693,14 @@ internal static partial class Av1FrameEncoder
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.BeginLaggedGlobalMotion(in frame, secondPass.Group);
             this.SearchGlobalMotion<byte, ByteGlobalMotionSearchOperator>(source.Frame, this.references, parent);
+            this.BeginSegmentation(
+                this.referencePool,
+                current,
+                parent,
+                allowsRecode: true,
+                frame.MacroblockAverageEnergy,
+                secondPass.BestQuality,
+                secondPass.WorstQuality);
 
             Encode(
                 this.ObuWriter,
@@ -705,6 +719,7 @@ internal static partial class Av1FrameEncoder
                 writeTemporalDelimiter);
 
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
+            this.CompleteSegmentation(current, this.PictureBuffer.Picture);
             this.CompleteLaggedMotionVectorStatistics<byte, Av1MotionVectorStatistics.ByteTextureOperator>(parent, source.Frame);
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
@@ -826,6 +841,7 @@ internal static partial class Av1FrameEncoder
             this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));
 
             this.ConfigureReferenceTools(parent);
+            this.ResetIntraSegmentation();
 
             // Reference: the av1_determine_sc_tools_with_encoding() call of encode_with_recode_loop(), which a
             // lookahead sequence reaches because its statistics allow recoding.
@@ -841,6 +857,14 @@ internal static partial class Av1FrameEncoder
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.BeginLaggedGlobalMotion(in frame, secondPass.Group);
             this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(source.Frame, this.references, parent);
+            this.BeginSegmentation(
+                this.referencePool,
+                current,
+                parent,
+                allowsRecode: true,
+                frame.MacroblockAverageEnergy,
+                secondPass.BestQuality,
+                secondPass.WorstQuality);
 
             Encode(
                 this.ObuWriter,
@@ -859,6 +883,7 @@ internal static partial class Av1FrameEncoder
                 writeTemporalDelimiter);
 
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
+            this.CompleteSegmentation(current, this.PictureBuffer.Picture);
             this.CompleteLaggedMotionVectorStatistics<ushort, Av1MotionVectorStatistics.UInt16TextureOperator>(parent, source.Frame);
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);

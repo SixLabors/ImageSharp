@@ -198,7 +198,17 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly Av1BitDepth bitDepth;
         private readonly int baseRateMultiplier;
         private readonly int rateMultiplierModifier;
+
+        // The quantizer of the superblock: the frame quantizer moved by any delta quantizer. Reference: the
+        // current_qindex of setup_delta_q().
         private readonly int superblockQIndex;
+
+        // The quantizer of the current block or partition node: the superblock quantizer moved by the segment of the
+        // last block setup. Reference: x->qindex from av1_init_plane_quantizers().
+        private int blockQIndex;
+
+        // The segment of the block being searched. Reference: mbmi->segment_id in pick_sb_modes().
+        private int blockSegmentId;
 
         /// <summary>
         /// The prediction error of the best new vector of each single reference in the block being searched, or
@@ -426,7 +436,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (superblock.Index % coefficientBuffer.SuperblockColumnCount) * superblockModeInfoSize,
                 (superblock.Index / coefficientBuffer.SuperblockColumnCount) * superblockModeInfoSize);
 
-            this.superblockQIndex = this.quantization.QIndex[0];
+            this.superblockQIndex = this.quantization.BaseQIndex;
             int rateQIndex = this.superblockQIndex;
             ObuDeltaParameters deltaQ = parent.FrameHeader.DeltaQParameters;
             if (deltaQ.IsPresent)
@@ -486,25 +496,30 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.superblockQIndex + this.quantization.DeltaQDc[0], this.bitDepth);
             }
 
+            this.blockQIndex = this.superblockQIndex;
+
             // The multiplier at the frame quantizer is cpi->rd.RDMULT; at the superblock quantizer it is
             // set_rdmult(cpi, x, -1). Both take the layer depth and golden boost of stat consumption.
             this.baseRateMultiplier = parent.GetRateMultiplier(rateQIndex + this.quantization.DeltaQDc[0], this.bitDepth);
 
             // The superblock starts from the references the temporal dependency model keeps against the selective
-            // reference pruning, and from none without statistics. Reference: init_ref_frame_space() in
-            // init_encode_rd_sb().
+            // reference pruning, and from none without statistics or with adaptive quantization. Reference:
+            // init_ref_frame_space() in init_encode_rd_sb().
             this.tplKeepReferenceFrames[..].Clear();
             if (parent.TplFrame is { } superblockTplFrame)
             {
-                Av1TplDecisions.GetKeptReferenceFrames(
-                    parent.TplStatisticsReady,
-                    superblockTplFrame,
-                    parent.FrameUpdateType,
-                    parent.IsTplEligible,
-                    superblockModeInfoSize,
-                    superblockModeInfo.Y,
-                    superblockModeInfo.X,
-                    this.tplKeepReferenceFrames[..]);
+                if (parent.EncoderOptions.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.None)
+                {
+                    Av1TplDecisions.GetKeptReferenceFrames(
+                        parent.TplStatisticsReady,
+                        superblockTplFrame,
+                        parent.FrameUpdateType,
+                        parent.IsTplEligible,
+                        superblockModeInfoSize,
+                        superblockModeInfo.Y,
+                        superblockModeInfo.X,
+                        this.tplKeepReferenceFrames[..]);
+                }
 
                 // The recursive partition search gathers the model costs and vectors of the superblock's 16x16
                 // blocks; the variance-based partition search does not. Reference: the av1_get_tpl_stats_sb() call
@@ -1005,6 +1020,12 @@ internal static partial class Av1IntraSuperblockEncoder
             // A negative bound returns before the block setup. Reference: the best_rdc.rdcost test that precedes
             // setup_block_rdmult() in av1_rd_pick_partition().
             int savedRateMultiplier = this.rateMultiplier;
+            if (costLimit.Cost >= 0)
+            {
+                // Reference: the av1_set_offsets() call of av1_rd_pick_partition().
+                this.SetBlockSegment(blockOrigin, blockSize);
+            }
+
             this.rateMultiplier = costLimit.Cost < 0
                 ? this.GetBlockRateMultiplier(blockOrigin, blockSize)
                 : this.SetupBlockRateMultiplier(blockOrigin, blockSize);
@@ -1012,6 +1033,14 @@ internal static partial class Av1IntraSuperblockEncoder
             // The bound arrives at the multiplier of the parent. Reference: the av1_rd_cost_update() call of
             // av1_rd_pick_partition().
             costLimit.UpdateCost(this.rateMultiplier);
+
+            // A 16x16 node of a frame that refreshes its variance segments measures the segment its smaller blocks
+            // take. Reference: the x->mb_energy update of av1_rd_pick_partition().
+            if (costLimit.Cost >= 0 && blockSize == Av1BlockSize.Block16x16 && this.picture.Parent.VarianceSegmentRefresh)
+            {
+                this.blockWorkspace.MacroblockEnergy = this.GetLogBlockVariance(blockOrigin, blockSize);
+            }
+
             Av1PartitionType result = this.SelectBestPartitionCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, nodeIndex, costLimit, out selectedStatistics, out noneCost, out rectangleWins);
             this.rateMultiplier = savedRateMultiplier;
             return result;
@@ -1064,14 +1093,152 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
+        /// <param name="segmentId">The segment whose quantizer prices the block, or -1 for the superblock quantizer.</param>
         /// <returns>The rate multiplier, at least one.</returns>
-        private readonly int GetBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
+        private readonly int GetBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId = -1)
         {
-            int multiplier = this.GetTunedRateMultiplier(blockOrigin, blockSize);
+            int multiplier = this.GetTunedRateMultiplier(blockOrigin, blockSize, segmentId);
 
             // The reference widens the product before the shift.
             multiplier = (int)(((long)multiplier * this.rateMultiplierModifier) >> 7);
             return Math.Max(multiplier, 1);
+        }
+
+        /// <summary>
+        /// Sets the segment and quantizer of a block or partition node when the frame uses segmentation. A frame that
+        /// refreshes its variance segments searches every block in segment 0; any other frame takes the smallest
+        /// segment the previous map holds under the block. Reference: the segment setup of av1_set_offsets(), with
+        /// av1_init_plane_quantizers().
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        private void SetBlockSegment(Point blockOrigin, Av1BlockSize blockSize)
+        {
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            ObuSegmentationParameters segmentation = parent.FrameHeader.SegmentationParameters;
+            this.blockSegmentId = 0;
+            if (!segmentation.Enabled)
+            {
+                return;
+            }
+
+            // Reference: the seg->update_map choice between cpi->enc_seg.map and cm->last_frame_seg_map.
+            ReadOnlySpan<byte> map = segmentation.SegmentationUpdateMap == 1
+                ? parent.EncoderSegmentMap.Span
+                : parent.PreviousSegmentMap.Span;
+
+            if (!parent.VarianceSegmentRefresh && !map.IsEmpty)
+            {
+                this.blockSegmentId = Av1SymbolContextHelper.GetSegmentId(
+                    parent.Common,
+                    map,
+                    blockSize,
+                    new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2));
+            }
+
+            this.blockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, this.blockSegmentId, this.superblockQIndex);
+        }
+
+        /// <summary>
+        /// Adds the estimated rates of coding a coded block's segment spatially and against the primary reference's
+        /// map. The spatial predictor reads the map that the frame buffer still holds from its previous frame, and the
+        /// prediction flag context is 0 because the encoder never sets the flag. Reference: the seg_tmp_pred_cost
+        /// update of av1_update_state().
+        /// </summary>
+        /// <param name="writer">The symbol encoder whose rates price the syntax.</param>
+        /// <param name="macroBlock">The block's neighbor availability.</param>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="segmentId">The block's segment.</param>
+        private readonly void AddSegmentPredictionCosts(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int segmentId)
+        {
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            ObuSegmentationParameters segmentation = parent.FrameHeader.SegmentationParameters;
+            if (!segmentation.Enabled)
+            {
+                return;
+            }
+
+            int prediction = Av1TileWriter.GetSpatialSegmentationPrediction(
+                parent.Common, parent.SearchSegmentMap.Span, macroBlock, blockOrigin, out int context);
+
+            int codedId = Av1SymbolContextHelper.NegativeInterleave(segmentId, prediction, segmentation.LastActiveSegmentId + 1);
+            int spatialCost = writer.ModeCosts.GetSegmentId(context, codedId);
+            parent.SpatialSegmentCost += spatialCost;
+
+            int previousSegmentId = parent.PreviousSegmentMap.IsEmpty
+                ? 0
+                : Av1SymbolContextHelper.GetSegmentId(
+                    parent.Common,
+                    parent.PreviousSegmentMap.Span,
+                    blockSize,
+                    new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2));
+
+            bool predicted = previousSegmentId == segmentId;
+            parent.TemporalSegmentCost += writer.ModeCosts.GetSegmentIdPredicted(0, predicted ? 1 : 0);
+            if (!predicted)
+            {
+                parent.TemporalSegmentCost += spatialCost;
+            }
+        }
+
+        /// <summary>
+        /// Sets the quantizer of a selected block from its segment before the block is coded. Reference: the
+        /// av1_init_plane_quantizers() call of av1_update_state().
+        /// </summary>
+        /// <param name="segmentId">The segment of the selected block.</param>
+        private void SetCodedBlockSegment(int segmentId)
+        {
+            ObuSegmentationParameters segmentation = this.picture.Parent.FrameHeader.SegmentationParameters;
+            if (this.picture.Parent.EncoderOptions.AdaptiveQuantizationMode != Av1AdaptiveQuantizationMode.None)
+            {
+                this.blockSegmentId = segmentId;
+                this.blockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, segmentId, this.superblockQIndex);
+            }
+        }
+
+        /// <summary>
+        /// Returns the variance segment of a block: the mean log variance of its 4x4 luma blocks inside the
+        /// mode-information grid, at most 7. A block of 16x16 or smaller takes the value its 16x16 partition node
+        /// measured. Reference: the VARIANCE_AQ branch of setup_block_rdmult() with av1_log_block_var().
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The segment identifier.</returns>
+        private int GetVarianceSegmentId(Point blockOrigin, Av1BlockSize blockSize)
+            => blockSize <= Av1BlockSize.Block16x16
+                ? this.blockWorkspace.MacroblockEnergy
+                : this.GetLogBlockVariance(blockOrigin, blockSize);
+
+        /// <summary>
+        /// Returns the mean log variance of the 4x4 luma blocks of a block inside the mode-information grid, at most 7.
+        /// Reference: av1_log_block_var().
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The truncated mean log variance.</returns>
+        private int GetLogBlockVariance(Point blockOrigin, Av1BlockSize blockSize)
+        {
+            Av1EncoderCommon common = this.picture.Parent.Common;
+            int width = Math.Min(blockSize.GetWidth(), (common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) - blockOrigin.X);
+            int height = Math.Min(blockSize.GetHeight(), (common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) - blockOrigin.Y);
+            double sum = 0;
+            for (int y = 0; y < height; y += 4)
+            {
+                for (int x = 0; x < width; x += 4)
+                {
+                    sum += this.GetSourceLogVariance(new Point(blockOrigin.X + x, blockOrigin.Y + y));
+                }
+            }
+
+            // The divisor counts whole 4x4 blocks, evaluated left to right. Reference: var /= (bw / 4 * bh / 4).
+            sum /= width / 4 * height / 4;
+            return (int)Math.Min(sum, 7);
         }
 
         /// <summary>
@@ -1099,12 +1266,24 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
+        /// <param name="segmentId">The segment whose quantizer prices the block, or -1 for the superblock quantizer.</param>
         /// <returns>The rate multiplier, at least zero.</returns>
-        private readonly int GetTunedRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
+        private readonly int GetTunedRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId = -1)
         {
+            // A segment prices the block at the segment quantizer of the frame quantizer, unless the coding block
+            // multiplier replaces it. Adaptive quantization then keeps the superblock multiplier. Reference:
+            // set_rdmult() in the aq branches of setup_block_rdmult(), and the aq_mode return of av1_get_cb_rdmult().
             int multiplier = this.baseRateMultiplier;
             Av1PictureParentControlSet parent = this.picture.Parent;
-            if (parent.CodingBlockDeltaRateMultiplier && parent.TplFrame is { } tplFrame)
+            if (segmentId >= 0 && !parent.CodingBlockDeltaRateMultiplier)
+            {
+                multiplier = parent.GetRateMultiplier(
+                    Av1QuantizationLookup.GetQIndex(parent.FrameHeader.SegmentationParameters, segmentId, this.quantization.BaseQIndex),
+                    this.bitDepth);
+            }
+
+            if (parent.CodingBlockDeltaRateMultiplier && parent.TplFrame is { } tplFrame &&
+                parent.EncoderOptions.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.None)
             {
                 multiplier = Av1TplDecisions.GetCodingBlockRateMultiplier(
                     parent.TplStatisticsReady,
@@ -1472,7 +1651,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         if (partitionSettings.ChildPartitionPruningLevel != 0)
                         {
-                            int requiredWins = Math.Min((3 * (255 - this.superblockQIndex) / 255) + 1, 3);
+                            int requiredWins = Math.Min((3 * (255 - this.blockQIndex) / 255) + 1, 3);
                             int horizontalWins = 0;
                             int verticalWins = 0;
                             for (int child = 0; child < 4; child++)
@@ -1628,7 +1807,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (partitionSettings.ChildPartitionPruningLevel >= 2)
                     {
-                        int requiredWins = Math.Min(3 * (2 * (255 - this.superblockQIndex) / 255), 3);
+                        int requiredWins = Math.Min(3 * (2 * (255 - this.blockQIndex) / 255), 3);
                         for (int shape = 0; shape < 4; shape++)
                         {
                             int firstChild = shape < 2 ? shape * 2 : shape - 2;
@@ -2197,7 +2376,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool noneSkippable = IsSkippable(in noneSnapshot);
                 pruneExtendedPartitions = !this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 1 && noneSkippable;
                 if (!this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 2 && noneSkippable &&
-                    this.superblockQIndex <= 200 &&
+                    this.blockQIndex <= 200 &&
                     noneModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra &&
                     noneModeInfo.Block.Mode is not (Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector or
                         Av1PredictionMode.NearestNewMotionVector or Av1PredictionMode.NewNearestMotionVector or
@@ -2965,7 +3144,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     frameHeader.AllowScreenContentTools,
                     frameHeader.IsIntra,
                     this.picture.Parent.FrameUpdateType,
-                    this.superblockQIndex);
+                    this.blockQIndex);
 
                 if (blockSize < minimum || blockSize > maximum)
                 {
@@ -3361,6 +3540,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo = context.Snapshot.ModeInfo;
                 block = context.Snapshot.Block;
                 paletteInfo = context.Snapshot.Palette;
+                if (encodeSelected && !modeInfo.Block.Skip)
+                {
+                    this.AddSegmentPredictionCosts(writer, macroBlock, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
+                }
+
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || modeInfo.Block.UseIntraBlockCopy)
                 {
                     InlineArray128<Av1EncoderTransformBlockState> states = default;
@@ -3476,12 +3660,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1TransformSize.Size4x4
                 : blockSize.GetMaximumTransformSize();
 
-            int qIndex = this.superblockQIndex;
+            int qIndex = this.blockQIndex;
             modeInfo.Block = new Av1EncoderBlockModeInfo
             {
                 BlockSize = blockSize,
                 PartitionType = partitionType,
-                SegmentId = 0,
+                SegmentId = this.blockSegmentId,
                 TransformSize = maximumLumaTransformSize,
                 Mode = Av1PredictionMode.DC,
                 UvMode = Av1ChromaPredictionMode.DC
@@ -3492,8 +3676,9 @@ internal static partial class Av1IntraSuperblockEncoder
             block.HasChroma = !this.source.IsMonochrome &&
                 Av1TileReader.HasChroma(this.picture.Sequence.SequenceHeader, modeInfoPosition, blockSize);
 
-            block.QuantizationIndex = qIndex;
-            block.SegmentId = 0;
+            // The delta quantizer syntax codes the superblock quantizer, not the segment's. Reference: mbmi->current_qindex.
+            block.QuantizationIndex = this.superblockQIndex;
+            block.SegmentId = this.blockSegmentId;
 
             bool stillPicture = this.picture.Sequence.SequenceHeader.IsStillPicture;
             if (this.picture.Parent.FrameHeader.IsIntra &&
@@ -3786,8 +3971,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool bypassWinner = winnerSettings.GetInterWinnerPruningLevel(this.picture.Parent.FrameUpdateType) switch
                 {
                     2 => !hasNewMotion && interStatistics.AllTransformsEmpty,
-                    3 => !hasNewMotion && (interStatistics.AllTransformsEmpty || (this.superblockQIndex <= 127 && modeInfo.Block.Skip)),
-                    4 => !(winnerSettings.CoefficientOptimizationLevel >= 5 && this.superblockQIndex <= 70) &&
+                    3 => !hasNewMotion && (interStatistics.AllTransformsEmpty || (this.blockQIndex <= 127 && modeInfo.Block.Skip)),
+                    4 => !(winnerSettings.CoefficientOptimizationLevel >= 5 && this.blockQIndex <= 70) &&
                         (modeInfo.Block.Skip || interStatistics.AllTransformsEmpty),
                     _ => false
                 };
@@ -4221,10 +4406,27 @@ internal static partial class Av1IntraSuperblockEncoder
                 return Av1RateDistortionStatistics.Invalid;
             }
 
+            // The block takes its segment, and the variance and complexity modes price it at the segment quantizer. A
+            // frame that refreshes its variance segments places the block by its source variance, but still searches
+            // it with the quantizer of segment 0. Reference: av1_set_offsets() and the aq branches of
+            // setup_block_rdmult() in pick_sb_modes().
+            this.SetBlockSegment(blockOrigin, blockSize);
+            int rateSegmentId = -1;
+            Av1AdaptiveQuantizationMode adaptiveQuantization = this.picture.Parent.EncoderOptions.AdaptiveQuantizationMode;
+            if (adaptiveQuantization == Av1AdaptiveQuantizationMode.Variance)
+            {
+                if (this.picture.Parent.VarianceSegmentRefresh)
+                {
+                    this.blockSegmentId = this.GetVarianceSegmentId(blockOrigin, blockSize);
+                }
+
+                rateSegmentId = this.blockSegmentId;
+            }
+
             // The search sets the motion vector error per bit from the block multiplier. Reference: the
             // av1_set_error_per_bit() call of pick_sb_modes().
             int savedRateMultiplier = this.rateMultiplier;
-            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize);
+            this.rateMultiplier = this.GetBlockRateMultiplier(blockOrigin, blockSize, rateSegmentId);
             this.blockWorkspace.ErrorPerBitRateMultiplier = this.rateMultiplier;
             Av1RateDistortionStatistics result = this.EvaluatePartitionLeafCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, partitionType, context, costLimit, publishContexts, publishCoefficientContexts, intraEncodeFollows);
             this.rateMultiplier = savedRateMultiplier;
@@ -4660,6 +4862,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPartitionTree.ModeContext context)
         {
             Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
+            this.SetCodedBlockSegment(snapshot.ModeInfo.Block.SegmentId);
             Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
             bool usesChromaFromLuma = snapshot.Block.HasChroma && snapshot.ModeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
@@ -5612,7 +5815,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (refine && settings.PruneIntraWinnerByVariance)
             {
-                int varianceThreshold = 64 - (48 * this.superblockQIndex / 256);
+                int varianceThreshold = 64 - (48 * this.blockQIndex / 256);
                 refine = this.GetSourceVariance(blockOrigin, blockSize) >= varianceThreshold;
             }
 
@@ -6004,7 +6207,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modelCost,
                         mode,
                         macroBlock,
-                        this.superblockQIndex,
+                        this.blockQIndex,
                         modelCosts,
                         settings.IntraModelCandidateCount,
                         settings.AdaptIntraModelCountToNeighbors,
@@ -6624,7 +6827,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 !codedLossless && this.bitDepth.GetBitCount() == 8 &&
                                 blockSize == Av1BlockSize.Block8x8 && transformSize == Av1TransformSize.Size8x8)
                             {
-                                int dcQuantizer = Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, 0, this.bitDepth);
+                                int dcQuantizer = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth);
                                 int depthChoice = PredictIntraTransformDepth(residual, sourceVariance, dcQuantizer);
                                 skipSmallerTransforms = depthChoice < 0;
                                 if (depthChoice > 0)
@@ -7413,7 +7616,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 coefficients,
                 transformSize,
                 selectedState.TransformType,
-                this.superblockQIndex,
+                this.blockQIndex,
                 this.quantization.DeltaQDc[planeIndex],
                 this.quantization.DeltaQAc[planeIndex],
                 this.bitDepth,
@@ -7434,7 +7637,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     plane,
                     this.bitDepth,
-                    this.superblockQIndex == 0,
+                    this.blockQIndex == 0,
                     state);
             }
             else if (plane == Av1Plane.Y && !this.keepSearchedZeroBlockTypes)
@@ -7451,7 +7654,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 System.Text.StringBuilder reconLine = new();
                 reconLine.Append(
                     System.Globalization.CultureInfo.InvariantCulture,
-                    $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} qidx={this.superblockQIndex} dqdc={this.quantization.DeltaQDc[planeIndex]} dqac={this.quantization.DeltaQAc[planeIndex]} pred");
+                    $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} qidx={this.blockQIndex} dqdc={this.quantization.DeltaQDc[planeIndex]} dqac={this.quantization.DeltaQAc[planeIndex]} pred");
 
                 for (int i = 0; i < width && i < 8; i++)
                 {

@@ -502,18 +502,21 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         if (!frameHeader.IsIntra)
         {
             // DC steps are represented at four times sample precision. Normalize high-bit-depth
-            // steps before applying the nonlinear quantizer scale; retain truncation before the floor.
+            // steps before applying the nonlinear quantizer scale; retain truncation before the floor. Each segment
+            // scales its thresholds by its own quantizer. Reference: set_block_thresholds().
             Av1BitDepth bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
             ObuQuantizationParameters quantization = frameHeader.QuantizationParameters;
-            double step = Av1QuantizationLookup.GetDcQuant(quantization.QIndex[0], quantization.DeltaQDc[0], bitDepth) /
-                (double)(1 << (2 + (2 * (int)bitDepth)));
+            Span<int> quantizerFactors = blockWorkspace.ModeThresholdQuantizerFactors;
+            for (int segmentId = 0; segmentId < quantizerFactors.Length; segmentId++)
+            {
+                int segmentQIndex = Av1QuantizationLookup.GetQIndex(
+                    frameHeader.SegmentationParameters, segmentId, quantization.BaseQIndex);
 
-            blockWorkspace.ModeThresholdQuantizerFactor = Math.Max((int)(Math.Pow(step, 1.25) * 5.12), 8);
+                double step = Av1QuantizationLookup.GetDcQuant(segmentQIndex, quantization.DeltaQDc[0], bitDepth) /
+                    (double)(1 << (2 + (2 * (int)bitDepth)));
 
-            // Q12 spans 2.5 at quantizer zero to 1 at quantizer 255. Compute once for the frame,
-            // retaining the table's nearest-integer rounding before individual candidate comparisons.
-            blockWorkspace.ModeThresholdSkipMultiplier = parent.SpeedSettings.PruneSkippableInterModes
-                ? 10240 - (((quantization.QIndex[0] * 6144) + 127) / 255) : 4096;
+                quantizerFactors[segmentId] = Math.Max((int)(Math.Pow(step, 1.25) * 5.12), 8);
+            }
         }
 
         // Variance Boost signals a superblock quantizer at the resolution the frame quantizer selects, and no loop
@@ -799,6 +802,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.DeltaQParameters.IsPresent = false;
         }
 
+        // A frame that updates its segment map codes it against the primary reference's map unless the estimate says
+        // spatial coding costs less. Reference: the temporal_update choice at the end of encode_frame_internal() and
+        // at the start of av1_pack_bitstream().
+        ObuSegmentationParameters segmentation = frameHeader.SegmentationParameters;
+        if (segmentation.Enabled && segmentation.SegmentationUpdateMap == 1)
+        {
+            segmentation.SegmentationTemporalUpdate =
+                frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone ||
+                parent.SpatialSegmentCost < parent.TemporalSegmentCost ? 0 : 1;
+        }
+
         // A frame that allows intra block copy but never selects it stops allowing it, which also leaves the
         // in-loop filters free to run. Reference: the intrabc_used test at the end of encode_frame_internal().
         if (frameHeader.AllowIntraBlockCopy && !UsesIntraBlockCopy(picture))
@@ -920,7 +934,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         blockWorkspace.EncodedFrameCount++;
         blockWorkspace.FrameNumber = blockWorkspace.EncodedFrameCount;
         blockWorkspace.PreviousFrameRateMultiplier = parent.GetRateMultiplier(
-            frameHeader.QuantizationParameters.QIndex[0] + frameHeader.QuantizationParameters.DeltaQDc[0],
+            frameHeader.QuantizationParameters.BaseQIndex + frameHeader.QuantizationParameters.DeltaQDc[0],
             picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
 
         return encodedTiles;

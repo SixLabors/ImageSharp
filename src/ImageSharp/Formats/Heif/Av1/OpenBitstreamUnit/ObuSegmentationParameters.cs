@@ -94,6 +94,36 @@ internal sealed class ObuSegmentationParameters
         => this.featureData[segmentId][featureId] = value;
 
     /// <summary>
+    /// Disables every feature of every segment and clears its value. Reference: av1_clearall_segfeatures().
+    /// </summary>
+    public void ClearFeatures()
+    {
+        this.featureEnabled = default;
+        this.featureData = default;
+    }
+
+    /// <summary>
+    /// Derives the greatest segment with an active feature, and whether the identifier precedes the skip flag, which
+    /// it does when any reference, skip or global motion feature is active. Reference: av1_calculate_segdata().
+    /// </summary>
+    public void CalculateSegmentData()
+    {
+        this.SegmentIdPrecedesSkip = false;
+        this.LastActiveSegmentId = 0;
+        for (int segment = 0; segment < Av1Constants.MaxSegmentCount; segment++)
+        {
+            for (int feature = 0; feature < Av1Constants.SegmentationLevelMax; feature++)
+            {
+                if (this.featureEnabled[segment][feature])
+                {
+                    this.SegmentIdPrecedesSkip |= feature >= (int)ObuSegmentationLevelFeature.ReferenceFrame;
+                    this.LastActiveSegmentId = segment;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Replaces every feature enable flag and value with state from a primary reference frame.
     /// </summary>
     /// <param name="source">The primary-reference segmentation state.</param>

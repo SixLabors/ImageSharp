@@ -1071,6 +1071,54 @@ public class HeifEncoderTests
         }
     }
 
+    [Fact]
+    public void Av1AnimationWithVarianceAdaptiveQuantizationRoundTrips()
+    {
+        // An animation without alpha looks ahead, so its key frame places each block in one of eight variance segments,
+        // each with its own quantizer.
+        using Image<Rgb24> image = new(96, 64);
+        for (int frameIndex = 0; frameIndex < 5; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    // Flat left half, detailed right half, so the blocks fall in different segments.
+                    int value = x < 48 ? 96 + frameIndex : (((x + (3 * frameIndex)) * 37) ^ (y * 23)) & 0xFF;
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Quality = 80, Speed = HeifEncodingSpeed.Level6, AdaptiveQuantization = HeifAdaptiveQuantization.Variance });
+
+        byte[] file = stream.ToArray();
+        HeifSequenceSample first = ParseSequence(file).ColorTrack.Samples[0];
+        using (Av1Decoder decoder = new(Configuration.Default))
+        {
+            decoder.DecodeSequenceReference(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null);
+            ObuSegmentationParameters segmentation = decoder.FrameHeader.SegmentationParameters;
+            Assert.True(segmentation.Enabled);
+            Assert.Equal(7, segmentation.LastActiveSegmentId);
+            Assert.NotEqual(
+                segmentation.GetFeatureData(0, (int)ObuSegmentationLevelFeature.AlternativeQuantizer),
+                segmentation.GetFeatureData(7, (int)ObuSegmentationLevelFeature.AlternativeQuantizer));
+        }
+
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgb24> expected = image.Frames.CloneFrame(i);
+            using Image<Rgb24> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(80).VerifySimilarity(expected, actual);
+        }
+    }
+
     [Theory]
     [InlineData(HeifTuning.ImageQuality)]
     [InlineData(HeifTuning.Ssim)]

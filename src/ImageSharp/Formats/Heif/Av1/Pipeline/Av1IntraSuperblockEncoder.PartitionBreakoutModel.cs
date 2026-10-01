@@ -602,7 +602,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool normalized = settings.UseHighResolutionPartitionBreakout;
             int sampleCountLog2 = BitOperations.Log2((uint)GetBlockArea(blockSize));
             int dcStep = Av1QuantizationLookup.GetDcQuant(
-                this.superblockQIndex, this.quantization.DeltaQDc[0], this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+                this.blockQIndex, this.quantization.DeltaQDc[0], this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
 
             // Rates use 1/512-bit units and the distortion term carries seven fractional bits.
             // Convert rate to per-sample distortion units, then pair it with per-sample reconstruction error.

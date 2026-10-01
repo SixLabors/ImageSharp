@@ -1123,7 +1123,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if ((useThreshold || mode == Av1PredictionMode.Smooth) && Av1ModeThresholds.ShouldSkip(
                     this.blockWorkspace.ModeThresholdFactors,
-                    this.blockWorkspace.ModeThresholdQuantizerFactor,
+                    this.ModeThresholdQuantizerFactor,
                     4096,
                     blockSize,
                     mode,
@@ -1708,7 +1708,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     state.SkipByPredictorSad(mode, reference, settings.GetEstimatedReferencePruningLevel(screenContent)) ||
                     Av1ModeThresholds.ShouldSkipEstimated(
                         this.blockWorkspace.ModeThresholdFactors,
-                        this.blockWorkspace.ModeThresholdQuantizerFactor,
+                        this.ModeThresholdQuantizerFactor,
                         blockSize,
                         mode,
                         reference,

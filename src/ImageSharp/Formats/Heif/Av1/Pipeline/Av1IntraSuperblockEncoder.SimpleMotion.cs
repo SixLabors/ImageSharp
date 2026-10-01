@@ -75,7 +75,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 zero,
                 costs,
                 this.bitDepth,
-                Av1RateDistortion.GetMotionSearchSadPerBit(this.superblockQIndex, this.bitDepth),
+                Av1RateDistortion.GetMotionSearchSadPerBit(this.blockQIndex, this.bitDepth),
                 errorPerBitRateMultiplier,
                 [],
                 []);
@@ -237,7 +237,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            int dcStep = Av1QuantizationLookup.GetDcQuant(this.superblockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+            int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
             features[index++] = float.LogP1((dcStep * dcStep) / 256F);
             Point position = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             Av1TileWriter.SetModeInfoRowAndColumn(

@@ -387,16 +387,36 @@ internal static class WebpChunkParsingUtils
         executeAncillarySegmentAction(() =>
         {
             // The first ICCP chunk remains color metadata even when optional metadata is skipped.
-            byte[]? iccpData = ReadMetadataChunk(stream, chunkSize, metadata.IccProfile != null);
-            if (iccpData is not null)
+            if (metadata.IccProfile is null)
             {
-                IccProfile profile = new(iccpData);
-                if (!profile.CheckIsValid())
+                if (!stream.TryGetReadLength(chunkSize, out int chunkLength))
                 {
-                    throw new InvalidIccProfileException("Invalid ICC profile.");
+                    // A readable but unrepresentable payload is ancillary; keep the next RIFF boundary.
+                    stream.Position += (long)chunkSize;
+                    WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICCP chunk.");
                 }
 
-                metadata.IccProfile = profile;
+                IccReader reader = new();
+                try
+                {
+                    if (reader.Read(stream, chunkLength) != chunkLength)
+                    {
+                        WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICCP chunk.");
+                    }
+                }
+                catch (InvalidIccProfileException)
+                {
+                    // The shared reader rejects oversized chunks before consuming the padded payload.
+                    stream.Position += (long)chunkSize;
+                    throw;
+                }
+
+                metadata.IccProfile = reader.ToProfile();
+            }
+            else
+            {
+                // A duplicate still consumes its padded chunk so parsing resumes at the next RIFF header.
+                stream.Position += (long)chunkSize;
             }
         });
     }

@@ -35,7 +35,12 @@ public class IccReaderTests
     [Fact]
     public void ReadProfile_NoEntries()
     {
-        IccProfile output = IccReader.Read(IccTestDataProfiles.HeaderRandomArray);
+        byte[] data = IccTestDataProfiles.HeaderRandomArray;
+        using MemoryStream stream = new(data);
+        IccReader reader = new();
+
+        reader.Read(stream, data.Length);
+        IccProfile output = reader.ToProfile();
 
         Assert.Equal(0, output.Entries.Length);
         Assert.NotNull(output.Header);

@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 
@@ -73,24 +72,25 @@ public partial class JpegEncoderTests
         Assert.Equal(values, actual.Values);
     }
 
-    [Fact]
-    public void Encode_PreservesIccProfile()
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.AdobeRgb, PixelTypes.Rgba32)]
+    public void Encode_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        // arrange
-        using Image<Rgba32> input = new(1, 1);
-        input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        using Image<TPixel> input = provider.GetImage(JpegDecoder.Instance);
+        IccProfile expected = input.Metadata.IccProfile;
+        Assert.NotNull(expected);
 
-        // act
         using MemoryStream memStream = new();
         input.Save(memStream, JpegEncoder);
 
-        // assert
         memStream.Position = 0;
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         IccProfile actual = output.Metadata.IccProfile;
         Assert.NotNull(actual);
-        IccProfile values = input.Metadata.IccProfile;
-        Assert.Equal(values.Entries, actual.Entries);
+
+        Assert.Equal(expected.Entries, actual.Entries);
+        Assert.Equal(expected.ToByteArray(), actual.ToByteArray());
     }
 
     [Theory]

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 
@@ -48,7 +49,10 @@ public class SpectralToPixelConversionTests
 
         // Comparison
         using Image<TPixel> image = new(Configuration.Default, converter.GetPixelBuffer(null, CancellationToken.None), new ImageMetadata());
-        using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
+        using Image<TPixel> referenceImage = decoder.Metadata.IccProfile is not null
+            ? provider.GetImage(MagickReferenceDecoder.Jpeg)
+            : provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
+
         ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 
         this.Output.WriteLine($"*** {provider.SourceFileOrDescription} ***");

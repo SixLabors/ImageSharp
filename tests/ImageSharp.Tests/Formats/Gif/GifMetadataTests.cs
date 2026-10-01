@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -27,6 +28,37 @@ public class GifMetadataTests
             { TestImages.Gif.Receipt, 1 },
             { TestImages.Gif.Rings, 1 }
         };
+
+    /// <summary>
+    /// Identifying an ICC-bearing GIF retains the encoded palette and assembles the complete profile.
+    /// </summary>
+    /// <param name="skipMetadata">Whether optional metadata is skipped.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Identify_ExifToolIcc_RetainsEncodedPaletteAndProfile(bool skipMetadata)
+    {
+        TestFile testFile = TestFile.Create(TestImages.Gif.ExifToolIcc);
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
+
+        // ICC remains available for color handling even when optional metadata is skipped.
+        ImageInfo info = Image.Identify(options, testFile.Bytes);
+        GifMetadata metadata = info.Metadata.GetGifMetadata();
+        ReadOnlySpan<Color> palette = metadata.GlobalColorTable.Value.Span;
+
+        Assert.Equal(new Size(8, 8), info.Size);
+        Assert.Single(info.FrameMetadataCollection);
+        Assert.Equal(256, palette.Length);
+        Assert.Equal(Color.White, palette[0]);
+        Assert.Equal(Color.Red, palette[35]);
+        Assert.Equal(Color.FromPixel(new Rgb24(153, 51, 51)), palette[100]);
+        Assert.Equal(palette[0], metadata.BackgroundColor);
+
+        // The source profile spans two GIF application sub-blocks; its checksum detects truncated assembly.
+        byte[] profileHash = SHA256.HashData(info.Metadata.IccProfile.ToByteArray());
+
+        Assert.Equal("A8D0D753BD6129357CC2647435CE675E8637A679EB526FA180FBA460874CE1D3", Convert.ToHexString(profileHash));
+    }
 
     [Fact]
     public void FormatConnectingMetadata_PreservesBackgroundBetweenGifAndWebp()

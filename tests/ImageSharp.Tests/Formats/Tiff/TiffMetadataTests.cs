@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
@@ -523,7 +522,10 @@ public class TiffMetadataTests
         iptcProfile.SetValue(IptcTag.Name, "Test name");
         rootFrameInput.Metadata.IptcProfile = iptcProfile;
 
-        IccProfile iccProfile = new(IccTestDataProfiles.ProfileRandomArray);
+        // Use a real RGB TIFF profile because Preserve converts pixels when the profile requires it.
+        TestFile profileFile = TestFile.Create(Icc.PerceptualRgb8);
+        ImageInfo profileInfo = Image.Identify(profileFile.Bytes);
+        IccProfile iccProfile = profileInfo.FrameMetadataCollection[0].IccProfile;
         rootFrameInput.Metadata.IccProfile = iccProfile;
 
         TiffFrameMetadata frameMetaInput = rootFrameInput.Metadata.GetTiffMetadata();

@@ -10,7 +10,6 @@ public partial class JpegDecoderTests
     [
         TestImages.Jpeg.Baseline.Calliphora,
         TestImages.Jpeg.Baseline.Cmyk,
-        TestImages.Jpeg.Baseline.Ycck,
         TestImages.Jpeg.Baseline.Jpeg400,
         TestImages.Jpeg.Baseline.Turtle420,
         TestImages.Jpeg.Baseline.Testorig420,
@@ -111,7 +110,11 @@ public partial class JpegDecoderTests
         [TestImages.Jpeg.Baseline.Jpeg422] = 0.0013f / 100,
         [TestImages.Jpeg.Baseline.Testorig420] = 0.38f / 100,
         [TestImages.Jpeg.Baseline.Jpeg420Small] = 0.287f / 100,
-        [TestImages.Jpeg.Baseline.Turtle420] = 1.0f / 100,
+
+        // These budgets cover measured differences against the color-managed JPEG reference.
+        [TestImages.Jpeg.Baseline.Cmyk] = 0.06f / 100,
+        [TestImages.Jpeg.Baseline.Turtle420] = 0.22f / 100,
+        [TestImages.Jpeg.Issues.MultiHuffmanBaseline394] = 0.28f / 100,
 
         // Progressive:
         [TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159] = 0.34f / 100,

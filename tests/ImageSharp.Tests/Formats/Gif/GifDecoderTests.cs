@@ -3,6 +3,8 @@
 
 using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
@@ -23,6 +25,78 @@ public class GifDecoderTests
     [
         TestImages.Gif.Giphy, TestImages.Gif.Kumin
     ];
+
+    /// <summary>
+    /// Preserve and Convert use the ICC-transformed palette for pixels and metadata while retaining profiles by policy.
+    /// </summary>
+    /// <typeparam name="TPixel">The output pixel type.</typeparam>
+    /// <param name="provider">The GIF fixture provider.</param>
+    /// <param name="skipMetadata">Whether optional metadata is skipped.</param>
+    [Theory]
+    [WithFile(TestImages.Gif.ExifToolIcc, PixelTypes.Rgba32 | PixelTypes.Rgba64 | PixelTypes.RgbaVector, false)]
+    [WithFile(TestImages.Gif.ExifToolIcc, PixelTypes.Rgba32 | PixelTypes.Rgba64 | PixelTypes.RgbaVector, true)]
+    public void Decode_ExifToolIcc_ConvertsPaletteAndAppliesRetention<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        TestFile testFile = TestFile.Create(TestImages.Gif.ExifToolIcc);
+        ImageInfo info = Image.Identify(testFile.Bytes);
+        ReadOnlySpan<Color> encodedPalette = info.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = skipMetadata };
+
+        using Image<TPixel> preserved = provider.GetImage(GifDecoder.Instance, preserveOptions);
+        using Image<TPixel> converted = provider.GetImage(GifDecoder.Instance, convertOptions);
+
+        ColorConversionOptions conversionOptions = new()
+        {
+            SourceIccProfile = info.Metadata.IccProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile
+        };
+
+        ColorProfileConverter converter = new(conversionOptions);
+        Rgb[] expectedPalette = new Rgb[encodedPalette.Length];
+
+        // Convert the encoded lookup once to keep the expected palette independent of GIF pixel expansion.
+        for (int i = 0; i < encodedPalette.Length; i++)
+        {
+            expectedPalette[i] = Rgb.FromScaledVector4(encodedPalette[i].ToScaledVector4());
+        }
+
+        converter.Convert<Rgb, Rgb>(expectedPalette, expectedPalette);
+
+        ReadOnlySpan<Color> preservedPalette = preserved.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+        ReadOnlySpan<Color> convertedPalette = converted.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+
+        Assert.Equal(256, preservedPalette.Length);
+        Assert.Equal(256, convertedPalette.Length);
+
+        for (int i = 0; i < encodedPalette.Length; i++)
+        {
+            Color expected = Color.FromScaledVector(expectedPalette[i].ToScaledVector4());
+            Assert.Equal(expected, preservedPalette[i]);
+            Assert.Equal(expected, convertedPalette[i]);
+        }
+
+        Assert.NotEqual(encodedPalette[100], preservedPalette[100]);
+        Assert.Equal(preservedPalette[0], preserved.Metadata.GetGifMetadata().BackgroundColor);
+        Assert.Equal(convertedPalette[0], converted.Metadata.GetGifMetadata().BackgroundColor);
+        Assert.Equal(info.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Null(converted.Metadata.IccProfile);
+
+        // Every encoded pixel uses palette index 35, so one expected color covers the whole 8x8 frame.
+        TPixel expectedPixel = Color.FromScaledVector(expectedPalette[35].ToScaledVector4()).ToPixel<TPixel>();
+
+        for (int y = 0; y < preserved.Height; y++)
+        {
+            for (int x = 0; x < preserved.Width; x++)
+            {
+                Assert.Equal(expectedPixel, preserved[x, y]);
+            }
+        }
+
+        ImageComparer.Exact.VerifySimilarity(preserved, converted);
+    }
 
     [Theory]
     [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]

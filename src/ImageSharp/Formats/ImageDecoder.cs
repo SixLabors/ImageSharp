@@ -23,8 +23,7 @@ public abstract class ImageDecoder : IImageDecoder
             stream,
             s => this.Decode<TPixel>(options, s, default));
 
-        this.SetDecoderFormat(options.Configuration, image);
-        HandleIccProfile(options, image);
+        this.SetDecoderMetadata(options, image);
 
         return image;
     }
@@ -37,8 +36,7 @@ public abstract class ImageDecoder : IImageDecoder
             stream,
             s => this.Decode(options, s, default));
 
-        this.SetDecoderFormat(options.Configuration, image);
-        HandleIccProfile(options, image);
+        this.SetDecoderMetadata(options, image);
 
         return image;
     }
@@ -53,8 +51,7 @@ public abstract class ImageDecoder : IImageDecoder
             (s, ct) => this.Decode<TPixel>(options, s, ct),
             cancellationToken).ConfigureAwait(false);
 
-        this.SetDecoderFormat(options.Configuration, image);
-        HandleIccProfile(options, image);
+        this.SetDecoderMetadata(options, image);
 
         return image;
     }
@@ -68,8 +65,7 @@ public abstract class ImageDecoder : IImageDecoder
             (s, ct) => this.Decode(options, s, ct),
             cancellationToken).ConfigureAwait(false);
 
-        this.SetDecoderFormat(options.Configuration, image);
-        HandleIccProfile(options, image);
+        this.SetDecoderMetadata(options, image);
 
         return image;
     }
@@ -82,8 +78,7 @@ public abstract class ImageDecoder : IImageDecoder
             stream,
             s => this.Identify(options, s, default));
 
-        this.SetDecoderFormat(options.Configuration, info);
-        HandleIccProfile(options, info);
+        this.SetDecoderMetadata(options, info);
 
         return info;
     }
@@ -97,8 +92,7 @@ public abstract class ImageDecoder : IImageDecoder
             (s, ct) => this.Identify(options, s, ct),
             cancellationToken).ConfigureAwait(false);
 
-        this.SetDecoderFormat(options.Configuration, info);
-        HandleIccProfile(options, info);
+        this.SetDecoderMetadata(options, info);
 
         return info;
     }
@@ -295,9 +289,14 @@ public abstract class ImageDecoder : IImageDecoder
         return await action(memoryStream, position, cancellationToken).ConfigureAwait(false);
     }
 
-    internal void SetDecoderFormat(Configuration configuration, Image image)
+    /// <summary>
+    /// Finalizes format and ICC metadata for a decoded image.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="image">The decoded image.</param>
+    internal void SetDecoderMetadata(DecoderOptions options, Image image)
     {
-        if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
+        if (options.Configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
         {
             image.Metadata.DecodedImageFormat = format;
 
@@ -306,11 +305,19 @@ public abstract class ImageDecoder : IImageDecoder
                 frame.Metadata.DecodedImageFormat = format;
             }
         }
+
+        // Apply the same retention policy for ordinary and specialized decoders, even without format registration.
+        HandleIccProfile(options, image);
     }
 
-    internal void SetDecoderFormat(Configuration configuration, ImageInfo info)
+    /// <summary>
+    /// Finalizes format and ICC metadata for identified image information.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="info">The identified image information.</param>
+    internal void SetDecoderMetadata(DecoderOptions options, ImageInfo info)
     {
-        if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
+        if (options.Configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
         {
             info.Metadata.DecodedImageFormat = format;
             info.PixelType = info.Metadata.GetDecodedPixelTypeInfo();
@@ -320,8 +327,16 @@ public abstract class ImageDecoder : IImageDecoder
                 frame.DecodedImageFormat = format;
             }
         }
+
+        // Identification also applies ICC retention without requiring registered format metadata.
+        HandleIccProfile(options, info);
     }
 
+    /// <summary>
+    /// Applies the selected ICC profile retention policy to decoded image and frame metadata.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="image">The decoded image.</param>
     private static void HandleIccProfile(DecoderOptions options, Image image)
     {
         if (options.CanRemoveIccProfile(image.Metadata.IccProfile))

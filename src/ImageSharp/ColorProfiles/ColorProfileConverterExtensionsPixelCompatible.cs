@@ -55,7 +55,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
             {
                 using IMemoryOwner<Rgb> rgbBuffer = converter.Options.MemoryAllocator.Allocate<Rgb>(row.Length);
 
-                Convert(converter, row, rgbBuffer.Memory.Span);
+                converter.Convert(row, rgbBuffer.Memory.Span);
             },
             PixelConversionModifiers.Scale));
     }
@@ -84,7 +84,27 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
             destination,
             PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
-        Convert(converter, destination[..source.Length], scratch[..source.Length]);
+        converter.Convert(destination[..source.Length], scratch[..source.Length]);
+    }
+
+    /// <summary>
+    /// Converts source pixels through the configured ICC profiles into straight colors.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="converter">The converter configured with source and target ICC profiles.</param>
+    /// <param name="configuration">The configuration used for pixel conversion.</param>
+    /// <param name="source">The source pixels, which remain unchanged.</param>
+    /// <param name="destination">The converted colors.</param>
+    public static void Convert<TPixel>(this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Color> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Separate scratch preserves the source pixels and their alpha while the existing bulk path converts RGB.
+        using IMemoryOwner<Vector4> vectorBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
+        using IMemoryOwner<Rgb> rgbBuffer = converter.Options.MemoryAllocator.Allocate<Rgb>(source.Length);
+        Span<Vector4> vectors = vectorBuffer.Memory.Span;
+
+        converter.Convert(configuration, source, vectors, rgbBuffer.Memory.Span);
+        Color.FromScaledVector(vectors, destination);
     }
 
     /// <summary>
@@ -93,7 +113,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
     /// <param name="row">The scaled vectors whose RGB components are converted.</param>
     /// <param name="rgbSpan">RGB scratch storage with the same length as <paramref name="row"/>.</param>
-    internal static void Convert(ColorProfileConverter converter, Span<Vector4> row, Span<Rgb> rgbSpan)
+    internal static void Convert(this ColorProfileConverter converter, Span<Vector4> row, Span<Rgb> rgbSpan)
     {
         // Gather and convert the pixels in the row to Rgb.
         Rgb.FromScaledVector4(row, rgbSpan);

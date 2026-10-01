@@ -37,14 +37,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     private byte[] exifData;
 
     /// <summary>
-    /// Whether the image has an ICC marker.
+    /// The lazily allocated reader for ICC APP2 payloads.
     /// </summary>
-    private bool hasIcc;
-
-    /// <summary>
-    /// Contains ICC data.
-    /// </summary>
-    private byte[] iccData;
+    private IccReader iccReader;
 
     /// <summary>
     /// Whether the image has a IPTC data.
@@ -535,6 +530,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // Set large fields to null.
         this.Frame = null;
         this.scanDecoder = null;
+        this.iccReader = null;
     }
 
     /// <summary>
@@ -694,17 +690,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitIccProfile()
     {
-        if (this.hasIcc && this.Metadata.IccProfile == null)
+        // A profile supplied by the TIFF container takes precedence over JPEG APP2 metadata.
+        if (this.iccReader is not null && this.Metadata.IccProfile == null)
         {
-            IccProfile profile = new(this.iccData);
-            if (profile.CheckIsValid())
-            {
-                this.Metadata.IccProfile = profile;
-            }
-            else
-            {
-                throw new InvalidIccProfileException("Invalid ICC profile.");
-            }
+            this.Metadata.IccProfile = this.iccReader.ToProfile();
         }
     }
 
@@ -712,7 +701,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (profile?.CheckIsValid() == true)
         {
-            this.hasIcc = true;
             this.Metadata ??= new ImageMetadata();
             this.Metadata.IccProfile = profile;
         }
@@ -972,19 +960,31 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
         {
-            this.hasIcc = true;
-            byte[] profile = new byte[remaining];
-            stream.Read(profile, 0, remaining);
+            // APP2 may split one ICC profile across several markers; retain managed segments until final validation.
+            this.ExecuteAncillarySegmentAction(() =>
+            {
+                this.iccReader ??= new IccReader();
 
-            if (this.iccData is null)
-            {
-                this.iccData = profile;
-            }
-            else
-            {
-                // If the ICC information exceeds 64K, it will be split over multiple APP2 markers
-                ExtendProfile(ref this.iccData, profile);
-            }
+                try
+                {
+                    if (this.iccReader.Read(stream, remaining) != remaining)
+                    {
+                        throw new InvalidImageContentException("Not enough data to read JPEG ICC profile.");
+                    }
+                }
+                catch (InvalidIccProfileException)
+                {
+                    // An oversized segment was rejected before its payload was consumed.
+                    this.iccReader = null;
+                    stream.Skip(remaining);
+                    throw;
+                }
+                catch
+                {
+                    this.iccReader = null;
+                    throw;
+                }
+            });
         }
         else
         {

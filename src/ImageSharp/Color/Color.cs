@@ -33,7 +33,8 @@ public readonly partial struct Color : IEquatable<Color>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Color(Vector4 vector, PixelAlphaRepresentation alphaRepresentation, PixelAlphaRepresentation dataAlphaRepresentation)
     {
-        this.data = Numerics.Clamp(vector, Vector4.Zero, Vector4.One);
+        // Float colors can contain HDR RGB and alpha outside the unit interval; destination pixels set their own limits.
+        this.data = vector;
         this.boxedHighPrecisionPixel = null;
         this.isAssociated = alphaRepresentation == PixelAlphaRepresentation.Associated;
         this.dataIsAssociated = dataAlphaRepresentation == PixelAlphaRepresentation.Associated;
@@ -408,8 +409,7 @@ public readonly partial struct Color : IEquatable<Color>
 
     /// <summary>
     /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation,
-    /// preserving the <see cref="AlphaRepresentation"/>, with values scaled and clamped between
-    /// <value>0</value> and <value>1</value>.
+    /// preserving the <see cref="AlphaRepresentation"/>. Values may be outside the unit interval.
     /// The vector components are typically expanded in least to greatest significance order.
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>
@@ -436,8 +436,8 @@ public readonly partial struct Color : IEquatable<Color>
     }
 
     /// <summary>
-    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> using the specified alpha representation,
-    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> using the specified alpha representation.
+    /// Values may be outside the unit interval.
     /// </summary>
     /// <param name="alphaRepresentation">
     /// The alpha representation to apply. <see cref="PixelAlphaRepresentation.Associated"/> returns color components

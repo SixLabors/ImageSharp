@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using ImageMagick;
 using ImageMagick.Formats;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Exr;
@@ -13,6 +14,7 @@ using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -54,9 +56,16 @@ public class MagickReferenceDecoder : ImageDecoder
         {
             IgnoreFileSize = !this.validate
         };
+
         PngReadDefines pngReadDefines = new()
         {
             IgnoreCrc = !this.validate
+        };
+
+        JpegReadDefines jpegReadDefines = new()
+        {
+            // Disable interpolation to match ImageSharp's replicated chroma samples.
+            FancyUpsampling = false
         };
 
         MagickReadSettings settings = new()
@@ -65,6 +74,7 @@ public class MagickReferenceDecoder : ImageDecoder
         };
         settings.SetDefines(bmpReadDefines);
         settings.SetDefines(pngReadDefines);
+        settings.SetDefines(jpegReadDefines);
 
         using MagickImageCollection magickImageCollection = new(stream, settings);
         int imageWidth = (int)magickImageCollection.Max(x => x.Width);
@@ -73,6 +83,29 @@ public class MagickReferenceDecoder : ImageDecoder
         List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
+            uint sourceDepth = magicFrame.Depth;
+            bool transformed = false;
+            ImageMagick.IColorProfile sourceColorProfile = magicFrame.GetColorProfile();
+            if (sourceColorProfile is not null)
+            {
+                IccProfile sourceProfile = new(sourceColorProfile.ToByteArray());
+                if (sourceProfile.CheckIsValid() && IccProfile.TryGetIccProfileForColorConversion(sourceProfile, out IccProfile profile))
+                {
+                    // Magick's intent values differ from ICC values; use the embedded intent without black point compensation.
+                    magicFrame.RenderingIntent = profile.Header.RenderingIntent switch
+                    {
+                        IccRenderingIntent.Perceptual => RenderingIntent.Perceptual,
+                        IccRenderingIntent.MediaRelativeColorimetric => RenderingIntent.Relative,
+                        IccRenderingIntent.Saturation => RenderingIntent.Saturation,
+                        IccRenderingIntent.AbsoluteColorimetric => RenderingIntent.Absolute,
+                        _ => RenderingIntent.Undefined
+                    };
+
+                    magicFrame.BlackPointCompensation = false;
+                    transformed = magicFrame.TransformColorSpace(new ImageMagick.ColorProfile(CompactSrgbV4Profile.Profile.ToByteArray()));
+                }
+            }
+
             ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 
@@ -83,15 +116,20 @@ public class MagickReferenceDecoder : ImageDecoder
                 (int)magicFrame.Height);
 
             using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
-            if (magicFrame.Depth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1)
+
+            bool isLowDepth = sourceDepth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1;
+            bool isHighDepth = sourceDepth is 14 or 16 or 32;
+
+            // ICC conversion generates Q16 samples even from 8-bit sources; retain that precision for the reference.
+            if (isLowDepth && !transformed)
             {
                 byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 
                 FromRgba32Bytes(configuration, data, buffer);
             }
-            else if (magicFrame.Depth is 14 or 16 or 32)
+            else if (isHighDepth || (isLowDepth && transformed))
             {
-                if (this.imageFormat is PngFormat png)
+                if (isHighDepth && this.imageFormat is PngFormat png)
                 {
                     metadata.GetPngMetadata().BitDepth = PngBitDepth.Bit16;
                 }

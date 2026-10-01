@@ -62,6 +62,24 @@ public partial class ColorTests
     }
 
     [Fact]
+    public void FloatColorsPreserveValuesOutsideUnitInterval()
+    {
+        Vector4 expected = new(2F, -1F, 0.5F, 2F);
+
+        Color scalar = Color.FromScaledVector(expected);
+        Assert.Equal(expected, scalar.ToPixel<RgbaVector>().ToUnassociatedScaledVector4());
+
+        Vector4[] sources = [expected];
+        Color[] colors = new Color[sources.Length];
+        RgbaVector[] pixels = new RgbaVector[sources.Length];
+
+        Color.FromScaledVector(sources.AsSpan(), colors.AsSpan());
+        Color.ToPixel<RgbaVector>(colors.AsSpan(), pixels.AsSpan());
+
+        Assert.Equal(expected, pixels[0].ToUnassociatedScaledVector4());
+    }
+
+    [Fact]
     public void EqualityDoesNotDependOnInternalAssociationStorage()
     {
         Color fromPixel = Color.FromPixel(new Rgba32P(64, 32, 16, 128));

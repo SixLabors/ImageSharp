@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -261,12 +262,14 @@ public class PngMetadataTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.Perceptual, PixelTypes.Rgba32)]
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> input = provider.GetImage(PngDecoder.Instance);
-        ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
+        IccProfile expectedProfile = input.Metadata.IccProfile;
+        Assert.NotNull(expectedProfile);
+
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
         using MemoryStream memStream = new();
@@ -274,11 +277,40 @@ public class PngMetadataTests
 
         memStream.Position = 0;
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
-        ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
+        IccProfile actualProfile = output.Metadata.IccProfile;
+        Assert.NotNull(actualProfile);
+
         byte[] actualProfileBytes = actualProfile.ToByteArray();
 
-        Assert.NotNull(actualProfile);
         Assert.Equal(expectedProfileBytes, actualProfileBytes);
+    }
+
+    [Fact]
+    public void DecodeAndIdentify_TruncatedIccProfile_ThrowsWithStrict()
+    {
+        // This fixture declares 60,960 ICC bytes but contains 60,956; the last chad tag lacks four bytes.
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<InvalidIccProfileException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, testFile.Bytes);
+        });
+
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, testFile.Bytes));
+    }
+
+    [Fact]
+    public void DecodeAndIdentify_TruncatedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    {
+        // The same truncated ICC payload is ignored under the default ancillary integrity policy.
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(testFile.Bytes);
+        ImageInfo imageInfo = Image.Identify(testFile.Bytes);
+
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(imageInfo.Metadata.IccProfile);
     }
 
     [Theory]

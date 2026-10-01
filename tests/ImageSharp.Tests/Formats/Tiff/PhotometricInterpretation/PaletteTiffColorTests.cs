@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
@@ -92,7 +93,9 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
                 new PaletteTiffColor<Rgba32>(
                     new TiffBitsPerSample(bitsPerSample, 0, 0),
                     colorMap,
-                    TiffExtraSampleType.UnspecifiedData)
+                    TiffExtraSampleType.UnspecifiedData,
+                    new ImageFrameMetadata(),
+                    Configuration.Default)
                 .Decode(inputData, pixels, left, top, width, height);
             });
 

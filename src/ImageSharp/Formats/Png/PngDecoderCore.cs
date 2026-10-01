@@ -10,6 +10,8 @@ using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -261,7 +263,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 this.InitializeImage(metadata, currentFrameControl.Value, out image);
 
                                 // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
+                                this.AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata, this.pngColorType == PngColorType.Palette ? metadata.IccProfile : null);
                             }
 
                             this.ReadScanlines(
@@ -311,7 +313,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
-                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
+                            this.ExecuteAncillarySegmentAction(() => this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan()));
                             break;
                         case PngChunkType.End:
                             goto EOF;
@@ -332,7 +334,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowNoData();
             }
 
-            _ = this.TryConvertIccProfile(image);
+            if (this.pngColorType != PngColorType.Palette)
+            {
+                _ = TryConvertIccProfile(image);
+            }
+
             return image;
         }
         catch
@@ -454,7 +460,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
                                 // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
+                                this.AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata, null);
                             }
 
                             this.SkipChunkDataAndCrc(chunk);
@@ -517,7 +523,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
-                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
+                            this.ExecuteAncillarySegmentAction(() => this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan()));
                             break;
                         case PngChunkType.End:
                             goto EOF;
@@ -1339,7 +1345,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="palette">The palette buffer.</param>
     /// <param name="alpha">The alpha palette buffer.</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    private static void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
+    /// <param name="profile">The source profile when decoding indexed samples.</param>
+    private void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata, IccProfile? profile)
     {
         if (palette.Length == 0)
         {
@@ -1348,7 +1355,25 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Rgb24>()];
         ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
-        Color.FromPixel(rgbTable, colorTable);
+
+        if (IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? sourceProfile))
+        {
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = sourceProfile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+                MemoryAllocator = this.memoryAllocator
+            };
+
+            ColorProfileConverter converter = new(options);
+
+            // PLTE stores RGB samples; convert those source pixels before applying tRNS alpha.
+            converter.Convert(this.configuration, rgbTable, colorTable);
+        }
+        else
+        {
+            Color.FromPixel(rgbTable, colorTable);
+        }
 
         // The tRNS chunk must not contain more alpha values than there are palette entries.
         if (alpha.Length > colorTable.Length)
@@ -1934,12 +1959,17 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="metadata">The metadata.</param>
     /// <param name="data">The bytes containing the profile.</param>
-    private void ReadColorProfileChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+    private unsafe void ReadColorProfileChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
     {
         int zeroIndex = data.IndexOf((byte)0);
         if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
         {
             return;
+        }
+
+        if (zeroIndex + 1 >= data.Length)
+        {
+            throw new InvalidImageContentException("Not enough data to read PNG ICC compression method.");
         }
 
         byte compressionMethod = data[zeroIndex + 1];
@@ -1957,9 +1987,35 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] iccpProfileBytes))
+        fixed (byte* compressedDataBase = compressedData)
         {
-            metadata.IccProfile = new IccProfile(iccpProfileBytes);
+            using UnmanagedMemoryStream memoryStreamInput = new(compressedDataBase, compressedData.Length);
+            using BufferedReadStream bufferedStream = new(this.configuration, memoryStreamInput);
+            using ZlibInflateReader inflateStream = new(bufferedStream);
+
+            if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+            {
+                throw new InvalidImageContentException("Invalid compressed PNG ICC profile.");
+            }
+
+            try
+            {
+                IccReader reader = new(this.maxUncompressedLength);
+                int profileLength = Math.Min(this.maxUncompressedLength, IccProfile.MaxProfileSize - 1);
+                int bytesRead = reader.Read(inflateStream.CompressedStream, profileLength);
+
+                // Probe once only at the limit to distinguish exact output from excess decompressed data.
+                if (bytesRead == profileLength && inflateStream.CompressedStream.ReadByte() != -1)
+                {
+                    throw new InvalidIccProfileException("Invalid PNG ICC profile.");
+                }
+
+                metadata.IccProfile = reader.ToProfile();
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new InvalidImageContentException("Invalid compressed PNG ICC profile.", ex);
+            }
         }
     }
 
@@ -1975,7 +2031,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         fixed (byte* compressedDataBase = compressedData)
         {
             using IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
-            using MemoryStream memoryStreamOutput = new(compressedData.Length);
+            using ChunkedMemoryStream memoryStreamOutput = new(this.memoryAllocator);
             using UnmanagedMemoryStream memoryStreamInput = new(compressedDataBase, compressedData.Length);
             using BufferedReadStream bufferedStream = new(this.configuration, memoryStreamInput);
             using ZlibInflateReader inflateStream = new(bufferedStream);
@@ -1992,7 +2048,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
                 while (bytesRead != 0)
                 {
-                    if (memoryStreamOutput.Length > maxLength)
+                    if (memoryStreamOutput.Length + bytesRead > maxLength)
                     {
                         uncompressedBytesArray = [];
                         return false;

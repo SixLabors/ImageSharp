@@ -417,19 +417,8 @@ public class BmpDecoderTests
     }
 
     [Theory]
-    [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecodeLessThanFullPalette<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
-        image.DebugSave(provider);
-        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
-    }
-
-    [Theory]
-    [WithFile(OversizedPalette, PixelTypes.Rgba32)]
     [WithFile(Rgb24LargePalette, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecodeOversizedPalette<TPixel>(TestImageProvider<TPixel> provider)
+    public void BmpDecoder_CanDecodeLargeDirectColorPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
@@ -441,6 +430,10 @@ public class BmpDecoderTests
     }
 
     [Theory]
+    // This indexed palette declares 300 entries at 8 bpp, exceeding the format's 256-entry limit.
+    [WithFile(OversizedPalette, PixelTypes.Rgba32)]
+    // This 8-bit core-header palette contains only 252 entries instead of the full 256-entry table.
+    [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
     [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
     public void BmpDecoder_ThrowsInvalidImageContentException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

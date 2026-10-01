@@ -130,4 +130,15 @@ internal static class GifConstants
         (byte)'t', (byte)'a',
         (byte)'X', (byte)'M', (byte)'P'
     ];
+
+    /// <summary>
+    /// Gets the ICC.1 Annex B.5 application identifier and authentication code.
+    /// </summary>
+    internal static ReadOnlySpan<byte> IccApplicationIdentificationBytes =>
+    [
+        (byte)'I', (byte)'C', (byte)'C',
+        (byte)'R', (byte)'G', (byte)'B',
+        (byte)'G', (byte)'1', (byte)'0',
+        (byte)'1', (byte)'2'
+    ];
 }

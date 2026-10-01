@@ -267,13 +267,11 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.DecodeImageWithStrips(tags, frame, width, height, cancellationToken);
         }
 
-        // Only RGB-compatible color types can be converted here because the TPixel-based ICC profile conversion
-        // expects RGB-like pixel data; other photometric interpretations (YCbCr, CMYK, Lab, etc.) would require
-        // dedicated transforms. We do this once at the frame level to avoid duplicating conversion logic
-        // across all color decoders and to keep their decode paths focused on raw pixel unpacking.
-        if (this.ColorType is >= TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar)
+        // Palette entries were already converted before index expansion. Other RGB-compatible samples
+        // still need their frame-level transform after decoding.
+        if (this.ColorType is > TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar)
         {
-            _ = this.TryConvertIccProfile(frame);
+            _ = TryConvertIccProfile(frame);
         }
 
         return frame;
@@ -293,16 +291,18 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.ExecuteAncillarySegmentAction(
                 () =>
                 {
-                    IccProfile profile = new(iccProfileBytes.Value);
-                    if (profile.CheckIsValid())
-                    {
-                        imageFrameMetaData.IccProfile = profile;
-                    }
-                    else
-                    {
-                        throw new InvalidIccProfileException("Invalid TIFF ICC profile.");
-                    }
+                    using MemoryStream profileStream = new(iccProfileBytes.Value);
+                    IccReader reader = new();
+
+                    reader.Read(profileStream, iccProfileBytes.Value.Length);
+
+                    imageFrameMetaData.IccProfile = reader.ToProfile();
                 });
+        }
+        else if (tags.InvalidTags.Contains(ExifTag.IccProfile))
+        {
+            // Oversized or malformed ICC tags are rejected before EXIF allocates their payload.
+            this.ExecuteAncillarySegmentAction(() => throw new InvalidIccProfileException("Invalid TIFF ICC profile."));
         }
 
         TiffFrameMetadata tiffMetadata = TiffFrameMetadata.Parse(tags);

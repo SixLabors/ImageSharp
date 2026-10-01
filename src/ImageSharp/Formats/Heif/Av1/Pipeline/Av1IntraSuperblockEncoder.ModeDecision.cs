@@ -1038,7 +1038,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // take. Reference: the x->mb_energy update of av1_rd_pick_partition().
             if (costLimit.Cost >= 0 && blockSize == Av1BlockSize.Block16x16 && this.picture.Parent.VarianceSegmentRefresh)
             {
-                this.blockWorkspace.MacroblockEnergy = this.GetLogBlockVariance(blockOrigin, blockSize);
+                this.blockWorkspace.MacroblockEnergy = (int)this.GetLogBlockVariance(blockOrigin, blockSize);
             }
 
             Av1PartitionType result = this.SelectBestPartitionCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, nodeIndex, costLimit, out selectedStatistics, out noneCost, out rectangleWins);
@@ -1188,18 +1188,52 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Sets the quantizer of a selected block from its segment before the block is coded. Reference: the
+        /// Sets the quantizer of a selected block from its coded segment before the block is coded. Reference: the
         /// av1_init_plane_quantizers() call of av1_update_state().
         /// </summary>
-        /// <param name="segmentId">The segment of the selected block.</param>
-        private void SetCodedBlockSegment(int segmentId)
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="segmentId">The segment the search gave the selected block.</param>
+        private void SetCodedBlockSegment(Point blockOrigin, Av1BlockSize blockSize, int segmentId)
         {
             ObuSegmentationParameters segmentation = this.picture.Parent.FrameHeader.SegmentationParameters;
             if (this.picture.Parent.EncoderOptions.AdaptiveQuantizationMode != Av1AdaptiveQuantizationMode.None)
             {
-                this.blockSegmentId = segmentId;
-                this.blockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, segmentId, this.superblockQIndex);
+                this.blockSegmentId = this.GetCodedBlockSegment(blockOrigin, blockSize, segmentId);
+                this.blockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, this.blockSegmentId, this.superblockQIndex);
             }
+        }
+
+        /// <summary>
+        /// Returns the segment a selected block is coded with. Complexity adaptive quantization takes it from the
+        /// segment map, which the search of the block and its neighbors wrote after the block's own setup. Any other
+        /// mode keeps the searched segment. Reference: the COMPLEXITY_AQ segment copy of av1_update_state().
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="segmentId">The segment the search gave the selected block.</param>
+        /// <returns>The coded segment.</returns>
+        private readonly int GetCodedBlockSegment(Point blockOrigin, Av1BlockSize blockSize, int segmentId)
+        {
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            ObuSegmentationParameters segmentation = parent.FrameHeader.SegmentationParameters;
+            if (!segmentation.Enabled || parent.EncoderOptions.AdaptiveQuantizationMode != Av1AdaptiveQuantizationMode.Complexity)
+            {
+                return segmentId;
+            }
+
+            // Reference: the seg->update_map choice between cpi->enc_seg.map and cm->last_frame_seg_map.
+            ReadOnlySpan<byte> map = segmentation.SegmentationUpdateMap == 1
+                ? parent.EncoderSegmentMap.Span
+                : parent.PreviousSegmentMap.Span;
+
+            return map.IsEmpty
+                ? 0
+                : Av1SymbolContextHelper.GetSegmentId(
+                    parent.Common,
+                    map,
+                    blockSize,
+                    new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2));
         }
 
         /// <summary>
@@ -1213,7 +1247,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private int GetVarianceSegmentId(Point blockOrigin, Av1BlockSize blockSize)
             => blockSize <= Av1BlockSize.Block16x16
                 ? this.blockWorkspace.MacroblockEnergy
-                : this.GetLogBlockVariance(blockOrigin, blockSize);
+                : (int)this.GetLogBlockVariance(blockOrigin, blockSize);
 
         /// <summary>
         /// Returns the mean log variance of the 4x4 luma blocks of a block inside the mode-information grid, at most 7.
@@ -1221,8 +1255,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <returns>The truncated mean log variance.</returns>
-        private int GetLogBlockVariance(Point blockOrigin, Av1BlockSize blockSize)
+        /// <returns>The mean log variance.</returns>
+        private double GetLogBlockVariance(Point blockOrigin, Av1BlockSize blockSize)
         {
             Av1EncoderCommon common = this.picture.Parent.Common;
             int width = Math.Min(blockSize.GetWidth(), (common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) - blockOrigin.X);
@@ -1238,7 +1272,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The divisor counts whole 4x4 blocks, evaluated left to right. Reference: var /= (bw / 4 * bh / 4).
             sum /= width / 4 * height / 4;
-            return (int)Math.Min(sum, 7);
+            return Math.Min(sum, 7);
         }
 
         /// <summary>
@@ -3540,6 +3574,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo = context.Snapshot.ModeInfo;
                 block = context.Snapshot.Block;
                 paletteInfo = context.Snapshot.Palette;
+
+                // Reference: the COMPLEXITY_AQ segment copy of av1_update_state(), before its segment costs.
+                int codedSegmentId = this.GetCodedBlockSegment(blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
+                modeInfo.Block.SegmentId = codedSegmentId;
+                block.SegmentId = codedSegmentId;
                 if (encodeSelected && !modeInfo.Block.Skip)
                 {
                     this.AddSegmentPredictionCosts(writer, macroBlock, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
@@ -4422,6 +4461,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 rateSegmentId = this.blockSegmentId;
             }
+            else if (adaptiveQuantization == Av1AdaptiveQuantizationMode.Complexity)
+            {
+                rateSegmentId = this.blockSegmentId;
+            }
 
             // The search sets the motion vector error per bit from the block multiplier. Reference: the
             // av1_set_error_per_bit() call of pick_sb_modes().
@@ -4430,7 +4473,49 @@ internal static partial class Av1IntraSuperblockEncoder
             this.blockWorkspace.ErrorPerBitRateMultiplier = this.rateMultiplier;
             Av1RateDistortionStatistics result = this.EvaluatePartitionLeafCore(writer, macroBlock, blockOrigin, tileIndex, blockSize, partitionType, context, costLimit, publishContexts, publishCoefficientContexts, intraEncodeFollows);
             this.rateMultiplier = savedRateMultiplier;
+
+            // Complexity adaptive quantization places each searched block of 16x16 or larger by its rate. The block
+            // size order puts the 4:1 sizes after 128x128. Reference: the av1_caq_select_segment() call of
+            // pick_sb_modes().
+            if (result.Rate != int.MaxValue && blockSize >= Av1BlockSize.Block16x16 &&
+                adaptiveQuantization == Av1AdaptiveQuantizationMode.Complexity && this.picture.Parent.ComplexitySegmentRefresh)
+            {
+                this.SelectComplexitySegment(blockOrigin, blockSize, result.Rate);
+            }
+
             return result;
+        }
+
+        /// <summary>
+        /// Writes the complexity segment of a searched block into the encoder segment map. Reference:
+        /// av1_caq_select_segment().
+        /// </summary>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="projectedRate">The block's searched rate.</param>
+        private void SelectComplexitySegment(Point blockOrigin, Av1BlockSize blockSize, int projectedRate)
+        {
+            Av1PictureParentControlSet parent = this.picture.Parent;
+            Av1EncoderCommon common = parent.Common;
+            int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+            int visibleColumns = Math.Min(common.ModeInfoColumnCount - modeInfoColumn, blockSize.Get4x4WideCount());
+            int visibleRows = Math.Min(common.ModeInfoRowCount - modeInfoRow, blockSize.Get4x4HighCount());
+            byte segment = Av1ComplexityAdaptiveQuantization.SelectSegment(
+                projectedRate,
+                parent.SuperblockTargetRate,
+                visibleColumns * visibleRows,
+                this.picture.Sequence.SequenceHeader.SuperblockModeInfoSize,
+                this.GetLogBlockVariance(blockOrigin, blockSize),
+                this.quantization.BaseQIndex,
+                this.bitDepth);
+
+            // Reference: set_segment_id().
+            Span<byte> map = parent.EncoderSegmentMap.Span;
+            for (int row = 0; row < visibleRows; row++)
+            {
+                map.Slice(((modeInfoRow + row) * common.ModeInfoColumnCount) + modeInfoColumn, visibleColumns).Fill(segment);
+            }
         }
 
         private Av1RateDistortionStatistics EvaluatePartitionLeafCore(
@@ -4862,7 +4947,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPartitionTree.ModeContext context)
         {
             Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
-            this.SetCodedBlockSegment(snapshot.ModeInfo.Block.SegmentId);
+            this.SetCodedBlockSegment(blockOrigin, snapshot.ModeInfo.Block.BlockSize, snapshot.ModeInfo.Block.SegmentId);
             Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
             bool usesChromaFromLuma = snapshot.Block.HasChroma && snapshot.ModeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();

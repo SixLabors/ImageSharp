@@ -15,8 +15,9 @@ internal static partial class Av1FrameEncoder
     internal abstract partial class SequenceEncoder
     {
         /// <summary>
-        /// The segment map the encoder keeps across frames, which only the skipped blocks of a frame that updates its
-        /// map write. Reference: cpi->enc_seg.map.
+        /// The segment map the encoder keeps across frames. The skipped blocks of a frame that updates its map write
+        /// it, and complexity adaptive quantization resets it and writes each searched block. Reference:
+        /// cpi->enc_seg.map.
         /// </summary>
         private byte[] encoderSegmentMap = [];
 
@@ -39,11 +40,12 @@ internal static partial class Av1FrameEncoder
 
         /// <summary>
         /// Sets the segmentation of the frame about to be coded, after its quantizer and its primary reference are
-        /// known, and after <see cref="ResetIntraSegmentation"/> has cleared an intra frame. Variance adaptive
-        /// quantization refreshes the segment quantizers on an intra frame, an alternate reference and a golden frame
-        /// that is not an overlay, which only a frame that may be coded again sets up. Any other frame keeps the
-        /// segmentation of its primary reference. Reference: av1_vaq_frame_setup() with the segfeatures_copy() that
-        /// follow av1_setup_frame() in encode_with_recode_loop().
+        /// known, and after <see cref="ResetIntraSegmentation"/> has cleared an intra frame. Variance and complexity
+        /// adaptive quantization refresh the segment quantizers on an intra or error resilient frame, an alternate
+        /// reference and a golden frame that is not an overlay, which only a frame that may be coded again sets up.
+        /// Any other frame keeps the segmentation of its primary reference. Reference: av1_vaq_frame_setup() and
+        /// av1_setup_in_frame_q_adj() with the segfeatures_copy() that follow av1_setup_frame() in
+        /// encode_with_recode_loop().
         /// </summary>
         /// <typeparam name="TSample">The sample type of the reference pool.</typeparam>
         /// <param name="pool">The reference pool of the sequence.</param>
@@ -56,6 +58,7 @@ internal static partial class Av1FrameEncoder
         /// <param name="averageEnergy">The log of the frame's first-pass intra error. Reference: mb_av_energy.</param>
         /// <param name="bestQIndex">The lowest allowed quantizer index.</param>
         /// <param name="worstQIndex">The highest allowed quantizer index.</param>
+        /// <param name="superblockTargetRate">The frame's target rate per 64x64 area. Reference: rc->sb64_target_rate.</param>
         private protected void BeginSegmentation<TSample>(
             Av1EncoderReferencePool<TSample> pool,
             Av1EncoderReferencePool<TSample>.Entry current,
@@ -63,7 +66,8 @@ internal static partial class Av1FrameEncoder
             bool allowsRecode,
             double averageEnergy,
             int bestQIndex,
-            int worstQIndex)
+            int worstQIndex,
+            int superblockTargetRate)
             where TSample : unmanaged
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
@@ -87,21 +91,45 @@ internal static partial class Av1FrameEncoder
                 }
             }
 
-            bool refresh = false;
-            if (allowsRecode && this.Options.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.Variance)
+            if (this.encoderSegmentMap.Length != mapLength)
             {
-                if (frameHeader.IsIntra || parent.RefreshesAlternate || (parent.RefreshesGolden && !parent.IsSourceAlternateReference))
+                this.encoderSegmentMap = new byte[mapLength];
+            }
+
+            // Both modes refresh their segments on an intra or error resilient frame, an alternate reference and a
+            // golden frame that is not an overlay. Reference: is_frame_aq_enabled() and av1_vaq_frame_setup().
+            bool refreshFrame = frameHeader.IsIntra || frameHeader.ErrorResilientMode || parent.RefreshesAlternate ||
+                (parent.RefreshesGolden && !parent.IsSourceAlternateReference);
+
+            bool varianceRefresh = false;
+            bool complexityRefresh = false;
+            bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
+            Av1BitDepth bitDepth = this.SequenceHeader.ColorConfig.BitDepth;
+            int baseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
+            if (allowsRecode && refreshFrame)
+            {
+                switch (this.Options.AdaptiveQuantizationMode)
                 {
-                    refresh = true;
-                    Av1VarianceAdaptiveQuantization.SetupRefreshFrame(
-                        segmentation,
-                        frameHeader.FrameType == ObuFrameType.KeyFrame,
-                        parent.IsScreenContent,
-                        frameHeader.QuantizationParameters.BaseQIndex,
-                        averageEnergy,
-                        this.SequenceHeader.ColorConfig.BitDepth,
-                        bestQIndex,
-                        worstQIndex);
+                    case Av1AdaptiveQuantizationMode.Variance:
+                        varianceRefresh = true;
+                        Av1VarianceAdaptiveQuantization.SetupRefreshFrame(
+                            segmentation, keyFrame, parent.IsScreenContent, baseQIndex, averageEnergy, bitDepth, bestQIndex, worstQIndex);
+
+                        break;
+                    case Av1AdaptiveQuantizationMode.Complexity:
+                        complexityRefresh = Av1ComplexityAdaptiveQuantization.IsSuperblockEnabled(superblockTargetRate);
+                        Av1ComplexityAdaptiveQuantization.SetupRefreshFrame(
+                            segmentation,
+                            this.encoderSegmentMap,
+                            keyFrame,
+                            parent.IsScreenContent,
+                            baseQIndex,
+                            superblockTargetRate,
+                            bitDepth,
+                            bestQIndex,
+                            worstQIndex);
+
+                        break;
                 }
             }
 
@@ -144,11 +172,6 @@ internal static partial class Av1FrameEncoder
 
             // The encoder map holds no identifier above the last active segment. Reference: the last_active_segid
             // clamp of cpi->enc_seg.map in encode_frame_internal().
-            if (this.encoderSegmentMap.Length != mapLength)
-            {
-                this.encoderSegmentMap = new byte[mapLength];
-            }
-
             if (segmentation.Enabled && segmentation.SegmentationUpdateMap == 1)
             {
                 byte lastActiveSegmentId = (byte)segmentation.LastActiveSegmentId;
@@ -159,7 +182,9 @@ internal static partial class Av1FrameEncoder
             }
 
             parent.EncoderSegmentMap = this.encoderSegmentMap;
-            parent.VarianceSegmentRefresh = refresh;
+            parent.VarianceSegmentRefresh = varianceRefresh;
+            parent.ComplexitySegmentRefresh = complexityRefresh;
+            parent.SuperblockTargetRate = superblockTargetRate;
             parent.SearchSegmentMap = current.GetSegmentMap(mapLength);
             parent.PreviousSegmentMap = primary is { Segmentation.Enabled: true } ? primary.GetSegmentMap(mapLength) : default;
             parent.SpatialSegmentCost = 0;

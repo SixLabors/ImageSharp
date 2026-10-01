@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
 /// Places each block in one of eight segments by its source variance, and gives each segment a quantizer that scales
-/// the expected rate by a fixed ratio. Reference: aq_variance.c.
+/// the expected rate by a fixed ratio. Reference: av1_vaq_frame_setup() and av1_log_block_var().
 /// </summary>
 internal static class Av1VarianceAdaptiveQuantization
 {

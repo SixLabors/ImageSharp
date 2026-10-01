@@ -24,6 +24,13 @@ internal static partial class Av1FrameEncoder
     /// </summary>
     private const long TicksPerSecond = 10000000;
 
+    /// <summary>
+    /// The bit target of each lookahead frame. Constant quality coding with a lookahead and no separate first pass
+    /// gives the key frame group no bits, so the group and frame allocations are 0 too. Reference: the kf_group_bits
+    /// of find_next_key_frame() without bits_left, calculate_total_gf_group_bits(), and av1_setup_target_rate().
+    /// </summary>
+    private const int LaggedFrameTarget = 0;
+
     internal abstract partial class SequenceEncoder
     {
         /// <summary>
@@ -700,7 +707,8 @@ internal static partial class Av1FrameEncoder
                 allowsRecode: true,
                 frame.MacroblockAverageEnergy,
                 secondPass.BestQuality,
-                secondPass.WorstQuality);
+                secondPass.WorstQuality,
+                Av1RateControl.GetSuperblockTargetRate(LaggedFrameTarget, source.Frame.Width, source.Frame.Height));
 
             Encode(
                 this.ObuWriter,
@@ -864,7 +872,8 @@ internal static partial class Av1FrameEncoder
                 allowsRecode: true,
                 frame.MacroblockAverageEnergy,
                 secondPass.BestQuality,
-                secondPass.WorstQuality);
+                secondPass.WorstQuality,
+                Av1RateControl.GetSuperblockTargetRate(LaggedFrameTarget, source.Frame.Width, source.Frame.Height));
 
             Encode(
                 this.ObuWriter,

@@ -403,6 +403,43 @@ public class Av1EncoderFrameTests
         }
     }
 
+    [Fact]
+    public void LookaheadSequenceWithComplexityQuantizationCodesWithoutSegments()
+    {
+        // Constant quality coding gives each frame no bit target, so complexity adaptive quantization keeps the
+        // segments off and every frame still decodes.
+        using Image<Rgb24> frames = CreatePanningSequence(5);
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
+        {
+            LagInFrames = 35,
+            KeyFrameMaximumDistance = 9999,
+            AdaptiveQuantizationMode = Av1AdaptiveQuantizationMode.Complexity
+        };
+
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            frames.Width,
+            frames.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            100,
+            options);
+
+        using MemoryStream stream = new();
+        long[] sampleEnds = new long[frames.Frames.Count];
+        bool[] syncSamples = new bool[frames.Frames.Count];
+        encoder.EncodeWithLookahead(frames, 0, frames.Frames.Count, 333333, stream, sampleEnds, syncSamples, CancellationToken.None);
+
+        byte[] data = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        long start = 0;
+        foreach (long end in sampleEnds)
+        {
+            decoder.DecodeSequenceReference(data[(int)start..(int)end], null, null);
+            Assert.False(decoder.FrameHeader.SegmentationParameters.Enabled);
+            start = end;
+        }
+    }
+
     private static Av1EncoderOptions CreateSequenceOptions(HeifEncodingSpeed speed, int lagInFrames, int keyFrameInterval)
     {
         bool constantBitRate = speed >= HeifEncodingSpeed.Level7;

@@ -7553,7 +7553,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector secondaryVector,
             ReadOnlySpan<Av1EncoderTransformBlockState> states)
         {
-            this.SetCodedBlockSegment(modeInfo.Block.SegmentId);
+            this.SetCodedBlockSegment(blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             bool isInterIntra = modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
             if (isInterIntra)

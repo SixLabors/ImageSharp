@@ -345,14 +345,27 @@ internal class Av1PictureParentControlSet
     public bool VarianceSegmentRefresh { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether complexity adaptive quantization chooses the segment of each searched
+    /// block in this frame. Reference: is_frame_aq_enabled() with is_sb_aq_enabled() in av1_caq_select_segment().
+    /// </summary>
+    public bool ComplexitySegmentRefresh { get; set; }
+
+    /// <summary>
+    /// Gets or sets the frame's target rate per 64x64 area, which complexity adaptive quantization compares a block's
+    /// rate with. Reference: rc->sb64_target_rate.
+    /// </summary>
+    public int SuperblockTargetRate { get; set; }
+
+    /// <summary>
     /// Gets or sets the segment map of the primary reference frame, or an empty map when the frame has none or that
     /// frame did not use segmentation. Reference: cm->last_frame_seg_map.
     /// </summary>
     public ReadOnlyMemory<byte> PreviousSegmentMap { get; set; }
 
     /// <summary>
-    /// Gets or sets the segment map the encoder keeps across frames, which a frame that updates its map but does not
-    /// refresh its variance segments reads, and whose skipped blocks write their predicted segment. Reference:
+    /// Gets or sets the segment map the encoder keeps across frames. A frame that updates its map reads it, except
+    /// when it refreshes its variance segments. Skipped blocks write their predicted segment, and complexity adaptive
+    /// quantization writes each searched block and reads the segment each coded block takes. Reference:
     /// cpi->enc_seg.map.
     /// </summary>
     public Memory<byte> EncoderSegmentMap { get; set; }

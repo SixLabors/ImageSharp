@@ -1114,6 +1114,17 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
+    /// Returns the target rate of a frame per 64x64 area, partial areas included. Reference: the sb64_target_rate of
+    /// av1_rc_set_frame_target().
+    /// </summary>
+    /// <param name="frameTarget">The frame's target size in bits. Reference: rc->this_frame_target.</param>
+    /// <param name="width">The frame width in samples.</param>
+    /// <param name="height">The frame height in samples.</param>
+    /// <returns>The target rate per 64x64 area.</returns>
+    public static int GetSuperblockTargetRate(int frameTarget, int width, int height)
+        => (int)Math.Min(((long)frameTarget << 12) / (width * height), int.MaxValue);
+
+    /// <summary>
     /// Returns the quantizer index change between two real quantizers inside the allowed range. Reference:
     /// av1_compute_qdelta().
     /// </summary>

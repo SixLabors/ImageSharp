@@ -741,7 +741,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
         return new Av1CoefficientOptimizationWeights(
             options.Sharpness,
-            options.Tuning == Av1Tuning.Iq ? 7 : 5,
+            options.Tuning.IsImageTuning() ? 7 : 5,
             distortionWeights,
             this.GetInverseQuantizationMatrix(componentType, transformSize, transformType));
     }

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
@@ -10,12 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal sealed class Av1EncoderOptions
 {
     /// <summary>
-    /// The first quantization matrix level of tune=iq. Reference: QM_FIRST_IQ_SSIMULACRA2.
+    /// The first quantization matrix level of the image and SSIMULACRA 2 tunes. Reference: QM_FIRST_IQ_SSIMULACRA2.
     /// </summary>
     public const int FirstIqQuantizationMatrix = 2;
 
     /// <summary>
-    /// The last quantization matrix level of tune=iq. Reference: QM_LAST_IQ_SSIMULACRA2.
+    /// The last quantization matrix level of the image and SSIMULACRA 2 tunes. Reference: QM_LAST_IQ_SSIMULACRA2.
     /// </summary>
     public const int LastIqQuantizationMatrix = 10;
 
@@ -51,10 +53,10 @@ internal sealed class Av1EncoderOptions
         // statistics. Reference: the DELTA_Q_OBJECTIVE deltaq_mode of the good-quality defaults.
         this.DeltaQMode = allIntra ? Av1DeltaQMode.None : Av1DeltaQMode.Objective;
 
-        // The image tune enables the quantization matrices, sharpness 7, the QM-PSNR metric, adaptive CDEF, chroma
-        // delta q, variance boost, anti-aliasing aware screen detection and adaptive sharpness. Every other tune keeps
-        // the defaults. Reference: handle_tuning().
-        if (tuning == Av1Tuning.Iq)
+        // The image and SSIMULACRA 2 tunes enable the quantization matrices, sharpness 7, the QM-PSNR metric, adaptive
+        // CDEF, chroma delta q, variance boost and anti-aliasing aware screen detection. Only the image tune also
+        // enables adaptive sharpness. Every other tune keeps the defaults. Reference: handle_tuning().
+        if (tuning.IsImageTuning())
         {
             this.EnableQuantizationMatrices = true;
             this.QuantizationMatrixMinimum = FirstIqQuantizationMatrix;
@@ -65,7 +67,7 @@ internal sealed class Av1EncoderOptions
             this.EnableChromaDeltaQ = true;
             this.DeltaQMode = Av1DeltaQMode.VarianceBoost;
             this.ScreenDetectionMode = Av1ScreenDetectionMode.AntialiasingAware;
-            this.EnableAdaptiveSharpness = true;
+            this.EnableAdaptiveSharpness = tuning == Av1Tuning.Iq;
         }
     }
 
@@ -135,6 +137,22 @@ internal sealed class Av1EncoderOptions
     public Av1AdaptiveQuantizationMode AdaptiveQuantizationMode { get; init; }
 
     /// <summary>
+    /// Gets the film grain preset from 1 to 16, or 0 for none. Reference: film_grain_test_vector.
+    /// </summary>
+    public int FilmGrainPreset { get; init; }
+
+    /// <summary>
+    /// Gets the film grain table, or <see langword="null"/> for none. Reference: film_grain_table_filename.
+    /// </summary>
+    public Av1FilmGrainTable? FilmGrainTable { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the sequence signals film grain. Reference:
+    /// av1_update_film_grain_parameters_seq().
+    /// </summary>
+    public bool HasFilmGrain => this.FilmGrainPreset != 0 || this.FilmGrainTable is not null;
+
+    /// <summary>
     /// Gets the screen content detection mode. Reference: screen_detection_mode.
     /// </summary>
     public Av1ScreenDetectionMode ScreenDetectionMode { get; init; }
@@ -195,13 +213,14 @@ internal sealed class Av1EncoderOptions
     public int TileRowsLog2 { get; init; }
 
     /// <summary>
-    /// Returns the sharpness a tune sets: 7 for the image tune, 0 for every other tune. A sharpness the caller sets
-    /// replaces it, because libavif applies its codec options after the tune. Reference: handle_tuning(), and the
-    /// order of the AOME_SET_TUNING control and avifProcessAOMOptionsPostInit() in aomCodecEncodeImage().
+    /// Returns the sharpness a tune sets: 7 for the image and SSIMULACRA 2 tunes, 0 for every other tune. A sharpness
+    /// the caller sets replaces it, because libavif applies its codec options after the tune. Reference:
+    /// handle_tuning(), and the order of the AOME_SET_TUNING control and avifProcessAOMOptionsPostInit() in
+    /// aomCodecEncodeImage().
     /// </summary>
     /// <param name="tuning">The tune metric.</param>
     /// <returns>The sharpness.</returns>
-    public static int GetDefaultSharpness(Av1Tuning tuning) => tuning == Av1Tuning.Iq ? 7 : 0;
+    public static int GetDefaultSharpness(Av1Tuning tuning) => tuning.IsImageTuning() ? 7 : 0;
 
     /// <summary>
     /// Creates the options of an encoding.

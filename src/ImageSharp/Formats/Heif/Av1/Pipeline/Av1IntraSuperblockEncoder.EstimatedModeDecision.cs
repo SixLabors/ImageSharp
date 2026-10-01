@@ -243,7 +243,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformWidth,
                             estimationExtent,
                             estimationSize,
-                            this.superblockQIndex,
+                            this.blockQIndex,
                             this.quantization.DeltaQDc[0],
                             this.quantization.DeltaQAc[0],
                             this.bitDepth,
@@ -373,7 +373,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.Sequence.SequenceHeader,
                     this.blockWorkspace.GetDisplacementVectorCosts(),
                     reference,
-                    this.superblockQIndex,
+                    this.blockQIndex,
                     this.rateMultiplier,
                     this.picture.Parent.MotionSearchSettings,
                     out copyVector))
@@ -413,7 +413,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         width,
                         extent,
                         transformSize > Av1TransformSize.Size16x16 ? Av1TransformSize.Size16x16 : transformSize,
-                        this.superblockQIndex,
+                        this.blockQIndex,
                         this.quantization.DeltaQDc[0],
                         this.quantization.DeltaQAc[0],
                         this.bitDepth,
@@ -740,7 +740,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     coefficients.Slice(coefficientOffset, sampleCount),
                                     transformSize,
                                     blockTransformType,
-                                    this.superblockQIndex,
+                                    this.blockQIndex,
                                     this.quantization.DeltaQDc[planeIndex],
                                     this.quantization.DeltaQAc[planeIndex],
                                     this.bitDepth,
@@ -778,7 +778,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformSize,
                                     plane,
                                     this.bitDepth,
-                                    this.superblockQIndex == 0,
+                                    this.blockQIndex == 0,
                                     state);
                             }
 

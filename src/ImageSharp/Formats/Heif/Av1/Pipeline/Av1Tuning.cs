@@ -22,4 +22,10 @@ internal enum Av1Tuning
     /// Image quality, tuned for still images. Reference: AOM_TUNE_IQ.
     /// </summary>
     Iq,
+
+    /// <summary>
+    /// The SSIMULACRA 2 metric, which uses the image quality tools with its own luma quantization matrices and a
+    /// larger 4:2:0 chroma quantizer decrease. Reference: AOM_TUNE_SSIMULACRA2.
+    /// </summary>
+    Ssimulacra2,
 }

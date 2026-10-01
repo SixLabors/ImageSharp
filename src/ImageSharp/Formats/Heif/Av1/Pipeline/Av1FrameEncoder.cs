@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -539,6 +540,7 @@ internal static partial class Av1FrameEncoder
             // with adaptive strengths. Reference: the enable_cdef assignment of init_seq_coding_tools().
             EnableCdef = options.CdefControl != Av1CdefControl.None,
             EnableRestoration = speedSettings.EnableRestoration && options.EnableRestoration,
+            AreFilmGrainingParametersPresent = options.HasFilmGrain,
             ColorConfig = colorConfig
         };
     }
@@ -950,6 +952,9 @@ internal static partial class Av1FrameEncoder
         picture.Picture.Parent.EncoderOptions = options;
         picture.Picture.Parent.ConstantQualityIndex = frameHeader.QuantizationParameters.BaseQIndex;
         picture.Picture.Parent.SpeedSettings = speedSettings;
+
+        // libavif gives every image time stamp 0. Reference: the aom_codec_encode() call of aomCodecEncodeImage().
+        Av1FilmGrainState.Create(options.FilmGrainPreset, options.FilmGrainTable, sequenceHeader.ColorConfig)?.PrepareFrame(frameHeader, 0);
         Encode(
             obuWriter,
             stream,
@@ -1070,6 +1075,9 @@ internal static partial class Av1FrameEncoder
         picture.Picture.Parent.EncoderOptions = options;
         picture.Picture.Parent.ConstantQualityIndex = frameHeader.QuantizationParameters.BaseQIndex;
         picture.Picture.Parent.SpeedSettings = speedSettings;
+
+        // libavif gives every image time stamp 0. Reference: the aom_codec_encode() call of aomCodecEncodeImage().
+        Av1FilmGrainState.Create(options.FilmGrainPreset, options.FilmGrainTable, sequenceHeader.ColorConfig)?.PrepareFrame(frameHeader, 0);
         Encode(
             obuWriter,
             stream,
@@ -1845,6 +1853,11 @@ internal static partial class Av1FrameEncoder
         private const int FixedGoldenIntervalRealtime = 80;
 
         /// <summary>
+        /// The largest golden interval of real-time coding. Reference: MAX_GF_INTERVAL_RT.
+        /// </summary>
+        private const int MaximumGoldenIntervalRealtime = 160;
+
+        /// <summary>
         /// The golden interval after a period of high motion. Reference: set_golden_update().
         /// </summary>
         private const int LowMotionGoldenInterval = 16;
@@ -1865,6 +1878,29 @@ internal static partial class Av1FrameEncoder
         /// The constant-bitrate model of a real-time sequence, or <see langword="null"/> for good-quality coding.
         /// </summary>
         private readonly Av1RateControl? rateControl;
+
+        /// <summary>
+        /// The cyclic refresh of a real-time sequence that uses it, or <see langword="null"/>. Reference:
+        /// cpi->cyclic_refresh.
+        /// </summary>
+        private readonly Av1CyclicRefresh? cyclicRefresh;
+
+        /// <summary>
+        /// The noise estimate of a real-time sequence with cyclic refresh, or <see langword="null"/>. Reference:
+        /// cpi->noise_estimate.
+        /// </summary>
+        private readonly Av1NoiseEstimate? noiseEstimate;
+
+        /// <summary>
+        /// The film grain the sequence signals, or <see langword="null"/>.
+        /// </summary>
+        private readonly Av1FilmGrainState? filmGrain;
+
+        /// <summary>
+        /// The frames the real-time sequence coded, which key frames do not restart. Reference:
+        /// svc.num_encoded_top_layer.
+        /// </summary>
+        private int codedFrameCount;
 
         /// <summary>
         /// The requested quantizer index, which constant-quality coding keeps for inter frames. Reference: cq_level.
@@ -1976,6 +2012,7 @@ internal static partial class Av1FrameEncoder
         {
             this.Configuration = configuration;
             this.SequenceHeader = CreateSequenceHeader(width, height, colorConfig, options, false);
+            this.filmGrain = Av1FilmGrainState.Create(options.FilmGrainPreset, options.FilmGrainTable, colorConfig);
             this.QIndex = qIndex;
             this.constantQualityIndex = qIndex;
             this.averageInterQIndex = (Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer) +
@@ -2058,6 +2095,23 @@ internal static partial class Av1FrameEncoder
                 {
                     int bestAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer) : qIndex;
                     int worstAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer) : qIndex;
+
+                    // Cyclic refresh only runs with the real-time rate control. Reference: av1_cyclic_refresh_alloc().
+                    if (options.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.CyclicRefresh)
+                    {
+                        this.cyclicRefresh = new Av1CyclicRefresh(this.FrameHeader.ModeInfoColumnCount, this.FrameHeader.ModeInfoRowCount);
+                        this.PictureBuffer.Picture.Parent.CyclicRefresh = this.cyclicRefresh;
+
+                        // The noise estimate runs for 8-bit frames above 640x480 with key frames apart, which cyclic
+                        // refresh enables. Reference: use_temporal_noise_estimate in set_rt_speed_features(), with
+                        // enable_noise_estimation().
+                        if (width * height > 640 * 480 && options.KeyFrameMaximumDistance != 0 && colorConfig.BitDepth == Av1BitDepth.EightBit)
+                        {
+                            this.noiseEstimate = new Av1NoiseEstimate(width, height, this.FrameHeader.ModeInfoColumnCount, this.FrameHeader.ModeInfoRowCount);
+                            this.PictureBuffer.Picture.Parent.NoiseEstimate = this.noiseEstimate;
+                        }
+                    }
+
                     this.rateControl = new Av1RateControl(
                         width,
                         height,
@@ -2065,7 +2119,9 @@ internal static partial class Av1FrameEncoder
                         options.Speed,
                         bestAllowedQIndex,
                         worstAllowedQIndex,
-                        options.KeyFrameMaximumDistance);
+                        options.KeyFrameMaximumDistance,
+                        options.AdaptiveQuantizationMode != Av1AdaptiveQuantizationMode.None,
+                        this.cyclicRefresh);
                 }
 
                 this.MotionField = new Av1EncoderMotionField(
@@ -2701,10 +2757,10 @@ internal static partial class Av1FrameEncoder
             => keyFrame ? Av1FrameUpdateType.Key : startsGoldenGroup ? Av1FrameUpdateType.Golden : Av1FrameUpdateType.Last;
 
         /// <summary>
-        /// Starts a golden group. Without adaptive quantization the refresh divisor is 10, so the interval is 80
-        /// frames, or 40 at speed 9 from 360p where the golden length level is 1, unless recent frames had little zero
-        /// motion. The group ends no later than the next key frame, and then it is constrained. Reference:
-        /// set_baseline_gf_interval() and set_golden_update() with gf_length_lvl.
+        /// Starts a golden group. Without cyclic refresh the refresh divisor is 10, so the interval is 80 frames, or 40
+        /// at speed 9 from 360p where the golden length level is 1, unless recent frames had little zero motion. Cyclic
+        /// refresh divides by its refresh percentage instead. The group ends no later than the next key frame, and
+        /// then it is constrained. Reference: set_baseline_gf_interval() and set_golden_update() with gf_length_lvl.
         /// </summary>
         /// <param name="averageFrameLowMotion">The running zero-motion percentage. Reference: rc->avg_frame_low_motion.</param>
         /// <param name="framesToKey">The frames left before the next key frame. Reference: rc->frames_to_key.</param>
@@ -2713,7 +2769,12 @@ internal static partial class Av1FrameEncoder
             bool shortGoldenLength = this.Options.Speed >= HeifEncodingSpeed.Level9 &&
                 Math.Min(this.SequenceHeader.MaxFrameWidth, this.SequenceHeader.MaxFrameHeight) >= 360;
 
-            int interval = shortGoldenLength ? FixedGoldenIntervalRealtime / 2 : FixedGoldenIntervalRealtime;
+            // Cyclic refresh sets the interval to a multiple of its refresh period, which the previous frame chose.
+            int divisor = this.cyclicRefresh?.PercentRefresh ?? 10;
+            int interval = divisor > 0
+                ? Math.Min((shortGoldenLength ? 4 : 8) * (100 / divisor), MaximumGoldenIntervalRealtime)
+                : FixedGoldenIntervalRealtime;
+
             if (averageFrameLowMotion != 0 && averageFrameLowMotion < 40)
             {
                 interval = LowMotionGoldenInterval;
@@ -2852,6 +2913,21 @@ internal static partial class Av1FrameEncoder
                 this.RestartFrameCount();
             }
 
+            // Cyclic refresh decides whether the frame refreshes any block before its quantizer is chosen. Reference:
+            // the av1_cyclic_refresh_update_parameters() call of av1_encode_strategy().
+            this.cyclicRefresh?.UpdateParameters(
+                keyFrame,
+                parent.HighSourceSad,
+                this.rateControl.IsLosslessRequested,
+                parent.FramesSinceKey,
+                this.rateControl.AverageInterFrameQIndex,
+                this.rateControl.BestQuality,
+                parent.AverageFrameLowMotion,
+                this.FrameHeader.FrameSize.FrameWidth,
+                this.FrameHeader.FrameSize.FrameHeight,
+                this.rateControl.AverageFrameBandwidth,
+                this.SequenceHeader.SuperblockSize);
+
             Av1RateControl.SourceSadStatistics sourceSad = new(parent.FrameSourceSad, averageSourceSad, previousAverageSourceSad);
             int qIndex = this.rateControl.PickQuantizer<TSample, TMotion, TBlock>(
                 keyFrame, this.frameNumber, parent.IsScreenContent, in sourceSad, source, lastReconstruction);
@@ -2932,13 +3008,17 @@ internal static partial class Av1FrameEncoder
                 return;
             }
 
+            this.codedFrameCount++;
+
             this.rateControl.UpdateAfterFrame(
                 frameBytes,
                 this.FrameHeader.QuantizationParameters.BaseQIndex,
                 this.FrameHeader.IsIntra,
                 parent.RefreshesGolden,
                 this.isConstrainedGoldenGroup,
-                parent.IsScreenContent);
+                parent.IsScreenContent,
+                this.FrameHeader.SegmentationParameters.Enabled,
+                parent.HighSourceSad);
 
             this.rateControl.EndFrame();
         }
@@ -3026,6 +3106,54 @@ internal static partial class Av1FrameEncoder
         /// Releases the sample-type-specific frame buffers retained by the track encoder.
         /// </summary>
         protected abstract void DisposeFrames();
+
+        /// <summary>
+        /// Copies the visible luma samples of the reconstruction that a reference slot holds, so that a decoder's
+        /// output can be compared with what the encoder predicts from.
+        /// </summary>
+        /// <param name="slot">The reference slot.</param>
+        /// <returns>The luma samples, row by row, widened to 16 bits.</returns>
+        internal abstract ushort[] CopySlotLuma(int slot);
+
+        /// <summary>
+        /// Copies the visible samples of an 8-bit luma plane, widened to 16 bits.
+        /// </summary>
+        /// <param name="plane">The luma plane, starting at the frame origin.</param>
+        /// <param name="sequenceHeader">The sequence header, which gives the visible frame size.</param>
+        /// <returns>The samples, row by row.</returns>
+        private protected static ushort[] CopyLuma(Av1PlaneRegion<byte> plane, ObuSequenceHeader sequenceHeader)
+        {
+            int width = sequenceHeader.MaxFrameWidth;
+            ushort[] samples = new ushort[width * sequenceHeader.MaxFrameHeight];
+            for (int y = 0; y < sequenceHeader.MaxFrameHeight; y++)
+            {
+                ReadOnlySpan<byte> row = plane.GetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    samples[(y * width) + x] = row[x];
+                }
+            }
+
+            return samples;
+        }
+
+        /// <summary>
+        /// Copies the visible samples of a high bit depth luma plane.
+        /// </summary>
+        /// <param name="plane">The luma plane, starting at the frame origin.</param>
+        /// <param name="sequenceHeader">The sequence header, which gives the visible frame size.</param>
+        /// <returns>The samples, row by row.</returns>
+        private protected static ushort[] CopyLuma(Av1PlaneRegion<ushort> plane, ObuSequenceHeader sequenceHeader)
+        {
+            int width = sequenceHeader.MaxFrameWidth;
+            ushort[] samples = new ushort[width * sequenceHeader.MaxFrameHeight];
+            for (int y = 0; y < sequenceHeader.MaxFrameHeight; y++)
+            {
+                plane.GetRowSpan(y)[..width].CopyTo(samples.AsSpan(y * width, width));
+            }
+
+            return samples;
+        }
 
         protected abstract void EncodeFrame<TPixel>(
             ImageFrame<TPixel> image,
@@ -3138,6 +3266,10 @@ internal static partial class Av1FrameEncoder
             }
         }
 
+        /// <inheritdoc/>
+        internal override ushort[] CopySlotLuma(int slot)
+            => CopyLuma(this.referencePool.GetSlot(slot)!.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y), this.SequenceHeader);
+
         protected override void DisposeFrames()
         {
             // A derived constructor can fail before all frame owners exist.
@@ -3231,6 +3363,14 @@ internal static partial class Av1FrameEncoder
             this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.SearchGlobalMotion<byte, ByteGlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
+            this.UpdateNoiseEstimate(
+                parent,
+                this.source.Frame.CodedView.GetPlane(Av1Plane.Y),
+                this.previousSource is null ? default : this.previousSource.Frame.CodedView.GetPlane(Av1Plane.Y),
+                this.previousSource is not null);
+
+            this.BeginCyclicRefreshSegmentation(this.referencePool, current, parent);
+            this.PrepareFilmGrain();
 
             long frameStart = stream.Length;
             Encode(
@@ -3250,6 +3390,7 @@ internal static partial class Av1FrameEncoder
 
             // The temporal delimiter precedes each sample, and libaom counts the frame without it.
             this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - TemporalDelimiterLength);
+            this.CompleteCyclicRefreshSegmentation(current, this.PictureBuffer.Picture);
 
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
@@ -3264,6 +3405,7 @@ internal static partial class Av1FrameEncoder
 
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
+            this.RefreshFilmGrain();
         }
 
         /// <summary>
@@ -3395,6 +3537,10 @@ internal static partial class Av1FrameEncoder
             }
         }
 
+        /// <inheritdoc/>
+        internal override ushort[] CopySlotLuma(int slot)
+            => CopyLuma(this.referencePool.GetSlot(slot)!.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y), this.SequenceHeader);
+
         protected override void DisposeFrames()
         {
             // A derived constructor can fail before all frame owners exist.
@@ -3486,6 +3632,8 @@ internal static partial class Av1FrameEncoder
             this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(this.source.Frame, this.references, parent);
+            this.BeginCyclicRefreshSegmentation(this.referencePool, current, parent);
+            this.PrepareFilmGrain();
 
             long frameStart = stream.Length;
             Encode(
@@ -3505,6 +3653,7 @@ internal static partial class Av1FrameEncoder
 
             // The temporal delimiter precedes each sample, and libaom counts the frame without it.
             this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - TemporalDelimiterLength);
+            this.CompleteCyclicRefreshSegmentation(current, this.PictureBuffer.Picture);
 
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
@@ -3519,6 +3668,7 @@ internal static partial class Av1FrameEncoder
 
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
+            this.RefreshFilmGrain();
         }
 
         /// <summary>

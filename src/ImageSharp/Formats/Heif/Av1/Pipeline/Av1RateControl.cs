@@ -87,6 +87,7 @@ internal sealed class Av1RateControl
     private readonly long optimalBufferLevel;
     private readonly long maximumBufferSize;
     private readonly int keyFrameMaximumDistance;
+    private readonly Av1CyclicRefresh? cyclicRefresh;
     private int averageFrameBandwidth;
     private int maximumFrameBandwidth;
     private int previousAverageFrameBandwidth;
@@ -120,6 +121,8 @@ internal sealed class Av1RateControl
     /// <param name="bestAllowedQIndex">The lowest quantizer index the frames may use. Reference: best_allowed_q.</param>
     /// <param name="worstAllowedQIndex">The highest quantizer index the frames may use. Reference: worst_allowed_q.</param>
     /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames. Reference: kf_max_dist.</param>
+    /// <param name="usesAdaptiveQuantization">Whether the sequence uses any adaptive quantization mode.</param>
+    /// <param name="cyclicRefresh">The cyclic refresh of the sequence, or <see langword="null"/> without it.</param>
     public Av1RateControl(
         int width,
         int height,
@@ -127,8 +130,11 @@ internal sealed class Av1RateControl
         HeifEncodingSpeed speed,
         int bestAllowedQIndex,
         int worstAllowedQIndex,
-        int keyFrameMaximumDistance)
+        int keyFrameMaximumDistance,
+        bool usesAdaptiveQuantization,
+        Av1CyclicRefresh? cyclicRefresh)
     {
+        this.cyclicRefresh = cyclicRefresh;
         this.keyFrameMaximumDistance = keyFrameMaximumDistance;
         this.width = width;
         this.height = height;
@@ -146,7 +152,8 @@ internal sealed class Av1RateControl
             shortSide >= 360 &&
             shortSide <= 720 &&
             bitDepth == Av1BitDepth.EightBit &&
-            worstAllowedQIndex != 0;
+            worstAllowedQIndex != 0 &&
+            !usesAdaptiveQuantization;
 
         // libavif gives every frame time stamp 0 and duration 1 in libaom's default 1/30 time base, so
         // adjust_frame_rate() sees one constant duration of 333333 ten-megahertz ticks. Reference: the
@@ -171,6 +178,31 @@ internal sealed class Av1RateControl
     /// Gets the running average quantizer index of inter frames. Reference: avg_frame_qindex[INTER_FRAME].
     /// </summary>
     public int AverageInterFrameQIndex => this.averageInterFrameQIndex;
+
+    /// <summary>
+    /// Gets the coded sample bit depth.
+    /// </summary>
+    public Av1BitDepth BitDepth => this.bitDepth;
+
+    /// <summary>
+    /// Gets the lowest allowed quantizer index. Reference: rc->best_quality.
+    /// </summary>
+    public int BestQuality => this.bestQuality;
+
+    /// <summary>
+    /// Gets a value indicating whether every allowed quantizer is lossless. Reference: is_lossless_requested().
+    /// </summary>
+    public bool IsLosslessRequested => this.bestQuality == 0 && this.worstQuality == 0;
+
+    /// <summary>
+    /// Gets the bits per frame at the target rate. Reference: rc->avg_frame_bandwidth.
+    /// </summary>
+    public int AverageFrameBandwidth => this.averageFrameBandwidth;
+
+    /// <summary>
+    /// Gets the target rate of the current frame per 64x64 area. Reference: rc->sb64_target_rate.
+    /// </summary>
+    public int SuperblockTargetRate => GetSuperblockTargetRate(this.thisFrameTarget, this.width, this.height);
 
     /// <summary>
     /// Gets a value indicating whether the key frame interval places a key frame on the next frame. Automatic key
@@ -740,7 +772,7 @@ internal sealed class Av1RateControl
         while (low < high)
         {
             int middle = (low + high) >> 1;
-            if (this.GetBitsPerMacroblock(keyFrame, screenContent, middle, correctionFactor, this.accurateBitEstimate) > desiredBitsPerMacroblock)
+            if (this.GetSearchBitsPerMacroblock(keyFrame, screenContent, middle, correctionFactor) > desiredBitsPerMacroblock)
             {
                 low = middle + 1;
             }
@@ -751,7 +783,7 @@ internal sealed class Av1RateControl
         }
 
         int currentQ = low;
-        int currentBits = this.GetBitsPerMacroblock(keyFrame, screenContent, currentQ, correctionFactor, this.accurateBitEstimate);
+        int currentBits = this.GetSearchBitsPerMacroblock(keyFrame, screenContent, currentQ, correctionFactor);
         int currentDifference = currentBits <= desiredBitsPerMacroblock ? desiredBitsPerMacroblock - currentBits : int.MaxValue;
         int previousDifference;
         if (currentDifference == int.MaxValue || currentQ == bestQIndex)
@@ -760,11 +792,36 @@ internal sealed class Av1RateControl
         }
         else
         {
-            previousDifference = this.GetBitsPerMacroblock(keyFrame, screenContent, currentQ - 1, correctionFactor, this.accurateBitEstimate) -
+            previousDifference = this.GetSearchBitsPerMacroblock(keyFrame, screenContent, currentQ - 1, correctionFactor) -
                 desiredBitsPerMacroblock;
         }
 
         return currentDifference <= previousDifference ? currentQ : currentQ - 1;
+    }
+
+    /// <summary>
+    /// Returns the expected bits per macroblock that the quantizer search compares. When cyclic refresh refreshes
+    /// the frame, its expected boosted share codes at the lower quantizer of the first boosted segment. Reference:
+    /// get_bits_per_mb() with av1_cyclic_refresh_rc_bits_per_mb().
+    /// </summary>
+    /// <param name="keyFrame">Whether the frame is a key frame.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
+    /// <param name="qIndex">The quantizer index.</param>
+    /// <param name="correctionFactor">The rate correction factor.</param>
+    /// <returns>The bits per macroblock.</returns>
+    private int GetSearchBitsPerMacroblock(bool keyFrame, bool screenContent, int qIndex, double correctionFactor)
+    {
+        if (this.cyclicRefresh is not { Apply: true } cyclicRefresh)
+        {
+            return this.GetBitsPerMacroblock(keyFrame, screenContent, qIndex, correctionFactor, this.accurateBitEstimate);
+        }
+
+        double weight = cyclicRefresh.GetExpectedSegmentWeight(this.macroblockCount);
+        int qIndexDelta = cyclicRefresh.GetExpectedQDelta(this, keyFrame, screenContent, qIndex);
+        return (int)Math.Round(
+            ((1.0 - weight) * this.GetBitsPerMacroblock(keyFrame, screenContent, qIndex, correctionFactor, this.accurateBitEstimate)) +
+            (weight * this.GetBitsPerMacroblock(keyFrame, screenContent, qIndex + qIndexDelta, correctionFactor, this.accurateBitEstimate)),
+            MidpointRounding.AwayFromZero);
     }
 
     /// <summary>
@@ -805,7 +862,7 @@ internal sealed class Av1RateControl
 
     /// <summary>
     /// Limits the quantizer change against the two preceding frames and the scene statistics. Reference:
-    /// adjust_q_cbr(), without cyclic refresh, layers, resizing or reference biasing.
+    /// adjust_q_cbr(), without layers, resizing or reference biasing.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
@@ -822,9 +879,33 @@ internal sealed class Av1RateControl
 
         int maximumDeltaUp = overshootBufferLow ? 120 : 20;
         bool bandwidthChanged = Math.Abs(this.averageFrameBandwidth - this.previousAverageFrameBandwidth) > 0.1 * this.averageFrameBandwidth;
-        int maximumDeltaDown = screenContent
-            ? Av1Math.Clamp(this.firstFrameQIndex / 16, 1, 8)
-            : Av1Math.Clamp(this.firstFrameQIndex / 8, 1, 16);
+        int maximumDeltaDown;
+        if (this.cyclicRefresh is { Apply: true } cyclicRefresh)
+        {
+            // Static screen content limits the decrease until the next refresh cycle starts, and links the
+            // increase to the decrease and the buffer.
+            maximumDeltaDown = screenContent && cyclicRefresh.CycleAdvanced
+                ? Av1Math.Clamp(this.firstFrameQIndex / 32, 1, 8)
+                : Av1Math.Clamp(this.firstFrameQIndex / 8, 1, 16);
+
+            if (screenContent)
+            {
+                if (this.bufferLevel > this.optimalBufferLevel)
+                {
+                    maximumDeltaUp = Math.Max(4, maximumDeltaDown);
+                }
+                else if (!overshootBufferLow)
+                {
+                    maximumDeltaUp = Math.Max(8, maximumDeltaDown);
+                }
+            }
+        }
+        else
+        {
+            maximumDeltaDown = screenContent
+                ? Av1Math.Clamp(this.firstFrameQIndex / 16, 1, 8)
+                : Av1Math.Clamp(this.firstFrameQIndex / 8, 1, 16);
+        }
 
         if (!keyFrame && this.framesSinceKey > 1 && this.firstFrameQIndex > 0 && this.secondFrameQIndex > 0 && !bandwidthChanged)
         {
@@ -887,6 +968,12 @@ internal sealed class Av1RateControl
     /// <returns>The raised quantizer index.</returns>
     public int ApplyOvershootQuantizer(int q, ulong averageSourceSad)
     {
+        // A scene change restarts the cyclic refresh count. Reference: the counter_encode_maxq_scene_change reset.
+        if (this.cyclicRefresh is not null)
+        {
+            this.cyclicRefresh.SceneChangeFrameCount = 0;
+        }
+
         // An easy scene change in a large frame with a stable buffer uses a lower quantizer.
         const ulong sadThreshold = 64 * 64 * 32;
         if (this.width * this.height >= 1280 * 720 &&
@@ -933,10 +1020,20 @@ internal sealed class Av1RateControl
     /// Whether the golden group ends at the next key frame. Reference: p_rc->constrained_gf_group.
     /// </param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
-    public void UpdateAfterFrame(int frameBytes, int qIndex, bool keyFrame, bool refreshesGolden, bool constrainedGoldenGroup, bool screenContent)
+    /// <param name="segmentationEnabled">Whether the frame codes segments. Reference: cm->seg.enabled.</param>
+    /// <param name="sceneChange">Whether the frame is a scene change. Reference: rc->high_source_sad.</param>
+    public void UpdateAfterFrame(
+        int frameBytes,
+        int qIndex,
+        bool keyFrame,
+        bool refreshesGolden,
+        bool constrainedGoldenGroup,
+        bool screenContent,
+        bool segmentationEnabled,
+        bool sceneChange)
     {
         int projectedFrameSize = frameBytes << 3;
-        this.UpdateRateCorrectionFactors(projectedFrameSize, qIndex, keyFrame, screenContent);
+        this.UpdateRateCorrectionFactors(projectedFrameSize, qIndex, keyFrame, screenContent, segmentationEnabled, sceneChange);
 
         if (!keyFrame && this.accurateBitEstimate)
         {
@@ -991,11 +1088,37 @@ internal sealed class Av1RateControl
     /// <param name="qIndex">The quantizer index of the frame.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
-    private void UpdateRateCorrectionFactors(int projectedFrameSize, int qIndex, bool keyFrame, bool screenContent)
+    /// <param name="segmentationEnabled">Whether the frame codes segments. Reference: cm->seg.enabled.</param>
+    /// <param name="sceneChange">Whether the frame is a scene change. Reference: rc->high_source_sad.</param>
+    private void UpdateRateCorrectionFactors(
+        int projectedFrameSize,
+        int qIndex,
+        bool keyFrame,
+        bool screenContent,
+        bool segmentationEnabled,
+        bool sceneChange)
     {
+        Av1CyclicRefresh? cyclicRefresh = segmentationEnabled ? this.cyclicRefresh : null;
+
+        // The overshoot of a scene change already reset the factors, so only the quantizer history restarts. The
+        // count is zero exactly on that frame: ApplyOvershootQuantizer cleared it, and a scene change refreshes
+        // nothing, so the cyclic refresh setup did not count the frame. Reference: the FAST_DETECTION_MAXQ return of
+        // av1_rc_update_rate_correction_factors().
+        if (this.cyclicRefresh is { SceneChangeFrameCount: 0 } && sceneChange && !keyFrame)
+        {
+            this.secondFrameQIndex = qIndex;
+            this.firstFrameQIndex = qIndex;
+            this.secondFrameRateSign = 0;
+            this.firstFrameRateSign = 0;
+            return;
+        }
+
         double rateCorrectionFactor = this.GetRateCorrectionFactor(keyFrame);
         double correctionFactor = 1.0;
-        int projectedSizeBasedOnQ = this.EstimateBitsAtQ(keyFrame, screenContent, qIndex, rateCorrectionFactor);
+        int projectedSizeBasedOnQ = cyclicRefresh is null
+            ? this.EstimateBitsAtQ(keyFrame, screenContent, qIndex, rateCorrectionFactor)
+            : this.EstimateCyclicRefreshBitsAtQ(cyclicRefresh, keyFrame, screenContent, qIndex, rateCorrectionFactor);
+
         if (projectedSizeBasedOnQ > FrameOverheadBits)
         {
             correctionFactor = (double)projectedFrameSize / projectedSizeBasedOnQ;
@@ -1011,6 +1134,12 @@ internal sealed class Av1RateControl
         double adjustmentLimit = screenContent
             ? 0.25 + (0.5 * Math.Min(0.5, Math.Abs(Math.Log10(correctionFactor))))
             : 0.25 + (0.75 * Math.Min(0.5, Math.Abs(Math.Log10(correctionFactor))));
+
+        // An overshoot or undershoot moves the refresh amount and its quantizer change.
+        if (cyclicRefresh is not null && this.thisFrameTarget > 0)
+        {
+            cyclicRefresh.AdjustForRate(correctionFactor);
+        }
 
         if (correctionFactor > 1.01)
         {
@@ -1051,6 +1180,35 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
+    /// Returns the expected frame size at a quantizer with the quantizer changes of the boosted segments, weighted by
+    /// the units the frame coded in them. Reference: av1_cyclic_refresh_estimate_bits_at_q().
+    /// </summary>
+    /// <param name="cyclicRefresh">The cyclic refresh of the sequence.</param>
+    /// <param name="keyFrame">Whether the frame is a key frame.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="correctionFactor">The rate correction factor.</param>
+    /// <returns>The expected size in bits.</returns>
+    private int EstimateCyclicRefreshBitsAtQ(
+        Av1CyclicRefresh cyclicRefresh,
+        bool keyFrame,
+        bool screenContent,
+        int qIndex,
+        double correctionFactor)
+    {
+        int unitCount = this.macroblockCount << 4;
+        double firstWeight = (double)cyclicRefresh.FirstSegmentBlockCount / unitCount;
+        double secondWeight = (double)cyclicRefresh.SecondSegmentBlockCount / unitCount;
+        int firstQIndex = qIndex + cyclicRefresh.GetSegmentQDelta(Av1CyclicRefresh.FirstBoostSegment);
+        int secondQIndex = qIndex + cyclicRefresh.GetSegmentQDelta(Av1CyclicRefresh.SecondBoostSegment);
+        return (int)Math.Round(
+            ((1.0 - firstWeight - secondWeight) * this.EstimateBitsAtQ(keyFrame, screenContent, qIndex, correctionFactor)) +
+            (firstWeight * this.EstimateBitsAtQ(keyFrame, screenContent, firstQIndex, correctionFactor)) +
+            (secondWeight * this.EstimateBitsAtQ(keyFrame, screenContent, secondQIndex, correctionFactor)),
+            MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
     /// Returns the rate correction factor of the frame type. A GOLDEN refresh uses the inter factor because the
     /// constant-bitrate golden boost is zero. Reference: get_rate_correction_factor().
     /// </summary>
@@ -1068,7 +1226,7 @@ internal sealed class Av1RateControl
     /// <param name="qIndex">The base quantizer index.</param>
     /// <param name="rateTargetRatio">The rate ratio.</param>
     /// <returns>The quantizer index change.</returns>
-    private int GetQDeltaByRate(bool keyFrame, bool screenContent, int qIndex, double rateTargetRatio)
+    internal int GetQDeltaByRate(bool keyFrame, bool screenContent, int qIndex, double rateTargetRatio)
         => GetQDeltaByRate(keyFrame, screenContent, qIndex, rateTargetRatio, this.bitDepth, this.bestQuality, this.worstQuality);
 
     /// <summary>
@@ -1169,7 +1327,7 @@ internal sealed class Av1RateControl
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <returns>The real quantizer.</returns>
-    private static double ConvertQIndexToQ(int qIndex, Av1BitDepth bitDepth)
+    internal static double ConvertQIndexToQ(int qIndex, Av1BitDepth bitDepth)
     {
         int acQuantizer = Av1InverseTransformMath.GetAcQuantization(qIndex, 0, bitDepth);
         return bitDepth switch

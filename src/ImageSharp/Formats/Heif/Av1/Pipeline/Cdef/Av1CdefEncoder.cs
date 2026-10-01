@@ -171,7 +171,7 @@ internal static partial class Av1CdefEncoder
             // av1_set_speed_features_qindex_dependent().
             bool reduce = adaptive && qualityIndex <= 220;
             bool zeroLowStrengths = reduce &&
-                (sequence.IsStillPicture || options.Tuning == Av1Tuning.Iq) &&
+                (sequence.IsStillPicture || options.Tuning.IsImageTuning()) &&
                 header.QuantizationParameters.BaseQIndex <= 140;
 
             SelectStrengths(

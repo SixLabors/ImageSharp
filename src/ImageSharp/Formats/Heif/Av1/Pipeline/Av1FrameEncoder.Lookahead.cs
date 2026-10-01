@@ -710,6 +710,7 @@ internal static partial class Av1FrameEncoder
                 secondPass.WorstQuality,
                 Av1RateControl.GetSuperblockTargetRate(LaggedFrameTarget, source.Frame.Width, source.Frame.Height));
 
+            this.PrepareFilmGrain();
             Encode(
                 this.ObuWriter,
                 stream,
@@ -738,6 +739,7 @@ internal static partial class Av1FrameEncoder
 
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
+            this.RefreshFilmGrain();
         }
     }
 
@@ -875,6 +877,7 @@ internal static partial class Av1FrameEncoder
                 secondPass.WorstQuality,
                 Av1RateControl.GetSuperblockTargetRate(LaggedFrameTarget, source.Frame.Width, source.Frame.Height));
 
+            this.PrepareFilmGrain();
             Encode(
                 this.ObuWriter,
                 stream,
@@ -903,6 +906,7 @@ internal static partial class Av1FrameEncoder
 
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
+            this.RefreshFilmGrain();
         }
     }
 }

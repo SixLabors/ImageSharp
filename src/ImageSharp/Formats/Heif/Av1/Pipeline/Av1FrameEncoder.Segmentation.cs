@@ -16,7 +16,8 @@ internal static partial class Av1FrameEncoder
     {
         /// <summary>
         /// The segment map the encoder keeps across frames. The skipped blocks of a frame that updates its map write
-        /// it, and complexity adaptive quantization resets it and writes each searched block. Reference:
+        /// it, and complexity adaptive quantization resets it and writes each searched block. Cyclic refresh resets it
+        /// every real-time frame, marks the refreshed superblocks and writes each coded block. Reference:
         /// cpi->enc_seg.map.
         /// </summary>
         private byte[] encoderSegmentMap = [];
@@ -43,9 +44,10 @@ internal static partial class Av1FrameEncoder
         /// known, and after <see cref="ResetIntraSegmentation"/> has cleared an intra frame. Variance and complexity
         /// adaptive quantization refresh the segment quantizers on an intra or error resilient frame, an alternate
         /// reference and a golden frame that is not an overlay, which only a frame that may be coded again sets up.
-        /// Any other frame keeps the segmentation of its primary reference. Reference: av1_vaq_frame_setup() and
-        /// av1_setup_in_frame_q_adj() with the segfeatures_copy() that follow av1_setup_frame() in
-        /// encode_with_recode_loop().
+        /// Cyclic refresh sets up every real-time frame. Any other frame keeps the segmentation of its primary
+        /// reference. Reference: av1_vaq_frame_setup(), av1_setup_in_frame_q_adj() and av1_cyclic_refresh_setup(),
+        /// with the segfeatures_copy() that follow av1_setup_frame() in encode_with_recode_loop() and
+        /// encode_without_recode().
         /// </summary>
         /// <typeparam name="TSample">The sample type of the reference pool.</typeparam>
         /// <param name="pool">The reference pool of the sequence.</param>
@@ -133,6 +135,28 @@ internal static partial class Av1FrameEncoder
                 }
             }
 
+            // Cyclic refresh sets the segments of every real-time frame, which a frame without recoding codes.
+            // Reference: the av1_cyclic_refresh_setup() call of encode_without_recode().
+            if (this.cyclicRefresh is not null)
+            {
+                this.cyclicRefresh.Setup(
+                    segmentation,
+                    this.encoderSegmentMap,
+                    this.rateControl!,
+                    parent,
+                    frameHeader.IsIntra,
+                    parent.HighSourceSad,
+                    this.Options.Speed,
+                    parent.FramesSinceKey,
+                    this.SequenceHeader.SuperblockModeInfoSize,
+                    parent.SourceBlockSad.Span);
+
+                // The frame counts its own boosted units. Reference: the actual_num_seg1_blocks and
+                // actual_num_seg2_blocks reset of encode_frame_internal().
+                this.cyclicRefresh.FirstSegmentBlockCount = 0;
+                this.cyclicRefresh.SecondSegmentBlockCount = 0;
+            }
+
             if (segmentation.Enabled)
             {
                 if (segmentation.SegmentationUpdateData != 1 && primary is not null)
@@ -189,6 +213,82 @@ internal static partial class Av1FrameEncoder
             parent.PreviousSegmentMap = primary is { Segmentation.Enabled: true } ? primary.GetSegmentMap(mapLength) : default;
             parent.SpatialSegmentCost = 0;
             parent.TemporalSegmentCost = 0;
+        }
+
+        /// <summary>
+        /// Updates the noise estimate of a real-time frame, after an intra frame clears the still block counts.
+        /// Reference: the consec_zero_mv reset and the av1_update_noise_estimate() call of encode_without_recode().
+        /// </summary>
+        /// <param name="parent">The frame state.</param>
+        /// <param name="source">The luma plane of the frame's source.</param>
+        /// <param name="lastSource">The luma plane of the previous source.</param>
+        /// <param name="hasPreviousSource">Whether the encoder keeps a previous source buffer.</param>
+        private protected void UpdateNoiseEstimate(
+            Av1PictureParentControlSet parent,
+            Av1PlaneRegion<byte> source,
+            Av1PlaneRegion<byte> lastSource,
+            bool hasPreviousSource)
+        {
+            if (this.noiseEstimate is null)
+            {
+                return;
+            }
+
+            if (this.FrameHeader.IsIntra)
+            {
+                this.noiseEstimate.ResetStillBlocks();
+            }
+
+            // The first frame of the sequence has no previous source. Reference: cpi->last_source.
+            this.noiseEstimate.Update(
+                (int)this.frameNumber,
+                this.codedFrameCount,
+                parent.FramesSinceKey,
+                parent.AverageFrameLowMotion,
+                parent.HighSourceSad,
+                source,
+                lastSource,
+                hasPreviousSource && this.codedFrameCount > 0);
+        }
+
+        /// <summary>
+        /// Sets the cyclic refresh segmentation of a real-time frame after its quantizer is chosen. A sequence without
+        /// cyclic refresh codes no segments. Reference: the intra-only av1_reset_segment_features() of av1_encode(),
+        /// then encode_without_recode().
+        /// </summary>
+        /// <typeparam name="TSample">The sample type of the reference pool.</typeparam>
+        /// <param name="pool">The reference pool of the sequence.</param>
+        /// <param name="current">The buffer the frame is coded into.</param>
+        /// <param name="parent">The frame state.</param>
+        private protected void BeginCyclicRefreshSegmentation<TSample>(
+            Av1EncoderReferencePool<TSample> pool,
+            Av1EncoderReferencePool<TSample>.Entry current,
+            Av1PictureParentControlSet parent)
+            where TSample : unmanaged
+        {
+            if (this.cyclicRefresh is null)
+            {
+                return;
+            }
+
+            this.ResetIntraSegmentation();
+            this.BeginSegmentation(
+                pool, current, parent, allowsRecode: false, 0, 0, 0, this.rateControl!.SuperblockTargetRate);
+        }
+
+        /// <summary>
+        /// Keeps the segment map of a coded real-time frame when the sequence uses cyclic refresh.
+        /// </summary>
+        /// <typeparam name="TSample">The sample type of the reference pool.</typeparam>
+        /// <param name="current">The buffer the frame was coded into.</param>
+        /// <param name="picture">The coded picture, whose segment map the bitstream wrote.</param>
+        private protected void CompleteCyclicRefreshSegmentation<TSample>(Av1EncoderReferencePool<TSample>.Entry current, Av1PictureControlSet picture)
+            where TSample : unmanaged
+        {
+            if (this.cyclicRefresh is not null)
+            {
+                this.CompleteSegmentation(current, picture);
+            }
         }
 
         /// <summary>

@@ -236,12 +236,14 @@ internal sealed partial class HeifEncoderCore
         // A tune that the caller sets applies to color and alpha. Otherwise libavif picks it: lossless coding keeps the
         // libaom default, alpha uses PSNR to limit ringing, and color uses the image tune for all-intra images whose
         // matrix is not identity, else SSIM. Reference: avifAOMOptionsContainExplicitTuning() and the default tune
-        // metric of aomCodecEncodeImage().
+        // metric of aomCodecEncodeImage(). Only the image tune changes the quality curve, because libavif detects only
+        // tune=iq. Reference: tuneIqEnum.
         Av1Tuning? requestedTuning = this.encoder.Tuning switch
         {
             HeifTuning.Psnr => Av1Tuning.Psnr,
             HeifTuning.Ssim => Av1Tuning.Ssim,
             HeifTuning.ImageQuality => Av1Tuning.Iq,
+            HeifTuning.Ssimulacra2 => Av1Tuning.Ssimulacra2,
             _ => null
         };
 
@@ -313,11 +315,22 @@ internal sealed partial class HeifEncoderCore
                 TileRowsLog2 = tileRowsLog2,
                 TileColumnsLog2 = tileColumnsLog2,
 
+                // libaom refuses chroma delta q with lossless coding; a lossless quantizer of zero keeps every chroma
+                // delta at zero instead. Reference: the lossless test of validate_config().
+                EnableChromaDeltaQ = this.encoder.SeparateChromaQuality ?? tuning.IsImageTuning(),
+                FilmGrainPreset = this.encoder.FilmGrainPreset ?? 0,
+                FilmGrainTable = this.encoder.ParsedFilmGrainTable,
+
                 // libaom refuses adaptive quantization with lossless coding. Reference: the lossless test of
                 // validate_config().
-                AdaptiveQuantizationMode = !this.encoder.Lossless && this.encoder.AdaptiveQuantization == HeifAdaptiveQuantization.Variance
-                    ? Av1AdaptiveQuantizationMode.Variance
-                    : Av1AdaptiveQuantizationMode.None
+                AdaptiveQuantizationMode = this.encoder.Lossless
+                    ? Av1AdaptiveQuantizationMode.None
+                    : this.encoder.AdaptiveQuantization switch
+                    {
+                        HeifAdaptiveQuantization.Variance => Av1AdaptiveQuantizationMode.Variance,
+                        HeifAdaptiveQuantization.CyclicRefresh => Av1AdaptiveQuantizationMode.CyclicRefresh,
+                        _ => Av1AdaptiveQuantizationMode.None
+                    }
             };
     }
 

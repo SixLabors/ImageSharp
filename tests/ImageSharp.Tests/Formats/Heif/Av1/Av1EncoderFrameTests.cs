@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -437,6 +438,96 @@ public class Av1EncoderFrameTests
             decoder.DecodeSequenceReference(data[(int)start..(int)end], null, null);
             Assert.False(decoder.FrameHeader.SegmentationParameters.Enabled);
             start = end;
+        }
+    }
+
+    [Theory]
+    [InlineData(96, 64, HeifEncodingSpeed.Level8)]
+    [InlineData(704, 512, HeifEncodingSpeed.Level9)]
+    public void RealtimeSequenceWithCyclicRefreshReconstructsAsDecoded(int width, int height, HeifEncodingSpeed speed)
+    {
+        // The boosted segments code at their own quantizers, so the decoder must reconstruct every frame exactly as
+        // the encoder does. Frames above 640x480 also estimate the source noise every eighth frame.
+        using Image<Rgb24> frames = new(width, height);
+        for (int frameIndex = 0; frameIndex < 10; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? frames.Frames.RootFrame : frames.Frames.CreateFrame();
+            for (int y = 0; y < height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    // A still gradient with a little noise that changes every frame.
+                    int noise = (((x * 7919) + (y * 104729) + (frameIndex * 15485863)) >> 3) & 7;
+                    int value = ((x + y) >> 2) + noise;
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        Av1EncoderOptions options = new(speed, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
+        {
+            UsesConstantBitRate = true,
+            MinimumQuantizer = 21,
+            MaximumQuantizer = 29,
+            KeyFrameMaximumDistance = 9999,
+            AdaptiveQuantizationMode = Av1AdaptiveQuantizationMode.CyclicRefresh
+        };
+
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            width,
+            height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            100,
+            options);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        bool segmented = false;
+        for (int i = 0; i < frames.Frames.Count; i++)
+        {
+            sample.SetLength(0);
+            if (i == 0)
+            {
+                encoder.EncodeKeyFrame(frames.Frames[0], sample);
+            }
+            else
+            {
+                encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false);
+            }
+
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            segmented |= decoder.FrameHeader!.SegmentationParameters.Enabled;
+            AssertDecodedLumaMatchesEncoder(encoder, decoder, width, height);
+        }
+
+        Assert.True(segmented);
+    }
+
+    /// <summary>
+    /// Asserts that the luma a decoder reconstructed for the last frame equals the luma the encoder keeps in the
+    /// first reference slot the frame refreshed.
+    /// </summary>
+    /// <param name="encoder">The sequence encoder that coded the frame.</param>
+    /// <param name="decoder">The decoder that decoded the frame.</param>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    private static void AssertDecodedLumaMatchesEncoder(Av1FrameEncoder.SequenceEncoder encoder, Av1Decoder decoder, int width, int height)
+    {
+        int slot = BitOperations.TrailingZeroCount(decoder.FrameHeader!.RefreshFrameFlags);
+        ushort[] expected = encoder.CopySlotLuma(slot);
+        Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+        Av1PlaneRegion<byte> luma = decoded.GetPlaneBuffer(Av1Plane.Y);
+        Span<byte> samples = luma.Samples;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                // The decoder plane keeps a border, so the visible frame starts at the decoder origin.
+                byte actual = samples[((decoded.OriginY + y) * luma.Stride) + decoded.OriginX + x];
+                Assert.True(expected[(y * width) + x] == actual, $"Luma differs at ({x}, {y}).");
+            }
         }
     }
 

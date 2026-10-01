@@ -22,5 +22,11 @@ public enum HeifTuning
     /// Perceived image quality. The encoder keeps fine detail and gives more data to flat areas.
     /// This setting also changes how <see cref="HeifEncoder.Quality"/> controls the compression.
     /// </summary>
-    ImageQuality = 2
+    ImageQuality = 2,
+
+    /// <summary>
+    /// The SSIMULACRA 2 perceptual metric. The encoder uses the tools of <see cref="ImageQuality"/>, with settings
+    /// for this metric. <see cref="HeifEncoder.Quality"/> controls the compression as it does for the other measures.
+    /// </summary>
+    Ssimulacra2 = 3
 }

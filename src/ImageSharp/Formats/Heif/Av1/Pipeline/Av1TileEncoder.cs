@@ -748,7 +748,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate(), which precedes the
         // trial.
         parent.SsimRateMultiplierFactors = null;
-        if (parent.EncoderOptions.Tuning is Av1Tuning.Ssim or Av1Tuning.Iq)
+        if (parent.EncoderOptions.Tuning == Av1Tuning.Ssim || parent.EncoderOptions.Tuning.IsImageTuning())
         {
             Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
         }
@@ -787,7 +787,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate().
         parent.SsimRateMultiplierFactors = null;
-        if (parent.EncoderOptions.Tuning is Av1Tuning.Ssim or Av1Tuning.Iq)
+        if (parent.EncoderOptions.Tuning == Av1Tuning.Ssim || parent.EncoderOptions.Tuning.IsImageTuning())
         {
             Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
         }

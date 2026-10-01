@@ -1509,6 +1509,19 @@ internal sealed class ObuWriter : IDisposable
         }
 
         writer.WriteLiteral(grainParams.GrainSeed, 16);
+
+        // An inter frame may reuse the grain of a reference slot. Reference: write_film_grain_params().
+        if (frameHeader.FrameType == ObuFrameType.InterFrame)
+        {
+            writer.WriteBoolean(grainParams.UpdateGrain);
+        }
+
+        if (!grainParams.UpdateGrain)
+        {
+            writer.WriteLiteral(grainParams.FilmGrainParamsRefIdx, 3);
+            return;
+        }
+
         writer.WriteLiteral(grainParams.NumYPoints, 4);
         for (int i = 0; i < grainParams.NumYPoints; i++)
         {

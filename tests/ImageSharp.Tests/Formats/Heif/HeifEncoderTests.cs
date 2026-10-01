@@ -999,6 +999,7 @@ public class HeifEncoderTests
     [InlineData(HeifTuning.Psnr, false, 0)]
     [InlineData(HeifTuning.Ssim, false, 0)]
     [InlineData(HeifTuning.ImageQuality, true, 7)]
+    [InlineData(HeifTuning.Ssimulacra2, true, 7)]
     [InlineData(null, true, 7)]
     public void Av1StillUsesRequestedTuning(HeifTuning? tuning, bool expectedMatrices, int expectedSharpness)
     {
@@ -1106,6 +1107,86 @@ public class HeifEncoderTests
             Assert.NotEqual(
                 segmentation.GetFeatureData(0, (int)ObuSegmentationLevelFeature.AlternativeQuantizer),
                 segmentation.GetFeatureData(7, (int)ObuSegmentationLevelFeature.AlternativeQuantizer));
+        }
+
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgb24> expected = image.Frames.CloneFrame(i);
+            using Image<Rgb24> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(80).VerifySimilarity(expected, actual);
+        }
+    }
+
+    [Theory]
+    [InlineData(HeifTuning.Psnr, true, 2)]
+    [InlineData(HeifTuning.Psnr, null, 0)]
+    [InlineData(HeifTuning.ImageQuality, false, 0)]
+    [InlineData(HeifTuning.Ssimulacra2, null, -20)]
+    [InlineData(HeifTuning.ImageQuality, null, -16)]
+    public void Av1SeparateChromaQualitySetsTheChromaQuantizerOffset(HeifTuning tuning, bool? separate, int expectedDelta)
+    {
+        // Other tunes give chroma a small fixed offset, and turning it off keeps chroma at the luma quantizer. The image
+        // and SSIMULACRA 2 tunes give 4:2:0 chroma a finer quantizer, which reaches its limit at a low quality.
+        using Image<Rgb24> image = new(32, 32, new Rgb24(90, 140, 200));
+        using MemoryStream stream = new();
+        image.Save(
+            stream,
+            new HeifEncoder
+            {
+                Quality = 20,
+                Tuning = tuning,
+                SeparateChromaQuality = separate,
+                ChromaSubsampling = HeifChromaSubsampling.Yuv420
+            });
+
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
+        ObuQuantizationParameters quantization = decoder.FrameHeader!.QuantizationParameters;
+        Assert.Equal(expectedDelta, quantization.DeltaQDc[(int)Av1Plane.U]);
+        Assert.Equal(expectedDelta, quantization.DeltaQAc[(int)Av1Plane.V]);
+    }
+
+    [Fact]
+    public void Av1RealtimeAnimationWithCyclicRefreshRoundTrips()
+    {
+        // A real-time animation refreshes part of each inter frame in two boosted segments at lower quantizers.
+        using Image<Rgb24> image = new(96, 64);
+        for (int frameIndex = 0; frameIndex < 4; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = ((x + frameIndex) * 3) + (y * 2);
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Quality = 80, Speed = HeifEncodingSpeed.Level8, AdaptiveQuantization = HeifAdaptiveQuantization.CyclicRefresh });
+
+        byte[] file = stream.ToArray();
+        HeifSequenceSample[] samples = ParseSequence(file).ColorTrack.Samples;
+        using (Av1Decoder decoder = new(Configuration.Default))
+        {
+            decoder.DecodeSequenceReference(file.AsSpan((int)samples[0].Offset, samples[0].Length).ToArray(), null, null);
+            Assert.False(decoder.FrameHeader.SegmentationParameters.Enabled);
+
+            decoder.DecodeSequenceReference(file.AsSpan((int)samples[1].Offset, samples[1].Length).ToArray(), null, null);
+            ObuSegmentationParameters segmentation = decoder.FrameHeader.SegmentationParameters;
+            Assert.True(segmentation.Enabled);
+            Assert.Equal(2, segmentation.LastActiveSegmentId);
+            Assert.True(segmentation.GetFeatureData(1, (int)ObuSegmentationLevelFeature.AlternativeQuantizer) < 0);
+            Assert.True(
+                segmentation.GetFeatureData(2, (int)ObuSegmentationLevelFeature.AlternativeQuantizer) <=
+                segmentation.GetFeatureData(1, (int)ObuSegmentationLevelFeature.AlternativeQuantizer));
         }
 
         stream.Position = 0;

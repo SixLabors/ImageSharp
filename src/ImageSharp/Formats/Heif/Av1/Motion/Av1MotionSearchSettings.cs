@@ -159,9 +159,9 @@ internal readonly struct Av1MotionSearchSettings
                 this.SecondCandidateSelection = CandidateSelection.FirstOnly;
                 this.MeshPruningLevel = 1;
 
-                // The image tune keeps intra block copy. Reference: the use_intrabc override of the AOM_TUNE_IQ block
-                // of set_good_speed_features_framesize_independent().
-                this.AllowIntraBlockCopy = tuning == Av1Tuning.Iq;
+                // The image and SSIMULACRA 2 tunes keep intra block copy. Reference: the use_intrabc override of the
+                // AOM_TUNE_IQ and AOM_TUNE_SSIMULACRA2 block of set_good_speed_features_framesize_independent().
+                this.AllowIntraBlockCopy = tuning.IsImageTuning();
                 this.MotionCostUpdate = CostUpdateFrequency.SuperblockRow;
             }
 

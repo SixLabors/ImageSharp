@@ -53,7 +53,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Gets a value indicating whether the image tune biases inter costs toward intra prediction. Reference: the
         /// AOM_TUNE_IQ test of adjust_rdcost() and adjust_cost().
         /// </summary>
-        private readonly bool BiasesInterCosts => this.blockWorkspace.EncoderOptions.Tuning == Av1Tuning.Iq;
+        private readonly bool BiasesInterCosts => this.blockWorkspace.EncoderOptions.Tuning.IsImageTuning();
 
         /// <summary>
         /// Gets the Q12 mode threshold multiplier of the block, from 2.5 at quantizer zero to 1 at quantizer 255 when

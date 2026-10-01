@@ -53,11 +53,11 @@ internal readonly struct Av1EncoderSpeedSettings
         int sharpness = 0,
         Av1Tuning tuning = Av1Tuning.Psnr)
     {
-        // The image tune searches intra modes more thoroughly in inter frames, because a layered image can code its key
-        // frame at a lower quality than its inter frames. Reference: the AOM_TUNE_IQ blocks of
-        // set_good_speed_features_framesize_independent(), set_good_speed_feature_framesize_dependent() and
-        // set_rt_speed_features_framesize_independent().
-        bool imageTuning = tuning == Av1Tuning.Iq;
+        // The image and SSIMULACRA 2 tunes search intra modes more thoroughly in inter frames, because a layered image
+        // can code its key frame at a lower quality than its inter frames. Reference: the AOM_TUNE_IQ and
+        // AOM_TUNE_SSIMULACRA2 blocks of set_good_speed_features_framesize_independent(),
+        // set_good_speed_feature_framesize_dependent() and set_rt_speed_features_framesize_independent().
+        bool imageTuning = tuning.IsImageTuning();
 
         this.Speed = speed;
         this.qIndex = qIndex;

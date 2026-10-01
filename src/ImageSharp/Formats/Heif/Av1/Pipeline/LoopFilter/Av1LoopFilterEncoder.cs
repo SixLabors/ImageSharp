@@ -77,10 +77,10 @@ internal static class Av1LoopFilterEncoder
             return;
         }
 
-        // All-intra usage and the image tune use the configured sharpness, which adaptive sharpness limits by the
-        // quantizer. Reference: the sharpness_level assignments of av1_pick_filter_level().
+        // All-intra usage and the image and SSIMULACRA 2 tunes use the configured sharpness, which adaptive sharpness
+        // limits by the quantizer. Reference: the sharpness_level assignments of av1_pick_filter_level().
         Av1EncoderOptions options = picture.Parent.EncoderOptions;
-        int sharpness = picture.Sequence.SequenceHeader.IsStillPicture || options.Tuning == Av1Tuning.Iq ? options.Sharpness : 0;
+        int sharpness = picture.Sequence.SequenceHeader.IsStillPicture || options.Tuning.IsImageTuning() ? options.Sharpness : 0;
         if (options.EnableAdaptiveSharpness)
         {
             int baseQIndex = header.QuantizationParameters.BaseQIndex;

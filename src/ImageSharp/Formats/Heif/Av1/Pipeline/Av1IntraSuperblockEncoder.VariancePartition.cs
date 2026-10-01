@@ -59,6 +59,24 @@ internal static partial class Av1IntraSuperblockEncoder
             int pixels = parent.FrameHeader.FrameSize.FrameWidth * parent.FrameHeader.FrameSize.FrameHeight;
             int frameQuantizer = this.quantization.QIndex[0];
             long basis = Av1QuantizationLookup.GetAcQuant(quantizer, 0, this.bitDepth);
+
+            // A noisy source that changed little raises the base threshold. Reference: the noise level step of
+            // tune_base_thresh_content().
+            if (parent.NoiseEstimate is { Enabled: true } && this.sourceLowSumDifference && pixels > resolution480 &&
+                this.blockWorkspace.EncodedFrameCount > 60)
+            {
+                int noiseLevel = parent.RunningNoiseLevel;
+                if (noiseLevel == Av1NoiseEstimate.HighLevel)
+                {
+                    basis = (5 * basis) >> 1;
+                }
+                else if (noiseLevel == Av1NoiseEstimate.MediumLevel && parent.SpeedSettings.GetVariancePartitionPreference(
+                    parent.IsScreenContent && parent.HighSourceSad, nonReferenceFrame) == 0)
+                {
+                    basis = (5 * basis) >> 2;
+                }
+            }
+
             if (nonReferenceFrame && parent.FrameSourceSad != 0)
             {
                 basis = (3 * basis) >> 1;
@@ -294,7 +312,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (width == 64)
             {
-                node.ForceParentSplit |= preference != 0 && maximum - minimum > 3 * (threshold >> 3) && maximum > (threshold >> 1);
+                // Reference: check_noise_lvl, with the noise level of the running estimate.
+                bool checkNoiseLevel = parent.RunningNoiseLevel >= Av1NoiseEstimate.MediumLevel || preference != 0;
+                node.ForceParentSplit |= checkNoiseLevel && maximum - minimum > 3 * (threshold >> 3) && maximum > (threshold >> 1);
             }
             else
             {
@@ -988,15 +1008,28 @@ internal static partial class Av1IntraSuperblockEncoder
                 int side = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
                 int columns = (parent.FrameHeader.FrameSize.FrameWidth + 63) >> 6;
                 ulong sourceSad = parent.SourceBlockSad.Span[((superblockOrigin.Y >> 6) * columns) + (superblockOrigin.X >> 6)];
+
+                // The superblock takes its segment from the map. A boosted cyclic refresh superblock splits at the
+                // thresholds of its segment quantizer. Reference: the av1_set_offsets() call of encode_nonrd_sb(), and
+                // is_segment_id_boosted with the qindex of av1_choose_var_based_partitioning().
+                this.SetBlockSegment(superblockOrigin, this.picture.Sequence.SequenceHeader.SuperblockSize);
+                bool boostedSegment = this.IsCyclicRefreshBoosted;
+                int partitionQIndex = boostedSegment
+                    ? Av1QuantizationLookup.GetQIndex(parent.FrameHeader.SegmentationParameters, this.blockSegmentId, this.superblockQIndex)
+                    : this.superblockQIndex;
+
                 InlineArray4<long> thresholds = default;
-                this.GetInterVarianceThresholds(sourceSad, false, this.superblockQIndex, thresholds);
+                this.GetInterVarianceThresholds(sourceSad, boostedSegment, partitionQIndex, thresholds);
 
                 ReadOnlySpan<TSample> prediction = this.PrepareInterVariancePrediction(
                     macroBlock, superblockOrigin, out int predictionStride, out uint lastSad);
 
+                // Only the base segment exits early, so a boosted segment keeps refreshing. Reference: the
+                // CR_SEGMENT_ID_BASE test of the part_early_exit_zeromv exit.
                 this.forceZeroMotionLevel = 0;
                 if (parent.IsScreenContent && parent.EncodingSpeed >= HeifEncodingSpeed.Level9 &&
-                    parent.FramesSinceKey > 30 && this.partitionReference == Av1ReferenceFrameType.Last &&
+                    parent.FramesSinceKey > 30 && this.blockSegmentId == Av1CyclicRefresh.BaseSegment &&
+                    this.partitionReference == Av1ReferenceFrameType.Last &&
                     this.partitionMotion.IsZero && this.sourceSadLevel == Av1SourceSadLevel.Zero)
                 {
                     uint lumaThreshold = side == 128 ? 10000U : 5000U;

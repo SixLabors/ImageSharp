@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
+
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
@@ -27,6 +29,16 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// Backing field for <see cref="Sharpness"/>.
     /// </summary>
     private int? sharpness;
+
+    /// <summary>
+    /// Backing field for <see cref="FilmGrainPreset"/>.
+    /// </summary>
+    private int? filmGrainPreset;
+
+    /// <summary>
+    /// Backing field for <see cref="FilmGrainTable"/>.
+    /// </summary>
+    private string? filmGrainTable;
 
     /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60.
@@ -111,12 +123,65 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     public HeifTuning? Tuning { get; init; }
 
     /// <summary>
-    /// Gets how the encoder varies the compression between areas of a frame. The compression varies between areas only
-    /// in animations without alpha at <see cref="HeifEncodingSpeed.Level0"/> to <see cref="HeifEncodingSpeed.Level6"/>.
-    /// Other lossy animations can change slightly. Lossless encoding ignores this setting.
-    /// Defaults to <see cref="HeifAdaptiveQuantization.None"/>.
+    /// Gets how the encoder varies the compression between areas of a frame. Only lossy animations use this setting.
+    /// <see cref="HeifAdaptiveQuantization.Variance"/> applies to the color frames at
+    /// <see cref="HeifEncodingSpeed.Level0"/> to <see cref="HeifEncodingSpeed.Level6"/>.
+    /// <see cref="HeifAdaptiveQuantization.CyclicRefresh"/> applies to all frames at
+    /// <see cref="HeifEncodingSpeed.Level7"/> to <see cref="HeifEncodingSpeed.Level9"/>. At the other speeds, each
+    /// option changes the output slightly. Defaults to <see cref="HeifAdaptiveQuantization.None"/>.
     /// </summary>
     public HeifAdaptiveQuantization AdaptiveQuantization { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the color planes get a quality apart from the brightness plane, or
+    /// <see langword="null"/> to let the encoder decide. With <see cref="HeifTuning.ImageQuality"/> and
+    /// <see cref="HeifTuning.Ssimulacra2"/> the color quality follows the chroma subsampling: 4:2:0 color gets more
+    /// quality, and 4:2:2 and 4:4:4 color get less. With other tuning the color gets slightly less quality. When it is
+    /// <see langword="null"/>, only these two tunings separate the color quality. Lossless encoding ignores this
+    /// setting. Defaults to <see langword="null"/>.
+    /// </summary>
+    public bool? SeparateChromaQuality { get; init; }
+
+    /// <summary>
+    /// Gets the film grain preset, from 1 to 16, or <see langword="null"/> for no film grain. The decoder adds the
+    /// grain to the decoded image, so a grainy image keeps its look in a smaller file. Each preset gives a different
+    /// type of grain. The preset takes priority over <see cref="FilmGrainTable"/>. Defaults to
+    /// <see langword="null"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The preset is outside the range 1 to 16.</exception>
+    public int? FilmGrainPreset
+    {
+        get => this.filmGrainPreset;
+        init
+        {
+            if (value is < 1 or > 16)
+            {
+                throw new ArgumentException("FilmGrainPreset must be in the range [1..16].");
+            }
+
+            this.filmGrainPreset = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets a film grain table as text in the common film grain table format, or <see langword="null"/> for no table.
+    /// The encoder uses the table entry for time 0 for every frame. Defaults to <see langword="null"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The text is not a valid film grain table.</exception>
+    public string? FilmGrainTable
+    {
+        get => this.filmGrainTable;
+        init
+        {
+            this.ParsedFilmGrainTable = value is null ? null : Av1FilmGrainTable.Parse(value);
+            this.filmGrainTable = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the film grain table that <see cref="FilmGrainTable"/> holds, read once.
+    /// </summary>
+    internal Av1FilmGrainTable? ParsedFilmGrainTable { get; private init; }
 
     /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit

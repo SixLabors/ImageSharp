@@ -210,6 +210,23 @@ internal static partial class Av1IntraSuperblockEncoder
         // The segment of the block being searched. Reference: mbmi->segment_id in pick_sb_modes().
         private int blockSegmentId;
 
+        // The libaom encode that a block of the estimated inter search stands for, which decides its cyclic refresh
+        // update. Reference: the dry_run of encode_b_nonrd() and the pick_sb_modes_nonrd() calls of try_merge().
+        private EstimatedLeafEncode estimatedLeafEncode;
+
+        // The cost of the unsplit block that a split trial child of a merge trial compares against. Reference:
+        // none_rdc.rdcost in try_merge().
+        private long mergeNoneCost;
+
+        // The split cost of the children before the current split trial child. Reference: split_rdc in try_merge().
+        private Av1RateDistortionStatistics mergeSplitStatistics;
+
+        // The position of the current split trial child, from 0 to 3. Reference: i in the split loop of try_merge().
+        private int mergeChildIndex;
+
+        // The multiplier the merge trial prices its costs with. Reference: x->rdmult in try_merge().
+        private int mergeRateMultiplier;
+
         /// <summary>
         /// The prediction error of the best new vector of each single reference in the block being searched, or
         /// <see cref="int.MaxValue"/> before one is found. Reference: best_single_sse_in_refs.
@@ -873,8 +890,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture, writer, blockSize, Av1PartitionType.Split, blockOrigin, this.picture.PartitionContexts[tileIndex]);
 
             Av1EncoderPartitionTree.ModeContext noneContext = this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0);
+            this.estimatedLeafEncode = EstimatedLeafEncode.Search;
             Av1RateDistortionStatistics none = this.EvaluatePartitionLeaf(
                 writer, macroBlock, blockOrigin, tileIndex, blockSize, Av1PartitionType.None, noneContext, long.MaxValue, false, true);
+
+            this.estimatedLeafEncode = EstimatedLeafEncode.Output;
 
             // The search's skip decision, not the encoded block's. Reference: none_rdc.skip_txfm in try_merge().
             bool noneSkip = none.AllTransformsEmpty;
@@ -888,7 +908,11 @@ internal static partial class Av1IntraSuperblockEncoder
             bool evaluateSplit = false;
             if (mergeLevel < 2 || !noneSkip || noneMode == Av1PredictionMode.NewMotionVector)
             {
-                evaluateSplit = this.CalculateDoSplit(mergeLevel, noneSkip, noneMode, blockSize, blockOrigin);
+                bool noneBoosted = this.picture.Parent.CyclicRefresh is not null &&
+                    this.picture.Parent.FrameHeader.SegmentationParameters.Enabled &&
+                    Av1CyclicRefresh.IsBoosted(noneContext.Snapshot.ModeInfo.Block.SegmentId);
+
+                evaluateSplit = this.CalculateDoSplit(mergeLevel, noneSkip, noneBoosted, noneMode, blockSize, blockOrigin);
             }
 
             Av1RateDistortionStatistics split = Av1RateDistortionStatistics.Invalid;
@@ -907,8 +931,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1EncoderPartitionTree.ModeContext childContext =
                         this.blockWorkspace.PartitionTree.GetContext(firstChild + child, Av1PartitionType.None, 0);
 
+                    this.estimatedLeafEncode = EstimatedLeafEncode.MergeSplitTrial;
+                    this.mergeNoneCost = none.Cost;
+                    this.mergeSplitStatistics = split;
+                    this.mergeChildIndex = child;
+                    this.mergeRateMultiplier = mergeMultiplier;
                     Av1RateDistortionStatistics childStatistics = this.EvaluatePartitionLeaf(
                         writer, macroBlock, childOrigin, tileIndex, childSize, Av1PartitionType.None, childContext, long.MaxValue, child < 3, true);
+
+                    this.estimatedLeafEncode = EstimatedLeafEncode.Output;
 
                     // A leaf that found no mode retained nothing, so nothing may read its decision back.
                     // Reference: the rd_mode_is_ready flag of pick_sb_modes(), which a caller sets only
@@ -936,15 +967,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="mergeLevel">The partition merge level. Reference: nonrd_check_partition_merge_mode.</param>
         /// <param name="noneSkip">Whether the merged block's search skipped its residual.</param>
+        /// <param name="noneBoosted">Whether the merged block is in a boosted cyclic refresh segment.</param>
         /// <param name="noneMode">The merged block's selected mode.</param>
         /// <param name="blockSize">The merged block size.</param>
         /// <param name="blockOrigin">The merged block origin.</param>
         /// <returns><see langword="true"/> when the split is compared.</returns>
-        private bool CalculateDoSplit(int mergeLevel, bool noneSkip, Av1PredictionMode noneMode, Av1BlockSize blockSize, Point blockOrigin)
+        private bool CalculateDoSplit(int mergeLevel, bool noneSkip, bool noneBoosted, Av1PredictionMode noneMode, Av1BlockSize blockSize, Point blockOrigin)
         {
             bool largerQuantizer = this.picture.Parent.FrameHeader.QuantizationParameters.BaseQIndex > 100;
             bool doSplit = mergeLevel != 3 || blockSize <= Av1BlockSize.Block32x32 || (largerQuantizer && blockSize <= Av1BlockSize.Block64x64);
-            if (this.picture.Parent.IsScreenContent || mergeLevel < 2 || !noneSkip)
+            if (this.picture.Parent.IsScreenContent || mergeLevel < 2 || noneBoosted || !noneSkip)
             {
                 return doSplit;
             }
@@ -1282,15 +1314,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
+        /// <param name="segmentId">The segment whose quantizer prices the block, or -1 for the superblock quantizer.</param>
         /// <returns>The rate multiplier, at least one.</returns>
-        private readonly int SetupBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize)
+        private readonly int SetupBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId = -1)
         {
             if (this.picture.Parent.SsimRateMultiplierFactors is not null)
             {
-                this.blockWorkspace.ErrorPerBitRateMultiplier = this.GetTunedRateMultiplier(blockOrigin, blockSize);
+                this.blockWorkspace.ErrorPerBitRateMultiplier = this.GetTunedRateMultiplier(blockOrigin, blockSize, segmentId);
             }
 
-            return this.GetBlockRateMultiplier(blockOrigin, blockSize);
+            return this.GetBlockRateMultiplier(blockOrigin, blockSize, segmentId);
         }
 
         /// <summary>
@@ -1305,11 +1338,20 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly int GetTunedRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId = -1)
         {
             // A segment prices the block at the segment quantizer of the frame quantizer, unless the coding block
-            // multiplier replaces it. Adaptive quantization then keeps the superblock multiplier. Reference:
-            // set_rdmult() in the aq branches of setup_block_rdmult(), and the aq_mode return of av1_get_cb_rdmult().
+            // multiplier replaces it. Adaptive quantization then keeps the superblock multiplier. Cyclic refresh
+            // prices only a boosted block at the multiplier of the first boosted segment. Reference: set_rdmult() in
+            // the aq branches of setup_block_rdmult(), with av1_cyclic_refresh_get_rdmult(), and the aq_mode return of
+            // av1_get_cb_rdmult().
             int multiplier = this.baseRateMultiplier;
             Av1PictureParentControlSet parent = this.picture.Parent;
-            if (segmentId >= 0 && !parent.CodingBlockDeltaRateMultiplier)
+            if (segmentId >= 0 && parent.CyclicRefresh is { } cyclicRefresh)
+            {
+                if (parent.FrameHeader.SegmentationParameters.Enabled && Av1CyclicRefresh.IsBoosted(segmentId))
+                {
+                    multiplier = cyclicRefresh.RateMultiplier;
+                }
+            }
+            else if (segmentId >= 0 && !parent.CodingBlockDeltaRateMultiplier)
             {
                 multiplier = parent.GetRateMultiplier(
                     Av1QuantizationLookup.GetQIndex(parent.FrameHeader.SegmentationParameters, segmentId, this.quantization.BaseQIndex),
@@ -3465,7 +3507,26 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo)
         {
             int savedRateMultiplier = this.rateMultiplier;
-            this.rateMultiplier = this.SetupBlockRateMultiplier(blockOrigin, modeInfo.Block.BlockSize);
+
+            // A block the estimated inter search codes now takes its segment from the map, and cyclic refresh prices
+            // a boosted block at its own multiplier, which also sets the motion vector error per bit. Reference: the
+            // av1_set_offsets(), setup_block_rdmult() and av1_set_error_per_bit() calls of pick_sb_modes_nonrd().
+            int segmentId = -1;
+            if (this.replayNodeIndex < 0 && this.UsesEstimatedInterSearch)
+            {
+                this.SetBlockSegment(blockOrigin, modeInfo.Block.BlockSize);
+                if (this.picture.Parent.CyclicRefresh is not null)
+                {
+                    segmentId = this.blockSegmentId;
+                }
+            }
+
+            this.rateMultiplier = this.SetupBlockRateMultiplier(blockOrigin, modeInfo.Block.BlockSize, segmentId);
+            if (segmentId >= 0)
+            {
+                this.blockWorkspace.ErrorPerBitRateMultiplier = this.rateMultiplier;
+            }
+
             this.EncodeSelectedBlock(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo);
             this.rateMultiplier = savedRateMultiplier;
         }
@@ -3579,7 +3640,31 @@ internal static partial class Av1IntraSuperblockEncoder
                 int codedSegmentId = this.GetCodedBlockSegment(blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
                 modeInfo.Block.SegmentId = codedSegmentId;
                 block.SegmentId = codedSegmentId;
-                if (encodeSelected && !modeInfo.Block.Skip)
+
+                // A block that a merge trial of the estimated inter search kept updates its cyclic refresh segment when
+                // it is coded for output, and always prices its segment, because the estimated search never sets the
+                // skip flag that av1_update_state() tests. Reference: the encode_b_nonrd() calls with dry_run 0 that
+                // close try_merge().
+                bool countSegments = false;
+                bool cyclicRefreshEncode = encodeSelected && this.UsesEstimatedInterSearch &&
+                    this.UpdatesCyclicRefreshSegment(in context.Snapshot.Statistics, out countSegments);
+
+                if (cyclicRefreshEncode)
+                {
+                    Av1MotionVector firstVector = modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra
+                        ? context.Snapshot.Displacement
+                        : default;
+
+                    this.UpdateCyclicRefreshSegment(
+                        blockOrigin, ref modeInfo.Block, ref block, firstVector, in context.Snapshot.Statistics, countSegments);
+
+                    // The intra reconstruction reads its segment from the retained decision.
+                    context.Snapshot.ModeInfo.Block.SegmentId = modeInfo.Block.SegmentId;
+                    context.Snapshot.Block.SegmentId = block.SegmentId;
+                }
+
+                bool searchSkip = !cyclicRefreshEncode && modeInfo.Block.Skip;
+                if (encodeSelected && !searchSkip)
                 {
                     this.AddSegmentPredictionCosts(writer, macroBlock, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
                 }
@@ -3685,6 +3770,20 @@ internal static partial class Av1IntraSuperblockEncoder
                 else
                 {
                     this.ReconstructSelectedIntraBlock(writer, macroBlock, blockOrigin, tileIndex, context);
+                }
+
+                if (encodeSelected && this.UsesEstimatedInterSearch)
+                {
+                    this.CountNoiseStillBlock(
+                        blockOrigin,
+                        in modeInfo.Block,
+                        modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ? context.Snapshot.Displacement : default);
+                }
+
+                if (cyclicRefreshEncode)
+                {
+                    this.ResetCyclicRefreshSkip(
+                        macroBlock, blockOrigin, ref modeInfo.Block, ref block, modeInfo.Block.Skip || this.encodedWithoutCoefficients, countSegments);
                 }
 
                 this.SelectedBlockStatistics = context.Snapshot.Statistics;
@@ -4461,7 +4560,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 rateSegmentId = this.blockSegmentId;
             }
-            else if (adaptiveQuantization == Av1AdaptiveQuantizationMode.Complexity)
+            else if (adaptiveQuantization is Av1AdaptiveQuantizationMode.Complexity or Av1AdaptiveQuantizationMode.CyclicRefresh)
             {
                 rateSegmentId = this.blockSegmentId;
             }

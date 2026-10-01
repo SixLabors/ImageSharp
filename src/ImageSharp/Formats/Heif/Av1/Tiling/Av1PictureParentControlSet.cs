@@ -357,6 +357,12 @@ internal class Av1PictureParentControlSet
     public int SuperblockTargetRate { get; set; }
 
     /// <summary>
+    /// Gets or sets the cyclic refresh of a real-time sequence that uses it, or <see langword="null"/>. Reference:
+    /// cpi->cyclic_refresh.
+    /// </summary>
+    public Av1CyclicRefresh? CyclicRefresh { get; set; }
+
+    /// <summary>
     /// Gets or sets the segment map of the primary reference frame, or an empty map when the frame has none or that
     /// frame did not use segmentation. Reference: cm->last_frame_seg_map.
     /// </summary>
@@ -372,9 +378,28 @@ internal class Av1PictureParentControlSet
 
     /// <summary>
     /// Gets or sets the segment map that the frame buffer holds while the frame is searched, which is what its previous
-    /// frame left until the bitstream is written. Reference: cm->cur_frame->seg_map in av1_get_spatial_seg_pred().
+    /// frame left until the bitstream is written. Only cyclic refresh writes it during the search. Reference:
+    /// cm->cur_frame->seg_map in av1_get_spatial_seg_pred().
     /// </summary>
-    public ReadOnlyMemory<byte> SearchSegmentMap { get; set; }
+    public Memory<byte> SearchSegmentMap { get; set; }
+
+    /// <summary>
+    /// Gets or sets the noise estimate of a real-time sequence that uses it, or <see langword="null"/>. Reference:
+    /// cpi->noise_estimate.
+    /// </summary>
+    public Av1NoiseEstimate? NoiseEstimate { get; set; }
+
+    /// <summary>
+    /// Gets the noise level that cyclic refresh reads: the level of the last completed estimate, or the lowest level
+    /// when the estimate is off. Reference: the noise_level of av1_cyclic_refresh_update_segment().
+    /// </summary>
+    public int NoiseLevel => this.NoiseEstimate is { Enabled: true } noiseEstimate ? noiseEstimate.Level : Av1NoiseEstimate.LowestLevel;
+
+    /// <summary>
+    /// Gets the noise level of the running estimate, or the low level when the estimate is off. Reference: the
+    /// av1_noise_estimate_extract_level() calls that default to kLow.
+    /// </summary>
+    public int RunningNoiseLevel => this.NoiseEstimate is { Enabled: true } noiseEstimate ? noiseEstimate.ExtractLevel() : Av1NoiseEstimate.LowLevel;
 
     /// <summary>
     /// Gets or sets the estimated rate of coding the segment identifiers spatially. Reference:

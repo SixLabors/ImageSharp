@@ -233,9 +233,9 @@ internal static class Av1RateDistortion
         // Truncate the weighted product before rounding high-bit-depth distortion into the eight-bit domain.
         long multiplier = (long)((quantizer * (long)quantizer) * (baseWeight + (0.0015 * quantizer)));
 
-        // The image tune scales the multiplier by up to 200/128, falling to unity at the highest quantizers, which
-        // favors larger transforms. Real-time usage uses a quarter instead.
-        if (tuning == Av1Tuning.Iq)
+        // The image and SSIMULACRA 2 tunes scale the multiplier by up to 200/128, falling to unity at the highest
+        // quantizers, which favors larger transforms. Real-time usage uses a quarter instead.
+        if (tuning.IsImageTuning())
         {
             int weight = realtime ? 32 : Math.Clamp(((255 - qIndex) * 3) / 4, 0, 72) + 128;
             multiplier = (long)(multiplier * (double)weight / 128.0);

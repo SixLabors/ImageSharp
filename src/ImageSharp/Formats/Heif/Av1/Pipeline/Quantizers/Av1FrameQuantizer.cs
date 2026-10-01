@@ -36,14 +36,18 @@ internal static class Av1FrameQuantizer
         int chromaAcDeltaQ = 0;
         bool subsamplingX = colorConfig.IsMonochrome || colorConfig.SubSamplingX;
         bool subsamplingY = colorConfig.IsMonochrome || colorConfig.SubSamplingY;
-        bool imageTune = options.Tuning == Av1Tuning.Iq;
+        bool imageTune = options.Tuning.IsImageTuning();
+        bool ssimulacra2Tune = options.Tuning == Av1Tuning.Ssimulacra2;
         if (options.EnableChromaDeltaQ && qIndex != 0)
         {
             if (imageTune)
             {
                 if (subsamplingX && subsamplingY)
                 {
-                    chromaDcDeltaQ = -Math.Clamp((qIndex / 2) - 14, 0, 16);
+                    // 4:2:0 chroma gets a finer quantizer, by up to 20 steps for the SSIMULACRA 2 tune and 16 for
+                    // the image tune, which ramps down at low quantizers.
+                    int offset = ssimulacra2Tune ? 20 : 16;
+                    chromaDcDeltaQ = -Math.Clamp((qIndex / 2) - 14, 0, offset);
                     chromaAcDeltaQ = chromaDcDeltaQ;
                 }
                 else if (subsamplingX)
@@ -75,7 +79,7 @@ internal static class Av1FrameQuantizer
         int chroma;
         if (imageTune)
         {
-            luma = GetAllIntraLevel(qIndex, minimum, maximum);
+            luma = ssimulacra2Tune ? GetSsimulacra2LumaLevel(qIndex, minimum, maximum) : GetAllIntraLevel(qIndex, minimum, maximum);
             chroma = !subsamplingX && !subsamplingY
                 ? Get444ChromaLevel(qIndex + chromaAcDeltaQ, minimum, maximum)
                 : GetAllIntraLevel(qIndex + chromaAcDeltaQ, minimum, maximum);
@@ -101,12 +105,21 @@ internal static class Av1FrameQuantizer
     /// <summary>
     /// Gets the matrix level that grows linearly with the quantizer index. Reference: aom_get_qmlevel().
     /// </summary>
+    /// <param name="qIndex">The quantizer index.</param>
+    /// <param name="first">The lowest allowed matrix level.</param>
+    /// <param name="last">The highest allowed matrix level.</param>
+    /// <returns>The matrix level.</returns>
     private static int GetLevel(int qIndex, int first, int last)
         => first + ((qIndex * (last + 1 - first)) / (Av1Constants.MaxQ + 1));
 
     /// <summary>
-    /// Gets the matrix level of all-intra coding. Reference: aom_get_qmlevel_allintra().
+    /// Gets the matrix level of all-intra coding, which falls as the quantizer index grows. Reference:
+    /// aom_get_qmlevel_allintra().
     /// </summary>
+    /// <param name="qIndex">The quantizer index.</param>
+    /// <param name="first">The lowest allowed matrix level.</param>
+    /// <param name="last">The highest allowed matrix level.</param>
+    /// <returns>The matrix level.</returns>
     private static int GetAllIntraLevel(int qIndex, int first, int last)
     {
         int level = qIndex switch
@@ -124,9 +137,39 @@ internal static class Av1FrameQuantizer
     }
 
     /// <summary>
+    /// Gets the luma matrix level of the SSIMULACRA 2 tune, which falls faster than the all-intra level as the
+    /// quantizer index grows and reaches steeper matrices. Reference: aom_get_qmlevel_luma_ssimulacra2().
+    /// </summary>
+    /// <param name="qIndex">The quantizer index.</param>
+    /// <param name="first">The lowest allowed matrix level.</param>
+    /// <param name="last">The highest allowed matrix level.</param>
+    /// <returns>The matrix level.</returns>
+    private static int GetSsimulacra2LumaLevel(int qIndex, int first, int last)
+    {
+        int level = qIndex switch
+        {
+            <= 40 => 10,
+            <= 60 => 9,
+            <= 90 => 8,
+            <= 120 => 7,
+            <= 130 => 6,
+            <= 140 => 5,
+            <= 160 => 4,
+            <= 200 => 3,
+            _ => 2
+        };
+
+        return Math.Clamp(level, first, last);
+    }
+
+    /// <summary>
     /// Gets the chroma matrix level of 4:4:4 coding, which has four times the chroma coefficients of 4:2:0.
     /// Reference: aom_get_qmlevel_444_chroma().
     /// </summary>
+    /// <param name="qIndex">The chroma quantizer index.</param>
+    /// <param name="first">The lowest allowed matrix level.</param>
+    /// <param name="last">The highest allowed matrix level.</param>
+    /// <returns>The matrix level.</returns>
     private static int Get444ChromaLevel(int qIndex, int first, int last)
     {
         int level = qIndex switch

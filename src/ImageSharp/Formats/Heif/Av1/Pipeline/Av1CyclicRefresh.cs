@@ -41,14 +41,15 @@ internal sealed class Av1CyclicRefresh
     private readonly sbyte[] map;
 
     /// <summary>
-    /// The frame width in 4x4 units. Reference: mi_params.mi_cols.
+    /// The width of the current frame in 4x4 units, which is also the stride of the map. A scaled layer of a layered
+    /// image has a smaller grid than the sequence. Reference: mi_params.mi_cols.
     /// </summary>
-    private readonly int modeInfoColumns;
+    private int modeInfoColumns;
 
     /// <summary>
-    /// The frame height in 4x4 units. Reference: mi_params.mi_rows.
+    /// The height of the current frame in 4x4 units. Reference: mi_params.mi_rows.
     /// </summary>
-    private readonly int modeInfoRows;
+    private int modeInfoRows;
 
     /// <summary>
     /// The quantizer change of each segment in the current frame: none for the base segment, then the two boosted
@@ -132,8 +133,8 @@ internal sealed class Av1CyclicRefresh
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1CyclicRefresh"/> class. Reference: av1_cyclic_refresh_alloc().
     /// </summary>
-    /// <param name="modeInfoColumns">The frame width in 4x4 units.</param>
-    /// <param name="modeInfoRows">The frame height in 4x4 units.</param>
+    /// <param name="modeInfoColumns">The sequence width in 4x4 units, which sizes the map.</param>
+    /// <param name="modeInfoRows">The sequence height in 4x4 units, which sizes the map.</param>
     public Av1CyclicRefresh(int modeInfoColumns, int modeInfoRows)
     {
         this.modeInfoColumns = modeInfoColumns;
@@ -217,6 +218,12 @@ internal sealed class Av1CyclicRefresh
         int averageFrameBandwidth,
         Av1BlockSize superblockSize)
     {
+        // The map keeps the size of the sequence and takes the grid of the frame as its stride. Reference: the
+        // cr->map indices of av1_cyclic_refresh_update_segment() and cyclic_refresh_update_map(), which use the
+        // mi_params of the frame.
+        this.modeInfoColumns = 2 * ((width + 7) >> 3);
+        this.modeInfoRows = 2 * ((height + 7) >> 3);
+
         // Below this quantizer the frame is already sharp enough that a refresh only costs bits. Reference: qp_thresh.
         int qpThreshold = Math.Max(16, bestQuality + 4);
 

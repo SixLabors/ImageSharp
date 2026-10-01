@@ -455,6 +455,15 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         this.Picture.Parent.FrameHeader = frameHeader;
         this.Picture.Parent.Common.FrameSize = frameHeader.FrameSize;
         this.Picture.Parent.Common.TilesInfo = frameHeader.TilesInfo;
+
+        // A frame of a scaled layer is smaller than the allocation, so it uses a prefix of every grid row and of the
+        // grid rows, at the stride of the allocation. Reference: the mi_params that av1_set_frame_size() sets for each
+        // frame size.
+        this.Picture.Parent.Common.ModeInfoColumnCount = frameHeader.ModeInfoColumnCount;
+        this.Picture.Parent.Common.ModeInfoRowCount = frameHeader.ModeInfoRowCount;
+
+        // Each frame measures its own SSIM factors unless the sequence encoder measures them for it.
+        this.Picture.Parent.HasPrecomputedSsimRateMultiplierFactors = false;
     }
 
     /// <summary>

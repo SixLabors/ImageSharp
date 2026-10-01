@@ -47,8 +47,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> mask = this.blockWorkspace.ObmcMask.AsSpan(0, width * height);
             this.CalculateObmcTarget(blockSize, weightedSource, mask);
 
+            // The full-sample search reads a reference of another size through its copy resized to the frame size, and
+            // the fractional search the reference itself. Reference: the scaled_ref_frame of
+            // av1_single_motion_search().
+            this.obmcSearchReference = referenceFrame;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
-            Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
+            Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> reference = referencePlane.Samples;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size frameSize = new(
@@ -375,8 +379,22 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             int taps)
         {
-            int index = referenceOrigin + ((vector.Row >> 3) * referenceStride) + (vector.Column >> 3);
-            TOperator.Predict(reference, referenceStride, index, prediction, width, height, vector.Column & 7, vector.Row & 7, taps, this.bitDepth.GetBitCount());
+            if (this.IsScaledReference(this.obmcSearchReference))
+            {
+                // A scaled reference predicts each candidate from the reference itself with its scale factors.
+                // Reference: aom_upsampled_pred_scaled() in upsampled_obmc_pref_error().
+                this.GetScaledSearchReference(
+                    this.obmcSearchReference,
+                    this.obmcBlockOrigin,
+                    this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch)
+                    .Predict<TOperator>(vector, prediction, new Size(width, height), this.bitDepth.GetBitCount());
+            }
+            else
+            {
+                int index = referenceOrigin + ((vector.Row >> 3) * referenceStride) + (vector.Column >> 3);
+                TOperator.Predict(reference, referenceStride, index, prediction, width, height, vector.Column & 7, vector.Row & 7, taps, this.bitDepth.GetBitCount());
+            }
+
             int variance = this.GetObmcVariance(prediction, width, weightedSource, mask, width, height);
             return variance + Av1RateDistortion.GetMotionSearchCost(this.rateMultiplier, costs.GetCost(vector, referenceVector), 0);
         }

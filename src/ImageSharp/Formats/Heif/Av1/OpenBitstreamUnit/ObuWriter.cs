@@ -600,6 +600,35 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
+    /// Writes the size of an inter frame whose size differs from the sequence size: one found flag per reference until
+    /// a reference has the same upscaled size, which the frame then inherits, or else the explicit frame size and
+    /// render size. Every frame an encoder writes has the sequence size as its render size, so only the frame sizes
+    /// are compared. Reference: write_frame_size_with_refs().
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the frame size.</param>
+    /// <param name="sequenceHeader">The sequence header defining dimension field widths.</param>
+    /// <param name="frameHeader">The frame header with the dimensions, the reference slots and the slot sizes.</param>
+    private static void WriteFrameSizeWithReferences(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    {
+        ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        ReadOnlySpan<Size> referenceSizes = frameHeader.GetReferenceFrameSizes();
+        Size frameSize = new(frameHeader.FrameSize.SuperResolutionUpscaledWidth, frameHeader.FrameSize.FrameHeight);
+        for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+        {
+            bool found = referenceSizes[(int)referenceFrameIndices[reference]] == frameSize;
+            writer.WriteBoolean(found);
+            if (found)
+            {
+                WriteSuperResolutionParameters(ref writer, sequenceHeader, frameHeader);
+                return;
+            }
+        }
+
+        WriteFrameSize(ref writer, sequenceHeader, frameHeader, true);
+        WriteRenderSize(ref writer, frameHeader);
+    }
+
+    /// <summary>
     /// Writes the frame tile layout.
     /// </summary>
     /// <param name="writer">The bit writer receiving the tile information.</param>
@@ -858,8 +887,16 @@ internal sealed class ObuWriter : IDisposable
         else
         {
             WriteReferenceFrameIndices(ref writer, sequenceHeader, frameHeader);
-            WriteFrameSize(ref writer, sequenceHeader, frameHeader, frameSizeOverrideFlag);
-            WriteRenderSize(ref writer, frameHeader);
+            if (!frameHeader.ErrorResilientMode && frameSizeOverrideFlag)
+            {
+                WriteFrameSizeWithReferences(ref writer, sequenceHeader, frameHeader);
+            }
+            else
+            {
+                WriteFrameSize(ref writer, sequenceHeader, frameHeader, frameSizeOverrideFlag);
+                WriteRenderSize(ref writer, frameHeader);
+            }
+
             if (!frameHeader.ForceIntegerMotionVector)
             {
                 writer.WriteBoolean(frameHeader.AllowHighPrecisionMotionVector);

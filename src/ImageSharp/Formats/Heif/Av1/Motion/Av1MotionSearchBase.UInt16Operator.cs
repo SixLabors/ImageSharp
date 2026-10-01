@@ -93,6 +93,49 @@ internal static partial class Av1MotionSearchBase
                 reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
 
         /// <inheritdoc/>
+        public static void Subtract(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> prediction,
+            Span<short> residual,
+            int width,
+            int height)
+            => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, width, residual, width, width, height);
+
+        /// <inheritdoc/>
+        public static void PredictScaled(
+            ReadOnlySpan<ushort> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> buffer,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int horizontalStep,
+            int verticalPhase,
+            int verticalStep,
+            Span<short> intermediateRows,
+            int bitDepth)
+            => Av1ScaledInterPredictor.PredictScaled(
+                reference,
+                referenceStride,
+                referenceOrigin,
+                buffer,
+                width,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                horizontalStep,
+                verticalPhase,
+                verticalStep,
+                bitDepth,
+                intermediateRows);
+
+        /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
             ReadOnlySpan<ushort> source,
             int sourceStride,

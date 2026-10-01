@@ -29,6 +29,12 @@ internal readonly struct Av1ReferenceScale
     public const int ExtraOffset = 1 << (SubpixelBits - 4 - 1);
 
     /// <summary>
+    /// The border, in luma samples, to which a scaled position clamps on the top and left. Reference:
+    /// AOM_BORDER_IN_PIXELS in AOM_LEFT_TOP_MARGIN_SCALED().
+    /// </summary>
+    public const int ClampBorder = 288;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1ReferenceScale"/> struct.
     /// </summary>
     /// <param name="referenceWidth">The retained reference width.</param>
@@ -67,6 +73,36 @@ internal readonly struct Av1ReferenceScale
     /// Gets a value indicating whether either reference dimension differs from the current frame.
     /// </summary>
     public bool IsScaled => this.HorizontalScale != IdentityScale || this.VerticalScale != IdentityScale;
+
+    /// <summary>
+    /// Maps a position of the current plane into the reference plane, centered on the reference grid, and clamps it
+    /// to the scaled border on the top and left and to the interpolation extension past the visible reference on the
+    /// bottom and right. Reference: init_subpel_params() with av1_scaled_x(), av1_scaled_y() and
+    /// AOM_LEFT_TOP_MARGIN_SCALED().
+    /// </summary>
+    /// <param name="columnQ4">The column in sixteenth samples of the current plane.</param>
+    /// <param name="rowQ4">The row in sixteenth samples of the current plane.</param>
+    /// <param name="planeWidth">The visible width of the reference plane.</param>
+    /// <param name="planeHeight">The visible height of the reference plane.</param>
+    /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+    /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+    /// <returns>The reference position in 1/1024 samples.</returns>
+    public Point ScalePosition(int columnQ4, int rowQ4, int planeWidth, int planeHeight, int subsamplingX, int subsamplingY)
+    {
+        // The extension is AOM_INTERP_EXTEND.
+        const int extension = 4;
+        int column = Math.Clamp(
+            this.ScaleHorizontal(columnQ4) + ExtraOffset,
+            -(((ClampBorder >> subsamplingX) - extension) << SubpixelBits),
+            (planeWidth + extension) << SubpixelBits);
+
+        int row = Math.Clamp(
+            this.ScaleVertical(rowQ4) + ExtraOffset,
+            -(((ClampBorder >> subsamplingY) - extension) << SubpixelBits),
+            (planeHeight + extension) << SubpixelBits);
+
+        return new Point(column, row);
+    }
 
     /// <summary>
     /// Scales one horizontal Q4 current-frame coordinate into the Q10 reference grid.

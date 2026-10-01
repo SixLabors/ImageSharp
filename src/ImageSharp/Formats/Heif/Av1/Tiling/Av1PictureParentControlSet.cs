@@ -227,6 +227,20 @@ internal class Av1PictureParentControlSet
     public double[]? SsimRateMultiplierFactors { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the sequence encoder measured <see cref="SsimRateMultiplierFactors"/>
+    /// before it resized the source, so frame encoding must keep them. Reference: the av1_set_mb_ssim_rdmult_scaling()
+    /// call of encode_frame_to_data_rate().
+    /// </summary>
+    public bool HasPrecomputedSsimRateMultiplierFactors { get; set; }
+
+    /// <summary>
+    /// Gets or sets the frame border of the encoder configuration, in luma samples, which bounds the projection
+    /// motion search: a complete superblock plus 32 samples, or 288 samples while a fixed resize mode is set.
+    /// Reference: cpi->oxcf.border_in_pixels from av1_get_enc_border_size().
+    /// </summary>
+    public int EncoderBorder { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether source analysis classifies this frame as screen content.
     /// </summary>
     public bool IsScreenContent { get; set; }

@@ -399,6 +399,12 @@ internal static partial class Av1MotionSearchBase
         private readonly Av1MotionVectorCosts motionCosts;
 
         /// <summary>
+        /// The reference of another size from which the rate-distortion search predicts its fractional candidates, or
+        /// the default value for a reference of the frame size.
+        /// </summary>
+        private readonly ScaledReference<TSample> scaledReference;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SingleReferenceSearch{TSample, TOperator}"/> struct.
         /// </summary>
         /// <param name="source">The source samples at the prediction-block origin.</param>
@@ -430,6 +436,10 @@ internal static partial class Av1MotionSearchBase
         /// <param name="noSkipRate">The rate of a non-skipped prediction block.</param>
         /// <param name="skipRate">The rate of a skipped prediction block.</param>
         /// <param name="motionCosts">The retained differential motion-rate table.</param>
+        /// <param name="scaledReference">
+        /// The reference of another size from which the rate-distortion search predicts its fractional candidates, or
+        /// the default value for a reference of the frame size.
+        /// </param>
         public SingleReferenceSearch(
             ReadOnlySpan<TSample> source,
             int sourceStride,
@@ -457,8 +467,10 @@ internal static partial class Av1MotionSearchBase
             int transformSizeRate,
             int noSkipRate,
             int skipRate,
-            Av1MotionVectorCosts motionCosts)
+            Av1MotionVectorCosts motionCosts,
+            ScaledReference<TSample> scaledReference = default)
         {
+            this.scaledReference = scaledReference;
             this.source = source;
             this.sourceStride = sourceStride;
             this.reference = reference;
@@ -953,7 +965,8 @@ internal static partial class Av1MotionSearchBase
                     this.bitDepth,
                     this.rateMultiplier,
                     [],
-                    []);
+                    [],
+                    this.scaledReference);
 
                 Span<Av1MotionVector> centers = stackalloc Av1MotionVector[3];
                 centers.Fill(new Av1MotionVector(short.MinValue, short.MinValue));
@@ -1053,23 +1066,35 @@ internal static partial class Av1MotionSearchBase
         {
             int width = this.blockSize.GetWidth();
             int height = this.blockSize.GetHeight();
-            int origin = this.referenceOrigin + ((vector.Row >> 3) * this.referenceStride) + (vector.Column >> 3);
-            TOperator.PreparePrediction(
-                this.source,
-                this.sourceStride,
-                this.reference,
-                this.referenceStride,
-                origin,
-                this.prediction,
-                this.residual,
-                this.convolutionScratch,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                (vector.Column & 7) << 1,
-                (vector.Row & 7) << 1,
-                this.bitDepth.GetBitCount());
+            if (this.scaledReference.IsScaled)
+            {
+                // A scaled reference predicts from the reference itself. Reference: the av1_enc_build_inter_predictor()
+                // calls of av1_single_motion_search() after the buffers are swapped back.
+                this.scaledReference.Predict<TOperator>(
+                    vector, this.prediction, new Size(width, height), horizontalFilter, verticalFilter, this.bitDepth.GetBitCount());
+
+                TOperator.Subtract(this.source, this.sourceStride, this.prediction, this.residual, width, height);
+            }
+            else
+            {
+                int origin = this.referenceOrigin + ((vector.Row >> 3) * this.referenceStride) + (vector.Column >> 3);
+                TOperator.PreparePrediction(
+                    this.source,
+                    this.sourceStride,
+                    this.reference,
+                    this.referenceStride,
+                    origin,
+                    this.prediction,
+                    this.residual,
+                    this.convolutionScratch,
+                    width,
+                    height,
+                    horizontalFilter,
+                    verticalFilter,
+                    (vector.Column & 7) << 1,
+                    (vector.Row & 7) << 1,
+                    this.bitDepth.GetBitCount());
+            }
 
             // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
             // av1_subtract_txb() call of av1_estimate_txfm_yrd().

@@ -1319,6 +1319,77 @@ public class HeifEncoderTests
 
         using Image<Rgb24> still = new(16, 16);
         Assert.Throws<NotSupportedException>(() => still.Save(stream, new HeifEncoder { Lossless = true, Layers = layered.Layers }));
+
+        // A scale must be defined, a layer must be at least half the size of the layer before it, and the last layer
+        // must have the size of the image.
+        Assert.Throws<ArgumentException>(() => new HeifLayer { Scale = (HeifLayerScale)99 });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder
+        {
+            Layers = [new HeifLayer { Scale = HeifLayerScale.Half }, new HeifLayer { Scale = HeifLayerScale.Eighth }, new HeifLayer()]
+        });
+
+        Assert.Throws<ArgumentException>(() => new HeifEncoder
+        {
+            Layers = [new HeifLayer { Scale = HeifLayerScale.Half }, new HeifLayer { Scale = HeifLayerScale.ThreeQuarters }]
+        });
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6, HeifBitDepth.Bit8)]
+    [InlineData(HeifEncodingSpeed.Level8, HeifBitDepth.Bit8)]
+    [InlineData(HeifEncodingSpeed.Level6, HeifBitDepth.Bit10)]
+    public void Av1ScaledLayersCodeEachLayerAtItsSize(HeifEncodingSpeed speed, HeifBitDepth bitDepth)
+    {
+        // The middle layer is smaller than the first, and the last layer has the size of the image.
+        using Image<Rgba32> image = new(96, 64);
+        for (int y = 0; y < image.Height; y++)
+        {
+            Span<Rgba32> row = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 3) + (y * 2)) & 0xFF;
+                row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), (byte)(255 - (y * 3)));
+            }
+        }
+
+        HeifEncoder encoder = new()
+        {
+            Speed = speed,
+            BitDepth = bitDepth,
+            Layers =
+            [
+                new HeifLayer { Quality = 20, Scale = HeifLayerScale.ThreeQuarters },
+                new HeifLayer { Quality = 40, Scale = HeifLayerScale.Half },
+                new HeifLayer { Quality = 80 }
+            ]
+        };
+
+        using MemoryStream stream = new();
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+
+        // Every layer of the color and the alpha codes at its own size and renders at the size of the image.
+        Size[] sizes = [new(72, 48), new(48, 32), new(96, 64)];
+        foreach (ushort itemId in new ushort[] { 1, 2 })
+        {
+            (int Offset, int Length)[] extents = GetItemExtents(file, itemId);
+            Assert.Equal(3, extents.Length);
+            using Av1Decoder decoder = new(Configuration.Default);
+            for (int layer = 0; layer < extents.Length; layer++)
+            {
+                decoder.DecodeSequenceReference(file.AsSpan(extents[layer].Offset, extents[layer].Length).ToArray(), null, null);
+                ObuFrameHeader frameHeader = decoder.FrameHeader!;
+                Assert.Equal(layer, frameHeader.SpatialId);
+                Assert.Equal(sizes[layer].Width, frameHeader.FrameSize.FrameWidth);
+                Assert.Equal(sizes[layer].Height, frameHeader.FrameSize.FrameHeight);
+                Assert.Equal(image.Width, frameHeader.FrameSize.RenderWidth);
+                Assert.Equal(image.Height, frameHeader.FrameSize.RenderHeight);
+            }
+        }
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        GetLossyComparer(80).VerifySimilarity(image, decoded);
     }
 
     [Theory]

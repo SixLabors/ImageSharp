@@ -28,6 +28,13 @@ internal sealed class ObuFrameHeader
     private InlineArray8<uint> referenceFrameId;
 
     /// <summary>
+    /// Stores the upscaled width and the height of the frame in each of the eight reference-map slots, which an
+    /// encoder compares with the current frame size. Reference: the y_crop_width and y_crop_height of each reference
+    /// buffer in write_frame_size_with_refs().
+    /// </summary>
+    private InlineArray8<Size> referenceFrameSize;
+
+    /// <summary>
     /// Stores the reference-map slot selected for each of the seven inter reference types.
     /// </summary>
     private InlineArray8<uint> referenceFrameIndex;
@@ -299,6 +306,12 @@ internal sealed class ObuFrameHeader
     /// </summary>
     /// <returns>The mutable eight-entry reference-order-hint table.</returns>
     public Span<uint> GetReferenceOrderHints() => this.referenceOrderHint;
+
+    /// <summary>
+    /// Gets the upscaled width and the height of the frame in each reference-frame slot, as an encoder records them.
+    /// </summary>
+    /// <returns>The mutable eight-entry reference-size table.</returns>
+    public Span<Size> GetReferenceFrameSizes() => this.referenceFrameSize;
 
     /// <summary>
     /// Gets the frame identifier associated with each reference-map slot.

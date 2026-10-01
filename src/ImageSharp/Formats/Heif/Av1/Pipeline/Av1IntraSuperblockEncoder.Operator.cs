@@ -600,6 +600,41 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
+        /// Predicts one rectangle from a reference of another size than the frame into a strided destination, with
+        /// a source position and phase that advance by a step per output sample. Reference: the scaled branch of
+        /// av1_make_inter_predictor(), which calls av1_convolve_2d_scale() or av1_highbd_convolve_2d_scale().
+        /// </summary>
+        /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="predictionOrigin">The integer reference position of the first output sample.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+        /// <param name="verticalFilter">The vertical interpolation filter.</param>
+        /// <param name="horizontalPhase">The horizontal phase of the first output sample in 1/1024 samples.</param>
+        /// <param name="horizontalStep">The horizontal step per output sample in 1/1024 samples.</param>
+        /// <param name="verticalPhase">The vertical phase of the first output sample in 1/1024 samples.</param>
+        /// <param name="verticalStep">The vertical step per output sample in 1/1024 samples.</param>
+        /// <param name="prediction">The prediction destination, starting at the rectangle.</param>
+        /// <param name="predictionStride">The destination stride.</param>
+        /// <param name="width">The rectangle width.</param>
+        /// <param name="height">The rectangle height.</param>
+        /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PredictScaledInter(
+            Av1PlaneRegion<TSample> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int horizontalStep,
+            int verticalPhase,
+            int verticalStep,
+            Span<TSample> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            Span<short> predictionScratch,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
         /// Applies the selected luma adjustment to a DC-predicted chroma block.
         /// </summary>
         /// <param name="lumaQ3">The zero-mean Q3 luma surface.</param>
@@ -765,6 +800,48 @@ internal static partial class Av1IntraSuperblockEncoder
             int bitDepth)
             => Av1MotionSearchBase.ByteOperator.Predict(
                 reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
+
+        /// <inheritdoc/>
+        public static void Subtract(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            ReadOnlySpan<byte> prediction,
+            Span<short> residual,
+            int width,
+            int height)
+            => Av1MotionSearchBase.ByteOperator.Subtract(source, sourceStride, prediction, residual, width, height);
+
+        /// <inheritdoc/>
+        public static void PredictScaled(
+            ReadOnlySpan<byte> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<byte> buffer,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int horizontalStep,
+            int verticalPhase,
+            int verticalStep,
+            Span<short> intermediateRows,
+            int bitDepth)
+            => Av1MotionSearchBase.ByteOperator.PredictScaled(
+                reference,
+                referenceStride,
+                referenceOrigin,
+                buffer,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                horizontalStep,
+                verticalPhase,
+                verticalStep,
+                intermediateRows,
+                bitDepth);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
@@ -1484,6 +1561,46 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        public static void PredictScaledInter(
+            Av1PlaneRegion<byte> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int horizontalStep,
+            int verticalPhase,
+            int verticalStep,
+            Span<byte> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            Span<short> predictionScratch,
+            Av1BitDepth bitDepth)
+        {
+            Rectangle referenceBounds = reference.Bounds;
+            int referenceOrigin =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            Av1ScaledInterPredictor.PredictScaled(
+                reference.Samples,
+                reference.Stride,
+                referenceOrigin,
+                prediction,
+                predictionStride,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                horizontalStep,
+                verticalPhase,
+                verticalStep,
+                predictionScratch);
+        }
+
+        /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
             Av1PlaneRegion<byte> source,
             Point blockOrigin,
@@ -1876,6 +1993,48 @@ internal static partial class Av1IntraSuperblockEncoder
             int bitDepth)
             => Av1MotionSearchBase.UInt16Operator.Predict(
                 reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
+
+        /// <inheritdoc/>
+        public static void Subtract(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> prediction,
+            Span<short> residual,
+            int width,
+            int height)
+            => Av1MotionSearchBase.UInt16Operator.Subtract(source, sourceStride, prediction, residual, width, height);
+
+        /// <inheritdoc/>
+        public static void PredictScaled(
+            ReadOnlySpan<ushort> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> buffer,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int horizontalStep,
+            int verticalPhase,
+            int verticalStep,
+            Span<short> intermediateRows,
+            int bitDepth)
+            => Av1MotionSearchBase.UInt16Operator.PredictScaled(
+                reference,
+                referenceStride,
+                referenceOrigin,
+                buffer,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                horizontalStep,
+                verticalPhase,
+                verticalStep,
+                intermediateRows,
+                bitDepth);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
@@ -2589,6 +2748,47 @@ internal static partial class Av1IntraSuperblockEncoder
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
+                bitDepth.GetBitCount(),
+                predictionScratch);
+        }
+
+        /// <inheritdoc/>
+        public static void PredictScaledInter(
+            Av1PlaneRegion<ushort> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int horizontalStep,
+            int verticalPhase,
+            int verticalStep,
+            Span<ushort> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            Span<short> predictionScratch,
+            Av1BitDepth bitDepth)
+        {
+            Rectangle referenceBounds = reference.Bounds;
+            int referenceOrigin =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            Av1ScaledInterPredictor.PredictScaled(
+                reference.Samples,
+                reference.Stride,
+                referenceOrigin,
+                prediction,
+                predictionStride,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                horizontalStep,
+                verticalPhase,
+                verticalStep,
                 bitDepth.GetBitCount(),
                 predictionScratch);
         }

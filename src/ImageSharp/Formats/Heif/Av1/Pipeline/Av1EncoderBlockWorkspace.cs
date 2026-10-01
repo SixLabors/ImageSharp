@@ -756,10 +756,18 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Av1EncoderFrame<TSample> GetRestorationTrial<TSample>(Av1EncoderFrame<TSample> source, Av1ColorFormat colorFormat)
         where TSample : unmanaged
     {
-        // A worker belongs to one still image or fixed-size sequence. Its sample type and chroma
-        // layout remain fixed, so the same typed frame can serve every candidate and subsequent frame.
+        // A worker belongs to one still image or sequence. Its sample type and chroma layout remain fixed, so the
+        // same typed frame serves every candidate and subsequent frame of its size. The layers of a layered image
+        // have their own sizes, and a layer of another size replaces the frame.
         if (typeof(TSample) == typeof(byte))
         {
+            if (this.restorationByteTrial is { } previous &&
+                (previous.Frame.Width != source.Width || previous.Frame.Height != source.Height))
+            {
+                previous.Dispose();
+                this.restorationByteTrial = null;
+            }
+
             Av1EncoderFrameBuffer<byte> trial = this.restorationByteTrial ??= new(
                 this.Configuration,
                 source.Width,
@@ -771,6 +779,13 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
                 32);
 
             return ((Av1EncoderFrameBuffer<TSample>)(object)trial).Frame;
+        }
+
+        if (this.restorationHighBitDepthTrial is { } previousHighBitDepth &&
+            (previousHighBitDepth.Frame.Width != source.Width || previousHighBitDepth.Frame.Height != source.Height))
+        {
+            previousHighBitDepth.Dispose();
+            this.restorationHighBitDepthTrial = null;
         }
 
         Av1EncoderFrameBuffer<ushort> highBitDepthTrial = this.restorationHighBitDepthTrial ??= new(

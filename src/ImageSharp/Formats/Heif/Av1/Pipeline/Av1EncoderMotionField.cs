@@ -29,8 +29,25 @@ internal sealed class Av1EncoderMotionField : IDisposable
     /// </summary>
     private const int MaximumSuperblockModeInfoSizeLog2 = Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
 
-    private readonly int modeInfoColumnCount;
-    private readonly int modeInfoRowCount;
+    /// <summary>
+    /// The largest frame width in 4x4 mode-information units, which sizes every field.
+    /// </summary>
+    private readonly int maximumModeInfoColumnCount;
+
+    /// <summary>
+    /// The largest frame height in 4x4 mode-information units, which sizes every field.
+    /// </summary>
+    private readonly int maximumModeInfoRowCount;
+
+    /// <summary>
+    /// The width of the current frame in 4x4 mode-information units. Reference: cm->mi_params.mi_cols.
+    /// </summary>
+    private int modeInfoColumnCount;
+
+    /// <summary>
+    /// The height of the current frame in 4x4 mode-information units. Reference: cm->mi_params.mi_rows.
+    /// </summary>
+    private int modeInfoRowCount;
     private readonly Av1FrameInfo.MotionFieldStorage<Av1FrameInfo.TemporalMotionFieldEntry> temporalMotionField;
     private readonly uint[] referenceOrderHints = new uint[Av1Constants.ReferenceFrameCount];
     private readonly sbyte[] referenceSides = new sbyte[Av1Constants.ReferenceFrameCount];
@@ -41,10 +58,12 @@ internal sealed class Av1EncoderMotionField : IDisposable
     /// Initializes a new instance of the <see cref="Av1EncoderMotionField"/> class.
     /// </summary>
     /// <param name="configuration">The configuration providing the field allocator.</param>
-    /// <param name="modeInfoColumnCount">The frame width in 4x4 mode-information units.</param>
-    /// <param name="modeInfoRowCount">The frame height in 4x4 mode-information units.</param>
+    /// <param name="modeInfoColumnCount">The largest frame width in 4x4 mode-information units.</param>
+    /// <param name="modeInfoRowCount">The largest frame height in 4x4 mode-information units.</param>
     public Av1EncoderMotionField(Configuration configuration, int modeInfoColumnCount, int modeInfoRowCount)
     {
+        this.maximumModeInfoColumnCount = modeInfoColumnCount;
+        this.maximumModeInfoRowCount = modeInfoRowCount;
         this.modeInfoColumnCount = modeInfoColumnCount;
         this.modeInfoRowCount = modeInfoRowCount;
 
@@ -62,7 +81,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
     /// <param name="configuration">The configuration providing the field allocator.</param>
     /// <returns>The saved motion field storage.</returns>
     public SavedMotionField CreateSavedMotionField(Configuration configuration)
-        => new(configuration, this.modeInfoColumnCount, this.modeInfoRowCount);
+        => new(configuration, this.maximumModeInfoColumnCount, this.maximumModeInfoRowCount);
 
     /// <summary>
     /// Classifies the references of the current frame and projects the saved motion vectors of its references.
@@ -75,6 +94,8 @@ internal sealed class Av1EncoderMotionField : IDisposable
     public void Setup(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, ReadOnlySpan<SavedMotionField?> references)
     {
         ObuOrderHintInfo orderHintInfo = sequenceHeader.OrderHintInfo;
+        this.modeInfoColumnCount = frameHeader.ModeInfoColumnCount;
+        this.modeInfoRowCount = frameHeader.ModeInfoRowCount;
         this.orderHint = frameHeader.OrderHint;
         this.useTemporalMotionField = false;
         Array.Clear(this.referenceOrderHints);
@@ -207,6 +228,8 @@ internal sealed class Av1EncoderMotionField : IDisposable
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         destination.OrderHint = frameHeader.OrderHint;
         destination.IsIntra = frameHeader.IsIntra;
+        destination.ModeInfoColumnCount = this.modeInfoColumnCount;
+        destination.ModeInfoRowCount = this.modeInfoRowCount;
         this.referenceOrderHints.CopyTo(destination.ReferenceOrderHints, 0);
 
         Av1FrameInfo.MotionFieldStorage<Av1FrameInfo.RetainedMotionFieldEntry> field = destination.Field;
@@ -262,8 +285,14 @@ internal sealed class Av1EncoderMotionField : IDisposable
     /// <returns><see langword="true"/> when the reference can be projected.</returns>
     private bool ProjectMotionField(ObuOrderHintInfo orderHintInfo, SavedMotionField? start, bool reverseDirection)
     {
-        // Key and intra-only frames hold no motion. Every frame of the sequence has the same size.
+        // Key and intra-only frames hold no motion.
         if (start is null || start.IsIntra)
+        {
+            return false;
+        }
+
+        // A reference of another size, such as a smaller layer of a layered image, is not projected.
+        if (start.ModeInfoRowCount != this.modeInfoRowCount || start.ModeInfoColumnCount != this.modeInfoColumnCount)
         {
             return false;
         }
@@ -328,6 +357,16 @@ internal sealed class Av1EncoderMotionField : IDisposable
         /// Gets or sets a value indicating whether the coded frame is a key or intra-only frame.
         /// </summary>
         public bool IsIntra { get; set; }
+
+        /// <summary>
+        /// Gets or sets the width of the coded frame in 4x4 mode-information units. Reference: RefCntBuffer.mi_cols.
+        /// </summary>
+        public int ModeInfoColumnCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the height of the coded frame in 4x4 mode-information units. Reference: RefCntBuffer.mi_rows.
+        /// </summary>
+        public int ModeInfoRowCount { get; set; }
 
         /// <inheritdoc/>
         public void Dispose() => this.Field.Dispose();

@@ -48,6 +48,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderSpeedSettings settings = parent.SpeedSettings;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             ref Av1EstimatedInterSearchState state = ref this.blockWorkspace.EstimatedInterSearchState;
+
+            // The search predicts a reference of another size from its resized copy, and the selected block from
+            // the reference itself.
+            this.predictsFromSearchReferences = true;
             state.Reset(
                 writer,
                 Av1TileWriter.GetIntraInterContext(macroBlock),
@@ -140,7 +144,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     modeInfo.Block.PartitionType,
                     Av1ReferenceFrameType.Alternate,
-                    this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y),
+                    this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y),
                     measureSad,
                     ref referenceVectors[2]);
             }
@@ -217,7 +221,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         macroBlock,
                         origin,
                         reference,
-                        this.references.Span[(int)reference].CodedView,
+                        this.searchReferences.Span[(int)reference].CodedView,
                         in referenceVectors[index],
                         forceZeroMotion,
                         lowTemporalVariance,
@@ -273,9 +277,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 // prediction while warped motion is enabled (reuse_inter_pred_nonrd).
                 Av1ReferenceFrameType secondaryReferenceFrame = winner.SecondaryReferenceFrame;
                 bool compoundWinner = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
-                Av1EncoderFrame<TSample>.PlanarView primaryPlanes = this.references.Span[(int)winner.ReferenceFrame].CodedView;
+                Av1EncoderFrame<TSample>.PlanarView primaryPlanes = this.searchReferences.Span[(int)winner.ReferenceFrame].CodedView;
                 Av1EncoderFrame<TSample>.PlanarView secondaryPlanes = compoundWinner
-                    ? this.references.Span[(int)secondaryReferenceFrame].CodedView : primaryPlanes;
+                    ? this.searchReferences.Span[(int)secondaryReferenceFrame].CodedView : primaryPlanes;
 
                 this.PrepareInterPlanePrediction(
                     state.WinningMotionVectors[(int)winner.Mode][(int)winner.ReferenceFrame],
@@ -316,6 +320,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 winningPrediction,
                 ref transformType);
 
+            this.predictsFromSearchReferences = false;
             modeInfo.Block = winner;
 
             // The selected block updates its cyclic refresh segment, which sets the quantizer it is coded with, and an
@@ -525,7 +530,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1ReferenceFrameType.Last,
                 Av1ReferenceFrameType.Alternate);
 
-            Av1EncoderFrame<TSample>.PlanarView alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView;
+            Av1EncoderFrame<TSample>.PlanarView alternate = this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView;
             bool globalOnly = minimumDimension < 360 || parent.EncodingSpeed >= HeifEncodingSpeed.Level9;
             bool useSuperblockMotion = this.usePartitionMotion && blockSize >=
                 (this.picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128
@@ -690,7 +695,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (evaluateBlue || evaluateRed)
                 {
                     Av1MotionVector motion = state.WinningMotionVectors[(int)winner.Mode][(int)winner.ReferenceFrame];
-                    Av1EncoderFrame<TSample>.PlanarView reference = this.references.Span[(int)winner.ReferenceFrame].CodedView;
+                    Av1EncoderFrame<TSample>.PlanarView reference = this.searchReferences.Span[(int)winner.ReferenceFrame].CodedView;
                     for (int index = 1; index < 3; index++)
                     {
                         if (index == 1 ? evaluateBlue : evaluateRed)
@@ -1462,6 +1467,39 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> lumaTypes = MemoryMarshal.AsBytes(workspace.SelectedLumaCoefficients)[
                 ..(lumaContextWidth * modeInfo.BlockSize.Get4x4HighCount())];
 
+            // The search predicted a reference of another size from its resized copy and keeps no prediction of it, so
+            // the luma prediction is built again from the reference itself. Reference: the reuse_inter_pred that
+            // av1_nonrd_pick_inter_mode_sb() clears for use_scaled_ref_frame, and the start_plane of
+            // encode_superblock().
+            if (this.IsScaledReference(modeInfo.ReferenceFrame) || this.IsScaledReference(modeInfo.SecondaryReferenceFrame))
+            {
+                Span<TSample> rebuilt = workspace.SpareLumaReconstruction;
+                this.PrepareInterPlanePrediction(
+                    vector,
+                    secondaryVector,
+                    Av1Plane.Y,
+                    modeInfo.Mode,
+                    modeInfo.ReferenceFrame,
+                    modeInfo.SecondaryReferenceFrame,
+                    false,
+                    modeInfo.CompoundType,
+                    modeInfo.CompoundWedgeIndex,
+                    modeInfo.CompoundWedgeSign,
+                    modeInfo.DifferenceWeightedMaskType,
+                    modeInfo.HorizontalInterpolationFilter,
+                    modeInfo.VerticalInterpolationFilter,
+                    primaryReference.GetPlane(Av1Plane.Y),
+                    secondaryReference.GetPlane(Av1Plane.Y),
+                    blockOrigin,
+                    0,
+                    0,
+                    modeInfo.BlockSize,
+                    rebuilt,
+                    workspace.Residual);
+
+                lumaPrediction = rebuilt;
+            }
+
             bool allTransformsEmpty = true;
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
@@ -1892,7 +1930,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 state.ModeCosts[index][slot] = writer.GetInterModeCost(mode, referenceVectors.ModeContext);
             }
 
-            if (!measureSad)
+            // A reference of another size measures no predictor error. Reference: the !ref_is_scaled test of
+            // find_predictors().
+            if (!measureSad || this.IsResizedReference(reference))
             {
                 return;
             }
@@ -2088,7 +2128,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             referenceOrigin,
                             new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
                             new Size(sourcePlane.Width, sourcePlane.Height),
-                            Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y),
+                            this.picture.Parent.EncoderBorder,
                             blockSize.GetWidth() >> 1,
                             blockSize.GetHeight() >> 1,
                             false,

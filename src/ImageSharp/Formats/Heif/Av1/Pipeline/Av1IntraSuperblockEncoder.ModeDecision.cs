@@ -185,6 +185,19 @@ internal static partial class Av1IntraSuperblockEncoder
 
         private readonly Av1EncoderFrame<TSample>.PlanarView source;
         private readonly ReadOnlyMemory<Av1EncoderFrame<TSample>> references;
+
+        /// <summary>
+        /// The frames the motion search reads, indexed by reference type: each reference, or its copy resized to the
+        /// size of the coded frame when the reference has another size. Reference: av1_get_scaled_ref_frame().
+        /// </summary>
+        private readonly ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences;
+
+        /// <summary>
+        /// One bit per available reference type whose frame has another size than the current frame, which the
+        /// prediction scales and the motion search reads through its resized copy. Reference: av1_is_scaled() of the
+        /// reference scale factors.
+        /// </summary>
+        private readonly int scaledReferenceMask;
         private readonly Av1EncoderFrame<TSample>.PlanarView reference;
         private readonly Av1ReferenceFrameType simpleMotionReference;
         private readonly Av1EncoderFrame<TSample>.PlanarView goldenReference;
@@ -271,9 +284,23 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1GlobalMotionParameters warpedModel;
         private bool useWarpedPrediction;
 
+        /// <summary>
+        /// Set while the estimated real-time search predicts each reference of another size from its copy resized to
+        /// the frame size, without scaling. The selected block then predicts from the reference itself. Reference:
+        /// the sf_no_scale that av1_nonrd_pick_inter_mode_sb() gives block_ref_scale_factors for a scaled
+        /// reference, and the rebuilt prediction of encode_superblock().
+        /// </summary>
+        private bool predictsFromSearchReferences;
+
         // Set while the candidate predicts with OBMC, with the block and its neighbor availability.
         private bool useObmcPrediction;
         private Point obmcBlockOrigin;
+
+        /// <summary>
+        /// The reference of the current OBMC motion search, whose fractional candidates scale when the reference has
+        /// another size than the frame.
+        /// </summary>
+        private Av1ReferenceFrameType obmcSearchReference;
         private Av1BlockSize obmcBlockSize;
         private bool obmcAboveAvailable;
         private bool obmcLeftAvailable;
@@ -393,6 +420,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="source">The coded source frame.</param>
         /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+        /// <param name="searchReferences">
+        /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its
+        /// copy resized to the size of the coded frame.
+        /// </param>
         /// <param name="reconstruction">The reconstructed frame updated by winning candidates.</param>
         /// <param name="picture">The frame coding and mode-information state.</param>
         /// <param name="superblock">The current superblock.</param>
@@ -401,6 +432,7 @@ internal static partial class Av1IntraSuperblockEncoder
         public ModeDecision(
             Av1EncoderFrame<TSample> source,
             ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+            ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences,
             Av1EncoderFrame<TSample> reconstruction,
             Av1PictureControlSet picture,
             Av1Superblock superblock,
@@ -409,12 +441,16 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             this.source = source.CodedView;
             this.references = references;
+            this.searchReferences = searchReferences;
+            this.scaledReferenceMask = GetScaledReferenceMask(references.Span, picture.Parent);
 
-            // The simple motion searches read ALTREF in a frame coded from its source, and LAST otherwise.
-            // Reference: the is_src_frame_alt_ref choice of ref_list in av1_simple_motion_search_based_split().
+            // The simple motion searches read ALTREF in a frame coded from its source, and LAST otherwise. They, the
+            // variance partition, and the estimated real-time search read a resized reference through its copy at
+            // the frame size. Reference: the is_src_frame_alt_ref choice of ref_list in
+            // av1_simple_motion_search_based_split(), and av1_get_scaled_ref_frame().
             this.simpleMotionReference = picture.Parent.IsSourceAlternateReference ? Av1ReferenceFrameType.Alternate : Av1ReferenceFrameType.Last;
-            this.reference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : references.Span[(int)this.simpleMotionReference].CodedView;
-            this.goldenReference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : references.Span[(int)Av1ReferenceFrameType.Golden].CodedView;
+            this.reference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : searchReferences.Span[(int)this.simpleMotionReference].CodedView;
+            this.goldenReference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : searchReferences.Span[(int)Av1ReferenceFrameType.Golden].CodedView;
             this.hasDistinctGoldenReference = (picture.Parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Golden)) != 0;
             this.reconstruction = reconstruction.CodedView;
             this.picture = picture;
@@ -607,7 +643,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 int column = origin.X >> 6;
                 int row = origin.Y >> 6;
                 ulong cachedSad = ulong.MaxValue;
-                if (column < columns - 1 && row < rows - 1)
+
+                // Scene detection keeps no block errors for a frame whose encoder size is not the image size. Reference:
+                // the NULL src_sad_blk_64x64 test of get_sb_source_sad().
+                if (column < columns - 1 && row < rows - 1 && !picture.Parent.SourceBlockSad.IsEmpty)
                 {
                     ReadOnlySpan<ulong> errors = picture.Parent.SourceBlockSad.Span;
                     int index = (row * columns) + column;

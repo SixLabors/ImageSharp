@@ -669,6 +669,7 @@ internal static partial class Av1FrameEncoder
             parent.GoldenBoost = secondPass.GoldenBoost;
 
             parent.EncoderOptions = this.Options;
+            parent.EncoderBorder = this.GetEncoderBorder();
             parent.ConstantQualityIndex = this.ConstantQualityIndex;
             parent.SpeedSettings = new(
                 this.Options.Speed,
@@ -719,6 +720,7 @@ internal static partial class Av1FrameEncoder
                 this.PictureBuffer.Picture,
                 source,
                 this.references,
+                this.searchReferences,
                 current.Buffer,
                 this.Coefficients,
                 this.TileWorkspace,
@@ -836,6 +838,7 @@ internal static partial class Av1FrameEncoder
             parent.GoldenBoost = secondPass.GoldenBoost;
 
             parent.EncoderOptions = this.Options;
+            parent.EncoderBorder = this.GetEncoderBorder();
             parent.ConstantQualityIndex = this.ConstantQualityIndex;
             parent.SpeedSettings = new(
                 this.Options.Speed,
@@ -886,6 +889,7 @@ internal static partial class Av1FrameEncoder
                 this.PictureBuffer.Picture,
                 source,
                 this.references,
+                this.searchReferences,
                 current.Buffer,
                 this.Coefficients,
                 this.TileWorkspace,

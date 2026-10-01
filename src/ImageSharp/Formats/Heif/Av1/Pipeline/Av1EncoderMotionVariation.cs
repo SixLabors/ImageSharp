@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -59,8 +60,10 @@ internal static class Av1EncoderMotionVariation
             }
         }
 
-        // The references of a sequence all have the frame size, so none is scaled.
-        if (frameHeader.AllowWarpedMotion &&
+        // A reference of another size allows OBMC but not warped motion. Every reference of an encoded frame is at most
+        // twice and at least a sixteenth of the frame size, so its scale is valid.
+        if (!IsReferenceScaled(frameHeader, mode.ReferenceFrame) &&
+            frameHeader.AllowWarpedMotion &&
             !frameHeader.ForceIntegerMotionVector &&
             FindSamples(picture, macroBlock, position, mode, stackalloc Point[MaximumSampleCount], stackalloc Point[MaximumSampleCount]) >= 1)
         {
@@ -68,6 +71,24 @@ internal static class Av1EncoderMotionVariation
         }
 
         return Av1MotionMode.Obmc;
+    }
+
+    /// <summary>
+    /// Returns whether a reference of the frame has a fixed-point scale factor other than one in either direction,
+    /// from the frame sizes the encoder records for each slot. Reference: av1_is_scaled() with
+    /// av1_setup_scale_factors_for_frame().
+    /// </summary>
+    /// <param name="frameHeader">The frame header with the reference slots and the slot sizes.</param>
+    /// <param name="referenceFrame">The reference.</param>
+    /// <returns><see langword="true"/> when predictions from the reference are scaled.</returns>
+    public static bool IsReferenceScaled(ObuFrameHeader frameHeader, Av1ReferenceFrameType referenceFrame)
+    {
+        Size referenceSize = frameHeader.GetReferenceFrameSizes()[(int)frameHeader.GetReferenceFrameIndices()[(int)referenceFrame - 1]];
+        return new Av1ReferenceScale(
+            referenceSize.Width,
+            referenceSize.Height,
+            frameHeader.FrameSize.SuperResolutionUpscaledWidth,
+            frameHeader.FrameSize.FrameHeight).IsScaled;
     }
 
     /// <summary>

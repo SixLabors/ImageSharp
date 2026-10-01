@@ -1606,14 +1606,30 @@ internal sealed partial class HeifEncoderCore
             ? Av1FrameEncoder.CreateAlphaSequenceEncoder(this.configuration, frame.Width, frame.Height, colorConfig, firstQIndex, options)
             : Av1FrameEncoder.CreateColorSequenceEncoder(this.configuration, frame.Width, frame.Height, colorConfig, firstQIndex, options);
 
+        int previousQuality = -1;
         for (int layer = 0; layer < layers.Count; layer++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ChunkedMemoryStream buffer = new(this.configuration.MemoryAllocator);
             layerBuffers[layer] = buffer;
-            int quantizer = GetAv1Quantizer(getQuality(layers[layer], quality), imageTune);
+            int layerQuality = getQuality(layers[layer], quality);
+            int quantizer = GetAv1Quantizer(layerQuality, imageTune);
             (int minimumQuantizer, int maximumQuantizer) = GetQuantizerRange(quantizer, constantBitRate);
-            encoder.EncodeLayer(frame, buffer, Av1QuantizationLookup.GetQIndex(quantizer), minimumQuantizer, maximumQuantizer);
+            (int scaleNumerator, int scaleDenominator) = HeifLayer.GetFraction(layers[layer].Scale);
+
+            // libavif reconfigures the encoder only when the quality of a layer differs from the layer before it.
+            // Reference: the encoderChanges of aomCodecEncodeImage().
+            encoder.EncodeLayer(
+                frame,
+                buffer,
+                Av1QuantizationLookup.GetQIndex(quantizer),
+                minimumQuantizer,
+                maximumQuantizer,
+                scaleNumerator,
+                scaleDenominator,
+                layerQuality != previousQuality);
+
+            previousQuality = layerQuality;
         }
 
         return encoder.SequenceHeader;

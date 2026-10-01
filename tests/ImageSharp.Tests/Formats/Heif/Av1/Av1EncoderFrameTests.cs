@@ -633,6 +633,62 @@ public class Av1EncoderFrameTests
         Assert.Throws<InvalidOperationException>(() => encoder.EncodeLayer(image.Frames.RootFrame, sample, 100, 0, 63));
     }
 
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level3)]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level8)]
+    public void ScaledLayeredImageReconstructsAsDecoded(HeifEncodingSpeed speed)
+    {
+        // The second layer is smaller than the first and predicts it scaled down, and the last layer is larger than the
+        // second and predicts it scaled up. Each layer codes and reconstructs at its own size.
+        using Image<Rgb24> image = CreateLayerTestImage();
+        bool realtime = speed >= HeifEncodingSpeed.Level7;
+        Av1EncoderOptions options = new(speed, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
+        {
+            UsesConstantBitRate = realtime,
+            MinimumQuantizer = realtime ? 46 : 0,
+            MaximumQuantizer = realtime ? 54 : 63,
+            LayerCount = 3,
+            UsesFixedQuantizer = !realtime
+        };
+
+        int[] quantizers = [50, 40, 25];
+        (int Numerator, int Denominator)[] scales = [(3, 4), (1, 2), (1, 1)];
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            image.Width,
+            image.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            Av1QuantizationLookup.GetQIndex(quantizers[0]),
+            options);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        for (int layer = 0; layer < quantizers.Length; layer++)
+        {
+            int quantizer = quantizers[layer];
+            (int numerator, int denominator) = scales[layer];
+            sample.SetLength(0);
+            encoder.EncodeLayer(
+                image.Frames.RootFrame,
+                sample,
+                Av1QuantizationLookup.GetQIndex(quantizer),
+                realtime ? quantizer - 4 : 0,
+                realtime ? quantizer + 4 : 63,
+                numerator,
+                denominator);
+
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            ObuFrameHeader frameHeader = decoder.FrameHeader!;
+            int width = ((image.Width * numerator) + denominator - 1) / denominator;
+            int height = ((image.Height * numerator) + denominator - 1) / denominator;
+            Assert.Equal(layer, frameHeader.SpatialId);
+            Assert.Equal(width, frameHeader.FrameSize.FrameWidth);
+            Assert.Equal(height, frameHeader.FrameSize.FrameHeight);
+            AssertDecodedLumaMatchesEncoder(encoder, decoder, width, height);
+        }
+    }
+
     /// <summary>
     /// Creates a 96x64 gradient with fine texture for the layer and delta quantizer tests.
     /// </summary>

@@ -79,6 +79,23 @@ internal static partial class Av1MotionSearchBase
             int bitDepth);
 
         /// <summary>
+        /// Subtracts a packed prediction from the source into a packed residual.
+        /// </summary>
+        /// <param name="source">The source samples at the block origin.</param>
+        /// <param name="sourceStride">The source row stride.</param>
+        /// <param name="prediction">The packed prediction.</param>
+        /// <param name="residual">The packed residual destination.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        public static abstract void Subtract(
+            ReadOnlySpan<TSample> source,
+            int sourceStride,
+            ReadOnlySpan<TSample> prediction,
+            Span<short> residual,
+            int width,
+            int height);
+
+        /// <summary>
         /// Produces a packed fractional prediction with each filter pass rounded to sample precision.
         /// </summary>
         /// <param name="reference">The bordered reference plane.</param>
@@ -101,6 +118,40 @@ internal static partial class Av1MotionSearchBase
             int horizontalPhase,
             int verticalPhase,
             int taps,
+            int bitDepth);
+
+        /// <summary>
+        /// Produces a packed prediction from a reference of another size than the frame, stepping the source position
+        /// and phase by the scale of each axis. Reference: the scaled branch of av1_make_inter_predictor().
+        /// </summary>
+        /// <param name="reference">The bordered reference plane.</param>
+        /// <param name="referenceStride">The reference row stride.</param>
+        /// <param name="referenceOrigin">The integer reference position of the first output sample.</param>
+        /// <param name="buffer">The prediction destination.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+        /// <param name="verticalFilter">The vertical interpolation filter.</param>
+        /// <param name="horizontalPhase">The horizontal phase of the first output sample in 1/1024 samples.</param>
+        /// <param name="horizontalStep">The horizontal step per output sample in 1/1024 samples.</param>
+        /// <param name="verticalPhase">The vertical phase of the first output sample in 1/1024 samples.</param>
+        /// <param name="verticalStep">The vertical step per output sample in 1/1024 samples.</param>
+        /// <param name="intermediateRows">The intermediate rows of the two-dimensional convolution.</param>
+        /// <param name="bitDepth">The coded precision.</param>
+        static abstract void PredictScaled(
+            ReadOnlySpan<TSample> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<TSample> buffer,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int horizontalStep,
+            int verticalPhase,
+            int verticalStep,
+            Span<short> intermediateRows,
             int bitDepth);
 
         /// <summary>

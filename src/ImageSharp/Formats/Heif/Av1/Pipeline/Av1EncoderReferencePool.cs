@@ -68,11 +68,21 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Returns the unused frame buffer with the lowest index for the frame about to be coded, which keeps whatever
+    /// Returns the unused frame buffer with the lowest index for a frame of the sequence size, which keeps whatever
     /// segment map its last frame left. Reference: get_free_fb().
     /// </summary>
     /// <returns>A buffer that no slot points at.</returns>
-    public Entry Acquire()
+    public Entry Acquire() => this.Acquire(this.width, this.height);
+
+    /// <summary>
+    /// Returns the unused frame buffer with the lowest index for a frame of the given size. A buffer of another size
+    /// gets new planes of the frame size and keeps its identity. Reference: get_free_fb(), and the
+    /// aom_realloc_frame_buffer() of the current frame buffer in av1_set_frame_size().
+    /// </summary>
+    /// <param name="frameWidth">The visible luma width of the frame.</param>
+    /// <param name="frameHeight">The visible luma height of the frame.</param>
+    /// <returns>A buffer that no slot points at.</returns>
+    public Entry Acquire(int frameWidth, int frameHeight)
     {
         Entry? entry = null;
         foreach (Entry candidate in this.free)
@@ -86,26 +96,40 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
         if (entry is not null)
         {
             this.free.Remove(entry);
+            if (entry.Buffer.Frame.Width != frameWidth || entry.Buffer.Frame.Height != frameHeight)
+            {
+                entry.ReplaceBuffer(this.CreateBuffer(frameWidth, frameHeight));
+            }
+
             return entry;
         }
 
         entry = new Entry(
             this.entries.Count,
-            new Av1EncoderFrameBuffer<TSample>(
-                this.configuration,
-                this.width,
-                this.height,
-                this.bitDepth,
-                this.colorFormat,
-                this.chromaPositionX,
-                this.chromaPositionY,
-                this.lumaBorder),
+            this.CreateBuffer(frameWidth, frameHeight),
             new Av1FrameEntropyContext(this.qIndex),
             this.motionField.CreateSavedMotionField(this.configuration));
 
         this.entries.Add(entry);
         return entry;
     }
+
+    /// <summary>
+    /// Allocates the planes of a frame of the given size.
+    /// </summary>
+    /// <param name="frameWidth">The visible luma width of the frame.</param>
+    /// <param name="frameHeight">The visible luma height of the frame.</param>
+    /// <returns>The frame storage.</returns>
+    private Av1EncoderFrameBuffer<TSample> CreateBuffer(int frameWidth, int frameHeight)
+        => new(
+            this.configuration,
+            frameWidth,
+            frameHeight,
+            this.bitDepth,
+            this.colorFormat,
+            this.chromaPositionX,
+            this.chromaPositionY,
+            this.lumaBorder);
 
     /// <summary>
     /// Gets the buffer a slot points at.
@@ -193,7 +217,7 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
         /// <summary>
         /// Gets the frame storage.
         /// </summary>
-        public Av1EncoderFrameBuffer<TSample> Buffer { get; }
+        public Av1EncoderFrameBuffer<TSample> Buffer { get; private set; }
 
         /// <summary>
         /// Gets the adapted distributions saved at the end of the frame. Reference: cur_frame->frame_context.
@@ -214,6 +238,16 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
         /// Gets the segmentation state of the frame in the buffer. Reference: cur_frame->seg.
         /// </summary>
         public ObuSegmentationParameters Segmentation { get; } = new();
+
+        /// <summary>
+        /// Replaces the frame storage with planes of another size, and releases the old planes.
+        /// </summary>
+        /// <param name="buffer">The new frame storage.</param>
+        public void ReplaceBuffer(Av1EncoderFrameBuffer<TSample> buffer)
+        {
+            this.Buffer.Dispose();
+            this.Buffer = buffer;
+        }
 
         /// <summary>
         /// Gets the segment map that the last frame coded into the buffer left, one identifier per 4x4 block, or

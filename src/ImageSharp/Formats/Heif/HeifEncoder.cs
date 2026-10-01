@@ -196,7 +196,10 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// 65,536 pixels; encoding any other image with layers throws a <see cref="NotSupportedException"/>. Defaults to
     /// <see langword="null"/>.
     /// </summary>
-    /// <exception cref="ArgumentException">The list holds fewer than 2 or more than 4 layers, or holds a null layer.</exception>
+    /// <exception cref="ArgumentException">
+    /// The list holds fewer than 2 or more than 4 layers or a null layer, a layer is less than half the width and
+    /// height of the layer before it, or the last layer does not have the size of the image.
+    /// </exception>
     public IReadOnlyList<HeifLayer>? Layers
     {
         get => this.layers;
@@ -218,6 +221,22 @@ public sealed class HeifEncoder : AnimatedImageEncoder
             for (int i = 0; i < copy.Length; i++)
             {
                 copy[i] = value[i] ?? throw new ArgumentException("Layers must not hold a null layer.");
+
+                // A frame can predict from a reference at most twice its size. Reference: valid_ref_frame_size().
+                if (i > 0)
+                {
+                    (int numerator, int denominator) = HeifLayer.GetFraction(copy[i].Scale);
+                    (int previousNumerator, int previousDenominator) = HeifLayer.GetFraction(copy[i - 1].Scale);
+                    if (2 * numerator * previousDenominator < previousNumerator * denominator)
+                    {
+                        throw new ArgumentException("A layer must be at least half the width and height of the layer before it.");
+                    }
+                }
+            }
+
+            if (copy[^1].Scale != HeifLayerScale.Full)
+            {
+                throw new ArgumentException("The last layer must have the size of the image.");
             }
 
             this.layers = Array.AsReadOnly(copy);

@@ -593,7 +593,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (useAlternate && (parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Alternate)) != 0 &&
                 this.sourceSadLevel != Av1SourceSadLevel.Zero)
             {
-                Av1PlaneRegion<TSample> alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> alternate = this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y);
                 alternateSad = (uint)TOperator.SumAbsoluteDifferences(
                     source, sourcePlane.Stride, Av1TransformBlockEncoder.GetPlaneSpan(alternate, origin), alternate.Stride, side, side, 1) >> precisionShift;
             }
@@ -628,6 +628,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     verticalRange <<= 1;
                 }
 
+                // The search range keeps to the border of the encoder configuration, not to the border of the buffer
+                // it reads. Reference: cpi->oxcf.border_in_pixels in av1_int_pro_motion_estimation().
                 lastSad = Av1MotionSearchBase.SearchProjection(
                     MemoryMarshal.Cast<TSample, byte>(source),
                     sourcePlane.Stride,
@@ -636,7 +638,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     lastOrigin,
                     new Rectangle(origin, new Size(side, side)),
                     frameSize,
-                    Math.Min(lastPlane.Bounds.X, lastPlane.Bounds.Y),
+                    parent.EncoderBorder,
                     horizontalRange,
                     verticalRange,
                     parent.IsScreenContent,
@@ -747,7 +749,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderFrame<TSample>.PlanarView selected = this.partitionReference switch
             {
                 Av1ReferenceFrameType.Golden => this.goldenReference,
-                Av1ReferenceFrameType.Alternate => this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView,
+                Av1ReferenceFrameType.Alternate => this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView,
                 _ => this.reference
             };
 
@@ -817,7 +819,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     // chroma_check() measures zero motion against LAST, whichever reference the partition chose:
                     // pre[0] when that is LAST, otherwise the LAST buffer through setup_pred_plane().
-                    Av1PlaneRegion<TSample> chromaReference = this.references.Span[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
+                    Av1PlaneRegion<TSample> chromaReference = this.searchReferences.Span[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
                         : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;
@@ -850,7 +852,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (alternateSad != uint.MaxValue)
                     {
-                        Av1PlaneRegion<TSample> alternate = this.references.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(plane);
+                        Av1PlaneRegion<TSample> alternate = this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(plane);
                         uint sadAlternate = (uint)TOperator.SumAbsoluteDifferences(
                             Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
                             chromaSource.Stride,
@@ -908,8 +910,15 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<TSample, byte>(Av1TransformBlockEncoder.GetPlaneSpan(luma, origin));
             ReadOnlySpan<byte> previous = previousLuma.Samples;
             int previousOffset = ((previousLuma.Bounds.Y + origin.Y) * previousLuma.Stride) + previousLuma.Bounds.X + origin.X;
+
+            // Without the block errors of scene detection the superblock measures its own. Reference: the NULL
+            // src_sad_blk_64x64 branch of fast_detect_non_zero_motion().
             int columns = (parent.FrameHeader.ModeInfoColumnCount + 15) >> 4;
-            uint stationarySad = (uint)parent.SourceBlockSad.Span[((origin.Y >> 6) * columns) + (origin.X >> 6)];
+            uint stationarySad = parent.SourceBlockSad.IsEmpty
+                ? (uint)Av1MotionSearchBase.ByteOperator.SumAbsoluteDifferences(
+                    source, luma.Stride, previous[previousOffset..], previousLuma.Stride, side, side, 1)
+                : (uint)parent.SourceBlockSad.Span[((origin.Y >> 6) * columns) + (origin.X >> 6)];
+
             uint threshold = (5 * stationarySad) >> 3;
             ReadOnlySpan<int> offsets = [-previousLuma.Stride, -1, 1, previousLuma.Stride];
             foreach (int offset in offsets)
@@ -1006,8 +1015,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1PictureParentControlSet parent = this.picture.Parent;
                 int side = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
+
+                // A frame without the block errors of scene detection takes zero. Reference: the NULL
+                // src_sad_blk_64x64 test of av1_choose_var_based_partitioning().
                 int columns = (parent.FrameHeader.FrameSize.FrameWidth + 63) >> 6;
-                ulong sourceSad = parent.SourceBlockSad.Span[((superblockOrigin.Y >> 6) * columns) + (superblockOrigin.X >> 6)];
+                ulong sourceSad = parent.SourceBlockSad.IsEmpty
+                    ? 0
+                    : parent.SourceBlockSad.Span[((superblockOrigin.Y >> 6) * columns) + (superblockOrigin.X >> 6)];
 
                 // The superblock takes its segment from the map. A boosted cyclic refresh superblock splits at the
                 // thresholds of its segment quantizer. Reference: the av1_set_offsets() call of encode_nonrd_sb(), and

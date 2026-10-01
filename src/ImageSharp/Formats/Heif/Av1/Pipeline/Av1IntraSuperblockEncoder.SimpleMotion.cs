@@ -98,7 +98,14 @@ internal static partial class Av1IntraSuperblockEncoder
             if (useSubpixel && full.Cost < int.MaxValue && !frameHeader.ForceIntegerMotionVector &&
                 settings.SimpleMotionPrecision != Av1MotionSearchSettings.SearchPrecision.Integer)
             {
+                // The fractional search and the final prediction of a reference of another size read the reference
+                // itself with its scale factors. Reference: the buffer that av1_simple_motion_search() swaps back
+                // before the subpel search.
                 Span<TSample> prediction = this.blockWorkspace.GetMotionSearchPrediction<TSample>();
+                Span<short> predictionScratch = this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch;
+                Av1MotionSearchBase.ScaledReference<TSample> scaledReference =
+                    this.GetScaledSearchReference(this.simpleMotionReference, blockOrigin, predictionScratch);
+
                 Av1MotionSearchBase.FractionalSearch<TSample, TOperator> fractionalSearch = new(
                     source,
                     sourcePlane.Stride,
@@ -113,7 +120,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth,
                     errorPerBitRateMultiplier,
                     [],
-                    []);
+                    [],
+                    scaledReference);
 
                 fractionalSearch.Search(
                     vector,
@@ -131,19 +139,26 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Fractional search may use short filters and different intermediate rounding.
                 // Rebuild its winner with the final regular predictor before collecting model features.
-                TOperator.BuildPrediction(
-                    reference,
-                    referencePlane.Stride,
-                    referenceOrigin + ((vector.Row >> 3) * referencePlane.Stride) + (vector.Column >> 3),
-                    prediction,
-                    this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch,
-                    size.Width,
-                    size.Height,
-                    Av1InterpolationFilter.Regular,
-                    Av1InterpolationFilter.Regular,
-                    (vector.Column & 7) << 1,
-                    (vector.Row & 7) << 1,
-                    this.bitDepth.GetBitCount());
+                if (scaledReference.IsScaled)
+                {
+                    scaledReference.Predict<TOperator>(vector, prediction, size, this.bitDepth.GetBitCount());
+                }
+                else
+                {
+                    TOperator.BuildPrediction(
+                        reference,
+                        referencePlane.Stride,
+                        referenceOrigin + ((vector.Row >> 3) * referencePlane.Stride) + (vector.Column >> 3),
+                        prediction,
+                        predictionScratch,
+                        size.Width,
+                        size.Height,
+                        Av1InterpolationFilter.Regular,
+                        Av1InterpolationFilter.Regular,
+                        (vector.Column & 7) << 1,
+                        (vector.Row & 7) << 1,
+                        this.bitDepth.GetBitCount());
+                }
 
                 TOperator.GetMoments(
                     source, sourcePlane.Stride, prediction, size.Width, size.Width, size.Height, out int sum, out long squares);

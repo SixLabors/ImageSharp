@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
 using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -279,7 +280,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                     sourcePlane.Stride,
-                    Av1TransformBlockEncoder.GetPlaneSpan(referencePlane, blockOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(referencePlane, this.GetReferenceBlockOrigin(reference, blockOrigin)),
                     referencePlane.Stride,
                     blockSize.GetWidth(),
                     blockSize.GetHeight(),
@@ -1956,22 +1957,41 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            int columnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
-            int rowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
-            TOperator.PrepareTranslationalInterPrediction(
-                this.source.GetPlane(Av1Plane.Y),
-                blockOrigin,
-                reference.GetPlane(Av1Plane.Y),
-                new Point(columnQ4 >> 4, rowQ4 >> 4),
-                modeInfo.Block.HorizontalInterpolationFilter,
-                modeInfo.Block.VerticalInterpolationFilter,
-                columnQ4 & 15,
-                rowQ4 & 15,
-                prediction,
-                residual,
-                workspace.PredictionScratch,
-                predictionSize,
-                this.bitDepth);
+            if (this.IsScaledReference(modeInfo.Block.ReferenceFrame))
+            {
+                this.PrepareScaledInterPrediction(
+                    modeInfo.Block.ReferenceFrame,
+                    Av1Plane.Y,
+                    blockOrigin,
+                    0,
+                    0,
+                    vector,
+                    modeInfo.Block.HorizontalInterpolationFilter,
+                    modeInfo.Block.VerticalInterpolationFilter,
+                    predictionSize,
+                    prediction,
+                    residual,
+                    workspace.PredictionScratch);
+            }
+            else
+            {
+                int columnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
+                int rowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
+                TOperator.PrepareTranslationalInterPrediction(
+                    this.source.GetPlane(Av1Plane.Y),
+                    blockOrigin,
+                    reference.GetPlane(Av1Plane.Y),
+                    new Point(columnQ4 >> 4, rowQ4 >> 4),
+                    modeInfo.Block.HorizontalInterpolationFilter,
+                    modeInfo.Block.VerticalInterpolationFilter,
+                    columnQ4 & 15,
+                    rowQ4 & 15,
+                    prediction,
+                    residual,
+                    workspace.PredictionScratch,
+                    predictionSize,
+                    this.bitDepth);
+            }
 
             if (this.useObmcPrediction)
             {
@@ -3153,7 +3173,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1InterpolationFilter selectedVerticalFilter = defaultFilter;
             Av1InterpolationFilter selectedHorizontalFilter = defaultFilter;
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
+
+            // The motion search reads a reference of another size through its copy resized to the frame size.
+            // Reference: the scaled_ref_frame of av1_single_motion_search().
+            Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             int sourceOrigin = ((sourcePlane.Bounds.Y + blockOrigin.Y) * sourcePlane.Stride) + sourcePlane.Bounds.X + blockOrigin.X;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size frameSize = new(
@@ -3203,7 +3226,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPartitionRate,
                 writer.GetSkipCost(false, skipContext),
                 writer.GetSkipCost(true, skipContext),
-                this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
+                this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision),
+                this.GetScaledSearchReference(referenceFrame, blockOrigin, workspace.PredictionScratch));
 
             int spatialMagnitude = GetSpatialMotionMagnitude(in referenceMotionVectors, blockOrigin, blockSize, frameSize);
 
@@ -3262,8 +3286,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 InlineArray3<long> translationCosts = default;
                 translationCosts[..].Fill(long.MaxValue);
                 InlineArray4<Av1RateDistortionStatistics> planeStatistics = default;
+
+                // A scaled reference is not pruned. Reference: the av1_is_scaled() test of ref_mv_idx_to_search().
                 bool modelTranslation = this.picture.Parent.SpeedSettings.PruneNearMotionByTranslation &&
-                    blockSize.GetWidth() * blockSize.GetHeight() > 64;
+                    blockSize.GetWidth() * blockSize.GetHeight() > 64 &&
+                    !this.IsScaledReference(modeInfo.Block.ReferenceFrame);
 
                 modeInfo.Block.Mode = requestedMode;
                 long bestTranslation = long.MaxValue;
@@ -4224,7 +4251,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> interResidual = workspace.Residual.Slice(sampleCount, sampleCount);
             Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask()[..sampleCount];
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Av1PlaneRegion<TSample> referencePlane = this.references.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
+
+            // The wedge motion refinement reads a reference of another size through its resized copy. Reference:
+            // the scaled_ref_frame of av1_compound_single_motion_search().
+            Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             this.PrepareSingleInterPrediction(
                 predictionMode,
                 referenceFrame,
@@ -4444,7 +4474,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.bitDepth,
                         this.rateMultiplier,
                         selectedIntra,
-                        mask);
+                        mask,
+                        this.GetScaledSearchReference(referenceFrame, blockOrigin, workspace.PredictionScratch));
 
                     fractionalSearch.Search(
                         trialVector,
@@ -4463,22 +4494,41 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (trialVector != vector)
                 {
-                    int trialColumnQ4 = (blockOrigin.X << 4) + (trialVector.Column << 1);
-                    int trialRowQ4 = (blockOrigin.Y << 4) + (trialVector.Row << 1);
-                    TOperator.PrepareTranslationalInterPrediction(
-                        sourcePlane,
-                        blockOrigin,
-                        referencePlane,
-                        new Point(trialColumnQ4 >> 4, trialRowQ4 >> 4),
-                        horizontalFilter,
-                        verticalFilter,
-                        trialColumnQ4 & 15,
-                        trialRowQ4 & 15,
-                        blendedPrediction,
-                        intraResidual,
-                        workspace.PredictionScratch,
-                        blockSize,
-                        this.bitDepth);
+                    if (this.IsScaledReference(referenceFrame))
+                    {
+                        this.PrepareScaledInterPrediction(
+                            referenceFrame,
+                            Av1Plane.Y,
+                            blockOrigin,
+                            0,
+                            0,
+                            trialVector,
+                            horizontalFilter,
+                            verticalFilter,
+                            blockSize,
+                            blendedPrediction,
+                            intraResidual,
+                            workspace.PredictionScratch);
+                    }
+                    else
+                    {
+                        int trialColumnQ4 = (blockOrigin.X << 4) + (trialVector.Column << 1);
+                        int trialRowQ4 = (blockOrigin.Y << 4) + (trialVector.Row << 1);
+                        TOperator.PrepareTranslationalInterPrediction(
+                            sourcePlane,
+                            blockOrigin,
+                            referencePlane,
+                            new Point(trialColumnQ4 >> 4, trialRowQ4 >> 4),
+                            horizontalFilter,
+                            verticalFilter,
+                            trialColumnQ4 & 15,
+                            trialRowQ4 & 15,
+                            blendedPrediction,
+                            intraResidual,
+                            workspace.PredictionScratch,
+                            blockSize,
+                            this.bitDepth);
+                    }
 
                     TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
                     TOperator.GetMoments(
@@ -5360,7 +5410,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionVector first = singleReferenceVectors[reference].GetStackVector(0, globalMotion);
                 Av1MotionVector second = singleReferenceVectors[reference].GetStackVector(1, globalMotion);
                 int count = first == second ? 1 : 2;
-                Av1PlaneRegion<TSample> referencePlane = this.references.Span[reference].CodedView.GetPlane(Av1Plane.Y);
+
+                // A reference of another size is measured through its copy resized to the frame size. Reference: the
+                // scaled_ref_frame of setup_buffer_ref_mvs_inter().
+                Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[reference].CodedView.GetPlane(Av1Plane.Y);
                 ReadOnlySpan<TSample> referenceSamples = referencePlane.Samples;
                 bool zeroSeen = false;
                 int best = int.MaxValue;
@@ -6055,8 +6108,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateMask = (1 << referenceCount) - 1;
                     if (referenceCount > 1)
                     {
+                        // A scaled reference is not pruned. Reference: the av1_is_scaled() test of
+                        // ref_mv_idx_to_search().
                         bool modelTranslation = nearMode && settings.PruneNearMotionByTranslation &&
-                            blockSize.GetWidth() * blockSize.GetHeight() > 64;
+                            blockSize.GetWidth() * blockSize.GetHeight() > 64 &&
+                            !this.IsScaledReference(primaryReference) && !this.IsScaledReference(secondaryReference);
 
                         translationCosts[..].Fill(long.MaxValue);
                         long bestTranslation = long.MaxValue;
@@ -7961,6 +8017,15 @@ internal static partial class Av1IntraSuperblockEncoder
             const int interpolationExtension = 4;
             for (int referenceIndex = 0; referenceIndex < (compound ? 2 : 1); referenceIndex++)
             {
+                // A scaled reference filters every position, so no axis skips its filter trials. Reference: the
+                // av1_is_scaled() test of calc_interp_skip_pred_flag().
+                if (this.IsScaledReference(referenceIndex == 0 ? modeInfo.ReferenceFrame : modeInfo.SecondaryReferenceFrame))
+                {
+                    horizontalSkip = 0;
+                    verticalSkip = 0;
+                    break;
+                }
+
                 Av1MotionVector vector = referenceIndex == 0 ? primary : secondary;
                 for (int planeIndex = 0; planeIndex < (modelChroma ? 2 : 1); planeIndex++)
                 {
@@ -9645,6 +9710,29 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth)
         {
             Av1MotionVector vector = this.picture.GetDisplacementVector(neighborPosition);
+
+            // A neighbor predicts from its reference with that reference's scale factors. Reference:
+            // av1_setup_build_prediction_by_above_pred() and av1_setup_build_prediction_by_left_pred().
+            if (!neighbor.UseIntraBlockCopy && this.IsResizedReference(neighbor.ReferenceFrame))
+            {
+                this.PredictScaledInter(
+                    neighbor.ReferenceFrame,
+                    plane,
+                    planeOrigin,
+                    subsamplingX,
+                    subsamplingY,
+                    vector,
+                    neighbor.HorizontalInterpolationFilter,
+                    neighbor.VerticalInterpolationFilter,
+                    destination,
+                    width,
+                    width,
+                    height,
+                    predictionScratch);
+
+                return;
+            }
+
             Av1PlaneRegion<TSample> reference = neighbor.UseIntraBlockCopy
                 ? this.reconstruction.GetPlane(plane)
                 : this.references.Span[(int)neighbor.ReferenceFrame].CodedView.GetPlane(plane);
@@ -9747,6 +9835,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int x = 0; x < planeWidth; x += subWidth, modeColumn++)
                 {
                     Av1MotionVector subVector = vector;
+                    Av1ReferenceFrameType subReferenceFrame = referenceFrame;
                     Av1PlaneRegion<TSample> subReference = referencePlane;
                     Av1InterpolationFilter subHorizontal = horizontalFilter;
                     Av1InterpolationFilter subVertical = verticalFilter;
@@ -9755,9 +9844,33 @@ internal static partial class Av1IntraSuperblockEncoder
                         Point position = new(current.X + modeColumn, current.Y + modeRow);
                         ref readonly Av1EncoderBlockModeInfo covered = ref this.picture.GetFromModeInfoGrid(position).Block;
                         subVector = this.picture.GetDisplacementVector(position);
+                        subReferenceFrame = covered.ReferenceFrame;
                         subReference = this.references.Span[(int)covered.ReferenceFrame].CodedView.GetPlane(plane);
                         subHorizontal = covered.HorizontalInterpolationFilter;
                         subVertical = covered.VerticalInterpolationFilter;
+                    }
+
+                    // Each covered block predicts from its reference frame with that reference's scale factors,
+                    // even within the estimated real-time search. Reference: the ref_scale_factors of
+                    // build_inter_predictors_sub8x8().
+                    if (this.IsResizedReference(subReferenceFrame))
+                    {
+                        this.PredictScaledInter(
+                            subReferenceFrame,
+                            plane,
+                            new Point(planeOrigin.X + x, planeOrigin.Y + y),
+                            subsamplingX,
+                            subsamplingY,
+                            subVector,
+                            subHorizontal,
+                            subVertical,
+                            prediction[((y * planeWidth) + x)..],
+                            planeWidth,
+                            subWidth,
+                            subHeight,
+                            predictionScratch);
+
+                        continue;
                     }
 
                     int columnQ4 = ((planeOrigin.X + x) << 4) + (subVector.Column << (1 - subsamplingX));
@@ -9930,6 +10043,25 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
+            if (this.IsScaledReference(referenceFrame))
+            {
+                this.PrepareScaledInterPrediction(
+                    referenceFrame,
+                    plane,
+                    planeOrigin,
+                    subsamplingX,
+                    subsamplingY,
+                    vector,
+                    horizontalFilter,
+                    verticalFilter,
+                    predictionSize,
+                    prediction,
+                    residual,
+                    scratch);
+
+                return;
+            }
+
             int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
             int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY));
             TOperator.PrepareTranslationalInterPrediction(
@@ -9996,6 +10128,12 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (predictionMode >= Av1PredictionMode.CompoundInterModeStart)
             {
+                // Compound prediction does not scale. Only layered images code frames of other sizes, and their layers
+                // predict from LAST alone.
+                Debug.Assert(
+                    !this.IsResizedReference(primaryReferenceFrame) && !this.IsResizedReference(secondaryReferenceFrame),
+                    "Compound prediction from a reference of another size is not supported.");
+
                 int firstWeight = 8;
                 int secondWeight = 8;
                 if (compoundType == Av1CompoundType.DistanceWeighted)
@@ -10132,20 +10270,39 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Reference-frame modes use the complete interpolation pipeline even when the current zero-phase
                 // global vector reduces to a SIMD copy. Later fractional vectors therefore share decoder arithmetic.
-                TOperator.PrepareTranslationalInterPrediction(
-                    sourcePlane,
-                    planeOrigin,
-                    referencePlane,
-                    predictionOrigin,
-                    horizontalFilter,
-                    verticalFilter,
-                    sourceColumnQ4 & 15,
-                    sourceRowQ4 & 15,
-                    prediction,
-                    residual,
-                    predictionScratch,
-                    predictionSize,
-                    this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
+                if (this.IsScaledReference(primaryReferenceFrame))
+                {
+                    this.PrepareScaledInterPrediction(
+                        primaryReferenceFrame,
+                        plane,
+                        planeOrigin,
+                        subsamplingX,
+                        subsamplingY,
+                        vector,
+                        horizontalFilter,
+                        verticalFilter,
+                        predictionSize,
+                        prediction,
+                        residual,
+                        predictionScratch);
+                }
+                else
+                {
+                    TOperator.PrepareTranslationalInterPrediction(
+                        sourcePlane,
+                        planeOrigin,
+                        referencePlane,
+                        predictionOrigin,
+                        horizontalFilter,
+                        verticalFilter,
+                        sourceColumnQ4 & 15,
+                        sourceRowQ4 & 15,
+                        prediction,
+                        residual,
+                        predictionScratch,
+                        predictionSize,
+                        this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
+                }
 
                 if (this.useObmcPrediction)
                 {

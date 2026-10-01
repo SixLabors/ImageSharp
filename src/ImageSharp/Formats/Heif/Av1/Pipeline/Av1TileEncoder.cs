@@ -49,6 +49,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer,
             source,
             default,
+            default,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -83,6 +84,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer,
             source,
             references,
+            references,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -96,6 +98,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+    /// <param name="searchReferences">
+    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
+    /// resized to the size of the coded frame.
+    /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -105,6 +111,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1SymbolEncoder writer,
         Av1EncoderFrame<byte> source,
         ReadOnlyMemory<Av1EncoderFrame<byte>> references,
+        ReadOnlyMemory<Av1EncoderFrame<byte>> searchReferences,
         Av1EncoderFrame<byte> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -117,6 +124,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer,
             source,
             references,
+            searchReferences,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -148,6 +156,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
+            default,
             default,
             reconstruction,
             picture,
@@ -183,6 +192,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer,
             source,
             references,
+            references,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -196,6 +206,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+    /// <param name="searchReferences">
+    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
+    /// resized to the size of the coded frame.
+    /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
@@ -205,6 +219,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1SymbolEncoder writer,
         Av1EncoderFrame<ushort> source,
         ReadOnlyMemory<Av1EncoderFrame<ushort>> references,
+        ReadOnlyMemory<Av1EncoderFrame<ushort>> searchReferences,
         Av1EncoderFrame<ushort> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -217,6 +232,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer,
             source,
             references,
+            searchReferences,
             reconstruction,
             picture,
             coefficientBuffer,
@@ -746,15 +762,18 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
 
         // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate(), which precedes the
-        // trial.
-        parent.SsimRateMultiplierFactors = null;
-        if (parent.EncoderOptions.Tuning == Av1Tuning.Ssim || parent.EncoderOptions.Tuning.IsImageTuning())
+        // trial. A sequence encoder that codes frames of different sizes measures them itself.
+        if (!parent.HasPrecomputedSsimRateMultiplierFactors)
         {
-            Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
+            parent.SsimRateMultiplierFactors = null;
+            if (parent.EncoderOptions.Tuning == Av1Tuning.Ssim || parent.EncoderOptions.Tuning.IsImageTuning())
+            {
+                Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
+            }
         }
 
         _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
-            writer, source, default, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+            writer, source, default, default, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         // Reference: the tx_type_probs update at the end of encode_frame_internal().
         if (parent.SpeedSettings.TrackTransformTypeProbabilities)
@@ -766,10 +785,33 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
     }
 
+    /// <summary>
+    /// Decides and reconstructs every block of a frame, filters the reconstruction, and packs the tiles. Reference:
+    /// av1_encode_frame() followed by the loop filters and av1_pack_bitstream().
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+    /// <typeparam name="TVerticalOperator">The deblocking operations of vertical edges.</typeparam>
+    /// <typeparam name="THorizontalOperator">The deblocking operations of horizontal edges.</typeparam>
+    /// <typeparam name="TCdefOperator">The CDEF search and filter operations.</typeparam>
+    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+    /// <param name="searchReferences">
+    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
+    /// resized to the size of the coded frame.
+    /// </param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    /// <returns>The packed tile data.</returns>
     private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences,
         Av1EncoderFrame<TSample> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -785,15 +827,19 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ObuFrameHeader frameHeader = parent.FrameHeader;
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
 
-        // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate().
-        parent.SsimRateMultiplierFactors = null;
-        if (parent.EncoderOptions.Tuning == Av1Tuning.Ssim || parent.EncoderOptions.Tuning.IsImageTuning())
+        // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate(). A sequence encoder that
+        // codes frames of different sizes measures them itself, before it resizes the source.
+        if (!parent.HasPrecomputedSsimRateMultiplierFactors)
         {
-            Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
+            parent.SsimRateMultiplierFactors = null;
+            if (parent.EncoderOptions.Tuning == Av1Tuning.Ssim || parent.EncoderOptions.Tuning.IsImageTuning())
+            {
+                Av1IntraSuperblockEncoder.SetSsimRateMultiplierScaling<TSample, TOperator>(picture, source);
+            }
         }
 
         _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
-            writer, source, references, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+            writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         // A frame whose superblocks all kept the frame quantizer codes no delta quantizers. Reference: the deltaq_used
         // test at the end of encode_frame_internal().
@@ -893,7 +939,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         picture.ResetEntropyContexts();
         parent.LowMotionArea = 0;
         ReadOnlyMemory<byte> encodedTiles = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
-            writer, source, references, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+            writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         if (!frameHeader.IsIntra)
         {
@@ -940,10 +986,31 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         return encodedTiles;
     }
 
+    /// <summary>
+    /// Runs the superblocks of every tile in coding order, either deciding them and updating the probabilities, or
+    /// writing their symbols. Reference: encode_tiles() with encode_sb_row(), and write_tiles_in_tg_obus().
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+    /// <typeparam name="TSymbolOperation">Whether the pass writes symbols or only updates the probabilities.</typeparam>
+    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+    /// <param name="searchReferences">
+    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
+    /// resized to the size of the coded frame.
+    /// </param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    /// <returns>The tile data the pass wrote, or empty for a pass that writes nothing.</returns>
     private static ReadOnlyMemory<byte> ProcessTiles<TSample, TOperator, TSymbolOperation>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences,
         Av1EncoderFrame<TSample> reconstruction,
         Av1PictureControlSet picture,
         Av1EncoderCoefficientBuffer coefficientBuffer,
@@ -1134,6 +1201,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> blockEncoder = new(
                                 source,
                                 references,
+                                searchReferences,
                                 reconstruction,
                                 picture,
                                 superblock,

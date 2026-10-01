@@ -24,12 +24,14 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     public const int MaximumSampleCount = MaximumBlockDimension * MaximumBlockDimension;
 
     /// <summary>
-    /// The signed intermediate capacity needed when both translational interpolation axes are filtered: one row
-    /// per filtered source row, each as wide as the largest block. It equals
-    /// <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> for the largest block.
+    /// The signed intermediate capacity needed when both interpolation axes are filtered: one row per filtered
+    /// source row, each as wide as the largest block. A prediction from a reference twice the size of the frame
+    /// filters twice as many source rows, so the capacity equals
+    /// <see cref="Av1ScaledInterPredictor.GetMaximumScaledScratchLength(int, int)"/> for the largest block, which
+    /// also covers <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/>.
     /// </summary>
     public const int PredictionScratchCount =
-        MaximumBlockDimension * (MaximumBlockDimension + Av1TranslationalInterPredictor.MaximumExtraRows);
+        MaximumBlockDimension * ((MaximumBlockDimension * 2) + Av1TranslationalInterPredictor.FilterCoefficientCount);
 
     /// <summary>
     /// The number of sample buffers retained by one mode decision.

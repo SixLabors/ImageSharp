@@ -27,11 +27,43 @@ internal static partial class Av1IntraSuperblockEncoder
         Av1PictureParentControlSet parent = picture.Parent;
         int modeInfoColumns = parent.Common.ModeInfoColumnCount;
         int modeInfoRows = parent.Common.ModeInfoRowCount;
+        double[] factors = new double[((modeInfoColumns + 3) / 4) * ((modeInfoRows + 3) / 4)];
+        SetSsimRateMultiplierScaling<TSample, TOperator>(
+            factors,
+            source,
+            modeInfoColumns,
+            modeInfoRows,
+            picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
+
+        parent.SsimRateMultiplierFactors = factors;
+    }
+
+    /// <summary>
+    /// Measures the rate multiplier scaling factor of every 16x16 luma block of a grid of the given size, from the
+    /// top-left corner of a source, into the front of a factor array laid out with the column count of that grid.
+    /// libaom measures before it sets the size of the frame, so a frame whose size differs from the frame before it
+    /// measures over the grid of that earlier frame, and looks the factors up with its own grid. Reference:
+    /// av1_set_mb_ssim_rdmult_scaling(), which encode_frame_to_data_rate() calls before encode_without_recode().
+    /// </summary>
+    /// <typeparam name="TSample">The sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The closed sample operations.</typeparam>
+    /// <param name="factors">The factor array, which keeps the entries beyond the grid. Reference: cpi->ssim_rdmult_scaling_factors.</param>
+    /// <param name="source">The source frame, at least as large as the grid.</param>
+    /// <param name="modeInfoColumns">The column count of the grid, in 4x4 units. Reference: mi_params->mi_cols.</param>
+    /// <param name="modeInfoRows">The row count of the grid, in 4x4 units. Reference: mi_params->mi_rows.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    public static void SetSsimRateMultiplierScaling<TSample, TOperator>(
+        double[] factors,
+        Av1EncoderFrame<TSample> source,
+        int modeInfoColumns,
+        int modeInfoRows,
+        Av1BitDepth bitDepth)
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
         int columns = (modeInfoColumns + 3) / 4;
         int rows = (modeInfoRows + 3) / 4;
-        double[] factors = new double[columns * rows];
         Av1PlaneRegion<TSample> luma = source.CodedView.GetPlane(Av1Plane.Y);
-        Av1BitDepth bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
         int shift = bitDepth.GetBitCount() - 8;
         Span<TSample> midpoint = stackalloc TSample[8];
         midpoint.Fill(TOperator.CreateSample(128 << shift));
@@ -81,12 +113,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         logSum = Math.Exp(logSum / (rows * columns));
-        for (int index = 0; index < factors.Length; index++)
+        for (int index = 0; index < rows * columns; index++)
         {
             factors[index] /= logSum;
         }
-
-        parent.SsimRateMultiplierFactors = factors;
     }
 
     internal partial struct ModeDecision<TSample, TOperator>

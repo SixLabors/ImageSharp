@@ -79,6 +79,12 @@ internal static partial class Av1MotionSearchBase
         private readonly int rateMultiplier;
 
         /// <summary>
+        /// The reference of another size from which the candidates are predicted, or the default value for a reference
+        /// of the frame size.
+        /// </summary>
+        private readonly ScaledReference<TSample> scaledReference;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="FractionalSearch{TSample, TOperator}"/> struct.
         /// </summary>
         /// <param name="source">Source samples beginning at the block origin.</param>
@@ -95,6 +101,10 @@ internal static partial class Av1MotionSearchBase
         /// <param name="rateMultiplier">The block rate multiplier.</param>
         /// <param name="secondPrediction">The fixed packed predictor, or empty for a single-reference search.</param>
         /// <param name="mask">The packed six-bit blend mask, or empty for a single-reference search.</param>
+        /// <param name="scaledReference">
+        /// The reference of another size from which the candidates are predicted, or the default value for a reference
+        /// of the frame size.
+        /// </param>
         public FractionalSearch(
             ReadOnlySpan<TSample> source,
             int sourceStride,
@@ -109,8 +119,10 @@ internal static partial class Av1MotionSearchBase
             Av1BitDepth bitDepth,
             int rateMultiplier,
             ReadOnlySpan<TSample> secondPrediction,
-            ReadOnlySpan<byte> mask)
+            ReadOnlySpan<byte> mask,
+            ScaledReference<TSample> scaledReference = default)
         {
+            this.scaledReference = scaledReference;
             this.source = source;
             this.secondPrediction = secondPrediction;
             this.mask = mask;
@@ -154,8 +166,10 @@ internal static partial class Av1MotionSearchBase
             out FractionalResult result)
         {
             // Integer search has already paid for these moments. Retain that exact error domain, including
-            // its signed high-depth rounding, until a fractional candidate strictly improves the total cost.
-            if (startStatistics.HasValue)
+            // its signed high-depth rounding, until a fractional candidate strictly improves the total cost. The
+            // integer search of a scaled reference read its resized copy, so the center is measured again.
+            // Reference: the !is_scaled test on start_mv_stats in the subpel trees.
+            if (startStatistics.HasValue && !this.scaledReference.IsScaled)
             {
                 FullPixelResult statistics = startStatistics.Value;
                 result = new FractionalResult(start, statistics.Variance, statistics.SquaredError, statistics.MotionCost);
@@ -307,18 +321,27 @@ internal static partial class Av1MotionSearchBase
         /// </summary>
         private FractionalResult Measure(Av1MotionVector vector, int taps)
         {
-            int referenceIndex = this.referenceOrigin + ((vector.Row >> 3) * this.referenceStride) + (vector.Column >> 3);
-            TOperator.Predict(
-                this.reference,
-                this.referenceStride,
-                referenceIndex,
-                this.prediction,
-                this.blockSize.Width,
-                this.blockSize.Height,
-                vector.Column & 7,
-                vector.Row & 7,
-                taps,
-                this.bitDepth);
+            if (this.scaledReference.IsScaled)
+            {
+                // Every candidate of a scaled reference is predicted with the scale factors, whatever the tap count of
+                // the tree. Reference: the is_scaled branch of check_better_fast() and aom_upsampled_pred_scaled().
+                this.scaledReference.Predict<TOperator>(vector, this.prediction, this.blockSize, this.bitDepth);
+            }
+            else
+            {
+                int referenceIndex = this.referenceOrigin + ((vector.Row >> 3) * this.referenceStride) + (vector.Column >> 3);
+                TOperator.Predict(
+                    this.reference,
+                    this.referenceStride,
+                    referenceIndex,
+                    this.prediction,
+                    this.blockSize.Width,
+                    this.blockSize.Height,
+                    vector.Column & 7,
+                    vector.Row & 7,
+                    taps,
+                    this.bitDepth);
+            }
 
             int sum;
             long squares;

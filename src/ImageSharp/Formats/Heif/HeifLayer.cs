@@ -21,6 +21,11 @@ public sealed class HeifLayer
     private int? alphaQuality;
 
     /// <summary>
+    /// Backing field for <see cref="Scale"/>.
+    /// </summary>
+    private HeifLayerScale scale;
+
+    /// <summary>
     /// Gets the lossy compression quality of the layer, or <see langword="null"/> to use the quality of the encoder.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. Defaults to
     /// <see langword="null"/>.
@@ -59,4 +64,43 @@ public sealed class HeifLayer
             this.alphaQuality = value;
         }
     }
+
+    /// <summary>
+    /// Gets the width and height of the layer as a fraction of the image size. A smaller layer makes a smaller file.
+    /// The layer width and height round up to whole pixels. A layer must be at least half the width and height of the
+    /// layer before it, and the last layer must have the size of the image. Defaults to
+    /// <see cref="HeifLayerScale.Full"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The value is not a defined <see cref="HeifLayerScale"/>.</exception>
+    public HeifLayerScale Scale
+    {
+        get => this.scale;
+        init
+        {
+            if (!Enum.IsDefined(value))
+            {
+                throw new ArgumentException("Scale must be a defined HeifLayerScale value.");
+            }
+
+            this.scale = value;
+        }
+    }
+
+    /// <summary>
+    /// Returns the numerator and denominator of a layer scale. Reference: the scaling mode fractions of libavif's
+    /// scalingModeMap.
+    /// </summary>
+    /// <param name="scale">The layer scale.</param>
+    /// <returns>The fraction of the image size.</returns>
+    internal static (int Numerator, int Denominator) GetFraction(HeifLayerScale scale) => scale switch
+    {
+        HeifLayerScale.FourFifths => (4, 5),
+        HeifLayerScale.ThreeQuarters => (3, 4),
+        HeifLayerScale.ThreeFifths => (3, 5),
+        HeifLayerScale.Half => (1, 2),
+        HeifLayerScale.Quarter => (1, 4),
+        HeifLayerScale.Eighth => (1, 8),
+        HeifLayerScale.Full => (1, 1),
+        _ => throw new ArgumentOutOfRangeException(nameof(scale))
+    };
 }

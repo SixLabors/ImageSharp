@@ -116,7 +116,7 @@ public class Av1SequenceEncoderBenchmarks
         encoder.EncodeKeyFrame(this.frames[0].Frames.RootFrame, this.imageSharpOutput);
         for (int i = 1; i < FrameCount; i++)
         {
-            encoder.EncodeInterFrame(this.frames[i].Frames.RootFrame, this.imageSharpOutput);
+            encoder.EncodeNextFrame(this.frames[i].Frames.RootFrame, this.imageSharpOutput, forceKeyFrame: false);
         }
 
         return this.imageSharpOutput.Length;

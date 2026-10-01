@@ -20,6 +20,12 @@ internal sealed class Av1EncoderOptions
     public const int LastIqQuantizationMatrix = 10;
 
     /// <summary>
+    /// The largest key frame distance when the caller sets no key frame interval. Reference: the kf_max_dist
+    /// default, which libavif keeps when keyframeInterval is 0.
+    /// </summary>
+    public const int DefaultKeyFrameMaximumDistance = 9999;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderOptions"/> class.
     /// </summary>
     /// <param name="speed">The cpu-used tier.</param>
@@ -167,6 +173,11 @@ internal sealed class Av1EncoderOptions
     /// Reference: arnr_max_frames and enable_keyframe_filtering, on by default.
     /// </summary>
     public bool EnableTemporalFilter { get; init; } = true;
+
+    /// <summary>
+    /// Gets the largest number of frames between key frames. Reference: kf_max_dist.
+    /// </summary>
+    public int KeyFrameMaximumDistance { get; init; } = DefaultKeyFrameMaximumDistance;
 
     /// <summary>
     /// Gets the number of tile columns as a power of two: 0 is one column, 1 is two, 2 is four.

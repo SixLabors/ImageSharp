@@ -1875,6 +1875,29 @@ internal static partial class Av1FrameEncoder
         private int averageInterQIndex;
 
         /// <summary>
+        /// The frames left before the next key frame of good-quality coding without lookahead. Reference:
+        /// rc->frames_to_key.
+        /// </summary>
+        private int framesToKey;
+
+        /// <summary>
+        /// Whether the key frame interval placed the current key frame. Reference: p_rc->this_key_frame_forced.
+        /// </summary>
+        private bool thisKeyFrameForced;
+
+        /// <summary>
+        /// The quantizer index of the last key frame or golden update of good-quality coding, or a lower index of a
+        /// later frame. Reference: p_rc->last_boosted_qindex.
+        /// </summary>
+        private int lastBoostedQIndex;
+
+        /// <summary>
+        /// Whether the current real-time golden group ends at the next key frame. Reference:
+        /// p_rc->constrained_gf_group from set_baseline_gf_interval().
+        /// </summary>
+        private bool isConstrainedGoldenGroup;
+
+        /// <summary>
         /// Reference: rc->frames_till_gf_update_due.
         /// </summary>
         private int framesTillGoldenUpdateDue;
@@ -2031,7 +2054,14 @@ internal static partial class Av1FrameEncoder
                 {
                     int bestAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer) : qIndex;
                     int worstAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer) : qIndex;
-                    this.rateControl = new Av1RateControl(width, height, colorConfig.BitDepth, options.Speed, bestAllowedQIndex, worstAllowedQIndex);
+                    this.rateControl = new Av1RateControl(
+                        width,
+                        height,
+                        colorConfig.BitDepth,
+                        options.Speed,
+                        bestAllowedQIndex,
+                        worstAllowedQIndex,
+                        options.KeyFrameMaximumDistance);
                 }
 
                 this.MotionField = new Av1EncoderMotionField(
@@ -2152,6 +2182,14 @@ internal static partial class Av1FrameEncoder
             // Reference: the REFRESH_FRAME_CONTEXT_BACKWARD default of refresh_frame_context, which the frame
             // header writes as disable_frame_end_update_cdf.
             this.FrameHeader.DisableFrameEndUpdateCdf = false;
+
+            // A key frame restarts the frame count, and the order hint follows it. Reference: the frame_number reset
+            // of av1_encode() for a key frame that resets the reference buffers.
+            if (frameType == ObuFrameType.KeyFrame)
+            {
+                this.nextOrderHint = 0;
+            }
+
             int orderHintBits = this.SequenceHeader.OrderHintInfo.OrderHintBits;
             this.FrameHeader.OrderHint = orderHintBits == 0
                 ? 0
@@ -2241,7 +2279,7 @@ internal static partial class Av1FrameEncoder
             {
                 // Good-quality usage without lookahead codes low-delay pyramid groups. copy_frame_prob_info() restores
                 // the frame probability tables at every key frame.
-                this.goodQualityStructure.Configure(frameHeader, parent.FramesSinceKey);
+                this.goodQualityStructure.Configure(frameHeader, parent.FramesSinceKey, this.framesToKey);
                 parent.FrameUpdateType = this.goodQualityStructure.UpdateType;
                 parent.StartsGoldenGroup = parent.FrameUpdateType == Av1FrameUpdateType.Golden;
                 parent.RefreshesGolden = keyFrame || parent.StartsGoldenGroup;
@@ -2325,7 +2363,10 @@ internal static partial class Av1FrameEncoder
             // set_gf_interval_update_onepass_rt()
             if (parent.HighSourceSad || this.framesTillGoldenUpdateDue == 0)
             {
-                this.SetBaselineGoldenInterval(parent.AverageFrameLowMotion);
+                // A key frame has already restarted the key frame interval. Reference: set_key_frame() in
+                // av1_get_one_pass_rt_params(), which runs before set_gf_interval_update_onepass_rt().
+                int framesToKey = keyFrame ? this.Options.KeyFrameMaximumDistance : this.rateControl!.FramesToKey;
+                this.SetBaselineGoldenInterval(parent.AverageFrameLowMotion, framesToKey);
             }
 
             bool goldenUpdate = this.goldenFrameIndex == 0;
@@ -2596,6 +2637,12 @@ internal static partial class Av1FrameEncoder
             if (!parent.SpeedSettings.IsRealtime)
             {
                 this.goodQualityStructure.Complete(frameHeader);
+
+                // update_keyframe_counters(): an empty interval waits for its pending forced key frame.
+                if (this.framesToKey != 0)
+                {
+                    this.framesToKey--;
+                }
             }
 
             if (frameHeader.FrameType == ObuFrameType.KeyFrame)
@@ -2652,10 +2699,12 @@ internal static partial class Av1FrameEncoder
         /// <summary>
         /// Starts a golden group. Without adaptive quantization the refresh divisor is 10, so the interval is 80
         /// frames, or 40 at speed 9 from 360p where the golden length level is 1, unless recent frames had little zero
-        /// motion. Reference: set_baseline_gf_interval() and set_golden_update() with gf_length_lvl.
+        /// motion. The group ends no later than the next key frame, and then it is constrained. Reference:
+        /// set_baseline_gf_interval() and set_golden_update() with gf_length_lvl.
         /// </summary>
         /// <param name="averageFrameLowMotion">The running zero-motion percentage. Reference: rc->avg_frame_low_motion.</param>
-        private void SetBaselineGoldenInterval(int averageFrameLowMotion)
+        /// <param name="framesToKey">The frames left before the next key frame. Reference: rc->frames_to_key.</param>
+        private void SetBaselineGoldenInterval(int averageFrameLowMotion, int framesToKey)
         {
             bool shortGoldenLength = this.Options.Speed >= HeifEncodingSpeed.Level9 &&
                 Math.Min(this.SequenceHeader.MaxFrameWidth, this.SequenceHeader.MaxFrameHeight) >= 360;
@@ -2666,6 +2715,8 @@ internal static partial class Av1FrameEncoder
                 interval = LowMotionGoldenInterval;
             }
 
+            interval = Math.Min(interval, framesToKey);
+            this.isConstrainedGoldenGroup = interval >= framesToKey;
             this.baselineGoldenInterval = interval;
             this.framesTillGoldenUpdateDue = interval;
             this.goldenFrameIndex = 0;
@@ -2707,7 +2758,7 @@ internal static partial class Av1FrameEncoder
             }
 
             parent.RefreshesGolden = refresh;
-            this.SetBaselineGoldenInterval(parent.AverageFrameLowMotion);
+            this.SetBaselineGoldenInterval(parent.AverageFrameLowMotion, this.rateControl!.FramesToKey);
             frameHeader.RefreshFrameFlags = refresh
                 ? frameHeader.RefreshFrameFlags | (1U << GoldenSlot)
                 : frameHeader.RefreshFrameFlags & ~(1U << GoldenSlot);
@@ -2739,20 +2790,18 @@ internal static partial class Av1FrameEncoder
             bool keyFrame = this.FrameHeader.IsIntra;
             if (this.rateControl is null)
             {
+                if (keyFrame)
+                {
+                    this.RestartFrameCount();
+                }
+
                 // Constant-quality coding without lookahead lowers the quantizer of the key frame and, in good-quality
                 // usage, of the golden update that starts each group; every other frame codes at the
                 // constant-quality index. Reference: rc_pick_q_and_bounds_q_mode() with get_active_best_quality().
                 int bestQIndex = Av1QuantizationLookup.GetQIndex(this.Options.MinimumQuantizer);
                 int worstQIndex = Av1QuantizationLookup.GetQIndex(this.Options.MaximumQuantizer);
                 int frameQIndex = keyFrame
-                    ? Av1RateControl.GetConstantQualityKeyFrameQIndex(
-                        this.constantQualityIndex,
-                        this.FrameHeader.FrameSize.FrameWidth,
-                        this.FrameHeader.FrameSize.FrameHeight,
-                        this.SequenceHeader.ColorConfig.BitDepth,
-                        parent.IsScreenContent,
-                        bestQIndex,
-                        worstQIndex)
+                    ? this.GetConstantQualityKeyFrameQIndex(parent, bestQIndex, worstQIndex)
                     : !parent.SpeedSettings.IsRealtime && parent.FrameUpdateType == Av1FrameUpdateType.Golden
                         ? Av1RateControl.GetConstantQualityGoldenFrameQIndex(
                             this.constantQualityIndex,
@@ -2772,6 +2821,16 @@ internal static partial class Av1FrameEncoder
                     this.averageInterQIndex = ((3 * this.averageInterQIndex) + frameQIndex + 2) >> 2;
                 }
 
+                // Keep the boosted quantizer that a later key frame of the interval reads: a key frame, a golden
+                // update of a group that ends before the next key frame, or any lower quantizer. Reference: the
+                // last_boosted_qindex update of av1_rc_postencode_update().
+                if (frameQIndex < this.lastBoostedQIndex ||
+                    keyFrame ||
+                    (!this.goodQualityStructure.IsConstrainedGroup && parent.RefreshesGolden))
+                {
+                    this.lastBoostedQIndex = frameQIndex;
+                }
+
                 if (frameQIndex != this.QIndex)
                 {
                     this.QIndex = frameQIndex;
@@ -2781,7 +2840,14 @@ internal static partial class Av1FrameEncoder
                 return;
             }
 
+            // The key frame decision and its bit target read the old frame count. The quantizer reads the restarted
+            // one. Reference: av1_get_one_pass_rt_params() before av1_encode(), then av1_rc_pick_q_and_bounds().
             this.rateControl.BeginFrame(keyFrame, this.frameNumber);
+            if (keyFrame)
+            {
+                this.RestartFrameCount();
+            }
+
             Av1RateControl.SourceSadStatistics sourceSad = new(parent.FrameSourceSad, averageSourceSad, previousAverageSourceSad);
             int qIndex = this.rateControl.PickQuantizer<TSample, TMotion, TBlock>(
                 keyFrame, this.frameNumber, parent.IsScreenContent, in sourceSad, source, lastReconstruction);
@@ -2796,6 +2862,57 @@ internal static partial class Av1FrameEncoder
             this.QIndex = qIndex;
             ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, qIndex, this.Options);
             parent.AverageInterQuantizer = this.rateControl.AverageInterFrameQIndex;
+        }
+
+        /// <summary>
+        /// Restarts the frame count at a key frame, which resets every reference buffer. Later frames count from it,
+        /// so the slot rotation, the quantizer history and the interpolation search pattern start again. Reference:
+        /// the frame_number reset of av1_encode().
+        /// </summary>
+        private void RestartFrameCount()
+        {
+            this.frameNumber = 0;
+            this.BlockWorkspace.EncodedFrameCount = 0;
+            this.BlockWorkspace.FrameNumber = 0;
+        }
+
+        /// <summary>
+        /// Returns the quantizer index of a key frame in constant-quality coding without lookahead. A key frame
+        /// whose interval is one frame codes at the constant-quality index, a key frame that the interval placed
+        /// stays near the last boosted quantizer, and any other key frame uses the key frame floor. Reference:
+        /// get_intra_q_and_bounds() with rc_pick_q_and_bounds_q_mode().
+        /// </summary>
+        /// <param name="parent">The frame state.</param>
+        /// <param name="bestQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
+        /// <param name="worstQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+        /// <returns>The key frame quantizer index.</returns>
+        private int GetConstantQualityKeyFrameQIndex(Av1PictureParentControlSet parent, int bestQIndex, int worstQIndex)
+        {
+            Av1BitDepth bitDepth = this.SequenceHeader.ColorConfig.BitDepth;
+            if (!parent.SpeedSettings.IsRealtime && this.framesToKey <= 1)
+            {
+                int qIndex = this.constantQualityIndex > 0 ? Math.Max(1, this.constantQualityIndex) : this.constantQualityIndex;
+                return Av1Math.Clamp(qIndex, bestQIndex, worstQIndex);
+            }
+
+            if (!parent.SpeedSettings.IsRealtime && this.thisKeyFrameForced)
+            {
+                return Av1RateControl.GetConstantQualityForcedKeyFrameQIndex(
+                    this.constantQualityIndex,
+                    this.lastBoostedQIndex,
+                    bitDepth,
+                    bestQIndex,
+                    worstQIndex);
+            }
+
+            return Av1RateControl.GetConstantQualityKeyFrameQIndex(
+                this.constantQualityIndex,
+                this.FrameHeader.FrameSize.FrameWidth,
+                this.FrameHeader.FrameSize.FrameHeight,
+                bitDepth,
+                parent.IsScreenContent,
+                bestQIndex,
+                worstQIndex);
         }
 
         /// <summary>
@@ -2816,6 +2933,7 @@ internal static partial class Av1FrameEncoder
                 this.FrameHeader.QuantizationParameters.BaseQIndex,
                 this.FrameHeader.IsIntra,
                 parent.RefreshesGolden,
+                this.isConstrainedGoldenGroup,
                 parent.IsScreenContent);
 
             this.rateControl.EndFrame();
@@ -2841,18 +2959,57 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Encodes an independently decodable sample with the sequence header required for random access.
+        /// Encodes an independently decodable sample with the sequence header required for random access. The key
+        /// frame starts a new key frame interval, as the first frame of a sequence does.
         /// </summary>
+        /// <param name="image">The frame to encode.</param>
+        /// <param name="stream">The destination stream.</param>
         public void EncodeKeyFrame<TPixel>(ImageFrame<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
-            => this.EncodeFrame(image, stream, ObuFrameType.KeyFrame, true);
+        {
+            this.thisKeyFrameForced = false;
+            this.framesToKey = Math.Max(1, this.Options.KeyFrameMaximumDistance);
+            this.EncodeFrame(image, stream, ObuFrameType.KeyFrame, true);
+        }
 
         /// <summary>
-        /// Encodes a continuation sample predicted from the preceding reconstructed frame.
+        /// Encodes the next sample of a sequence after its first frame: a key frame when the key frame interval
+        /// ends or the caller forces one, else an inter frame. Reference: the key frame decision of
+        /// av1_get_second_pass_params() and find_next_key_frame() without first-pass statistics in good-quality
+        /// usage, and set_key_frame() of av1_get_one_pass_rt_params() in real-time usage.
         /// </summary>
-        public void EncodeInterFrame<TPixel>(ImageFrame<TPixel> image, Stream stream)
+        /// <param name="image">The frame to encode.</param>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="forceKeyFrame">Whether the caller forces a key frame. Reference: AOM_EFLAG_FORCE_KF.</param>
+        /// <returns><see langword="true"/> when the frame is a key frame.</returns>
+        public bool EncodeNextFrame<TPixel>(ImageFrame<TPixel> image, Stream stream, bool forceKeyFrame)
             where TPixel : unmanaged, IPixel<TPixel>
-            => this.EncodeFrame(image, stream, ObuFrameType.InterFrame, false);
+        {
+            bool keyFrame;
+            if (this.rateControl is not null)
+            {
+                keyFrame = forceKeyFrame || this.rateControl.IsKeyFrameDue;
+            }
+            else
+            {
+                // A forced key frame is pending at the current frame, so the interval ends here, and the next
+                // interval also reads that pending key frame and is empty. Reference: detect_app_forced_key().
+                if (forceKeyFrame)
+                {
+                    this.framesToKey = 0;
+                }
+
+                keyFrame = this.framesToKey <= 0;
+                if (keyFrame)
+                {
+                    this.thisKeyFrameForced = this.framesToKey == 0;
+                    this.framesToKey = forceKeyFrame ? 0 : Math.Max(1, this.Options.KeyFrameMaximumDistance);
+                }
+            }
+
+            this.EncodeFrame(image, stream, keyFrame ? ObuFrameType.KeyFrame : ObuFrameType.InterFrame, keyFrame);
+            return keyFrame;
+        }
 
         /// <inheritdoc/>
         public void Dispose()

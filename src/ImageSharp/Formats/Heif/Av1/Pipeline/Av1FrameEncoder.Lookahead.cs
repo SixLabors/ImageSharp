@@ -127,6 +127,7 @@ internal static partial class Av1FrameEncoder
                 (int)this.Options.Speed,
                 this.Options.LagInFrames,
                 (double)TicksPerSecond / frameDurationTicks,
+                this.Options.KeyFrameMaximumDistance,
                 null);
         }
 

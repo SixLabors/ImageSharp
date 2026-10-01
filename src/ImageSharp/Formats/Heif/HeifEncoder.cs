@@ -19,6 +19,11 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private int? alphaQuality;
 
     /// <summary>
+    /// Backing field for <see cref="KeyFrameInterval"/>.
+    /// </summary>
+    private int? keyFrameInterval;
+
+    /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
     /// enable <see cref="Lossless"/> encoding.
@@ -85,6 +90,26 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// AVIF grid cannot represent an odd output dimension.
     /// </summary>
     public HeifChromaSubsampling? ChromaSubsampling { get; init; }
+
+    /// <summary>
+    /// Gets the largest number of frames from one key frame to the next in an animation, or <see langword="null"/>
+    /// to let the encoder decide. A value of 1 makes every frame a key frame. A player can start or seek only at a
+    /// key frame, and more key frames make a larger file.
+    /// </summary>
+    /// <exception cref="ArgumentException">The interval is less than 1.</exception>
+    public int? KeyFrameInterval
+    {
+        get => this.keyFrameInterval;
+        init
+        {
+            if (value < 1)
+            {
+                throw new ArgumentException("Key frame interval must be 1 or more.");
+            }
+
+            this.keyFrameInterval = value;
+        }
+    }
 
     /// <summary>
     /// Gets the largest number of tile rows. Small images get fewer rows. More tiles let a parallel decoder work

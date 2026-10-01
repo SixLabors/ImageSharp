@@ -42,11 +42,6 @@ internal sealed class Av1GoodQualityReferenceStructure
     private const int MaximumGoldenInterval = 32;
 
     /// <summary>
-    /// The default largest key-frame distance. Reference: kf_max_dist of the default encoder configuration.
-    /// </summary>
-    private const int KeyFrameMaximumDistance = 9999;
-
-    /// <summary>
     /// The unassigned slot marker. Reference: INVALID_IDX.
     /// </summary>
     private const int InvalidIndex = -1;
@@ -109,6 +104,12 @@ internal sealed class Av1GoodQualityReferenceStructure
     public Av1FrameUpdateType UpdateType { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether the current golden group ends at the next key frame. Reference:
+    /// p_rc->constrained_gf_group.
+    /// </summary>
+    public bool IsConstrainedGroup { get; private set; }
+
+    /// <summary>
     /// Gets the pyramid level of the frame being coded. Reference: cm->cur_frame->pyramid_level.
     /// </summary>
     public int PyramidLevel => this.pyramidLevel;
@@ -124,17 +125,20 @@ internal sealed class Av1GoodQualityReferenceStructure
     /// </summary>
     /// <param name="frameHeader">The frame header that receives the slots and the primary reference.</param>
     /// <param name="framesSinceKey">The number of frames since the last key frame. Reference: frame_number.</param>
-    public void Configure(ObuFrameHeader frameHeader, int framesSinceKey)
+    /// <param name="framesToKey">The number of frames left before the next key frame. Reference: rc->frames_to_key.</param>
+    public void Configure(ObuFrameHeader frameHeader, int framesSinceKey, int framesToKey)
     {
         bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
         this.displayOrder = framesSinceKey;
 
         // define_gf_group_pass0(): a new group starts at a key frame and after the last frame of a group. Its
-        // length is the lag-0 golden interval, bounded by the frames left before the next forced key frame.
+        // length is the lag-0 golden interval, bounded by the frames left before the next key frame. A group that
+        // reaches the next key frame is constrained.
         if (keyFrame || this.groupIndex == this.groupLength)
         {
             this.groupIndex = 0;
-            this.groupLength = Math.Min(MaximumGoldenInterval, KeyFrameMaximumDistance - framesSinceKey);
+            this.groupLength = Math.Min(MaximumGoldenInterval, framesToKey);
+            this.IsConstrainedGroup = this.groupLength >= framesToKey;
         }
 
         this.UpdateType = keyFrame

@@ -314,6 +314,131 @@ public class Av1EncoderFrameTests
     public void SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion(int bitDepthValue, int colorFormatValue, HeifEncodingSpeed speed)
         => VerifySequenceEncoderColorPlanes(bitDepthValue, colorFormatValue, speed, 23, 19);
 
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6, 3)]
+    [InlineData(HeifEncodingSpeed.Level9, 3)]
+    [InlineData(HeifEncodingSpeed.Level6, 1)]
+    [InlineData(HeifEncodingSpeed.Level9, 1)]
+    public void SequenceEncoderPlacesKeyFramesAtTheInterval(HeifEncodingSpeed speed, int interval)
+    {
+        // Without lookahead the interval alone places key frames: every frame whose index is a multiple of it.
+        using Image<Rgb24> frames = CreatePanningSequence(7);
+        Av1EncoderOptions options = CreateSequenceOptions(speed, lagInFrames: 0, keyFrameInterval: interval);
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            frames.Width,
+            frames.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            100,
+            options);
+
+        // Each key frame restarts the frame count, so the order hint counts from it.
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        encoder.EncodeKeyFrame(frames.Frames[0], sample);
+        decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+        for (int i = 1; i < frames.Frames.Count; i++)
+        {
+            sample.SetLength(0);
+            bool keyFrame = encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false);
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+
+            Assert.Equal(i % interval == 0, keyFrame);
+            Assert.Equal((uint)(i % interval), decoder.FrameHeader.OrderHint);
+        }
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level9)]
+    public void SequenceEncoderCodesAForcedKeyFrame(HeifEncodingSpeed speed)
+    {
+        using Image<Rgb24> frames = CreatePanningSequence(3);
+        Av1EncoderOptions options = CreateSequenceOptions(speed, lagInFrames: 0, keyFrameInterval: 9999);
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            frames.Width,
+            frames.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            100,
+            options);
+
+        using MemoryStream stream = new();
+        encoder.EncodeKeyFrame(frames.Frames[0], stream);
+
+        Assert.False(encoder.EncodeNextFrame(frames.Frames[1], stream, forceKeyFrame: false));
+        Assert.True(encoder.EncodeNextFrame(frames.Frames[2], stream, forceKeyFrame: true));
+    }
+
+    [Fact]
+    public void LookaheadSequenceKeepsKeyFramesWithinTheInterval()
+    {
+        // The lookahead can place a key frame early at a scene cut, but never further apart than the interval.
+        const int Interval = 4;
+        using Image<Rgb24> frames = CreatePanningSequence(10);
+        Av1EncoderOptions options = CreateSequenceOptions(HeifEncodingSpeed.Level6, lagInFrames: 35, keyFrameInterval: Interval);
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            frames.Width,
+            frames.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            100,
+            options);
+
+        using MemoryStream stream = new();
+        long[] sampleEnds = new long[frames.Frames.Count];
+        bool[] syncSamples = new bool[frames.Frames.Count];
+        encoder.EncodeWithLookahead(frames, 0, frames.Frames.Count, 333333, stream, sampleEnds, syncSamples, CancellationToken.None);
+
+        Assert.True(syncSamples[0]);
+        int lastKeyFrame = 0;
+        for (int i = 1; i < syncSamples.Length; i++)
+        {
+            if (syncSamples[i])
+            {
+                lastKeyFrame = i;
+            }
+
+            Assert.True(i - lastKeyFrame < Interval, $"Frame {i} is {i - lastKeyFrame} frames after the last key frame.");
+        }
+    }
+
+    private static Av1EncoderOptions CreateSequenceOptions(HeifEncodingSpeed speed, int lagInFrames, int keyFrameInterval)
+    {
+        bool constantBitRate = speed >= HeifEncodingSpeed.Level7;
+        return new Av1EncoderOptions(speed, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
+        {
+            UsesConstantBitRate = constantBitRate,
+            MinimumQuantizer = constantBitRate ? 21 : 0,
+            MaximumQuantizer = constantBitRate ? 29 : 63,
+            LagInFrames = lagInFrames,
+            KeyFrameMaximumDistance = keyFrameInterval
+        };
+    }
+
+    private static Image<Rgb24> CreatePanningSequence(int frameCount)
+    {
+        // A smooth gradient that moves one sample per frame, so no frame looks like a scene cut.
+        const int Width = 64;
+        const int Height = 48;
+        Image<Rgb24> image = new(Width, Height);
+        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < Height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < Width; x++)
+                {
+                    int value = (2 * (x + frameIndex)) + y;
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        return image;
+    }
+
     private static void VerifySequenceEncoderColorPlanes(
         int bitDepthValue,
         int colorFormatValue,
@@ -352,7 +477,7 @@ public class Av1EncoderFrameTests
             }
             else
             {
-                encoder.EncodeInterFrame(source.Frames.RootFrame, sample);
+                Assert.False(encoder.EncodeNextFrame(source.Frames.RootFrame, sample, forceKeyFrame: false));
             }
 
             decoder.DecodeSequenceReference(sample.ToArray(), null, null);

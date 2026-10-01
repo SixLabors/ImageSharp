@@ -59,20 +59,20 @@ internal sealed partial class Av1SecondPass
         this.thisKeyFrameForced = this.nextKeyFrameForced;
 
         // The current frame is a key frame, so the search for the next one starts at the following frame.
-        int framesToKeyFrame = this.DefineKeyFrameInterval(KeyFrameMaximumDistance, 1);
-        this.framesToKey = framesToKeyFrame != -1 ? Math.Min(KeyFrameMaximumDistance, framesToKeyFrame) : KeyFrameMaximumDistance;
+        int framesToKeyFrame = this.DefineKeyFrameInterval(this.keyFrameMaximumDistance, 1);
+        this.framesToKey = framesToKeyFrame != -1 ? Math.Min(this.keyFrameMaximumDistance, framesToKeyFrame) : this.keyFrameMaximumDistance;
         this.CorrectFramesToKey();
 
         // An automatic interval between one and two maximum distances centres the extra key frame. The rescan of
         // the statistics that follows in libaom only moves the read position, which is reset below.
-        if (this.framesToKey > KeyFrameMaximumDistance)
+        if (this.framesToKey > this.keyFrameMaximumDistance)
         {
             this.framesToKey /= 2;
             this.nextKeyFrameForced = true;
         }
         else
         {
-            this.nextKeyFrameForced = this.framesToKey >= KeyFrameMaximumDistance;
+            this.nextKeyFrameForced = this.framesToKey >= this.keyFrameMaximumDistance;
         }
 
         // The key frame group error sums only count the statistics here: the look-ahead's error range is empty,
@@ -180,7 +180,7 @@ internal sealed partial class Av1SecondPass
                     sceneCutDetected = this.DetectTransitionToStill(
                         framesToKeyFrame + 1,
                         i,
-                        KeyFrameMaximumDistance - i,
+                        this.keyFrameMaximumDistance - i,
                         loopDecayRate,
                         decayAccumulator);
 
@@ -195,7 +195,7 @@ internal sealed partial class Av1SecondPass
                 ++framesSinceKeyFrame;
 
                 // Without a real key frame within two maximum distances the search ends.
-                if (framesToKeyFrame >= 2 * KeyFrameMaximumDistance)
+                if (framesToKeyFrame >= 2 * this.keyFrameMaximumDistance)
                 {
                     break;
                 }

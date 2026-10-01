@@ -299,6 +299,7 @@ internal sealed partial class HeifEncoderCore
                 MinimumQuantizer = !constantBitRate ? 0 : quantizer == 0 ? 0 : Math.Max(quantizer - 4, 0),
                 MaximumQuantizer = !constantBitRate ? 63 : quantizer == 0 ? 0 : Math.Min(quantizer + 4, 63),
                 LagInFrames = lagInFrames,
+                KeyFrameMaximumDistance = this.encoder.KeyFrameInterval ?? Av1EncoderOptions.DefaultKeyFrameMaximumDistance,
                 TileRowsLog2 = tileRowsLog2,
                 TileColumnsLog2 = tileColumnsLog2
             };
@@ -473,20 +474,27 @@ internal sealed partial class HeifEncoderCore
                     cancellationToken.ThrowIfCancellationRequested();
                     int frameIndex = firstFrameIndex + sampleIndex;
                     alphaOffset = stream.Length;
+                    bool keyFrame;
                     if (alphaUsesInterPrediction)
                     {
-                        alphaEncoder.EncodeInterFrame(image.Frames[frameIndex], stream);
+                        // A color key frame forces an alpha key frame, so both tracks can start at that sample.
+                        // Reference: avifEncoderDataShouldForceKeyframeForAlpha().
+                        keyFrame = alphaEncoder.EncodeNextFrame(
+                            image.Frames[frameIndex],
+                            stream,
+                            forceKeyFrame: colorSamples[sampleIndex].IsSyncSample);
                     }
                     else
                     {
                         alphaEncoder.EncodeKeyFrame(image.Frames[frameIndex], stream);
+                        keyFrame = true;
                     }
 
                     alphaSamples[sampleIndex] = new HeifSequenceSampleInfo(
                         alphaOffset,
                         checked((int)(stream.Length - alphaOffset)),
                         colorSamples[sampleIndex].Duration,
-                        isSyncSample: !alphaUsesInterPrediction);
+                        isSyncSample: keyFrame);
                 }
             }
 
@@ -559,22 +567,24 @@ internal sealed partial class HeifEncoderCore
             ImageFrame<TPixel> frame = image.Frames[frameIndex];
             uint duration = GetSequenceSampleDuration(frame.Metadata.GetHeifMetadata().FrameDelay, timescale);
             colorOffset = stream.Length;
+            bool keyFrame;
             if (colorUsesInterPrediction)
             {
-                colorEncoder.EncodeInterFrame(frame, stream);
+                keyFrame = colorEncoder.EncodeNextFrame(frame, stream, forceKeyFrame: false);
             }
             else
             {
                 // Lossless AV1 requires 4x4 transforms. Until the inter path supports that reversible size,
                 // continuation samples remain independent key frames instead of weakening losslessness.
                 colorEncoder.EncodeKeyFrame(frame, stream);
+                keyFrame = true;
             }
 
             colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
                 colorOffset,
                 checked((int)(stream.Length - colorOffset)),
                 duration,
-                isSyncSample: !colorUsesInterPrediction);
+                isSyncSample: keyFrame);
         }
     }
 

@@ -79,11 +79,6 @@ internal sealed partial class Av1SecondPass
     private const int AlternateReferenceMinimumLag = 3;
 
     /// <summary>
-    /// The largest key frame distance of the default configuration. Reference: the kf_max_dist default.
-    /// </summary>
-    private const int KeyFrameMaximumDistance = 9999;
-
-    /// <summary>
     /// The smallest key frame distance of the default configuration. Reference: the kf_min_dist default.
     /// </summary>
     private const int KeyFrameMinimumDistance = 0;
@@ -202,8 +197,13 @@ internal sealed partial class Av1SecondPass
     private Av1SecondPassFrame current;
 
     /// <summary>
+    /// The largest number of frames between key frames. Reference: kf_cfg.key_freq_max.
+    /// </summary>
+    private readonly int keyFrameMaximumDistance;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1SecondPass"/> class for libavif's color sequence
-    /// configuration: good-quality usage, AOM_Q, automatic key frames up to 9999 frames apart, automatic alternate
+    /// configuration: good-quality usage, AOM_Q, automatic key frames up to the largest key frame distance apart, automatic alternate
     /// references with a pyramid of up to five layers, and the temporal dependency model on. Reference:
     /// av1_primary_rc_init(), av1_rc_init(), av1_init_single_pass_lap(), set_gf_interval_range(), the look-ahead
     /// sizing of encoder_init() and av1_lookahead_init(), and the scene cut mode of av1_create_primary_compressor().
@@ -217,6 +217,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="speed">The cpu-used tier, 0 to 6.</param>
     /// <param name="lagInFrames">The requested look-ahead, at least 1. Reference: g_lag_in_frames.</param>
     /// <param name="framerate">The frame rate that sets the golden interval range. Reference: framerate.</param>
+    /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames. Reference: kf_max_dist.</param>
     /// <param name="gopLengthEvaluator">
     /// The temporal dependency test that may shorten a golden interval above 16 frames at speeds 0 to 5, or null
     /// to keep every interval.
@@ -231,8 +232,10 @@ internal sealed partial class Av1SecondPass
         int speed,
         int lagInFrames,
         double framerate,
+        int keyFrameMaximumDistance,
         IGopLengthEvaluator? gopLengthEvaluator)
     {
+        this.keyFrameMaximumDistance = keyFrameMaximumDistance;
         this.width = width;
         this.height = height;
         this.bitDepth = bitDepth;
@@ -259,7 +262,7 @@ internal sealed partial class Av1SecondPass
             this.lagInFrames = 39;
         }
 
-        int lookaheadBuffers = Math.Min(lagInFrames, Math.Min(MaximumLookaheadBuffers, KeyFrameMaximumDistance + SceneCutKeyTestInterval));
+        int lookaheadBuffers = Math.Min(lagInFrames, Math.Min(MaximumLookaheadBuffers, keyFrameMaximumDistance + SceneCutKeyTestInterval));
         this.lookaheadDepth = lookaheadBuffers;
         this.statistics = new Av1FirstPassStatistics[Math.Max(lookaheadBuffers + 1, MaximumLookaheadGoldenLength + 1)];
 

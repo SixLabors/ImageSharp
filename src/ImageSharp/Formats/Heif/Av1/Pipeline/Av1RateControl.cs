@@ -61,11 +61,6 @@ internal sealed class Av1RateControl
     private const int KeyFrameHighBoost = 5000;
 
     /// <summary>
-    /// The key frame interval of real-time usage. Reference: the kf_max_dist default of AOM_USAGE_REALTIME.
-    /// </summary>
-    private const int KeyFrameMaximumDistance = 9999;
-
-    /// <summary>
     /// The target rate in bits per second. Reference: the rc_target_bitrate default of AOM_USAGE_REALTIME.
     /// </summary>
     private const long TargetBandwidth = 256 * 1000;
@@ -91,6 +86,7 @@ internal sealed class Av1RateControl
     private readonly long startingBufferLevel;
     private readonly long optimalBufferLevel;
     private readonly long maximumBufferSize;
+    private readonly int keyFrameMaximumDistance;
     private int averageFrameBandwidth;
     private int maximumFrameBandwidth;
     private int previousAverageFrameBandwidth;
@@ -123,8 +119,17 @@ internal sealed class Av1RateControl
     /// <param name="speed">The cpu-used tier.</param>
     /// <param name="bestAllowedQIndex">The lowest quantizer index the frames may use. Reference: best_allowed_q.</param>
     /// <param name="worstAllowedQIndex">The highest quantizer index the frames may use. Reference: worst_allowed_q.</param>
-    public Av1RateControl(int width, int height, Av1BitDepth bitDepth, HeifEncodingSpeed speed, int bestAllowedQIndex, int worstAllowedQIndex)
+    /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames. Reference: kf_max_dist.</param>
+    public Av1RateControl(
+        int width,
+        int height,
+        Av1BitDepth bitDepth,
+        HeifEncodingSpeed speed,
+        int bestAllowedQIndex,
+        int worstAllowedQIndex,
+        int keyFrameMaximumDistance)
     {
+        this.keyFrameMaximumDistance = keyFrameMaximumDistance;
         this.width = width;
         this.height = height;
         this.bitDepth = bitDepth;
@@ -168,6 +173,18 @@ internal sealed class Av1RateControl
     public int AverageInterFrameQIndex => this.averageInterFrameQIndex;
 
     /// <summary>
+    /// Gets a value indicating whether the key frame interval places a key frame on the next frame. Automatic key
+    /// frames are on, because the smallest key frame distance (0) differs from the largest. Reference: the auto_key
+    /// test of set_key_frame().
+    /// </summary>
+    public bool IsKeyFrameDue => this.framesToKey == 0;
+
+    /// <summary>
+    /// Gets the frames left before the next key frame. Reference: rc->frames_to_key.
+    /// </summary>
+    public int FramesToKey => this.framesToKey;
+
+    /// <summary>
     /// Sets the frame rate dependent limits. Reference: av1_rc_update_framerate(), with the 2000 vbrmax_section of
     /// AOM_USAGE_REALTIME. Only the variable-bitrate clamp reads min_frame_bandwidth.
     /// </summary>
@@ -189,7 +206,7 @@ internal sealed class Av1RateControl
         if (keyFrame)
         {
             this.thisKeyFrameForced = frameNumber != 0 && this.framesToKey == 0;
-            this.framesToKey = KeyFrameMaximumDistance;
+            this.framesToKey = this.keyFrameMaximumDistance;
             this.keyFrameBoost = DefaultKeyFrameBoost;
         }
 
@@ -519,6 +536,38 @@ internal sealed class Av1RateControl
         activeBestQuality += FindQIndex(q * adjustmentFactor, bitDepth, bestAllowedQIndex, worstAllowedQIndex) -
             FindQIndex(q, bitDepth, bestAllowedQIndex, worstAllowedQIndex);
 
+        if (cqLevel > 0)
+        {
+            activeBestQuality = Math.Max(1, activeBestQuality);
+        }
+
+        return Av1Math.Clamp(activeBestQuality, bestAllowedQIndex, worstAllowedQIndex);
+    }
+
+    /// <summary>
+    /// Returns the quantizer index of a key frame that the key frame interval placed, in one-pass constant-quality
+    /// coding without lookahead. It stays near the last boosted quantizer to limit a quality jump: half its real
+    /// quantizer, and no lower than the best allowed. Reference: the this_key_frame_forced branch of
+    /// get_intra_q_and_bounds() without first-pass statistics, with rc_pick_q_and_bounds_q_mode().
+    /// </summary>
+    /// <param name="cqLevel">The constant-quality index. Reference: cq_level.</param>
+    /// <param name="lastBoostedQIndex">The last boosted quantizer index. Reference: last_boosted_qindex.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+    /// <returns>The key frame quantizer index.</returns>
+    public static int GetConstantQualityForcedKeyFrameQIndex(
+        int cqLevel,
+        int lastBoostedQIndex,
+        Av1BitDepth bitDepth,
+        int bestAllowedQIndex,
+        int worstAllowedQIndex)
+    {
+        double lastBoostedQ = ConvertQIndexToQ(lastBoostedQIndex, bitDepth);
+        int deltaQIndex = FindQIndex(lastBoostedQ * 0.5, bitDepth, bestAllowedQIndex, worstAllowedQIndex) -
+            FindQIndex(lastBoostedQ, bitDepth, bestAllowedQIndex, worstAllowedQIndex);
+
+        int activeBestQuality = Math.Max(lastBoostedQIndex + deltaQIndex, bestAllowedQIndex);
         if (cqLevel > 0)
         {
             activeBestQuality = Math.Max(1, activeBestQuality);
@@ -880,8 +929,11 @@ internal sealed class Av1RateControl
     /// <param name="qIndex">The quantizer index of the frame.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="refreshesGolden">Whether the frame refreshes the GOLDEN reference.</param>
+    /// <param name="constrainedGoldenGroup">
+    /// Whether the golden group ends at the next key frame. Reference: p_rc->constrained_gf_group.
+    /// </param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
-    public void UpdateAfterFrame(int frameBytes, int qIndex, bool keyFrame, bool refreshesGolden, bool screenContent)
+    public void UpdateAfterFrame(int frameBytes, int qIndex, bool keyFrame, bool refreshesGolden, bool constrainedGoldenGroup, bool screenContent)
     {
         int projectedFrameSize = frameBytes << 3;
         this.UpdateRateCorrectionFactors(projectedFrameSize, qIndex, keyFrame, screenContent);
@@ -902,8 +954,9 @@ internal sealed class Av1RateControl
             this.averageInterFrameQIndex = ((3 * this.averageInterFrameQIndex) + qIndex + 2) >> 2;
         }
 
-        // Keep the last boosted quantizer, which a forced key frame reads.
-        if (qIndex < this.lastBoostedQIndex || keyFrame || refreshesGolden)
+        // Keep the last boosted quantizer, which a forced key frame reads. A golden refresh in a group that ends at
+        // the next key frame does not count. Reference: the last_boosted_qindex update of av1_rc_postencode_update().
+        if (qIndex < this.lastBoostedQIndex || keyFrame || (refreshesGolden && !constrainedGoldenGroup))
         {
             this.lastBoostedQIndex = qIndex;
         }

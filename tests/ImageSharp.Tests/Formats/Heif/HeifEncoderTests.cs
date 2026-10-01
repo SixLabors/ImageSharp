@@ -737,6 +737,84 @@ public class HeifEncoderTests
         Assert.True(colorProfile.FullRange);
     }
 
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6, false)]
+    [InlineData(HeifEncodingSpeed.Level6, true)]
+    [InlineData(HeifEncodingSpeed.Level9, true)]
+    public void Av1AnimationWithKeyFrameIntervalRoundTrips(HeifEncodingSpeed speed, bool withAlpha)
+    {
+        // Seven frames with a key frame interval of three put key frames inside the animation. Alpha selects the
+        // path without lookahead, which also forces an alpha key frame at each color key frame.
+        const int width = 64;
+        const int height = 48;
+        using Image<Rgba32> image = new(width, height);
+        for (int frameIndex = 0; frameIndex < 7; frameIndex++)
+        {
+            ImageFrame<Rgba32> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < height; y++)
+            {
+                Span<Rgba32> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    int value = (2 * (x + frameIndex)) + y;
+                    byte alpha = withAlpha ? (byte)(255 - (2 * x)) : (byte)255;
+                    row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), alpha);
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            Quality = 90,
+            AlphaQuality = 90,
+            Speed = speed,
+            KeyFrameInterval = 3
+        };
+
+        image.Save(stream, encoder);
+
+        // Without lookahead the key frames fall exactly on the interval. The lookahead can place one early at a
+        // scene cut, so there the gap only stays below the interval. Each color key frame forces an alpha key frame.
+        // In good-quality coding the forced key frame is still pending when the next interval starts, so the next
+        // alpha frame is a key frame too. Reference: avifEncoderDataShouldForceKeyframeForAlpha() and
+        // detect_app_forced_key() in find_next_key_frame().
+        HeifSequence sequence = ParseSequence(stream.ToArray());
+        bool goodQuality = speed <= HeifEncodingSpeed.Level6;
+        bool lookahead = speed <= HeifEncodingSpeed.Level6 && !withAlpha;
+        int lastKeyFrame = 0;
+        for (int i = 0; i < sequence.ColorTrack.Samples.Length; i++)
+        {
+            bool sync = sequence.ColorTrack.Samples[i].IsSync;
+            if (lookahead)
+            {
+                lastKeyFrame = sync ? i : lastKeyFrame;
+                Assert.True(i - lastKeyFrame < 3);
+            }
+            else
+            {
+                Assert.Equal(i % 3 == 0, sync);
+            }
+
+            if (withAlpha)
+            {
+                bool followsForcedKeyFrame = goodQuality && i > 1 && (i - 1) % 3 == 0;
+                Assert.Equal(sync || followsForcedKeyFrame, sequence.AlphaTrack!.Samples[i].IsSync);
+            }
+        }
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgba32> expected = image.Frames.CloneFrame(i);
+            using Image<Rgba32> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(90).VerifySimilarity(expected, actual);
+        }
+    }
+
     [Fact]
     public void Av1AnimationWithAlphaWritesTiles()
     {
@@ -844,6 +922,10 @@ public class HeifEncoderTests
 
         throw new InvalidOperationException("The file has no movie box.");
     }
+
+    [Fact]
+    public void KeyFrameIntervalRejectsValuesBelowOne()
+        => Assert.Throws<ArgumentException>(() => new HeifEncoder { KeyFrameInterval = 0 });
 
     [Fact]
     public void Av1WritesAuxiliaryAlphaFromSourcePixelType()

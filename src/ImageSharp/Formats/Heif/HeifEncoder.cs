@@ -104,6 +104,25 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// </summary>
     public HeifChromaSubsampling? ChromaSubsampling { get; init; }
 
+    /// <summary>
+    /// Gets the number of tile rows. More tiles decode faster in parallel but compress less well.
+    /// Defaults to <see cref="HeifTileCount.One"/>.
+    /// </summary>
+    public HeifTileCount TileRows { get; init; } = HeifTileCount.One;
+
+    /// <summary>
+    /// Gets the number of tile columns. More tiles decode faster in parallel but compress less well.
+    /// Defaults to <see cref="HeifTileCount.One"/>.
+    /// </summary>
+    public HeifTileCount TileColumns { get; init; } = HeifTileCount.One;
+
+    /// <summary>
+    /// Gets a value indicating whether the encoder chooses the tile rows and columns from the image size.
+    /// When <see langword="true"/>, <see cref="TileRows"/> and <see cref="TileColumns"/> are ignored.
+    /// Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool AutoTiling { get; init; }
+
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {

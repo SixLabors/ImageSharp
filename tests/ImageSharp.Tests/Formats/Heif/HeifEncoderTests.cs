@@ -888,6 +888,67 @@ public class HeifEncoderTests
         Assert.Equal(chromaSubsampling == HeifChromaSubsampling.Monochrome, metadata.IsMonochrome);
     }
 
+    [Theory]
+    [InlineData(HeifTileCount.One, HeifTileCount.One)]
+    [InlineData(HeifTileCount.Two, HeifTileCount.One)]
+    [InlineData(HeifTileCount.One, HeifTileCount.Two)]
+    [InlineData(HeifTileCount.Two, HeifTileCount.Two)]
+    [InlineData(HeifTileCount.SixtyFour, HeifTileCount.SixtyFour)]
+    public void Av1WritesRequestedTilesLosslessly(HeifTileCount columns, HeifTileCount rows)
+    {
+        // A luminance source is coded as monochrome, so lossless coding returns every sample exactly.
+        using Image<L8> image = new(256, 128);
+        for (int row = 0; row < image.Height; row++)
+        {
+            Span<L8> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < image.Width; column++)
+            {
+                pixels[column] = new L8((byte)((column * 7) ^ (row * 11)));
+            }
+        }
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            Lossless = true,
+            Speed = HeifEncodingSpeed.Level9,
+            TileColumns = columns,
+            TileRows = rows
+        };
+
+        image.Save(stream, encoder);
+        Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
+        using Av1Decoder payloadDecoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> planes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        // The requested counts are capped at one tile per superblock in each direction.
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(payloadDecoder.SequenceHeader);
+        int superblockSize = sequenceHeader.Use128x128Superblock ? 128 : 64;
+        ObuTileGroupHeader tiles = payloadDecoder.FrameHeader.TilesInfo;
+        Assert.Equal(Math.Min((int)columns, image.Width / superblockSize), tiles.TileColumnCount);
+        Assert.Equal(Math.Min((int)rows, image.Height / superblockSize), tiles.TileRowCount);
+
+        stream.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(stream);
+        ImageComparer.Exact.VerifySimilarity(image, decoded);
+    }
+
+    [Theory]
+    [InlineData(512, 512, 0, 0)]
+    [InlineData(1024, 1024, 1, 1)]
+    [InlineData(2048, 512, 0, 2)]
+    [InlineData(512, 2048, 2, 0)]
+    [InlineData(4096, 4096, 1, 2)]
+    [InlineData(4096, 2048, 1, 2)]
+    public void AutoTilingMatchesLibavifTileConfiguration(int width, int height, int expectedRowsLog2, int expectedColumnsLog2)
+    {
+        // Expected values follow avifSetTileConfiguration() with libavif's automatic tiling budget of 8 threads.
+        (int rowsLog2, int columnsLog2) = HeifEncoderCore.GetAutomaticTileConfiguration(new Size(width, height));
+
+        Assert.Equal(expectedRowsLog2, rowsLog2);
+        Assert.Equal(expectedColumnsLog2, columnsLog2);
+    }
+
     [Fact]
     public void Av1UsesMetadataBitDepthWhenOptionIsNull()
     {

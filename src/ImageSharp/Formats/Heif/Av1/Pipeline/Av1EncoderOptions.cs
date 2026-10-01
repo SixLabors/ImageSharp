@@ -169,6 +169,16 @@ internal sealed class Av1EncoderOptions
     public bool EnableTemporalFilter { get; init; } = true;
 
     /// <summary>
+    /// Gets the number of tile columns as a power of two: 0 is one column, 1 is two, 2 is four.
+    /// </summary>
+    public int TileColumnsLog2 { get; init; }
+
+    /// <summary>
+    /// Gets the number of tile rows as a power of two: 0 is one row, 1 is two, 2 is four.
+    /// </summary>
+    public int TileRowsLog2 { get; init; }
+
+    /// <summary>
     /// Creates the options of an encoding.
     /// </summary>
     /// <param name="speed">The cpu-used tier.</param>

@@ -594,8 +594,15 @@ internal sealed class ObuWriter : IDisposable
         tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superblockRowCount, Av1Constants.MaxTileRowCount));
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
 
-        int log2TileColumnCount = ObuReader.TileLog2(1, tileInfo.TileColumnCount);
-        int log2TileRowCount = ObuReader.TileLog2(1, tileInfo.TileRowCount);
+        // Uniform spacing codes the chosen logarithms. Explicit spacing derives them from the tile counts.
+        int log2TileColumnCount = tileInfo.HasUniformTileSpacing
+            ? tileInfo.TileColumnCountLog2
+            : ObuReader.TileLog2(1, tileInfo.TileColumnCount);
+
+        int log2TileRowCount = tileInfo.HasUniformTileSpacing
+            ? tileInfo.TileRowCountLog2
+            : ObuReader.TileLog2(1, tileInfo.TileRowCount);
+
         tileInfo.TileColumnCountLog2 = log2TileColumnCount;
         tileInfo.TileRowCountLog2 = log2TileRowCount;
 

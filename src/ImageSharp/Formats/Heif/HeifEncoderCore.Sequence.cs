@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -265,6 +266,17 @@ internal sealed partial class HeifEncoderCore
         // Reference: the g_lag_in_frames default of the good-quality usage, and disableLaggedOutput of
         // aomCodecEncodeImage(), which avifEncoderAddImageInternal() sets when alpha is present.
         int colorLag = allIntra || constantBitRate || hasAlpha ? 0 : DefaultLagInFrames;
+
+        // Automatic tiling sizes the tiles from the first cell, which is the whole frame unless an oversized still
+        // image becomes a grid. Reference: the automatic tiling step of avifEncoderAddImageInternal().
+        int tileRowsLog2 = BitOperations.Log2((uint)this.encoder.TileRows);
+        int tileColumnsLog2 = BitOperations.Log2((uint)this.encoder.TileColumns);
+        if (this.encoder.AutoTiling)
+        {
+            Size firstCellSize = GetFirstCellSize(image.Size, allIntra, !isMonochrome && subsamplingX, !isMonochrome && subsamplingY);
+            (tileRowsLog2, tileColumnsLog2) = GetAutomaticTileConfiguration(firstCellSize);
+        }
+
         return new Av1EncodingSettings(
             bitDepth,
             chromaSubsampling,
@@ -286,8 +298,60 @@ internal sealed partial class HeifEncoderCore
                 UsesConstantBitRate = constantBitRate,
                 MinimumQuantizer = !constantBitRate ? 0 : quantizer == 0 ? 0 : Math.Max(quantizer - 4, 0),
                 MaximumQuantizer = !constantBitRate ? 63 : quantizer == 0 ? 0 : Math.Min(quantizer + 4, 63),
-                LagInFrames = lagInFrames
+                LagInFrames = lagInFrames,
+                TileRowsLog2 = tileRowsLog2,
+                TileColumnsLog2 = tileColumnsLog2
             };
+    }
+
+    /// <summary>
+    /// Gets the size of the first coded cell: the frame itself, or the first grid cell of an oversized still image.
+    /// </summary>
+    private static Size GetFirstCellSize(Size imageSize, bool allIntra, bool isSubsampledX, bool isSubsampledY)
+    {
+        if (!allIntra || (imageSize.Width <= Av1Constants.MaxFrameDimension && imageSize.Height <= Av1Constants.MaxFrameDimension))
+        {
+            return imageSize;
+        }
+
+        int columns = GetGridCellCount(imageSize.Width, Av1Constants.MaxFrameDimension);
+        int rows = GetGridCellCount(imageSize.Height, Av1Constants.MaxFrameDimension);
+        return new Size(
+            Math.Max(GetGridCellSize(imageSize.Width, columns, isSubsampledX), MinimumGridCellDimension),
+            Math.Max(GetGridCellSize(imageSize.Height, rows, isSubsampledY), MinimumGridCellDimension));
+    }
+
+    /// <summary>
+    /// Chooses the tile rows and columns for automatic tiling with libavif's fixed budget of 8 threads: at most one
+    /// tile per thread and per 512x512 area, and more tiles along the longer side. Reference:
+    /// avifSetTileConfiguration() with threads = 8.
+    /// </summary>
+    internal static (int RowsLog2, int ColumnsLog2) GetAutomaticTileConfiguration(Size cellSize)
+    {
+        const uint threads = 8;
+        const uint minimumTileArea = 512 * 512;
+        const uint maximumTiles = 32;
+        ulong imageArea = (ulong)cellSize.Width * (uint)cellSize.Height;
+        uint tiles = (uint)((imageArea + minimumTileArea - 1) / minimumTileArea);
+        tiles = Math.Min(Math.Min(tiles, maximumTiles), threads);
+        int tilesLog2 = BitOperations.Log2(tiles);
+
+        // The longer dimension takes the extra tiles, so each tile is closer to a square. Reference: splitTilesLog2().
+        if (cellSize.Width >= cellSize.Height)
+        {
+            int rowsLog2 = SplitTilesLog2((uint)cellSize.Width, (uint)cellSize.Height, tilesLog2);
+            return (rowsLog2, tilesLog2 - rowsLog2);
+        }
+
+        int columnsLog2 = SplitTilesLog2((uint)cellSize.Height, (uint)cellSize.Width, tilesLog2);
+        return (tilesLog2 - columnsLog2, columnsLog2);
+
+        // Returns the tiles of the shorter dimension.
+        static int SplitTilesLog2(uint longer, uint shorter, int tilesLog2)
+        {
+            int differenceLog2 = BitOperations.Log2(longer / shorter);
+            return Math.Max(tilesLog2 - differenceLog2, 0) / 2;
+        }
     }
 
     private HeifSequenceEncoding CompressAv1Sequence<TPixel>(

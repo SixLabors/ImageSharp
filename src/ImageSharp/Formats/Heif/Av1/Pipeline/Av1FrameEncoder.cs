@@ -591,22 +591,44 @@ internal static partial class Av1FrameEncoder
         return UnconstrainedSequenceLevelIndex;
     }
 
+    /// <summary>
+    /// Creates the uniform tile layout for the requested tile counts. Reference: the uniform-spacing branch of
+    /// set_tile_info(), with av1_get_tile_limits(), av1_calculate_tile_cols() and av1_calculate_tile_rows().
+    /// </summary>
     private static ObuTileGroupHeader CreateTileGroupHeader(
         int modeInfoColumnCount,
         int modeInfoRowCount,
-        int superblockSizeLog2)
+        int superblockSizeLog2,
+        int requestedTileColumnsLog2,
+        int requestedTileRowsLog2)
     {
         int superblockShift = superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
         int superblockColumns = Av1Math.DivideLog2Ceiling(modeInfoColumnCount, superblockShift);
         int superblockRows = Av1Math.DivideLog2Ceiling(modeInfoRowCount, superblockShift);
         int maximumTileWidth = Av1Constants.MaxTileWidth >> superblockSizeLog2;
         int maximumTileArea = Av1Constants.MaxTileArea >> (2 * superblockSizeLog2);
-        int tileColumnCountLog2 = ObuReader.TileLog2(maximumTileWidth, superblockColumns);
+        int minimumTileColumnsLog2 = ObuReader.TileLog2(maximumTileWidth, superblockColumns);
+        int maximumTileColumnsLog2 = ObuReader.TileLog2(1, Math.Min(superblockColumns, Av1Constants.MaxTileColumnCount));
+        int maximumTileRowsLog2 = ObuReader.TileLog2(1, Math.Min(superblockRows, Av1Constants.MaxTileRowCount));
         int minimumTileCountLog2 = Math.Max(
-            tileColumnCountLog2,
+            minimumTileColumnsLog2,
             ObuReader.TileLog2(maximumTileArea, superblockColumns * superblockRows));
 
-        int tileRowCountLog2 = minimumTileCountLog2 - tileColumnCountLog2;
+        // The encoder's own column minimum takes one more column split than the bitstream minimum when the frame
+        // is exactly a multiple of the widest tile.
+        int encoderMinimumTileColumnsLog2 = 0;
+        while ((maximumTileWidth << encoderMinimumTileColumnsLog2) <= superblockColumns)
+        {
+            encoderMinimumTileColumnsLog2++;
+        }
+
+        int tileColumnCountLog2 = Math.Max(requestedTileColumnsLog2, minimumTileColumnsLog2);
+        tileColumnCountLog2 = Math.Max(tileColumnCountLog2, encoderMinimumTileColumnsLog2);
+        tileColumnCountLog2 = Math.Min(tileColumnCountLog2, maximumTileColumnsLog2);
+
+        int minimumTileRowsLog2 = Math.Max(minimumTileCountLog2 - tileColumnCountLog2, 0);
+        int tileRowCountLog2 = Math.Max(requestedTileRowsLog2, minimumTileRowsLog2);
+        tileRowCountLog2 = Math.Min(tileRowCountLog2, maximumTileRowsLog2);
         int tileWidthSuperblocks = Av1Math.DivideLog2Ceiling(superblockColumns, tileColumnCountLog2);
         int tileHeightSuperblocks = Av1Math.DivideLog2Ceiling(superblockRows, tileRowCountLog2);
         ObuTileGroupHeader tiles = new()
@@ -652,7 +674,9 @@ internal static partial class Av1FrameEncoder
         ObuTileGroupHeader tiles = CreateTileGroupHeader(
             modeInfoColumnCount,
             modeInfoRowCount,
-            sequenceHeader.SuperblockSizeLog2);
+            sequenceHeader.SuperblockSizeLog2,
+            options.TileColumnsLog2,
+            options.TileRowsLog2);
 
         ObuFrameHeader frameHeader = new()
         {

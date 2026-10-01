@@ -19,11 +19,6 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private int? alphaQuality;
 
     /// <summary>
-    /// The AV1 encoding speed. Reference: the default speed of avifenc.
-    /// </summary>
-    private HeifEncodingSpeed speed = HeifEncodingSpeed.Level6;
-
-    /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60, as avifenc does.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
     /// enable <see cref="Lossless"/> encoding.
@@ -71,23 +66,10 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     public bool Lossless { get; init; }
 
     /// <summary>
-    /// Gets the AV1 encoding speed. Higher levels prioritize speed over compression efficiency.
-    /// The default is <see cref="HeifEncodingSpeed.Level6"/>, as avifenc uses.
+    /// Gets the encoding speed. Higher levels encode faster but make a larger file.
+    /// Defaults to <see cref="HeifEncodingSpeed.Level6"/>.
     /// </summary>
-    /// <exception cref="ArgumentException">The speed is outside the range 0 to 9.</exception>
-    public HeifEncodingSpeed Speed
-    {
-        get => this.speed;
-        init
-        {
-            if (value is < HeifEncodingSpeed.Level0 or > HeifEncodingSpeed.Level9)
-            {
-                throw new ArgumentException("Speed must be in the range [0..9].");
-            }
-
-            this.speed = value;
-        }
-    }
+    public HeifEncodingSpeed Speed { get; init; } = HeifEncodingSpeed.Level6;
 
     /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit

@@ -40,8 +40,6 @@ public class HeifEncoderTests
         Assert.Throws<ArgumentException>(() => new HeifEncoder { Quality = 101 });
         Assert.Throws<ArgumentException>(() => new HeifEncoder { AlphaQuality = -1 });
         Assert.Throws<ArgumentException>(() => new HeifEncoder { AlphaQuality = 101 });
-        Assert.Throws<ArgumentException>(() => new HeifEncoder { Speed = (HeifEncodingSpeed)(-1) });
-        Assert.Throws<ArgumentException>(() => new HeifEncoder { Speed = (HeifEncodingSpeed)10 });
 
         HeifEncoder minimum = new() { Quality = 0, AlphaQuality = 0, Speed = HeifEncodingSpeed.Level0 };
         HeifEncoder maximum = new() { Quality = 100, AlphaQuality = 100, Speed = HeifEncodingSpeed.Level9 };

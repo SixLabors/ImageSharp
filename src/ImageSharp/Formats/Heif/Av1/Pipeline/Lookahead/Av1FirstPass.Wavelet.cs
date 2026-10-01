@@ -284,13 +284,17 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="unitRow">The unit row.</param>
-    /// <param name="unitCount">The number of units in the row.</param>
-    /// <param name="records">The records of the row's units.</param>
-    private void AddWaveletEnergies(ref FrameContext frame, int unitRow, int unitCount, Span<FrameStatistics> records)
+    /// <param name="unitColumnStart">The first unit column of the tile.</param>
+    /// <param name="unitCount">The number of units in the row of the tile.</param>
+    /// <param name="records">The records of the row's units in the tile.</param>
+    private void AddWaveletEnergies(ref FrameContext frame, int unitRow, int unitColumnStart, int unitCount, Span<FrameStatistics> records)
     {
         // The units of a row lie side by side, so each row of 8x8 blocks runs across all of them.
         int blocksPerSide = frame.FirstPassBlockSize.GetWidth() / 8;
-        int unitIndex = frame.SourceOrigin + (((unitRow << frame.UnitLog2) << 2) * frame.SourceStride);
+        int unitIndex = frame.SourceOrigin +
+            (((unitRow << frame.UnitLog2) << 2) * frame.SourceStride) +
+            ((unitColumnStart << frame.UnitLog2) << 2);
+
         Span<int> energies = this.waveletEnergies.AsSpan(0, unitCount * blocksPerSide);
         for (int blockRow = 0; blockRow < blocksPerSide; blockRow++)
         {

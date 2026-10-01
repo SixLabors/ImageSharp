@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 public enum HeifEncodingSpeed
 {
     /// <summary>
-    /// The slowest encoding level and the default setting.
+    /// The slowest encoding level.
     /// </summary>
     Level0 = 0,
 
@@ -40,7 +40,7 @@ public enum HeifEncodingSpeed
     Level5 = 5,
 
     /// <summary>
-    /// Encoding speed level 6.
+    /// Encoding speed level 6. The default setting.
     /// </summary>
     Level6 = 6,
 

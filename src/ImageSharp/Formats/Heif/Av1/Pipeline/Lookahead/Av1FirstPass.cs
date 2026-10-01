@@ -4,6 +4,7 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -111,6 +112,16 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     private readonly int height;
     private readonly int miColumns;
     private readonly int miRows;
+
+    /// <summary>
+    /// The first mode-info column of each tile column, followed by the frame width in mode-info units.
+    /// </summary>
+    private readonly int[] tileColumnStarts;
+
+    /// <summary>
+    /// The first mode-info row of each tile row, followed by the frame height in mode-info units.
+    /// </summary>
+    private readonly int[] tileRowStarts;
     private readonly int macroblockColumns;
     private readonly int macroblockRows;
     private readonly Av1BitDepth bitDepth;
@@ -167,6 +178,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     /// Whether the statistics feed a one-pass encode through the look-ahead stage, whose second-reference lag starts
     /// at one, rather than the first pass of a two-pass encode, whose lag starts at zero.
     /// </param>
+    /// <param name="tiles">The tile layout of the coded frames, which the stage shares. Reference: cm->tiles.</param>
     public Av1FirstPass(
         Configuration configuration,
         int width,
@@ -178,9 +190,22 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         bool calculateWaveletEnergy,
         int sharpness,
         Av1Tuning tuning,
-        bool lookaheadStage)
+        bool lookaheadStage,
+        ObuTileGroupHeader tiles)
     {
         Guard.MustBeBetweenOrEqualTo((int)speed, 0, 6, nameof(speed));
+        this.tileColumnStarts = new int[tiles.TileColumnCount + 1];
+        for (int i = 0; i <= tiles.TileColumnCount; i++)
+        {
+            this.tileColumnStarts[i] = tiles.TileColumnStartModeInfo[i];
+        }
+
+        this.tileRowStarts = new int[tiles.TileRowCount + 1];
+        for (int i = 0; i <= tiles.TileRowCount; i++)
+        {
+            this.tileRowStarts[i] = tiles.TileRowStartModeInfo[i];
+        }
+
         this.width = width;
         this.height = height;
         this.bitDepth = bitDepth;
@@ -336,13 +361,28 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
             frame.Last2 = this.GetReference(Last2Slot);
         }
 
-        // Rows run top to bottom in one tile; the vector of the first unit of a row seeds the next row.
-        // Reference: first_pass_tiles().
-        Av1MotionVector firstTopMotionVector = default;
+        // Tiles run in raster order and rows run top to bottom in each tile. The vector of the first unit of a row
+        // seeds the next row of the same tile, and every tile starts each frame from a zero vector. Reference:
+        // first_pass_tiles(), first_pass_tile() and the firstpass_top_mv reset of av1_init_tile_data().
         int unitHeight = 1 << unitLog2;
-        for (int miRow = 0; miRow < this.miRows; miRow += unitHeight)
+        for (int tileRow = 0; tileRow < this.tileRowStarts.Length - 1; tileRow++)
         {
-            this.ProcessRow(ref frame, miRow >> unitLog2, ref firstTopMotionVector);
+            int tileRowStart = this.tileRowStarts[tileRow];
+            int tileRowEnd = this.tileRowStarts[tileRow + 1];
+            for (int tileColumn = 0; tileColumn < this.tileColumnStarts.Length - 1; tileColumn++)
+            {
+                Av1MotionVector firstTopMotionVector = default;
+                for (int miRow = tileRowStart; miRow < tileRowEnd; miRow += unitHeight)
+                {
+                    this.ProcessRow(
+                        ref frame,
+                        miRow >> unitLog2,
+                        tileRowStart >> unitLog2,
+                        this.tileColumnStarts[tileColumn],
+                        this.tileColumnStarts[tileColumn + 1],
+                        ref firstTopMotionVector);
+                }
+            }
         }
 
         FrameStatistics statistics = AccumulateFrameStatistics(unitStatistics, unitRows, unitColumns);

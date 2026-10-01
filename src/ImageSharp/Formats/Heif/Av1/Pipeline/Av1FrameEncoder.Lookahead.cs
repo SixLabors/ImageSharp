@@ -197,7 +197,8 @@ internal static partial class Av1FrameEncoder
                 calculateWaveletEnergy: false,
                 sharpness: this.Options.Sharpness,
                 tuning: this.Options.Tuning,
-                lookaheadStage: true);
+                lookaheadStage: true,
+                tiles: this.FrameHeader.TilesInfo);
 
             using LookaheadTemporalFilter<TSample, TFilterOperator, TSearchOperator>? filter =
                 this.Options.EnableTemporalFilter

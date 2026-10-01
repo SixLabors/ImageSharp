@@ -14,24 +14,37 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1FirstPass<TSample, TOperator>
 {
     /// <summary>
-    /// Measures one row of units from left to right. The best vector of each unit starts the search of the next
-    /// unit, and the last nonzero vector of the row's first unit seeds the next row. Reference: av1_first_pass_row().
+    /// Measures the units of one row inside one tile from left to right. The best vector of each unit starts the
+    /// search of the next unit, and the last nonzero vector of the tile row's first unit seeds the next row of the
+    /// tile. Reference: av1_first_pass_row().
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="unitRow">The unit row.</param>
-    /// <param name="firstTopMotionVector">The last nonzero vector left by the first unit of the previous row.</param>
-    private void ProcessRow(ref FrameContext frame, int unitRow, ref Av1MotionVector firstTopMotionVector)
+    /// <param name="tileUnitRowStart">The first unit row of the tile.</param>
+    /// <param name="tileColumnStart">The first mode-info column of the tile.</param>
+    /// <param name="tileColumnEnd">The mode-info column after the tile.</param>
+    /// <param name="firstTopMotionVector">The last nonzero vector left by the first unit of the tile's previous row.</param>
+    private void ProcessRow(
+        ref FrameContext frame,
+        int unitRow,
+        int tileUnitRowStart,
+        int tileColumnStart,
+        int tileColumnEnd,
+        ref Av1MotionVector firstTopMotionVector)
     {
         int unitWidth = 1 << frame.UnitLog2;
         int unitSize = unitWidth << 2;
-        int unitColumnsInTile = (this.miColumns + unitWidth - 1) >> frame.UnitLog2;
-        int recordStart = unitRow * frame.UnitColumns;
-        Span<FrameStatistics> records = this.unitStatistics.AsSpan(recordStart, frame.UnitColumns);
-        Span<int> rawMotionErrors = this.rawMotionErrors.AsSpan(recordStart, frame.UnitColumns);
+        int unitColumnStart = tileColumnStart >> frame.UnitLog2;
+        int unitColumnsInTile = (tileColumnEnd - tileColumnStart + unitWidth - 1) >> frame.UnitLog2;
+        int recordStart = (unitRow * frame.UnitColumns) + unitColumnStart;
+        Span<FrameStatistics> records = this.unitStatistics.AsSpan(recordStart, unitColumnsInTile);
+        Span<int> rawMotionErrors = this.rawMotionErrors.AsSpan(recordStart, unitColumnsInTile);
         int rawMotionErrorCount = 0;
         Av1MotionVector bestReferenceVector = default;
         Av1MotionVector lastNonZeroVector = default;
-        bool upAvailable = unitRow != 0;
+
+        // Prediction never reads across a tile edge. Reference: set_mi_row_col() with the tile of the row.
+        bool upAvailable = unitRow != tileUnitRowStart;
 
         // The vector limits keep a whole unit plus two interpolation margins inside the reference border.
         this.SetMotionVectorRowLimits(unitRow << frame.UnitLog2, unitSize >> 2);
@@ -42,18 +55,19 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
 
         if (this.calculateWaveletEnergy)
         {
-            this.AddWaveletEnergies(ref frame, unitRow, unitColumnsInTile, records);
+            this.AddWaveletEnergies(ref frame, unitRow, unitColumnStart, unitColumnsInTile, records);
         }
 
-        for (int unitColumn = 0; unitColumn < unitColumnsInTile; unitColumn++)
+        for (int unitColumnInTile = 0; unitColumnInTile < unitColumnsInTile; unitColumnInTile++)
         {
-            if (unitColumn == 0)
+            int unitColumn = unitColumnStart + unitColumnInTile;
+            if (unitColumnInTile == 0)
             {
                 lastNonZeroVector = firstTopMotionVector;
             }
 
-            ref FrameStatistics record = ref records[unitColumn];
-            int intraError = this.PredictIntra(ref frame, unitRow, unitColumn, upAvailable, ref record);
+            ref FrameStatistics record = ref records[unitColumnInTile];
+            int intraError = this.PredictIntra(ref frame, unitRow, unitColumn, upAvailable, unitColumnInTile != 0, ref record);
 
             if (!frame.IntraOnly)
             {
@@ -68,7 +82,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                     ref lastNonZeroVector,
                     ref record);
 
-                if (unitColumn == 0)
+                if (unitColumnInTile == 0)
                 {
                     firstTopMotionVector = lastNonZeroVector;
                 }
@@ -121,17 +135,17 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="unitRow">The unit row.</param>
     /// <param name="unitColumn">The unit column.</param>
-    /// <param name="upAvailable">Whether the row above is inside the frame.</param>
+    /// <param name="upAvailable">Whether the row above is inside the tile.</param>
+    /// <param name="leftAvailable">Whether the unit to the left is inside the tile.</param>
     /// <param name="record">The unit record.</param>
     /// <returns>The intra error including the intra surcharge.</returns>
-    private int PredictIntra(ref FrameContext frame, int unitRow, int unitColumn, bool upAvailable, ref FrameStatistics record)
+    private int PredictIntra(ref FrameContext frame, int unitRow, int unitColumn, bool upAvailable, bool leftAvailable, ref FrameStatistics record)
     {
         Av1BlockSize blockSize = this.GetBlockSize(frame.FirstPassBlockSize, frame.UnitLog2, unitRow, unitColumn);
         int blockWidth = blockSize.GetWidth();
         int blockHeight = blockSize.GetHeight();
         int x = (unitColumn << frame.UnitLog2) << 2;
         int y = (unitRow << frame.UnitLog2) << 2;
-        bool leftAvailable = unitColumn != 0;
 
         // Border padding measures the distance to the visible frame; otherwise to the eight-aligned coded frame.
         // Reference: set_pixels_to_frame_edge().

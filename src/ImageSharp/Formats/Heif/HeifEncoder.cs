@@ -19,7 +19,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private int? alphaQuality;
 
     /// <summary>
-    /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60, as avifenc does.
+    /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
     /// enable <see cref="Lossless"/> encoding.
     /// </summary>
@@ -61,7 +61,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// <summary>
     /// Gets a value indicating whether the primary and auxiliary alpha images are encoded without loss. When
     /// <see langword="true"/>, <see cref="Quality"/> and <see cref="AlphaQuality"/> do not affect the encoded image.
-    /// The default is <see langword="false"/>.
+    /// Defaults to <see langword="false"/>.
     /// </summary>
     public bool Lossless { get; init; }
 
@@ -78,7 +78,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     public HeifBitDepth? BitDepth { get; init; }
 
     /// <summary>
-    /// Gets the encoded chroma sampling, or <see langword="null"/> to choose it as avifenc does:
+    /// Gets the encoded chroma sampling, or <see langword="null"/> to choose it from the source:
     /// <see cref="HeifChromaSubsampling.Monochrome"/> for a luminance source, the source's own sampling for a
     /// 4:2:0, 4:2:2 or 4:4:4 JPEG source, and <see cref="HeifChromaSubsampling.Yuv444"/> otherwise, including all
     /// lossless encoding. Oversized still images use <see cref="HeifChromaSubsampling.Yuv444"/> when a subsampled
@@ -87,13 +87,14 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     public HeifChromaSubsampling? ChromaSubsampling { get; init; }
 
     /// <summary>
-    /// Gets the number of tile rows. More tiles decode faster in parallel but compress less well.
-    /// Defaults to <see cref="HeifTileCount.One"/>.
+    /// Gets the largest number of tile rows. Small images get fewer rows. More tiles let a parallel decoder work
+    /// faster but compress less well. Defaults to <see cref="HeifTileCount.One"/>.
     /// </summary>
     public HeifTileCount TileRows { get; init; } = HeifTileCount.One;
 
     /// <summary>
-    /// Gets the number of tile columns. More tiles decode faster in parallel but compress less well.
+    /// Gets the largest number of tile columns. Small images get fewer columns, and images wider than 4096 pixels
+    /// get more. More tiles let a parallel decoder work faster but compress less well.
     /// Defaults to <see cref="HeifTileCount.One"/>.
     /// </summary>
     public HeifTileCount TileColumns { get; init; } = HeifTileCount.One;

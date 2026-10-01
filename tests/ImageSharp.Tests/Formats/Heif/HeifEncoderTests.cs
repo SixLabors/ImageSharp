@@ -738,6 +738,114 @@ public class HeifEncoderTests
     }
 
     [Fact]
+    public void Av1AnimationWithAlphaWritesTiles()
+    {
+        // Tiles apply to every frame of both the color and the alpha track.
+        using Image<Rgba32> image = new(128, 64);
+        for (int frameIndex = 0; frameIndex < 3; frameIndex++)
+        {
+            ImageFrame<Rgba32> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = (2 * (x + frameIndex)) + y;
+                    row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), (byte)(255 - x));
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            Quality = 90,
+            AlphaQuality = 90,
+            Speed = HeifEncodingSpeed.Level9,
+            TileColumns = HeifTileCount.Two
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        HeifSequence sequence = ParseSequence(file);
+        foreach (HeifSequenceTrack track in new[] { sequence.ColorTrack, sequence.AlphaTrack! })
+        {
+            HeifSequenceSample sample = track.Samples[1];
+            using Av1Decoder decoder = new(Configuration.Default);
+            decoder.DecodeSequenceReference(file.AsSpan((int)track.Samples[0].Offset, track.Samples[0].Length).ToArray(), null, null);
+            decoder.DecodeSequenceReference(file.AsSpan((int)sample.Offset, sample.Length).ToArray(), null, null);
+            Assert.Equal(2, decoder.FrameHeader.TilesInfo.TileColumnCount);
+        }
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgba32> expected = image.Frames.CloneFrame(i);
+            using Image<Rgba32> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(90).VerifySimilarity(expected, actual);
+        }
+    }
+
+    [Fact]
+    public void Av1AutoTilingChoosesTilesFromImageSize()
+    {
+        // A 1024x1024 image gets four tiles of 512x512 samples, and automatic tiling ignores the requested counts.
+        using Image<L8> image = new(1024, 1024);
+        for (int row = 0; row < image.Height; row++)
+        {
+            Span<L8> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < image.Width; column++)
+            {
+                pixels[column] = new L8((byte)((column * 7) ^ (row * 11)));
+            }
+        }
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            Lossless = true,
+            Speed = HeifEncodingSpeed.Level9,
+            AutoTiling = true,
+            TileColumns = HeifTileCount.SixtyFour
+        };
+
+        image.Save(stream, encoder);
+        Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
+        using Av1Decoder payloadDecoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> planes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.Equal(2, payloadDecoder.FrameHeader.TilesInfo.TileColumnCount);
+        Assert.Equal(2, payloadDecoder.FrameHeader.TilesInfo.TileRowCount);
+    }
+
+    private static HeifSequence ParseSequence(byte[] fileBytes)
+    {
+        using MemoryStream stream = new(fileBytes, false);
+        Span<byte> headerBuffer = stackalloc byte[32];
+        while (stream.Position < stream.Length)
+        {
+            long boxLength = HeifBoxReader.ReadHeader(
+                stream,
+                stream.Length,
+                headerBuffer,
+                out Heif4CharCode boxType,
+                topLevel: true);
+
+            long boxStart = stream.Position;
+            if (boxType == Heif4CharCode.Moov)
+            {
+                HeifSequenceParser parser = new(new DecoderOptions { MaxFrames = 32 });
+                return parser.Parse(stream, boxLength);
+            }
+
+            stream.Position = checked(boxStart + boxLength);
+        }
+
+        throw new InvalidOperationException("The file has no movie box.");
+    }
+
+    [Fact]
     public void Av1WritesAuxiliaryAlphaFromSourcePixelType()
     {
         const int width = 16;
@@ -887,15 +995,16 @@ public class HeifEncoderTests
     }
 
     [Theory]
-    [InlineData(HeifTileCount.One, HeifTileCount.One)]
-    [InlineData(HeifTileCount.Two, HeifTileCount.One)]
-    [InlineData(HeifTileCount.One, HeifTileCount.Two)]
-    [InlineData(HeifTileCount.Two, HeifTileCount.Two)]
-    [InlineData(HeifTileCount.SixtyFour, HeifTileCount.SixtyFour)]
-    public void Av1WritesRequestedTilesLosslessly(HeifTileCount columns, HeifTileCount rows)
+    [InlineData(256, 128, HeifTileCount.One, HeifTileCount.One)]
+    [InlineData(256, 128, HeifTileCount.Two, HeifTileCount.One)]
+    [InlineData(256, 128, HeifTileCount.One, HeifTileCount.Two)]
+    [InlineData(256, 128, HeifTileCount.Two, HeifTileCount.Two)]
+    [InlineData(256, 128, HeifTileCount.SixtyFour, HeifTileCount.SixtyFour)]
+    [InlineData(192, 128, HeifTileCount.Four, HeifTileCount.One)]
+    public void Av1WritesRequestedTilesLosslessly(int width, int height, HeifTileCount columns, HeifTileCount rows)
     {
         // A luminance source is coded as monochrome, so lossless coding returns every sample exactly.
-        using Image<L8> image = new(256, 128);
+        using Image<L8> image = new(width, height);
         for (int row = 0; row < image.Height; row++)
         {
             Span<L8> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
@@ -923,8 +1032,8 @@ public class HeifEncoderTests
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(payloadDecoder.SequenceHeader);
         int superblockSize = sequenceHeader.Use128x128Superblock ? 128 : 64;
         ObuTileGroupHeader tiles = payloadDecoder.FrameHeader.TilesInfo;
-        Assert.Equal(Math.Min((int)columns, image.Width / superblockSize), tiles.TileColumnCount);
-        Assert.Equal(Math.Min((int)rows, image.Height / superblockSize), tiles.TileRowCount);
+        Assert.Equal(Math.Min((int)columns, (width + superblockSize - 1) / superblockSize), tiles.TileColumnCount);
+        Assert.Equal(Math.Min((int)rows, (height + superblockSize - 1) / superblockSize), tiles.TileRowCount);
 
         stream.Position = 0;
         using Image<L8> decoded = Image.Load<L8>(stream);

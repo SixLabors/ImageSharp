@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -503,6 +504,153 @@ public class Av1EncoderFrameTests
         }
 
         Assert.True(segmented);
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level8)]
+    public void ImageTuneSequenceReconstructsAsDecoded(HeifEncodingSpeed speed)
+    {
+        // The key frame codes at a lower quantizer than the sequence was created with, and each superblock codes its
+        // own delta quantizer, which must start from the quantizer of the frame.
+        using Image<Rgb24> image = CreateLayerTestImage();
+        bool realtime = speed >= HeifEncodingSpeed.Level7;
+        Av1EncoderOptions options = new(speed, Av1Tuning.Iq, enableRestoration: true, allIntra: false)
+        {
+            UsesConstantBitRate = realtime,
+            MinimumQuantizer = realtime ? 36 : 0,
+            MaximumQuantizer = realtime ? 44 : 63
+        };
+
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            image.Width,
+            image.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            Av1QuantizationLookup.GetQIndex(40),
+            options);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        for (int i = 0; i < 3; i++)
+        {
+            sample.SetLength(0);
+            if (i == 0)
+            {
+                encoder.EncodeKeyFrame(image.Frames.RootFrame, sample);
+            }
+            else
+            {
+                encoder.EncodeNextFrame(image.Frames.RootFrame, sample, forceKeyFrame: false);
+            }
+
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            Assert.True(decoder.FrameHeader!.DeltaQParameters.IsPresent);
+            AssertDecodedLumaMatchesEncoder(encoder, decoder, image.Width, image.Height);
+        }
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level3)]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level8)]
+    public void LayeredImageReconstructsAsDecoded(HeifEncodingSpeed speed)
+    {
+        // Each layer after the first predicts only from the layer before it, in slot 0, and replaces it there. A
+        // constant-quality layer codes at its own quantizer.
+        using Image<Rgb24> image = CreateLayerTestImage();
+        int width = image.Width;
+        int height = image.Height;
+        bool realtime = speed >= HeifEncodingSpeed.Level7;
+        Av1EncoderOptions options = new(speed, Av1Tuning.Iq, enableRestoration: true, allIntra: false)
+        {
+            UsesConstantBitRate = realtime,
+            MinimumQuantizer = realtime ? 51 : 0,
+            MaximumQuantizer = realtime ? 59 : 63,
+            LayerCount = 3,
+            UsesFixedQuantizer = !realtime
+        };
+
+        int[] quantizers = [55, 40, 20];
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            width,
+            height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            Av1QuantizationLookup.GetQIndex(quantizers[0]),
+            options);
+
+        Assert.False(encoder.SequenceHeader.IsStillPicture);
+        Assert.False(encoder.SequenceHeader.Use128x128Superblock);
+
+        // Operating point i decodes spatial layers 0 to 2 - i of the single temporal layer.
+        Assert.Equal([0x701U, 0x301U, 0x101U], encoder.SequenceHeader.OperatingPoint.Select(point => point.Idc));
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        for (int layer = 0; layer < quantizers.Length; layer++)
+        {
+            int quantizer = quantizers[layer];
+            sample.SetLength(0);
+            encoder.EncodeLayer(
+                image.Frames.RootFrame,
+                sample,
+                Av1QuantizationLookup.GetQIndex(quantizer),
+                realtime ? quantizer - 4 : 0,
+                realtime ? quantizer + 4 : 63);
+
+            // Only the first layer starts the temporal unit with a temporal delimiter. Every later layer starts with
+            // its frame, whose header carries the extension byte with the layer.
+            byte[] bytes = sample.ToArray();
+            Assert.Equal(layer == 0 ? 0x12 : 0x36, bytes[0]);
+            decoder.DecodeSequenceReference(bytes, null, null);
+            ObuFrameHeader frameHeader = decoder.FrameHeader!;
+            Assert.Equal(layer, frameHeader.SpatialId);
+            int baseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
+            if (layer == 0)
+            {
+                Assert.Equal(ObuFrameType.KeyFrame, frameHeader.FrameType);
+            }
+            else
+            {
+                Assert.Equal(ObuFrameType.InterFrame, frameHeader.FrameType);
+                Assert.Equal(1U, frameHeader.RefreshFrameFlags);
+                Assert.All(frameHeader.GetReferenceFrameIndices().ToArray(), slot => Assert.Equal(0U, slot));
+            }
+
+            if (realtime)
+            {
+                Assert.InRange(baseQIndex, Av1QuantizationLookup.GetQIndex(quantizer - 4), Av1QuantizationLookup.GetQIndex(quantizer + 4));
+            }
+            else
+            {
+                Assert.Equal(Av1QuantizationLookup.GetQIndex(quantizer), baseQIndex);
+            }
+
+            AssertDecodedLumaMatchesEncoder(encoder, decoder, width, height);
+        }
+
+        Assert.Throws<InvalidOperationException>(() => encoder.EncodeLayer(image.Frames.RootFrame, sample, 100, 0, 63));
+    }
+
+    /// <summary>
+    /// Creates a 96x64 gradient with fine texture for the layer and delta quantizer tests.
+    /// </summary>
+    /// <returns>The image.</returns>
+    private static Image<Rgb24> CreateLayerTestImage()
+    {
+        Image<Rgb24> image = new(96, 64);
+        for (int y = 0; y < image.Height; y++)
+        {
+            Span<Rgb24> row = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 5) + (y * 3) + (((x * 7919) ^ (y * 104729)) & 15)) & 0xFF;
+                row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+            }
+        }
+
+        return image;
     }
 
     /// <summary>

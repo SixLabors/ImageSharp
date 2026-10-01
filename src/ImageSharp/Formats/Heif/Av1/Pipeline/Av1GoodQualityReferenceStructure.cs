@@ -69,6 +69,12 @@ internal sealed class Av1GoodQualityReferenceStructure
     private readonly int[] contextTypeSlots = [-1, -1, -1, -1, -1, -1, -1, -1];
 
     /// <summary>
+    /// The slot of each named reference of the last frame that mapped its references, LAST first. A frame whose
+    /// external flags request a refresh keeps this map. Reference: cm->remapped_ref_idx.
+    /// </summary>
+    private readonly int[] remappedSlots = new int[ReferenceCount];
+
+    /// <summary>
     /// The frame's index in its golden group. Reference: cpi->gf_frame_index.
     /// </summary>
     private int groupIndex;
@@ -126,7 +132,13 @@ internal sealed class Av1GoodQualityReferenceStructure
     /// <param name="frameHeader">The frame header that receives the slots and the primary reference.</param>
     /// <param name="framesSinceKey">The number of frames since the last key frame. Reference: frame_number.</param>
     /// <param name="framesToKey">The number of frames left before the next key frame. Reference: rc->frames_to_key.</param>
-    public void Configure(ObuFrameHeader frameHeader, int framesSinceKey, int framesToKey)
+    /// <param name="usesLayerFlags">
+    /// Whether the frame is a layer after the first. Its flags refresh only LAST, so the frame keeps the reference map
+    /// of the frame before it and refreshes the slot of LAST. Reference: the update_pending tests of
+    /// av1_encode_strategy() and av1_get_refresh_frame_flags(), with the ext_refresh_frame_flags that
+    /// av1_apply_encoding_flags() sets for AOM_EFLAG_NO_UPD_GF and AOM_EFLAG_NO_UPD_ARF.
+    /// </param>
+    public void Configure(ObuFrameHeader frameHeader, int framesSinceKey, int framesToKey, bool usesLayerFlags = false)
     {
         bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
         this.displayOrder = framesSinceKey;
@@ -152,15 +164,31 @@ internal sealed class Av1GoodQualityReferenceStructure
         Span<int> pairLevel = stackalloc int[SlotCount];
         this.InitializeReferenceMapPairs(keyFrame, pairOrder, pairLevel);
 
-        Span<int> remapped = stackalloc int[SlotCount];
-        GetReferenceFrames(pairOrder, pairLevel, this.displayOrder, remapped);
         Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
-        for (int reference = 0; reference < ReferenceCount; reference++)
+        if (usesLayerFlags && !keyFrame)
         {
-            referenceFrameIndices[reference] = (uint)remapped[reference];
+            // A pending external refresh maps no references, so the frame keeps the map of the frame before it, and
+            // only the LAST refresh of the external flags is set.
+            for (int reference = 0; reference < ReferenceCount; reference++)
+            {
+                referenceFrameIndices[reference] = (uint)this.remappedSlots[reference];
+            }
+
+            frameHeader.RefreshFrameFlags = 1U << this.remappedSlots[(int)Av1ReferenceFrameType.Last - 1];
+        }
+        else
+        {
+            Span<int> remapped = stackalloc int[SlotCount];
+            GetReferenceFrames(pairOrder, pairLevel, this.displayOrder, remapped);
+            for (int reference = 0; reference < ReferenceCount; reference++)
+            {
+                referenceFrameIndices[reference] = (uint)remapped[reference];
+                this.remappedSlots[reference] = remapped[reference];
+            }
+
+            frameHeader.RefreshFrameFlags = keyFrame ? byte.MaxValue : GetRefreshFrameFlags(pairOrder, pairLevel, this.displayOrder);
         }
 
-        frameHeader.RefreshFrameFlags = keyFrame ? byte.MaxValue : GetRefreshFrameFlags(pairOrder, pairLevel, this.displayOrder);
         frameHeader.PrimaryReferenceFrame = this.ChoosePrimaryReferenceFrame(frameHeader);
     }
 
@@ -191,6 +219,7 @@ internal sealed class Av1GoodQualityReferenceStructure
         for (int reference = 0; reference < ReferenceCount; reference++)
         {
             referenceFrameIndices[reference] = (uint)remapped[reference];
+            this.remappedSlots[reference] = remapped[reference];
         }
 
         frameHeader.RefreshFrameFlags = frame.IsNonReference

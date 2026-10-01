@@ -41,6 +41,11 @@ internal sealed partial class HeifEncoderCore
     private const int AuxiliaryTypePropertyBoxFixedLength = 13;
     private const int IccColorInformationPropertyBoxFixedLength = 12;
     private const int CicpColorInformationPropertyBoxLength = 19;
+
+    /// <summary>
+    /// The length of a layered image index property before its three layer sizes: the box header and the flags byte.
+    /// </summary>
+    private const int LayeredImageIndexPropertyBoxFixedLength = BasicBoxHeaderLength + 1;
     private const int MaximumCompactPropertyIndex = 0x7F;
     private const ushort EssentialPropertyFlag = 0x8000;
     private const byte CompactEssentialPropertyFlag = 0x80;
@@ -127,6 +132,27 @@ internal sealed partial class HeifEncoderCore
         if (image.Frames.Count > 1 && (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue))
         {
             throw new NotSupportedException("AV1 image-sequence dimensions cannot exceed 65535 pixels.");
+        }
+
+        IReadOnlyList<HeifLayer>? layers = this.encoder.Layers;
+        if (layers is not null)
+        {
+            // libavif refuses layers for image sequences, and avifenc refuses them for lossless coding. A layered grid
+            // is not supported. Reference: the extraLayerCount checks of avifEncoderAddImageInternal() and avifenc.
+            if (image.Frames.Count > 1)
+            {
+                throw new NotSupportedException("A layered image must have one frame.");
+            }
+
+            if (this.encoder.Lossless)
+            {
+                throw new NotSupportedException("A layered image cannot be lossless.");
+            }
+
+            if (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
+            {
+                throw new NotSupportedException($"A layered image cannot be wider or taller than {Av1Constants.MaxFrameDimension} pixels.");
+            }
         }
 
         using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
@@ -420,6 +446,9 @@ internal sealed partial class HeifEncoderCore
                 : IccColorInformationPropertyBoxFixedLength + item.GetIccProfileDataForWriting().Length;
 
             propertyBytes += item.CicpProfile is null ? 0 : CicpColorInformationPropertyBoxLength;
+            propertyBytes += item.Av1LayeredImageIndex is Av1LayeredImageIndex layeredImageIndex
+                ? GetLayeredImageIndexPropertyBoxLength(layeredImageIndex)
+                : 0;
         }
 
         int associationSize = propertyCount > MaximumCompactPropertyIndex ? sizeof(ushort) : sizeof(byte);
@@ -645,6 +674,12 @@ internal sealed partial class HeifEncoderCore
                 bytesWritten += WriteColorInformationPropertyBox(memory, memoryOffset + bytesWritten, cicpProfile);
                 nextPropertyIndex++;
             }
+
+            if (item.Av1LayeredImageIndex is Av1LayeredImageIndex layeredImageIndex)
+            {
+                bytesWritten += WriteLayeredImageIndexPropertyBox(memory, memoryOffset + bytesWritten, layeredImageIndex);
+                nextPropertyIndex++;
+            }
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipcoLengthOffset..], (uint)(bytesWritten - ipcoLengthOffset));
@@ -712,6 +747,13 @@ internal sealed partial class HeifEncoderCore
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
+
+            // A reader may ignore the layer index and decode every layer. Reference: the non-essential a1lx
+            // association of avifEncoderWriteItemProperties().
+            if (propertyItem.Av1LayeredImageIndex is not null)
+            {
+                WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
+            }
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipmaLengthOffset..], (uint)(bytesWritten - ipmaLengthOffset));
@@ -734,7 +776,58 @@ internal sealed partial class HeifEncoderCore
         count += item.AuxiliaryType is not null ? 1 : 0;
         count += item.IccProfile is not null ? 1 : 0;
         count += item.CicpProfile is not null ? 1 : 0;
+        count += item.Av1LayeredImageIndex is not null ? 1 : 0;
         return count;
+    }
+
+    /// <summary>
+    /// Gets the length of a layered image index property: 16-bit layer sizes, or 32-bit sizes when a size needs them.
+    /// </summary>
+    /// <param name="index">The layer index.</param>
+    /// <returns>The complete layered-image-index-box length.</returns>
+    private static int GetLayeredImageIndexPropertyBoxLength(Av1LayeredImageIndex index)
+        => LayeredImageIndexPropertyBoxFixedLength + (3 * (UsesLargeLayerSizes(index) ? sizeof(uint) : sizeof(ushort)));
+
+    /// <summary>
+    /// Returns whether a layer size of the index does not fit in 16 bits. Reference: large_size in the a1lx writer of
+    /// avifEncoderWriteItemProperties().
+    /// </summary>
+    /// <param name="index">The layer index.</param>
+    /// <returns><see langword="true"/> when the index stores 32-bit sizes.</returns>
+    private static bool UsesLargeLayerSizes(Av1LayeredImageIndex index)
+        => index.FirstLayerSize > ushort.MaxValue || index.SecondLayerSize > ushort.MaxValue || index.ThirdLayerSize > ushort.MaxValue;
+
+    /// <summary>
+    /// Writes the size of each layer but the last of a layered AV1 image item.
+    /// </summary>
+    /// <param name="memory">The preallocated metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="index">The layer index to write.</param>
+    /// <returns>The complete layered-image-index-box length.</returns>
+    private static int WriteLayeredImageIndexPropertyBox(Span<byte> memory, int memoryOffset, Av1LayeredImageIndex index)
+    {
+        bool largeSize = UsesLargeLayerSizes(index);
+        Span<byte> buffer = memory.Slice(memoryOffset, GetLayeredImageIndexPropertyBoxLength(index));
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.A1lx);
+
+        // Seven reserved bits, then large_size.
+        buffer[bytesWritten++] = largeSize ? (byte)1 : (byte)0;
+        foreach (uint size in (ReadOnlySpan<uint>)[index.FirstLayerSize, index.SecondLayerSize, index.ThirdLayerSize])
+        {
+            if (largeSize)
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], size);
+                bytesWritten += sizeof(uint);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)size);
+                bytesWritten += sizeof(ushort);
+            }
+        }
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
+        return bytesWritten;
     }
 
     /// <summary>
@@ -1027,6 +1120,20 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        if (this.encoder.Layers is IReadOnlyList<HeifLayer> layers)
+        {
+            Av1EncodingSettings layeredSettings = this.ResolveAv1Encoding(image, allIntra: false, layers);
+            Av1ImageItemEncoding layeredEncoding = this.CompressAv1LayeredImageItem(
+                image.Frames.RootFrame,
+                stream,
+                layeredSettings,
+                layers,
+                cancellationToken);
+
+            this.WriteAv1ImageItems(image, stream, layeredSettings, layeredEncoding, items, links);
+            return;
+        }
+
         Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: true);
         if (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
         {
@@ -1361,8 +1468,168 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Declares a primary AV1 image item over existing payload extents and appends its associated metadata payloads.
+    /// Encodes the layers of a layered still image as the color and optional alpha payloads of one AV1 image item. Each
+    /// layer is one frame of a sequence, coded at the quality of the layer. The media data holds the first layer of the
+    /// alpha and then of the color, then the second layer of each, and so on, so a viewer can show each layer as soon
+    /// as it arrives. Reference: the layer loop of avifenc, which calls avifEncoderAddImage() once per layer, and the
+    /// layer interleaving of avifEncoderWriteMediaDataBox().
     /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="frame">The frame to encode.</param>
+    /// <param name="stream">The shared destination for consecutive item payloads.</param>
+    /// <param name="settings">The resolved settings of the layered encoding.</param>
+    /// <param name="layers">The layers, from the first to the last.</param>
+    /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
+    /// <returns>The payload extents of each layer.</returns>
+    private Av1ImageItemEncoding CompressAv1LayeredImageItem<TPixel>(
+        ImageFrame<TPixel> frame,
+        ChunkedMemoryStream stream,
+        Av1EncodingSettings settings,
+        IReadOnlyList<HeifLayer> layers,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Reference: DEFAULT_QUALITY of avifenc, and the alpha quality that a layer keeps from the encoder.
+        int quality = this.encoder.Quality ?? 60;
+        int alphaQuality = this.encoder.AlphaQuality ?? quality;
+        int layerCount = layers.Count;
+        ChunkedMemoryStream?[] colorLayers = new ChunkedMemoryStream?[layerCount];
+        ChunkedMemoryStream?[] alphaLayers = new ChunkedMemoryStream?[layerCount];
+        try
+        {
+            ObuSequenceHeader colorHeader = this.CompressAv1Layers(
+                frame,
+                settings.ColorConfig,
+                settings.ColorOptions,
+                settings.ColorQIndex,
+                layers,
+                colorLayers,
+                static (layer, encoderQuality) => layer.Quality ?? encoderQuality,
+                quality,
+                encodeAlpha: false,
+                cancellationToken);
+
+            Av1CodecConfiguration? alphaConfiguration = null;
+            if (settings.HasAlpha)
+            {
+                ObuSequenceHeader alphaHeader = this.CompressAv1Layers(
+                    frame,
+                    settings.AlphaConfig,
+                    settings.AlphaOptions,
+                    settings.AlphaQIndex,
+                    layers,
+                    alphaLayers,
+                    static (layer, encoderQuality) => layer.AlphaQuality ?? encoderQuality,
+                    alphaQuality,
+                    encodeAlpha: true,
+                    cancellationToken);
+
+                alphaConfiguration = new Av1CodecConfiguration(alphaHeader);
+            }
+
+            // Each layer of the alpha precedes the same layer of the color. Reference: the samplePass loop of
+            // avifEncoderWriteMediaDataBox().
+            HeifLocation[] colorLocations = new HeifLocation[layerCount];
+            HeifLocation[]? alphaLocations = settings.HasAlpha ? new HeifLocation[layerCount] : null;
+            for (int layer = 0; layer < layerCount; layer++)
+            {
+                if (alphaLocations is not null)
+                {
+                    alphaLocations[layer] = AppendLayer(stream, alphaLayers[layer]!);
+                }
+
+                colorLocations[layer] = AppendLayer(stream, colorLayers[layer]!);
+            }
+
+            return new Av1ImageItemEncoding(
+                new Av1CodecConfiguration(colorHeader),
+                colorLocations,
+                alphaConfiguration,
+                alphaLocations);
+        }
+        finally
+        {
+            for (int layer = 0; layer < layerCount; layer++)
+            {
+                colorLayers[layer]?.Dispose();
+                alphaLayers[layer]?.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Copies one coded layer to the end of the shared payload.
+    /// </summary>
+    /// <param name="stream">The shared payload.</param>
+    /// <param name="layer">The coded bytes of the layer.</param>
+    /// <returns>The extent of the layer within the payload.</returns>
+    private static HeifLocation AppendLayer(ChunkedMemoryStream stream, ChunkedMemoryStream layer)
+    {
+        long offset = stream.Length;
+        layer.WriteTo(stream);
+        return new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, offset, stream.Length - offset);
+    }
+
+    /// <summary>
+    /// Codes every layer of one plane group of a layered image, color or alpha, with one sequence encoder. Each layer
+    /// is coded into its own buffer.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="frame">The frame to encode.</param>
+    /// <param name="colorConfig">The color configuration of the coded planes.</param>
+    /// <param name="options">The codec options of the coded planes.</param>
+    /// <param name="firstQIndex">The quantizer index of the first layer, which the encoder starts from.</param>
+    /// <param name="layers">The layers, from the first to the last.</param>
+    /// <param name="layerBuffers">Receives the coded bytes of each layer. The caller disposes each buffer.</param>
+    /// <param name="getQuality">Returns the quality of a layer, given the layer and the quality of the encoder.</param>
+    /// <param name="quality">The quality of the encoder for the coded planes.</param>
+    /// <param name="encodeAlpha">Whether the coded planes are the alpha of the image.</param>
+    /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
+    /// <returns>The sequence header of the coded layers.</returns>
+    private ObuSequenceHeader CompressAv1Layers<TPixel>(
+        ImageFrame<TPixel> frame,
+        ObuColorConfig colorConfig,
+        Av1EncoderOptions options,
+        int firstQIndex,
+        IReadOnlyList<HeifLayer> layers,
+        ChunkedMemoryStream?[] layerBuffers,
+        Func<HeifLayer, int, int> getQuality,
+        int quality,
+        bool encodeAlpha,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Only the image tune has its own quality curve, because libavif detects only tune=iq. Reference: tuneIqEnum.
+        bool imageTune = options.Tuning == Av1Tuning.Iq;
+        bool constantBitRate = options.UsesConstantBitRate;
+        using Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
+            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(this.configuration, frame.Width, frame.Height, colorConfig, firstQIndex, options)
+            : Av1FrameEncoder.CreateColorSequenceEncoder(this.configuration, frame.Width, frame.Height, colorConfig, firstQIndex, options);
+
+        for (int layer = 0; layer < layers.Count; layer++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ChunkedMemoryStream buffer = new(this.configuration.MemoryAllocator);
+            layerBuffers[layer] = buffer;
+            int quantizer = GetAv1Quantizer(getQuality(layers[layer], quality), imageTune);
+            (int minimumQuantizer, int maximumQuantizer) = GetQuantizerRange(quantizer, constantBitRate);
+            encoder.EncodeLayer(frame, buffer, Av1QuantizationLookup.GetQIndex(quantizer), minimumQuantizer, maximumQuantizer);
+        }
+
+        return encoder.SequenceHeader;
+    }
+
+    /// <summary>
+    /// Declares a primary AV1 image item over existing payload extents and appends its associated metadata payloads.
+    /// An item of several extents is a layered item, and gets the size of each layer but the last as a layer index.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The source image, which gives the item size and metadata.</param>
+    /// <param name="stream">The shared payload, which receives the metadata payloads.</param>
+    /// <param name="settings">The resolved settings of the encoding.</param>
+    /// <param name="encoding">The codec configurations and payload extents of the color and alpha.</param>
+    /// <param name="items">The destination item declarations.</param>
+    /// <param name="links">The destination item relationships.</param>
     private void WriteAv1ImageItems<TPixel>(
         Image<TPixel> image,
         ChunkedMemoryStream stream,
@@ -1383,13 +1650,8 @@ internal sealed partial class HeifEncoderCore
             CicpProfile = settings.ColorProfile
         };
 
-        colorItem.DataLocations.Add(
-            new HeifLocation(
-                HeifLocationOffsetOrigin.FileOffset,
-                0L,
-                encoding.ColorOffset,
-                encoding.ColorLength));
-
+        colorItem.DataLocations.AddRange(encoding.ColorLocations);
+        colorItem.Av1LayeredImageIndex = GetLayeredImageIndex(encoding.ColorLocations);
         colorItem.SetExtent(image.Size);
         items.Add(colorItem);
 
@@ -1405,13 +1667,8 @@ internal sealed partial class HeifEncoderCore
                 AuxiliaryType = HeifConstants.AlphaAuxiliaryType
             };
 
-            alphaItem.DataLocations.Add(
-                new HeifLocation(
-                    HeifLocationOffsetOrigin.FileOffset,
-                    0L,
-                    encoding.AlphaOffset,
-                    encoding.AlphaLength));
-
+            alphaItem.DataLocations.AddRange(encoding.AlphaLocations!);
+            alphaItem.Av1LayeredImageIndex = GetLayeredImageIndex(encoding.AlphaLocations!);
             alphaItem.SetExtent(image.Size);
             items.Add(alphaItem);
             HeifItemLink alphaLink = new(Heif4CharCode.Auxl, alphaItem.Id);
@@ -1420,6 +1677,25 @@ internal sealed partial class HeifEncoderCore
         }
 
         this.WriteMetadataItems(image, stream, colorItem, items, links);
+    }
+
+    /// <summary>
+    /// Returns the layer index of a layered item: the size of each layer but the last, in the first three entries, and
+    /// zero in the rest. Reference: the a1lx writer of avifEncoderWriteItemProperties().
+    /// </summary>
+    /// <param name="layers">The payload extent of each layer.</param>
+    /// <returns>The layer index, or <see langword="null"/> for an item of one extent.</returns>
+    private static Av1LayeredImageIndex? GetLayeredImageIndex(HeifLocation[] layers)
+    {
+        if (layers.Length < 2)
+        {
+            return null;
+        }
+
+        return new Av1LayeredImageIndex(
+            checked((uint)layers[0].Length),
+            layers.Length > 2 ? checked((uint)layers[1].Length) : 0,
+            layers.Length > 3 ? checked((uint)layers[2].Length) : 0);
     }
 
     /// <summary>
@@ -1533,6 +1809,15 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     private readonly struct Av1ImageItemEncoding
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Av1ImageItemEncoding"/> struct for an item of one frame.
+        /// </summary>
+        /// <param name="colorConfiguration">The codec configuration of the color payload.</param>
+        /// <param name="colorOffset">The offset of the color payload within the media data.</param>
+        /// <param name="colorLength">The length of the color payload.</param>
+        /// <param name="alphaConfiguration">The codec configuration of the alpha payload, or <see langword="null"/> without alpha.</param>
+        /// <param name="alphaOffset">The offset of the alpha payload within the media data.</param>
+        /// <param name="alphaLength">The length of the alpha payload.</param>
         public Av1ImageItemEncoding(
             Av1CodecConfiguration colorConfiguration,
             long colorOffset,
@@ -1540,25 +1825,52 @@ internal sealed partial class HeifEncoderCore
             Av1CodecConfiguration? alphaConfiguration,
             long alphaOffset,
             long alphaLength)
+            : this(
+                colorConfiguration,
+                [new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, colorOffset, colorLength)],
+                alphaConfiguration,
+                alphaConfiguration is null ? null : [new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, alphaOffset, alphaLength)])
         {
-            this.ColorConfiguration = colorConfiguration;
-            this.ColorOffset = colorOffset;
-            this.ColorLength = colorLength;
-            this.AlphaConfiguration = alphaConfiguration;
-            this.AlphaOffset = alphaOffset;
-            this.AlphaLength = alphaLength;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Av1ImageItemEncoding"/> struct for an item of one extent per
+        /// layer.
+        /// </summary>
+        /// <param name="colorConfiguration">The codec configuration of the color payload.</param>
+        /// <param name="colorLocations">The color payload extent of each layer.</param>
+        /// <param name="alphaConfiguration">The codec configuration of the alpha payload, or <see langword="null"/> without alpha.</param>
+        /// <param name="alphaLocations">The alpha payload extent of each layer, or <see langword="null"/> without alpha.</param>
+        public Av1ImageItemEncoding(
+            Av1CodecConfiguration colorConfiguration,
+            HeifLocation[] colorLocations,
+            Av1CodecConfiguration? alphaConfiguration,
+            HeifLocation[]? alphaLocations)
+        {
+            this.ColorConfiguration = colorConfiguration;
+            this.ColorLocations = colorLocations;
+            this.AlphaConfiguration = alphaConfiguration;
+            this.AlphaLocations = alphaLocations;
+        }
+
+        /// <summary>
+        /// Gets the codec configuration of the color payload.
+        /// </summary>
         public Av1CodecConfiguration ColorConfiguration { get; }
 
-        public long ColorOffset { get; }
+        /// <summary>
+        /// Gets the color payload extents: one extent, or one per layer of a layered image.
+        /// </summary>
+        public HeifLocation[] ColorLocations { get; }
 
-        public long ColorLength { get; }
-
+        /// <summary>
+        /// Gets the codec configuration of the alpha payload, or <see langword="null"/> without alpha.
+        /// </summary>
         public Av1CodecConfiguration? AlphaConfiguration { get; }
 
-        public long AlphaOffset { get; }
-
-        public long AlphaLength { get; }
+        /// <summary>
+        /// Gets the alpha payload extents, or <see langword="null"/> without alpha.
+        /// </summary>
+        public HeifLocation[]? AlphaLocations { get; }
     }
 }

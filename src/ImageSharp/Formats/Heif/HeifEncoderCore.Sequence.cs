@@ -125,9 +125,19 @@ internal sealed partial class HeifEncoderCore
         return HeifChromaSubsampling.Yuv444;
     }
 
-    private Av1EncodingSettings ResolveAv1Encoding<TPixel>(Image<TPixel> image, bool allIntra)
+    /// <summary>
+    /// Resolves the bit depth, chroma sampling, color description, quantizers and codec options of an encoding.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <param name="image">The source image.</param>
+    /// <param name="allIntra">Whether the encoding is a still image without layers, which libavif codes in all-intra usage.</param>
+    /// <param name="layers">The layers of a layered still image, or <see langword="null"/> for an image without layers.</param>
+    /// <returns>The resolved settings.</returns>
+    private Av1EncodingSettings ResolveAv1Encoding<TPixel>(Image<TPixel> image, bool allIntra, IReadOnlyList<HeifLayer>? layers = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        bool layered = layers is not null;
+        int layerCount = layers?.Count ?? 1;
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         HeifBitDepth bitDepth = this.encoder.BitDepth ?? metadata.BitDepth;
         Av1BitDepth av1BitDepth = bitDepth switch
@@ -234,10 +244,10 @@ internal sealed partial class HeifEncoderCore
         };
 
         // A tune that the caller sets applies to color and alpha. Otherwise libavif picks it: lossless coding keeps the
-        // libaom default, alpha uses PSNR to limit ringing, and color uses the image tune for all-intra images whose
-        // matrix is not identity, else SSIM. Reference: avifAOMOptionsContainExplicitTuning() and the default tune
-        // metric of aomCodecEncodeImage(). Only the image tune changes the quality curve, because libavif detects only
-        // tune=iq. Reference: tuneIqEnum.
+        // libaom default, alpha uses PSNR to limit ringing, and color uses the image tune for all-intra and layered
+        // images whose matrix is not identity, else SSIM. Reference: avifAOMOptionsContainExplicitTuning() and the
+        // default tune metric of aomCodecEncodeImage(). Only the image tune changes the quality curve, because libavif
+        // detects only tune=iq. Reference: tuneIqEnum.
         Av1Tuning? requestedTuning = this.encoder.Tuning switch
         {
             HeifTuning.Psnr => Av1Tuning.Psnr,
@@ -249,14 +259,21 @@ internal sealed partial class HeifEncoderCore
 
         Av1Tuning colorTuning = requestedTuning ?? (this.encoder.Lossless
             ? Av1Tuning.Psnr
-            : allIntra && colorProfile.MatrixCoefficients != CicpMatrixCoefficients.Identity ? Av1Tuning.Iq : Av1Tuning.Ssim);
+            : (allIntra || layered) && colorProfile.MatrixCoefficients != CicpMatrixCoefficients.Identity ? Av1Tuning.Iq : Av1Tuning.Ssim);
 
         Av1Tuning alphaTuning = requestedTuning ?? Av1Tuning.Psnr;
 
-        // Reference: DEFAULT_QUALITY of avifenc.
+        // Reference: DEFAULT_QUALITY of avifenc. A layered image starts the encoder at the quality of its first layer.
+        // Reference: the encoder initialization of aomCodecEncodeImage() for the first layer.
         int quality = this.encoder.Quality ?? 60;
-        int colorQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuality = this.encoder.AlphaQuality ?? quality;
+        if (layers is not null)
+        {
+            quality = layers[0].Quality ?? quality;
+            alphaQuality = layers[0].AlphaQuality ?? alphaQuality;
+        }
+
+        int colorQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality, colorTuning == Av1Tuning.Iq);
         int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality, alphaTuning == Av1Tuning.Iq);
         bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
 
@@ -273,10 +290,11 @@ internal sealed partial class HeifEncoderCore
         int colorQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality, alphaTuning == Av1Tuning.Iq);
 
-        // Good-quality sequences keep libaom's default lookahead of 35 frames, except when alpha is present.
-        // Reference: the g_lag_in_frames default of the good-quality usage, and disableLaggedOutput of
-        // aomCodecEncodeImage(), which avifEncoderAddImageInternal() sets when alpha is present.
-        int colorLag = allIntra || constantBitRate || hasAlpha ? 0 : DefaultLagInFrames;
+        // Good-quality sequences keep libaom's default lookahead of 35 frames, except when alpha is present. A layered
+        // image codes without lookahead, so each layer gives its own output. Reference: the g_lag_in_frames default of
+        // the good-quality usage, disableLaggedOutput of aomCodecEncodeImage(), which avifEncoderAddImageInternal()
+        // sets when alpha is present, and the g_lag_in_frames of 0 that aomCodecEncodeImage() sets for layers.
+        int colorLag = allIntra || constantBitRate || hasAlpha || layered ? 0 : DefaultLagInFrames;
 
         // Automatic tiling sizes the tiles from the first cell, which is the whole frame unless an oversized still
         // image becomes a grid. Reference: the automatic tiling step of avifEncoderAddImageInternal().
@@ -300,17 +318,25 @@ internal sealed partial class HeifEncoderCore
             CreateOptions(colorTuning, colorQuantizer, colorLag),
             CreateOptions(alphaTuning, alphaQuantizer, 0));
 
-        // Constant-quality coding keeps the default quantizer range of 0 to 63. Only the constant and variable
-        // bit-rate modes narrow it to four steps either side of the requested quantizer.
-        // Reference: the rc_min_quantizer and rc_max_quantizer setup of aomCodecEncodeImage().
+        // Creates the codec options of the color or the alpha.
         Av1EncoderOptions CreateOptions(Av1Tuning tuning, int quantizer, int lagInFrames)
             => new(this.encoder.Speed, tuning, enableRestoration, allIntra)
             {
                 UsesConstantBitRate = constantBitRate,
-                MinimumQuantizer = !constantBitRate ? 0 : quantizer == 0 ? 0 : Math.Max(quantizer - 4, 0),
-                MaximumQuantizer = !constantBitRate ? 63 : quantizer == 0 ? 0 : Math.Min(quantizer + 4, 63),
+                MinimumQuantizer = GetQuantizerRange(quantizer, constantBitRate).Minimum,
+                MaximumQuantizer = GetQuantizerRange(quantizer, constantBitRate).Maximum,
                 LagInFrames = lagInFrames,
-                KeyFrameMaximumDistance = this.encoder.KeyFrameInterval ?? Av1EncoderOptions.DefaultKeyFrameMaximumDistance,
+
+                // A layered image in constant-quality coding codes every layer at the quantizer of its own quality.
+                // Reference: the AOME_SET_NUMBER_SPATIAL_LAYERS control and use_fixed_qp_offsets of 2 that
+                // aomCodecEncodeImage() sets for layers.
+                LayerCount = layerCount,
+                UsesFixedQuantizer = layered && !constantBitRate,
+
+                // The key frame interval applies to animations, so a layered still image keeps the default.
+                KeyFrameMaximumDistance = layered
+                    ? Av1EncoderOptions.DefaultKeyFrameMaximumDistance
+                    : this.encoder.KeyFrameInterval ?? Av1EncoderOptions.DefaultKeyFrameMaximumDistance,
                 Sharpness = this.encoder.Sharpness ?? Av1EncoderOptions.GetDefaultSharpness(tuning),
                 TileRowsLog2 = tileRowsLog2,
                 TileColumnsLog2 = tileColumnsLog2,
@@ -332,6 +358,24 @@ internal sealed partial class HeifEncoderCore
                         _ => Av1AdaptiveQuantizationMode.None
                     }
             };
+    }
+
+    /// <summary>
+    /// Returns the quantizer range of a coding. Constant-quality coding keeps the default range of 0 to 63. The constant
+    /// bit-rate mode narrows it to four steps either side of the requested quantizer, and lossless coding to 0.
+    /// Reference: the rc_min_quantizer and rc_max_quantizer setup of aomCodecEncodeImage().
+    /// </summary>
+    /// <param name="quantizer">The requested quantizer on libaom's zero-through-63 scale.</param>
+    /// <param name="constantBitRate">Whether the coding uses the constant bit-rate mode.</param>
+    /// <returns>The lowest and highest quantizer on libaom's zero-through-63 scale.</returns>
+    private static (int Minimum, int Maximum) GetQuantizerRange(int quantizer, bool constantBitRate)
+    {
+        if (!constantBitRate)
+        {
+            return (0, 63);
+        }
+
+        return quantizer == 0 ? (0, 0) : (Math.Max(quantizer - 4, 0), Math.Min(quantizer + 4, 63));
     }
 
     /// <summary>

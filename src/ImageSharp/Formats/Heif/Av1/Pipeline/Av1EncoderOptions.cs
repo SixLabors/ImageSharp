@@ -203,6 +203,21 @@ internal sealed class Av1EncoderOptions
     public int KeyFrameMaximumDistance { get; init; } = DefaultKeyFrameMaximumDistance;
 
     /// <summary>
+    /// Gets the number of spatial layers of a layered image, or 1 for an image without layers. Each layer is one frame
+    /// of the sequence, so the count also limits the number of frames. The sequence header then lists one operating
+    /// point per layer, each frame carries its layer in an OBU extension header, and the superblocks are 64x64.
+    /// Reference: AOME_SET_NUMBER_SPATIAL_LAYERS and the g_limit that libavif sets to the layer count.
+    /// </summary>
+    public int LayerCount { get; init; } = 1;
+
+    /// <summary>
+    /// Gets a value indicating whether every frame of a constant-quality sequence codes at the constant-quality index,
+    /// with no key frame or golden frame boost. libavif selects it for layered images. Reference: use_fixed_qp_offsets
+    /// of 2, which av1_set_size_dependent_vars() reads with the AOM_Q end usage.
+    /// </summary>
+    public bool UsesFixedQuantizer { get; init; }
+
+    /// <summary>
     /// Gets the number of tile columns as a power of two: 0 is one column, 1 is two, 2 is four.
     /// </summary>
     public int TileColumnsLog2 { get; init; }

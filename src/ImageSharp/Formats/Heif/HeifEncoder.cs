@@ -41,6 +41,11 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private string? filmGrainTable;
 
     /// <summary>
+    /// Backing field for <see cref="Layers"/>.
+    /// </summary>
+    private IReadOnlyList<HeifLayer>? layers;
+
+    /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60.
     /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
     /// enable <see cref="Lossless"/> encoding.
@@ -116,9 +121,9 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// <summary>
     /// Gets the quality measure that the encoder optimizes for, or <see langword="null"/> to let the encoder decide.
     /// The setting applies to the primary and auxiliary alpha images. When it is <see langword="null"/>, lossless
-    /// images and the auxiliary alpha image use <see cref="HeifTuning.Psnr"/>, other still color images use
-    /// <see cref="HeifTuning.ImageQuality"/> unless they are stored as RGB, and other color images use
-    /// <see cref="HeifTuning.Ssim"/>.
+    /// images and the auxiliary alpha image use <see cref="HeifTuning.Psnr"/>, other still color images, with or
+    /// without <see cref="Layers"/>, use <see cref="HeifTuning.ImageQuality"/> unless they are stored as RGB, and other
+    /// color images use <see cref="HeifTuning.Ssim"/>.
     /// </summary>
     public HeifTuning? Tuning { get; init; }
 
@@ -184,6 +189,42 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     internal Av1FilmGrainTable? ParsedFilmGrainTable { get; private init; }
 
     /// <summary>
+    /// Gets the layers of a layered image, from the first layer to the last, or <see langword="null"/> for an image
+    /// without layers. A viewer can show each layer as soon as it arrives, so the image appears quickly at a low quality
+    /// and then gets sharper. Give the first layers a low quality: each layer makes the file larger. The list holds 2 to
+    /// 4 layers. Only a still image can have layers, and it cannot be <see cref="Lossless"/> or wider or taller than
+    /// 65,536 pixels; encoding any other image with layers throws a <see cref="NotSupportedException"/>. Defaults to
+    /// <see langword="null"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The list holds fewer than 2 or more than 4 layers, or holds a null layer.</exception>
+    public IReadOnlyList<HeifLayer>? Layers
+    {
+        get => this.layers;
+        init
+        {
+            if (value is null)
+            {
+                this.layers = null;
+                return;
+            }
+
+            if (value.Count is < 2 or > 4)
+            {
+                throw new ArgumentException("Layers must hold 2 to 4 layers.");
+            }
+
+            // A read-only copy keeps later changes to the caller's list out of the encoder.
+            HeifLayer[] copy = new HeifLayer[value.Count];
+            for (int i = 0; i < copy.Length; i++)
+            {
+                copy[i] = value[i] ?? throw new ArgumentException("Layers must not hold a null layer.");
+            }
+
+            this.layers = Array.AsReadOnly(copy);
+        }
+    }
+
+    /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit
     /// depth. Metadata that does not specify a bit depth defaults to <see cref="HeifBitDepth.Bit8"/>.
     /// </summary>
@@ -201,7 +242,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// <summary>
     /// Gets the largest number of frames from one key frame to the next in an animation, or <see langword="null"/>
     /// to let the encoder decide. A value of 1 makes every frame a key frame. A player can start or seek only at a
-    /// key frame, and more key frames make a larger file.
+    /// key frame, and more key frames make a larger file. An image with <see cref="Layers"/> ignores this setting.
     /// </summary>
     /// <exception cref="ArgumentException">The interval is less than 1.</exception>
     public int? KeyFrameInterval

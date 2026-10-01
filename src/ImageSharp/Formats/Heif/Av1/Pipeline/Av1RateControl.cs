@@ -79,8 +79,17 @@ internal sealed class Av1RateControl
     private readonly int width;
     private readonly int height;
     private readonly int macroblockCount;
-    private readonly int bestQuality;
-    private readonly int worstQuality;
+
+    /// <summary>
+    /// The lowest allowed quantizer index. Reference: rc->best_quality.
+    /// </summary>
+    private int bestQuality;
+
+    /// <summary>
+    /// The highest allowed quantizer index. Reference: rc->worst_quality.
+    /// </summary>
+    private int worstQuality;
+
     private readonly bool accurateBitEstimate;
     private readonly double framerate;
     private readonly long startingBufferLevel;
@@ -215,6 +224,20 @@ internal sealed class Av1RateControl
     /// Gets the frames left before the next key frame. Reference: rc->frames_to_key.
     /// </summary>
     public int FramesToKey => this.framesToKey;
+
+    /// <summary>
+    /// Sets the allowed quantizer range after a configuration change, which libavif makes before each layer of a
+    /// layered image whose quality differs from the layer before it. The rest of the configuration change keeps the
+    /// model as it is, because the bit rate and frame rate do not change. Reference: the worst_quality and
+    /// best_quality assignments of av1_change_config().
+    /// </summary>
+    /// <param name="bestAllowedQIndex">The lowest quantizer index the frames may use. Reference: best_allowed_q.</param>
+    /// <param name="worstAllowedQIndex">The highest quantizer index the frames may use. Reference: worst_allowed_q.</param>
+    public void SetQuantizerRange(int bestAllowedQIndex, int worstAllowedQIndex)
+    {
+        this.bestQuality = bestAllowedQIndex;
+        this.worstQuality = worstAllowedQIndex;
+    }
 
     /// <summary>
     /// Sets the frame rate dependent limits. Reference: av1_rc_update_framerate(), with the 2000 vbrmax_section of

@@ -491,19 +491,36 @@ internal static partial class Av1FrameEncoder
         // Superblock geometry follows coding options and resolution. Reference: av1_select_sb_size(). Real-time
         // coding uses 128x128 only above 720p. Otherwise small frames use 64x64 above options zero, and the fastest
         // still-image mode also uses it below 4K.
-        // Variance Boost only supports 64x64 superblocks.
+        // Variance Boost only supports 64x64 superblocks, and so do spatial layers.
         int minimumDimension = Math.Min(width, height);
-        bool use128x128Superblock = options.DeltaQMode != Av1DeltaQMode.VarianceBoost && (speedSettings.IsRealtime
+        bool use128x128Superblock = options.DeltaQMode != Av1DeltaQMode.VarianceBoost && options.LayerCount == 1 && (speedSettings.IsRealtime
             ? minimumDimension > 720
             : !(options.Speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
                 !(isStillPicture && options.Speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160));
+
+        // A layered image lists one operating point per layer. Operating point i decodes the spatial layers from 0 up
+        // to the last layer minus i, in the single temporal layer, so operating point 0 decodes every layer. Each frame
+        // then carries its layer in an OBU extension header. Every operating point gets the level of the frame size.
+        // Reference: the operating_points_cnt_minus_1 setup of av1_change_config_seq(), av1_set_svc_seq_params() at
+        // the end of init_seq_coding_tools(), and set_bitstream_level_tier().
+        int sequenceLevelIndex = GetSequenceLevelIndex(width, height, LevelFrameRate);
+        int layerCount = options.LayerCount;
+        ObuOperatingPoint[] operatingPoints = new ObuOperatingPoint[layerCount];
+        for (int i = 0; i < operatingPoints.Length; i++)
+        {
+            operatingPoints[i] = new ObuOperatingPoint
+            {
+                SequenceLevelIndex = sequenceLevelIndex,
+                Idc = layerCount > 1 ? (~(~0U << (layerCount - i)) << 8) | 1U : 0U
+            };
+        }
 
         return new ObuSequenceHeader
         {
             IsStillPicture = isStillPicture,
             IsReducedStillPictureHeader = isStillPicture,
             SequenceProfile = sequenceProfile,
-            OperatingPoint = [new ObuOperatingPoint { SequenceLevelIndex = GetSequenceLevelIndex(width, height, LevelFrameRate) }],
+            OperatingPoint = operatingPoints,
             FrameWidthBits = width > 1 ? Av1Math.MostSignificantBit((uint)(width - 1)) + 1 : 1,
             FrameHeightBits = height > 1 ? Av1Math.MostSignificantBit((uint)(height - 1)) + 1 : 1,
             MaxFrameWidth = width,
@@ -1903,9 +1920,23 @@ internal static partial class Av1FrameEncoder
         private int codedFrameCount;
 
         /// <summary>
-        /// The requested quantizer index, which constant-quality coding keeps for inter frames. Reference: cq_level.
+        /// The requested quantizer index, which constant-quality coding keeps for inter frames. A layered image sets it
+        /// for each layer. Reference: cq_level.
         /// </summary>
-        private readonly int constantQualityIndex;
+        private int constantQualityIndex;
+
+        /// <summary>
+        /// The number of layers of a layered image coded so far.
+        /// </summary>
+        private int codedLayerCount;
+
+        /// <summary>
+        /// Whether the current frame is a layer after the first, which libavif codes with the flags that keep GOLDEN
+        /// and the alternate references out of the frame. Reference: the AOM_EFLAG_NO_REF_GF, AOM_EFLAG_NO_REF_ARF,
+        /// AOM_EFLAG_NO_REF_BWD, AOM_EFLAG_NO_REF_ARF2, AOM_EFLAG_NO_UPD_GF and AOM_EFLAG_NO_UPD_ARF flags of
+        /// aomCodecEncodeImage().
+        /// </summary>
+        private bool usesLayerFlags;
 
         /// <summary>
         /// The running average quantizer index of the ordinary inter frames of constant-quality coding, which starts
@@ -2176,6 +2207,19 @@ internal static partial class Av1FrameEncoder
         protected int QIndex { get; private set; }
 
         /// <summary>
+        /// Gets a value indicating whether the current frame is a layer after the first, whose flags keep GOLDEN and
+        /// the alternate references out of the frame.
+        /// </summary>
+        protected bool UsesLayerFlags => this.usesLayerFlags;
+
+        /// <summary>
+        /// Gets a value indicating whether the current frame starts a temporal unit, and so is preceded by a temporal
+        /// delimiter. Every layer of a layered image after the first continues the temporal unit of the first layer.
+        /// Reference: the write_temporal_delimiter test of encoder_encode(), which writes it only for spatial layer 0.
+        /// </summary>
+        protected bool StartsTemporalUnit => this.FrameHeader.SpatialId == 0;
+
+        /// <summary>
         /// Gets the encoding options retained for every frame in this track.
         /// </summary>
         protected Av1EncoderOptions Options { get; }
@@ -2261,12 +2305,12 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Returns the slot that LAST uses before the source analysis selects the rest of the structure.
-        /// Reference: last_idx in av1_set_rtc_reference_structure_one_layer().
+        /// Returns the slot that LAST uses before the source analysis selects the rest of the structure. Every layer of
+        /// a layered image maps LAST to slot 0. Reference: last_idx in av1_set_rtc_reference_structure_one_layer().
         /// </summary>
         /// <returns>The reference-map slot of LAST.</returns>
         protected int GetLastSlot()
-            => this.frameNumber > 1 ? (int)((this.frameNumber - 1) % RotatingSlotCount) : 0;
+            => this.Options.LayerCount == 1 && this.frameNumber > 1 ? (int)((this.frameNumber - 1) % RotatingSlotCount) : 0;
 
         /// <summary>
         /// Sets the models that the frame codes its global motion against, then searches its global motion. Real-time
@@ -2339,10 +2383,13 @@ internal static partial class Av1FrameEncoder
             {
                 // Good-quality usage without lookahead codes low-delay pyramid groups. copy_frame_prob_info() restores
                 // the frame probability tables at every key frame.
-                this.goodQualityStructure.Configure(frameHeader, parent.FramesSinceKey, this.framesToKey);
+                this.goodQualityStructure.Configure(frameHeader, parent.FramesSinceKey, this.framesToKey, this.usesLayerFlags);
                 parent.FrameUpdateType = this.goodQualityStructure.UpdateType;
                 parent.StartsGoldenGroup = parent.FrameUpdateType == Av1FrameUpdateType.Golden;
-                parent.RefreshesGolden = keyFrame || parent.StartsGoldenGroup;
+
+                // The layer flags replace the GOLDEN refresh of the update type with none. Reference: the
+                // update_pending branch of av1_configure_buffer_updates().
+                parent.RefreshesGolden = !this.usesLayerFlags && (keyFrame || parent.StartsGoldenGroup);
                 if (keyFrame)
                 {
                     this.warpedProbabilities.AsSpan().Fill(64);
@@ -2407,8 +2454,9 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Selects the reference slots, the refreshed slots, and the primary reference of a real-time frame.
-        /// Reference: set_gf_interval_update_onepass_rt() in av1_get_one_pass_rt_params(), then
+        /// Selects the reference slots, the refreshed slots, and the primary reference of a real-time frame. A layered
+        /// image maps every reference to slot 0 instead of the one-layer structure. Reference:
+        /// set_gf_interval_update_onepass_rt() in av1_get_one_pass_rt_params(), then
         /// av1_set_rtc_reference_structure_one_layer() with gf_update = (gf_frame_index == 0), then
         /// choose_primary_ref_frame().
         /// </summary>
@@ -2432,8 +2480,9 @@ internal static partial class Av1FrameEncoder
             bool goldenUpdate = this.goldenFrameIndex == 0;
             parent.StartsGoldenGroup = !keyFrame && goldenUpdate;
 
-            // av1_configure_buffer_updates() refreshes GOLDEN in key frames and golden-group frames.
-            parent.RefreshesGolden = keyFrame || goldenUpdate;
+            // av1_configure_buffer_updates() refreshes GOLDEN in key frames and golden-group frames. The layer flags
+            // replace that refresh with none.
+            parent.RefreshesGolden = keyFrame || (goldenUpdate && !this.usesLayerFlags);
 
             // encode_without_recode() restores the frame probability tables at a key frame, and at a golden refresh
             // when warped motion is pruned further. Reference: copy_frame_prob_info().
@@ -2443,7 +2492,55 @@ internal static partial class Av1FrameEncoder
                 DefaultObmcProbabilities.CopyTo(this.obmcProbabilities, 0);
             }
 
-            // av1_set_rtc_reference_structure_one_layer()
+            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            if (this.Options.LayerCount > 1)
+            {
+                // Spatial layers turn the one-layer structure off. The key frame maps every reference to slot 0, and
+                // each later layer keeps that map and refreshes the slot of LAST, because its flags leave a refresh
+                // pending. Reference: use_rtc_reference_structure_one_layer(), and the update_pending tests of
+                // av1_encode_strategy() and av1_get_refresh_frame_flags().
+                referenceFrameIndices.Clear();
+                if (!keyFrame)
+                {
+                    frameHeader.RefreshFrameFlags = 1U << (int)referenceFrameIndices[(int)Av1ReferenceFrameType.Last - 1];
+                }
+            }
+            else
+            {
+                this.SetOneLayerReferenceStructure(frameHeader, speedSettings, averageSourceSad, keyFrame, goldenUpdate);
+            }
+
+            // choose_primary_ref_frame(): the last reference whose slot holds the wanted context.
+            frameHeader.PrimaryReferenceFrame = Av1Constants.PrimaryReferenceFrameNone;
+            if (!frameHeader.IsIntra && !frameHeader.ErrorResilientMode)
+            {
+                for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+                {
+                    if ((int)referenceFrameIndices[reference] == this.contextTypeSlot)
+                    {
+                        frameHeader.PrimaryReferenceFrame = (uint)reference;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Maps the references of a frame and chooses its refreshed slots in the one-layer real-time structure: LAST
+        /// rotates through six slots, GOLDEN keeps its own slot, and ALTREF follows a few frames behind LAST.
+        /// Reference: av1_set_rtc_reference_structure_one_layer().
+        /// </summary>
+        /// <param name="frameHeader">The frame header that receives the slots and the refreshed slots.</param>
+        /// <param name="speedSettings">The speed settings of the frame.</param>
+        /// <param name="averageSourceSad">The running average source SAD. Reference: rc->avg_source_sad.</param>
+        /// <param name="keyFrame">Whether the frame is a key frame, which refreshes every slot.</param>
+        /// <param name="goldenUpdate">Whether the frame refreshes GOLDEN. Reference: gf_update.</param>
+        private void SetOneLayerReferenceStructure(
+            ObuFrameHeader frameHeader,
+            in Av1EncoderSpeedSettings speedSettings,
+            ulong averageSourceSad,
+            bool keyFrame,
+            bool goldenUpdate)
+        {
             uint alternateLag = 4;
             int lagLevel = speedSettings.AlternateReferenceLagLevel;
             if (lagLevel != 0)
@@ -2472,19 +2569,6 @@ internal static partial class Av1FrameEncoder
                 }
 
                 frameHeader.RefreshFrameFlags = refreshFrameFlags;
-            }
-
-            // choose_primary_ref_frame(): the last reference whose slot holds the wanted context.
-            frameHeader.PrimaryReferenceFrame = Av1Constants.PrimaryReferenceFrameNone;
-            if (!frameHeader.IsIntra && !frameHeader.ErrorResilientMode)
-            {
-                for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
-                {
-                    if ((int)referenceFrameIndices[reference] == this.contextTypeSlot)
-                    {
-                        frameHeader.PrimaryReferenceFrame = (uint)reference;
-                    }
-                }
             }
         }
 
@@ -2605,8 +2689,12 @@ internal static partial class Av1FrameEncoder
         /// </summary>
         /// <param name="bufferIds">The buffer identity of each reference type, indexed by reference type.</param>
         /// <param name="speedSettings">The options settings of the frame.</param>
+        /// <param name="usesLayerFlags">
+        /// Whether the frame is a layer after the first, whose flags keep only LAST, LAST2 and LAST3. Reference: the
+        /// AOM_EFLAG_NO_REF flags that av1_apply_encoding_flags() applies to ext_flags.ref_frame_flags.
+        /// </param>
         /// <returns>The available references, one bit per reference type.</returns>
-        protected static byte GetReferenceFrameFlags(ReadOnlySpan<int> bufferIds, in Av1EncoderSpeedSettings speedSettings)
+        protected static byte GetReferenceFrameFlags(ReadOnlySpan<int> bufferIds, in Av1EncoderSpeedSettings speedSettings, bool usesLayerFlags)
         {
             ReadOnlySpan<Av1ReferenceFrameType> priorityOrder =
             [
@@ -2621,9 +2709,11 @@ internal static partial class Av1FrameEncoder
 
             // Real-time usage enables LAST, GOLDEN, and ALTREF; good-quality usage starts from every reference.
             // Reference: av1_set_rtc_reference_structure_one_layer() and the AOM_REFFRAME_ALL default.
-            int flags = speedSettings.IsRealtime
-                ? (1 << (int)Av1ReferenceFrameType.Last) | (1 << (int)Av1ReferenceFrameType.Alternate) | (1 << (int)Av1ReferenceFrameType.Golden)
-                : 0xFE;
+            int flags = usesLayerFlags
+                ? (1 << (int)Av1ReferenceFrameType.Last) | (1 << (int)Av1ReferenceFrameType.Last2) | (1 << (int)Av1ReferenceFrameType.Last3)
+                : speedSettings.IsRealtime
+                    ? (1 << (int)Av1ReferenceFrameType.Last) | (1 << (int)Av1ReferenceFrameType.Alternate) | (1 << (int)Av1ReferenceFrameType.Golden)
+                    : 0xFE;
 
             for (int i = 1; i < priorityOrder.Length; i++)
             {
@@ -2863,9 +2953,13 @@ internal static partial class Av1FrameEncoder
                 // Constant-quality coding without lookahead lowers the quantizer of the key frame and, in good-quality
                 // usage, of the golden update that starts each group; every other frame codes at the
                 // constant-quality index. Reference: rc_pick_q_and_bounds_q_mode() with get_active_best_quality().
+                // A fixed quantizer codes every frame at the constant-quality index. Reference: the
+                // use_fixed_qp_offsets == 2 branch of av1_set_size_dependent_vars().
                 int bestQIndex = Av1QuantizationLookup.GetQIndex(this.Options.MinimumQuantizer);
                 int worstQIndex = Av1QuantizationLookup.GetQIndex(this.Options.MaximumQuantizer);
-                int frameQIndex = keyFrame
+                int frameQIndex = this.Options.UsesFixedQuantizer
+                    ? this.constantQualityIndex
+                    : keyFrame
                     ? this.GetConstantQualityKeyFrameQIndex(parent, bestQIndex, worstQIndex)
                     : !parent.SpeedSettings.IsRealtime && parent.FrameUpdateType == Av1FrameUpdateType.Golden
                         ? Av1RateControl.GetConstantQualityGoldenFrameQIndex(
@@ -2902,6 +2996,7 @@ internal static partial class Av1FrameEncoder
                     ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, frameQIndex, this.Options);
                 }
 
+                this.ResetDeltaQuantizerAnchors(frameQIndex);
                 return;
             }
 
@@ -2941,8 +3036,18 @@ internal static partial class Av1FrameEncoder
 
             this.QIndex = qIndex;
             ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, qIndex, this.Options);
+            this.ResetDeltaQuantizerAnchors(qIndex);
             parent.AverageInterQuantizer = this.rateControl.AverageInterFrameQIndex;
         }
+
+        /// <summary>
+        /// Starts the delta quantizer of each tile from the frame quantizer. The picture reset ran before the frame
+        /// chose its quantizer, so it left the quantizer of the frame before. Reference: the current_base_qindex that
+        /// each tile starts from.
+        /// </summary>
+        /// <param name="qIndex">The base quantizer index of the frame.</param>
+        private void ResetDeltaQuantizerAnchors(int qIndex)
+            => this.PictureBuffer.Picture.Parent.PreviousQIndex.Span.Fill(qIndex);
 
         /// <summary>
         /// Restarts the frame count at a key frame, which resets every reference buffer. Later frames count from it,
@@ -3053,7 +3158,83 @@ internal static partial class Av1FrameEncoder
         {
             this.thisKeyFrameForced = false;
             this.framesToKey = Math.Max(1, this.Options.KeyFrameMaximumDistance);
+
+            // The frame limit of a layered image ends the key frame interval at the last layer. Reference:
+            // correct_frames_to_key() with frames_left from g_limit.
+            if (this.Options.LayerCount > 1)
+            {
+                this.framesToKey = Math.Min(this.framesToKey, this.Options.LayerCount);
+            }
+
             this.EncodeFrame(image, stream, ObuFrameType.KeyFrame, true);
+        }
+
+        /// <summary>
+        /// Encodes one layer of a layered image at its own quantizer. The first layer is a key frame that starts the
+        /// temporal unit. Each later layer is an inter frame of the same temporal unit, without a temporal delimiter,
+        /// that predicts only from the frame before it and refreshes only that frame's slot. Reference: the layer loop
+        /// of aomCodecEncodeImage(), with AOME_SET_CQ_LEVEL for the quality of the layer and the reference flags it sets
+        /// for every layer after the first, and the write_temporal_delimiter test of encoder_encode().
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format of the source.</typeparam>
+        /// <param name="image">The frame to encode.</param>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="qIndex">
+        /// The constant-quality quantizer index of the layer, which constant-bitrate coding ignores. Reference: cq_level.
+        /// </param>
+        /// <param name="minimumQuantizer">
+        /// The lowest quantizer of the layer on libaom's zero-through-63 scale, which constant-bitrate coding reads.
+        /// Reference: rc_min_quantizer.
+        /// </param>
+        /// <param name="maximumQuantizer">
+        /// The highest quantizer of the layer on libaom's zero-through-63 scale, which constant-bitrate coding reads.
+        /// Reference: rc_max_quantizer.
+        /// </param>
+        /// <exception cref="InvalidOperationException">Every layer of the image is already coded.</exception>
+        public void EncodeLayer<TPixel>(ImageFrame<TPixel> image, Stream stream, int qIndex, int minimumQuantizer, int maximumQuantizer)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (this.codedLayerCount >= this.Options.LayerCount)
+            {
+                throw new InvalidOperationException("Every layer of the image is already coded.");
+            }
+
+            // libavif changes the configuration of each layer before it codes the layer, and names the layer. Reference:
+            // the aom_codec_enc_config_set(), AOME_SET_CQ_LEVEL and AOME_SET_SPATIAL_LAYER_ID calls of
+            // aomCodecEncodeImage().
+            this.FrameHeader.SpatialId = this.codedLayerCount;
+            if (this.rateControl is null)
+            {
+                // Constant-quality coding sets the quantizer of the layer as its quality level.
+                this.constantQualityIndex = qIndex;
+            }
+            else
+            {
+                // Constant-bitrate coding ignores the quality level and narrows the quantizer range instead.
+                this.rateControl.SetQuantizerRange(
+                    Av1QuantizationLookup.GetQIndex(minimumQuantizer),
+                    Av1QuantizationLookup.GetQIndex(maximumQuantizer));
+            }
+
+            if (this.codedLayerCount == 0)
+            {
+                this.EncodeKeyFrame(image, stream);
+            }
+            else
+            {
+                // The key frame interval ends after the last layer, so no layer after the first is a key frame.
+                this.usesLayerFlags = true;
+                try
+                {
+                    this.EncodeNextFrame(image, stream, forceKeyFrame: false);
+                }
+                finally
+                {
+                    this.usesLayerFlags = false;
+                }
+            }
+
+            this.codedLayerCount++;
         }
 
         /// <summary>
@@ -3386,10 +3567,11 @@ internal static partial class Av1FrameEncoder
                 this.TileWorkspace,
                 this.BlockWorkspace,
                 this.SymbolEncoder,
-                writeSequenceHeader);
+                writeSequenceHeader,
+                this.StartsTemporalUnit);
 
-            // The temporal delimiter precedes each sample, and libaom counts the frame without it.
-            this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - TemporalDelimiterLength);
+            // A temporal delimiter precedes each temporal unit, and libaom counts the frame without it.
+            this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - (this.StartsTemporalUnit ? TemporalDelimiterLength : 0));
             this.CompleteCyclicRefreshSegmentation(current, this.PictureBuffer.Picture);
 
             this.SymbolEncoder.SnapshotTo(current.Context);
@@ -3439,7 +3621,7 @@ internal static partial class Av1FrameEncoder
             parent.AvailableReferenceMask = EnforceMaximumReferenceFrames(
                 this.SequenceHeader,
                 frameHeader,
-                GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
+                GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings, this.UsesLayerFlags),
                 parent.SpeedSettings);
 
             CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask, this.HasOnlyPastReferencesWithLag());
@@ -3649,10 +3831,11 @@ internal static partial class Av1FrameEncoder
                 this.TileWorkspace,
                 this.BlockWorkspace,
                 this.SymbolEncoder,
-                writeSequenceHeader);
+                writeSequenceHeader,
+                this.StartsTemporalUnit);
 
-            // The temporal delimiter precedes each sample, and libaom counts the frame without it.
-            this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - TemporalDelimiterLength);
+            // A temporal delimiter precedes each temporal unit, and libaom counts the frame without it.
+            this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - (this.StartsTemporalUnit ? TemporalDelimiterLength : 0));
             this.CompleteCyclicRefreshSegmentation(current, this.PictureBuffer.Picture);
 
             this.SymbolEncoder.SnapshotTo(current.Context);
@@ -3702,7 +3885,7 @@ internal static partial class Av1FrameEncoder
             parent.AvailableReferenceMask = EnforceMaximumReferenceFrames(
                 this.SequenceHeader,
                 frameHeader,
-                GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings),
+                GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings, this.UsesLayerFlags),
                 parent.SpeedSettings);
 
             CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask, this.HasOnlyPastReferencesWithLag());

@@ -1201,6 +1201,127 @@ public class HeifEncoderTests
     }
 
     [Theory]
+    [InlineData(HeifEncodingSpeed.Level6, false)]
+    [InlineData(HeifEncodingSpeed.Level6, true)]
+    [InlineData(HeifEncodingSpeed.Level8, true)]
+    public void Av1LayeredImageStoresEachLayerAndRoundTrips(HeifEncodingSpeed speed, bool withAlpha)
+    {
+        // Three layers of rising quality. The first alpha layer has its own quality, and the later ones keep the alpha
+        // quality of the encoder.
+        using Image<Rgba32> image = new(96, 64);
+        for (int y = 0; y < image.Height; y++)
+        {
+            Span<Rgba32> row = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 3) + (y * 2)) & 0xFF;
+                row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), (byte)(withAlpha ? 255 - (y * 3) : 255));
+            }
+        }
+
+        HeifEncoder encoder = new()
+        {
+            Speed = speed,
+            Layers = [new HeifLayer { Quality = 10, AlphaQuality = 30 }, new HeifLayer { Quality = 40 }, new HeifLayer { Quality = 80 }]
+        };
+
+        using MemoryStream stream = new();
+        if (withAlpha)
+        {
+            image.Save(stream, encoder);
+        }
+        else
+        {
+            using Image<Rgb24> opaque = image.CloneAs<Rgb24>();
+            opaque.Save(stream, encoder);
+        }
+
+        byte[] file = stream.ToArray();
+        (int Offset, int Length)[] color = GetItemExtents(file, 1);
+        Assert.Equal(3, color.Length);
+        if (withAlpha)
+        {
+            // Each alpha layer precedes the same color layer.
+            (int Offset, int Length)[] alpha = GetItemExtents(file, 2);
+            Assert.Equal(3, alpha.Length);
+            for (int layer = 0; layer < 3; layer++)
+            {
+                Assert.Equal(alpha[layer].Offset + alpha[layer].Length, color[layer].Offset);
+                if (layer < 2)
+                {
+                    Assert.Equal(color[layer].Offset + color[layer].Length, alpha[layer + 1].Offset);
+                }
+            }
+
+            // In constant-quality coding the first alpha layer codes at its own quality and the others at the alpha
+            // quality of the encoder, which follows its quality of 60.
+            if (speed < HeifEncodingSpeed.Level7)
+            {
+                int[] alphaQIndices = DecodeLayerQIndices(file, alpha);
+                Assert.Equal(
+                    [HeifEncoderCore.GetAv1QuantizerIndex(30), HeifEncoderCore.GetAv1QuantizerIndex(60), HeifEncoderCore.GetAv1QuantizerIndex(60)],
+                    alphaQIndices);
+            }
+        }
+        else
+        {
+            Assert.Equal(color[0].Offset + color[0].Length, color[1].Offset);
+            Assert.Equal(color[1].Offset + color[1].Length, color[2].Offset);
+        }
+
+        // The layer index of the color item gives the size of each layer but the last.
+        ReadOnlySpan<byte> properties = GetMetadataChild(file, Heif4CharCode.Iprp);
+        int indexOffset = properties.IndexOf("a1lx"u8);
+        Assert.True(indexOffset > 0);
+        Assert.Equal(0, properties[indexOffset + 4]);
+        Assert.Equal(color[0].Length, BinaryPrimitives.ReadUInt16BigEndian(properties[(indexOffset + 5)..]));
+        Assert.Equal(color[1].Length, BinaryPrimitives.ReadUInt16BigEndian(properties[(indexOffset + 7)..]));
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16BigEndian(properties[(indexOffset + 9)..]));
+
+        // In constant-quality coding each layer codes at the quantizer of its own quality. Real-time coding narrows
+        // the range of each layer to four steps around that quantizer, so the quantizers still fall.
+        int[] colorQIndices = DecodeLayerQIndices(file, color);
+        if (speed < HeifEncodingSpeed.Level7)
+        {
+            Assert.Equal(
+                [
+                    HeifEncoderCore.GetAv1QuantizerIndex(10, imageTune: true),
+                    HeifEncoderCore.GetAv1QuantizerIndex(40, imageTune: true),
+                    HeifEncoderCore.GetAv1QuantizerIndex(80, imageTune: true)
+                ],
+                colorQIndices);
+        }
+        else
+        {
+            Assert.True(colorQIndices[1] < colorQIndices[0]);
+            Assert.True(colorQIndices[2] < colorQIndices[1]);
+        }
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        GetLossyComparer(80).VerifySimilarity(image, decoded);
+    }
+
+    [Fact]
+    public void Av1LayersRejectAnInvalidListAndUnsupportedImages()
+    {
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { Layers = [new HeifLayer()] });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { Layers = [new(), new(), new(), new(), new()] });
+        Assert.Throws<ArgumentException>(() => new HeifEncoder { Layers = [new HeifLayer(), null!] });
+        Assert.Throws<ArgumentException>(() => new HeifLayer { Quality = 101 });
+        Assert.Throws<ArgumentException>(() => new HeifLayer { AlphaQuality = -1 });
+
+        HeifEncoder layered = new() { Layers = [new HeifLayer { Quality = 20 }, new HeifLayer()] };
+        using Image<Rgb24> animation = new(16, 16);
+        animation.Frames.CreateFrame();
+        using MemoryStream stream = new();
+        Assert.Throws<NotSupportedException>(() => animation.Save(stream, layered));
+
+        using Image<Rgb24> still = new(16, 16);
+        Assert.Throws<NotSupportedException>(() => still.Save(stream, new HeifEncoder { Lossless = true, Layers = layered.Layers }));
+    }
+
+    [Theory]
     [InlineData(HeifTuning.ImageQuality)]
     [InlineData(HeifTuning.Ssim)]
     public void Av1LosslessStaysExactWithRequestedTuning(HeifTuning tuning)
@@ -1958,52 +2079,70 @@ public class HeifEncoderTests
 
     private static Span<byte> GetItemPayload(Span<byte> file, ushort itemId)
     {
-        int offset = 0;
-        while (offset < file.Length)
+        (int Offset, int Length) extent = GetItemExtents(file, itemId)[0];
+        return file.Slice(extent.Offset, extent.Length);
+    }
+
+    /// <summary>
+    /// Decodes the layers of a layered item in order and returns the base quantizer index of each layer. The first
+    /// layer is a key frame with three operating points, and each later layer is an inter frame of its own spatial
+    /// layer.
+    /// </summary>
+    /// <param name="file">The encoded file.</param>
+    /// <param name="layers">The extent of each layer.</param>
+    /// <returns>The base quantizer index of each layer.</returns>
+    private static int[] DecodeLayerQIndices(byte[] file, (int Offset, int Length)[] layers)
+    {
+        using Av1Decoder decoder = new(Configuration.Default);
+        int[] qIndices = new int[layers.Length];
+        for (int layer = 0; layer < layers.Length; layer++)
         {
-            int boxSize = BinaryPrimitives.ReadInt32BigEndian(file[offset..]);
-            Heif4CharCode boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(file[(offset + 4)..]);
-            if (boxType == Heif4CharCode.Meta)
-            {
-                int childOffset = offset + 12;
-                int boxEnd = offset + boxSize;
-                while (childOffset < boxEnd)
-                {
-                    int childSize = BinaryPrimitives.ReadInt32BigEndian(file[childOffset..]);
-                    Heif4CharCode childType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(file[(childOffset + 4)..]);
-                    if (childType == Heif4CharCode.Iloc)
-                    {
-                        int locationOffset = childOffset + 14;
-                        int itemCount = BinaryPrimitives.ReadUInt16BigEndian(file[locationOffset..]);
-                        locationOffset += 2;
-                        for (int itemIndex = 0; itemIndex < itemCount; itemIndex++)
-                        {
-                            ushort currentItemId = BinaryPrimitives.ReadUInt16BigEndian(file[locationOffset..]);
-                            locationOffset += 6;
-                            int extentCount = BinaryPrimitives.ReadUInt16BigEndian(file[locationOffset..]);
-                            locationOffset += 2;
-                            for (int extentIndex = 0; extentIndex < extentCount; extentIndex++)
-                            {
-                                int itemOffset = checked((int)BinaryPrimitives.ReadUInt64BigEndian(file[locationOffset..]));
-                                locationOffset += 8;
-                                int itemLength = BinaryPrimitives.ReadInt32BigEndian(file[locationOffset..]);
-                                locationOffset += 4;
-                                if (currentItemId == itemId)
-                                {
-                                    return file.Slice(itemOffset, itemLength);
-                                }
-                            }
-                        }
-                    }
-
-                    childOffset += childSize;
-                }
-            }
-
-            offset += boxSize;
+            decoder.DecodeSequenceReference(file.AsSpan(layers[layer].Offset, layers[layer].Length).ToArray(), null, null);
+            ObuFrameHeader frameHeader = decoder.FrameHeader!;
+            Assert.Equal(layer == 0 ? ObuFrameType.KeyFrame : ObuFrameType.InterFrame, frameHeader.FrameType);
+            Assert.Equal(layer, frameHeader.SpatialId);
+            Assert.Equal(layers.Length, decoder.SequenceHeader!.OperatingPoint.Length);
+            qIndices[layer] = frameHeader.QuantizationParameters.BaseQIndex;
         }
 
-        throw new InvalidImageContentException($"The encoded file has no payload for item {itemId}.");
+        return qIndices;
+    }
+
+    /// <summary>
+    /// Returns the file offset and length of each extent of an item, in item location order.
+    /// </summary>
+    /// <param name="file">The encoded file.</param>
+    /// <param name="itemId">The item identifier.</param>
+    /// <returns>The extents of the item.</returns>
+    private static (int Offset, int Length)[] GetItemExtents(Span<byte> file, ushort itemId)
+    {
+        ReadOnlySpan<byte> location = GetMetadataChild(file, Heif4CharCode.Iloc);
+        int offset = 14;
+        int itemCount = BinaryPrimitives.ReadUInt16BigEndian(location[offset..]);
+        offset += 2;
+        for (int itemIndex = 0; itemIndex < itemCount; itemIndex++)
+        {
+            ushort currentItemId = BinaryPrimitives.ReadUInt16BigEndian(location[offset..]);
+            offset += 6;
+            int extentCount = BinaryPrimitives.ReadUInt16BigEndian(location[offset..]);
+            offset += 2;
+            (int Offset, int Length)[] extents = new (int Offset, int Length)[extentCount];
+            for (int extentIndex = 0; extentIndex < extentCount; extentIndex++)
+            {
+                extents[extentIndex] = (
+                    checked((int)BinaryPrimitives.ReadUInt64BigEndian(location[offset..])),
+                    BinaryPrimitives.ReadInt32BigEndian(location[(offset + 8)..]));
+
+                offset += 12;
+            }
+
+            if (currentItemId == itemId)
+            {
+                return extents;
+            }
+        }
+
+        throw new InvalidImageContentException($"The encoded file has no location for item {itemId}.");
     }
 
     private static uint GetItemInfoFlags(Span<byte> file, ushort itemId)

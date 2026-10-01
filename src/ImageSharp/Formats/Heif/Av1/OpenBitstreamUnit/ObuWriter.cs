@@ -146,7 +146,8 @@ internal sealed class ObuWriter : IDisposable
         WriteTrailingBits(ref writer);
         int bytesWritten = (writer.BitPosition + 7) >> 3;
         writer.Flush();
-        WriteObuHeaderAndSize(stream, ObuType.FrameHeader, headerBuffer[..bytesWritten]);
+        WriteObuHeaderAndSize(stream, ObuType.FrameHeader, (uint)bytesWritten, GetLayerExtension(sequenceHeader, frameHeader));
+        stream.Write(headerBuffer[..bytesWritten]);
     }
 
     /// <inheritdoc/>
@@ -185,21 +186,45 @@ internal sealed class ObuWriter : IDisposable
             framePayloadSize += (uint)tileWriter.GetTileData(tileNum).Length;
         }
 
-        WriteObuHeaderAndSize(stream, ObuType.Frame, framePayloadSize);
+        WriteObuHeaderAndSize(stream, ObuType.Frame, framePayloadSize, GetLayerExtension(sequenceHeader, frameHeader));
         stream.Write(headerBuffer[..frameHeaderBytes]);
         WriteTileData(stream, tileInfo, tileWriter);
     }
 
     /// <summary>
-    /// Creates a byte-aligned OBU header with an explicit payload-size field and no extension.
+    /// Returns the extension byte of a layer-specific OBU: the temporal and spatial layer of the frame. A sequence
+    /// whose operating points select layers needs it on every layer-specific OBU, and a sequence whose operating points
+    /// all decode every layer must not have it. Reference: the obu_extension_flag of av1_write_obu_header(), with
+    /// has_nonzero_operating_point_idc, and the obu_extension_header of av1_pack_bitstream().
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence header with the operating points.</param>
+    /// <param name="frameHeader">The frame header with the layer of the frame.</param>
+    /// <returns>The extension byte, or -1 when the OBU has no extension.</returns>
+    private static int GetLayerExtension(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    {
+        foreach (ObuOperatingPoint operatingPoint in sequenceHeader.OperatingPoint)
+        {
+            if (operatingPoint.Idc != 0)
+            {
+                // Three bits of temporal layer, two bits of spatial layer, and three reserved zero bits.
+                return (frameHeader.TemporalId << 5) | (frameHeader.SpatialId << 3);
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Creates a byte-aligned OBU header with an explicit payload-size field.
     /// </summary>
     /// <param name="type">The OBU payload type.</param>
+    /// <param name="hasExtension">Whether an extension byte follows the header.</param>
     /// <returns>The encoded OBU header byte.</returns>
-    private static byte WriteObuHeader(ObuType type)
+    private static byte WriteObuHeader(ObuType type, bool hasExtension)
     {
-        // The only set fields are the four-bit type and the has-size flag; forbidden,
-        // extension, and reserved bits remain zero.
-        return (byte)(((byte)type << 3) | 0x02);
+        // The set fields are the four-bit type, the extension flag and the has-size flag; the forbidden and reserved
+        // bits remain zero.
+        return (byte)(((byte)type << 3) | (hasExtension ? 0x04 : 0) | 0x02);
     }
 
     /// <summary>
@@ -210,19 +235,24 @@ internal sealed class ObuWriter : IDisposable
     /// <param name="payload">The complete OBU payload.</param>
     private static void WriteObuHeaderAndSize(Stream stream, ObuType type, ReadOnlySpan<byte> payload)
     {
-        WriteObuHeaderAndSize(stream, type, (uint)payload.Length);
+        WriteObuHeaderAndSize(stream, type, (uint)payload.Length, -1);
         stream.Write(payload);
     }
 
     /// <summary>
-    /// Writes a byte-aligned OBU header and its little-endian base-128 payload size.
+    /// Writes a byte-aligned OBU header, its optional extension byte, and its little-endian base-128 payload size.
     /// </summary>
     /// <param name="stream">The destination stream.</param>
     /// <param name="type">The OBU payload type.</param>
     /// <param name="payloadSize">The number of payload bytes that follow the header.</param>
-    private static void WriteObuHeaderAndSize(Stream stream, ObuType type, uint payloadSize)
+    /// <param name="extension">The extension byte, or -1 for an OBU without extension.</param>
+    private static void WriteObuHeaderAndSize(Stream stream, ObuType type, uint payloadSize, int extension)
     {
-        stream.WriteByte(WriteObuHeader(type));
+        stream.WriteByte(WriteObuHeader(type, extension >= 0));
+        if (extension >= 0)
+        {
+            stream.WriteByte((byte)extension);
+        }
 
         // A 32-bit OBU payload length requires at most five base-128 bytes.
         Span<byte> lengthBytes = stackalloc byte[5];

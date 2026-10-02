@@ -19,6 +19,13 @@ public enum HeifAdaptiveQuantization
     Variance = 1,
 
     /// <summary>
+    /// Areas that need few bits get more quality, and areas that need many bits get less. The frames must spend a bit
+    /// budget, so this option needs a <see cref="HeifRateControl"/> other than
+    /// <see cref="HeifRateControl.ConstantQuality"/>.
+    /// </summary>
+    Complexity = 2,
+
+    /// <summary>
     /// Each frame gives more quality to a different part of the still areas, so these areas get sharper over a few
     /// frames.
     /// </summary>

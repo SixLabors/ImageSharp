@@ -129,8 +129,8 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets how the encoder varies the compression between areas of a frame. Only lossy animations use this setting.
-    /// <see cref="HeifAdaptiveQuantization.Variance"/> applies to the color frames at
-    /// <see cref="HeifEncodingSpeed.Level0"/> to <see cref="HeifEncodingSpeed.Level6"/>.
+    /// <see cref="HeifAdaptiveQuantization.Variance"/> and <see cref="HeifAdaptiveQuantization.Complexity"/> apply to
+    /// the color frames at <see cref="HeifEncodingSpeed.Level0"/> to <see cref="HeifEncodingSpeed.Level6"/>.
     /// <see cref="HeifAdaptiveQuantization.CyclicRefresh"/> applies to all frames at
     /// <see cref="HeifEncodingSpeed.Level7"/> to <see cref="HeifEncodingSpeed.Level9"/>. At the other speeds, each
     /// option changes the output slightly. Defaults to <see cref="HeifAdaptiveQuantization.None"/>.

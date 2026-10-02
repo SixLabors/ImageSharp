@@ -363,6 +363,7 @@ internal sealed partial class HeifEncoderCore
                     : this.encoder.AdaptiveQuantization switch
                     {
                         HeifAdaptiveQuantization.Variance => Av1AdaptiveQuantizationMode.Variance,
+                        HeifAdaptiveQuantization.Complexity => Av1AdaptiveQuantizationMode.Complexity,
                         HeifAdaptiveQuantization.CyclicRefresh => Av1AdaptiveQuantizationMode.CyclicRefresh,
                         _ => Av1AdaptiveQuantizationMode.None
                     }

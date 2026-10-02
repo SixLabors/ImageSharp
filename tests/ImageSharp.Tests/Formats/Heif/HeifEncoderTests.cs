@@ -1074,6 +1074,69 @@ public class HeifEncoderTests
     }
 
     [Fact]
+    public void Av1AnimationWithComplexityAdaptiveQuantizationRoundTrips()
+    {
+        // Under a bit budget the key frame of an animation without alpha has a target rate, so its blocks fall in
+        // complexity segments with lower quantizers than the frame. The constrained-quality mode keeps the full
+        // quantizer range, so the segments have room below the frame quantizer.
+        using Image<Rgb24> image = new(96, 64);
+        for (int frameIndex = 0; frameIndex < 5; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    // Flat left half, detailed right half, so the blocks need different rates.
+                    int value = x < 48 ? 96 + frameIndex : (((x + (3 * frameIndex)) * 37) ^ (y * 23)) & 0xFF;
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(
+            stream,
+            new HeifEncoder
+            {
+                Quality = 80,
+                Speed = HeifEncodingSpeed.Level6,
+                RateControl = HeifRateControl.ConstrainedQuality,
+                AdaptiveQuantization = HeifAdaptiveQuantization.Complexity
+            });
+
+        byte[] file = stream.ToArray();
+        HeifSequenceSample first = ParseSequence(file).ColorTrack.Samples[0];
+        using (Av1Decoder decoder = new(Configuration.Default))
+        {
+            decoder.DecodeSequenceReference(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null);
+            ObuSegmentationParameters segmentation = decoder.FrameHeader.SegmentationParameters;
+            Assert.True(segmentation.Enabled);
+
+            // The neutral segment 3 keeps the frame quantizer, and the segments that need more bits get a lower one.
+            int[] deltas = new int[5];
+            for (int segment = 0; segment < deltas.Length; segment++)
+            {
+                deltas[segment] = segmentation.GetFeatureData(segment, (int)ObuSegmentationLevelFeature.AlternativeQuantizer);
+            }
+
+            Assert.Equal(0, deltas[3]);
+            Assert.Contains(deltas, delta => delta < 0);
+        }
+
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgb24> expected = image.Frames.CloneFrame(i);
+            using Image<Rgb24> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(80).VerifySimilarity(expected, actual);
+        }
+    }
+
+    [Fact]
     public void Av1AnimationWithVarianceAdaptiveQuantizationRoundTrips()
     {
         // An animation without alpha looks ahead, so its key frame places each block in one of eight variance segments,

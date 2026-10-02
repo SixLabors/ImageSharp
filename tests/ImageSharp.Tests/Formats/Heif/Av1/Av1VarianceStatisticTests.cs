@@ -48,11 +48,11 @@ public class Av1VarianceStatisticTests
             {
                 Assert.Equal(
                     Reference(bytes, stride, width, height),
-                    Av1VarianceStatistic.Calculate<byte, Av1VarianceStatistic.ByteOperator>(bytes, stride, width, height));
+                    Av1VarianceStatistic.Calculate<byte, Av1MotionVectorStatistics.ByteTextureOperator>(bytes, stride, width, height));
 
                 Assert.Equal(
                     Reference(words, stride, width, height),
-                    Av1VarianceStatistic.Calculate<ushort, Av1VarianceStatistic.UInt16Operator>(words, stride, width, height));
+                    Av1VarianceStatistic.Calculate<ushort, Av1MotionVectorStatistics.UInt16TextureOperator>(words, stride, width, height));
             }
         }
     }
@@ -90,12 +90,12 @@ public class Av1VarianceStatisticTests
 
                         Assert.Equal(
                             Reference(Extend(bytes, stride, width, height, visibleWidth, visibleHeight), stride, width, height),
-                            Av1VarianceStatistic.CalculateWithBorder<byte, Av1VarianceStatistic.ByteOperator>(
+                            Av1VarianceStatistic.CalculateWithBorder<byte, Av1MotionVectorStatistics.ByteTextureOperator>(
                                 bytes, stride, width, height, visibleWidth, visibleHeight));
 
                         Assert.Equal(
                             Reference(Extend(words, stride, width, height, visibleWidth, visibleHeight), stride, width, height),
-                            Av1VarianceStatistic.CalculateWithBorder<ushort, Av1VarianceStatistic.UInt16Operator>(
+                            Av1VarianceStatistic.CalculateWithBorder<ushort, Av1MotionVectorStatistics.UInt16TextureOperator>(
                                 words, stride, width, height, visibleWidth, visibleHeight));
                     }
                 }
@@ -107,6 +107,14 @@ public class Av1VarianceStatisticTests
     /// Copies a block and repeats its last visible row and column through the rest of it, as the reference extends
     /// its source border.
     /// </summary>
+    /// <typeparam name="T">The sample type.</typeparam>
+    /// <param name="source">The samples, starting at the block origin.</param>
+    /// <param name="stride">The row stride.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="visibleWidth">The number of columns kept from the source.</param>
+    /// <param name="visibleHeight">The number of rows kept from the source.</param>
+    /// <returns>A copy with the source's stride, whose block repeats the last kept row and column.</returns>
     private static T[] Extend<T>(T[] source, int stride, int width, int height, int visibleWidth, int visibleHeight)
         where T : unmanaged
     {
@@ -126,6 +134,12 @@ public class Av1VarianceStatisticTests
     /// Mirrors aom_calc_variance_stat_c() and aom_highbd_calc_variance_stat_c(): a padded copy with repeated edges,
     /// then the 1-2-1 by 1-2-1 smoothing.
     /// </summary>
+    /// <typeparam name="T">The sample type.</typeparam>
+    /// <param name="source">The samples, starting at the block origin.</param>
+    /// <param name="stride">The row stride.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <returns>The measure.</returns>
     private static long Reference<T>(T[] source, int stride, int width, int height)
         where T : unmanaged
     {

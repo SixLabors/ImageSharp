@@ -4137,7 +4137,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Sharpness 3 charges the merged intra result of an inter frame by the luma samples that its luma search
             // left, before the budget comparison. Reference: adjust_rdcost() on intra_rd_stats in
             // search_intra_modes_in_interframe().
-            if (isInterFrame && regularStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
+            if (regularStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
             {
                 regularStatistics.AddSmoothingOffset(this.rateMultiplier, this.intraSmoothingOffset);
             }
@@ -6014,7 +6014,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // again, otherwise whatever the last luma candidate wrote. Sharpness 3 measures them here, before the
             // chroma search reuses the candidate buffers. Reference: the pd->dst that adjust_rdcost() reads on
             // intra_rd_stats in search_intra_modes_in_interframe().
-            if (selectedStatistics.Cost != long.MaxValue && !this.picture.Parent.FrameHeader.IsIntra && this.ChargesSmoothing)
+            if (selectedStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
             {
                 Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
                 this.intraSmoothingOffset = storeLumaForChromaFromLuma
@@ -6563,7 +6563,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // source, after the mode's own search and before it is compared. The samples are the ones the last
                 // grid tried left behind. Reference: adjust_cost() on intra_rd_y in
                 // search_intra_modes_in_interframe().
-                if (!intraFrame && modeStatistics.LumaCost != long.MaxValue && this.ChargesSmoothing)
+                if (modeStatistics.LumaCost != long.MaxValue && this.ChargesSmoothing)
                 {
                     modeStatistics.LumaCost += Av1RateDistortion.GetCost(
                         this.rateMultiplier, 0, this.GetSmoothingOffset(blockOrigin, blockSize, samples, width, false));

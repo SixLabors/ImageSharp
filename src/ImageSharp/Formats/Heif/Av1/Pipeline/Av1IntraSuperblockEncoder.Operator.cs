@@ -973,7 +973,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             int visibleWidth,
             int visibleHeight)
-            => Av1VarianceStatistic.CalculateWithBorder<byte, Av1VarianceStatistic.ByteOperator>(
+            => Av1VarianceStatistic.CalculateWithBorder<byte, Av1MotionVectorStatistics.ByteTextureOperator>(
                 source, stride, width, height, visibleWidth, visibleHeight);
 
         /// <inheritdoc/>
@@ -2177,7 +2177,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             int visibleWidth,
             int visibleHeight)
-            => Av1VarianceStatistic.CalculateWithBorder<ushort, Av1VarianceStatistic.UInt16Operator>(
+            => Av1VarianceStatistic.CalculateWithBorder<ushort, Av1MotionVectorStatistics.UInt16TextureOperator>(
                 source, stride, width, height, visibleWidth, visibleHeight);
 
         /// <inheritdoc/>

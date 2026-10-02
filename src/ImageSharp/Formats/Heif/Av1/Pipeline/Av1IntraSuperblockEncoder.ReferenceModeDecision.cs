@@ -58,13 +58,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Gets a value indicating whether sharpness 3 charges a block whose samples are smoother than its source.
-        /// Key, golden and alternate reference frames are exempt. Reference: the sharpness and frame_is_kf_gf_arf()
-        /// tests of adjust_rdcost() and adjust_cost().
+        /// Intra frames, golden and alternate reference frames are exempt, so every caller sees an inter frame.
+        /// Reference: the sharpness and frame_is_kf_gf_arf() tests of adjust_rdcost() and adjust_cost().
         /// </summary>
         private readonly bool ChargesSmoothing =>
             this.blockWorkspace.EncoderOptions.Sharpness == 3 &&
             !this.picture.Parent.FrameHeader.IsIntra &&
-            this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate);
+            this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate);
 
         /// <summary>
         /// Gets the Q12 mode threshold multiplier of the block, from 2.5 at quantizer zero to 1 at quantizer 255 when

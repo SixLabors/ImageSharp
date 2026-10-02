@@ -12,50 +12,13 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// differences between each sample and its smoothed value. Samples beyond the block repeat its edge. Reference:
 /// aom_calc_variance_stat() and aom_highbd_calc_variance_stat().
 /// </summary>
+/// <remarks>
+/// The samples load through <see cref="Av1MotionVectorStatistics.ITextureOperator{TSample}"/>, which widens them to
+/// sixteen-bit lanes. The weighted 3x3 sum is at most sixteen times 4095, or 65520, so it fits those lanes at every bit
+/// depth. The difference from the smoothed value is signed, so it is formed after widening to 32-bit lanes.
+/// </remarks>
 internal static class Av1VarianceStatistic
 {
-    /// <summary>
-    /// Defines the sample-width-specific loads of the measure across hardware widths.
-    /// </summary>
-    /// <typeparam name="TSample">The sample type.</typeparam>
-    public interface IVarianceStatisticOperator<TSample>
-        where TSample : unmanaged
-    {
-        /// <summary>
-        /// Converts one sample.
-        /// </summary>
-        /// <param name="sample">The sample.</param>
-        /// <returns>The sample value.</returns>
-        public static abstract int ToInt32(TSample sample);
-
-        /// <summary>
-        /// Loads four samples and widens them to 32-bit lanes.
-        /// </summary>
-        /// <param name="row">The first sample of the row.</param>
-        /// <param name="offset">The column of the first loaded sample.</param>
-        /// <param name="width">The overload-selection value.</param>
-        /// <returns>The four samples in increasing column order.</returns>
-        public static abstract Vector128<int> LoadWidened(ref TSample row, nuint offset, Vector128<int> width);
-
-        /// <summary>
-        /// Loads eight samples and widens them to 32-bit lanes.
-        /// </summary>
-        /// <param name="row">The first sample of the row.</param>
-        /// <param name="offset">The column of the first loaded sample.</param>
-        /// <param name="width">The overload-selection value.</param>
-        /// <returns>The eight samples in increasing column order.</returns>
-        public static abstract Vector256<int> LoadWidened(ref TSample row, nuint offset, Vector256<int> width);
-
-        /// <summary>
-        /// Loads sixteen samples and widens them to 32-bit lanes.
-        /// </summary>
-        /// <param name="row">The first sample of the row.</param>
-        /// <param name="offset">The column of the first loaded sample.</param>
-        /// <param name="width">The overload-selection value.</param>
-        /// <returns>The sixteen samples in increasing column order.</returns>
-        public static abstract Vector512<int> LoadWidened(ref TSample row, nuint offset, Vector512<int> width);
-    }
-
     /// <summary>
     /// Measures one block.
     /// </summary>
@@ -68,29 +31,31 @@ internal static class Av1VarianceStatistic
     /// <returns>The measure.</returns>
     public static long Calculate<TSample, TOperator>(ReadOnlySpan<TSample> source, int stride, int width, int height)
         where TSample : unmanaged
-        where TOperator : struct, IVarianceStatisticOperator<TSample>
+        where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
         ref TSample origin = ref MemoryMarshal.GetReference(source);
         long total = 0;
         for (int y = 0; y < height; y++)
         {
+            // The first and last rows repeat themselves beyond the block edge, so their neighbor rows clamp.
             ref TSample above = ref Unsafe.Add(ref origin, Math.Max(y - 1, 0) * stride);
             ref TSample current = ref Unsafe.Add(ref origin, y * stride);
             ref TSample below = ref Unsafe.Add(ref origin, Math.Min(y + 1, height - 1) * stride);
 
             // The first and last columns repeat their own sample beyond the edge, so they run in the scalar member.
-            // The columns between read both neighbors in place. A squared difference is at most 4095 squared, so a
-            // 32-bit lane holds the at most 32 vectors of a 128-sample row, and each row folds into the total.
+            // The columns between read both neighbors in place: a vector at column x reads columns x - 1 through
+            // x + Count, and the loop bound keeps x + Count at most the last column. A squared difference is at most
+            // 4095 squared, and a 32-bit lane of a 128-sample row takes at most 32 of them, so the lanes fold into the
+            // total once per row.
             total += GetSquaredDifference<TSample, TOperator>(ref above, ref current, ref below, 0, width);
             int x = 1;
             int end = width - 1;
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<int> sum = Vector512<int>.Zero;
-                for (; x + Vector512<int>.Count <= end; x += Vector512<int>.Count)
+                for (; x + Vector512<ushort>.Count <= end; x += Vector512<ushort>.Count)
                 {
-                    Vector512<int> difference = GetDifference<TSample, TOperator>(ref above, ref current, ref below, (nuint)x, default(Vector512<int>));
-                    sum += difference * difference;
+                    sum = AccumulateSquaredDifferences<TSample, TOperator>(ref above, ref current, ref below, (nuint)x, sum);
                 }
 
                 total += Vector512.Sum(sum);
@@ -99,10 +64,9 @@ internal static class Av1VarianceStatistic
             if (Vector256.IsHardwareAccelerated)
             {
                 Vector256<int> sum = Vector256<int>.Zero;
-                for (; x + Vector256<int>.Count <= end; x += Vector256<int>.Count)
+                for (; x + Vector256<ushort>.Count <= end; x += Vector256<ushort>.Count)
                 {
-                    Vector256<int> difference = GetDifference<TSample, TOperator>(ref above, ref current, ref below, (nuint)x, default(Vector256<int>));
-                    sum += difference * difference;
+                    sum = AccumulateSquaredDifferences<TSample, TOperator>(ref above, ref current, ref below, (nuint)x, sum);
                 }
 
                 total += Vector256.Sum(sum);
@@ -111,10 +75,9 @@ internal static class Av1VarianceStatistic
             if (Vector128.IsHardwareAccelerated)
             {
                 Vector128<int> sum = Vector128<int>.Zero;
-                for (; x + Vector128<int>.Count <= end; x += Vector128<int>.Count)
+                for (; x + Vector128<ushort>.Count <= end; x += Vector128<ushort>.Count)
                 {
-                    Vector128<int> difference = GetDifference<TSample, TOperator>(ref above, ref current, ref below, (nuint)x, default(Vector128<int>));
-                    sum += difference * difference;
+                    sum = AccumulateSquaredDifferences<TSample, TOperator>(ref above, ref current, ref below, (nuint)x, sum);
                 }
 
                 total += Vector128.Sum(sum);
@@ -159,7 +122,7 @@ internal static class Av1VarianceStatistic
         int visibleWidth,
         int visibleHeight)
         where TSample : unmanaged
-        where TOperator : struct, IVarianceStatisticOperator<TSample>
+        where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
         long total = Calculate<TSample, TOperator>(source, stride, visibleWidth, visibleHeight);
         ref TSample origin = ref MemoryMarshal.GetReference(source);
@@ -173,9 +136,9 @@ internal static class Av1VarianceStatistic
             long columnTotal = 0;
             for (int y = 0; y < visibleHeight; y++)
             {
-                int above = TOperator.ToInt32(Unsafe.Add(ref column, Math.Max(y - 1, 0) * stride));
-                int center = TOperator.ToInt32(Unsafe.Add(ref column, y * stride));
-                int below = TOperator.ToInt32(Unsafe.Add(ref column, Math.Min(y + 1, visibleHeight - 1) * stride));
+                int above = TOperator.Load(ref column, (nuint)(Math.Max(y - 1, 0) * stride));
+                int center = TOperator.Load(ref column, (nuint)(y * stride));
+                int below = TOperator.Load(ref column, (nuint)(Math.Min(y + 1, visibleHeight - 1) * stride));
                 long difference = center - ((above + (center << 1) + below) >> 2);
                 columnTotal += difference * difference;
             }
@@ -192,9 +155,9 @@ internal static class Av1VarianceStatistic
             long rowTotal = 0;
             for (int x = 0; x < visibleWidth; x++)
             {
-                int left = TOperator.ToInt32(Unsafe.Add(ref row, Math.Max(x - 1, 0)));
-                int center = TOperator.ToInt32(Unsafe.Add(ref row, x));
-                int right = TOperator.ToInt32(Unsafe.Add(ref row, Math.Min(x + 1, visibleWidth - 1)));
+                int left = TOperator.Load(ref row, (nuint)Math.Max(x - 1, 0));
+                int center = TOperator.Load(ref row, (nuint)x);
+                int right = TOperator.Load(ref row, (nuint)Math.Min(x + 1, visibleWidth - 1));
                 long difference = center - ((left + (center << 1) + right) >> 2);
                 rowTotal += difference * difference;
             }
@@ -206,119 +169,123 @@ internal static class Av1VarianceStatistic
     }
 
     /// <summary>
-    /// Returns the differences of four columns from their smoothed values. Every column has both neighbors inside
-    /// the row.
+    /// Adds the squared differences of eight columns from their smoothed values to the lane totals. Every column has
+    /// both neighbors inside the row.
     /// </summary>
+    /// <typeparam name="TSample">The sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
+    /// <param name="above">The first sample of the row above.</param>
+    /// <param name="current">The first sample of the row.</param>
+    /// <param name="below">The first sample of the row below.</param>
+    /// <param name="x">The first column.</param>
+    /// <param name="sum">The lane totals so far.</param>
+    /// <returns>The lane totals with the eight columns added.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<int> GetDifference<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector128<int> width)
+    private static Vector128<int> AccumulateSquaredDifferences<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector128<int> sum)
         where TSample : unmanaged
-        where TOperator : struct, IVarianceStatisticOperator<TSample>
+        where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        Vector128<int> center = TOperator.LoadWidened(ref current, x, width);
-        Vector128<int> top = TOperator.LoadWidened(ref above, x - 1, width) + (TOperator.LoadWidened(ref above, x, width) << 1) + TOperator.LoadWidened(ref above, x + 1, width);
-        Vector128<int> middle = TOperator.LoadWidened(ref current, x - 1, width) + (center << 1) + TOperator.LoadWidened(ref current, x + 1, width);
-        Vector128<int> bottom = TOperator.LoadWidened(ref below, x - 1, width) + (TOperator.LoadWidened(ref below, x, width) << 1) + TOperator.LoadWidened(ref below, x + 1, width);
-        return center - ((top + (middle << 1) + bottom) >> 4);
+        // Each row's 1-2-1 sum, then the rows' 1-2-1 sum, all in sixteen-bit lanes, and the shift that divides by 16.
+        Vector128<ushort> lanes = default;
+        Vector128<ushort> center = TOperator.Load(ref current, x, lanes);
+        Vector128<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
+        Vector128<ushort> middle = TOperator.Load(ref current, x - 1, lanes) + (center << 1) + TOperator.Load(ref current, x + 1, lanes);
+        Vector128<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1) + TOperator.Load(ref below, x + 1, lanes);
+        Vector128<ushort> smoothed = (top + (middle << 1) + bottom) >>> 4;
+
+        // The signed differences of the lower and upper four columns, squared in 32-bit lanes.
+        Vector128<int> lower = Vector128.WidenLower(center).AsInt32() - Vector128.WidenLower(smoothed).AsInt32();
+        Vector128<int> upper = Vector128.WidenUpper(center).AsInt32() - Vector128.WidenUpper(smoothed).AsInt32();
+        return sum + (lower * lower) + (upper * upper);
     }
 
     /// <summary>
-    /// Returns the differences of eight columns from their smoothed values. Every column has both neighbors inside
-    /// the row.
+    /// Adds the squared differences of sixteen columns from their smoothed values to the lane totals. Every column has
+    /// both neighbors inside the row.
     /// </summary>
+    /// <typeparam name="TSample">The sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
+    /// <param name="above">The first sample of the row above.</param>
+    /// <param name="current">The first sample of the row.</param>
+    /// <param name="below">The first sample of the row below.</param>
+    /// <param name="x">The first column.</param>
+    /// <param name="sum">The lane totals so far.</param>
+    /// <returns>The lane totals with the sixteen columns added.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<int> GetDifference<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector256<int> width)
+    private static Vector256<int> AccumulateSquaredDifferences<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector256<int> sum)
         where TSample : unmanaged
-        where TOperator : struct, IVarianceStatisticOperator<TSample>
+        where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        Vector256<int> center = TOperator.LoadWidened(ref current, x, width);
-        Vector256<int> top = TOperator.LoadWidened(ref above, x - 1, width) + (TOperator.LoadWidened(ref above, x, width) << 1) + TOperator.LoadWidened(ref above, x + 1, width);
-        Vector256<int> middle = TOperator.LoadWidened(ref current, x - 1, width) + (center << 1) + TOperator.LoadWidened(ref current, x + 1, width);
-        Vector256<int> bottom = TOperator.LoadWidened(ref below, x - 1, width) + (TOperator.LoadWidened(ref below, x, width) << 1) + TOperator.LoadWidened(ref below, x + 1, width);
-        return center - ((top + (middle << 1) + bottom) >> 4);
+        // Each row's 1-2-1 sum, then the rows' 1-2-1 sum, all in sixteen-bit lanes, and the shift that divides by 16.
+        Vector256<ushort> lanes = default;
+        Vector256<ushort> center = TOperator.Load(ref current, x, lanes);
+        Vector256<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
+        Vector256<ushort> middle = TOperator.Load(ref current, x - 1, lanes) + (center << 1) + TOperator.Load(ref current, x + 1, lanes);
+        Vector256<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1) + TOperator.Load(ref below, x + 1, lanes);
+        Vector256<ushort> smoothed = (top + (middle << 1) + bottom) >>> 4;
+
+        // The signed differences of the lower and upper eight columns, squared in 32-bit lanes.
+        Vector256<int> lower = Vector256.WidenLower(center).AsInt32() - Vector256.WidenLower(smoothed).AsInt32();
+        Vector256<int> upper = Vector256.WidenUpper(center).AsInt32() - Vector256.WidenUpper(smoothed).AsInt32();
+        return sum + (lower * lower) + (upper * upper);
     }
 
     /// <summary>
-    /// Returns the differences of sixteen columns from their smoothed values. Every column has both neighbors
-    /// inside the row.
+    /// Adds the squared differences of thirty-two columns from their smoothed values to the lane totals. Every column
+    /// has both neighbors inside the row.
     /// </summary>
+    /// <typeparam name="TSample">The sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
+    /// <param name="above">The first sample of the row above.</param>
+    /// <param name="current">The first sample of the row.</param>
+    /// <param name="below">The first sample of the row below.</param>
+    /// <param name="x">The first column.</param>
+    /// <param name="sum">The lane totals so far.</param>
+    /// <returns>The lane totals with the thirty-two columns added.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<int> GetDifference<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector512<int> width)
+    private static Vector512<int> AccumulateSquaredDifferences<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector512<int> sum)
         where TSample : unmanaged
-        where TOperator : struct, IVarianceStatisticOperator<TSample>
+        where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        Vector512<int> center = TOperator.LoadWidened(ref current, x, width);
-        Vector512<int> top = TOperator.LoadWidened(ref above, x - 1, width) + (TOperator.LoadWidened(ref above, x, width) << 1) + TOperator.LoadWidened(ref above, x + 1, width);
-        Vector512<int> middle = TOperator.LoadWidened(ref current, x - 1, width) + (center << 1) + TOperator.LoadWidened(ref current, x + 1, width);
-        Vector512<int> bottom = TOperator.LoadWidened(ref below, x - 1, width) + (TOperator.LoadWidened(ref below, x, width) << 1) + TOperator.LoadWidened(ref below, x + 1, width);
-        return center - ((top + (middle << 1) + bottom) >> 4);
+        // Each row's 1-2-1 sum, then the rows' 1-2-1 sum, all in sixteen-bit lanes, and the shift that divides by 16.
+        Vector512<ushort> lanes = default;
+        Vector512<ushort> center = TOperator.Load(ref current, x, lanes);
+        Vector512<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
+        Vector512<ushort> middle = TOperator.Load(ref current, x - 1, lanes) + (center << 1) + TOperator.Load(ref current, x + 1, lanes);
+        Vector512<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1) + TOperator.Load(ref below, x + 1, lanes);
+        Vector512<ushort> smoothed = (top + (middle << 1) + bottom) >>> 4;
+
+        // The signed differences of the lower and upper sixteen columns, squared in 32-bit lanes.
+        Vector512<int> lower = Vector512.WidenLower(center).AsInt32() - Vector512.WidenLower(smoothed).AsInt32();
+        Vector512<int> upper = Vector512.WidenUpper(center).AsInt32() - Vector512.WidenUpper(smoothed).AsInt32();
+        return sum + (lower * lower) + (upper * upper);
     }
 
     /// <summary>
     /// Returns the squared difference of one column from its smoothed value, repeating the edge sample beyond the
     /// row.
     /// </summary>
+    /// <typeparam name="TSample">The sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
+    /// <param name="above">The first sample of the row above.</param>
+    /// <param name="current">The first sample of the row.</param>
+    /// <param name="below">The first sample of the row below.</param>
+    /// <param name="x">The column.</param>
+    /// <param name="width">The row width.</param>
+    /// <returns>The squared difference.</returns>
     private static long GetSquaredDifference<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, int x, int width)
         where TSample : unmanaged
-        where TOperator : struct, IVarianceStatisticOperator<TSample>
+        where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        int left = Math.Max(x - 1, 0);
-        int right = Math.Min(x + 1, width - 1);
-        int top = TOperator.ToInt32(Unsafe.Add(ref above, left)) + (TOperator.ToInt32(Unsafe.Add(ref above, x)) << 1) + TOperator.ToInt32(Unsafe.Add(ref above, right));
-        int center = TOperator.ToInt32(Unsafe.Add(ref current, x));
-        int middle = TOperator.ToInt32(Unsafe.Add(ref current, left)) + (center << 1) + TOperator.ToInt32(Unsafe.Add(ref current, right));
-        int bottom = TOperator.ToInt32(Unsafe.Add(ref below, left)) + (TOperator.ToInt32(Unsafe.Add(ref below, x)) << 1) + TOperator.ToInt32(Unsafe.Add(ref below, right));
+        // The neighbor columns clamp to the row, which repeats the edge sample as the reference's padded copy does.
+        nuint left = (nuint)Math.Max(x - 1, 0);
+        nuint column = (nuint)x;
+        nuint right = (nuint)Math.Min(x + 1, width - 1);
+        int top = TOperator.Load(ref above, left) + (TOperator.Load(ref above, column) << 1) + TOperator.Load(ref above, right);
+        int center = TOperator.Load(ref current, column);
+        int middle = TOperator.Load(ref current, left) + (center << 1) + TOperator.Load(ref current, right);
+        int bottom = TOperator.Load(ref below, left) + (TOperator.Load(ref below, column) << 1) + TOperator.Load(ref below, right);
         long difference = center - ((top + (middle << 1) + bottom) >> 4);
         return difference * difference;
-    }
-
-    /// <summary>
-    /// Loads eight-bit samples.
-    /// </summary>
-    public readonly struct ByteOperator : IVarianceStatisticOperator<byte>
-    {
-        /// <inheritdoc/>
-        public static int ToInt32(byte sample) => sample;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> LoadWidened(ref byte row, nuint offset, Vector128<int> width)
-        {
-            Vector128<byte> samples = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref row, offset))).AsByte();
-            return Vector128.WidenLower(Vector128.WidenLower(samples)).AsInt32();
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<int> LoadWidened(ref byte row, nuint offset, Vector256<int> width)
-            => Vector256.WidenLower(Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref row, offset))).AsByte()).ToVector256Unsafe()).AsInt32();
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<int> LoadWidened(ref byte row, nuint offset, Vector512<int> width)
-            => Vector512.WidenLower(Vector256.WidenLower(Vector128.LoadUnsafe(ref row, offset).ToVector256Unsafe()).ToVector512Unsafe()).AsInt32();
-    }
-
-    /// <summary>
-    /// Loads high bit depth samples.
-    /// </summary>
-    public readonly struct UInt16Operator : IVarianceStatisticOperator<ushort>
-    {
-        /// <inheritdoc/>
-        public static int ToInt32(ushort sample) => sample;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> LoadWidened(ref ushort row, nuint offset, Vector128<int> width)
-            => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref row, offset)))).AsUInt16()).AsInt32();
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<int> LoadWidened(ref ushort row, nuint offset, Vector256<int> width)
-            => Vector256.WidenLower(Vector128.LoadUnsafe(ref row, offset).ToVector256Unsafe()).AsInt32();
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<int> LoadWidened(ref ushort row, nuint offset, Vector512<int> width)
-            => Vector512.WidenLower(Vector256.LoadUnsafe(ref row, offset).ToVector512Unsafe()).AsInt32();
     }
 }

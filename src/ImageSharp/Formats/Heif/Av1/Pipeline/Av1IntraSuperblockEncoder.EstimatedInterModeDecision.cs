@@ -59,7 +59,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 parent.FrameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect);
 
             state.SetMotionVectorBias(
-                settings.IsRealtime,
+                settings.IsRealtime && parent.EncoderOptions.UsesConstantBitRate,
                 blockSize,
                 parent.EncodingSpeed,
                 this.interSourceVariance,
@@ -2636,14 +2636,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Returns whether NEWMV motion for a reference comes from the projection search. Reference: the
-        /// constant-bitrate condition of search_new_mv(): a reference after LAST while LAST is available, at the same
-        /// scale as LAST and without lag.
+        /// constant-bitrate condition of search_new_mv(): a reference after LAST in constant-bitrate coding while LAST
+        /// is available, at the same scale as LAST and without lag.
         /// </summary>
         /// <param name="reference">The candidate reference.</param>
         /// <returns><see langword="true"/> when the projection search estimates the motion.</returns>
         private bool UsesProjectionMotionSearch(Av1ReferenceFrameType reference)
             => reference > Av1ReferenceFrameType.Last &&
                 this.picture.Parent.SpeedSettings.IsRealtime &&
+                this.picture.Parent.EncoderOptions.UsesConstantBitRate &&
                 (this.picture.Parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Last)) != 0;
 
         /// <summary>
@@ -2651,10 +2652,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Reference: get_model_rd_flag(), for constant-bitrate real-time usage at 8 bits.
         /// </summary>
         /// <param name="blockSize">The coding-block geometry.</param>
-        /// <returns><see langword="true"/> for 32x32 and larger blocks at a nonzero quantizer and 8 bits.</returns>
+        /// <returns>
+        /// <see langword="true"/> for 32x32 and larger blocks outside a boosted cyclic refresh segment, at a nonzero
+        /// quantizer and 8 bits.
+        /// </returns>
         private bool UsesLargeBlockModel(Av1BlockSize blockSize)
             => this.picture.Parent.SpeedSettings.IsRealtime &&
+                this.picture.Parent.EncoderOptions.UsesConstantBitRate &&
                 blockSize >= Av1BlockSize.Block32x32 &&
+                !this.IsCyclicRefreshBoosted &&
                 this.picture.Parent.FrameHeader.QuantizationParameters.BaseQIndex != 0 &&
                 this.bitDepth == Av1BitDepth.EightBit;
 

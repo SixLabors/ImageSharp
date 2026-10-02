@@ -234,7 +234,9 @@ internal static partial class Av1FrameEncoder
                 return;
             }
 
-            if (this.FrameHeader.IsIntra)
+            // An intra frame and a frame of a new size restart the still block counts. Reference: the
+            // frame_is_intra_only() || resize_pending test of encode_without_recode().
+            if (this.FrameHeader.IsIntra || this.IsResizePending)
             {
                 this.noiseEstimate.ResetStillBlocks();
             }

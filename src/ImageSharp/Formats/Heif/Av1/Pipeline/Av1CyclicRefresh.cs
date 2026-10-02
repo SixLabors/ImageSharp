@@ -205,6 +205,8 @@ internal sealed class Av1CyclicRefresh
     /// <param name="height">The frame height.</param>
     /// <param name="averageFrameBandwidth">The bits per frame. Reference: rc->avg_frame_bandwidth.</param>
     /// <param name="superblockSize">The superblock size.</param>
+    /// <param name="variableBitrate">Whether the frames code in the variable-bitrate mode. Reference: rc_cfg.mode == AOM_VBR.</param>
+    /// <param name="refreshesGolden">Whether the frame refreshes GOLDEN. Reference: refresh_frame.golden_frame.</param>
     public void UpdateParameters(
         bool intraFrame,
         bool sceneChange,
@@ -216,7 +218,9 @@ internal sealed class Av1CyclicRefresh
         int width,
         int height,
         int averageFrameBandwidth,
-        Av1BlockSize superblockSize)
+        Av1BlockSize superblockSize,
+        bool variableBitrate,
+        bool refreshesGolden)
     {
         // The map keeps the size of the sequence and takes the grid of the frame as its stride. Reference: the
         // cr->map indices of av1_cyclic_refresh_update_segment() and cyclic_refresh_update_map(), which use the
@@ -286,6 +290,20 @@ internal sealed class Av1CyclicRefresh
             {
                 this.maximumQDeltaPercent = 50;
                 this.rateRatioQDelta = Math.Max(this.rateRatioQDelta, 2.0);
+            }
+        }
+
+        // The variable-bitrate mode refreshes fewer blocks with a smaller quantizer change, and refreshes nothing in a
+        // golden refresh, which is boosted already.
+        if (variableBitrate)
+        {
+            this.PercentRefresh = 10;
+            this.rateRatioQDelta = 1.5;
+            this.rateBoostFactor = 10;
+            if (refreshesGolden)
+            {
+                this.PercentRefresh = 0;
+                this.rateRatioQDelta = 1.0;
             }
         }
     }

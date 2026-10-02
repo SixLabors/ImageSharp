@@ -2023,6 +2023,19 @@ internal static partial class Av1FrameEncoder
         private readonly Av1RateControl? rateControl;
 
         /// <summary>
+        /// Whether the last coded frame was intra only, which the frame type of the encoder still holds while the next
+        /// frame is set up. Reference: frame_is_intra_only(cm) before av1_encode() sets the new frame type.
+        /// </summary>
+        private bool previousFrameIntra = true;
+
+        /// <summary>
+        /// Whether the last coded frame refreshed GOLDEN, which the refresh flags of the encoder still hold when cyclic
+        /// refresh sets up the next frame. Reference: cpi->refresh_frame.golden_frame before
+        /// av1_configure_buffer_updates() sets the flags of the new frame.
+        /// </summary>
+        private bool previousRefreshesGolden;
+
+        /// <summary>
         /// The one-pass rate model of a good-quality sequence without lookahead under a bit budget, which allocates
         /// the bits of each golden group, or <see langword="null"/> for constant-quality and real-time coding.
         /// </summary>
@@ -2289,13 +2302,13 @@ internal static partial class Av1FrameEncoder
 
                 this.PictureBuffer.Picture.Parent.AverageInterQuantizer = qIndex;
 
-                // Real-time usage codes at a constant bit rate between the allowed quantizers. Options without a
-                // range keep the requested quantizer. Reference: the AOM_CBR rc_end_usage of AOM_USAGE_REALTIME, with
-                // av1_quantizer_to_qindex() of rc_min_quantizer and rc_max_quantizer.
+                // Real-time usage runs the one-pass rate control of its mode between the allowed quantizers. libavif
+                // selects the constant-bitrate mode for it. Reference: the AOM_CBR rc_end_usage of AOM_USAGE_REALTIME,
+                // with av1_quantizer_to_qindex() of rc_min_quantizer and rc_max_quantizer.
                 if (speedSettings.IsRealtime)
                 {
-                    int bestAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer) : qIndex;
-                    int worstAllowedQIndex = options.UsesConstantBitRate ? Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer) : qIndex;
+                    int bestAllowedQIndex = Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer);
+                    int worstAllowedQIndex = Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer);
 
                     // Cyclic refresh only runs with the real-time rate control. Reference: av1_cyclic_refresh_alloc().
                     if (options.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.CyclicRefresh)
@@ -2304,23 +2317,24 @@ internal static partial class Av1FrameEncoder
                         this.PictureBuffer.Picture.Parent.CyclicRefresh = this.cyclicRefresh;
 
                         // The noise estimate runs for 8-bit frames above 640x480 with key frames apart, which cyclic
-                        // refresh enables. Reference: use_temporal_noise_estimate in set_rt_speed_features(), with
-                        // enable_noise_estimation().
-                        if (width * height > 640 * 480 && options.KeyFrameMaximumDistance != 0 && colorConfig.BitDepth == Av1BitDepth.EightBit)
+                        // refresh enables in constant-bitrate coding. Reference: use_temporal_noise_estimate in
+                        // set_rt_speed_features(), with enable_noise_estimation().
+                        if (width * height > 640 * 480 &&
+                            options.KeyFrameMaximumDistance != 0 &&
+                            colorConfig.BitDepth == Av1BitDepth.EightBit &&
+                            options.UsesConstantBitRate)
                         {
                             this.noiseEstimate = new Av1NoiseEstimate(width, height, this.FrameHeader.ModeInfoColumnCount, this.FrameHeader.ModeInfoRowCount);
                             this.PictureBuffer.Picture.Parent.NoiseEstimate = this.noiseEstimate;
                         }
                     }
 
-                    // A real-time sequence without a quantizer range keeps the requested quantizer, which the
-                    // constant-bitrate model returns for any target.
                     this.rateControl = new Av1RateControl(
                         width,
                         height,
                         colorConfig.BitDepth,
                         options.Speed,
-                        Av1RateControlMode.ConstantBitRate,
+                        options.RateControlMode,
                         realtime: true,
                         bestAllowedQIndex,
                         worstAllowedQIndex,
@@ -2416,6 +2430,14 @@ internal static partial class Av1FrameEncoder
         /// Gets the coded size of the current frame: the sequence size, or the size of a scaled layer.
         /// </summary>
         protected Size FrameSize => this.frameSize;
+
+        /// <summary>
+        /// Gets a value indicating whether the frame codes at a size other than the size the encoder holds, which is
+        /// the size of the frame before it or, after a configuration change, the image size. libavif sets the scale
+        /// mode of every frame, so the pending size is always the frame size. Reference: is_frame_resize_pending()
+        /// with the resize_pending_params of AOME_SET_SCALEMODE.
+        /// </summary>
+        private protected bool IsResizePending => this.frameSize != this.presetupFrameSize;
 
         /// <summary>
         /// Gets a value indicating whether the size of the current frame differs from the sequence size.
@@ -2857,8 +2879,8 @@ internal static partial class Av1FrameEncoder
             Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
             bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
 
-            // set_gf_interval_update_onepass_rt()
-            if (parent.HighSourceSad || this.framesTillGoldenUpdateDue == 0)
+            // set_gf_interval_update_onepass_rt(): a frame of a new size also starts a group.
+            if (this.IsResizePending || parent.HighSourceSad || this.framesTillGoldenUpdateDue == 0)
             {
                 // A key frame has already restarted the key frame interval. Reference: set_key_frame() in
                 // av1_get_one_pass_rt_params(), which runs before set_gf_interval_update_onepass_rt().
@@ -3275,7 +3297,12 @@ internal static partial class Av1FrameEncoder
         void IAv1ReferenceRefreshControl.AdjustRefresh(Av1PictureParentControlSet parent)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
-            if (frameHeader.IsIntra || !parent.SpeedSettings.UsesQuantizerGoldenRefresh || parent.HighSourceSad)
+
+            // The resize test of libaom never holds here, because the frame setup has consumed the pending size.
+            if (frameHeader.IsIntra ||
+                !this.Options.UsesConstantBitRate ||
+                !parent.SpeedSettings.UsesQuantizerGoldenRefresh ||
+                parent.HighSourceSad)
             {
                 return;
             }
@@ -3397,7 +3424,22 @@ internal static partial class Av1FrameEncoder
 
             // The key frame decision and its bit target read the old frame count. The quantizer reads the restarted
             // one. Reference: av1_get_one_pass_rt_params() before av1_encode(), then av1_rc_pick_q_and_bounds().
-            this.rateControl.BeginFrame(keyFrame, this.frameNumber, this.presetupFrameSize);
+            Av1RateControl.SourceSadStatistics sourceSad = new(parent.FrameSourceSad, averageSourceSad, previousAverageSourceSad);
+
+            // A frame of a new size resets the buffer and the inter model before its target, while the frame type of
+            // the frame before still holds. Reference: resize_reset_rc() in av1_get_one_pass_rt_params().
+            if (this.IsResizePending)
+            {
+                this.rateControl.ResetForResize(
+                    this.FrameSize,
+                    this.presetupFrameSize,
+                    this.previousFrameIntra,
+                    this.frameNumber,
+                    parent.IsScreenContent,
+                    in sourceSad);
+            }
+
+            this.rateControl.BeginFrame(keyFrame, this.frameNumber, parent.StartsGoldenGroup, this.baselineGoldenInterval, this.presetupFrameSize);
             if (keyFrame)
             {
                 this.RestartFrameCount();
@@ -3420,15 +3462,27 @@ internal static partial class Av1FrameEncoder
                 this.FrameHeader.FrameSize.FrameWidth,
                 this.FrameHeader.FrameSize.FrameHeight,
                 this.rateControl.AverageFrameBandwidth,
-                this.SequenceHeader.SuperblockSize);
+                this.SequenceHeader.SuperblockSize,
+                this.Options.RateControlMode == Av1RateControlMode.VariableBitRate,
+                this.previousRefreshesGolden);
 
-            Av1RateControl.SourceSadStatistics sourceSad = new(parent.FrameSourceSad, averageSourceSad, previousAverageSourceSad);
-            int qIndex = this.rateControl.PickQuantizer<TSample, TMotion, TBlock>(
-                keyFrame, this.frameNumber, parent.IsScreenContent, in sourceSad, source, lastReconstruction);
+            // A layered image in constant-quality coding codes every layer at its quality level. Reference: the
+            // use_fixed_qp_offsets == 2 branch of av1_set_size_dependent_vars(), before av1_rc_pick_q_and_bounds().
+            int qIndex = this.Options.UsesFixedQuantizer && this.Options.RateControlMode == Av1RateControlMode.Quality
+                ? this.constantQualityIndex
+                : this.rateControl.PickQuantizer<TSample, TMotion, TBlock>(
+                    keyFrame,
+                    this.frameNumber,
+                    parent.StartsGoldenGroup,
+                    parent.RefreshesGolden,
+                    parent.IsScreenContent,
+                    in sourceSad,
+                    source,
+                    lastReconstruction);
 
             // Overshoot detection is set for constant-bitrate inter frames. Reference: the FAST_DETECTION_MAXQ
             // overshoot_detection_cbr of set_rt_speed_features().
-            if (!keyFrame && parent.HighSourceSad)
+            if (!keyFrame && parent.HighSourceSad && this.Options.UsesConstantBitRate)
             {
                 qIndex = this.rateControl.ApplyOvershootQuantizer(qIndex, averageSourceSad);
             }
@@ -3596,6 +3650,8 @@ internal static partial class Av1FrameEncoder
                 parent.HighSourceSad);
 
             this.rateControl.EndFrame();
+            this.previousFrameIntra = this.FrameHeader.IsIntra;
+            this.previousRefreshesGolden = parent.RefreshesGolden;
         }
 
         protected void CompleteFrameHeader()

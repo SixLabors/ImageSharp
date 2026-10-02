@@ -556,6 +556,53 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level8)]
+    public void LosslessSequenceCodesInterFramesExactly(HeifEncodingSpeed speed)
+    {
+        // A lossless inter frame reconstructs its source exactly, as the same frame coded as a lossless key frame does.
+        using Image<Rgb24> frames = CreatePanningSequence(4);
+        Av1EncoderOptions options = new(speed, Av1Tuning.Psnr, enableRestoration: true, allIntra: false)
+        {
+            MinimumQuantizer = 0,
+            MaximumQuantizer = 0,
+            KeyFrameMaximumDistance = 9999
+        };
+
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv444);
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default, frames.Width, frames.Height, colorConfig, 0, options);
+
+        using Av1FrameEncoder.SequenceEncoder keyFrameEncoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default, frames.Width, frames.Height, colorConfig, 0, options);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        using MemoryStream keyFrameSample = new();
+        for (int i = 0; i < frames.Frames.Count; i++)
+        {
+            sample.SetLength(0);
+            if (i == 0)
+            {
+                encoder.EncodeKeyFrame(frames.Frames[0], sample);
+            }
+            else
+            {
+                Assert.False(encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false));
+            }
+
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            Assert.True(decoder.FrameHeader!.CodedLossless);
+            AssertDecodedLumaMatchesEncoder(encoder, decoder, frames.Width, frames.Height);
+
+            keyFrameSample.SetLength(0);
+            keyFrameEncoder.EncodeKeyFrame(frames.Frames[i], keyFrameSample);
+            int slot = BitOperations.TrailingZeroCount(decoder.FrameHeader.RefreshFrameFlags);
+            Assert.Equal(keyFrameEncoder.CopySlotLuma(0), encoder.CopySlotLuma(slot));
+        }
+    }
+
+    [Theory]
     [InlineData(VariableBitRate)]
     [InlineData(ConstrainedQuality)]
     [InlineData(ConstantBitRate)]

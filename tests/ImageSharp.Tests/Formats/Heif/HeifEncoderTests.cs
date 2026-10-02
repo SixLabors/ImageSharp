@@ -1308,6 +1308,42 @@ public class HeifEncoderTests
     }
 
     [Theory]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level9)]
+    public void Av1LosslessAnimationRoundTripsWithInterFrames(HeifEncodingSpeed speed)
+    {
+        // Speed 6 codes through the lookahead and speed 9 in real time. Frames after the first predict from earlier
+        // frames and still decode exactly.
+        using Image<Rgb24> image = new(48, 32);
+        for (int frameIndex = 0; frameIndex < 4; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = ((x + frameIndex) * 5) + (y * 3);
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Lossless = true, Speed = speed });
+
+        byte[] file = stream.ToArray();
+        HeifSequenceSample[] samples = ParseSequence(file).ColorTrack.Samples;
+        Assert.Equal(image.Frames.Count, samples.Length);
+        Assert.False(samples[^1].IsSync);
+
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+    }
+
+    [Theory]
     [InlineData(HeifRateControl.ConstantQuality)]
     [InlineData(HeifRateControl.ConstrainedQuality)]
     [InlineData(HeifRateControl.VariableBitRate)]

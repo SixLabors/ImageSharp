@@ -220,6 +220,22 @@ internal sealed partial class HeifEncoderCore
             }
         }
 
+        // Lossless color codes RGB through the identity matrix at full range, unless the source describes a reversible
+        // matrix, identity or YCgCo, which it keeps with its range. A gray image codes its one plane exactly with any
+        // matrix. Reference: the lossless defaults of avifenc main(), which set AVIF_MATRIX_COEFFICIENTS_IDENTITY.
+        bool reversibleColorMatrix = colorProfile.MatrixCoefficients is CicpMatrixCoefficients.Identity
+            or CicpMatrixCoefficients.YCgCoRe
+            or CicpMatrixCoefficients.YCgCoRo;
+
+        if (this.encoder.Lossless && !isMonochrome && !reversibleColorMatrix)
+        {
+            colorProfile = new CicpProfile(
+                (byte)colorProfile.ColorPrimaries,
+                (byte)colorProfile.TransferCharacteristics,
+                (byte)CicpMatrixCoefficients.Identity,
+                true);
+        }
+
         ObuColorConfig colorConfig = new()
         {
             IsColorDescriptionPresent = true,
@@ -489,7 +505,6 @@ internal sealed partial class HeifEncoderCore
         Span<HeifSequenceSampleInfo> colorSamples = samples.Span[..frameCount];
         ImageFrame<TPixel> firstFrame = image.Frames[firstFrameIndex];
         ObuSequenceHeader colorHeader;
-        bool colorUsesInterPrediction = settings.ColorQIndex != 0;
         using (Av1FrameEncoder.SequenceEncoder colorEncoder = Av1FrameEncoder.CreateColorSequenceEncoder(
             this.configuration,
             image.Width,
@@ -500,7 +515,7 @@ internal sealed partial class HeifEncoderCore
         {
             cancellationToken.ThrowIfCancellationRequested();
             long colorOffset = stream.Length;
-            if (colorUsesInterPrediction && settings.ColorOptions.LagInFrames > 0)
+            if (settings.ColorOptions.LagInFrames > 0)
             {
                 // A lookahead codes frames out of display order, so each sample is one temporal unit that ends with a
                 // shown frame. libavif submits every frame with a duration of one unit of the default 1/30 timebase.
@@ -537,7 +552,7 @@ internal sealed partial class HeifEncoderCore
             }
             else
             {
-                CompressUnlaggedColorSequence(colorEncoder, image, stream, colorSamples, firstFrameIndex, frameCount, timescale, colorUsesInterPrediction, cancellationToken);
+                CompressUnlaggedColorSequence(colorEncoder, image, stream, colorSamples, firstFrameIndex, frameCount, timescale, cancellationToken);
                 colorHeader = colorEncoder.SequenceHeader;
             }
         }
@@ -553,7 +568,6 @@ internal sealed partial class HeifEncoderCore
             Memory<HeifSequenceSampleInfo> alphaSampleMemory = samples.Slice(frameCount, frameCount);
             Span<HeifSequenceSampleInfo> alphaSamples = alphaSampleMemory.Span;
             ObuSequenceHeader alphaHeader;
-            bool alphaUsesInterPrediction = settings.AlphaQIndex != 0;
             using (Av1FrameEncoder.SequenceEncoder alphaEncoder = Av1FrameEncoder.CreateAlphaSequenceEncoder(
                 this.configuration,
                 image.Width,
@@ -578,21 +592,13 @@ internal sealed partial class HeifEncoderCore
                     cancellationToken.ThrowIfCancellationRequested();
                     int frameIndex = firstFrameIndex + sampleIndex;
                     alphaOffset = stream.Length;
-                    bool keyFrame;
-                    if (alphaUsesInterPrediction)
-                    {
-                        // A color key frame forces an alpha key frame, so both tracks can start at that sample.
-                        // Reference: avifEncoderDataShouldForceKeyframeForAlpha().
-                        keyFrame = alphaEncoder.EncodeNextFrame(
-                            image.Frames[frameIndex],
-                            stream,
-                            forceKeyFrame: colorSamples[sampleIndex].IsSyncSample);
-                    }
-                    else
-                    {
-                        alphaEncoder.EncodeKeyFrame(image.Frames[frameIndex], stream);
-                        keyFrame = true;
-                    }
+
+                    // A color key frame forces an alpha key frame, so both tracks can start at that sample.
+                    // Reference: avifEncoderDataShouldForceKeyframeForAlpha().
+                    bool keyFrame = alphaEncoder.EncodeNextFrame(
+                        image.Frames[frameIndex],
+                        stream,
+                        forceKeyFrame: colorSamples[sampleIndex].IsSyncSample);
 
                     alphaSamples[sampleIndex] = new HeifSequenceSampleInfo(
                         alphaOffset,
@@ -630,8 +636,7 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Codes a color sequence one frame per sample: a key frame, then inter frames, or key frames only for lossless
-    /// coding.
+    /// Codes a color sequence one frame per sample: a key frame, then inter frames.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type.</typeparam>
     /// <param name="colorEncoder">The color sequence encoder.</param>
@@ -641,7 +646,6 @@ internal sealed partial class HeifEncoderCore
     /// <param name="firstFrameIndex">The index of the first frame to encode.</param>
     /// <param name="frameCount">The number of frames to encode.</param>
     /// <param name="timescale">The track timescale.</param>
-    /// <param name="colorUsesInterPrediction">Whether frames after the first predict from earlier frames.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private static void CompressUnlaggedColorSequence<TPixel>(
         Av1FrameEncoder.SequenceEncoder colorEncoder,
@@ -651,7 +655,6 @@ internal sealed partial class HeifEncoderCore
         int firstFrameIndex,
         int frameCount,
         uint timescale,
-        bool colorUsesInterPrediction,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -671,19 +674,7 @@ internal sealed partial class HeifEncoderCore
             ImageFrame<TPixel> frame = image.Frames[frameIndex];
             uint duration = GetSequenceSampleDuration(frame.Metadata.GetHeifMetadata().FrameDelay, timescale);
             colorOffset = stream.Length;
-            bool keyFrame;
-            if (colorUsesInterPrediction)
-            {
-                keyFrame = colorEncoder.EncodeNextFrame(frame, stream, forceKeyFrame: false);
-            }
-            else
-            {
-                // Lossless AV1 requires 4x4 transforms. Until the inter path supports that reversible size,
-                // continuation samples remain independent key frames instead of weakening losslessness.
-                colorEncoder.EncodeKeyFrame(frame, stream);
-                keyFrame = true;
-            }
-
+            bool keyFrame = colorEncoder.EncodeNextFrame(frame, stream, forceKeyFrame: false);
             colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
                 colorOffset,
                 checked((int)(stream.Length - colorOffset)),
@@ -1280,7 +1271,7 @@ internal sealed partial class HeifEncoderCore
         }
 
         // Sync samples are key frames in this encoder. The all-intra flag is therefore valid when every sample
-        // is independently decodable, including lossless sequences that deliberately avoid inter transforms.
+        // is independently decodable.
         WriteSequenceUInt32(memory, ref offset, codingConstraints);
         EndSequenceBox(memory, codingConstraintsStart, offset);
         EndSequenceBox(memory, sampleEntryStart, offset);

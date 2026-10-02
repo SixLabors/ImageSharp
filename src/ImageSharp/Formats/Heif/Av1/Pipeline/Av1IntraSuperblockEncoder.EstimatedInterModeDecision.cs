@@ -1577,8 +1577,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.Parent.FrameHeader.ModeInfoRowCount >> subY);
 
                 // Prediction stays in block coordinates while coefficients follow transform coding
-                // order, including the separate 64x64 regions of a larger coding block.
-                Av1TransformSize rootSize = planeIndex == 0 ? planeBlock.GetMaximumTransformSize() : transformSize;
+                // order, including the separate 64x64 regions of a larger coding block. A lossless block codes its
+                // 4x4 transforms in raster order, without the luma transform tree. Reference: the TX_4X4 that
+                // get_vartx_max_txsize() returns for a lossless segment.
+                Av1TransformSize rootSize = planeIndex == 0 && !lossless ? planeBlock.GetMaximumTransformSize() : transformSize;
                 int count = stride * planeBlock.GetHeight() / sampleCount;
                 for (int index = 0; index < count; index++)
                 {

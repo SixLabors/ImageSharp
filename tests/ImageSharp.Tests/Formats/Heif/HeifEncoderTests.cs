@@ -1156,7 +1156,13 @@ public class HeifEncoderTests
                 deltas[segment] = segmentation.GetFeatureData(segment, (int)ObuSegmentationLevelFeature.AlternativeQuantizer);
             }
 
+            // Complexity coding uses five segments, where variance coding uses eight. The rate factors fall from
+            // segment 0 to segment 4, so the quantizer deltas rise: segments 0 to 2 get more bits than the frame and
+            // segment 4 fewer. Reference: AQ_C_SEGMENTS and aq_c_q_adj_factor.
+            Assert.Equal(4, segmentation.LastActiveSegmentId);
             Assert.Equal(0, deltas[3]);
+            Assert.True(deltas[0] <= deltas[1] && deltas[1] <= deltas[2] && deltas[2] <= 0);
+            Assert.True(deltas[4] >= 0);
             Assert.Contains(deltas, delta => delta < 0);
         }
 
@@ -1374,6 +1380,74 @@ public class HeifEncoderTests
 
         stream.Position = 0;
         using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level9)]
+    public void Av1LosslessAnimationWithAlphaRoundTripsWithInterFrames(HeifEncodingSpeed speed)
+    {
+        // The alpha track predicts its later frames from earlier ones as the color track does, and both decode exactly.
+        using Image<Rgba32> image = new(48, 32);
+        for (int frameIndex = 0; frameIndex < 4; frameIndex++)
+        {
+            ImageFrame<Rgba32> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = ((x + frameIndex) * 5) + (y * 3);
+                    byte alpha = (byte)(((x + frameIndex) * 7) ^ (y * 11));
+                    row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), alpha);
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Lossless = true, Speed = speed });
+
+        byte[] file = stream.ToArray();
+        HeifSequence sequence = ParseSequence(file);
+        Assert.False(sequence.ColorTrack.Samples[^1].IsSync);
+        Assert.False(sequence.AlphaTrack!.Samples[^1].IsSync);
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    [InlineData(HeifEncodingSpeed.Level9)]
+    public void Av1LosslessGrayAnimationRoundTripsWithInterFrames(HeifEncodingSpeed speed)
+    {
+        // A gray animation codes one plane, which predicts across frames and decodes exactly.
+        using Image<L8> image = new(48, 32);
+        for (int frameIndex = 0; frameIndex < 4; frameIndex++)
+        {
+            ImageFrame<L8> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<L8> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    row[x] = new L8((byte)(((x + frameIndex) * 5) + (y * 3)));
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Lossless = true, Speed = speed });
+
+        byte[] file = stream.ToArray();
+        Assert.False(ParseSequence(file).ColorTrack.Samples[^1].IsSync);
+
+        stream.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(stream);
         Assert.Equal(image.Frames.Count, decoded.Frames.Count);
         Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
     }

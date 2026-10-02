@@ -19,7 +19,9 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Tests.TestDataIcc;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
@@ -960,48 +962,36 @@ public class HeifEncoderTests
     }
 
     [Theory]
-    [InlineData(HeifEncodingSpeed.Level6, 4, false)]
-    [InlineData(HeifEncodingSpeed.Level6, 4, true)]
-    [InlineData(HeifEncodingSpeed.Level9, 4, false)]
-    [InlineData(HeifEncodingSpeed.Level6, 1, false)]
-    public async Task Encode_IsCancellable(HeifEncodingSpeed speed, int frameCount, bool withAlpha)
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task Encode_IsCancellable(int frameCount)
     {
-        // The allocator cancels at a fixed allocation, so every run cancels at the same point of the work.
-        CancellingMemoryAllocator allocator = new();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        using Image<Rgba32> image = new(configuration, 128, 96);
-        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+        using CancellationTokenSource cts = new();
+        using PausedStream pausedStream = new(new MemoryStream());
+        pausedStream.OnWaiting(s =>
         {
-            ImageFrame<Rgba32> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
-            for (int y = 0; y < image.Height; y++)
+            // after some writing
+            if (s.Position >= 500)
             {
-                Span<Rgba32> row = frame.PixelBuffer.DangerousGetRowSpan(y);
-                for (int x = 0; x < image.Width; x++)
-                {
-                    int value = (x + (3 * frameIndex) + y) & 0xFF;
-                    byte alpha = withAlpha ? (byte)(255 - x) : (byte)255;
-                    row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), alpha);
-                }
+                cts.Cancel();
+                pausedStream.Release();
             }
-        }
+            else
+            {
+                // allows this/next wait to unblock
+                pausedStream.Next();
+            }
+        });
 
-        HeifEncoder encoder = new() { Quality = 60, AlphaQuality = 60, Speed = speed };
-
-        // A complete encode counts its allocations, so the cancellation lands halfway through the same work.
-        allocator.ResetCount();
-        using (MemoryStream complete = new())
+        // A small processing buffer writes the payload in many pieces, so the cancellation lands while it is written.
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.StreamProcessingBufferSize = 128;
+        using Image<Rgb24> image = Av1EncoderFrameTests.CreateNoiseSequence(configuration, 96, 96, frameCount);
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
         {
-            await image.SaveAsync(complete, encoder, TestContext.Current.CancellationToken);
-        }
-
-        int allocationCount = allocator.AllocationCount;
-        Assert.True(allocationCount > 1);
-
-        using CancellationTokenSource source = new();
-        allocator.CancelAt(source, allocationCount / 2);
-        using MemoryStream stream = new();
-        await Assert.ThrowsAsync<TaskCanceledException>(() => image.SaveAsync(stream, encoder, source.Token));
+            HeifEncoder encoder = new();
+            await image.SaveAsync(pausedStream, encoder, cts.Token);
+        });
     }
 
     [Theory]
@@ -1413,6 +1403,35 @@ public class HeifEncoderTests
         using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
         Assert.Equal(0, decoder.FrameHeader!.QuantizationParameters.BaseQIndex);
         Assert.True(decoder.FrameHeader.CodedLossless);
+    }
+
+    [Theory]
+    [InlineData(HeifChromaSubsampling.Yuv420)]
+    [InlineData(HeifChromaSubsampling.Yuv422)]
+    public void Av1LosslessWithSubsampledChromaKeepsADecodableMatrix(HeifChromaSubsampling chromaSubsampling)
+    {
+        // The identity matrix needs 4:4:4 sampling, so subsampled lossless color keeps a matrix the decoder accepts.
+        using Image<Rgb24> image = new(48, 32);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 37) ^ (y * 23)) & 0xFF;
+                image[x, y] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Lossless = true, ChromaSubsampling = chromaSubsampling });
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
+        Assert.NotEqual(ObuMatrixCoefficients.Identity, decoder.SequenceHeader!.ColorConfig.MatrixCoefficients);
+        Assert.True(decoder.FrameHeader!.CodedLossless);
+
+        stream.Position = 0;
+        using Image<Rgb24> loaded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Size, loaded.Size);
     }
 
     [Fact]

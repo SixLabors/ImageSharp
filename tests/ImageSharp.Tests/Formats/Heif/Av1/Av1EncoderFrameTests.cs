@@ -1075,9 +1075,21 @@ public class Av1EncoderFrameTests
     /// <param name="height">The frame height.</param>
     /// <param name="frameCount">The number of frames.</param>
     /// <returns>The sequence.</returns>
-    private static Image<Rgb24> CreateNoiseSequence(int width, int height, int frameCount)
+    internal static Image<Rgb24> CreateNoiseSequence(int width, int height, int frameCount)
+        => CreateNoiseSequence(Configuration.Default, width, height, frameCount);
+
+    /// <summary>
+    /// Creates a sequence of noise frames, as <see cref="CreateNoiseSequence(int, int, int)"/> does, that allocates
+    /// and encodes with the given configuration.
+    /// </summary>
+    /// <param name="configuration">The configuration of the image.</param>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="frameCount">The number of frames.</param>
+    /// <returns>The sequence.</returns>
+    internal static Image<Rgb24> CreateNoiseSequence(Configuration configuration, int width, int height, int frameCount)
     {
-        Image<Rgb24> image = new(width, height);
+        Image<Rgb24> image = new(configuration, width, height);
         Span<int> position = stackalloc int[3];
         for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
         {

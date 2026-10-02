@@ -224,7 +224,7 @@ internal sealed partial class HeifEncoderCore
             int movieLength = GetSequenceMovieBoxLength(sequence);
             this.WriteMetadataBox(sequenceItems, sequenceLinks, fileTypeLength, movieLength, stream);
             this.WriteSequenceMovieBox(sequence, fileTypeLength + metadataLength, stream);
-            this.WriteMediaDataBox(compressedPixels, stream);
+            this.WriteMediaDataBox(compressedPixels, stream, cancellationToken);
             stream.Flush();
             return;
         }
@@ -236,7 +236,7 @@ internal sealed partial class HeifEncoderCore
         // Write out the generated header and pixels.
         long metadataBoxOffset = this.WriteFileTypeBox(stream);
         this.WriteMetadataBox(items, links, metadataBoxOffset, 0, stream);
-        this.WriteMediaDataBox(compressedPixels, stream);
+        this.WriteMediaDataBox(compressedPixels, stream, cancellationToken);
         stream.Flush();
     }
 
@@ -1068,14 +1068,25 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     /// <param name="data">The encoded item payload stream.</param>
     /// <param name="stream">The destination stream.</param>
-    private void WriteMediaDataBox(ChunkedMemoryStream data, Stream stream)
+    /// <param name="cancellationToken">The token that stops the write between buffers.</param>
+    private void WriteMediaDataBox(ChunkedMemoryStream data, Stream stream, CancellationToken cancellationToken)
     {
         Span<byte> buf = stackalloc byte[12];
         int bytesWritten = WriteBoxHeader(buf, Heif4CharCode.Mdat);
         BinaryPrimitives.WriteUInt32BigEndian(buf, checked((uint)(data.Length + bytesWritten)));
         stream.Write(buf[..bytesWritten]);
 
-        data.WriteTo(stream);
+        // The payload is copied one processing buffer at a time, so a canceled encode stops while its output is
+        // still being written, as the encoders that write rows as they go do.
+        using IMemoryOwner<byte> bufferOwner = this.configuration.MemoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
+        Span<byte> buffer = bufferOwner.Memory.Span;
+        data.Position = 0;
+        int read;
+        while ((read = data.Read(buffer)) > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            stream.Write(buffer[..read]);
+        }
     }
 
     /// <summary>

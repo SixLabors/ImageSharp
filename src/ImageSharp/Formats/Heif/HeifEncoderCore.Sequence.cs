@@ -227,12 +227,15 @@ internal sealed partial class HeifEncoderCore
 
         // Lossless color codes RGB through the identity matrix at full range, unless the source describes a reversible
         // matrix, identity or YCgCo, which it keeps with its range. A gray image codes its one plane exactly with any
-        // matrix. Reference: the lossless defaults of avifenc main(), which set AVIF_MATRIX_COEFFICIENTS_IDENTITY.
+        // matrix. AV1 allows the identity matrix with 4:4:4 sampling only, so a lossless encode that asks for
+        // subsampled chroma keeps the matrix chosen above and codes its YUV samples exactly. Reference: the lossless
+        // defaults of avifenc main(), which set AVIF_MATRIX_COEFFICIENTS_IDENTITY, and the mono_chrome and
+        // subsampling requirements of color_config() for MC_IDENTITY.
         bool reversibleColorMatrix = colorProfile.MatrixCoefficients is CicpMatrixCoefficients.Identity
             or CicpMatrixCoefficients.YCgCoRe
             or CicpMatrixCoefficients.YCgCoRo;
 
-        if (this.encoder.Lossless && !isMonochrome && !reversibleColorMatrix)
+        if (this.encoder.Lossless && !isMonochrome && chromaSubsampling == HeifChromaSubsampling.Yuv444 && !reversibleColorMatrix)
         {
             colorProfile = new CicpProfile(
                 (byte)colorProfile.ColorPrimaries,

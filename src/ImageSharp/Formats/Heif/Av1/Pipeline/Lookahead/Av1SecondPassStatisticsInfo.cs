@@ -58,7 +58,7 @@ internal sealed class Av1SecondPassStatisticsInfo
     /// weighting reads.
     /// </summary>
     /// <param name="statistics">The statistics.</param>
-    public void Push(in Av1FirstPassStatistics statistics)
+    public void Push(Av1FirstPassStatistics statistics)
     {
         if (this.statisticsCount < BufferSize)
         {

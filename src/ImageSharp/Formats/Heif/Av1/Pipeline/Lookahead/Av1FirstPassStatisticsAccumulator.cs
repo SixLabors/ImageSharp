@@ -53,7 +53,7 @@ internal static class Av1FirstPassStatisticsAccumulator
     /// </summary>
     /// <param name="section">The section total to update.</param>
     /// <param name="frame">The frame record to add.</param>
-    public static void Accumulate(ref Av1FirstPassStatistics section, in Av1FirstPassStatistics frame)
+    public static void Accumulate(ref Av1FirstPassStatistics section, Av1FirstPassStatistics frame)
     {
         section.Frame += frame.Frame;
         section.Weight += frame.Weight;

@@ -56,7 +56,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="statistics">The block's searched rate and distortion.</param>
         /// <param name="countBlocks">Whether the frame counts the block's segment units.</param>
         /// <returns>Whether the block updates its segment.</returns>
-        private readonly bool UpdatesCyclicRefreshSegment(in Av1RateDistortionStatistics statistics, out bool countBlocks)
+        private readonly bool UpdatesCyclicRefreshSegment(Av1RateDistortionStatistics statistics, out bool countBlocks)
         {
             countBlocks = false;
             if (this.picture.Parent.CyclicRefresh is null || !this.picture.Parent.FrameHeader.SegmentationParameters.Enabled)
@@ -78,7 +78,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     Av1RateDistortionStatistics split = this.mergeSplitStatistics;
-                    split.Add(this.mergeRateMultiplier, in statistics);
+                    split.Add(this.mergeRateMultiplier, statistics);
                     return !(this.mergeNoneCost < split.Cost);
             }
         }
@@ -100,7 +100,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             Av1MotionVector vector,
-            in Av1RateDistortionStatistics statistics,
+            Av1RateDistortionStatistics statistics,
             bool countBlocks)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
@@ -170,7 +170,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="modeInfo">The block's coded syntax.</param>
         /// <param name="vector">The block's first motion vector, or zero for an intra block.</param>
-        private readonly void CountNoiseStillBlock(Point blockOrigin, in Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector)
+        private readonly void CountNoiseStillBlock(Point blockOrigin, Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector)
             => this.picture.Parent.NoiseEstimate?.CountStillBlock(
                 new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2),
                 modeInfo.BlockSize,

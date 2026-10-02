@@ -1338,7 +1338,7 @@ internal partial class Av1TileWriter
                         pcs,
                         macroBlock,
                         modeInfoPosition,
-                        in macroBlockModeInfo.Block);
+                        macroBlockModeInfo.Block);
 
                     writer.WriteMotionMode<TOperation>(blockSize, lastAllowedMode, macroBlockModeInfo.Block.MotionMode);
                     if (TOperation.WritesOutput && lastAllowedMode == Av1MotionMode.Warped)

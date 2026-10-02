@@ -720,7 +720,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             int qIndex,
             Av1BitDepth bitDepth,
-            in Av1EncoderTransformBlockState state);
+            Av1EncoderTransformBlockState state);
     }
 
     private static int GetNormalizedVariance(int sum, int sumOfSquares, Av1BitDepth bitDepth)
@@ -1927,7 +1927,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             int qIndex,
             Av1BitDepth bitDepth,
-            in Av1EncoderTransformBlockState state)
+            Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
                 workspace,
                 dequantized,
@@ -1940,7 +1940,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 qIndex,
                 plane,
-                in state);
+                state);
     }
 
     /// <summary>
@@ -3142,7 +3142,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             int qIndex,
             Av1BitDepth bitDepth,
-            in Av1EncoderTransformBlockState state)
+            Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
                 workspace,
                 dequantized,
@@ -3156,6 +3156,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 qIndex,
                 plane,
                 bitDepth,
-                in state);
+                state);
     }
 }

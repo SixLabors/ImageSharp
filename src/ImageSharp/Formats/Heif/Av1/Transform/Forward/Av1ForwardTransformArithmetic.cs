@@ -29,28 +29,25 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     public static Av1TransformRounding CreateRounding(int cosBit)
     {
         int value = 1 << (cosBit - 1);
-        Av1TransformRounding rounding = default;
 
         // The closed TValue makes this a compile-time shape selection. Only the matching explicit-layout field is
         // initialized and subsequently read, keeping the broadcast outside every butterfly in the stage network.
         if (typeof(TValue) == typeof(Vector128<short>) || typeof(TValue) == typeof(Vector128<int>))
         {
-            rounding.Vector128 = Vector128.Create(value);
-        }
-        else if (typeof(TValue) == typeof(Vector256<short>) || typeof(TValue) == typeof(Vector256<int>))
-        {
-            rounding.Vector256 = Vector256.Create(value);
-        }
-        else if (typeof(TValue) == typeof(Vector512<short>) || typeof(TValue) == typeof(Vector512<int>))
-        {
-            rounding.Vector512 = Vector512.Create(value);
-        }
-        else
-        {
-            rounding.Scalar = value;
+            return new Av1TransformRounding(Vector128.Create(value));
         }
 
-        return rounding;
+        if (typeof(TValue) == typeof(Vector256<short>) || typeof(TValue) == typeof(Vector256<int>))
+        {
+            return new Av1TransformRounding(Vector256.Create(value));
+        }
+
+        if (typeof(TValue) == typeof(Vector512<short>) || typeof(TValue) == typeof(Vector512<int>))
+        {
+            return new Av1TransformRounding(Vector512.Create(value));
+        }
+
+        return new Av1TransformRounding(value);
     }
 
     /// <summary>

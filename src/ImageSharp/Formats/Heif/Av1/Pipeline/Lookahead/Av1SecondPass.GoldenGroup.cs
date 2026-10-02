@@ -58,7 +58,7 @@ internal sealed partial class Av1SecondPass
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The decay rate, at least 0.75.</returns>
-    private static double GetSecondReferenceDecayRate(in Av1FirstPassStatistics frame)
+    private static double GetSecondReferenceDecayRate(Av1FirstPassStatistics frame)
     {
         double secondReferenceDifference = frame.SecondReferenceCodedError - frame.CodedError;
         double secondReferenceDecay = 1.0;
@@ -89,10 +89,10 @@ internal sealed partial class Av1SecondPass
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The factor.</returns>
-    private static double GetZeroMotionFactor(in Av1FirstPassStatistics frame)
+    private static double GetZeroMotionFactor(Av1FirstPassStatistics frame)
     {
         double zeroMotionPercent = frame.PercentInter - frame.PercentMotion;
-        double secondReferenceDecay = GetSecondReferenceDecayRate(in frame);
+        double secondReferenceDecay = GetSecondReferenceDecayRate(frame);
         return Math.Min(secondReferenceDecay, zeroMotionPercent);
     }
 
@@ -101,9 +101,9 @@ internal sealed partial class Av1SecondPass
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The decay rate.</returns>
-    private static double GetPredictionDecayRate(in Av1FirstPassStatistics frame)
+    private static double GetPredictionDecayRate(Av1FirstPassStatistics frame)
     {
-        double secondReferenceDecay = GetSecondReferenceDecayRate(in frame);
+        double secondReferenceDecay = GetSecondReferenceDecayRate(frame);
 
         // Reference: DEFAULT_ZM_FACTOR.
         double zeroMotionFactor = 0.5 * (frame.PercentInter - frame.PercentMotion);
@@ -127,7 +127,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="groupStatistics">The group measures.</param>
     /// <param name="frameWidth">The frame width.</param>
     /// <param name="frameHeight">The frame height.</param>
-    private static void AccumulateFrameMotionStatistics(in Av1FirstPassStatistics frame, ref GroupStatistics groupStatistics, double frameWidth, double frameHeight)
+    private static void AccumulateFrameMotionStatistics(Av1FirstPassStatistics frame, ref GroupStatistics groupStatistics, double frameWidth, double frameHeight)
     {
         double percent = frame.PercentMotion;
 
@@ -155,7 +155,7 @@ internal sealed partial class Av1SecondPass
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The active area.</returns>
-    private double CalculateActiveArea(in Av1FirstPassStatistics frame)
+    private double CalculateActiveArea(Av1FirstPassStatistics frame)
     {
         double activePercent = 1.0 - ((frame.IntraSkipPercent / 2) + (frame.InactiveZoneRows * 2 / (double)this.macroblockRows));
         return Math.Clamp(activePercent, 0.5, 1.0);
@@ -241,9 +241,9 @@ internal sealed partial class Av1SecondPass
     /// <param name="flashDetected">Whether the frame is a flash.</param>
     /// <param name="currentIndex">The frame's index in the group.</param>
     /// <param name="groupStatistics">The group measures.</param>
-    private void AccumulateNextFrameStatistics(in Av1FirstPassStatistics frame, bool flashDetected, int currentIndex, ref GroupStatistics groupStatistics)
+    private void AccumulateNextFrameStatistics(Av1FirstPassStatistics frame, bool flashDetected, int currentIndex, ref GroupStatistics groupStatistics)
     {
-        AccumulateFrameMotionStatistics(in frame, ref groupStatistics, this.width, this.height);
+        AccumulateFrameMotionStatistics(frame, ref groupStatistics, this.width, this.height);
         groupStatistics.AverageSecondReferenceCodedError += frame.SecondReferenceCodedError;
         if (Math.Abs(frame.RawErrorStandardDeviation) > 0.000001)
         {
@@ -255,13 +255,13 @@ internal sealed partial class Av1SecondPass
         if (!flashDetected)
         {
             groupStatistics.LastLoopDecayRate = groupStatistics.LoopDecayRate;
-            groupStatistics.LoopDecayRate = GetPredictionDecayRate(in frame);
+            groupStatistics.LoopDecayRate = GetPredictionDecayRate(frame);
             groupStatistics.DecayAccumulator *= groupStatistics.LoopDecayRate;
 
             // Monitor for static sections.
             if (this.framesSinceKey + currentIndex - 1 > 1)
             {
-                groupStatistics.ZeroMotionAccumulator = Math.Min(groupStatistics.ZeroMotionAccumulator, GetZeroMotionFactor(in frame));
+                groupStatistics.ZeroMotionAccumulator = Math.Min(groupStatistics.ZeroMotionAccumulator, GetZeroMotionFactor(frame));
             }
         }
     }
@@ -275,11 +275,11 @@ internal sealed partial class Av1SecondPass
     /// <param name="maximumBoost">The largest boost.</param>
     /// <param name="scaleMaximumBoost">Whether inward motion also raises the largest boost.</param>
     /// <returns>The boost.</returns>
-    private double CalculateFrameBoost(in Av1FirstPassStatistics frame, double thisFrameMotionInOut, double maximumBoost, bool scaleMaximumBoost)
+    private double CalculateFrameBoost(Av1FirstPassStatistics frame, double thisFrameMotionInOut, double maximumBoost, bool scaleMaximumBoost)
     {
         double lastQ = Av1ConstantQuality.ConvertQIndexToQ(this.averageInterFrameQIndex, this.bitDepth);
         double boostQCorrection = Math.Min(0.5 + (lastQ * 0.015), 1.5);
-        double activeArea = this.CalculateActiveArea(in frame);
+        double activeArea = this.CalculateActiveArea(frame);
 
         // The underlying boost is the ratio of intra to inter error. Reference: BOOST_FACTOR.
         double frameBoost = Math.Max(this.BaselineErrorPerMacroblock * activeArea, frame.IntraError * activeArea) / DoubleDivideCheck(frame.CodedError);
@@ -330,7 +330,7 @@ internal sealed partial class Av1SecondPass
             }
 
             ref readonly Av1FirstPassStatistics frame = ref this.statistics[position];
-            AccumulateFrameMotionStatistics(in frame, ref groupStatistics, this.width, this.height);
+            AccumulateFrameMotionStatistics(frame, ref groupStatistics, this.width, this.height);
 
             // A flash frame and the recovery frame after it both score poorly, so neither counts.
             bool flashDetected = this.DetectFlash(basePosition, i + offset) || this.DetectFlash(basePosition, i + offset + 1);
@@ -338,12 +338,12 @@ internal sealed partial class Av1SecondPass
             // Accumulate the effect of the prediction quality decay. Reference: MIN_DECAY_FACTOR.
             if (!flashDetected)
             {
-                groupStatistics.DecayAccumulator *= GetPredictionDecayRate(in frame);
+                groupStatistics.DecayAccumulator *= GetPredictionDecayRate(frame);
                 groupStatistics.DecayAccumulator = groupStatistics.DecayAccumulator < 0.01 ? 0.01 : groupStatistics.DecayAccumulator;
             }
 
             boostScore += groupStatistics.DecayAccumulator *
-                this.CalculateFrameBoost(in frame, groupStatistics.ThisFrameMotionInOut, GoldenMaximumFrameBoost, scaleMaximumBoost);
+                this.CalculateFrameBoost(frame, groupStatistics.ThisFrameMotionInOut, GoldenMaximumFrameBoost, scaleMaximumBoost);
 
             statisticsUsed++;
         }
@@ -362,16 +362,16 @@ internal sealed partial class Av1SecondPass
             }
 
             ref readonly Av1FirstPassStatistics frame = ref this.statistics[position];
-            AccumulateFrameMotionStatistics(in frame, ref groupStatistics, this.width, this.height);
+            AccumulateFrameMotionStatistics(frame, ref groupStatistics, this.width, this.height);
             bool flashDetected = this.DetectFlash(basePosition, i + offset) || this.DetectFlash(basePosition, i + offset + 1);
             if (!flashDetected)
             {
-                groupStatistics.DecayAccumulator *= GetPredictionDecayRate(in frame);
+                groupStatistics.DecayAccumulator *= GetPredictionDecayRate(frame);
                 groupStatistics.DecayAccumulator = groupStatistics.DecayAccumulator < 0.01 ? 0.01 : groupStatistics.DecayAccumulator;
             }
 
             boostScore += groupStatistics.DecayAccumulator *
-                this.CalculateFrameBoost(in frame, groupStatistics.ThisFrameMotionInOut, GoldenMaximumFrameBoost, scaleMaximumBoost);
+                this.CalculateFrameBoost(frame, groupStatistics.ThisFrameMotionInOut, GoldenMaximumFrameBoost, scaleMaximumBoost);
 
             statisticsUsed++;
         }
@@ -431,7 +431,7 @@ internal sealed partial class Av1SecondPass
         bool flashDetected,
         int activeMaximumInterval,
         int activeMinimumInterval,
-        in GroupStatistics groupStatistics)
+        GroupStatistics groupStatistics)
     {
         // The motion breakout threshold depends on the image size.
         double motionRatioThreshold = (this.height + this.width) / 4.0;
@@ -513,8 +513,8 @@ internal sealed partial class Av1SecondPass
             {
                 // A brief flash after which the prediction from an earlier frame recovers.
                 bool flashDetected = this.DetectFlash(this.statisticsPosition, 0);
-                this.AccumulateNextFrameStatistics(in next, flashDetected, i, ref groupStatistics);
-                cutHere = this.DetectGoldenCut(i, currentStart, flashDetected, activeMaximumInterval, activeMinimumInterval, in groupStatistics) ? 1 : 0;
+                this.AccumulateNextFrameStatistics(next, flashDetected, i, ref groupStatistics);
+                cutHere = this.DetectGoldenCut(i, currentStart, flashDetected, activeMaximumInterval, activeMinimumInterval, groupStatistics) ? 1 : 0;
             }
 
             if (cutHere != 0)
@@ -804,7 +804,7 @@ internal sealed partial class Av1SecondPass
             }
 
             bool flashDetected = this.DetectFlash(this.statisticsPosition, 0);
-            this.AccumulateNextFrameStatistics(in next, flashDetected, i, ref groupStatistics);
+            this.AccumulateNextFrameStatistics(next, flashDetected, i, ref groupStatistics);
             ++i;
         }
 

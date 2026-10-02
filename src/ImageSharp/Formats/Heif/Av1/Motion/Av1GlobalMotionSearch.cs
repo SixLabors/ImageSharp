@@ -173,7 +173,7 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="parameters">The model to classify.</param>
     /// <returns>The family.</returns>
     /// <remarks>Reference: get_wmtype().</remarks>
-    public static Av1GlobalMotionType GetModelType(in Av1GlobalMotionParameters parameters)
+    public static Av1GlobalMotionType GetModelType(Av1GlobalMotionParameters parameters)
     {
         if (parameters[5] == Av1GlobalMotionParameters.ModelScale && parameters[4] == 0 &&
             parameters[2] == Av1GlobalMotionParameters.ModelScale && parameters[3] == 0)

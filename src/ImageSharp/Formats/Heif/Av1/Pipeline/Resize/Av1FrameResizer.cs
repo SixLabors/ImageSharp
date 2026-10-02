@@ -308,11 +308,11 @@ internal static partial class Av1FrameResizer
         Span<byte> filtered = filteredOwner.Memory.Span;
         Span<byte> horizontal = horizontalOwner.Memory.Span;
         Transpose<byte>(source.Samples, source.GetOffset(firstColumn, firstRow), source.Stride, transposed, rowCount, rowCount, columnCount);
-        ApplyPass<byte, ByteOperator>(transposed, 0, rowCount, filtered, 0, rowCount, in columns, rowCount, byte.MaxValue);
+        ApplyPass<byte, ByteOperator>(transposed, 0, rowCount, filtered, 0, rowCount, columns, rowCount, byte.MaxValue);
         Transpose<byte>(filtered, 0, rowCount, horizontal, width, width, rowCount);
 
         // The pass along columns writes the destination rows.
-        ApplyPass<byte, ByteOperator>(horizontal, 0, width, destination.Samples, destination.GetOffset(0, 0), destination.Stride, in rows, width, byte.MaxValue);
+        ApplyPass<byte, ByteOperator>(horizontal, 0, width, destination.Samples, destination.GetOffset(0, 0), destination.Stride, rows, width, byte.MaxValue);
     }
 
     /// <summary>
@@ -411,7 +411,7 @@ internal static partial class Av1FrameResizer
             int halvedLength = (filteredLength + 1) >> 1;
             TapPlan plan = new(rowsOwner.Memory.Span[..(halvedLength * Taps)], coefficientsOwner.Memory.Span[..(halvedLength * Taps)], halvedLength);
             PlanDown2(filteredLength, ref plan);
-            ApplyPass<TSample, TOperator>(inFirst ? first : second, 0, lineCount, inFirst ? second : first, 0, lineCount, in plan, lineCount, maximum);
+            ApplyPass<TSample, TOperator>(inFirst ? first : second, 0, lineCount, inFirst ? second : first, 0, lineCount, plan, lineCount, maximum);
             inFirst = !inFirst;
             filteredLength = halvedLength;
         }
@@ -420,7 +420,7 @@ internal static partial class Av1FrameResizer
         {
             TapPlan plan = new(rowsOwner.Memory.Span[..(targetLength * Taps)], coefficientsOwner.Memory.Span[..(targetLength * Taps)], targetLength);
             PlanInterpolation(filteredLength, targetLength, ref plan);
-            ApplyPass<TSample, TOperator>(inFirst ? first : second, 0, lineCount, inFirst ? second : first, 0, lineCount, in plan, lineCount, maximum);
+            ApplyPass<TSample, TOperator>(inFirst ? first : second, 0, lineCount, inFirst ? second : first, 0, lineCount, plan, lineCount, maximum);
             inFirst = !inFirst;
         }
 

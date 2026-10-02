@@ -383,7 +383,7 @@ internal sealed partial class Av1SecondPass
     /// update_firstpass_stats() in the look-ahead stage.
     /// </summary>
     /// <param name="frameStatistics">The statistics.</param>
-    public void PushStatistics(in Av1FirstPassStatistics frameStatistics)
+    public void PushStatistics(Av1FirstPassStatistics frameStatistics)
     {
         if (this.statisticsCount == this.statistics.Length)
         {
@@ -392,7 +392,7 @@ internal sealed partial class Av1SecondPass
 
         this.statistics[this.statisticsCount++] = frameStatistics;
         this.statisticsInfo.Push(frameStatistics);
-        Av1FirstPassStatisticsAccumulator.Accumulate(ref this.totalStatistics, in frameStatistics);
+        Av1FirstPassStatisticsAccumulator.Accumulate(ref this.totalStatistics, frameStatistics);
         this.pushedCount++;
     }
 
@@ -840,7 +840,7 @@ internal sealed partial class Av1SecondPass
 
         if (this.framesToKey <= 0)
         {
-            this.FindNextKeyFrame(in thisFrame);
+            this.FindNextKeyFrame(thisFrame);
 
             // The source of the previous group's alternate reference cannot be used after a key frame. Reference: the
             // prev_gop_arf_disp_order reset of av1_get_second_pass_params().
@@ -1021,7 +1021,7 @@ internal sealed partial class Av1SecondPass
             ++this.statisticsPosition;
         }
 
-        this.SetParameters(in thisFrame);
+        this.SetParameters(thisFrame);
     }
 
     /// <summary>
@@ -1033,7 +1033,7 @@ internal sealed partial class Av1SecondPass
     {
         if (position >= 0 && position < this.statisticsCount)
         {
-            this.SetParameters(in this.statistics[position]);
+            this.SetParameters(this.statistics[position]);
         }
     }
 
@@ -1042,7 +1042,7 @@ internal sealed partial class Av1SecondPass
     /// Reference: set_twopass_params_based_on_fp_stats().
     /// </summary>
     /// <param name="frameStatistics">The statistics.</param>
-    private void SetParameters(in Av1FirstPassStatistics frameStatistics)
+    private void SetParameters(Av1FirstPassStatistics frameStatistics)
     {
         this.macroblockAverageEnergy = Av1FirstPassMath.Log1P(frameStatistics.IntraError);
         if (this.totalStatistics.FrameAverageWaveletEnergy >= 0)

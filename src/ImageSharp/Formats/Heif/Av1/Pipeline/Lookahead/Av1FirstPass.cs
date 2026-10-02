@@ -406,9 +406,9 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         statistics.IntraFactor /= unitCount;
         statistics.BrightnessFactor /= unitCount;
         Av1FirstPassStatistics result = this.UpdateFirstPassStatistics(
-            in statistics, rawErrorStandardDeviation, duration, unitLog2);
+            statistics, rawErrorStandardDeviation, duration, unitLog2);
 
-        this.UpdateReferences(in result, intraOnly, current);
+        this.UpdateReferences(result, intraOnly, current);
         return result;
     }
 
@@ -622,7 +622,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     /// <param name="unitLog2">The base-two logarithm of the unit size in 4x4 units.</param>
     /// <returns>The frame record.</returns>
     private Av1FirstPassStatistics UpdateFirstPassStatistics(
-        in FrameStatistics statistics,
+        FrameStatistics statistics,
         double rawErrorStandardDeviation,
         long duration,
         int unitLog2)
@@ -685,7 +685,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     /// <param name="statistics">The record of the frame just measured.</param>
     /// <param name="intraOnly">Whether the frame was intra-only, which leaves GOLDEN and LAST2 unread.</param>
     /// <param name="current">The buffer holding the frame's reconstruction.</param>
-    private void UpdateReferences(in Av1FirstPassStatistics statistics, bool intraOnly, int current)
+    private void UpdateReferences(Av1FirstPassStatistics statistics, bool intraOnly, int current)
     {
         if (statistics.PercentInter < 0.2 && !intraOnly)
         {

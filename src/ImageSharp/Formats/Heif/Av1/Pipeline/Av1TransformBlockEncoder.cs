@@ -322,10 +322,10 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         int qIndex,
         Av1Plane plane,
-        in Av1EncoderTransformBlockState state)
+        Av1EncoderTransformBlockState state)
     {
         long workStart = Av1WorkCounters.Start();
-        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, in state);
+        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, state);
         Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
         return workResult;
     }
@@ -342,7 +342,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         int qIndex,
         Av1Plane plane,
-        in Av1EncoderTransformBlockState state)
+        Av1EncoderTransformBlockState state)
     {
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
@@ -723,10 +723,10 @@ internal static partial class Av1TransformBlockEncoder
         int qIndex,
         Av1Plane plane,
         Av1BitDepth bitDepth,
-        in Av1EncoderTransformBlockState state)
+        Av1EncoderTransformBlockState state)
     {
         long workStart = Av1WorkCounters.Start();
-        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, bitDepth, in state);
+        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, bitDepth, state);
         Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
         return workResult;
     }
@@ -744,7 +744,7 @@ internal static partial class Av1TransformBlockEncoder
         int qIndex,
         Av1Plane plane,
         Av1BitDepth bitDepth,
-        in Av1EncoderTransformBlockState state)
+        Av1EncoderTransformBlockState state)
     {
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();

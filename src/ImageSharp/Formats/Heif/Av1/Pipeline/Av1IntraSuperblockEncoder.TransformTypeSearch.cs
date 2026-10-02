@@ -759,7 +759,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             plane,
                             this.blockQIndex,
                             this.bitDepth,
-                            in reconstructionState);
+                            reconstructionState);
 
                         candidateReconstructed = true;
                         if (isHighEnergy && candidateDistortion < transformDomainDistortion)
@@ -830,7 +830,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     plane,
                     this.blockQIndex,
                     this.bitDepth,
-                    in best.ReconstructionState);
+                    best.ReconstructionState);
 
                 Av1WorkCounters.Stop(Av1WorkCounters.ReconIntraInv, workRecon);
                 if (measureWinnerInPixelDomain && best.State.EndOfBlock != 0)

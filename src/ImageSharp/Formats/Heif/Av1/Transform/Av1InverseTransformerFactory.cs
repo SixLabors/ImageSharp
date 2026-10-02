@@ -26,7 +26,7 @@ internal static class Av1InverseTransformerFactory
         int readStride,
         Span<byte> writeBuffer,
         int writeStride,
-        in Av1TransformFunctionParameters transformFunctionParameters,
+        Av1TransformFunctionParameters transformFunctionParameters,
         Span<int> workspace)
     {
         Guard.MustBeLessThanOrEqualTo(transformFunctionParameters.BitDepth, 8, nameof(transformFunctionParameters));
@@ -121,7 +121,7 @@ internal static class Av1InverseTransformerFactory
         int readStride,
         Span<short> writeBuffer,
         int writeStride,
-        in Av1TransformFunctionParameters transformFunctionParameters,
+        Av1TransformFunctionParameters transformFunctionParameters,
         Span<int> workspace)
     {
         Guard.IsTrue(transformFunctionParameters.Is16BitPipeline, nameof(transformFunctionParameters), "Calling 16-bit pipeline while 8-bit is requested.");

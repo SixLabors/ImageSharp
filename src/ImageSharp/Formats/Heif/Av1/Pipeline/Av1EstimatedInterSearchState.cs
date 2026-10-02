@@ -243,7 +243,7 @@ internal struct Av1EstimatedInterSearchState
     /// <returns>Whether the candidate replaced the current winner.</returns>
     public bool CompleteSingleCandidate(
         Av1SymbolEncoder writer,
-        in Av1ReferenceMotionVectors referenceVectors,
+        Av1ReferenceMotionVectors referenceVectors,
         int rateMultiplier,
         ref Av1PredictionMode mode,
         Av1ReferenceFrameType reference,

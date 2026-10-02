@@ -222,7 +222,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         origin,
                         reference,
                         this.searchReferences.Span[(int)reference].CodedView,
-                        in referenceVectors[index],
+                        referenceVectors[index],
                         forceZeroMotion,
                         lowTemporalVariance,
                         blockZeroSad,
@@ -328,14 +328,14 @@ internal static partial class Av1IntraSuperblockEncoder
             // av1_update_state() tests, so every output block is priced. Reference: av1_update_state() in
             // encode_b_nonrd().
             Av1RateDistortionStatistics selectedStatistics = state.BestStatistics;
-            bool cyclicRefreshEncode = this.UpdatesCyclicRefreshSegment(in selectedStatistics, out bool countSegments);
+            bool cyclicRefreshEncode = this.UpdatesCyclicRefreshSegment(selectedStatistics, out bool countSegments);
             if (cyclicRefreshEncode)
             {
                 Av1MotionVector firstVector = winner.ReferenceFrame > Av1ReferenceFrameType.Intra
                     ? state.WinningMotionVectors[(int)winner.Mode][(int)winner.ReferenceFrame]
                     : default;
 
-                this.UpdateCyclicRefreshSegment(origin, ref modeInfo.Block, ref block, firstVector, in selectedStatistics, countSegments);
+                this.UpdateCyclicRefreshSegment(origin, ref modeInfo.Block, ref block, firstVector, selectedStatistics, countSegments);
                 if (countSegments)
                 {
                     this.AddSegmentPredictionCosts(writer, macroBlock, origin, blockSize, modeInfo.Block.SegmentId);
@@ -442,7 +442,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? state.WinningMotionVectors[(int)winner.Mode][(int)winner.ReferenceFrame]
                     : default;
 
-                this.CountNoiseStillBlock(origin, in modeInfo.Block, codedVector);
+                this.CountNoiseStillBlock(origin, modeInfo.Block, codedVector);
             }
 
             if (cyclicRefreshEncode)
@@ -577,7 +577,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     evaluateBlue,
                     evaluateRed,
                     false,
-                    in vectors,
+                    vectors,
                     false,
                     out _,
                     ref prediction,
@@ -599,7 +599,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     state.ReferenceCosts[(int)Av1ReferenceFrameType.Last];
 
                 Av1RateDistortionStatistics syntax = new(this.rateMultiplier, rate, 0);
-                statistics.Add(this.rateMultiplier, in syntax);
+                statistics.Add(this.rateMultiplier, syntax);
                 if (statistics.Cost < state.BestStatistics.Cost)
                 {
                     state.BestStatistics = statistics;
@@ -1714,7 +1714,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1ReferenceFrameType reference,
             Av1EncoderFrame<TSample>.PlanarView referencePlanes,
-            in Av1ReferenceMotionVectors referenceVectors,
+            Av1ReferenceMotionVectors referenceVectors,
             bool forceZeroMotion,
             bool forceLowTemporalSkip,
             bool blockZeroSad,
@@ -1824,7 +1824,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     evaluateBlue,
                     evaluateRed,
                     forceZeroMotion,
-                    in referenceVectors,
+                    referenceVectors,
                     screenContent && !blockZeroSad && screenZeroMotionDisallowed,
                     out int motionRate,
                     ref prediction,
@@ -1849,7 +1849,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (state.CompleteSingleCandidate(
                     writer,
-                    in referenceVectors,
+                    referenceVectors,
                     this.rateMultiplier,
                     ref mode,
                     reference,
@@ -2027,7 +2027,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool evaluateBlue,
             bool evaluateRed,
             bool earlyTermination,
-            in Av1ReferenceMotionVectors referenceVectors,
+            Av1ReferenceMotionVectors referenceVectors,
             bool rejectZeroLastMotion,
             out int motionRate,
             ref Span<TSample> prediction,
@@ -2307,7 +2307,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         modelEarlyTermination = this.TestLargeBlockSkip(
                             blockOrigin,
-                            in modeInfo,
+                            modeInfo,
                             vector,
                             secondaryVector,
                             primaryReference,
@@ -2408,7 +2408,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="vector">The candidate motion vector.</param>
         /// <param name="searchFilters">Whether the filter search is enabled for the candidate.</param>
         /// <returns><see langword="true"/> when search_motion_mode() predicts the candidate.</returns>
-        private static bool UsesMotionModeSearch(in Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector, bool searchFilters)
+        private static bool UsesMotionModeSearch(Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector, bool searchFilters)
             => modeInfo.Mode == Av1PredictionMode.NewMotionVector &&
                 modeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.None &&
                 !(searchFilters && ((vector.Row | vector.Column) & 7) != 0);
@@ -2530,7 +2530,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     filterMode.VerticalInterpolationFilter = filter;
                     filterEarlyTermination = forceSkip || this.TestLargeBlockSkip(
                         blockOrigin,
-                        in filterMode,
+                        filterMode,
                         vector,
                         secondaryVector,
                         primaryReferencePlanes,
@@ -2687,7 +2687,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> when the candidate can skip its residual.</returns>
         private bool TestLargeBlockSkip(
             Point blockOrigin,
-            in Av1EncoderBlockModeInfo modeInfo,
+            Av1EncoderBlockModeInfo modeInfo,
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
             Av1EncoderFrame<TSample>.PlanarView primaryReference,

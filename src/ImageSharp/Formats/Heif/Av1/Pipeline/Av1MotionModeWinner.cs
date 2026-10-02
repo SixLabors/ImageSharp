@@ -37,7 +37,7 @@ internal struct Av1MotionModeWinner
     /// <param name="count">The number of winners, updated on insertion.</param>
     /// <param name="limit">The largest number of retained winners.</param>
     /// <param name="winner">The new winner.</param>
-    public static void Insert(Span<Av1MotionModeWinner> winners, ref int count, int limit, in Av1MotionModeWinner winner)
+    public static void Insert(Span<Av1MotionModeWinner> winners, ref int count, int limit, Av1MotionModeWinner winner)
     {
         int location = count;
         for (int index = 0; index < count; index++)

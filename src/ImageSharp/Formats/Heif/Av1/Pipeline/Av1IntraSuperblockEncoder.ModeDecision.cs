@@ -947,7 +947,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The search's skip decision, not the encoded block's. Reference: none_rdc.skip_txfm in try_merge().
             bool noneSkip = none.AllTransformsEmpty;
             Av1RateDistortionStatistics noneSyntax = new(mergeMultiplier, noneRate, 0);
-            none.Add(mergeMultiplier, in noneSyntax);
+            none.Add(mergeMultiplier, noneSyntax);
             this.ResetPartitionTrial(blockOrigin, tileIndex, blockSize, savedLumaArea, savedChromaArea);
 
             // try_merge() compares the split when the merge level is below 2, the merged block keeps a residual,
@@ -994,7 +994,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // after av1_rd_pick_partition() reports a best partition.
                     childContext.Snapshot.Ready = childStatistics.Cost != long.MaxValue;
                     this.superblock.Workspace.PartitionSearchTypes[firstChild + child] = (byte)Av1PartitionType.None;
-                    split.Add(mergeMultiplier, in childStatistics);
+                    split.Add(mergeMultiplier, childStatistics);
                     if (none.Cost < split.Cost)
                     {
                         break;
@@ -2109,7 +2109,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.UpdatePickedReferenceFrames(
                             blockOrigin,
                             blockSize,
-                            in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo.Block);
+                            this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.ModeInfo.Block);
                     }
 
                     // The unsplit search leaves the block variance it measured, whether or not it found a mode. A search
@@ -2120,7 +2120,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (candidateStatistics.Cost < bestStatistics.Cost && !this.picture.Parent.FrameHeader.IsIntra &&
                         !this.picture.Parent.FrameHeader.CodedLossless && (allowMotionSplit || allowRectangularSplit) &&
-                        IsSkippable(in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot))
+                        IsSkippable(this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot))
                     {
                         // Scale distortion by block area relative to a maximum superblock. Rate uses the
                         // logarithmic sample count, so both tests must pass before smaller partitions stop.
@@ -2497,7 +2497,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // ordinary rectangles, but only for inherited motion at lower quantizers. Both read the search's
                 // skippable result, not the skip flag that the cost comparison chooses. Reference:
                 // pc_tree->none->skippable in prune_ext_part_none_skippable() and av1_rd_pick_partition().
-                bool noneSkippable = IsSkippable(in noneSnapshot);
+                bool noneSkippable = IsSkippable(noneSnapshot);
                 pruneExtendedPartitions = !this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 1 && noneSkippable;
                 if (!this.mustFindValidPartition && settings.SkippablePartitionPruningLevel >= 2 && noneSkippable &&
                     this.blockQIndex <= 200 &&
@@ -2553,7 +2553,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// which store_coding_context() takes from best_mode_skippable, with the intra_rd_stats.skip_txfm = 0 of
         /// handle_intra_y_mode() callers and the this_skippable of av1_search_palette_mode().
         /// </summary>
-        private static bool IsSkippable(in Av1EncoderPartitionTree.ModeSnapshot snapshot)
+        private static bool IsSkippable(Av1EncoderPartitionTree.ModeSnapshot snapshot)
             => snapshot.Statistics.AllTransformsEmpty;
 
         internal static bool ShouldTerminatePartitionSearchAfterNoneAndSplit(
@@ -2925,7 +2925,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     leafLimit.UpdateCost(this.rateMultiplier);
                 }
 
-                Av1RateDistortionStatistics remainingCost = leafLimit.Subtract(this.rateMultiplier, in statistics);
+                Av1RateDistortionStatistics remainingCost = leafLimit.Subtract(this.rateMultiplier, statistics);
                 bool publishContexts = leafIndex < leafCount - 1 || publishFinalContexts;
                 this.activeModeCache = searchChildren && partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.VerticalB
                     ? this.asymmetricModeCache[leafIndex]
@@ -3008,7 +3008,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.UpdatePickedReferenceFrames(
                         leafOrigin,
                         leafSize,
-                        in this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex).Snapshot.ModeInfo.Block);
+                        this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex).Snapshot.ModeInfo.Block);
                 }
 
                 if (!childCosts.IsEmpty)
@@ -3041,7 +3041,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     return Av1RateDistortionStatistics.Invalid;
                 }
 
-                statistics.Add(this.rateMultiplier, in childStatistics);
+                statistics.Add(this.rateMultiplier, childStatistics);
                 accumulatedCost = statistics.Cost;
                 if (asymmetric && statistics.Cost >= leafLimit.Cost)
                 {
@@ -3695,7 +3695,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // close try_merge().
                 bool countSegments = false;
                 bool cyclicRefreshEncode = encodeSelected && this.UsesEstimatedInterSearch &&
-                    this.UpdatesCyclicRefreshSegment(in context.Snapshot.Statistics, out countSegments);
+                    this.UpdatesCyclicRefreshSegment(context.Snapshot.Statistics, out countSegments);
 
                 if (cyclicRefreshEncode)
                 {
@@ -3704,7 +3704,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         : default;
 
                     this.UpdateCyclicRefreshSegment(
-                        blockOrigin, ref modeInfo.Block, ref block, firstVector, in context.Snapshot.Statistics, countSegments);
+                        blockOrigin, ref modeInfo.Block, ref block, firstVector, context.Snapshot.Statistics, countSegments);
 
                     // The intra reconstruction reads its segment from the retained decision.
                     context.Snapshot.ModeInfo.Block.SegmentId = modeInfo.Block.SegmentId;
@@ -3824,7 +3824,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     this.CountNoiseStillBlock(
                         blockOrigin,
-                        in modeInfo.Block,
+                        modeInfo.Block,
                         modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ? context.Snapshot.Displacement : default);
                 }
 
@@ -4113,7 +4113,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                     else
                     {
-                        lumaStatistics.Add(this.rateMultiplier, in chromaStatistics);
+                        lumaStatistics.Add(this.rateMultiplier, chromaStatistics);
                     }
                 }
             }
@@ -4180,7 +4180,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     winnerSettings.InterTransformTypeProbabilityThreshold != int.MaxValue))
                 {
                     this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Winner;
-                    this.SetWarpedPrediction(macroBlock, blockOrigin, modeInfo.Block.PartitionType, in modeInfo.Block, interVector);
+                    this.SetWarpedPrediction(macroBlock, blockOrigin, modeInfo.Block.PartitionType, modeInfo.Block, interVector);
                     this.RefineInterTransformSize(
                         writer,
                         macroBlock,

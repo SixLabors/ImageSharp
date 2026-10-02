@@ -1210,8 +1210,8 @@ internal static partial class Av1FrameEncoder
             DecideScreenContent(source, sequenceHeader, options, ref decision);
         }
 
-        SelectStillImageQuantizer(sequenceHeader, frameHeader, options, in decision);
-        ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), in decision);
+        SelectStillImageQuantizer(sequenceHeader, frameHeader, options, decision);
+        ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), decision);
         return decision.IsScreenContent;
     }
 
@@ -1266,7 +1266,7 @@ internal static partial class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
-        in ScreenContentDecision decision)
+        ScreenContentDecision decision)
     {
         if (!sequenceHeader.IsStillPicture || !options.UsesBitBudget)
         {
@@ -1302,7 +1302,7 @@ internal static partial class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
         Size sourceSize,
-        in ScreenContentDecision decision)
+        ScreenContentDecision decision)
     {
         frameHeader.AllowScreenContentTools = decision.AllowScreenContentTools;
         if (!frameHeader.IsIntra)
@@ -1410,8 +1410,8 @@ internal static partial class Av1FrameEncoder
             DecideScreenContent(source, sequenceHeader, options, ref decision);
         }
 
-        SelectStillImageQuantizer(sequenceHeader, frameHeader, options, in decision);
-        ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), in decision);
+        SelectStillImageQuantizer(sequenceHeader, frameHeader, options, decision);
+        ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), decision);
         return decision.IsScreenContent;
     }
 

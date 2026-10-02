@@ -37,7 +37,7 @@ internal static class Av1EncoderMotionVariation
         Av1PictureControlSet picture,
         Av1MacroBlockD macroBlock,
         Point position,
-        in Av1EncoderBlockModeInfo mode)
+        Av1EncoderBlockModeInfo mode)
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         if (!frameHeader.IsMotionModeSwitchable ||
@@ -130,7 +130,7 @@ internal static class Av1EncoderMotionVariation
                     step = 2;
                 }
 
-                if (IsOverlappable(in above))
+                if (IsOverlappable(above))
                 {
                     return true;
                 }
@@ -153,7 +153,7 @@ internal static class Av1EncoderMotionVariation
                     step = 2;
                 }
 
-                if (IsOverlappable(in left))
+                if (IsOverlappable(left))
                 {
                     return true;
                 }
@@ -181,7 +181,7 @@ internal static class Av1EncoderMotionVariation
         Av1PictureControlSet picture,
         Av1MacroBlockD macroBlock,
         Point position,
-        in Av1EncoderBlockModeInfo mode,
+        Av1EncoderBlockModeInfo mode,
         Span<Point> sourcePoints,
         Span<Point> referencePoints)
     {
@@ -205,8 +205,8 @@ internal static class Av1EncoderMotionVariation
                 int columnOffset = -column % aboveWidth;
                 doTopLeft &= columnOffset >= 0;
                 doTopRight &= columnOffset + aboveWidth <= width;
-                if (IsSample(in above, referenceFrame) &&
-                    RecordSample(picture, abovePosition, in above, 0, -1, columnOffset, 1, sourcePoints, referencePoints, ref count))
+                if (IsSample(above, referenceFrame) &&
+                    RecordSample(picture, abovePosition, above, 0, -1, columnOffset, 1, sourcePoints, referencePoints, ref count))
                 {
                     return MaximumSampleCount;
                 }
@@ -219,8 +219,8 @@ internal static class Av1EncoderMotionVariation
                     abovePosition = new Point(column + i, row - 1);
                     above = ref picture.GetFromModeInfoGrid(abovePosition).Block;
                     aboveWidth = above.BlockSize.Get4x4WideCount();
-                    if (IsSample(in above, referenceFrame) &&
-                        RecordSample(picture, abovePosition, in above, 0, -1, i, 1, sourcePoints, referencePoints, ref count))
+                    if (IsSample(above, referenceFrame) &&
+                        RecordSample(picture, abovePosition, above, 0, -1, i, 1, sourcePoints, referencePoints, ref count))
                     {
                         return MaximumSampleCount;
                     }
@@ -237,8 +237,8 @@ internal static class Av1EncoderMotionVariation
             {
                 int rowOffset = -row % leftHeight;
                 doTopLeft &= rowOffset >= 0;
-                if (IsSample(in left, referenceFrame) &&
-                    RecordSample(picture, leftPosition, in left, rowOffset, 1, 0, -1, sourcePoints, referencePoints, ref count))
+                if (IsSample(left, referenceFrame) &&
+                    RecordSample(picture, leftPosition, left, rowOffset, 1, 0, -1, sourcePoints, referencePoints, ref count))
                 {
                     return MaximumSampleCount;
                 }
@@ -251,8 +251,8 @@ internal static class Av1EncoderMotionVariation
                     leftPosition = new Point(column - 1, row + i);
                     left = ref picture.GetFromModeInfoGrid(leftPosition).Block;
                     leftHeight = left.BlockSize.Get4x4HighCount();
-                    if (IsSample(in left, referenceFrame) &&
-                        RecordSample(picture, leftPosition, in left, i, 1, 0, -1, sourcePoints, referencePoints, ref count))
+                    if (IsSample(left, referenceFrame) &&
+                        RecordSample(picture, leftPosition, left, i, 1, 0, -1, sourcePoints, referencePoints, ref count))
                     {
                         return MaximumSampleCount;
                     }
@@ -264,8 +264,8 @@ internal static class Av1EncoderMotionVariation
         {
             Point topLeftPosition = new(column - 1, row - 1);
             ref readonly Av1EncoderBlockModeInfo topLeft = ref picture.GetFromModeInfoGrid(topLeftPosition).Block;
-            if (IsSample(in topLeft, referenceFrame) &&
-                RecordSample(picture, topLeftPosition, in topLeft, 0, -1, 0, -1, sourcePoints, referencePoints, ref count))
+            if (IsSample(topLeft, referenceFrame) &&
+                RecordSample(picture, topLeftPosition, topLeft, 0, -1, 0, -1, sourcePoints, referencePoints, ref count))
             {
                 return MaximumSampleCount;
             }
@@ -288,8 +288,8 @@ internal static class Av1EncoderMotionVariation
         {
             Point topRightPosition = new(topRightColumn, topRightRow);
             ref readonly Av1EncoderBlockModeInfo topRight = ref picture.GetFromModeInfoGrid(topRightPosition).Block;
-            if (IsSample(in topRight, referenceFrame) &&
-                RecordSample(picture, topRightPosition, in topRight, 0, -1, width, 1, sourcePoints, referencePoints, ref count))
+            if (IsSample(topRight, referenceFrame) &&
+                RecordSample(picture, topRightPosition, topRight, 0, -1, width, 1, sourcePoints, referencePoints, ref count))
             {
                 return MaximumSampleCount;
             }
@@ -305,7 +305,7 @@ internal static class Av1EncoderMotionVariation
     private static bool RecordSample(
         Av1PictureControlSet picture,
         Point neighborPosition,
-        in Av1EncoderBlockModeInfo neighbor,
+        Av1EncoderBlockModeInfo neighbor,
         int rowOffset,
         int rowSign,
         int columnOffset,
@@ -327,12 +327,12 @@ internal static class Av1EncoderMotionVariation
     /// Returns whether a neighbor predicts from the given single reference. Reference: the ref_frame test of
     /// av1_findSamples().
     /// </summary>
-    private static bool IsSample(in Av1EncoderBlockModeInfo neighbor, Av1ReferenceFrameType referenceFrame)
+    private static bool IsSample(Av1EncoderBlockModeInfo neighbor, Av1ReferenceFrameType referenceFrame)
         => neighbor.ReferenceFrame == referenceFrame && neighbor.SecondaryReferenceFrame == Av1ReferenceFrameType.None;
 
     /// <summary>
     /// Returns whether a neighbor is an inter or intra block copy block. Reference: is_neighbor_overlappable().
     /// </summary>
-    private static bool IsOverlappable(in Av1EncoderBlockModeInfo neighbor)
+    private static bool IsOverlappable(Av1EncoderBlockModeInfo neighbor)
         => neighbor.ReferenceFrame > Av1ReferenceFrameType.Intra || neighbor.UseIntraBlockCopy;
 }

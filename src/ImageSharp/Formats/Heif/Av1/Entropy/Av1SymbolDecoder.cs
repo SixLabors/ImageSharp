@@ -1254,7 +1254,7 @@ internal ref struct Av1SymbolDecoder
             isLossless,
             transformSize,
             lumaTransformType,
-            in transformInfo,
+            transformInfo,
             useReducedTransformSet,
             usesInterTransformSet);
 
@@ -1684,7 +1684,7 @@ internal ref struct Av1SymbolDecoder
         bool isLossless,
         Av1TransformSize transformSize,
         Av1TransformType lumaTransformType,
-        in Av1TransformInfo transformInfo,
+        Av1TransformInfo transformInfo,
         bool useReducedTransformSet,
         bool usesInterTransformSet)
     {

@@ -542,7 +542,7 @@ internal static partial class Av1FrameEncoder
                         forceKeyFrame: false,
                         secondPass.Group.Size == 0 ? Av1FrameUpdateType.Key : secondPass.Group.UpdateTypes[0]);
 
-                    secondPass.PushStatistics(in statistics);
+                    secondPass.PushStatistics(statistics);
                     pushed++;
                 }
 
@@ -904,7 +904,7 @@ internal static partial class Av1FrameEncoder
 
             Av1EncoderReferencePool<byte>.Entry current = this.referencePool.Acquire();
             ApplyScreenContentTools(
-                this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), in this.ScreenContent);
+                this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), this.ScreenContent);
 
             bool isScreenContent = this.ScreenContent.IsScreenContent;
 
@@ -1088,7 +1088,7 @@ internal static partial class Av1FrameEncoder
 
             Av1EncoderReferencePool<ushort>.Entry current = this.referencePool.Acquire();
             ApplyScreenContentTools(
-                this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), in this.ScreenContent);
+                this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), this.ScreenContent);
 
             bool isScreenContent = this.ScreenContent.IsScreenContent;
 

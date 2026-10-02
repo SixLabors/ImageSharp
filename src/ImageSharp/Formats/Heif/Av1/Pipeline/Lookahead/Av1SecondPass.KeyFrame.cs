@@ -44,7 +44,7 @@ internal sealed partial class Av1SecondPass
     /// the group and of the key frame. Reference: find_next_key_frame() in the one-pass look-ahead stage.
     /// </summary>
     /// <param name="thisFrame">The statistics of the key frame.</param>
-    private void FindNextKeyFrame(in Av1FirstPassStatistics thisFrame)
+    private void FindNextKeyFrame(Av1FirstPassStatistics thisFrame)
     {
         this.framesSinceKey = 0;
         this.useArfInThisKeyFrameGroup = this.lagInFrames >= AlternateReferenceMinimumLag;
@@ -177,7 +177,7 @@ internal sealed partial class Av1SecondPass
                 }
 
                 // How fast is the prediction quality decaying over the recent frames?
-                double loopDecayRate = GetPredictionDecayRate(in this.statisticsInfo.Peek(framesToKeyFrame + 1));
+                double loopDecayRate = GetPredictionDecayRate(this.statisticsInfo.Peek(framesToKeyFrame + 1));
                 recentLoopDecay[i % FramesToCheckDecay] = loopDecayRate;
                 double decayAccumulator = 1.0;
                 for (int j = 0; j < FramesToCheckDecay; ++j)
@@ -276,7 +276,7 @@ internal sealed partial class Av1SecondPass
             candidate.PercentSecondReference < secondReferenceUsageThreshold &&
             next.PercentSecondReference < secondReferenceUsageThreshold &&
             (candidate.PercentInter < 0.05 ||
-             IsSlideTransition(in candidate, in last, in next) ||
+             IsSlideTransition(candidate, last, next) ||
              (percentIntra > 0.25 &&
               percentIntra > 2.0 * modifiedPercentInter &&
               candidate.IntraError / DoubleDivideCheck(candidate.CodedError) < 1.9 &&
@@ -365,7 +365,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="last">The frame before it.</param>
     /// <param name="next">The frame after it.</param>
     /// <returns>Whether the candidate is a slide transition.</returns>
-    private static bool IsSlideTransition(in Av1FirstPassStatistics candidate, in Av1FirstPassStatistics last, in Av1FirstPassStatistics next)
+    private static bool IsSlideTransition(Av1FirstPassStatistics candidate, Av1FirstPassStatistics last, Av1FirstPassStatistics next)
         => candidate.IntraError < candidate.CodedError * 1.5 &&
            candidate.CodedError > last.CodedError * 5.0 &&
            candidate.CodedError > next.CodedError * 5.0;
@@ -402,7 +402,7 @@ internal sealed partial class Av1SecondPass
             // Monitor for static sections. The second reference of the first frame of the group is invalid.
             if (i > 0)
             {
-                zeroMotionAccumulator = Math.Min(zeroMotionAccumulator, GetZeroMotionFactor(in frame));
+                zeroMotionAccumulator = Math.Min(zeroMotionAccumulator, GetZeroMotionFactor(frame));
             }
             else
             {
@@ -419,7 +419,7 @@ internal sealed partial class Av1SecondPass
                     secondReferenceAccumulator = 0.0;
                 }
 
-                double frameBoost = this.CalculateKeyFrameFrameBoost(in frame, ref secondReferenceAccumulator, keyFrameMaximumBoost);
+                double frameBoost = this.CalculateKeyFrameFrameBoost(frame, ref secondReferenceAccumulator, keyFrameMaximumBoost);
                 boostScore += frameBoost * zeroMotionFactor;
             }
         }
@@ -443,7 +443,7 @@ internal sealed partial class Av1SecondPass
                 break;
             }
 
-            Av1FirstPassStatisticsAccumulator.Accumulate(ref average, in frame);
+            Av1FirstPassStatisticsAccumulator.Accumulate(ref average, frame);
         }
 
         if (frameCount < 2)
@@ -485,11 +485,11 @@ internal sealed partial class Av1SecondPass
     /// <param name="secondReferenceAccumulator">The accumulated growth of the second reference error.</param>
     /// <param name="maximumBoost">The largest boost of one frame.</param>
     /// <returns>The boost.</returns>
-    private double CalculateKeyFrameFrameBoost(in Av1FirstPassStatistics frame, ref double secondReferenceAccumulator, double maximumBoost)
+    private double CalculateKeyFrameFrameBoost(Av1FirstPassStatistics frame, ref double secondReferenceAccumulator, double maximumBoost)
     {
         double lastQ = Av1ConstantQuality.ConvertQIndexToQ(this.averageInterFrameQIndex, this.bitDepth);
         double boostQCorrection = Math.Min(0.50 + (lastQ * 0.015), 2.00);
-        double activeArea = this.CalculateActiveArea(in frame);
+        double activeArea = this.CalculateActiveArea(frame);
 
         // The underlying boost is the ratio of intra to inter error.
         double frameBoost = Math.Max(this.BaselineErrorPerMacroblock * activeArea, frame.IntraError * activeArea) /

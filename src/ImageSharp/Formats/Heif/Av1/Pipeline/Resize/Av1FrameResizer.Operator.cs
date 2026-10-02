@@ -122,7 +122,7 @@ internal static partial class Av1FrameResizer
         Span<TSample> output,
         int outputOffset,
         int outputStride,
-        in TapPlan plan,
+        TapPlan plan,
         int width,
         int maximum)
         where TSample : unmanaged

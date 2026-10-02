@@ -366,7 +366,7 @@ internal static class Av1Ransac
     /// Ranks one trial against another: more agreeing points first, then a smaller total miss.
     /// </summary>
     /// <remarks>Reference: is_better_motion() and compare_motions().</remarks>
-    private static bool IsBetter(in Trial left, in Trial right)
+    private static bool IsBetter(Trial left, Trial right)
     {
         if (left.InlierCount != right.InlierCount)
         {

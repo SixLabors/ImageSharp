@@ -94,7 +94,7 @@ internal struct Av1RateDistortionStatistics
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier for the combined candidate.</param>
     /// <param name="other">The valid candidate to add.</param>
-    public void Add(int rateMultiplier, in Av1RateDistortionStatistics other)
+    public void Add(int rateMultiplier, Av1RateDistortionStatistics other)
     {
         // Round the combined rate only once. Adding the already rounded child costs can change
         // partition and inter/intra decisions even when both children have the same reconstruction.
@@ -191,7 +191,7 @@ internal struct Av1RateDistortionStatistics
     /// <param name="rateMultiplier">The rate multiplier for the remaining candidate.</param>
     /// <param name="other">The rate and distortion already consumed.</param>
     /// <returns>The remaining bound, or an unbounded sentinel when either input is invalid.</returns>
-    public readonly Av1RateDistortionStatistics Subtract(int rateMultiplier, in Av1RateDistortionStatistics other)
+    public readonly Av1RateDistortionStatistics Subtract(int rateMultiplier, Av1RateDistortionStatistics other)
     {
         // Search starts without a winning candidate. Preserve that unbounded state instead of subtracting
         // from sentinel integers; finite bounds subtract raw components before the single rate rounding, which

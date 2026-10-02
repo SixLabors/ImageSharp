@@ -93,7 +93,7 @@ internal sealed class Av1MacroblockRateDistortionRecord
     /// <param name="statistics">The search result.</param>
     /// <param name="states">The chosen luma transform states.</param>
     /// <param name="modeInfo">The block with the chosen transform sizes.</param>
-    public void Save(uint hash, Av1RateDistortionStatistics statistics, ReadOnlySpan<Av1EncoderTransformBlockState> states, in Av1EncoderBlockModeInfo modeInfo)
+    public void Save(uint hash, Av1RateDistortionStatistics statistics, ReadOnlySpan<Av1EncoderTransformBlockState> states, Av1EncoderBlockModeInfo modeInfo)
     {
         int index;
         if (this.count < Length)

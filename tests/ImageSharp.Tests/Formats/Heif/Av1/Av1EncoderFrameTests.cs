@@ -33,6 +33,9 @@ public class Av1EncoderFrameTests
     private const int Yuv420 = (int)Av1ColorFormat.Yuv420;
     private const int Yuv422 = (int)Av1ColorFormat.Yuv422;
     private const int Yuv444 = (int)Av1ColorFormat.Yuv444;
+    private const int VariableBitRate = (int)Av1RateControlMode.VariableBitRate;
+    private const int ConstrainedQuality = (int)Av1RateControlMode.ConstrainedQuality;
+    private const int ConstantBitRate = (int)Av1RateControlMode.ConstantBitRate;
 
     [Fact]
     public void RectangularIntraReferencesExtendTheLastAvailableSample()
@@ -546,6 +549,111 @@ public class Av1EncoderFrameTests
 
             decoder.DecodeSequenceReference(sample.ToArray(), null, null);
             Assert.True(decoder.FrameHeader!.DeltaQParameters.IsPresent);
+            AssertDecodedLumaMatchesEncoder(encoder, decoder, image.Width, image.Height);
+        }
+    }
+
+    [Theory]
+    [InlineData(VariableBitRate)]
+    [InlineData(ConstrainedQuality)]
+    [InlineData(ConstantBitRate)]
+    public void GoodQualitySequenceUnderBitBudgetReconstructsAsDecoded(int modeValue)
+    {
+        // Without lookahead a golden group holds at most 32 frames, so frame 32 is the golden update of the second
+        // group. The bit-rate modes keep every frame within four quantizer steps of the request. The constrained-quality
+        // mode keeps the full range, and these small frames spend so little of the budget that its quality level falls.
+        const int Quantizer = 40;
+        Av1RateControlMode mode = (Av1RateControlMode)modeValue;
+        bool bitRate = mode != Av1RateControlMode.ConstrainedQuality;
+        using Image<Rgb24> frames = CreatePanningSequence(33);
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
+        {
+            RateControlMode = mode,
+            MinimumQuantizer = bitRate ? Quantizer - 4 : 0,
+            MaximumQuantizer = bitRate ? Quantizer + 4 : 63,
+            KeyFrameMaximumDistance = 9999
+        };
+
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            frames.Width,
+            frames.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            Av1QuantizationLookup.GetQIndex(Quantizer),
+            options);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        for (int i = 0; i < frames.Frames.Count; i++)
+        {
+            sample.SetLength(0);
+            if (i == 0)
+            {
+                encoder.EncodeKeyFrame(frames.Frames[0], sample);
+            }
+            else
+            {
+                Assert.False(encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false));
+            }
+
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            if (bitRate)
+            {
+                int baseQIndex = decoder.FrameHeader!.QuantizationParameters.BaseQIndex;
+                Assert.InRange(baseQIndex, Av1QuantizationLookup.GetQIndex(Quantizer - 4), Av1QuantizationLookup.GetQIndex(Quantizer + 4));
+            }
+
+            AssertDecodedLumaMatchesEncoder(encoder, decoder, frames.Width, frames.Height);
+        }
+    }
+
+    [Theory]
+    [InlineData(VariableBitRate)]
+    [InlineData(ConstrainedQuality)]
+    [InlineData(ConstantBitRate)]
+    public void LayeredImageUnderBitBudgetReconstructsAsDecoded(int modeValue)
+    {
+        // libavif narrows the quantizer range of each layer in the bit-rate modes and sets the quality level of each
+        // layer in the constrained-quality mode, and every layer still predicts only from the layer before it.
+        Av1RateControlMode mode = (Av1RateControlMode)modeValue;
+        bool bitRate = mode != Av1RateControlMode.ConstrainedQuality;
+        int[] quantizers = [55, 40, 20];
+        using Image<Rgb24> image = CreateLayerTestImage();
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
+        {
+            RateControlMode = mode,
+            MinimumQuantizer = bitRate ? quantizers[0] - 4 : 0,
+            MaximumQuantizer = bitRate ? quantizers[0] + 4 : 63,
+            LayerCount = quantizers.Length
+        };
+
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            image.Width,
+            image.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            Av1QuantizationLookup.GetQIndex(quantizers[0]),
+            options);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        foreach (int quantizer in quantizers)
+        {
+            sample.SetLength(0);
+            encoder.EncodeLayer(
+                image.Frames.RootFrame,
+                sample,
+                Av1QuantizationLookup.GetQIndex(quantizer),
+                bitRate ? quantizer - 4 : 0,
+                bitRate ? quantizer + 4 : 63);
+
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            if (bitRate)
+            {
+                int baseQIndex = decoder.FrameHeader!.QuantizationParameters.BaseQIndex;
+                Assert.InRange(baseQIndex, Av1QuantizationLookup.GetQIndex(quantizer - 4), Av1QuantizationLookup.GetQIndex(quantizer + 4));
+            }
+
             AssertDecodedLumaMatchesEncoder(encoder, decoder, image.Width, image.Height);
         }
     }

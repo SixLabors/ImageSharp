@@ -96,7 +96,7 @@ public class Av1RateControlTests
     /// <param name="screenContent">Whether the image is screen content.</param>
     /// <returns>The quantizer index.</returns>
     private static int GetQIndex(int width, int height, Av1RateControlMode mode, int best, int worst, bool screenContent)
-        => Av1RateControl.GetStillImageQIndex(width, height, Av1BitDepth.EightBit, HeifEncodingSpeed.Level6, mode, best, worst, screenContent);
+        => Av1RateControl.GetStillImageQIndex(width, height, Av1BitDepth.EightBit, HeifEncodingSpeed.Level6, mode, best, worst, Av1QuantizationLookup.GetQIndex(Quantizer), screenContent);
 
     /// <summary>
     /// Encodes a 16x16 still image, decodes it, and returns the quantizer index of the decoded frame.

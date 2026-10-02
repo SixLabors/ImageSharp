@@ -1281,6 +1281,7 @@ internal static partial class Av1FrameEncoder
             options.RateControlMode,
             Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer),
             Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer),
+            GetConstantQualityLevel(options, frameHeader.QuantizationParameters.BaseQIndex),
             decision.IsScreenContent);
 
         ApplyFrameQuantizer(frameHeader, sequenceHeader, qIndex, options);
@@ -2022,6 +2023,12 @@ internal static partial class Av1FrameEncoder
         private readonly Av1RateControl? rateControl;
 
         /// <summary>
+        /// The one-pass rate model of a good-quality sequence without lookahead under a bit budget, which allocates
+        /// the bits of each golden group, or <see langword="null"/> for constant-quality and real-time coding.
+        /// </summary>
+        private readonly Av1RateControl? groupRateControl;
+
+        /// <summary>
         /// The cyclic refresh of a real-time sequence that uses it, or <see langword="null"/>. Reference:
         /// cpi->cyclic_refresh.
         /// </summary>
@@ -2317,9 +2324,28 @@ internal static partial class Av1FrameEncoder
                         realtime: true,
                         bestAllowedQIndex,
                         worstAllowedQIndex,
+                        GetConstantQualityLevel(options, qIndex),
                         options.KeyFrameMaximumDistance,
                         options.AdaptiveQuantizationMode != Av1AdaptiveQuantizationMode.None,
                         this.cyclicRefresh);
+                }
+                else if (options.UsesBitBudget && options.LagInFrames == 0)
+                {
+                    // A good-quality sequence without lookahead under a bit budget runs the one-pass rate control
+                    // without statistics. Reference: has_no_stats_stage() with rc_cfg.mode other than AOM_Q.
+                    this.groupRateControl = new Av1RateControl(
+                        width,
+                        height,
+                        colorConfig.BitDepth,
+                        options.Speed,
+                        options.RateControlMode,
+                        realtime: false,
+                        Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer),
+                        Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer),
+                        GetConstantQualityLevel(options, qIndex),
+                        options.KeyFrameMaximumDistance,
+                        options.AdaptiveQuantizationMode != Av1AdaptiveQuantizationMode.None,
+                        cyclicRefresh: null);
                 }
 
                 this.MotionField = new Av1EncoderMotionField(
@@ -3305,6 +3331,12 @@ internal static partial class Av1FrameEncoder
             where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
             where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         {
+            if (this.groupRateControl is not null)
+            {
+                this.SelectGroupFrameQuantizer(parent);
+                return;
+            }
+
             bool keyFrame = this.FrameHeader.IsIntra;
             if (this.rateControl is null)
             {
@@ -3365,11 +3397,15 @@ internal static partial class Av1FrameEncoder
 
             // The key frame decision and its bit target read the old frame count. The quantizer reads the restarted
             // one. Reference: av1_get_one_pass_rt_params() before av1_encode(), then av1_rc_pick_q_and_bounds().
-            this.rateControl.BeginFrame(keyFrame, this.frameNumber);
+            this.rateControl.BeginFrame(keyFrame, this.frameNumber, this.presetupFrameSize);
             if (keyFrame)
             {
                 this.RestartFrameCount();
             }
+
+            // The quantizer pick reads the coded size of the frame. Reference: av1_setup_frame_size() before
+            // av1_rc_pick_q_and_bounds().
+            this.rateControl.SetFrameSize(this.FrameSize, this.GetPrimaryReferenceSize());
 
             // Cyclic refresh decides whether the frame refreshes any block before its quantizer is chosen. Reference:
             // the av1_cyclic_refresh_update_parameters() call of av1_encode_strategy().
@@ -3401,6 +3437,59 @@ internal static partial class Av1FrameEncoder
             ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, qIndex, this.Options);
             this.ResetDeltaQuantizerAnchors(qIndex);
             parent.AverageInterQuantizer = this.rateControl.AverageInterFrameQIndex;
+        }
+
+        /// <summary>
+        /// Picks the quantizer of a good-quality frame without lookahead under a bit budget and applies every
+        /// quantizer-dependent frame field. The key frame or the golden update that starts a group allocates the
+        /// bits of the group, and every frame takes its target from that allocation. The group allocation and the
+        /// target read the old frame count and the size of the frame before; the quantizer reads the restarted count
+        /// and the coded size. Reference: define_gf_group_pass0() and av1_setup_target_rate() in
+        /// av1_get_second_pass_params(), then av1_rc_pick_q_and_bounds() in encode_without_recode().
+        /// </summary>
+        /// <param name="parent">The frame state, with the update type of the frame.</param>
+        private void SelectGroupFrameQuantizer(Av1PictureParentControlSet parent)
+        {
+            Av1RateControl rateControl = this.groupRateControl!;
+            bool keyFrame = this.FrameHeader.IsIntra;
+            bool goldenUpdate = parent.FrameUpdateType == Av1FrameUpdateType.Golden;
+
+            // Every frame updates the frame rate limits before its target. Reference: adjust_frame_rate() in
+            // av1_encode_strategy() before av1_get_second_pass_params().
+            rateControl.UpdateFrameRate(this.presetupFrameSize);
+            if (keyFrame || goldenUpdate)
+            {
+                rateControl.DefineGroup(this.goodQualityStructure.GroupLength, this.frameNumber, keyFrame);
+            }
+
+            rateControl.BeginGroupFrame(keyFrame, this.thisKeyFrameForced, goldenUpdate, this.framesToKey, this.presetupFrameSize);
+            if (keyFrame)
+            {
+                this.RestartFrameCount();
+            }
+
+            rateControl.SetFrameSize(this.FrameSize, this.GetPrimaryReferenceSize());
+            int qIndex = rateControl.PickGroupFrameQuantizer(keyFrame, goldenUpdate, this.frameNumber, parent.IsScreenContent);
+            this.QIndex = qIndex;
+            ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, qIndex, this.Options);
+            this.ResetDeltaQuantizerAnchors(qIndex);
+        }
+
+        /// <summary>
+        /// Returns the size of the frame in the slot of the primary reference, which the rate model compares the
+        /// frame with. Reference: cm->prev_frame, which get_primary_ref_frame_buf() sets.
+        /// </summary>
+        /// <returns>The size, or <see langword="null"/> when the frame has no primary reference.</returns>
+        private Size? GetPrimaryReferenceSize()
+        {
+            uint primary = this.FrameHeader.PrimaryReferenceFrame;
+            if (this.FrameHeader.IsIntra || primary == Av1Constants.PrimaryReferenceFrameNone)
+            {
+                return null;
+            }
+
+            int slot = (int)this.FrameHeader.GetReferenceFrameIndices()[(int)primary];
+            return this.FrameHeader.GetReferenceFrameSizes()[slot];
         }
 
         /// <summary>
@@ -3464,13 +3553,31 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Updates the constant-bitrate model with the coded size of the frame. Reference: the
-        /// av1_rc_postencode_update() and update_rc_counts() calls of av1_post_encode_updates().
+        /// Updates the rate model with the coded size of the frame. Reference: the av1_rc_postencode_update() and
+        /// update_rc_counts() calls of av1_post_encode_updates().
         /// </summary>
         /// <param name="parent">The frame state.</param>
         /// <param name="frameBytes">The coded size of the frame, without the temporal delimiter.</param>
         private protected void CompleteRateControl(Av1PictureParentControlSet parent, int frameBytes)
         {
+            if (this.groupRateControl is not null)
+            {
+                // A good-quality golden update refreshes GOLDEN; no frame of a group without lookahead is an
+                // alternate reference or uses segments.
+                this.groupRateControl.UpdateAfterFrame(
+                    frameBytes,
+                    this.FrameHeader.QuantizationParameters.BaseQIndex,
+                    this.FrameHeader.IsIntra,
+                    parent.FrameUpdateType == Av1FrameUpdateType.Golden,
+                    this.goodQualityStructure.IsConstrainedGroup,
+                    parent.IsScreenContent,
+                    segmentationEnabled: false,
+                    sceneChange: false);
+
+                this.groupRateControl.EndFrame();
+                return;
+            }
+
             if (this.rateControl is null)
             {
                 return;
@@ -3546,14 +3653,15 @@ internal static partial class Av1FrameEncoder
         /// <param name="image">The frame to encode.</param>
         /// <param name="stream">The destination stream.</param>
         /// <param name="qIndex">
-        /// The constant-quality quantizer index of the layer, which constant-bitrate coding ignores. Reference: cq_level.
+        /// The quantizer index of the layer's quality, which constant-quality coding codes at, the constrained-quality
+        /// mode reads as its quality level, and the bit-rate modes ignore. Reference: cq_level.
         /// </param>
         /// <param name="minimumQuantizer">
-        /// The lowest quantizer of the layer on libaom's zero-through-63 scale, which constant-bitrate coding reads.
+        /// The lowest quantizer of the layer on libaom's zero-through-63 scale, which coding under a bit budget reads.
         /// Reference: rc_min_quantizer.
         /// </param>
         /// <param name="maximumQuantizer">
-        /// The highest quantizer of the layer on libaom's zero-through-63 scale, which constant-bitrate coding reads.
+        /// The highest quantizer of the layer on libaom's zero-through-63 scale, which coding under a bit budget reads.
         /// Reference: rc_max_quantizer.
         /// </param>
         /// <param name="scaleNumerator">The numerator of the size of the layer as a fraction of the image size.</param>
@@ -3607,17 +3715,18 @@ internal static partial class Av1FrameEncoder
             // the aom_codec_enc_config_set(), AOME_SET_CQ_LEVEL and AOME_SET_SPATIAL_LAYER_ID calls of
             // aomCodecEncodeImage().
             this.FrameHeader.SpatialId = this.codedLayerCount;
-            if (this.rateControl is null)
+
+            // Constant-quality coding sets the quantizer of the layer as its quality level. Coding under a bit budget
+            // also narrows the quantizer range of the rate model to the layer's quality, and the constrained-quality
+            // mode bounds its frames by that level.
+            this.constantQualityIndex = qIndex;
+            Av1RateControl? layerRateControl = this.rateControl ?? this.groupRateControl;
+            if (qualityChanged && layerRateControl is not null)
             {
-                // Constant-quality coding sets the quantizer of the layer as its quality level.
-                this.constantQualityIndex = qIndex;
-            }
-            else
-            {
-                // Constant-bitrate coding ignores the quality level and narrows the quantizer range instead.
-                this.rateControl.SetQuantizerRange(
+                layerRateControl.ChangeConfiguration(
                     Av1QuantizationLookup.GetQIndex(minimumQuantizer),
-                    Av1QuantizationLookup.GetQIndex(maximumQuantizer));
+                    Av1QuantizationLookup.GetQIndex(maximumQuantizer),
+                    GetConstantQualityLevel(this.Options, qIndex));
             }
 
             try

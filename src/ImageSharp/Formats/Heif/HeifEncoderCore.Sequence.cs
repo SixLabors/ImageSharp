@@ -332,7 +332,7 @@ internal sealed partial class HeifEncoderCore
                 // Reference: the AOME_SET_NUMBER_SPATIAL_LAYERS control and use_fixed_qp_offsets of 2 that
                 // aomCodecEncodeImage() sets for layers.
                 LayerCount = layerCount,
-                UsesFixedQuantizer = layered && !constantBitRate,
+                UsesFixedQuantizer = layered && rateControlMode == Av1RateControlMode.Quality,
 
                 // The key frame interval applies to animations, so a layered still image keeps the default.
                 KeyFrameMaximumDistance = layered

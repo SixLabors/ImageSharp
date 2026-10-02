@@ -116,6 +116,11 @@ internal sealed class Av1GoodQualityReferenceStructure
     public bool IsConstrainedGroup { get; private set; }
 
     /// <summary>
+    /// Gets the number of frames in the current golden group. Reference: p_rc->baseline_gf_interval.
+    /// </summary>
+    public int GroupLength => this.groupLength;
+
+    /// <summary>
     /// Gets the pyramid level of the frame being coded. Reference: cm->cur_frame->pyramid_level.
     /// </summary>
     public int PyramidLevel => this.pyramidLevel;

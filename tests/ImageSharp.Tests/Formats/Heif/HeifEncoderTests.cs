@@ -960,6 +960,51 @@ public class HeifEncoderTests
     }
 
     [Theory]
+    [InlineData(HeifEncodingSpeed.Level6, 4, false)]
+    [InlineData(HeifEncodingSpeed.Level6, 4, true)]
+    [InlineData(HeifEncodingSpeed.Level9, 4, false)]
+    [InlineData(HeifEncodingSpeed.Level6, 1, false)]
+    public async Task Encode_IsCancellable(HeifEncodingSpeed speed, int frameCount, bool withAlpha)
+    {
+        // The allocator cancels at a fixed allocation, so every run cancels at the same point of the work.
+        CancellingMemoryAllocator allocator = new();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        using Image<Rgba32> image = new(configuration, 128, 96);
+        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+        {
+            ImageFrame<Rgba32> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = (x + (3 * frameIndex) + y) & 0xFF;
+                    byte alpha = withAlpha ? (byte)(255 - x) : (byte)255;
+                    row[x] = new Rgba32((byte)value, (byte)(255 - value), (byte)(value / 2), alpha);
+                }
+            }
+        }
+
+        HeifEncoder encoder = new() { Quality = 60, AlphaQuality = 60, Speed = speed };
+
+        // A complete encode counts its allocations, so the cancellation lands halfway through the same work.
+        allocator.ResetCount();
+        using (MemoryStream complete = new())
+        {
+            await image.SaveAsync(complete, encoder, TestContext.Current.CancellationToken);
+        }
+
+        int allocationCount = allocator.AllocationCount;
+        Assert.True(allocationCount > 1);
+
+        using CancellationTokenSource source = new();
+        allocator.CancelAt(source, allocationCount / 2);
+        using MemoryStream stream = new();
+        await Assert.ThrowsAsync<TaskCanceledException>(() => image.SaveAsync(stream, encoder, source.Token));
+    }
+
+    [Theory]
     [InlineData(HeifEncodingSpeed.Level6, false)]
     [InlineData(HeifEncodingSpeed.Level6, true)]
     [InlineData(HeifEncodingSpeed.Level9, false)]

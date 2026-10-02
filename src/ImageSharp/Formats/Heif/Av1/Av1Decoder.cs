@@ -172,6 +172,13 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     public Av1FrameBuffer<byte>? FrameBuffer => this.referenceFrames.OutputFrame?.FrameBuffer;
 
     /// <summary>
+    /// Returns the native planes of the frame a reference slot holds, or <see langword="null"/> for an empty slot.
+    /// </summary>
+    /// <param name="slot">The reference slot, 0 to 7.</param>
+    /// <returns>The frame planes.</returns>
+    internal Av1FrameBuffer<byte>? GetReferenceFrameBuffer(int slot) => this.referenceFrames.Resolve(slot)?.FrameBuffer;
+
+    /// <summary>
     /// Decodes the next visible sample in a bounded AV1 image sequence directly into a caller-owned frame.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>

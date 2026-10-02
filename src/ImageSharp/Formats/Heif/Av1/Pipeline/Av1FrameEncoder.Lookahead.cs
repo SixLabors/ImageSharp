@@ -1,9 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
@@ -49,9 +52,27 @@ internal static partial class Av1FrameEncoder
         private bool globalMotionDisabledByStatistics;
 
         /// <summary>
+        /// The stream a frame is packed into to measure its size before the recode decision, created on first use.
+        /// Reference: the dummy pack of encode_with_recode_loop() into the output buffer.
+        /// </summary>
+        private MemoryStream? measuredFrameStream;
+
+        /// <summary>
+        /// The luma vertical, luma horizontal, U and V deblocking levels of the last coded frame, which a measuring pack
+        /// writes because the frame has not chosen its own yet. Reference: cm->lf.filter_level, filter_level_u and
+        /// filter_level_v between loopfilter_frame() of one frame and that of the next.
+        /// </summary>
+        private readonly int[] codedLoopFilterLevels = new int[4];
+
+        /// <summary>
         /// Gets the constant-quality index of the sequence. Reference: cq_level.
         /// </summary>
         private protected int ConstantQualityIndex => this.constantQualityIndex;
+
+        /// <summary>
+        /// Gets the number of times the lookahead coded a frame again because its size missed the bit target.
+        /// </summary>
+        internal int RecodedFrameCount { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the encoder replaces residuals outside the visible frame. Good-quality
@@ -139,6 +160,257 @@ internal static partial class Av1FrameEncoder
                 this.Options.RateControlMode,
                 null);
         }
+
+        /// <summary>
+        /// Points each reference type at the frame in its slot and returns the context of the primary reference.
+        /// </summary>
+        /// <param name="parent">The frame state that receives the available references.</param>
+        /// <returns>The primary reference context, or <see langword="null"/> for the default distributions.</returns>
+        private protected abstract Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent);
+
+        /// <summary>
+        /// Analyzes a lagged frame and, under a bit budget, packs each coding to measure its size and codes the frame
+        /// again at the quantizer the rate control picks while the size misses its target. A discarded coding moves
+        /// the frame probabilities as libaom's does, and the next coding starts from a clean picture. The frame before a
+        /// forced key frame records its unfiltered error. The frame is then ready for its loop filters and final pack.
+        /// Reference: encode_with_recode_loop() and the ambient_err of encode_with_recode_loop_and_filter().
+        /// </summary>
+        /// <typeparam name="TSample">The native sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+        /// <typeparam name="TTextureOperator">The motion vector statistics texture operations.</typeparam>
+        /// <typeparam name="TGlobalMotionOperator">The global motion search operations.</typeparam>
+        /// <param name="secondPass">The lookahead decisions and rate control.</param>
+        /// <param name="frame">The decisions of the frame.</param>
+        /// <param name="parent">The frame state.</param>
+        /// <param name="source">The coded source frame.</param>
+        /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+        /// <param name="searchReferences">The frames the motion search reads, indexed by prediction reference identifier.</param>
+        /// <param name="pool">The reference pool of the sequence.</param>
+        /// <param name="current">The buffer the frame is coded into.</param>
+        /// <param name="writeSequenceHeader">Whether a sequence header OBU precedes the frame.</param>
+        /// <param name="qIndex">The quantizer index of the first coding.</param>
+        /// <param name="switchableBeforeFix">Receives whether the frame filter of the kept coding was switchable before the filter fix.</param>
+        /// <returns>The quantizer index of the kept coding.</returns>
+        private protected int AnalyzeLaggedFrame<TSample, TOperator, TTextureOperator, TGlobalMotionOperator>(
+            Av1SecondPass secondPass,
+            in Av1SecondPassFrame frame,
+            Av1PictureParentControlSet parent,
+            Av1EncoderFrame<TSample> source,
+            Av1EncoderFrame<TSample>[] references,
+            Av1EncoderFrame<TSample>[] searchReferences,
+            Av1EncoderReferencePool<TSample> pool,
+            Av1EncoderReferencePool<TSample>.Entry current,
+            bool writeSequenceHeader,
+            int qIndex,
+            out bool switchableBeforeFix)
+            where TSample : unmanaged
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TTextureOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
+            where TGlobalMotionOperator : struct, IGlobalMotionSearchOperator<TSample>
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            Av1PictureControlSet picture = this.PictureBuffer.Picture;
+            Size frameSize = new(source.Width, source.Height);
+            int superblockTargetRate = Av1RateControl.GetSuperblockTargetRate(secondPass.FrameTarget, source.Width, source.Height);
+            switchableBeforeFix = Av1TileEncoder.AnalyzeFrame<TSample, TOperator>(
+                this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
+
+            while (secondPass.UsesRecodeLoop)
+            {
+                // Each measuring pack finalizes the frame, which steps the film grain seed. Reference: the
+                // av1_finalize_encoded_frame() call of the dummy pack.
+                this.PrepareFilmGrain();
+                ReadOnlyMemory<byte> packedTiles = Av1TileEncoder.PackFrame<TSample, TOperator>(
+                    this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
+
+                long packedBits = this.MeasureLaggedFrame(Av1TileEncoder.FromPackedTiles(picture, packedTiles), writeSequenceHeader);
+
+                // av1_collect_mv_stats() gathers the statistics of each coding, which the next coding reads.
+                this.CompleteLaggedMotionVectorStatistics<TSample, TTextureOperator>(parent, source);
+                long keyFrameError = secondPass.MatchesAmbientError
+                    ? GetLumaSquaredError<TSample, TOperator>(source, current.Buffer.Frame)
+                    : 0;
+
+                int nextQIndex = qIndex;
+                if (!secondPass.UpdateRecodeQuantizer((int)Math.Min(packedBits, int.MaxValue), keyFrameError, ref nextQIndex))
+                {
+                    break;
+                }
+
+                // The discarded coding moved the frame probabilities at the end of its encode_frame_internal().
+                Av1TileEncoder.UpdateFrameProbabilities(picture, this.BlockWorkspace, switchableBeforeFix);
+                this.UpdateMotionModeProbabilities(parent);
+                this.RecodedFrameCount++;
+
+                qIndex = nextQIndex;
+                bool highPrecision = frameHeader.AllowHighPrecisionMotionVector;
+                this.BeginLaggedRecode(parent, in frame, qIndex, frameSize);
+                this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
+
+                // A change of vector precision searches global motion again. Reference: the last_loop_allow_hp test.
+                if (frameHeader.AllowHighPrecisionMotionVector != highPrecision)
+                {
+                    this.SearchGlobalMotion<TSample, TGlobalMotionOperator>(source, references, parent);
+                }
+
+                this.BeginSegmentation(
+                    pool,
+                    current,
+                    parent,
+                    allowsRecode: true,
+                    frame.MacroblockAverageEnergy,
+                    secondPass.BestQuality,
+                    secondPass.WorstQuality,
+                    superblockTargetRate);
+
+                switchableBeforeFix = Av1TileEncoder.AnalyzeFrame<TSample, TOperator>(
+                    this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
+            }
+
+            // The frame before a forced key frame records its unfiltered error. Only a bit budget reads it.
+            if (secondPass.UsesRecodeLoop && secondPass.RecordsAmbientError)
+            {
+                secondPass.SetAmbientError(GetLumaSquaredError<TSample, TOperator>(source, current.Buffer.Frame));
+            }
+
+            return qIndex;
+        }
+
+        /// <summary>
+        /// Returns the size in bits of the frame OBUs of a packed frame, with the sequence header of a shown key frame
+        /// and without a temporal delimiter. Reference: the size of the dummy av1_pack_bitstream() of
+        /// encode_with_recode_loop().
+        /// </summary>
+        /// <param name="tiles">The packed tiles of the frame.</param>
+        /// <param name="writeSequenceHeader">Whether a sequence header OBU precedes the frame.</param>
+        /// <returns>The frame size in bits.</returns>
+        private protected long MeasureLaggedFrame(Av1TileEncoder tiles, bool writeSequenceHeader)
+        {
+            MemoryStream stream = this.measuredFrameStream ??= new MemoryStream();
+            stream.SetLength(0);
+
+            // The frame header carries the deblocking levels of the last coded frame until the frame picks its own.
+            ObuLoopFilterParameters loopFilter = this.FrameHeader.LoopFilterParameters;
+            Span<int> frameLevels = stackalloc int[4];
+            frameLevels[0] = loopFilter.FilterLevel[0];
+            frameLevels[1] = loopFilter.FilterLevel[1];
+            frameLevels[2] = loopFilter.FilterLevelU;
+            frameLevels[3] = loopFilter.FilterLevelV;
+            SetLoopFilterLevels(loopFilter, this.codedLoopFilterLevels);
+
+            long bits;
+            if (writeSequenceHeader)
+            {
+                this.ObuWriter.WriteSequenceFrame(stream, this.SequenceHeader, this.FrameHeader, tiles);
+                bits = (stream.Length - TemporalDelimiterBytes) * 8;
+            }
+            else
+            {
+                this.ObuWriter.WriteFrameWithoutDelimiter(stream, this.SequenceHeader, this.FrameHeader, tiles);
+                bits = stream.Length * 8;
+            }
+
+            SetLoopFilterLevels(loopFilter, frameLevels);
+            return bits;
+        }
+
+        /// <summary>
+        /// Keeps the deblocking levels of a coded frame for the measuring packs of the next frame.
+        /// </summary>
+        private protected void RecordCodedLoopFilterLevels()
+        {
+            ObuLoopFilterParameters loopFilter = this.FrameHeader.LoopFilterParameters;
+            this.codedLoopFilterLevels[0] = loopFilter.FilterLevel[0];
+            this.codedLoopFilterLevels[1] = loopFilter.FilterLevel[1];
+            this.codedLoopFilterLevels[2] = loopFilter.FilterLevelU;
+            this.codedLoopFilterLevels[3] = loopFilter.FilterLevelV;
+        }
+
+        /// <summary>
+        /// Sets the luma vertical, luma horizontal, U and V deblocking levels of a frame header.
+        /// </summary>
+        /// <param name="loopFilter">The loop filter parameters of the frame header.</param>
+        /// <param name="levels">The four levels.</param>
+        private static void SetLoopFilterLevels(ObuLoopFilterParameters loopFilter, ReadOnlySpan<int> levels)
+        {
+            loopFilter.FilterLevel[0] = levels[0];
+            loopFilter.FilterLevel[1] = levels[1];
+            loopFilter.FilterLevelU = levels[2];
+            loopFilter.FilterLevelV = levels[3];
+        }
+
+        /// <summary>
+        /// Writes the OBUs of a coded frame: a shown key frame after a temporal delimiter and the sequence header, the
+        /// first frame of a temporal unit after a temporal delimiter, and any other frame alone. Reference:
+        /// av1_pack_bitstream() with the temporal delimiter of encoder_encode().
+        /// </summary>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="tiles">The packed tiles of the frame.</param>
+        /// <param name="writeSequenceHeader">Whether a sequence header OBU precedes the frame.</param>
+        /// <param name="writeTemporalDelimiter">Whether a temporal delimiter OBU precedes the frame.</param>
+        private protected void WriteLaggedFrame(Stream stream, Av1TileEncoder tiles, bool writeSequenceHeader, bool writeTemporalDelimiter)
+        {
+            if (writeSequenceHeader)
+            {
+                this.ObuWriter.WriteSequenceFrame(stream, this.SequenceHeader, this.FrameHeader, tiles);
+            }
+            else if (writeTemporalDelimiter)
+            {
+                this.ObuWriter.WriteFrame(stream, this.SequenceHeader, this.FrameHeader, tiles);
+            }
+            else
+            {
+                this.ObuWriter.WriteFrameWithoutDelimiter(stream, this.SequenceHeader, this.FrameHeader, tiles);
+            }
+        }
+
+        /// <summary>
+        /// Prepares a frame to be coded again at a new quantizer: the picture state starts clean while the frame
+        /// keeps its probabilities, motion search step and the tools a coding can only turn off, the quantizer and the
+        /// speed features follow the new quantizer, and the motion vector precision is chosen again from the
+        /// statistics of the last coding. Reference: the start of each pass of the encode_with_recode_loop() loop.
+        /// </summary>
+        /// <param name="parent">The frame state.</param>
+        /// <param name="frame">The decisions of the frame.</param>
+        /// <param name="qIndex">The quantizer index of the next coding.</param>
+        /// <param name="frameSize">The frame dimensions.</param>
+        private protected void BeginLaggedRecode(Av1PictureParentControlSet parent, in Av1SecondPassFrame frame, int qIndex, Size frameSize)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            this.PictureBuffer.Reset(frameHeader);
+            parent.RetainsFrameProbabilities = true;
+            parent.RecodesFrame = true;
+            this.ApplyLaggedQuantizer(qIndex);
+            parent.SpeedSettings = new(
+                this.Options.Speed,
+                this.SequenceHeader.IsStillPicture,
+                frameHeader.IsIntra,
+                parent.FrameUpdateType,
+                qIndex,
+                frameSize,
+                sharpness: this.Options.Sharpness,
+                tuning: this.Options.Tuning);
+
+            // Intra block copy stays as the last coding left it, because libaom sets allow_intrabc once per frame and a
+            // coding that used no copy turns it off.
+            this.ConfigureRecodedReferenceTools(parent);
+            this.BeginLaggedMotionVectorStatistics(in frame, parent, frameSize);
+            this.CommonBaseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
+        }
+
+        /// <summary>
+        /// Returns the luma squared error of the visible samples of a reconstruction. Reference: aom_get_y_sse() and
+        /// aom_highbd_get_y_sse().
+        /// </summary>
+        /// <typeparam name="TSample">The native sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+        /// <param name="source">The coded source frame.</param>
+        /// <param name="reconstruction">The reconstruction.</param>
+        /// <returns>The squared error.</returns>
+        private protected static long GetLumaSquaredError<TSample, TOperator>(Av1EncoderFrame<TSample> source, Av1EncoderFrame<TSample> reconstruction)
+            where TSample : unmanaged
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            => GetPlaneSquaredError<TSample, TOperator>(source, reconstruction, Av1Plane.Y, source.Width, source.Height);
 
         /// <summary>
         /// Returns the bits a frame added to the stream, without the temporal delimiter that starts its temporal unit.
@@ -640,6 +912,7 @@ internal static partial class Av1FrameEncoder
 
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
+            parent.RecodesFrame = false;
             parent.PreviousSource = default;
             parent.SourceBlockSad = default;
             parent.HighSourceSad = false;
@@ -723,34 +996,47 @@ internal static partial class Av1FrameEncoder
                 secondPass.WorstQuality,
                 Av1RateControl.GetSuperblockTargetRate(secondPass.FrameTarget, source.Frame.Width, source.Frame.Height));
 
-            this.PrepareFilmGrain();
-            long start = stream.Length;
-            Encode(
-                this.ObuWriter,
-                stream,
-                this.SequenceHeader,
-                frameHeader,
-                this.PictureBuffer.Picture,
-                source,
+            bool writeSequenceHeader = frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame;
+            Av1PictureControlSet picture = this.PictureBuffer.Picture;
+            qIndex = this.AnalyzeLaggedFrame<byte, Av1IntraSuperblockEncoder.ByteOperator, Av1MotionVectorStatistics.ByteTextureOperator, ByteGlobalMotionSearchOperator>(
+                secondPass,
+                in frame,
+                parent,
+                source.Frame,
                 this.references,
                 this.searchReferences,
-                current.Buffer,
+                this.referencePool,
+                current,
+                writeSequenceHeader,
+                qIndex,
+                out bool switchableBeforeFix);
+
+            this.PrepareFilmGrain();
+            ReadOnlyMemory<byte> encodedTiles = Av1TileEncoder.CompleteFrame<byte, Av1IntraSuperblockEncoder.ByteOperator,
+                Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
+                this.SymbolEncoder,
+                source.Frame,
+                this.references,
+                this.searchReferences,
+                current.Buffer.Frame,
+                picture,
                 this.Coefficients,
                 this.TileWorkspace,
                 this.BlockWorkspace,
-                this.SymbolEncoder,
-                writeSequenceHeader: frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame,
-                writeTemporalDelimiter);
+                switchableBeforeFix);
 
+            long start = stream.Length;
+            this.WriteLaggedFrame(stream, Av1TileEncoder.FromPackedTiles(picture, encodedTiles), writeSequenceHeader, writeTemporalDelimiter);
+            this.RecordCodedLoopFilterLevels();
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
-            this.CompleteSegmentation(current, this.PictureBuffer.Picture);
+            this.CompleteSegmentation(current, picture);
             this.CompleteLaggedMotionVectorStatistics<byte, Av1MotionVectorStatistics.ByteTextureOperator>(parent, source.Frame);
             this.SymbolEncoder.SnapshotTo(current.Context);
-            this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
+            this.MotionField.SaveFrameMotionVectors(picture, current.MotionField);
             this.CompleteFrameHeader();
             this.CompleteReferenceStructure();
             secondPass.CompleteFrame(qIndex, GetLaggedFrameBits(stream, start, writeTemporalDelimiter));
-            temporalModel?.CompleteFrame(in frame, source.Frame, this.PictureBuffer.Picture, current.Context, qIndex);
+            temporalModel?.CompleteFrame(in frame, source.Frame, picture, current.Context, qIndex);
 
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
@@ -810,6 +1096,7 @@ internal static partial class Av1FrameEncoder
 
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
+            parent.RecodesFrame = false;
             parent.PreviousSource = default;
             parent.SourceBlockSad = default;
             parent.HighSourceSad = false;
@@ -893,34 +1180,47 @@ internal static partial class Av1FrameEncoder
                 secondPass.WorstQuality,
                 Av1RateControl.GetSuperblockTargetRate(secondPass.FrameTarget, source.Frame.Width, source.Frame.Height));
 
-            this.PrepareFilmGrain();
-            long start = stream.Length;
-            Encode(
-                this.ObuWriter,
-                stream,
-                this.SequenceHeader,
-                frameHeader,
-                this.PictureBuffer.Picture,
-                source,
+            bool writeSequenceHeader = frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame;
+            Av1PictureControlSet picture = this.PictureBuffer.Picture;
+            qIndex = this.AnalyzeLaggedFrame<ushort, Av1IntraSuperblockEncoder.UInt16Operator, Av1MotionVectorStatistics.UInt16TextureOperator, UInt16GlobalMotionSearchOperator>(
+                secondPass,
+                in frame,
+                parent,
+                source.Frame,
                 this.references,
                 this.searchReferences,
-                current.Buffer,
+                this.referencePool,
+                current,
+                writeSequenceHeader,
+                qIndex,
+                out bool switchableBeforeFix);
+
+            this.PrepareFilmGrain();
+            ReadOnlyMemory<byte> encodedTiles = Av1TileEncoder.CompleteFrame<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+                Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
+                this.SymbolEncoder,
+                source.Frame,
+                this.references,
+                this.searchReferences,
+                current.Buffer.Frame,
+                picture,
                 this.Coefficients,
                 this.TileWorkspace,
                 this.BlockWorkspace,
-                this.SymbolEncoder,
-                writeSequenceHeader: frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame,
-                writeTemporalDelimiter);
+                switchableBeforeFix);
 
+            long start = stream.Length;
+            this.WriteLaggedFrame(stream, Av1TileEncoder.FromPackedTiles(picture, encodedTiles), writeSequenceHeader, writeTemporalDelimiter);
+            this.RecordCodedLoopFilterLevels();
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
-            this.CompleteSegmentation(current, this.PictureBuffer.Picture);
+            this.CompleteSegmentation(current, picture);
             this.CompleteLaggedMotionVectorStatistics<ushort, Av1MotionVectorStatistics.UInt16TextureOperator>(parent, source.Frame);
             this.SymbolEncoder.SnapshotTo(current.Context);
-            this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
+            this.MotionField.SaveFrameMotionVectors(picture, current.MotionField);
             this.CompleteFrameHeader();
             this.CompleteReferenceStructure();
             secondPass.CompleteFrame(qIndex, GetLaggedFrameBits(stream, start, writeTemporalDelimiter));
-            temporalModel?.CompleteFrame(in frame, source.Frame, this.PictureBuffer.Picture, current.Context, qIndex);
+            temporalModel?.CompleteFrame(in frame, source.Frame, picture, current.Context, qIndex);
 
             current.Buffer.Frame.ExtendBorders();
             this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);

@@ -615,11 +615,11 @@ public class Av1EncoderFrameTests
     public void LookaheadSequenceUnderBitBudgetDecodes(int modeValue)
     {
         // The lookahead codes alternate references hidden and shows them later, so each sample decodes in its own
-        // order. These small frames get far more bits than they need, so the rate model, not the requested
-        // quantizer, picks the quantizers.
+        // order. The rate model, not the requested quantizer, picks the quantizers, and the noisy key frame overshoots
+        // its target so far that it is coded again at a higher quantizer.
         const int Quantizer = 40;
         Av1RateControlMode mode = (Av1RateControlMode)modeValue;
-        using Image<Rgb24> frames = CreatePanningSequence(20);
+        using Image<Rgb24> frames = CreateNoisyPanningSequence(192, 128, 6);
         Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
         {
             RateControlMode = mode,
@@ -661,6 +661,18 @@ public class Av1EncoderFrameTests
         }
 
         Assert.True(rateModelChose);
+        Assert.True(encoder.RecodedFrameCount > 0);
+
+        // Every reference slot reconstructs as the encoder holds it, which a recode that left any state of a
+        // discarded coding behind would break.
+        for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
+        {
+            Av1FrameBuffer<byte>? decoded = decoder.GetReferenceFrameBuffer(slot);
+            if (decoded is not null)
+            {
+                AssertLumaMatches(encoder.CopySlotLuma(slot), decoded, frames.Width, frames.Height);
+            }
+        }
     }
 
     [Theory]
@@ -950,17 +962,23 @@ public class Av1EncoderFrameTests
     private static void AssertDecodedLumaMatchesEncoder(Av1FrameEncoder.SequenceEncoder encoder, Av1Decoder decoder, int width, int height)
     {
         int slot = BitOperations.TrailingZeroCount(decoder.FrameHeader!.RefreshFrameFlags);
-        ushort[] expected = encoder.CopySlotLuma(slot);
-        Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+        AssertLumaMatches(encoder.CopySlotLuma(slot), Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer), width, height);
+    }
+
+    private static void AssertLumaMatches(ushort[] expected, Av1FrameBuffer<byte> decoded, int width, int height)
+    {
         Av1PlaneRegion<byte> luma = decoded.GetPlaneBuffer(Av1Plane.Y);
         Span<byte> samples = luma.Samples;
         for (int y = 0; y < height; y++)
         {
+            // The decoder plane keeps a border, so the visible frame starts at the decoder origin.
+            Span<byte> row = samples.Slice(((decoded.OriginY + y) * luma.Stride) + decoded.OriginX, width);
             for (int x = 0; x < width; x++)
             {
-                // The decoder plane keeps a border, so the visible frame starts at the decoder origin.
-                byte actual = samples[((decoded.OriginY + y) * luma.Stride) + decoded.OriginX + x];
-                Assert.True(expected[(y * width) + x] == actual, $"Luma differs at ({x}, {y}).");
+                if (expected[(y * width) + x] != row[x])
+                {
+                    Assert.Fail($"Luma differs at ({x}, {y}).");
+                }
             }
         }
     }
@@ -976,6 +994,29 @@ public class Av1EncoderFrameTests
             LagInFrames = lagInFrames,
             KeyFrameMaximumDistance = keyFrameInterval
         };
+    }
+
+    private static Image<Rgb24> CreateNoisyPanningSequence(int width, int height, int frameCount)
+    {
+        // A gradient that moves one sample per frame under strong noise that changes every frame, so each frame
+        // costs many bits.
+        Image<Rgb24> image = new(width, height);
+        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    int noise = (int)((((uint)x * 2654435761U) ^ ((uint)y * 2246822519U) ^ ((uint)frameIndex * 3266489917U)) >> 24);
+                    int value = (x + frameIndex + y + noise) & 255;
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        return image;
     }
 
     private static Image<Rgb24> CreatePanningSequence(int frameCount)

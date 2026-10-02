@@ -298,6 +298,11 @@ internal sealed partial class Av1SecondPass
         // Reference: gop_length_decision_method of set_good_speed_features_framesize_independent().
         this.gopLengthDecisionMethod = speed >= 6 ? 3 : speed >= 5 ? 2 : 1;
 
+        // Speeds 0 and 1 may code any frame again, faster speeds only key frames, golden frames and alternate
+        // references. Reference: the recode_loop of set_good_speed_features_framesize_independent().
+        this.recodesEveryFrame = speed < 2;
+        this.recodeTolerance = GetRecodeTolerance(width, height, speed);
+
         this.averageKeyFrameQIndex = (worstAllowedQIndex + bestAllowedQIndex) / 2;
         this.averageInterFrameQIndex = (worstAllowedQIndex + bestAllowedQIndex) / 2;
 
@@ -527,6 +532,10 @@ internal sealed partial class Av1SecondPass
         this.screenContentType = screenContent;
         GetReferenceRefreshes(in this.current, out bool refreshGolden, out bool refreshAlternate);
         int q = this.PickQIndex(index, screenContent, refreshGolden || refreshAlternate);
+        if (this.UsesBitBudget)
+        {
+            this.BeginRecode();
+        }
 
         // Constant quality replaces the quantizer by the temporal dependency choice.
         if (!this.UsesBitBudget && tplFrameValid && !this.lossless)

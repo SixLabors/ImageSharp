@@ -2865,6 +2865,40 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
+        /// Restores the frame tools that each coding of a frame starts from before the frame is coded again: switchable
+        /// filters and motion modes and the skip mode of the references. Warped motion stays as the last coding left it,
+        /// and turns off when its probability fell below the threshold. Reference: the av1_encode_frame() and
+        /// encode_frame_internal() setup of each pass of encode_with_recode_loop().
+        /// </summary>
+        /// <param name="parent">The frame state with the update type and the speed settings of the frame.</param>
+        protected void ConfigureRecodedReferenceTools(Av1PictureParentControlSet parent)
+        {
+            ObuFrameHeader frameHeader = this.FrameHeader;
+            if (frameHeader.IsIntra)
+            {
+                return;
+            }
+
+            frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+            frameHeader.IsMotionModeSwitchable = true;
+
+            // The prune_warped_prob_thresh test of encode_frame_internal() reads the probability the last coding moved.
+            int warpedThreshold = parent.SpeedSettings.WarpedProbabilityThreshold;
+            if (frameHeader.AllowWarpedMotion && warpedThreshold > 0 &&
+                this.warpedProbabilities[(int)parent.FrameUpdateType] < warpedThreshold)
+            {
+                frameHeader.AllowWarpedMotion = false;
+            }
+
+            int obmcRow = (int)parent.FrameUpdateType * (int)Av1BlockSize.AllSizes;
+            this.obmcProbabilities.AsSpan(obmcRow, (int)Av1BlockSize.AllSizes).CopyTo(parent.ObmcProbabilities);
+
+            // check_skip_mode_enabled() derives skip mode again, and the reference binding narrows it.
+            frameHeader.SkipModeParameters.Derive(this.SequenceHeader.OrderHintInfo, frameHeader);
+            frameHeader.SkipModeParameters.SkipModeFlag = frameHeader.SkipModeParameters.SkipModeAllowed;
+        }
+
+        /// <summary>
         /// Selects the reference slots, the refreshed slots, and the primary reference of a real-time frame. A layered
         /// image maps every reference to slot 0 instead of the one-layer structure. Reference:
         /// set_gf_interval_update_onepass_rt() in av1_get_one_pass_rt_params(), then
@@ -3151,6 +3185,37 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
+        /// Moves the warped motion probability and the OBMC probability of each block size of the frame's update type
+        /// halfway toward the frame's share of blocks that used them. Reference: the warped_probs and obmc_probs
+        /// updates at the end of encode_frame_internal().
+        /// </summary>
+        /// <param name="parent">The frame state with the motion mode counts of its packing pass.</param>
+        private protected void UpdateMotionModeProbabilities(Av1PictureParentControlSet parent)
+        {
+            if (this.FrameHeader.AllowWarpedMotion && parent.SpeedSettings.WarpedProbabilityThreshold > 0)
+            {
+                // The running probability moves halfway to this frame's share of warped blocks.
+                int updateType = (int)parent.FrameUpdateType;
+                int sum = parent.WarpedUsage[0] + parent.WarpedUsage[1];
+                int newProbability = sum != 0 ? 128 * parent.WarpedUsage[1] / sum : 0;
+                this.warpedProbabilities[updateType] = (this.warpedProbabilities[updateType] + newProbability) >> 1;
+            }
+
+            int obmcThreshold = parent.SpeedSettings.ObmcProbabilityThreshold;
+            if (obmcThreshold > 0 && obmcThreshold < int.MaxValue)
+            {
+                // Each block size's probability moves halfway to this frame's share of OBMC blocks.
+                int row = (int)parent.FrameUpdateType * (int)Av1BlockSize.AllSizes;
+                for (int size = 0; size < (int)Av1BlockSize.AllSizes; size++)
+                {
+                    int sum = parent.ObmcUsage[size * 2] + parent.ObmcUsage[(size * 2) + 1];
+                    int newProbability = sum != 0 ? 128 * parent.ObmcUsage[(size * 2) + 1] / sum : 0;
+                    this.obmcProbabilities[row + size] = (this.obmcProbabilities[row + size] + newProbability) >> 1;
+                }
+            }
+        }
+
+        /// <summary>
         /// Advances the reference structure state after a coded frame. Reference: update_fb_of_context_type()
         /// and update_rc_counts().
         /// </summary>
@@ -3170,31 +3235,7 @@ internal static partial class Av1FrameEncoder
                 }
             }
 
-            if (frameHeader.AllowWarpedMotion && parent.SpeedSettings.WarpedProbabilityThreshold > 0)
-            {
-                // The running probability moves halfway to this frame's share of warped blocks.
-                // Reference: the warped_probs update at the end of encode_frame_internal().
-                int updateType = (int)parent.FrameUpdateType;
-                int sum = parent.WarpedUsage[0] + parent.WarpedUsage[1];
-                int newProbability = sum != 0 ? 128 * parent.WarpedUsage[1] / sum : 0;
-                this.warpedProbabilities[updateType] = (this.warpedProbabilities[updateType] + newProbability) >> 1;
-            }
-
-            int obmcThreshold = parent.SpeedSettings.ObmcProbabilityThreshold;
-            if (obmcThreshold > 0 && obmcThreshold < int.MaxValue)
-            {
-                // Each block size's probability moves halfway to this frame's share of OBMC blocks.
-                // Reference: the obmc_probs update at the end of encode_frame_internal().
-                int row = (int)parent.FrameUpdateType * (int)Av1BlockSize.AllSizes;
-
-                for (int size = 0; size < (int)Av1BlockSize.AllSizes; size++)
-                {
-                    int sum = parent.ObmcUsage[size * 2] + parent.ObmcUsage[(size * 2) + 1];
-                    int newProbability = sum != 0 ? 128 * parent.ObmcUsage[(size * 2) + 1] / sum : 0;
-                    this.obmcProbabilities[row + size] = (this.obmcProbabilities[row + size] + newProbability) >> 1;
-                }
-            }
-
+            this.UpdateMotionModeProbabilities(parent);
             if (!parent.SpeedSettings.IsRealtime)
             {
                 this.goodQualityStructure.Complete(frameHeader);
@@ -3925,6 +3966,7 @@ internal static partial class Av1FrameEncoder
             this.Coefficients?.Dispose();
             this.PictureBuffer?.Dispose();
             this.ConversionWorkspace.Dispose();
+            this.measuredFrameStream?.Dispose();
         }
     }
 
@@ -4322,12 +4364,8 @@ internal static partial class Av1FrameEncoder
             }
         }
 
-        /// <summary>
-        /// Points each reference type at the frame in its slot and returns the context of the primary reference.
-        /// </summary>
-        /// <param name="parent">The frame state that receives the available references.</param>
-        /// <returns>The primary reference context, or <see langword="null"/> for the default distributions.</returns>
-        private Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent)
+        /// <inheritdoc/>
+        private protected override Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
@@ -4753,12 +4791,8 @@ internal static partial class Av1FrameEncoder
             }
         }
 
-        /// <summary>
-        /// Points each reference type at the frame in its slot and returns the context of the primary reference.
-        /// </summary>
-        /// <param name="parent">The frame state that receives the available references.</param>
-        /// <returns>The primary reference context, or <see langword="null"/> for the default distributions.</returns>
-        private Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent)
+        /// <inheritdoc/>
+        private protected override Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();

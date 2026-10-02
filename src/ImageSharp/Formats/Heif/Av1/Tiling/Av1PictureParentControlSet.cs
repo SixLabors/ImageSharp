@@ -266,6 +266,13 @@ internal class Av1PictureParentControlSet
     public bool RetainsFrameProbabilities { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the frame is being coded again at a new quantizer after its size missed
+    /// the bit target, so that the frame preparation keeps the motion search step and vector magnitude of the first
+    /// coding. Reference: the loop_count of encode_with_recode_loop(), after av1_set_mv_search_params().
+    /// </summary>
+    public bool RecodesFrame { get; set; }
+
+    /// <summary>
     /// Gets or sets whether the frame allowed the screen content tools before its screen content trial, which the
     /// frame-size speed features keep, or <see langword="null"/> when no trial changed them. Reference: the
     /// allow_screen_content_tools that set_size_independent_vars() reads before av1_determine_sc_tools_with_encoding().

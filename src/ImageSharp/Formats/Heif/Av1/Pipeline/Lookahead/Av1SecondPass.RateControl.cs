@@ -903,6 +903,9 @@ internal sealed partial class Av1SecondPass
             q = Math.Max(q, activeBestQuality);
         }
 
+        // The bounds a recode searches between; a frame that targets the largest allowed size may exceed the ceiling.
+        this.pickedBottomIndex = activeBestQuality;
+        this.pickedTopIndex = this.thisFrameTarget >= this.maximumFrameBandwidth && q > activeWorst ? q : activeWorst;
         return q;
     }
 
@@ -987,10 +990,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="showFrame">Whether the frame is shown.</param>
     private void UpdateRateAfterFrame(int projectedFrameSize, int qIndex, bool keyFrame, bool showFrame)
     {
-        if (!this.sourceIsAlternate)
-        {
-            this.UpdateRateCorrectionFactor(projectedFrameSize, qIndex, keyFrame);
-        }
+        this.UpdateRateCorrectionFactor(projectedFrameSize, qIndex, keyFrame);
 
         // update_buffer_level(): a hidden frame is pure overhead.
         this.bitsOffTarget += showFrame ? this.averageFrameBandwidth - projectedFrameSize : -projectedFrameSize;
@@ -1008,15 +1008,20 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Moves the rate correction factor of the current frame's level toward the ratio of the coded size to the size
-    /// the factor expected, damped more for small errors and for screen content. Reference:
-    /// av1_rc_update_rate_correction_factors() and set_rate_correction_factor() in a statistics-consuming stage,
-    /// without cyclic refresh.
+    /// the factor expected, damped more for small errors and for screen content. An overlay keeps the factors.
+    /// Reference: av1_rc_update_rate_correction_factors() and set_rate_correction_factor() in a
+    /// statistics-consuming stage, without cyclic refresh.
     /// </summary>
     /// <param name="projectedFrameSize">The coded size in bits.</param>
     /// <param name="qIndex">The frame's base quantizer index.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     private void UpdateRateCorrectionFactor(int projectedFrameSize, int qIndex, bool keyFrame)
     {
+        if (this.sourceIsAlternate)
+        {
+            return;
+        }
+
         double rateCorrectionFactor = this.GetRateCorrectionFactor(this.groupFrameIndex);
         int projectedSizeAtQ = this.EstimateBitsAtQ(keyFrame, qIndex, rateCorrectionFactor);
 

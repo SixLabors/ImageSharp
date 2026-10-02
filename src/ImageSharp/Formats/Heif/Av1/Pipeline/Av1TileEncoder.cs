@@ -240,6 +240,18 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             blockWorkspace);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for tile data that a packing pass already
+    /// wrote.
+    /// </summary>
+    /// <param name="picture">The frame coding state that holds the tile offsets and lengths.</param>
+    /// <param name="tileData">The packed tile data.</param>
+    private Av1TileEncoder(Av1PictureControlSet picture, ReadOnlyMemory<byte> tileData)
+    {
+        this.picture = picture;
+        this.tileData = tileData;
+    }
+
     /// <inheritdoc/>
     public ReadOnlySpan<byte> GetTileData(int tileNum)
     {
@@ -649,9 +661,14 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int maximumDimension = Math.Max(sourceSize.Width, sourceSize.Height);
         int stepParameter = Av1MotionSearchBase.GetInitialStepParameter(maximumDimension);
 
-        // Only adaptive steps keep the vector magnitude between frames. Reference: the auto_mv_step_size test of
-        // av1_set_mv_search_params().
-        if (motionSettings.AutomaticStepSizeLevel != 0 && frameHeader.IsIntra)
+        // Only adaptive steps keep the vector magnitude between frames. A frame coded again keeps the step and the
+        // magnitude its packing passes gather, because av1_set_mv_search_params() runs once before the recode loop.
+        // Reference: the auto_mv_step_size test of av1_set_mv_search_params().
+        if (parent.RecodesFrame)
+        {
+            stepParameter = parent.MotionSearchStepParameter;
+        }
+        else if (motionSettings.AutomaticStepSizeLevel != 0 && frameHeader.IsIntra)
         {
             // A key frame seeds the following inter frame with the complete frame range.
             parent.MaximumMotionVectorMagnitude = maximumDimension;
@@ -823,6 +840,65 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
     {
+        bool switchableBeforeFix = AnalyzeFrame<TSample, TOperator>(
+            writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+
+        return CompleteFrame<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
+            writer,
+            source,
+            references,
+            searchReferences,
+            reconstruction,
+            picture,
+            coefficientBuffer,
+            tileWorkspace,
+            blockWorkspace,
+            switchableBeforeFix);
+    }
+
+    /// <summary>
+    /// Returns a tile source for tile data that a packing pass already wrote.
+    /// </summary>
+    /// <param name="picture">The frame coding state that holds the tile offsets and lengths.</param>
+    /// <param name="tileData">The packed tile data.</param>
+    /// <returns>The tile source.</returns>
+    internal static Av1TileEncoder FromPackedTiles(Av1PictureControlSet picture, ReadOnlyMemory<byte> tileData)
+        => new(picture, tileData);
+
+    /// <summary>
+    /// Decides and reconstructs every block of a frame, then settles the frame-level syntax the decisions allow:
+    /// the delta quantizer flag, the segment map coding, intra block copy, the transform mode, the reference mode,
+    /// skip mode and the interpolation filter. The reconstruction is not yet filtered. Reference: av1_encode_frame()
+    /// with encode_frame_internal(), and the fix_interp_filter() of av1_finalize_encoded_frame().
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+    /// <param name="searchReferences">
+    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
+    /// resized to the size of the coded frame.
+    /// </param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    /// <returns>Whether the frame filter was switchable before the filter fix narrowed it.</returns>
+    internal static bool AnalyzeFrame<TSample, TOperator>(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<TSample> source,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences,
+        Av1EncoderFrame<TSample> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderTileWorkspace tileWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+    {
         Av1PictureParentControlSet parent = picture.Parent;
         ObuFrameHeader frameHeader = parent.FrameHeader;
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
@@ -910,6 +986,131 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             FixInterpolationFilter(picture);
         }
 
+        return switchableBeforeFix;
+    }
+
+    /// <summary>
+    /// Writes the symbols of every tile of an analyzed frame. Each tile starts from the frame's entropy context,
+    /// and the pass counts the selected transform types, warped and OBMC motion and interpolation filters afresh.
+    /// Reference: av1_pack_bitstream().
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+    /// <param name="searchReferences">
+    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
+    /// resized to the size of the coded frame.
+    /// </param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    /// <returns>The packed tile data.</returns>
+    internal static ReadOnlyMemory<byte> PackFrame<TSample, TOperator>(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<TSample> source,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences,
+        Av1EncoderFrame<TSample> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderTileWorkspace tileWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+    {
+        // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts
+        // from the same entropy edges and probabilities while the completed frame decisions remain available. A
+        // frame packed before to measure its size counts its selections again.
+        Av1PictureParentControlSet parent = picture.Parent;
+        picture.ResetEntropyContexts();
+        parent.LowMotionArea = 0;
+        parent.TransformTypeCounts.Span.Clear();
+        parent.SelectedInterpolationCounts.Span.Clear();
+        Array.Clear(parent.WarpedUsage);
+        Array.Clear(parent.ObmcUsage);
+        return ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
+            writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
+    }
+
+    /// <summary>
+    /// Moves the transform type and interpolation filter probabilities of the frame's update type halfway toward
+    /// the selections of the frame. Reference: the tx_type_probs and switchable_interp_probs updates at the end of
+    /// encode_frame_internal().
+    /// </summary>
+    /// <param name="picture">The frame coding state with the selection counts.</param>
+    /// <param name="blockWorkspace">The workspace that holds the probabilities.</param>
+    /// <param name="switchableBeforeFix">Whether the frame filter was switchable before the filter fix.</param>
+    internal static void UpdateFrameProbabilities(Av1PictureControlSet picture, Av1EncoderBlockWorkspace blockWorkspace, bool switchableBeforeFix)
+    {
+        Av1PictureParentControlSet parent = picture.Parent;
+        ObuFrameHeader frameHeader = parent.FrameHeader;
+        if (parent.SpeedSettings.TrackTransformTypeProbabilities)
+        {
+            Av1TransformTypeProbabilities.Update(
+                blockWorkspace.TransformTypeProbabilities.Slice(
+                    (int)parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength, Av1TransformTypeProbabilities.FrameLength),
+                parent.TransformTypeCounts.Span);
+        }
+
+        if (frameHeader.FrameType != ObuFrameType.KeyFrame && parent.SpeedSettings.InterpolationPruningLevel == 2 &&
+            switchableBeforeFix)
+        {
+            Av1InterpolationProbabilities.Update(
+                blockWorkspace.InterpolationProbabilities.Slice(
+                    (int)parent.FrameUpdateType * Av1InterpolationProbabilities.FrameLength, Av1InterpolationProbabilities.FrameLength),
+                parent.InterpolationCounts.Span);
+        }
+    }
+
+    /// <summary>
+    /// Filters the reconstruction of an analyzed frame, packs its tiles and records the frame in the workspace
+    /// history: the low motion share, the frame probabilities, and the frame number and quantizer of each refreshed
+    /// slot. Reference: the loop filters of encode_with_recode_loop_and_filter(), av1_pack_bitstream(), and the
+    /// frame updates that follow.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+    /// <typeparam name="TVerticalOperator">The deblocking operations of vertical edges.</typeparam>
+    /// <typeparam name="THorizontalOperator">The deblocking operations of horizontal edges.</typeparam>
+    /// <typeparam name="TCdefOperator">The CDEF search and filter operations.</typeparam>
+    /// <param name="writer">The symbol encoder that retains tile output through the enclosing frame write.</param>
+    /// <param name="source">The coded source frame.</param>
+    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
+    /// <param name="searchReferences">
+    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
+    /// resized to the size of the coded frame.
+    /// </param>
+    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+    /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
+    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+    /// <param name="switchableBeforeFix">Whether the frame filter was switchable before the filter fix.</param>
+    /// <returns>The packed tile data.</returns>
+    internal static ReadOnlyMemory<byte> CompleteFrame<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<TSample> source,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences,
+        Av1EncoderFrame<TSample> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderTileWorkspace tileWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace,
+        bool switchableBeforeFix)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
+    {
+        Av1PictureParentControlSet parent = picture.Parent;
+        ObuFrameHeader frameHeader = parent.FrameHeader;
+
         // loopfilter_frame picks the levels against the source, then filters the frame.
         Av1LoopFilterEncoder.PickFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
             blockWorkspace.MemoryAllocator, picture, source, reconstruction, blockWorkspace.PreviousLoopFilterLevels);
@@ -934,11 +1135,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 tileWorkspace.Tile);
         }
 
-        // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts
-        // from the same entropy edges and probabilities while the completed frame decisions remain available.
-        picture.ResetEntropyContexts();
-        parent.LowMotionArea = 0;
-        ReadOnlyMemory<byte> encodedTiles = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
+        ReadOnlyMemory<byte> encodedTiles = PackFrame<TSample, TOperator>(
             writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         if (!frameHeader.IsIntra)
@@ -951,23 +1148,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.ReferenceRefreshControl?.AdjustRefresh(parent);
         }
 
-        if (parent.SpeedSettings.TrackTransformTypeProbabilities)
-        {
-            Av1TransformTypeProbabilities.Update(
-                blockWorkspace.TransformTypeProbabilities.Slice(
-                    (int)parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength, Av1TransformTypeProbabilities.FrameLength),
-                parent.TransformTypeCounts.Span);
-        }
-
-        if (frameHeader.FrameType != ObuFrameType.KeyFrame && parent.SpeedSettings.InterpolationPruningLevel == 2 &&
-            switchableBeforeFix)
-        {
-            Av1InterpolationProbabilities.Update(
-                blockWorkspace.InterpolationProbabilities.Slice(
-                    (int)parent.FrameUpdateType * Av1InterpolationProbabilities.FrameLength, Av1InterpolationProbabilities.FrameLength),
-                parent.InterpolationCounts.Span);
-        }
-
+        UpdateFrameProbabilities(picture, blockWorkspace, switchableBeforeFix);
         for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
         {
             if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)

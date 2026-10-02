@@ -1601,7 +1601,7 @@ internal sealed partial class HeifEncoderCore
     {
         // Only the image tune has its own quality curve, because libavif detects only tune=iq. Reference: tuneIqEnum.
         bool imageTune = options.Tuning == Av1Tuning.Iq;
-        bool constantBitRate = options.UsesConstantBitRate;
+        Av1RateControlMode rateControlMode = options.RateControlMode;
         using Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
             ? Av1FrameEncoder.CreateAlphaSequenceEncoder(this.configuration, frame.Width, frame.Height, colorConfig, firstQIndex, options)
             : Av1FrameEncoder.CreateColorSequenceEncoder(this.configuration, frame.Width, frame.Height, colorConfig, firstQIndex, options);
@@ -1614,7 +1614,7 @@ internal sealed partial class HeifEncoderCore
             layerBuffers[layer] = buffer;
             int layerQuality = getQuality(layers[layer], quality);
             int quantizer = GetAv1Quantizer(layerQuality, imageTune);
-            (int minimumQuantizer, int maximumQuantizer) = GetQuantizerRange(quantizer, constantBitRate);
+            (int minimumQuantizer, int maximumQuantizer) = GetQuantizerRange(quantizer, rateControlMode);
             (int scaleNumerator, int scaleDenominator) = HeifLayer.GetFraction(layers[layer].Scale);
 
             // libavif reconfigures the encoder only when the quality of a layer differs from the layer before it.

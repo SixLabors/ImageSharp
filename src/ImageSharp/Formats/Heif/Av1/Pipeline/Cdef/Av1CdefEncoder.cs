@@ -61,11 +61,11 @@ internal static partial class Av1CdefEncoder
             return;
         }
 
-        // Adaptive CDEF follows the constant-quality level, which every usage but real time codes with. It turns CDEF
-        // off up to quantizer index 32, which was best for still pictures; the damping keeps its earlier value.
-        // Reference: av1_cdef_search().
+        // Adaptive CDEF follows the constant-quality level, so it applies only in the constant-quality and
+        // constrained-quality modes. It turns CDEF off up to quantizer index 32, which was best for still pictures;
+        // the damping keeps its earlier value. Reference: apply_adaptive_cdef of av1_cdef_search().
         Av1EncoderOptions options = picture.Parent.EncoderOptions;
-        bool adaptive = options.CdefControl == Av1CdefControl.Adaptive && !picture.Parent.SpeedSettings.IsRealtime;
+        bool adaptive = options.CdefControl == Av1CdefControl.Adaptive && options.UsesConstantQualityLevel;
         int qualityIndex = picture.Parent.ConstantQualityIndex;
         if (adaptive && qualityIndex <= 32)
         {

@@ -468,7 +468,7 @@ public class Av1EncoderFrameTests
 
         Av1EncoderOptions options = new(speed, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
         {
-            UsesConstantBitRate = true,
+            RateControlMode = Av1RateControlMode.ConstantBitRate,
             MinimumQuantizer = 21,
             MaximumQuantizer = 29,
             KeyFrameMaximumDistance = 9999,
@@ -517,7 +517,7 @@ public class Av1EncoderFrameTests
         bool realtime = speed >= HeifEncodingSpeed.Level7;
         Av1EncoderOptions options = new(speed, Av1Tuning.Iq, enableRestoration: true, allIntra: false)
         {
-            UsesConstantBitRate = realtime,
+            RateControlMode = realtime ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality,
             MinimumQuantizer = realtime ? 36 : 0,
             MaximumQuantizer = realtime ? 44 : 63
         };
@@ -564,7 +564,7 @@ public class Av1EncoderFrameTests
         bool realtime = speed >= HeifEncodingSpeed.Level7;
         Av1EncoderOptions options = new(speed, Av1Tuning.Iq, enableRestoration: true, allIntra: false)
         {
-            UsesConstantBitRate = realtime,
+            RateControlMode = realtime ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality,
             MinimumQuantizer = realtime ? 51 : 0,
             MaximumQuantizer = realtime ? 59 : 63,
             LayerCount = 3,
@@ -645,7 +645,7 @@ public class Av1EncoderFrameTests
         bool realtime = speed >= HeifEncodingSpeed.Level7;
         Av1EncoderOptions options = new(speed, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
         {
-            UsesConstantBitRate = realtime,
+            RateControlMode = realtime ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality,
             MinimumQuantizer = realtime ? 46 : 0,
             MaximumQuantizer = realtime ? 54 : 63,
             LayerCount = 3,
@@ -740,7 +740,7 @@ public class Av1EncoderFrameTests
         bool constantBitRate = speed >= HeifEncodingSpeed.Level7;
         return new Av1EncoderOptions(speed, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
         {
-            UsesConstantBitRate = constantBitRate,
+            RateControlMode = constantBitRate ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality,
             MinimumQuantizer = constantBitRate ? 21 : 0,
             MaximumQuantizer = constantBitRate ? 29 : 63,
             LagInFrames = lagInFrames,

@@ -287,6 +287,7 @@ internal sealed partial class HeifEncoderCore
         // Reference: the AOM_USAGE_REALTIME choice, the AOM_CBR rc_end_usage and the minQuantizer and maxQuantizer
         // adjustment of aomCodecEncodeImage().
         bool constantBitRate = !allIntra && this.encoder.Speed >= HeifEncodingSpeed.Level7;
+        Av1RateControlMode rateControlMode = constantBitRate ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality;
         int colorQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality, alphaTuning == Av1Tuning.Iq);
 
@@ -322,9 +323,9 @@ internal sealed partial class HeifEncoderCore
         Av1EncoderOptions CreateOptions(Av1Tuning tuning, int quantizer, int lagInFrames)
             => new(this.encoder.Speed, tuning, enableRestoration, allIntra)
             {
-                UsesConstantBitRate = constantBitRate,
-                MinimumQuantizer = GetQuantizerRange(quantizer, constantBitRate).Minimum,
-                MaximumQuantizer = GetQuantizerRange(quantizer, constantBitRate).Maximum,
+                RateControlMode = rateControlMode,
+                MinimumQuantizer = GetQuantizerRange(quantizer, rateControlMode).Minimum,
+                MaximumQuantizer = GetQuantizerRange(quantizer, rateControlMode).Maximum,
                 LagInFrames = lagInFrames,
 
                 // A layered image in constant-quality coding codes every layer at the quantizer of its own quality.
@@ -361,16 +362,17 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Returns the quantizer range of a coding. Constant-quality coding keeps the default range of 0 to 63. The constant
-    /// bit-rate mode narrows it to four steps either side of the requested quantizer, and lossless coding to 0.
-    /// Reference: the rc_min_quantizer and rc_max_quantizer setup of aomCodecEncodeImage().
+    /// Returns the quantizer range of a coding. The constant-quality and constrained-quality modes keep the default
+    /// range of 0 to 63. The variable and constant bit-rate modes narrow it to four steps either side of the requested
+    /// quantizer, and lossless coding to 0. Reference: the rc_min_quantizer and rc_max_quantizer setup of
+    /// aomCodecEncodeImage().
     /// </summary>
     /// <param name="quantizer">The requested quantizer on libaom's zero-through-63 scale.</param>
-    /// <param name="constantBitRate">Whether the coding uses the constant bit-rate mode.</param>
+    /// <param name="mode">The rate control mode.</param>
     /// <returns>The lowest and highest quantizer on libaom's zero-through-63 scale.</returns>
-    private static (int Minimum, int Maximum) GetQuantizerRange(int quantizer, bool constantBitRate)
+    private static (int Minimum, int Maximum) GetQuantizerRange(int quantizer, Av1RateControlMode mode)
     {
-        if (!constantBitRate)
+        if (mode is not (Av1RateControlMode.VariableBitRate or Av1RateControlMode.ConstantBitRate))
         {
             return (0, 63);
         }

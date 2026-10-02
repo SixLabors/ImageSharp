@@ -164,10 +164,30 @@ internal sealed class Av1EncoderOptions
     public bool EnableAdaptiveSharpness { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether a sequence codes at a constant bit rate. libavif selects it for real-time
-    /// usage. Reference: the AOM_CBR rc_end_usage of aomCodecEncodeImage().
+    /// Gets the rate control mode. libavif selects <see cref="Av1RateControlMode.ConstantBitRate"/> for real-time
+    /// usage and <see cref="Av1RateControlMode.Quality"/> otherwise, unless the end-usage option overrides it.
+    /// Reference: rc_end_usage, with the default of aomCodecEncodeImage() and avifProcessAOMOptionsPreInit().
     /// </summary>
-    public bool UsesConstantBitRate { get; init; }
+    public Av1RateControlMode RateControlMode { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the frames code at a constant bit rate. Reference: rc_cfg.mode == AOM_CBR.
+    /// </summary>
+    public bool UsesConstantBitRate => this.RateControlMode == Av1RateControlMode.ConstantBitRate;
+
+    /// <summary>
+    /// Gets a value indicating whether the frames code against a bit budget, that is in any mode but
+    /// <see cref="Av1RateControlMode.Quality"/>. Reference: rc_cfg.mode != AOM_Q.
+    /// </summary>
+    public bool UsesBitBudget => this.RateControlMode != Av1RateControlMode.Quality;
+
+    /// <summary>
+    /// Gets a value indicating whether the frames follow the constant-quality level, which libavif sets only in the
+    /// <see cref="Av1RateControlMode.Quality"/> and <see cref="Av1RateControlMode.ConstrainedQuality"/> modes.
+    /// Reference: rc_cfg.mode == AOM_Q || rc_cfg.mode == AOM_CQ.
+    /// </summary>
+    public bool UsesConstantQualityLevel =>
+        this.RateControlMode is Av1RateControlMode.Quality or Av1RateControlMode.ConstrainedQuality;
 
     /// <summary>
     /// Gets the lowest quantizer on libaom's zero-through-63 scale. Reference: rc_min_quantizer.

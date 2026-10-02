@@ -58,7 +58,7 @@ public class Av1FilmGrainEncoderTests
         // next random seed.
         Av1EncoderOptions options = new(HeifEncodingSpeed.Level8, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
         {
-            UsesConstantBitRate = true,
+            RateControlMode = Av1RateControlMode.ConstantBitRate,
             MinimumQuantizer = 21,
             MaximumQuantizer = 29,
             KeyFrameMaximumDistance = 9999,

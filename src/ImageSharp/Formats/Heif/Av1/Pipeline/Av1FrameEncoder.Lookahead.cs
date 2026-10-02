@@ -670,7 +670,7 @@ internal static partial class Av1FrameEncoder
 
             parent.EncoderOptions = this.Options;
             parent.EncoderBorder = this.GetEncoderBorder();
-            parent.ConstantQualityIndex = this.ConstantQualityIndex;
+            parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,
@@ -839,7 +839,7 @@ internal static partial class Av1FrameEncoder
 
             parent.EncoderOptions = this.Options;
             parent.EncoderBorder = this.GetEncoderBorder();
-            parent.ConstantQualityIndex = this.ConstantQualityIndex;
+            parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,

@@ -82,6 +82,12 @@ internal static partial class Av1FrameEncoder
     /// <remarks>Reference: GM_MAX_REFINEMENT_STEPS.</remarks>
     private const int GlobalMotionRefinementCount = 5;
 
+    /// <summary>
+    /// The constant-quality level, on libaom's zero-through-63 quantizer scale, that the encoder keeps when libavif
+    /// does not set one. Reference: the cq_level default of the encoder configuration.
+    /// </summary>
+    private const int DefaultConstantQualityLevel = 10;
+
     private enum FrameEncodingKind
     {
         StillColor,
@@ -910,14 +916,10 @@ internal static partial class Av1FrameEncoder
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
 
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
-        using Av1SymbolEncoder symbolEncoder = new(
-            configuration,
-            tileBufferLength,
-            frameHeader.QuantizationParameters.BaseQIndex,
-            updateCdf: !frameHeader.DisableCdfUpdate);
-
         using ObuWriter obuWriter = new(configuration);
 
+        // The frame starts at the requested quantizer, which a bit budget replaces after the screen content decision.
+        int requestedQIndex = frameHeader.QuantizationParameters.BaseQIndex;
         ScreenContentDecision decision = default;
         bool isScreenContent = PrepareFrame(
             configuration,
@@ -930,6 +932,13 @@ internal static partial class Av1FrameEncoder
             options,
             encodeAlpha,
             ref decision);
+
+        // The coefficient contexts start from the final quantizer.
+        using Av1SymbolEncoder symbolEncoder = new(
+            configuration,
+            tileBufferLength,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            updateCdf: !frameHeader.DisableCdfUpdate);
 
         using Av1EncoderBlockWorkspace blockWorkspace = new(
             configuration,
@@ -968,7 +977,7 @@ internal static partial class Av1FrameEncoder
         picture.Picture.Parent.IsScreenContent = isScreenContent;
         picture.Picture.Parent.EncodingSpeed = options.Speed;
         picture.Picture.Parent.EncoderOptions = options;
-        picture.Picture.Parent.ConstantQualityIndex = frameHeader.QuantizationParameters.BaseQIndex;
+        picture.Picture.Parent.ConstantQualityIndex = GetConstantQualityLevel(options, requestedQIndex);
         picture.Picture.Parent.SpeedSettings = speedSettings;
 
         // libavif gives every image time stamp 0. Reference: the aom_codec_encode() call of aomCodecEncodeImage().
@@ -1034,14 +1043,10 @@ internal static partial class Av1FrameEncoder
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
 
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
-        using Av1SymbolEncoder symbolEncoder = new(
-            configuration,
-            tileBufferLength,
-            frameHeader.QuantizationParameters.BaseQIndex,
-            updateCdf: !frameHeader.DisableCdfUpdate);
-
         using ObuWriter obuWriter = new(configuration);
 
+        // The frame starts at the requested quantizer, which a bit budget replaces after the screen content decision.
+        int requestedQIndex = frameHeader.QuantizationParameters.BaseQIndex;
         ScreenContentDecision decision = default;
         bool isScreenContent = PrepareFrame(
             configuration,
@@ -1054,6 +1059,13 @@ internal static partial class Av1FrameEncoder
             options,
             encodeAlpha,
             ref decision);
+
+        // The coefficient contexts start from the final quantizer.
+        using Av1SymbolEncoder symbolEncoder = new(
+            configuration,
+            tileBufferLength,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            updateCdf: !frameHeader.DisableCdfUpdate);
 
         using Av1EncoderBlockWorkspace blockWorkspace = new(
             configuration,
@@ -1092,7 +1104,7 @@ internal static partial class Av1FrameEncoder
         picture.Picture.Parent.IsScreenContent = isScreenContent;
         picture.Picture.Parent.EncodingSpeed = options.Speed;
         picture.Picture.Parent.EncoderOptions = options;
-        picture.Picture.Parent.ConstantQualityIndex = frameHeader.QuantizationParameters.BaseQIndex;
+        picture.Picture.Parent.ConstantQualityIndex = GetConstantQualityLevel(options, requestedQIndex);
         picture.Picture.Parent.SpeedSettings = speedSettings;
 
         // libavif gives every image time stamp 0. Reference: the aom_codec_encode() call of aomCodecEncodeImage().
@@ -1198,6 +1210,7 @@ internal static partial class Av1FrameEncoder
             DecideScreenContent(source, sequenceHeader, options, ref decision);
         }
 
+        SelectStillImageQuantizer(sequenceHeader, frameHeader, options, in decision);
         ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), in decision);
         return decision.IsScreenContent;
     }
@@ -1225,6 +1238,52 @@ internal static partial class Av1FrameEncoder
 
         decision.AllowScreenContentTools = allowScreenContentTools;
         decision.AllowIntraBlockCopy = allowIntraBlockCopy;
+    }
+
+    /// <summary>
+    /// Returns the constant-quality level of the encoder. libavif sets it to the requested quantizer in the
+    /// constant-quality and constrained-quality modes; the bit-rate modes keep libaom's default level of 10.
+    /// Reference: the AOME_SET_CQ_LEVEL control of aomCodecEncodeImage() and the cq_level default of the encoder
+    /// configuration.
+    /// </summary>
+    /// <param name="options">The encoder options.</param>
+    /// <param name="requestedQIndex">The quantizer index of the requested quality.</param>
+    /// <returns>The constant-quality level as a quantizer index. Reference: rc_cfg.cq_level.</returns>
+    private static int GetConstantQualityLevel(Av1EncoderOptions options, int requestedQIndex)
+        => options.UsesConstantQualityLevel ? requestedQIndex : Av1QuantizationLookup.GetQIndex(DefaultConstantQualityLevel);
+
+    /// <summary>
+    /// Sets the quantizer of a still image that codes against a bit budget. The rate model reads the screen content
+    /// decision, and the intra block copy decision and the quantizer-dependent speed features read the quantizer it
+    /// picks. A constant-quality still image keeps the requested quantizer. Reference: av1_set_screen_content_options()
+    /// in av1_encode_strategy() before av1_rc_pick_q_and_bounds() in encode_without_recode().
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="frameHeader">The frame header, which receives the quantizer.</param>
+    /// <param name="options">The encoder options.</param>
+    /// <param name="decision">The screen content decision of the image.</param>
+    private static void SelectStillImageQuantizer(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1EncoderOptions options,
+        in ScreenContentDecision decision)
+    {
+        if (!sequenceHeader.IsStillPicture || !options.UsesBitBudget)
+        {
+            return;
+        }
+
+        int qIndex = Av1RateControl.GetStillImageQIndex(
+            frameHeader.FrameSize.FrameWidth,
+            frameHeader.FrameSize.FrameHeight,
+            sequenceHeader.ColorConfig.BitDepth,
+            options.Speed,
+            options.RateControlMode,
+            Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer),
+            Av1QuantizationLookup.GetQIndex(options.MaximumQuantizer),
+            decision.IsScreenContent);
+
+        ApplyFrameQuantizer(frameHeader, sequenceHeader, qIndex, options);
     }
 
     /// <summary>
@@ -1350,6 +1409,7 @@ internal static partial class Av1FrameEncoder
             DecideScreenContent(source, sequenceHeader, options, ref decision);
         }
 
+        SelectStillImageQuantizer(sequenceHeader, frameHeader, options, in decision);
         ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), in decision);
         return decision.IsScreenContent;
     }
@@ -2216,7 +2276,7 @@ internal static partial class Av1FrameEncoder
 
                 this.PictureBuffer.Picture.Parent.EncodingSpeed = options.Speed;
                 this.PictureBuffer.Picture.Parent.EncoderOptions = options;
-                this.PictureBuffer.Picture.Parent.ConstantQualityIndex = qIndex;
+                this.PictureBuffer.Picture.Parent.ConstantQualityIndex = GetConstantQualityLevel(options, qIndex);
                 this.PictureBuffer.Picture.Parent.SpeedSettings = speedSettings;
                 this.PictureBuffer.Picture.Parent.ReferenceRefreshControl = this;
 
@@ -2246,11 +2306,15 @@ internal static partial class Av1FrameEncoder
                         }
                     }
 
+                    // A real-time sequence without a quantizer range keeps the requested quantizer, which the
+                    // constant-bitrate model returns for any target.
                     this.rateControl = new Av1RateControl(
                         width,
                         height,
                         colorConfig.BitDepth,
                         options.Speed,
+                        Av1RateControlMode.ConstantBitRate,
+                        realtime: true,
                         bestAllowedQIndex,
                         worstAllowedQIndex,
                         options.KeyFrameMaximumDistance,
@@ -3938,7 +4002,7 @@ internal static partial class Av1FrameEncoder
 
             parent.EncoderOptions = this.Options;
             parent.EncoderBorder = this.GetEncoderBorder();
-            parent.ConstantQualityIndex = this.ConstantQualityIndex;
+            parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,
@@ -4379,7 +4443,7 @@ internal static partial class Av1FrameEncoder
                 this.averageSourceSad,
                 previousAverageSourceSad);
 
-            parent.ConstantQualityIndex = this.ConstantQualityIndex;
+            parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
                 this.SequenceHeader.IsStillPicture,

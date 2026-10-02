@@ -458,6 +458,7 @@ internal static partial class Av1FrameEncoder
                 this.input.GoldenBoost = secondPass.GoldenBoost;
                 this.input.BestQuality = secondPass.BestQuality;
                 this.input.WorstQuality = secondPass.WorstQuality;
+                this.input.AdjustLeafQuantizer = options.RateControlMode is Av1RateControlMode.Quality or Av1RateControlMode.VariableBitRate;
 
                 // Every frame starts with eighth-sample vectors allowed; the forced integer flag is the one the previous
                 // frame left. Reference: av1_set_high_precision_mv(cpi, 1, 0) in av1_get_compressed_data().

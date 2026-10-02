@@ -136,8 +136,8 @@ internal sealed class Av1TplSetupInput<TSample>
     public int WorstQuality { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the rate control is in constant quality mode, where the leaf quantizer
-    /// is lowered for the model. Reference: rc_cfg.mode == AOM_Q or AOM_VBR.
+    /// Gets or sets a value indicating whether the rate control is in the constant-quality or the variable-bitrate
+    /// mode, where the leaf quantizer is lowered for the model. Reference: rc_cfg.mode == AOM_Q or AOM_VBR.
     /// </summary>
     public bool AdjustLeafQuantizer { get; set; } = true;
 

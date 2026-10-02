@@ -611,6 +611,61 @@ public class Av1EncoderFrameTests
     [Theory]
     [InlineData(VariableBitRate)]
     [InlineData(ConstrainedQuality)]
+    [InlineData(ConstantBitRate)]
+    public void LookaheadSequenceUnderBitBudgetDecodes(int modeValue)
+    {
+        // The lookahead codes alternate references hidden and shows them later, so each sample decodes in its own
+        // order. These small frames get far more bits than they need, so the rate model, not the requested
+        // quantizer, picks the quantizers.
+        const int Quantizer = 40;
+        Av1RateControlMode mode = (Av1RateControlMode)modeValue;
+        using Image<Rgb24> frames = CreatePanningSequence(20);
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
+        {
+            RateControlMode = mode,
+            MinimumQuantizer = 0,
+            MaximumQuantizer = 63,
+            LagInFrames = 35,
+            KeyFrameMaximumDistance = 9999
+        };
+
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            frames.Width,
+            frames.Height,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420),
+            Av1QuantizationLookup.GetQIndex(Quantizer),
+            options);
+
+        using MemoryStream stream = new();
+        long[] sampleEnds = new long[frames.Frames.Count];
+        bool[] syncSamples = new bool[frames.Frames.Count];
+        encoder.EncodeWithLookahead(frames, 0, frames.Frames.Count, 333333, stream, sampleEnds, syncSamples, CancellationToken.None);
+
+        byte[] data = stream.ToArray();
+        Assert.True(syncSamples[0]);
+        Assert.Equal(data.Length, sampleEnds[^1]);
+        using Av1Decoder decoder = new(Configuration.Default);
+        long start = 0;
+        bool rateModelChose = false;
+        foreach (long end in sampleEnds)
+        {
+            Assert.True(end > start);
+            decoder.DecodeSequenceReference(data[(int)start..(int)end], null, null);
+            if (!decoder.FrameHeader!.ShowExistingFrame)
+            {
+                rateModelChose |= decoder.FrameHeader.QuantizationParameters.BaseQIndex != Av1QuantizationLookup.GetQIndex(Quantizer);
+            }
+
+            start = end;
+        }
+
+        Assert.True(rateModelChose);
+    }
+
+    [Theory]
+    [InlineData(VariableBitRate)]
+    [InlineData(ConstrainedQuality)]
     [InlineData(ConstantQuality)]
     public void RealtimeSequenceInEachModeReconstructsAsDecoded(int modeValue)
     {

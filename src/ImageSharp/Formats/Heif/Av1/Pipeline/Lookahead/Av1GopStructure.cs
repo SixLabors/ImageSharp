@@ -31,6 +31,7 @@ internal sealed class Av1GopStructure
     private readonly bool[] referenceResets = new bool[MaximumLength];
     private readonly int[] displayIndices = new int[MaximumLength];
     private readonly int[] qValues = new int[MaximumLength];
+    private readonly int[] bitAllocations = new int[MaximumLength];
 
     /// <summary>
     /// Gets the update role of each coded frame. Reference: update_type.
@@ -82,6 +83,12 @@ internal sealed class Av1GopStructure
     public Span<int> QValues => this.qValues;
 
     /// <summary>
+    /// Gets the bit target of each frame of the group, which coding under a bit budget allocates. Reference:
+    /// bit_allocation.
+    /// </summary>
+    public Span<int> BitAllocations => this.bitAllocations;
+
+    /// <summary>
     /// Gets or sets the number of coded frames. Reference: size.
     /// </summary>
     public int Size { get; set; }
@@ -116,6 +123,7 @@ internal sealed class Av1GopStructure
         Array.Clear(this.referenceResets);
         Array.Clear(this.displayIndices);
         Array.Clear(this.qValues);
+        Array.Clear(this.bitAllocations);
         this.Size = 0;
         this.MaxLayerDepth = 0;
         this.MaxLayerDepthAllowed = 0;

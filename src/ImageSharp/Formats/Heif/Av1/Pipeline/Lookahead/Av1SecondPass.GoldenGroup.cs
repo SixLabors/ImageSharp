@@ -764,9 +764,9 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Measures the golden frame group of the current interval: its motion, its decay, its static share and its
-    /// second reference error. Reference: accumulate_gop_stats(), without the error sums that only the rate
-    /// targets read; the first pass of that function over the statistics therefore has no effect here.
+    /// Measures the golden frame group of the current interval: its coded error, skip and inactive sums, its
+    /// motion, its decay, its static share and its second reference error. Reference: accumulate_gop_stats(),
+    /// without the modified error sum that a look-ahead replaces by the group length.
     /// </summary>
     /// <param name="intraOnly">Whether the group starts with a key frame.</param>
     /// <param name="startPosition">The buffer position of the group start.</param>
@@ -778,7 +778,23 @@ internal sealed partial class Av1SecondPass
         this.statisticsPosition = startPosition;
 
         // The key frame, or the overlay of the previous alternate reference, is already accounted for.
+        // accumulate_this_frame_stats(): the error sums of the frames of the group, which only a bit budget reads.
         int i = intraOnly ? 1 : 0;
+        while (this.UsesBitBudget && i < this.goldenIntervals[this.currentGoldenIndex])
+        {
+            if (!this.InputStatistics(out Av1FirstPassStatistics frame))
+            {
+                break;
+            }
+
+            groupStatistics.RawError += frame.CodedError;
+            groupStatistics.SkipPercent += frame.IntraSkipPercent;
+            groupStatistics.InactiveZoneRows += frame.InactiveZoneRows;
+            ++i;
+        }
+
+        this.statisticsPosition = startPosition;
+        i = intraOnly ? 1 : 0;
         this.InputStatistics(out _);
         while (i < this.goldenIntervals[this.currentGoldenIndex])
         {
@@ -811,7 +827,7 @@ internal sealed partial class Av1SecondPass
     /// <summary>
     /// Defines the golden frame group of the current interval: whether it uses an alternate reference and internal
     /// alternate references, a one frame length reduction before a short last group, its structure and its boost.
-    /// Reference: define_gf_group() in the one-pass look-ahead stage in AOM_Q mode.
+    /// Reference: define_gf_group() in the one-pass look-ahead stage.
     /// </summary>
     /// <param name="finalPass">Whether this is the final definition of the group, not a trial.</param>
     private void DefineGoldenGroup(bool finalPass)
@@ -845,7 +861,7 @@ internal sealed partial class Av1SecondPass
 
         // The length reduction suits constant quality at low quantizers and groups without internal references.
         int altOffset = 0;
-        bool allowLengthReduction = (this.cqLevel <= 128 || !this.internalAltrefAllowed) && !this.lossless;
+        bool allowLengthReduction = ((!this.UsesBitBudget && this.cqLevel <= 128) || !this.internalAltrefAllowed) && !this.lossless;
         if (allowLengthReduction && useAltRef)
         {
             // Shorten a long group when only one overlay would be left, or when the next group would be much
@@ -877,14 +893,13 @@ internal sealed partial class Av1SecondPass
         this.baselineGoldenInterval = i;
 
         this.SetupGopStructure();
-        this.SetGopBoost(i, intraOnly, finalPass, useAltRef, altOffset, startPosition);
+        this.SetGopBoost(i, intraOnly, finalPass, useAltRef, altOffset, startPosition, in groupStatistics);
     }
 
     /// <summary>
     /// Sets the golden boost of the group, its average over the key frame group, and the reduced alternate
-    /// reference boost of the last group of a key frame group.
-    /// Reference: set_gop_bits_boost() in good-quality mode, without the bit allocation that constant quality with
-    /// a look-ahead does not read.
+    /// reference boost of the last group of a key frame group, then allocates the bits of the group.
+    /// Reference: set_gop_bits_boost() in good-quality mode.
     /// </summary>
     /// <param name="interval">The golden interval.</param>
     /// <param name="intraOnly">Whether the group starts with a key frame.</param>
@@ -892,7 +907,8 @@ internal sealed partial class Av1SecondPass
     /// <param name="useAltRef">Whether the group uses an alternate reference.</param>
     /// <param name="altOffset">The offset of the alternate reference boost.</param>
     /// <param name="startPosition">The buffer position of the group start.</param>
-    private void SetGopBoost(int interval, bool intraOnly, bool finalPass, bool useAltRef, int altOffset, int startPosition)
+    /// <param name="groupStatistics">The measures of the group.</param>
+    private void SetGopBoost(int interval, bool intraOnly, bool finalPass, bool useAltRef, int altOffset, int startPosition, in GroupStatistics groupStatistics)
     {
         // The average boost of the golden intervals of a new key frame group. Its frame boosts do not scale the
         // largest boost.
@@ -968,6 +984,7 @@ internal sealed partial class Av1SecondPass
         }
 
         this.statisticsPosition = startPosition;
+        this.AllocateGoldenGroupBits(finalPass, useAltRef, in groupStatistics);
         if (finalPass)
         {
             this.arfGoldenBoostLast = useAltRef;
@@ -975,27 +992,36 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the lowest quantizer of an inter frame in constant-quality mode: the constant-quality level for
-    /// leaves and overlays, the golden floor for golden frames and alternate references, and the alternate
-    /// reference quantizer moved halfway to the level per layer for internal alternate references.
-    /// Reference: get_active_best_quality() in AOM_Q mode.
+    /// Returns the lowest quantizer of an inter frame: for leaves and overlays the constant-quality level, or under
+    /// a bit budget the inter floor of the highest quantizer; the golden floor for golden frames and alternate
+    /// references; and for internal alternate references the alternate reference quantizer, or the golden floor in
+    /// the variable-bitrate mode, moved halfway to the highest quantizer per layer. The constrained-quality mode keeps
+    /// every floor at or above its level and lowers the golden floor slightly.
+    /// Reference: get_active_best_quality().
     /// </summary>
     /// <param name="activeWorst">The highest quantizer.</param>
     /// <param name="groupIndex">The frame's index in the group.</param>
+    /// <param name="constantQualityLevel">The active constant-quality level. Reference: get_active_cq_level().</param>
     /// <returns>The lowest quantizer.</returns>
-    private int GetActiveBestQuality(int activeWorst, int groupIndex)
+    private int GetActiveBestQuality(int activeWorst, int groupIndex, int constantQualityLevel)
     {
         Av1FrameUpdateType updateType = this.group.UpdateTypes[groupIndex];
         bool intermediateArf = updateType == Av1FrameUpdateType.IntermediateAlternate;
         bool leafFrame = !(updateType == Av1FrameUpdateType.Alternate || updateType == Av1FrameUpdateType.Golden || intermediateArf);
         bool overlayFrame = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
-        if (leafFrame || overlayFrame)
-        {
-            return this.cqLevel;
-        }
-
+        bool constrainedQuality = this.mode == Av1RateControlMode.ConstrainedQuality;
         int shortSide = Math.Min(this.width, this.height);
         int resolutionIndex = (shortSide >= 480 ? 1 : 0) + (shortSide >= 608 ? 1 : 0);
+        if (leafFrame || overlayFrame)
+        {
+            if (!this.UsesBitBudget)
+            {
+                return constantQualityLevel;
+            }
+
+            int interQuality = Av1ConstantQuality.GetInterActiveQuality(activeWorst, resolutionIndex > 1, this.bitDepth);
+            return constrainedQuality ? Math.Max(interQuality, constantQualityLevel) : interQuality;
+        }
 
         // The lower of the active worst quality and the recent average sets the golden floor, unless the last
         // frame was a key frame.
@@ -1005,7 +1031,19 @@ internal sealed partial class Av1SecondPass
             q = this.averageInterFrameQIndex;
         }
 
+        if (constrainedQuality && q < constantQualityLevel)
+        {
+            q = constantQualityLevel;
+        }
+
         int activeBestQuality = Av1ConstantQuality.GetGoldenActiveQuality(q, this.goldenBoost, this.averageGoldenBoost, resolutionIndex, this.bitDepth);
+
+        // The constrained-quality mode uses a slightly lower floor.
+        if (constrainedQuality)
+        {
+            activeBestQuality = activeBestQuality * 15 / 16;
+        }
+
         int minimumBoost = Av1ConstantQuality.GetGoldenHighMotionQuality(q, resolutionIndex > 1, this.bitDepth);
         int boost = minimumBoost - activeBestQuality;
         activeBestQuality = minimumBoost - (int)(boost * this.arfBoostFactor);
@@ -1014,7 +1052,11 @@ internal sealed partial class Av1SecondPass
             return activeBestQuality;
         }
 
-        activeBestQuality = this.arfQ;
+        if (this.mode is Av1RateControlMode.Quality or Av1RateControlMode.ConstrainedQuality)
+        {
+            activeBestQuality = this.arfQ;
+        }
+
         int thisHeight = this.group.LayerDepths[groupIndex];
         while (thisHeight > 1)
         {
@@ -1030,6 +1072,15 @@ internal sealed partial class Av1SecondPass
     /// </summary>
     private struct GroupStatistics
     {
+        /// <summary>Reference: gf_group_raw_error.</summary>
+        public double RawError;
+
+        /// <summary>Reference: gf_group_skip_pct.</summary>
+        public double SkipPercent;
+
+        /// <summary>Reference: gf_group_inactive_zone_rows.</summary>
+        public double InactiveZoneRows;
+
         /// <summary>Reference: mv_ratio_accumulator.</summary>
         public double MotionRatioAccumulator;
 

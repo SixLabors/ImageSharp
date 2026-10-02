@@ -153,12 +153,6 @@ internal sealed partial class Av1SecondPass
     /// </summary>
     private int statisticsPosition;
 
-    /// <summary>
-    /// The sum of the wavelet energies of every analysed frame, whose sign marks the energy invalid.
-    /// Reference: frame_avg_wavelet_energy of total_stats.
-    /// </summary>
-    private double totalWaveletEnergy;
-
     private int pushedCount;
     private int shownCount;
     private int frameNumber;
@@ -208,8 +202,9 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1SecondPass"/> class for libavif's color sequence
-    /// configuration: good-quality usage, AOM_Q, automatic key frames up to the largest key frame distance apart, automatic alternate
-    /// references with a pyramid of up to five layers, and the temporal dependency model on. Reference:
+    /// configuration: good-quality usage, the requested rate control mode at libaom's default rate, automatic key
+    /// frames up to the largest key frame distance apart, automatic alternate references with a pyramid of up to five
+    /// layers, and the temporal dependency model on. Reference:
     /// av1_primary_rc_init(), av1_rc_init(), av1_init_single_pass_lap(), set_gf_interval_range(), the look-ahead
     /// sizing of encoder_init() and av1_lookahead_init(), and the scene cut mode of av1_create_primary_compressor().
     /// </summary>
@@ -224,6 +219,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="framerate">The frame rate that sets the golden interval range. Reference: framerate.</param>
     /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames. Reference: kf_max_dist.</param>
     /// <param name="sharpness">The encoder sharpness, 0 to 7. Reference: oxcf->algo_cfg.sharpness.</param>
+    /// <param name="mode">The rate control mode. Reference: rc_cfg.mode.</param>
     /// <param name="gopLengthEvaluator">
     /// The temporal dependency test that may shorten a golden interval above 16 frames at speeds 0 to 5, or null
     /// to keep every interval.
@@ -240,8 +236,11 @@ internal sealed partial class Av1SecondPass
         double framerate,
         int keyFrameMaximumDistance,
         int sharpness,
+        Av1RateControlMode mode,
         IGopLengthEvaluator? gopLengthEvaluator)
     {
+        this.mode = mode;
+        this.framerate = framerate;
         this.keyFrameMaximumDistance = keyFrameMaximumDistance;
         this.sharpness = sharpness;
         this.width = width;
@@ -301,6 +300,13 @@ internal sealed partial class Av1SecondPass
 
         this.averageKeyFrameQIndex = (worstAllowedQIndex + bestAllowedQIndex) / 2;
         this.averageInterFrameQIndex = (worstAllowedQIndex + bestAllowedQIndex) / 2;
+
+        // av1_rc_update_framerate(): the bits of one frame at the target rate, and the largest frame.
+        this.averageFrameBandwidth = (int)Math.Min(Math.Round(TargetBandwidth / framerate), int.MaxValue);
+        long maximumSectionBits = (long)this.averageFrameBandwidth * VariableBitrateMaximumSection / 100;
+        this.maximumFrameBandwidth = (int)Math.Max(Math.Max((long)this.macroblockCount * MaximumMacroblockRate, MaximumRate1080P), maximumSectionBits);
+        this.maximumBufferSize = MaximumBufferMilliseconds * TargetBandwidth / 1000;
+        this.InitializeRateControl();
     }
 
     /// <summary>
@@ -381,7 +387,7 @@ internal sealed partial class Av1SecondPass
 
         this.statistics[this.statisticsCount++] = frameStatistics;
         this.statisticsInfo.Push(frameStatistics);
-        this.totalWaveletEnergy += frameStatistics.FrameAverageWaveletEnergy;
+        Av1FirstPassStatisticsAccumulator.Accumulate(ref this.totalStatistics, in frameStatistics);
         this.pushedCount++;
     }
 
@@ -410,6 +416,12 @@ internal sealed partial class Av1SecondPass
 
         int index = this.groupFrameIndex;
         Av1FrameUpdateType updateType = this.group.UpdateTypes[index];
+
+        // av1_configure_buffer_updates() marks an overlay, and av1_set_frame_size() sets the frame's bit target from
+        // its allocation before the display count of a key frame restarts.
+        this.sourceIsAlternate = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
+        this.SetFrameTarget();
+
         bool showExisting;
         if (updateType == Av1FrameUpdateType.Overlay && this.group.ReferenceResets[index])
         {
@@ -469,10 +481,10 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the quantizer index of the current frame: the constant-quality choice, after the temporal dependency
-    /// model adjusts the golden boost, replaced by the temporal dependency choice when the model has statistics
-    /// for the frame. Reference: av1_set_size_dependent_vars() with process_tpl_stats_frame(),
-    /// av1_rc_pick_q_and_bounds() and av1_tpl_get_q_index() in AOM_Q mode.
+    /// Returns the quantizer index of the current frame after the temporal dependency model adjusts the golden boost:
+    /// the rate model's choice under a bit budget, else the constant-quality choice replaced by the temporal
+    /// dependency choice when the model has statistics for the frame. Reference: av1_set_size_dependent_vars() with
+    /// process_tpl_stats_frame(), av1_rc_pick_q_and_bounds(), and av1_tpl_get_q_index() in AOM_Q mode.
     /// </summary>
     /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
     /// <param name="tplReady">
@@ -511,9 +523,13 @@ internal sealed partial class Av1SecondPass
                 this.statisticsUsedForGoldenBoost);
         }
 
+        // The frame picks its quantizer after av1_encode() copies its own refresh flags.
         this.screenContentType = screenContent;
-        int q = this.PickQIndex(index, screenContent);
-        if (tplFrameValid && !this.lossless)
+        GetReferenceRefreshes(in this.current, out bool refreshGolden, out bool refreshAlternate);
+        int q = this.PickQIndex(index, screenContent, refreshGolden || refreshAlternate);
+
+        // Constant quality replaces the quantizer by the temporal dependency choice.
+        if (!this.UsesBitBudget && tplFrameValid && !this.lossless)
         {
             int tplQ = Av1ConstantQuality.GetQIndexFromQStepRatio(this.activeWorstQuality, tplQStepRatio, this.bitDepth);
             q = Math.Clamp(tplQ, this.bestQuality, this.worstQuality);
@@ -527,32 +543,58 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the constant-quality quantizer index of one frame of the group without the temporal dependency
-    /// replacement. An alternate reference records its index for the internal alternate references.
-    /// Reference: av1_rc_pick_q_and_bounds() with rc_pick_q_and_bounds() and rc_pick_q_and_bounds_q_mode().
+    /// Returns the quantizer index of one frame of the group without the temporal dependency replacement, with the
+    /// reference refresh the encoder holds before the frame is coded: that of the last coded frame. An alternate
+    /// reference records its index for the internal alternate references.
+    /// Reference: av1_rc_pick_q_and_bounds() before av1_encode() copies the frame's refresh flags.
     /// </summary>
     /// <param name="groupIndex">The frame's index in the group.</param>
     /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
     /// <returns>The quantizer index.</returns>
     public int PickQIndex(int groupIndex, bool screenContent)
+        => this.PickQIndex(groupIndex, screenContent, this.lastRefreshesBoostedReference);
+
+    /// <summary>
+    /// Returns the quantizer index of one frame of the group without the temporal dependency replacement: the
+    /// constant-quality choice, or under a bit budget the rate model's choice. An alternate reference records its
+    /// index for the internal alternate references.
+    /// Reference: av1_rc_pick_q_and_bounds() with rc_pick_q_and_bounds() and rc_pick_q_and_bounds_q_mode().
+    /// </summary>
+    /// <param name="groupIndex">The frame's index in the group.</param>
+    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="refreshesBoostedReference">
+    /// Whether the encoder's current refresh flags refresh GOLDEN or ALTREF. Reference: refresh_frame->golden_frame
+    /// || refresh_frame->alt_ref_frame.
+    /// </param>
+    /// <returns>The quantizer index.</returns>
+    private int PickQIndex(int groupIndex, bool screenContent, bool refreshesBoostedReference)
     {
-        int activeBestQuality = 0;
-        int activeWorst = this.activeWorstQuality;
-        if (this.group.KeyFrames[groupIndex])
+        int q;
+        if (this.UsesBitBudget)
         {
-            this.GetIntraQAndBounds(ref activeBestQuality, ref activeWorst, screenContent);
+            q = this.PickBitBudgetQIndex(groupIndex, screenContent, refreshesBoostedReference);
         }
         else
         {
-            activeBestQuality = this.GetActiveBestQuality(activeWorst, groupIndex);
+            int activeBestQuality = 0;
+            int activeWorst = this.activeWorstQuality;
+            if (this.group.KeyFrames[groupIndex])
+            {
+                this.GetIntraQAndBounds(ref activeBestQuality, ref activeWorst, screenContent);
+            }
+            else
+            {
+                activeBestQuality = this.GetActiveBestQuality(activeWorst, groupIndex, this.cqLevel);
+            }
+
+            if (this.cqLevel > 0)
+            {
+                activeBestQuality = Math.Max(1, activeBestQuality);
+            }
+
+            q = Math.Clamp(activeBestQuality, this.bestQuality, this.worstQuality);
         }
 
-        if (this.cqLevel > 0)
-        {
-            activeBestQuality = Math.Max(1, activeBestQuality);
-        }
-
-        int q = Math.Clamp(activeBestQuality, this.bestQuality, this.worstQuality);
         if (this.group.UpdateTypes[groupIndex] == Av1FrameUpdateType.Alternate)
         {
             this.arfQ = q;
@@ -562,12 +604,14 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Records a coded frame: the quantizer averages, the consumed statistics, the key frame counters and the group
-    /// position. Reference: av1_rc_postencode_update(), av1_twopass_postencode_update(),
-    /// update_keyframe_counters(), update_gf_group_index() and update_counters_for_show_frame().
+    /// Records a coded frame: the rate control update from its size, the quantizer averages, the consumed
+    /// statistics, the key frame counters and the group position. Reference: av1_rc_postencode_update(),
+    /// av1_twopass_postencode_update(), update_keyframe_counters(), update_gf_group_index() and
+    /// update_counters_for_show_frame().
     /// </summary>
     /// <param name="baseQIndex">The frame's base quantizer index; ignored for a frame that shows an existing one.</param>
-    public void CompleteFrame(int baseQIndex)
+    /// <param name="frameBits">The coded size of the frame in bits, without the temporal delimiter.</param>
+    public void CompleteFrame(int baseQIndex, long frameBits)
     {
         Av1SecondPassFrame frame = this.current;
         int index = frame.GroupIndex;
@@ -575,45 +619,13 @@ internal sealed partial class Av1SecondPass
 
         // A frame that shows an existing one leaves the quantizer of the last coded frame in place.
         int q = frame.ShowExistingFrame ? this.lastCodedQIndex : baseQIndex;
-
-        // av1_configure_buffer_updates(): the refreshed references of the update role, where a shown key frame
-        // refreshes every reference.
-        bool refreshGolden;
-        bool refreshAlternate;
+        GetReferenceRefreshes(in frame, out bool refreshGolden, out bool refreshAlternate);
         bool sourceIsAlternate = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
-        switch (updateType)
-        {
-            case Av1FrameUpdateType.Key:
-                refreshGolden = true;
-                refreshAlternate = true;
-                break;
-            case Av1FrameUpdateType.Golden:
-                refreshGolden = true;
-                refreshAlternate = false;
-                break;
-            case Av1FrameUpdateType.Overlay:
-                refreshGolden = true;
-                refreshAlternate = frame.ResetsReferences;
-                break;
-            case Av1FrameUpdateType.Alternate:
-                refreshGolden = frame.ResetsReferences;
-                refreshAlternate = true;
-                break;
-            default:
-                refreshGolden = false;
-                refreshAlternate = false;
-                break;
-        }
 
-        // A shown key frame that is coded, not shown from a slot, refreshes every reference. Reference: the
-        // force_refresh_all of av1_encode_strategy().
-        if (frame.IsKeyFrame && frame.ShowFrame && !frame.ShowExistingFrame)
-        {
-            refreshGolden = true;
-            refreshAlternate = true;
-        }
-
-        // av1_rc_postencode_update(): the running quantizer averages and the last boosted quantizer.
+        // av1_rc_postencode_update(): the rate correction from the frame size, then the running quantizer averages
+        // and the last boosted quantizer.
+        int projectedFrameSize = (int)Math.Min(frameBits, int.MaxValue);
+        this.UpdateRateAfterFrame(projectedFrameSize, q, frame.IsKeyFrame, frame.ShowFrame);
         bool intermediateArf = updateType == Av1FrameUpdateType.IntermediateAlternate;
         if (frame.IsKeyFrame)
         {
@@ -671,6 +683,10 @@ internal sealed partial class Av1SecondPass
             }
         }
 
+        // The rest of av1_twopass_postencode_update(): the bits off target and the quantizer extensions.
+        this.UpdateBitsAfterFrame(projectedFrameSize, q, frame.IsKeyFrame);
+        this.lastRefreshesBoostedReference = refreshGolden || refreshAlternate;
+
         // update_keyframe_counters(): a shown frame advances the ring and the key frame counters.
         if (frame.ShowFrame && this.framesToKey != 0)
         {
@@ -703,6 +719,48 @@ internal sealed partial class Av1SecondPass
         if (!frame.ShowExistingFrame)
         {
             this.lastCodedQIndex = q;
+        }
+    }
+
+    /// <summary>
+    /// Returns the references a frame refreshes by its update role, where a shown key frame that is coded refreshes
+    /// every reference. Reference: av1_configure_buffer_updates() with the force_refresh_all of
+    /// av1_encode_strategy().
+    /// </summary>
+    /// <param name="frame">The decisions of the frame.</param>
+    /// <param name="refreshGolden">Receives whether the frame refreshes GOLDEN.</param>
+    /// <param name="refreshAlternate">Receives whether the frame refreshes ALTREF.</param>
+    private static void GetReferenceRefreshes(in Av1SecondPassFrame frame, out bool refreshGolden, out bool refreshAlternate)
+    {
+        switch (frame.UpdateType)
+        {
+            case Av1FrameUpdateType.Key:
+                refreshGolden = true;
+                refreshAlternate = true;
+                break;
+            case Av1FrameUpdateType.Golden:
+                refreshGolden = true;
+                refreshAlternate = false;
+                break;
+            case Av1FrameUpdateType.Overlay:
+                refreshGolden = true;
+                refreshAlternate = frame.ResetsReferences;
+                break;
+            case Av1FrameUpdateType.Alternate:
+                refreshGolden = frame.ResetsReferences;
+                refreshAlternate = true;
+                break;
+            default:
+                refreshGolden = false;
+                refreshAlternate = false;
+                break;
+        }
+
+        // A shown key frame that is coded, not shown from a slot, refreshes every reference.
+        if (frame.IsKeyFrame && frame.ShowFrame && !frame.ShowExistingFrame)
+        {
+            refreshGolden = true;
+            refreshAlternate = true;
         }
     }
 
@@ -748,7 +806,13 @@ internal sealed partial class Av1SecondPass
             }
         }
 
-        this.activeWorstQuality = this.cqLevel;
+        // Constant quality restarts the highest quantizer at the quality level; a bit budget keeps the estimate of
+        // the group.
+        if (!this.UsesBitBudget)
+        {
+            this.activeWorstQuality = this.cqLevel;
+        }
+
         if (this.groupFrameIndex == this.group.Size && this.sceneCutDetection != 0)
         {
             // A scene cut in the next 17 frames ends the key frame group there.
@@ -930,12 +994,18 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Reads the statistics of the current frame and advances the read position.
-    /// Reference: process_first_pass_stats() in AOM_Q mode.
+    /// Reads the statistics of the current frame and advances the read position. Under a bit budget, the first frame
+    /// of the sequence first estimates the highest quantizer from the statistics the look-ahead holds.
+    /// Reference: process_first_pass_stats().
     /// </summary>
     /// <param name="thisFrame">Receives the statistics, unchanged at the end of the buffer.</param>
     private void ProcessFirstPassStatistics(ref Av1FirstPassStatistics thisFrame)
     {
+        if (this.UsesBitBudget && this.frameNumber == 0 && this.groupFrameIndex == 0)
+        {
+            this.InitializeFirstFrameQuality();
+        }
+
         if (this.statisticsPosition < this.statisticsCount)
         {
             thisFrame = this.statistics[this.statisticsPosition];
@@ -966,7 +1036,7 @@ internal sealed partial class Av1SecondPass
     private void SetParameters(in Av1FirstPassStatistics frameStatistics)
     {
         this.macroblockAverageEnergy = Av1FirstPassMath.Log1P(frameStatistics.IntraError);
-        if (this.totalWaveletEnergy >= 0)
+        if (this.totalStatistics.FrameAverageWaveletEnergy >= 0)
         {
             this.frameAverageHaarEnergy = Av1FirstPassMath.Log1P(frameStatistics.FrameAverageWaveletEnergy);
         }

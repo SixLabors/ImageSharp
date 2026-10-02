@@ -168,6 +168,16 @@ internal static class Av1ConstantQuality
         => GetFloor(q, 0.0000021, -0.00125, 3, largeResolution, bitDepth);
 
     /// <summary>
+    /// Returns the good-quality floor of an ordinary inter frame. Reference: inter_minq.
+    /// </summary>
+    /// <param name="q">The quantizer index the floor applies to.</param>
+    /// <param name="largeResolution">Whether the shorter frame side has 608 lines or more.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The floor.</returns>
+    public static int GetInterActiveQuality(int q, bool largeResolution, Av1BitDepth bitDepth)
+        => GetFloor(q, 0.00000271, -0.00113, 4, largeResolution, bitDepth);
+
+    /// <summary>
     /// Returns the quantizer index whose DC quantizer step is the leaf step scaled by a ratio, searching down from
     /// the leaf index for a ratio below one and up for a ratio of one or more.
     /// Reference: av1_get_q_index_from_qstep_ratio().

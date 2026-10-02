@@ -320,7 +320,7 @@ internal static partial class Av1FrameEncoder
                 CurrentFrameIsKeyFrameUpdate = group.UpdateTypes[currentIndex] == Av1FrameUpdateType.Key,
                 FramesSinceKey = secondPass.FramesSinceKey,
                 FramesToKey = secondPass.FramesToKey,
-                FilterQIndex = this.constantQualityIndex,
+                FilterQIndex = secondPass.GetTemporalFilterQIndex(currentIndex),
                 AllowHighPrecisionMotion = allowHighPrecisionMotion,
                 ForceIntegerMotion = forceIntegerMotion,
                 BorderInPixels = this.border

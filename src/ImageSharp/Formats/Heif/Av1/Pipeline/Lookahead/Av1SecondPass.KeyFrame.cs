@@ -40,8 +40,8 @@ internal sealed partial class Av1SecondPass
     private const double StaticKeyFrameGroupThreshold = 0.99;
 
     /// <summary>
-    /// Starts a key frame group at the current frame: finds the next key frame and the key frame boost.
-    /// Reference: find_next_key_frame() in the one-pass look-ahead stage in AOM_Q mode, without the bit allocation.
+    /// Starts a key frame group at the current frame: finds the next key frame, the key frame boost and the bits of
+    /// the group and of the key frame. Reference: find_next_key_frame() in the one-pass look-ahead stage.
     /// </summary>
     /// <param name="thisFrame">The statistics of the key frame.</param>
     private void FindNextKeyFrame(in Av1FirstPassStatistics thisFrame)
@@ -86,11 +86,22 @@ internal sealed partial class Av1SecondPass
         }
 
         this.statisticsPosition = startPosition;
-        double boostScore = this.GetKeyFrameBoostScore(keyFrameRawError, ref zeroMotionAccumulator, ref secondReferenceAccumulator);
+        double boostScore = this.GetKeyFrameBoostScore(keyFrameRawError, ref zeroMotionAccumulator, ref secondReferenceAccumulator, false);
         this.statisticsPosition = startPosition;
+        this.keyFrameZeroMotionPercent = (int)(zeroMotionAccumulator * 100.0);
 
         this.keyFrameBoost = (int)boostScore;
-        this.keyFrameBoost = this.GetProjectedKeyFrameBoost();
+        if (this.UsesBitBudget)
+        {
+            // The frames of the group beyond the look-ahead add their boost at the average statistics.
+            boostScore = this.GetKeyFrameBoostScore(keyFrameRawError, ref zeroMotionAccumulator, ref secondReferenceAccumulator, true);
+            this.statisticsPosition = startPosition;
+            this.keyFrameBoost += (int)boostScore;
+        }
+        else
+        {
+            this.keyFrameBoost = this.GetProjectedKeyFrameBoost();
+        }
 
         // Static content keeps a large boost unless the group is very short.
         if (zeroMotionAccumulator > StaticKeyFrameGroupThreshold && this.framesToKey > 8)
@@ -103,6 +114,7 @@ internal sealed partial class Av1SecondPass
             this.keyFrameBoost = Math.Max(this.keyFrameBoost, MinimumKeyFrameBoost);
         }
 
+        this.AllocateKeyFrameGroupBits();
         this.group.UpdateTypes[0] = Av1FrameUpdateType.Key;
     }
 
@@ -360,20 +372,29 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Returns the key frame boost of the frames after the key frame, weighted by their share of static blocks,
-    /// and the zero motion share of the group.
-    /// Reference: get_kf_boost_score() without averaged statistics.
+    /// and the zero motion share of the group. With averaged statistics, only the frames of the group beyond the
+    /// look-ahead count, each with the average statistics of the frames the look-ahead holds.
+    /// Reference: get_kf_boost_score() with calc_avg_stats().
     /// </summary>
     /// <param name="keyFrameRawError">The key frame's intra error.</param>
     /// <param name="zeroMotionAccumulator">The smallest zero motion share so far.</param>
     /// <param name="secondReferenceAccumulator">The accumulated growth of the second reference error.</param>
+    /// <param name="useAverage">Whether to score the frames beyond the look-ahead with the average statistics.</param>
     /// <returns>The boost score.</returns>
-    private double GetKeyFrameBoostScore(double keyFrameRawError, ref double zeroMotionAccumulator, ref double secondReferenceAccumulator)
+    private double GetKeyFrameBoostScore(double keyFrameRawError, ref double zeroMotionAccumulator, ref double secondReferenceAccumulator, bool useAverage)
     {
         double boostScore = 0.0;
-        double keyFrameMaximumBoost = Math.Clamp(this.framesToKey * 2.0, KeyFrameMinimumFrameBoost, KeyFrameMaximumFrameBoost);
-        for (int i = 0; i < this.framesToKey - 1; ++i)
+
+        // A bit budget lets every frame boost the key frame up to the largest frame boost.
+        double keyFrameMaximumBoost = this.UsesBitBudget
+            ? KeyFrameMaximumFrameBoost
+            : Math.Clamp(this.framesToKey * 2.0, KeyFrameMinimumFrameBoost, KeyFrameMaximumFrameBoost);
+
+        Av1FirstPassStatistics frame = default;
+        int firstFrame = useAverage ? this.GetAverageStatistics(ref frame) : 0;
+        for (int i = firstFrame; i < this.framesToKey - 1; ++i)
         {
-            if (!this.InputStatistics(out Av1FirstPassStatistics frame))
+            if (!useAverage && !this.InputStatistics(out frame))
             {
                 break;
             }
@@ -404,6 +425,56 @@ internal sealed partial class Av1SecondPass
         }
 
         return boostScore;
+    }
+
+    /// <summary>
+    /// Reads the statistics of the frames of the key frame group after the key frame that the look-ahead holds and
+    /// averages them when there are at least two. Reference: calc_avg_stats().
+    /// </summary>
+    /// <param name="average">Receives the sum of the statistics, averaged when at least two frames are read.</param>
+    /// <returns>The number of frames read.</returns>
+    private int GetAverageStatistics(ref Av1FirstPassStatistics average)
+    {
+        int frameCount;
+        for (frameCount = 0; frameCount < this.framesToKey - 1; ++frameCount)
+        {
+            if (!this.InputStatistics(out Av1FirstPassStatistics frame))
+            {
+                break;
+            }
+
+            Av1FirstPassStatisticsAccumulator.Accumulate(ref average, in frame);
+        }
+
+        if (frameCount < 2)
+        {
+            return frameCount;
+        }
+
+        // Every field the boost reads is averaged, as are the other summed fields.
+        average.Weight /= frameCount;
+        average.IntraError /= frameCount;
+        average.FrameAverageWaveletEnergy /= frameCount;
+        average.CodedError /= frameCount;
+        average.SecondReferenceCodedError /= frameCount;
+        average.PercentInter /= frameCount;
+        average.PercentMotion /= frameCount;
+        average.PercentSecondReference /= frameCount;
+        average.PercentNeutral /= frameCount;
+        average.IntraSkipPercent /= frameCount;
+        average.InactiveZoneRows /= frameCount;
+        average.InactiveZoneColumns /= frameCount;
+        average.MotionVectorRow /= frameCount;
+        average.MotionVectorRowAbsolute /= frameCount;
+        average.MotionVectorColumn /= frameCount;
+        average.MotionVectorColumnAbsolute /= frameCount;
+        average.MotionVectorRowVariance /= frameCount;
+        average.MotionVectorColumnVariance /= frameCount;
+        average.MotionVectorInOutCount /= frameCount;
+        average.NewMotionVectorCount /= frameCount;
+        average.Count /= frameCount;
+        average.Duration /= frameCount;
+        return frameCount;
     }
 
     /// <summary>
@@ -462,7 +533,7 @@ internal sealed partial class Av1SecondPass
         int activeBestQuality;
         int activeWorstQuality = activeWorst;
         bool largeResolution = Math.Min(this.width, this.height) >= 608;
-        if (this.framesToKey <= 1)
+        if (this.framesToKey <= 1 && !this.UsesBitBudget)
         {
             // The only frame of its key frame group codes at the constant-quality level.
             activeBestQuality = this.cqLevel;

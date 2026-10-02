@@ -25,11 +25,10 @@ internal static partial class Av1FrameEncoder
     private const long TicksPerSecond = 10000000;
 
     /// <summary>
-    /// The bit target of each lookahead frame. Constant quality coding with a lookahead and no separate first pass
-    /// gives the key frame group no bits, so the group and frame allocations are 0 too. Reference: the kf_group_bits
-    /// of find_next_key_frame() without bits_left, calculate_total_gf_group_bits(), and av1_setup_target_rate().
+    /// The size of an empty temporal delimiter: its OBU header and a zero size. libaom writes it outside the frame,
+    /// so the rate control does not count it. Reference: the obu_header_size of encoder_encode().
     /// </summary>
-    private const int LaggedFrameTarget = 0;
+    private const int TemporalDelimiterBytes = 2;
 
     internal abstract partial class SequenceEncoder
     {
@@ -137,8 +136,20 @@ internal static partial class Av1FrameEncoder
                 (double)TicksPerSecond / frameDurationTicks,
                 this.Options.KeyFrameMaximumDistance,
                 this.Options.Sharpness,
+                this.Options.RateControlMode,
                 null);
         }
+
+        /// <summary>
+        /// Returns the bits a frame added to the stream, without the temporal delimiter that starts its temporal unit.
+        /// Reference: the frame_size of av1_get_compressed_data(), in bits.
+        /// </summary>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="start">The stream length before the frame.</param>
+        /// <param name="wroteTemporalDelimiter">Whether the frame starts its temporal unit.</param>
+        /// <returns>The frame size in bits.</returns>
+        private protected static long GetLaggedFrameBits(Stream stream, long start, bool wroteTemporalDelimiter)
+            => (stream.Length - start - (wroteTemporalDelimiter ? TemporalDelimiterBytes : 0)) * 8;
 
         /// <summary>
         /// Encodes the frames of a sequence through the lookahead at one sample type: frames enter the lookahead and
@@ -269,8 +280,9 @@ internal static partial class Av1FrameEncoder
                 {
                     if (frame.ShowExistingFrame)
                     {
+                        long start = stream.Length;
                         this.WriteShowExistingFrame(stream, in frame, !temporalUnitStarted);
-                        secondPass.CompleteFrame(0);
+                        secondPass.CompleteFrame(0, GetLaggedFrameBits(stream, start, !temporalUnitStarted));
                     }
                     else
                     {
@@ -709,9 +721,10 @@ internal static partial class Av1FrameEncoder
                 frame.MacroblockAverageEnergy,
                 secondPass.BestQuality,
                 secondPass.WorstQuality,
-                Av1RateControl.GetSuperblockTargetRate(LaggedFrameTarget, source.Frame.Width, source.Frame.Height));
+                Av1RateControl.GetSuperblockTargetRate(secondPass.FrameTarget, source.Frame.Width, source.Frame.Height));
 
             this.PrepareFilmGrain();
+            long start = stream.Length;
             Encode(
                 this.ObuWriter,
                 stream,
@@ -736,7 +749,7 @@ internal static partial class Av1FrameEncoder
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
             this.CompleteFrameHeader();
             this.CompleteReferenceStructure();
-            secondPass.CompleteFrame(qIndex);
+            secondPass.CompleteFrame(qIndex, GetLaggedFrameBits(stream, start, writeTemporalDelimiter));
             temporalModel?.CompleteFrame(in frame, source.Frame, this.PictureBuffer.Picture, current.Context, qIndex);
 
             current.Buffer.Frame.ExtendBorders();
@@ -878,9 +891,10 @@ internal static partial class Av1FrameEncoder
                 frame.MacroblockAverageEnergy,
                 secondPass.BestQuality,
                 secondPass.WorstQuality,
-                Av1RateControl.GetSuperblockTargetRate(LaggedFrameTarget, source.Frame.Width, source.Frame.Height));
+                Av1RateControl.GetSuperblockTargetRate(secondPass.FrameTarget, source.Frame.Width, source.Frame.Height));
 
             this.PrepareFilmGrain();
+            long start = stream.Length;
             Encode(
                 this.ObuWriter,
                 stream,
@@ -905,7 +919,7 @@ internal static partial class Av1FrameEncoder
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
             this.CompleteFrameHeader();
             this.CompleteReferenceStructure();
-            secondPass.CompleteFrame(qIndex);
+            secondPass.CompleteFrame(qIndex, GetLaggedFrameBits(stream, start, writeTemporalDelimiter));
             temporalModel?.CompleteFrame(in frame, source.Frame, this.PictureBuffer.Picture, current.Context, qIndex);
 
             current.Buffer.Frame.ExtendBorders();

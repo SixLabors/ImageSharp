@@ -472,8 +472,12 @@ internal sealed partial class Av1SecondPass
     /// </summary>
     /// <param name="finalPass">Whether this is the final definition of the group, not a trial.</param>
     /// <param name="useAltRef">Whether the group uses an alternate reference.</param>
-    /// <param name="groupStatistics">The measures of the group.</param>
-    private void AllocateGoldenGroupBits(bool finalPass, bool useAltRef, in GroupStatistics groupStatistics)
+    /// <param name="rawError">The coded error summed over the frames of the group. Reference: gf_group_raw_error.</param>
+    /// <param name="skipPercent">The intra skip share summed over the frames of the group. Reference: gf_group_skip_pct.</param>
+    /// <param name="inactiveZoneRows">
+    /// The inactive rows summed over the frames of the group. Reference: gf_group_inactive_zone_rows.
+    /// </param>
+    private void AllocateGoldenGroupBits(bool finalPass, bool useAltRef, double rawError, double skipPercent, double inactiveZoneRows)
     {
         // The look-ahead cannot know the error of the group, so every frame counts one.
         double groupError = this.baselineGoldenInterval;
@@ -491,9 +495,9 @@ internal sealed partial class Av1SecondPass
         if (this.UsesBitBudget && this.baselineGoldenInterval > 1 && finalPass)
         {
             int groupBitsPerFrame = (int)(this.goldenGroupBits / this.baselineGoldenInterval);
-            double averageError = groupStatistics.RawError / this.baselineGoldenInterval;
-            double averageSkip = groupStatistics.SkipPercent / this.baselineGoldenInterval;
-            double averageInactiveZone = groupStatistics.InactiveZoneRows * 2 / (this.baselineGoldenInterval * (double)this.macroblockRows);
+            double averageError = rawError / this.baselineGoldenInterval;
+            double averageSkip = skipPercent / this.baselineGoldenInterval;
+            double averageInactiveZone = inactiveZoneRows * 2 / (this.baselineGoldenInterval * (double)this.macroblockRows);
             int q = this.GetTwopassWorstQuality(averageError, averageSkip + averageInactiveZone, groupBitsPerFrame);
             this.activeWorstQuality = Math.Max(q, this.activeWorstQuality >> 1);
         }

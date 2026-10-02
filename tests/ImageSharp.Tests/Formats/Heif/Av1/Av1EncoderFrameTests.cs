@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.IO.Hashing;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
@@ -619,7 +620,7 @@ public class Av1EncoderFrameTests
         // its target so far that it is coded again at a higher quantizer.
         const int Quantizer = 40;
         Av1RateControlMode mode = (Av1RateControlMode)modeValue;
-        using Image<Rgb24> frames = CreateNoisyPanningSequence(192, 128, 6);
+        using Image<Rgb24> frames = CreateNoiseSequence(192, 128, 6);
         Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Ssim, enableRestoration: true, allIntra: false)
         {
             RateControlMode = mode,
@@ -996,20 +997,35 @@ public class Av1EncoderFrameTests
         };
     }
 
-    private static Image<Rgb24> CreateNoisyPanningSequence(int width, int height, int frameCount)
+    /// <summary>
+    /// Creates a sequence of noise frames that cost far more bits than a bit budget gives them, so that coding under
+    /// a budget overshoots and codes frames again. The noise is the XxHash32 of the sample position and the frame
+    /// index, so every run produces the same frames.
+    /// </summary>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="frameCount">The number of frames.</param>
+    /// <returns>The sequence.</returns>
+    private static Image<Rgb24> CreateNoiseSequence(int width, int height, int frameCount)
     {
-        // A gradient that moves one sample per frame under strong noise that changes every frame, so each frame
-        // costs many bits.
         Image<Rgb24> image = new(width, height);
+        Span<int> position = stackalloc int[3];
         for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
         {
             ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            position[2] = frameIndex;
             for (int y = 0; y < height; y++)
             {
                 Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                position[1] = y;
                 for (int x = 0; x < width; x++)
                 {
-                    int noise = (int)((((uint)x * 2654435761U) ^ ((uint)y * 2246822519U) ^ ((uint)frameIndex * 3266489917U)) >> 24);
+                    // The top byte of the hash of the column, row and frame is the noise value, from 0 to 255.
+                    position[0] = x;
+                    int noise = (int)(XxHash32.HashToUInt32(MemoryMarshal.AsBytes(position)) >> 24);
+
+                    // A diagonal gradient that moves one sample per frame, plus the noise. The noise spans the full
+                    // sample range, so it hides the gradient, and the sum wraps to stay within one byte.
                     int value = (x + frameIndex + y + noise) & 255;
                     row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
                 }

@@ -234,8 +234,10 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         length += Av1InterpolationProbabilities.StorageLength;
         this.referenceFrameNumberStorageOffset = length;
         length += Av1Constants.ReferenceFrameCount;
+
+        // The levels that seed the next search, then the levels the last frame header coded.
         this.loopFilterLevelStorageOffset = length;
-        length += LoopFilterLevelCount;
+        length += 2 * LoopFilterLevelCount;
         this.modeThresholdStorageOffset = length;
         if (allocateInterMotionCosts)
         {
@@ -287,6 +289,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.TransformTypeProbabilities.Clear();
         this.InterpolationProbabilities.Clear();
         this.PreviousLoopFilterLevels.Clear();
+        this.CodedLoopFilterLevels.Clear();
         if (allocateSearchSites)
         {
             // Each shape retains its offsets across frames. A zero stride marks its first use; every populated
@@ -436,6 +439,16 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </remarks>
     public Span<int> PreviousLoopFilterLevels => this.owner.Memory.Span.Slice(
         this.loopFilterLevelStorageOffset, LoopFilterLevelCount);
+
+    /// <summary>
+    /// Gets the luma vertical, luma horizontal, U, and V deblocking levels that the last coded frame header carried.
+    /// </summary>
+    /// <remarks>
+    /// This mirrors libaom <c>cm-&gt;lf.filter_level[0..1]</c>, <c>filter_level_u</c>, and <c>filter_level_v</c> between
+    /// the loop filter of one frame and that of the next, which the measuring pack of the recode loop writes.
+    /// </remarks>
+    public Span<int> CodedLoopFilterLevels => this.owner.Memory.Span.Slice(
+        this.loopFilterLevelStorageOffset + LoopFilterLevelCount, LoopFilterLevelCount);
 
     /// <summary>
     /// Gets or sets the unwrapped display order of the current frame. Without a lookahead it is the number of

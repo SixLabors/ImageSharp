@@ -58,13 +58,6 @@ internal static partial class Av1FrameEncoder
         private MemoryStream? measuredFrameStream;
 
         /// <summary>
-        /// The luma vertical, luma horizontal, U and V deblocking levels of the last coded frame, which a measuring pack
-        /// writes because the frame has not chosen its own yet. Reference: cm->lf.filter_level, filter_level_u and
-        /// filter_level_v between loopfilter_frame() of one frame and that of the next.
-        /// </summary>
-        private readonly int[] codedLoopFilterLevels = new int[4];
-
-        /// <summary>
         /// Gets the constant-quality index of the sequence. Reference: cq_level.
         /// </summary>
         private protected int ConstantQualityIndex => this.constantQualityIndex;
@@ -292,11 +285,8 @@ internal static partial class Av1FrameEncoder
             // The frame header carries the deblocking levels of the last coded frame until the frame picks its own.
             ObuLoopFilterParameters loopFilter = this.FrameHeader.LoopFilterParameters;
             Span<int> frameLevels = stackalloc int[4];
-            frameLevels[0] = loopFilter.FilterLevel[0];
-            frameLevels[1] = loopFilter.FilterLevel[1];
-            frameLevels[2] = loopFilter.FilterLevelU;
-            frameLevels[3] = loopFilter.FilterLevelV;
-            SetLoopFilterLevels(loopFilter, this.codedLoopFilterLevels);
+            CopyLoopFilterLevels(loopFilter, frameLevels);
+            SetLoopFilterLevels(loopFilter, this.BlockWorkspace.CodedLoopFilterLevels);
 
             long bits;
             if (writeSequenceHeader)
@@ -320,10 +310,20 @@ internal static partial class Av1FrameEncoder
         private protected void RecordCodedLoopFilterLevels()
         {
             ObuLoopFilterParameters loopFilter = this.FrameHeader.LoopFilterParameters;
-            this.codedLoopFilterLevels[0] = loopFilter.FilterLevel[0];
-            this.codedLoopFilterLevels[1] = loopFilter.FilterLevel[1];
-            this.codedLoopFilterLevels[2] = loopFilter.FilterLevelU;
-            this.codedLoopFilterLevels[3] = loopFilter.FilterLevelV;
+            CopyLoopFilterLevels(loopFilter, this.BlockWorkspace.CodedLoopFilterLevels);
+        }
+
+        /// <summary>
+        /// Copies the luma vertical, luma horizontal, U and V deblocking levels of a frame header.
+        /// </summary>
+        /// <param name="loopFilter">The loop filter parameters of the frame header.</param>
+        /// <param name="levels">Receives the four levels.</param>
+        private static void CopyLoopFilterLevels(ObuLoopFilterParameters loopFilter, Span<int> levels)
+        {
+            levels[0] = loopFilter.FilterLevel[0];
+            levels[1] = loopFilter.FilterLevel[1];
+            levels[2] = loopFilter.FilterLevelU;
+            levels[3] = loopFilter.FilterLevelV;
         }
 
         /// <summary>

@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
@@ -1148,6 +1149,126 @@ public class HeifEncoderTests
         ObuQuantizationParameters quantization = decoder.FrameHeader!.QuantizationParameters;
         Assert.Equal(expectedDelta, quantization.DeltaQDc[(int)Av1Plane.U]);
         Assert.Equal(expectedDelta, quantization.DeltaQAc[(int)Av1Plane.V]);
+    }
+
+    [Theory]
+    [InlineData(HeifRateControl.ConstantQuality, HeifEncodingSpeed.Level6)]
+    [InlineData(HeifRateControl.ConstrainedQuality, HeifEncodingSpeed.Level6)]
+    [InlineData(HeifRateControl.VariableBitRate, HeifEncodingSpeed.Level6)]
+    [InlineData(HeifRateControl.ConstantBitRate, HeifEncodingSpeed.Level6)]
+    [InlineData(HeifRateControl.ConstantQuality, HeifEncodingSpeed.Level8)]
+    [InlineData(HeifRateControl.ConstrainedQuality, HeifEncodingSpeed.Level8)]
+    [InlineData(HeifRateControl.VariableBitRate, HeifEncodingSpeed.Level8)]
+    public void Av1AnimationInEachRateControlModeRoundTrips(HeifRateControl rateControl, HeifEncodingSpeed speed)
+    {
+        // Speed 6 codes through the lookahead, speed 8 in real time. Every mode keeps the frames close to the source,
+        // and the bit-rate modes keep every coded frame within four quantizer steps of the requested one.
+        using Image<Rgb24> image = new(96, 64);
+        for (int frameIndex = 0; frameIndex < 4; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = frameIndex == 0 ? image.Frames.RootFrame : image.Frames.CreateFrame();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    int value = ((x + frameIndex) * 3) + (y * 2);
+                    row[x] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+                }
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Quality = 80, Speed = speed, RateControl = rateControl });
+
+        if (rateControl is HeifRateControl.VariableBitRate or HeifRateControl.ConstantBitRate)
+        {
+            byte[] file = stream.ToArray();
+            int quantizer = HeifEncoderCore.GetAv1Quantizer(80);
+            using Av1Decoder decoder = new(Configuration.Default);
+            foreach (HeifSequenceSample sample in ParseSequence(file).ColorTrack.Samples)
+            {
+                decoder.DecodeSequenceReference(file.AsSpan((int)sample.Offset, sample.Length).ToArray(), null, null);
+                if (!decoder.FrameHeader!.ShowExistingFrame)
+                {
+                    Assert.InRange(
+                        decoder.FrameHeader.QuantizationParameters.BaseQIndex,
+                        Av1QuantizationLookup.GetQIndex(quantizer - 4),
+                        Av1QuantizationLookup.GetQIndex(quantizer + 4));
+                }
+            }
+        }
+
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using Image<Rgb24> expected = image.Frames.CloneFrame(i);
+            using Image<Rgb24> actual = decoded.Frames.CloneFrame(i);
+            GetLossyComparer(80).VerifySimilarity(expected, actual);
+        }
+    }
+
+    [Fact]
+    public void Av1LayeredImageUnderABitBudgetKeepsEachLayerNearItsQuality()
+    {
+        // Without fixed quantizers each layer codes within four quantizer steps of its own quality.
+        using Image<Rgb24> image = new(64, 48);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 3) + (y * 2)) & 0xFF;
+                image[x, y] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+            }
+        }
+
+        int[] qualities = [10, 40, 80];
+        HeifEncoder encoder = new()
+        {
+            Speed = HeifEncodingSpeed.Level6,
+            Tuning = HeifTuning.Ssim,
+            RateControl = HeifRateControl.VariableBitRate,
+            Layers = [new HeifLayer { Quality = qualities[0] }, new HeifLayer { Quality = qualities[1] }, new HeifLayer { Quality = qualities[2] }]
+        };
+
+        using MemoryStream stream = new();
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        int[] qIndices = DecodeLayerQIndices(file, GetItemExtents(file, 1));
+        for (int layer = 0; layer < qualities.Length; layer++)
+        {
+            int quantizer = HeifEncoderCore.GetAv1Quantizer(qualities[layer]);
+            Assert.InRange(qIndices[layer], Av1QuantizationLookup.GetQIndex(quantizer - 4), Av1QuantizationLookup.GetQIndex(quantizer + 4));
+        }
+    }
+
+    [Theory]
+    [InlineData(HeifRateControl.ConstantQuality)]
+    [InlineData(HeifRateControl.ConstrainedQuality)]
+    [InlineData(HeifRateControl.VariableBitRate)]
+    [InlineData(HeifRateControl.ConstantBitRate)]
+    public void Av1LosslessStillStaysLosslessInEveryRateControlMode(HeifRateControl rateControl)
+    {
+        // A lossless image keeps quantizer zero whatever the rate control would choose.
+        using Image<Rgb24> image = new(48, 32);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                int value = ((x * 37) ^ (y * 23)) & 0xFF;
+                image[x, y] = new Rgb24((byte)value, (byte)(255 - value), (byte)(value / 2));
+            }
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder { Lossless = true, RateControl = rateControl });
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
+        Assert.Equal(0, decoder.FrameHeader!.QuantizationParameters.BaseQIndex);
+        Assert.True(decoder.FrameHeader.CodedLossless);
     }
 
     [Fact]

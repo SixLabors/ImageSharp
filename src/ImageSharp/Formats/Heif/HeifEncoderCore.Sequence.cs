@@ -281,13 +281,18 @@ internal sealed partial class HeifEncoderCore
         // AV1E_SET_ENABLE_RESTORATION control of aomCodecEncodeImage().
         bool enableRestoration = av1BitDepth != Av1BitDepth.TwelveBit;
 
-        // A sequence at speed 7 or faster runs in real-time usage, which codes at a constant bit rate with the
-        // quantizer free to move four steps either side of the requested one. Lossless coding keeps quantizer zero,
-        // and lossy coding keeps quantizer one or higher, as GetAv1Quantizer() does.
-        // Reference: the AOM_USAGE_REALTIME choice, the AOM_CBR rc_end_usage and the minQuantizer and maxQuantizer
-        // adjustment of aomCodecEncodeImage().
-        bool constantBitRate = !allIntra && this.encoder.Speed >= HeifEncodingSpeed.Level7;
-        Av1RateControlMode rateControlMode = constantBitRate ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality;
+        // A sequence at speed 7 or faster runs in real-time usage, which codes at a constant bit rate by default, and
+        // every other image codes at constant quality, unless the rate control option replaces the mode. The bit-rate
+        // modes keep the quantizer within four steps either side of the requested one. Lossless coding keeps
+        // quantizer zero, and lossy coding keeps quantizer one or higher, as GetAv1Quantizer() does.
+        // Reference: the AOM_USAGE_REALTIME choice, the default rc_end_usage and the end-usage codec option of
+        // aomCodecEncodeImage(), and its minQuantizer and maxQuantizer adjustment.
+        bool realtime = !allIntra && this.encoder.Speed >= HeifEncodingSpeed.Level7;
+        Av1RateControlMode defaultRateControlMode = realtime ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality;
+        Av1RateControlMode rateControlMode = this.encoder.RateControl is { } rateControl
+            ? GetRateControlMode(rateControl)
+            : defaultRateControlMode;
+
         int colorQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality, alphaTuning == Av1Tuning.Iq);
 
@@ -295,7 +300,7 @@ internal sealed partial class HeifEncoderCore
         // image codes without lookahead, so each layer gives its own output. Reference: the g_lag_in_frames default of
         // the good-quality usage, disableLaggedOutput of aomCodecEncodeImage(), which avifEncoderAddImageInternal()
         // sets when alpha is present, and the g_lag_in_frames of 0 that aomCodecEncodeImage() sets for layers.
-        int colorLag = allIntra || constantBitRate || hasAlpha || layered ? 0 : DefaultLagInFrames;
+        int colorLag = allIntra || realtime || hasAlpha || layered ? 0 : DefaultLagInFrames;
 
         // Automatic tiling sizes the tiles from the first cell, which is the whole frame unless an oversized still
         // image becomes a grid. Reference: the automatic tiling step of avifEncoderAddImageInternal().
@@ -328,11 +333,14 @@ internal sealed partial class HeifEncoderCore
                 MaximumQuantizer = GetQuantizerRange(quantizer, rateControlMode).Maximum,
                 LagInFrames = lagInFrames,
 
-                // A layered image in constant-quality coding codes every layer at the quantizer of its own quality.
-                // Reference: the AOME_SET_NUMBER_SPATIAL_LAYERS control and use_fixed_qp_offsets of 2 that
-                // aomCodecEncodeImage() sets for layers.
+                // A good-quality layered image in constant-quality coding codes every layer at the quantizer of its own
+                // quality. libavif sets the fixed quantizers from the default mode of the usage, before the rate
+                // control option replaces it, so a real-time layered image never uses them. A good-quality layered
+                // image with a bit budget, which libaom rejects with fixed quantizers, codes without them.
+                // Reference: the AOME_SET_NUMBER_SPATIAL_LAYERS control and the use_fixed_qp_offsets of 2 that
+                // aomCodecEncodeImage() sets for layers before avifProcessAOMOptionsPreInit().
                 LayerCount = layerCount,
-                UsesFixedQuantizer = layered && rateControlMode == Av1RateControlMode.Quality,
+                UsesFixedQuantizer = layered && !realtime && rateControlMode == Av1RateControlMode.Quality,
 
                 // The key frame interval applies to animations, so a layered still image keeps the default.
                 KeyFrameMaximumDistance = layered
@@ -362,22 +370,42 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Returns the quantizer range of a coding. The constant-quality and constrained-quality modes keep the default
-    /// range of 0 to 63. The variable and constant bit-rate modes narrow it to four steps either side of the requested
-    /// quantizer, and lossless coding to 0. Reference: the rc_min_quantizer and rc_max_quantizer setup of
-    /// aomCodecEncodeImage().
+    /// Returns the codec rate control mode of a rate control option. Reference: the q, cq, vbr and cbr values of the
+    /// end-usage codec option of avifProcessAOMOptionsPreInit().
+    /// </summary>
+    /// <param name="rateControl">The rate control option.</param>
+    /// <returns>The codec rate control mode.</returns>
+    private static Av1RateControlMode GetRateControlMode(HeifRateControl rateControl) => rateControl switch
+    {
+        HeifRateControl.ConstrainedQuality => Av1RateControlMode.ConstrainedQuality,
+        HeifRateControl.VariableBitRate => Av1RateControlMode.VariableBitRate,
+        HeifRateControl.ConstantBitRate => Av1RateControlMode.ConstantBitRate,
+        _ => Av1RateControlMode.Quality
+    };
+
+    /// <summary>
+    /// Returns the quantizer range of a coding. Lossless coding, the only coding at quantizer 0, keeps 0 in every
+    /// mode. Otherwise the constant-quality and constrained-quality modes keep the default range of 0 to 63, and the
+    /// variable and constant bit-rate modes narrow it to four steps either side of the requested quantizer.
+    /// Reference: the rc_min_quantizer and rc_max_quantizer setup of aomCodecEncodeImage(), and the AV1E_SET_LOSSLESS
+    /// control it sends, which makes set_encoder_config() set best_allowed_q and worst_allowed_q to 0.
     /// </summary>
     /// <param name="quantizer">The requested quantizer on libaom's zero-through-63 scale.</param>
     /// <param name="mode">The rate control mode.</param>
     /// <returns>The lowest and highest quantizer on libaom's zero-through-63 scale.</returns>
     private static (int Minimum, int Maximum) GetQuantizerRange(int quantizer, Av1RateControlMode mode)
     {
+        if (quantizer == 0)
+        {
+            return (0, 0);
+        }
+
         if (mode is not (Av1RateControlMode.VariableBitRate or Av1RateControlMode.ConstantBitRate))
         {
             return (0, 63);
         }
 
-        return quantizer == 0 ? (0, 0) : (Math.Max(quantizer - 4, 0), Math.Min(quantizer + 4, 63));
+        return (Math.Max(quantizer - 4, 0), Math.Min(quantizer + 4, 63));
     }
 
     /// <summary>

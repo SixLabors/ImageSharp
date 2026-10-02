@@ -893,13 +893,21 @@ internal sealed partial class Av1SecondPass
         this.baselineGoldenInterval = i;
 
         this.SetupGopStructure();
-        this.SetGopBoost(i, intraOnly, finalPass, useAltRef, altOffset, startPosition, in groupStatistics);
+        this.SetGopBoost(i, intraOnly, finalPass, useAltRef, altOffset, startPosition);
+
+        // The rest of set_gop_bits_boost(): the bits of the group.
+        this.AllocateGoldenGroupBits(
+            finalPass,
+            useAltRef,
+            groupStatistics.RawError,
+            groupStatistics.SkipPercent,
+            groupStatistics.InactiveZoneRows);
     }
 
     /// <summary>
     /// Sets the golden boost of the group, its average over the key frame group, and the reduced alternate
-    /// reference boost of the last group of a key frame group, then allocates the bits of the group.
-    /// Reference: set_gop_bits_boost() in good-quality mode.
+    /// reference boost of the last group of a key frame group.
+    /// Reference: the boost part of set_gop_bits_boost() in good-quality mode.
     /// </summary>
     /// <param name="interval">The golden interval.</param>
     /// <param name="intraOnly">Whether the group starts with a key frame.</param>
@@ -907,8 +915,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="useAltRef">Whether the group uses an alternate reference.</param>
     /// <param name="altOffset">The offset of the alternate reference boost.</param>
     /// <param name="startPosition">The buffer position of the group start.</param>
-    /// <param name="groupStatistics">The measures of the group.</param>
-    private void SetGopBoost(int interval, bool intraOnly, bool finalPass, bool useAltRef, int altOffset, int startPosition, in GroupStatistics groupStatistics)
+    private void SetGopBoost(int interval, bool intraOnly, bool finalPass, bool useAltRef, int altOffset, int startPosition)
     {
         // The average boost of the golden intervals of a new key frame group. Its frame boosts do not scale the
         // largest boost.
@@ -984,7 +991,6 @@ internal sealed partial class Av1SecondPass
         }
 
         this.statisticsPosition = startPosition;
-        this.AllocateGoldenGroupBits(finalPass, useAltRef, in groupStatistics);
         if (finalPass)
         {
             this.arfGoldenBoostLast = useAltRef;

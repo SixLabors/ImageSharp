@@ -138,6 +138,14 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     public HeifAdaptiveQuantization AdaptiveQuantization { get; init; }
 
     /// <summary>
+    /// Gets how the encoder balances file size against the quality setting, or <see langword="null"/> to let the
+    /// encoder decide. When it is <see langword="null"/>, animations and images with <see cref="Layers"/> use
+    /// <see cref="HeifRateControl.ConstantBitRate"/> at <see cref="HeifEncodingSpeed.Level7"/> to
+    /// <see cref="HeifEncodingSpeed.Level9"/>, and all other images use <see cref="HeifRateControl.ConstantQuality"/>.
+    /// </summary>
+    public HeifRateControl? RateControl { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the color planes get a quality apart from the brightness plane, or
     /// <see langword="null"/> to let the encoder decide. With <see cref="HeifTuning.ImageQuality"/> and
     /// <see cref="HeifTuning.Ssimulacra2"/> the color quality follows the chroma subsampling: 4:2:0 color gets more

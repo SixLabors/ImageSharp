@@ -112,6 +112,12 @@ internal sealed class Av1EncoderOptions
     public int Sharpness { get; init; }
 
     /// <summary>
+    /// Gets the token that stops the encode. The tile encoder checks it before each superblock row, so a large frame
+    /// stops part way through. It changes no coded output.
+    /// </summary>
+    public CancellationToken CancellationToken { get; init; }
+
+    /// <summary>
     /// Gets the distortion metric. Reference: dist_metric.
     /// </summary>
     public Av1DistortionMetric DistortionMetric { get; init; }

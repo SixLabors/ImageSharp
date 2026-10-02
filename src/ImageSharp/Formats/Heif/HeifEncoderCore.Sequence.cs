@@ -131,9 +131,14 @@ internal sealed partial class HeifEncoderCore
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
     /// <param name="allIntra">Whether the encoding is a still image without layers, which libavif codes in all-intra usage.</param>
+    /// <param name="cancellationToken">The token that stops the encode, which the codec options carry.</param>
     /// <param name="layers">The layers of a layered still image, or <see langword="null"/> for an image without layers.</param>
     /// <returns>The resolved settings.</returns>
-    private Av1EncodingSettings ResolveAv1Encoding<TPixel>(Image<TPixel> image, bool allIntra, IReadOnlyList<HeifLayer>? layers = null)
+    private Av1EncodingSettings ResolveAv1Encoding<TPixel>(
+        Image<TPixel> image,
+        bool allIntra,
+        CancellationToken cancellationToken,
+        IReadOnlyList<HeifLayer>? layers = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool layered = layers is not null;
@@ -363,6 +368,7 @@ internal sealed partial class HeifEncoderCore
                     ? Av1EncoderOptions.DefaultKeyFrameMaximumDistance
                     : this.encoder.KeyFrameInterval ?? Av1EncoderOptions.DefaultKeyFrameMaximumDistance,
                 Sharpness = this.encoder.Sharpness ?? Av1EncoderOptions.GetDefaultSharpness(tuning),
+                CancellationToken = cancellationToken,
                 TileRowsLog2 = tileRowsLog2,
                 TileColumnsLog2 = tileColumnsLog2,
 

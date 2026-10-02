@@ -1214,6 +1214,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Span<int> tileDataLengths = picture.TileDataLengths.Span;
         Av1MotionSearchSettings.CostUpdateFrequency motionCostUpdate = picture.Parent.MotionSearchSettings.MotionCostUpdate;
         Av1MotionSearchSettings.CostUpdateFrequency modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.Superblock;
+        CancellationToken cancellationToken = picture.Parent.EncoderOptions.CancellationToken;
         int minimumDimension = Math.Min(source.Width, source.Height);
         if (sequenceHeader.IsStillPicture && picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level9)
         {
@@ -1280,6 +1281,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                     modeInfoRow < tile.ModeInfoRowEnd;
                     modeInfoRow += superblockModeInfoSize)
                 {
+                    // A canceled encode stops between superblock rows, so a large frame does not run to its end.
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!TSymbolOperation.WritesOutput && !frameHeader.IsIntra)
                     {
                         // Evidence is shared across this row's block searches, including partition trials.

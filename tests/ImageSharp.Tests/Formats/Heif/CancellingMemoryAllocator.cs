@@ -56,7 +56,7 @@ internal sealed class CancellingMemoryAllocator : TestMemoryAllocator
     /// <inheritdoc/>
     protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        // Encoders allocate from parallel workers, so the count is atomic and only one allocation matches.
+        // The atomic count keeps exactly one allocation matching, even if allocations come from several threads.
         if (Interlocked.Increment(ref this.allocationCount) == this.cancelAllocation)
         {
             this.source?.Cancel();

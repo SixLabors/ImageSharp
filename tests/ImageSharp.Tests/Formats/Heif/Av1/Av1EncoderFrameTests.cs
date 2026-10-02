@@ -185,6 +185,28 @@ public class Av1EncoderFrameTests
         Assert.Equal(source[Width - 1, Height - 1], decoded[Width - 1, Height - 1]);
     }
 
+    [Fact]
+    public void CanceledStillEncodeStopsAtTheFirstSuperblockRow()
+    {
+        // The still path has no frame-level check of its own, so only the superblock-row check can stop it.
+        using Image<L8> source = new(64, 64, new L8(128));
+        using CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level9, Av1Tuning.Psnr, enableRestoration: false)
+        {
+            CancellationToken = cancellation.Token
+        };
+
+        using MemoryStream stream = new();
+        Assert.Throws<OperationCanceledException>(() => Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
+            qIndex: 37,
+            options));
+    }
+
     [Theory]
     [InlineData(16, 16, EightBit, Yuv400)]
     [InlineData(13, 11, EightBit, Yuv420)]

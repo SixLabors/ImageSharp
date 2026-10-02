@@ -158,7 +158,7 @@ internal sealed partial class HeifEncoderCore
         using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
         if (image.Frames.Count > 1)
         {
-            Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: false);
+            Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: false, cancellationToken);
             bool animateRootFrame = this.encoder.AnimateRootFrame
                 ?? image.Metadata.GetHeifMetadata().AnimateRootFrame;
 
@@ -1122,7 +1122,7 @@ internal sealed partial class HeifEncoderCore
     {
         if (this.encoder.Layers is IReadOnlyList<HeifLayer> layers)
         {
-            Av1EncodingSettings layeredSettings = this.ResolveAv1Encoding(image, allIntra: false, layers);
+            Av1EncodingSettings layeredSettings = this.ResolveAv1Encoding(image, allIntra: false, cancellationToken, layers);
             Av1ImageItemEncoding layeredEncoding = this.CompressAv1LayeredImageItem(
                 image.Frames.RootFrame,
                 stream,
@@ -1134,7 +1134,7 @@ internal sealed partial class HeifEncoderCore
             return;
         }
 
-        Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: true);
+        Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: true, cancellationToken);
         if (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
         {
             this.CompressAv1GridPixels(image, stream, settings, items, links, cancellationToken);

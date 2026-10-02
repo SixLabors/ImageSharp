@@ -57,6 +57,16 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly bool BiasesInterCosts => this.blockWorkspace.EncoderOptions.Tuning.IsImageTuning();
 
         /// <summary>
+        /// Gets a value indicating whether sharpness 3 charges a block whose samples are smoother than its source.
+        /// Key, golden and alternate reference frames are exempt. Reference: the sharpness and frame_is_kf_gf_arf()
+        /// tests of adjust_rdcost() and adjust_cost().
+        /// </summary>
+        private readonly bool ChargesSmoothing =>
+            this.blockWorkspace.EncoderOptions.Sharpness == 3 &&
+            !this.picture.Parent.FrameHeader.IsIntra &&
+            this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate);
+
+        /// <summary>
         /// Gets the Q12 mode threshold multiplier of the block, from 2.5 at quantizer zero to 1 at quantizer 255 when
         /// skippable inter modes are pruned, else 1. Reference: mode_threshold_mul_factor[x->qindex] in
         /// av1_rd_pick_inter_mode(), with the table's nearest-integer rounding.
@@ -587,6 +597,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (candidateStatistics.Cost != long.MaxValue && this.BiasesInterCosts)
                     {
                         candidateStatistics.AddInterModeBias();
+                    }
+                    else if (candidateStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
+                    {
+                        candidateStatistics.AddModeSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
                     }
 
                     // A reference kept only because a compound pair uses it searches no motion mode.
@@ -6447,6 +6461,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     candidateStatistics.AddInterModeBias();
                 }
+                else if (candidateStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
+                {
+                    candidateStatistics.AddModeSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
+                }
 
                 if (candidateStatistics.Cost >= Math.Min(this.blockCostLimit, selectedStatistics.Cost))
                 {
@@ -6488,13 +6506,82 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns a mode-loop cost with the bias the image tune adds to an inter mode. Reference: adjust_cost() in the
-        /// mode loop of av1_rd_pick_inter_mode().
+        /// Returns a mode-loop cost with the bias the image tune adds to an inter mode, or with the sharpness 3 charge
+        /// of the last prediction built. Reference: adjust_cost() in the mode loop of av1_rd_pick_inter_mode().
         /// </summary>
         /// <param name="cost">The cost of the mode's best entry.</param>
         /// <returns>The biased cost.</returns>
         private readonly long GetBiasedInterModeCost(long cost)
-            => cost != long.MaxValue && this.BiasesInterCosts ? cost + (cost >> 3) : cost;
+        {
+            if (cost == long.MaxValue)
+            {
+                return cost;
+            }
+
+            if (this.BiasesInterCosts)
+            {
+                return cost + (cost >> 3);
+            }
+
+            return this.ChargesSmoothing
+                ? cost + Av1RateDistortion.GetCost(this.rateMultiplier, 0, this.interSmoothingOffset)
+                : cost;
+        }
+
+        /// <summary>
+        /// Gets the distortion that sharpness 3 adds to a block whose luma samples are smoother than its source: the
+        /// amount by which the source's departure from its own 3x3 smoothing exceeds the samples', or zero. A high bit
+        /// depth scales both measures to eight bits first. The source past the coded frame repeats its edge, as the
+        /// reference's extended source border does. Reference: get_variance_stats() and the var_offset of
+        /// adjust_rdcost() and adjust_cost().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="samples">The luma samples that the block's prediction buffer holds, at the block origin.</param>
+        /// <param name="stride">The row stride of the samples.</param>
+        /// <param name="samplesCoverBlock">
+        /// Whether the samples hold the whole block, as an inter prediction does. Otherwise only the transform blocks
+        /// inside the coded frame hold samples, and the rest repeat the edge of those.
+        /// </param>
+        /// <returns>The distortion offset.</returns>
+        private readonly long GetSmoothingOffset(
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            ReadOnlySpan<TSample> samples,
+            int stride,
+            bool samplesCoverBlock)
+        {
+            int width = blockSize.GetWidth();
+            int height = blockSize.GetHeight();
+
+            // Sharpness 3 turns border padding off, so the visible size is the coded eight-sample boundary, which the
+            // source fills by repeating its edge. Every block origin lies inside it.
+            Size visible = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, width, height);
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            long sourceVariance = TOperator.GetVarianceStatistic(
+                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
+                sourcePlane.Stride,
+                width,
+                height,
+                visible.Width,
+                visible.Height);
+
+            long sampleVariance = samplesCoverBlock
+                ? TOperator.GetVarianceStatistic(samples, stride, width, height, width, height)
+                : TOperator.GetVarianceStatistic(samples, stride, width, height, visible.Width, visible.Height);
+
+            // Both measures round to the eight-bit scale. Reference: the ROUND_POWER_OF_TWO of
+            // get_variance_stats_hbd().
+            int shift = (this.bitDepth.GetBitCount() - 8) * 2;
+            if (shift != 0)
+            {
+                long half = 1L << (shift - 1);
+                sourceVariance = (sourceVariance + half) >> shift;
+                sampleVariance = (sampleVariance + half) >> shift;
+            }
+
+            return Math.Max(sourceVariance - sampleVariance, 0);
+        }
 
         /// <summary>
         /// Selects compound syntax using luma estimates before full residual coding.
@@ -8652,6 +8739,17 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             candidate.PredictionError = predictionError;
+
+            // Sharpness 3 measures the luma prediction that the plane loop leaves, unless the image tune's bias
+            // replaces the charge. The mode loop reads the same buffer after the entry's search, so the offset of the
+            // last prediction built stays for it. Reference: get_variance_stats() reading pd->dst in adjust_rdcost().
+            bool chargesPrediction = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts && this.ChargesSmoothing;
+            if (chargesPrediction)
+            {
+                this.interSmoothingOffset = this.GetSmoothingOffset(
+                    blockOrigin, blockSize, workspace.LumaPrediction, blockSize.GetWidth(), true);
+            }
+
             if (this.estimateInterCandidates)
             {
                 if (this.picture.Parent.SpeedSettings.InterModeEstimation == 1)
@@ -8694,6 +8792,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     estimate.AddInterPredictionBias(this.rateMultiplier);
                 }
+                else if (chargesPrediction)
+                {
+                    estimate.AddPredictionSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
+                }
 
                 return estimate;
             }
@@ -8730,6 +8832,10 @@ internal static partial class Av1IntraSuperblockEncoder
             if (referenceFrame != Av1ReferenceFrameType.Intra && statistics.Cost != long.MaxValue && this.BiasesInterCosts)
             {
                 statistics.AddInterPredictionBias(this.rateMultiplier);
+            }
+            else if (chargesPrediction && statistics.Cost != long.MaxValue)
+            {
+                statistics.AddPredictionSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
             }
 
             return statistics;

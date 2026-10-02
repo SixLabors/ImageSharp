@@ -275,6 +275,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
         // The cost of the last completed inter trial before the image tune bias. Reference: curr_rd in motion_mode_rd().
         private long unbiasedInterTrialCost;
+
+        // The sharpness 3 distortion offset of the last inter prediction built, which the mode loop reads again after
+        // the entry's search. Reference: the pd->dst that adjust_rdcost() reads in av1_rd_pick_inter_mode().
+        private long interSmoothingOffset;
+
+        // The sharpness 3 distortion offset of the luma samples that the intra luma search of an inter frame leaves
+        // for its chroma search. Reference: the pd->dst that adjust_rdcost() reads on intra_rd_stats in
+        // search_intra_modes_in_interframe().
+        private long intraSmoothingOffset;
         private int interCandidateCount;
         private int compoundSearchRecordCount;
         private int interpolationSearchRecordCount;
@@ -4125,6 +4134,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1RateDistortionStatistics.Invalid
                 : this.GetRegularBlockCost(writer, macroBlock, lumaStatistics);
 
+            // Sharpness 3 charges the merged intra result of an inter frame by the luma samples that its luma search
+            // left, before the budget comparison. Reference: adjust_rdcost() on intra_rd_stats in
+            // search_intra_modes_in_interframe().
+            if (isInterFrame && regularStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
+            {
+                regularStatistics.AddSmoothingOffset(this.rateMultiplier, this.intraSmoothingOffset);
+            }
+
             // An inter frame keeps the intra result only when it beats the budget of the block, so a block
             // without a mode below the budget has no winner to refine. Reference: the best_rd test before
             // update_search_state() in search_intra_modes_in_interframe().
@@ -5993,6 +6010,28 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.codedAreaLuma = retainedLumaArea;
             }
 
+            // The chroma search leaves the luma samples as they are now: the winner when chroma-from-luma coded it
+            // again, otherwise whatever the last luma candidate wrote. Sharpness 3 measures them here, before the
+            // chroma search reuses the candidate buffers. Reference: the pd->dst that adjust_rdcost() reads on
+            // intra_rd_stats in search_intra_modes_in_interframe().
+            if (selectedStatistics.Cost != long.MaxValue && !this.picture.Parent.FrameHeader.IsIntra && this.ChargesSmoothing)
+            {
+                Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
+                this.intraSmoothingOffset = storeLumaForChromaFromLuma
+                    ? this.GetSmoothingOffset(
+                        blockOrigin,
+                        blockSize,
+                        Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin),
+                        reconstructionPlane.Stride,
+                        false)
+                    : this.GetSmoothingOffset(
+                        blockOrigin,
+                        blockSize,
+                        this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0),
+                        blockSize.GetWidth(),
+                        false);
+            }
+
             return refinedMode;
         }
 
@@ -6518,6 +6557,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (mode == Av1PredictionMode.DC && (!filter || !intraFrame))
                 {
                     dcStatistics = modeStatistics;
+                }
+
+                // In an inter frame, sharpness 3 charges the luma cost of a mode whose samples are smoother than the
+                // source, after the mode's own search and before it is compared. The samples are the ones the last
+                // grid tried left behind. Reference: adjust_cost() on intra_rd_y in
+                // search_intra_modes_in_interframe().
+                if (!intraFrame && modeStatistics.LumaCost != long.MaxValue && this.ChargesSmoothing)
+                {
+                    modeStatistics.LumaCost += Av1RateDistortion.GetCost(
+                        this.rateMultiplier, 0, this.GetSmoothingOffset(blockOrigin, blockSize, samples, width, false));
                 }
 
                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(

@@ -133,6 +133,46 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
+    /// Adds the sharpness 3 offset of a prediction smoother than its source to the distortion, prices the cost
+    /// again, and adds the priced offset to a valid luma cost. Reference: the sharpness branches of adjust_cost()
+    /// and adjust_rdcost() in motion_mode_rd().
+    /// </summary>
+    /// <param name="rateMultiplier">The rate multiplier of the block.</param>
+    /// <param name="offset">The amount by which the source variance measure exceeds the prediction's.</param>
+    public void AddPredictionSmoothingOffset(int rateMultiplier, long offset)
+    {
+        this.AddSmoothingOffset(rateMultiplier, offset);
+        if (this.LumaCost != long.MaxValue)
+        {
+            this.LumaCost += Av1RateDistortion.GetCost(rateMultiplier, 0, offset);
+        }
+    }
+
+    /// <summary>
+    /// Adds the sharpness 3 offset to the distortion and its price to the cost of a valid inter mode. Reference: the
+    /// sharpness branches of adjust_cost() and adjust_rdcost() in av1_rd_pick_inter_mode().
+    /// </summary>
+    /// <param name="rateMultiplier">The rate multiplier of the block.</param>
+    /// <param name="offset">The amount by which the source variance measure exceeds the prediction's.</param>
+    public void AddModeSmoothingOffset(int rateMultiplier, long offset)
+    {
+        this.Distortion += offset;
+        this.Cost += Av1RateDistortion.GetCost(rateMultiplier, 0, offset);
+    }
+
+    /// <summary>
+    /// Adds the sharpness 3 offset to the distortion and prices the cost again. Reference: the sharpness branch of
+    /// adjust_rdcost().
+    /// </summary>
+    /// <param name="rateMultiplier">The rate multiplier of the block.</param>
+    /// <param name="offset">The amount by which the source variance measure exceeds the block samples'.</param>
+    public void AddSmoothingOffset(int rateMultiplier, long offset)
+    {
+        this.Distortion += offset;
+        this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
+    }
+
+    /// <summary>
     /// Recomputes the cost at another rate multiplier, keeping an invalid candidate invalid.
     /// Reference: av1_rd_cost_update().
     /// </summary>

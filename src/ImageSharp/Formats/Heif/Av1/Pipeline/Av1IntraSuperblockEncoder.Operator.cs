@@ -54,6 +54,26 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract int GetSampleValue(TSample sample);
 
         /// <summary>
+        /// Measures how far a block departs from its own 3x3 smoothing. The columns and rows past the visible ones
+        /// repeat the last visible column and row. Reference: aom_calc_variance_stat() and
+        /// aom_highbd_calc_variance_stat().
+        /// </summary>
+        /// <param name="source">The samples, starting at the block origin.</param>
+        /// <param name="stride">The row stride.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="visibleWidth">The number of columns read from the samples, at least one.</param>
+        /// <param name="visibleHeight">The number of rows read from the samples, at least one.</param>
+        /// <returns>The measure, before any bit-depth scaling.</returns>
+        public static abstract long GetVarianceStatistic(
+            ReadOnlySpan<TSample> source,
+            int stride,
+            int width,
+            int height,
+            int visibleWidth,
+            int visibleHeight);
+
+        /// <summary>
         /// Gets the rounded average of a four-by-four source block.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
@@ -944,6 +964,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static int GetSampleValue(byte sample) => sample;
+
+        /// <inheritdoc/>
+        public static long GetVarianceStatistic(
+            ReadOnlySpan<byte> source,
+            int stride,
+            int width,
+            int height,
+            int visibleWidth,
+            int visibleHeight)
+            => Av1VarianceStatistic.CalculateWithBorder<byte, Av1VarianceStatistic.ByteOperator>(
+                source, stride, width, height, visibleWidth, visibleHeight);
 
         /// <inheritdoc/>
         public static int GetAverage4x4(Av1PlaneRegion<byte> source, Point origin)
@@ -2137,6 +2168,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static int GetSampleValue(ushort sample) => sample;
+
+        /// <inheritdoc/>
+        public static long GetVarianceStatistic(
+            ReadOnlySpan<ushort> source,
+            int stride,
+            int width,
+            int height,
+            int visibleWidth,
+            int visibleHeight)
+            => Av1VarianceStatistic.CalculateWithBorder<ushort, Av1VarianceStatistic.UInt16Operator>(
+                source, stride, width, height, visibleWidth, visibleHeight);
 
         /// <inheritdoc/>
         public static int GetAverage4x4(Av1PlaneRegion<ushort> source, Point origin)

@@ -20,6 +20,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -992,6 +993,27 @@ public class HeifEncoderTests
             HeifEncoder encoder = new();
             await image.SaveAsync(pausedStream, encoder, cts.Token);
         });
+    }
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level3)]
+    [InlineData(HeifEncodingSpeed.Level6)]
+    public void Av1AnimationWithSharpness3DoesNotReadUnwrittenMemory(HeifEncodingSpeed speed)
+    {
+        // Sharpness 3 measures the predictions that the frame buffer destination keeps through each mode's search, in
+        // blocks that cross the frame edge too. Memory filled with junk must code the same stream as clean memory.
+        using Image<Rgb24> clean = Av1EncoderFrameTests.CreateNoiseSequence(70, 46, 4);
+        Configuration dirtyConfiguration = Configuration.Default.Clone();
+        dirtyConfiguration.MemoryAllocator = new TestMemoryAllocator(dirtyValue: 173);
+        using Image<Rgb24> dirty = Av1EncoderFrameTests.CreateNoiseSequence(dirtyConfiguration, 70, 46, 4);
+        HeifEncoder encoder = new() { Quality = 60, Speed = speed, Sharpness = 3 };
+
+        using MemoryStream cleanStream = new();
+        clean.Save(cleanStream, encoder);
+        using MemoryStream dirtyStream = new();
+        dirty.Save(dirtyStream, encoder);
+
+        Assert.Equal(cleanStream.ToArray(), dirtyStream.ToArray());
     }
 
     [Theory]

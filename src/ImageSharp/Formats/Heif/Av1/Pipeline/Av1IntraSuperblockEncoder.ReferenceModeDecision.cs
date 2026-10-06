@@ -600,7 +600,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                     else if (candidateStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
                     {
-                        candidateStatistics.AddModeSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
+                        candidateStatistics.AddModeSmoothingOffset(this.rateMultiplier, this.GetDestinationSmoothingOffset(blockOrigin, blockSize));
                     }
 
                     // A reference kept only because a compound pair uses it searches no motion mode.
@@ -3355,6 +3355,11 @@ internal static partial class Av1IntraSuperblockEncoder
                             planeStatistics,
                             ref translationLumaSquaredError);
 
+                        // The model predicts luma into the frame buffer destination, which the destination pointer
+                        // names in the mode loop. Reference: the av1_enc_build_inter_predictor() call of
+                        // simple_translation_pred_rd().
+                        this.destinationIsPrediction = true;
+
                         // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                         // simple_translation_pred_rd().
                         this.SetPredictionSse(modeInfo.Block.ReferenceFrame, translationLumaSquaredError);
@@ -3602,6 +3607,17 @@ internal static partial class Av1IntraSuperblockEncoder
                         out Av1MotionSearchBase.FractionalResult searchResult))
                     {
                         continue;
+                    }
+
+                    // The search predicted its two candidates into the buffer the destination pointer names, which
+                    // is the frame buffer destination before the filter search, so the destination keeps the second
+                    // candidate's luma. Reference: the av1_enc_build_inter_predictor() calls of
+                    // av1_single_motion_search() into orig_dst.
+                    if (motionState.PredictedSecondCandidate && this.ChargesSmoothing)
+                    {
+                        int sampleCount = blockSize.GetWidth() * blockSize.GetHeight();
+                        this.blockWorkspace.GetMotionSearchPrediction<TSample>()[..sampleCount].CopyTo(workspace.DestinationLuma);
+                        this.destinationIsPrediction = false;
                     }
 
                     // A search result is kept for the compound modes even when the entry is then skipped as a repeat
@@ -4305,6 +4321,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 interPrediction.CopyTo(blendedPrediction);
                 Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, mode, invert: true);
                 TOperator.BlendInterIntraPrediction(blendedPrediction, intraPrediction, mask, width, height);
+
+                // Every blend lands in the frame buffer destination, which the search names again after it predicts
+                // the inter samples into its own buffer. Reference: restore_dst_buf(xd, *orig_dst) and the
+                // av1_combine_interintra() calls of av1_handle_inter_intra_mode().
+                this.destinationIsPrediction = true;
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                     sourcePlane.Stride,
@@ -4343,6 +4364,7 @@ internal static partial class Av1IntraSuperblockEncoder
             interPrediction.CopyTo(blendedPrediction);
             Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, selectedMode, invert: true);
             TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+            this.destinationIsPrediction = true;
             int smoothRate = motionRate + modeCosts.GetInterIntraMode(blockSize, selectedMode) + modeCosts.GetWedgeInterIntra(blockSize, 0);
             long smoothBound = bestCost < 9 * (long.MaxValue / 16) ? (bestCost / 9) * 16 : long.MaxValue;
             smoothBound -= Av1RateDistortion.GetCost(this.rateMultiplier, smoothRate, 0);
@@ -4545,6 +4567,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+                    this.destinationIsPrediction = true;
                     TOperator.GetMoments(
                         Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                         sourcePlane.Stride,
@@ -4587,6 +4610,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 interPrediction.CopyTo(blendedPrediction);
                 TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+                this.destinationIsPrediction = true;
             }
 
             int selectedWedgeRate = wedgeMotionRate + wedgeSyntaxRate;
@@ -6040,6 +6064,17 @@ internal static partial class Av1IntraSuperblockEncoder
             int candidateMask = 0;
             InlineArray3<long> translationCosts = default;
             InlineArray4<Av1RateDistortionStatistics> planeStatistics = default;
+
+            // Sharpness 3 charges a mode once, after its last entry, so the selection from before each mode is kept
+            // until the charge decides. Reference: adjust_cost() and adjust_rdcost() after handle_inter_mode() in
+            // av1_rd_pick_inter_mode().
+            bool chargesModes = this.ChargesSmoothing && !this.BiasesInterCosts;
+            Av1RateDistortionStatistics priorStatistics = default;
+            Av1MotionVector priorVector = default;
+            Av1MotionVector priorSecondaryVector = default;
+            InlineArray128<Av1EncoderTransformBlockState> priorStates = default;
+            Av1MacroBlockModeInfo priorModeInfo = default;
+            Av1EncoderBlockStruct priorBlock = default;
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
                 Av1MotionVector candidatePrimary = primaryVectors[candidateIndex];
@@ -6053,7 +6088,34 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool startsMode = mode != previousMode;
                 if (startsMode)
                 {
-                    this.RecordMotionModeWinner(this.GetBiasedInterModeCost(modeBestCost), true, default, default, default);
+                    if (chargesModes)
+                    {
+                        this.ChargeCompoundMode(
+                            blockOrigin,
+                            blockSize,
+                            modeImproved,
+                            ref selectedStatistics,
+                            ref selectedVector,
+                            ref selectedSecondaryVector,
+                            ref selectedStates,
+                            ref modeInfo,
+                            ref block,
+                            priorStatistics,
+                            priorVector,
+                            priorSecondaryVector,
+                            ref priorStates,
+                            priorModeInfo,
+                            priorBlock);
+
+                        priorStatistics = selectedStatistics;
+                        priorVector = selectedVector;
+                        priorSecondaryVector = selectedSecondaryVector;
+                        priorStates = selectedStates;
+                        priorModeInfo = modeInfo;
+                        priorBlock = block;
+                    }
+
+                    this.RecordMotionModeWinner(this.GetBiasedInterModeCost(modeBestCost, blockOrigin, blockSize), true, default, default, default);
                     modeBestCost = long.MaxValue;
                     previousMode = mode;
                     previousVectorMask = 0;
@@ -6195,6 +6257,11 @@ internal static partial class Av1IntraSuperblockEncoder
                                     workspace.RedPrediction,
                                     planeStatistics,
                                     ref translationLumaSquaredError);
+
+                                // The model predicts luma into the frame buffer destination, which the destination
+                                // pointer names in the mode loop. Reference: the av1_enc_build_inter_predictor() call
+                                // of simple_translation_pred_rd().
+                                this.destinationIsPrediction = true;
 
                                 // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                                 // simple_translation_pred_rd().
@@ -6455,15 +6522,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 modeBestCost = Math.Min(modeBestCost, candidateStatistics.Cost);
 
-                // The comparison takes the mode-loop bias. Reference: adjust_cost() and adjust_rdcost() in the mode loop
-                // of av1_rd_pick_inter_mode().
+                // The comparison takes the image tune's mode-loop bias. The sharpness 3 charge waits for the end of the
+                // mode. Reference: adjust_cost() and adjust_rdcost() in the mode loop of av1_rd_pick_inter_mode().
                 if (candidateStatistics.Cost != long.MaxValue && this.BiasesInterCosts)
                 {
                     candidateStatistics.AddInterModeBias();
-                }
-                else if (candidateStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
-                {
-                    candidateStatistics.AddModeSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
                 }
 
                 if (candidateStatistics.Cost >= Math.Min(this.blockCostLimit, selectedStatistics.Cost))
@@ -6502,7 +6565,27 @@ internal static partial class Av1IntraSuperblockEncoder
                 block.ReferenceMotionVectorIndex = referenceIndices[candidateIndex];
             }
 
-            this.RecordMotionModeWinner(this.GetBiasedInterModeCost(modeBestCost), true, default, default, default);
+            if (chargesModes)
+            {
+                this.ChargeCompoundMode(
+                    blockOrigin,
+                    blockSize,
+                    modeImproved,
+                    ref selectedStatistics,
+                    ref selectedVector,
+                    ref selectedSecondaryVector,
+                    ref selectedStates,
+                    ref modeInfo,
+                    ref block,
+                    priorStatistics,
+                    priorVector,
+                    priorSecondaryVector,
+                    ref priorStates,
+                    priorModeInfo,
+                    priorBlock);
+            }
+
+            this.RecordMotionModeWinner(this.GetBiasedInterModeCost(modeBestCost, blockOrigin, blockSize), true, default, default, default);
         }
 
         /// <summary>
@@ -6510,8 +6593,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// of the last prediction built. Reference: adjust_cost() in the mode loop of av1_rd_pick_inter_mode().
         /// </summary>
         /// <param name="cost">The cost of the mode's best entry.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
         /// <returns>The biased cost.</returns>
-        private readonly long GetBiasedInterModeCost(long cost)
+        private readonly long GetBiasedInterModeCost(long cost, Point blockOrigin, Av1BlockSize blockSize)
         {
             if (cost == long.MaxValue)
             {
@@ -6524,8 +6609,105 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return this.ChargesSmoothing
-                ? cost + Av1RateDistortion.GetCost(this.rateMultiplier, 0, this.interSmoothingOffset)
+                ? cost + Av1RateDistortion.GetCost(this.rateMultiplier, 0, this.GetDestinationSmoothingOffset(blockOrigin, blockSize))
                 : cost;
+        }
+
+        /// <summary>
+        /// Charges a finished compound mode's best entry by the sharpness 3 offset of the block's frame buffer
+        /// destination, which holds what the mode's last entry left. The entries competed without the charge, as they
+        /// do inside one mode's search, so the charged winner keeps the selection only if it still beats the selection
+        /// from before the mode; otherwise that selection returns. Reference: adjust_cost() and adjust_rdcost() after
+        /// handle_inter_mode() and the this_rd &lt; search_state.best_rd test in av1_rd_pick_inter_mode().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="modeImproved">Whether an entry of the mode took the selection.</param>
+        /// <param name="selectedStatistics">The selected statistics.</param>
+        /// <param name="selectedVector">The selected first vector.</param>
+        /// <param name="selectedSecondaryVector">The selected second vector.</param>
+        /// <param name="selectedStates">The selected transform states.</param>
+        /// <param name="modeInfo">The selected mode information.</param>
+        /// <param name="block">The selected block syntax.</param>
+        /// <param name="priorStatistics">The selected statistics from before the mode.</param>
+        /// <param name="priorVector">The selected first vector from before the mode.</param>
+        /// <param name="priorSecondaryVector">The selected second vector from before the mode.</param>
+        /// <param name="priorStates">The selected transform states from before the mode.</param>
+        /// <param name="priorModeInfo">The selected mode information from before the mode.</param>
+        /// <param name="priorBlock">The selected block syntax from before the mode.</param>
+        private readonly void ChargeCompoundMode(
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            bool modeImproved,
+            ref Av1RateDistortionStatistics selectedStatistics,
+            ref Av1MotionVector selectedVector,
+            ref Av1MotionVector selectedSecondaryVector,
+            ref InlineArray128<Av1EncoderTransformBlockState> selectedStates,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block,
+            Av1RateDistortionStatistics priorStatistics,
+            Av1MotionVector priorVector,
+            Av1MotionVector priorSecondaryVector,
+            ref InlineArray128<Av1EncoderTransformBlockState> priorStates,
+            Av1MacroBlockModeInfo priorModeInfo,
+            Av1EncoderBlockStruct priorBlock)
+        {
+            if (!modeImproved)
+            {
+                return;
+            }
+
+            selectedStatistics.AddModeSmoothingOffset(this.rateMultiplier, this.GetDestinationSmoothingOffset(blockOrigin, blockSize));
+            if (selectedStatistics.Cost < Math.Min(this.blockCostLimit, priorStatistics.Cost))
+            {
+                return;
+            }
+
+            selectedStatistics = priorStatistics;
+            selectedVector = priorVector;
+            selectedSecondaryVector = priorSecondaryVector;
+            selectedStates = priorStates;
+            modeInfo = priorModeInfo;
+            block = priorBlock;
+        }
+
+        /// <summary>
+        /// Gets the sharpness 3 offset of the block's frame buffer destination, which the mode loop measures once an
+        /// entry's search restores the destination pointer. The destination is the current prediction unless a search
+        /// left the prediction in the second buffer. Reference: the pd->dst of adjust_cost() and adjust_rdcost() after
+        /// handle_inter_mode() in av1_rd_pick_inter_mode().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The distortion offset.</returns>
+        private readonly long GetDestinationSmoothingOffset(Point blockOrigin, Av1BlockSize blockSize)
+        {
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            ReadOnlySpan<TSample> destination = this.destinationIsPrediction ? workspace.LumaPrediction : workspace.DestinationLuma;
+            return this.GetSmoothingOffset(blockOrigin, blockSize, destination, blockSize.GetWidth());
+        }
+
+        /// <summary>
+        /// Gets the sharpness 3 offset of an intra candidate's luma in an inter frame. Sharpness searches intra modes
+        /// in an inter frame only for blocks of 16x16 or smaller, and such a block always lies inside the coded frame:
+        /// the coded frame is a multiple of eight samples, and a block whose midpoint is inside it may only reach
+        /// past it when the block is 32 samples or larger. So the intra search writes every sample that the measure
+        /// reads. Reference: the sharpness return of search_intra_modes_in_interframe(), the has_rows and has_cols
+        /// partition rules, and pd->dst in get_variance_stats().
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="samples">The candidate's luma samples at the block origin.</param>
+        /// <param name="stride">The row stride of the samples.</param>
+        /// <returns>The distortion offset.</returns>
+        private readonly long GetIntraSmoothingOffset(Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> samples, int stride)
+        {
+            Debug.Assert(
+                this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, blockSize.GetWidth(), blockSize.GetHeight()) ==
+                    new Size(blockSize.GetWidth(), blockSize.GetHeight()),
+                "An intra candidate charged at sharpness 3 lies inside the coded frame.");
+
+            return this.GetSmoothingOffset(blockOrigin, blockSize, samples, stride);
         }
 
         /// <summary>
@@ -6537,19 +6719,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="samples">The luma samples that the block's prediction buffer holds, at the block origin.</param>
+        /// <param name="samples">The luma samples of the whole block that its destination holds, at the block origin.</param>
         /// <param name="stride">The row stride of the samples.</param>
-        /// <param name="samplesCoverBlock">
-        /// Whether the samples hold the whole block, as an inter prediction does. Otherwise only the transform blocks
-        /// inside the coded frame hold samples, and the rest repeat the edge of those.
-        /// </param>
         /// <returns>The distortion offset.</returns>
         private readonly long GetSmoothingOffset(
             Point blockOrigin,
             Av1BlockSize blockSize,
             ReadOnlySpan<TSample> samples,
-            int stride,
-            bool samplesCoverBlock)
+            int stride)
         {
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
@@ -6566,9 +6743,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 visible.Width,
                 visible.Height);
 
-            long sampleVariance = samplesCoverBlock
-                ? TOperator.GetVarianceStatistic(samples, stride, width, height, width, height)
-                : TOperator.GetVarianceStatistic(samples, stride, width, height, visible.Width, visible.Height);
+            long sampleVariance = TOperator.GetVarianceStatistic(samples, stride, width, height, width, height);
 
             // Both measures round to the eight-bit scale. Reference: the ROUND_POWER_OF_TWO of
             // get_variance_stats_hbd().
@@ -6620,6 +6795,23 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> firstPrediction = workspace.LumaCandidateReconstruction[..count];
             Span<TSample> secondPrediction = workspace.BlueCandidateReconstruction[..count];
             Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask()[..count];
+
+            // The search predicts the average blend into the frame buffer destination and every other blend into the
+            // second buffer, so the destination keeps its samples unless the average is predicted. The workspace
+            // prediction takes every blend, so the destination moves to its own buffer for the search. Only the
+            // sharpness 3 charge reads it. Reference: the restore_dst_buf(xd, *tmp_dst, 1) calls of
+            // av1_compound_type_rd().
+            bool tracksDestination = this.ChargesSmoothing;
+            if (tracksDestination)
+            {
+                if (this.destinationIsPrediction)
+                {
+                    workspace.LumaPrediction[..count].CopyTo(workspace.DestinationLuma);
+                }
+
+                this.destinationIsPrediction = false;
+            }
+
             bool masked = this.picture.Sequence.SequenceHeader.EnableMaskedCompound && Math.Min(width, height) >= 8;
             bool jointCompound = this.picture.Sequence.SequenceHeader.OrderHintInfo.EnableJointCompound;
             bool supportsWedge = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block8x16 or Av1BlockSize.Block16x8 or
@@ -6744,6 +6936,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1CompoundType> types =
                 [Av1CompoundType.Average, Av1CompoundType.DistanceWeighted, Av1CompoundType.Wedge, Av1CompoundType.DifferenceWeighted];
 
+            bool writesDestination = tracksDestination;
             foreach (Av1CompoundType type in types)
             {
                 bool isWedge = type == Av1CompoundType.Wedge;
@@ -7035,6 +7228,21 @@ internal static partial class Av1IntraSuperblockEncoder
                     int typeIndex = (int)type;
                     bool useCachedEstimate = record.Rates[typeIndex] != int.MaxValue &&
                         (modelMask || (!isMasked && settings.CompoundMotionSearchLevel == 2 && mode != Av1PredictionMode.NewNewMotionVector));
+
+                    // Until the average blend's turn ends, the destination pointer names the frame buffer destination,
+                    // so each blend predicted until then lands there; a stored estimate of an unmasked blend predicts
+                    // nothing. Once the average blend's turn ends, the pointer names the second buffer. Reference: the
+                    // av1_enc_build_inter_predictor() and av1_build_wedge_inter_predictor_from_buf() calls of
+                    // av1_compound_type_rd(), and its restore_dst_buf(xd, *tmp_dst, 1) after COMPOUND_AVERAGE.
+                    if (writesDestination && (isMasked || !useCachedEstimate))
+                    {
+                        workspace.LumaPrediction[..count].CopyTo(workspace.DestinationLuma);
+                    }
+
+                    if (type == Av1CompoundType.Average)
+                    {
+                        writesDestination = false;
+                    }
 
                     long model = this.GetCompoundPredictionModelCost(
                         blockOrigin,
@@ -8187,6 +8395,15 @@ internal static partial class Av1IntraSuperblockEncoder
             InlineArray4<Av1RateDistortionStatistics> bestPlaneStatistics = default;
             InlineArray4<Av1RateDistortionStatistics> trialPlaneStatistics = default;
             long bestLumaSquaredError = 0;
+
+            // The default filter predicts into the block's frame buffer destination, which the destination pointer
+            // names when the search starts. Only the sharpness 3 charge reads that destination, so only it follows
+            // the reference's buffer pair: whether the destination is the buffer that holds the best trial.
+            // Reference: the luma interp_model_rd_eval() of av1_interpolation_filter_search() before
+            // restore_dst_buf(xd, *tmp_dst), and dst_bufs.
+            this.destinationIsPrediction = true;
+            bool tracksDestination = this.ChargesSmoothing;
+            bool destinationIsBest = true;
             Av1RateDistortionStatistics regular = this.GetInterFilterModelCost(
                 primary,
                 secondary,
@@ -8209,6 +8426,11 @@ internal static partial class Av1IntraSuperblockEncoder
             long bestCost = regular.Cost;
             bool lumaUsesWorkspace = true;
             bool chromaUsesWorkspace = true;
+            if (tracksDestination)
+            {
+                bestLuma.CopyTo(workspace.DestinationLuma);
+            }
+
             modeInfo.HorizontalInterpolationFilter = initialFilter;
             modeInfo.VerticalInterpolationFilter = initialFilter;
             filterRate = regularRate;
@@ -8271,8 +8493,23 @@ internal static partial class Av1IntraSuperblockEncoder
                     trialPlaneStatistics,
                     ref trialLumaSquaredError);
 
+                // A trial that predicts luma writes the buffer the destination pointer names, which is the frame
+                // buffer destination while the best trial sits in the second buffer. Reference: the
+                // interp_model_rd_eval() calls of interpolation_filter_rd().
+                if (tracksDestination && !destinationIsBest && (skipPlanes & 1) == 0)
+                {
+                    trialLuma.CopyTo(workspace.DestinationLuma);
+                }
+
                 if (trial.Cost != long.MaxValue && trial.Cost * scale / 100 < bestCost)
                 {
+                    // A win that predicted any plane swaps the buffer pair. Reference: the swap_dst_buf() of
+                    // interpolation_filter_rd().
+                    if (skipPlanes != defaultSkip)
+                    {
+                        destinationIsBest = !destinationIsBest;
+                    }
+
                     bestCost = trial.Cost;
                     bestLumaSquaredError = trialLumaSquaredError;
                     modeInfo.HorizontalInterpolationFilter = (Av1InterpolationFilter)horizontal;
@@ -8304,6 +8541,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     break;
                 }
+            }
+
+            // The search ends with the destination pointer on the best buffer. A win that skipped luma left that
+            // buffer's luma stale, and the search predicts it again into the same buffer, so the best buffer holds the
+            // winner's luma either way. When the best buffer is the frame buffer destination, the destination holds
+            // the winner, which the workspace takes as the current prediction below; otherwise the destination keeps
+            // the last trial written to it until the entry's restore. Reference: the final swap_dst_buf() and the
+            // recalc_luma_mc_data rebuild of av1_interpolation_filter_search(), and restore_dst_buf(xd, orig_dst) in
+            // handle_inter_mode().
+            if (tracksDestination)
+            {
+                this.destinationIsPrediction = destinationIsBest;
             }
 
             if (!lumaUsesWorkspace)
@@ -8650,6 +8899,16 @@ internal static partial class Av1IntraSuperblockEncoder
             long estimatedDistortion = 0;
             int estimatedRate = 0;
             int planeCount = hasChroma ? 3 : 1;
+
+            // A simple translation that skipped the interpolation filter search predicts here into the buffer the
+            // destination pointer names, which is the frame buffer destination after the previous entry's restore.
+            // Reference: the av1_enc_build_inter_predictor() call after the filter search in handle_inter_mode().
+            if (!usePreparedPrediction && referenceFrame != Av1ReferenceFrameType.Intra && !isInterIntra &&
+                !this.useWarpedPrediction && !this.useObmcPrediction)
+            {
+                this.destinationIsPrediction = true;
+            }
+
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -8740,15 +8999,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
             candidate.PredictionError = predictionError;
 
-            // Sharpness 3 measures the luma prediction that the plane loop leaves, unless the image tune's bias
-            // replaces the charge. The mode loop reads the same buffer after the entry's search, so the offset of the
-            // last prediction built stays for it. Reference: get_variance_stats() reading pd->dst in adjust_rdcost().
+            // Sharpness 3 measures the candidate's luma prediction, which the plane loop leaves in the current
+            // destination, unless the image tune's bias replaces the charge. Reference: get_variance_stats() reading
+            // pd->dst in adjust_rdcost() of motion_mode_rd().
             bool chargesPrediction = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts && this.ChargesSmoothing;
-            if (chargesPrediction)
-            {
-                this.interSmoothingOffset = this.GetSmoothingOffset(
-                    blockOrigin, blockSize, workspace.LumaPrediction, blockSize.GetWidth(), true);
-            }
+            long predictionSmoothingOffset = chargesPrediction
+                ? this.GetSmoothingOffset(blockOrigin, blockSize, workspace.LumaPrediction, blockSize.GetWidth())
+                : 0;
 
             if (this.estimateInterCandidates)
             {
@@ -8794,7 +9051,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
                 else if (chargesPrediction)
                 {
-                    estimate.AddPredictionSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
+                    estimate.AddPredictionSmoothingOffset(this.rateMultiplier, predictionSmoothingOffset);
                 }
 
                 return estimate;
@@ -8835,7 +9092,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (chargesPrediction && statistics.Cost != long.MaxValue)
             {
-                statistics.AddPredictionSmoothingOffset(this.rateMultiplier, this.interSmoothingOffset);
+                statistics.AddPredictionSmoothingOffset(this.rateMultiplier, predictionSmoothingOffset);
             }
 
             return statistics;

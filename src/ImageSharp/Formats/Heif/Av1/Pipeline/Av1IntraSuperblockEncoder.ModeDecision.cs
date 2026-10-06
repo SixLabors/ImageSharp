@@ -276,9 +276,11 @@ internal static partial class Av1IntraSuperblockEncoder
         // The cost of the last completed inter trial before the image tune bias. Reference: curr_rd in motion_mode_rd().
         private long unbiasedInterTrialCost;
 
-        // The sharpness 3 distortion offset of the last inter prediction built, which the mode loop reads again after
-        // the entry's search. Reference: the pd->dst that adjust_rdcost() reads in av1_rd_pick_inter_mode().
-        private long interSmoothingOffset;
+        // Whether the block's frame buffer destination holds the current luma prediction. It does from the first build
+        // of an interpolation filter search, and stops when the search leaves its winner in the second buffer; the
+        // destination then keeps the last losing trial in DestinationLuma. Reference: xd->plane[0].dst against
+        // orig_dst through av1_interpolation_filter_search() and restore_dst_buf() in handle_inter_mode().
+        private bool destinationIsPrediction;
 
         // The sharpness 3 distortion offset of the luma samples that the intra luma search of an inter frame leaves
         // for its chroma search. Reference: the pd->dst that adjust_rdcost() reads on intra_rd_stats in
@@ -6018,18 +6020,16 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
                 this.intraSmoothingOffset = storeLumaForChromaFromLuma
-                    ? this.GetSmoothingOffset(
+                    ? this.GetIntraSmoothingOffset(
                         blockOrigin,
                         blockSize,
                         Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin),
-                        reconstructionPlane.Stride,
-                        false)
-                    : this.GetSmoothingOffset(
+                        reconstructionPlane.Stride)
+                    : this.GetIntraSmoothingOffset(
                         blockOrigin,
                         blockSize,
                         this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0),
-                        blockSize.GetWidth(),
-                        false);
+                        blockSize.GetWidth());
             }
 
             return refinedMode;
@@ -6566,7 +6566,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (modeStatistics.LumaCost != long.MaxValue && this.ChargesSmoothing)
                 {
                     modeStatistics.LumaCost += Av1RateDistortion.GetCost(
-                        this.rateMultiplier, 0, this.GetSmoothingOffset(blockOrigin, blockSize, samples, width, false));
+                        this.rateMultiplier, 0, this.GetIntraSmoothingOffset(blockOrigin, blockSize, samples, width));
                 }
 
                 Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(

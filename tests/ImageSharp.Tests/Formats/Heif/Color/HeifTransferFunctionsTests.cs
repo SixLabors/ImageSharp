@@ -66,12 +66,12 @@ public class HeifTransferFunctionsTests
     {
         foreach (ITheoryDataRow row in TransferCharacteristics)
         {
-            object?[] values = row.GetData();
-            this.ToLinearSimdMatchesScalarCase((int)values[0]!);
+            object[] values = row.GetData();
+            ToLinearSimdMatchesScalarCase((int)values[0]);
         }
     }
 
-    private void ToLinearSimdMatchesScalarCase(int transferCharacteristicsValue)
+    private static void ToLinearSimdMatchesScalarCase(int transferCharacteristicsValue)
     {
         CicpTransferCharacteristics transferCharacteristics = (CicpTransferCharacteristics)transferCharacteristicsValue;
         float[] expected = SignalValues.Select(value => HeifTransferFunctions.ToLinear(transferCharacteristics, value)).ToArray();
@@ -94,12 +94,12 @@ public class HeifTransferFunctionsTests
     {
         foreach (ITheoryDataRow row in TransferCharacteristics)
         {
-            object?[] values = row.GetData();
-            this.ToGammaSimdMatchesScalarCase((int)values[0]!);
+            object[] values = row.GetData();
+            ToGammaSimdMatchesScalarCase((int)values[0]);
         }
     }
 
-    private void ToGammaSimdMatchesScalarCase(int transferCharacteristicsValue)
+    private static void ToGammaSimdMatchesScalarCase(int transferCharacteristicsValue)
     {
         CicpTransferCharacteristics transferCharacteristics = (CicpTransferCharacteristics)transferCharacteristicsValue;
         float[] expected = SignalValues.Select(value => HeifTransferFunctions.ToGamma(transferCharacteristics, value)).ToArray();

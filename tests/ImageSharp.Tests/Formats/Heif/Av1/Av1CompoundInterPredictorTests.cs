@@ -37,19 +37,19 @@ public class Av1CompoundInterPredictorTests
     [Fact]
     public void DistanceWeightsMatchReference()
     {
-        this.DistanceWeightsMatchReferenceCase(13, 20, 9, 7);
-        this.DistanceWeightsMatchReferenceCase(15, 18, 11, 5);
-        this.DistanceWeightsMatchReferenceCase(15, 19, 12, 4);
-        this.DistanceWeightsMatchReferenceCase(15, 20, 13, 3);
-        this.DistanceWeightsMatchReferenceCase(12, 19, 7, 9);
-        this.DistanceWeightsMatchReferenceCase(14, 17, 5, 11);
-        this.DistanceWeightsMatchReferenceCase(13, 17, 4, 12);
-        this.DistanceWeightsMatchReferenceCase(12, 17, 3, 13);
-        this.DistanceWeightsMatchReferenceCase(12, 16, 3, 13);
-        this.DistanceWeightsMatchReferenceCase(16, 20, 13, 3);
+        DistanceWeightsMatchReferenceCase(13, 20, 9, 7);
+        DistanceWeightsMatchReferenceCase(15, 18, 11, 5);
+        DistanceWeightsMatchReferenceCase(15, 19, 12, 4);
+        DistanceWeightsMatchReferenceCase(15, 20, 13, 3);
+        DistanceWeightsMatchReferenceCase(12, 19, 7, 9);
+        DistanceWeightsMatchReferenceCase(14, 17, 5, 11);
+        DistanceWeightsMatchReferenceCase(13, 17, 4, 12);
+        DistanceWeightsMatchReferenceCase(12, 17, 3, 13);
+        DistanceWeightsMatchReferenceCase(12, 16, 3, 13);
+        DistanceWeightsMatchReferenceCase(16, 20, 13, 3);
     }
 
-    private void DistanceWeightsMatchReferenceCase(
+    private static void DistanceWeightsMatchReferenceCase(
         int firstOrderHint,
         int secondOrderHint,
         int expectedFirstWeight,

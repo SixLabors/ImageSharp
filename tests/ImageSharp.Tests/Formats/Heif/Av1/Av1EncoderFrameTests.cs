@@ -42,13 +42,13 @@ public class Av1EncoderFrameTests
     [Fact]
     public void RectangularIntraReferencesExtendTheLastAvailableSample()
     {
-        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)EightBit, false, false, false);
-        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TenBit, true, true, false);
-        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)EightBit, true, true, true);
-        this.RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TwelveBit, false, true, true);
+        RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)EightBit, false, false, false);
+        RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TenBit, true, true, false);
+        RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)EightBit, true, true, true);
+        RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TwelveBit, false, true, true);
     }
 
-    private void RectangularIntraReferencesExtendTheLastAvailableSampleCase(int bitDepthValue, bool transpose, bool extensionAvailable, bool limitedExtent)
+    private static void RectangularIntraReferencesExtendTheLastAvailableSampleCase(int bitDepthValue, bool transpose, bool extensionAvailable, bool limitedExtent)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         if (bitDepth == Av1BitDepth.EightBit)
@@ -463,7 +463,7 @@ public class Av1EncoderFrameTests
         long start = 0;
         foreach (long end in sampleEnds)
         {
-            decoder.DecodeSequenceReference(data[(int)start..(int)end], null, null);
+            decoder.DecodeSequenceReference(data.AsSpan((int)start, (int)(end - start)), null, null);
             Assert.False(decoder.FrameHeader.SegmentationParameters.Enabled);
             start = end;
         }
@@ -721,7 +721,7 @@ public class Av1EncoderFrameTests
         foreach (long end in sampleEnds)
         {
             Assert.True(end > start);
-            decoder.DecodeSequenceReference(data[(int)start..(int)end], null, null);
+            decoder.DecodeSequenceReference(data.AsSpan((int)start, (int)(end - start)), null, null);
             if (!decoder.FrameHeader!.ShowExistingFrame)
             {
                 rateModelChose |= decoder.FrameHeader.QuantizationParameters.BaseQIndex != Av1QuantizationLookup.GetQIndex(Quantizer);
@@ -737,7 +737,7 @@ public class Av1EncoderFrameTests
         // discarded coding behind would break.
         for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
         {
-            Av1FrameBuffer<byte>? decoded = decoder.GetReferenceFrameBuffer(slot);
+            Av1FrameBuffer<byte> decoded = decoder.GetReferenceFrameBuffer(slot);
             if (decoded is not null)
             {
                 AssertLumaMatches(encoder.CopySlotLuma(slot), decoded, frames.Width, frames.Height);

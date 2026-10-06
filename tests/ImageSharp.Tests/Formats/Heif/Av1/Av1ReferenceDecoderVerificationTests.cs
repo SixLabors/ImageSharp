@@ -43,28 +43,28 @@ public class Av1ReferenceDecoderVerificationTests
     [Fact]
     public void ReferenceDecoderReproducesManagedDecode()
     {
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv420, 8, 37, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv420, 8, 128, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv422, 8, 128, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv444, 8, 128, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv400, 8, 128, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv420, 10, 128, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv444, 12, 128, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 256, 256, (int)Av1ColorFormat.Yuv420, 8, 64, HeifEncodingSpeed.Level3);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 512, 512, (int)Av1ColorFormat.Yuv420, 8, 64, HeifEncodingSpeed.Level6);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 512, 512, (int)Av1ColorFormat.Yuv420, 8, 64, HeifEncodingSpeed.Level9);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 512, 512, (int)Av1ColorFormat.Yuv444, 10, 200, HeifEncodingSpeed.Level6);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 131, 67, (int)Av1ColorFormat.Yuv420, 8, 0, HeifEncodingSpeed.Level6);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 131, 67, (int)Av1ColorFormat.Yuv444, 10, 0, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.CalliphoraPartial, 300, 200, (int)Av1ColorFormat.Yuv420, 8, 96, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.CalliphoraPartial, 300, 200, (int)Av1ColorFormat.Yuv420, 8, 96, HeifEncodingSpeed.Level6);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv444, 8, 0, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv400, 8, 0, HeifEncodingSpeed.Level0);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv444, 8, 0, HeifEncodingSpeed.Level0, true);
-        this.ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv400, 8, 0, HeifEncodingSpeed.Level0, false, true);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv420, 8, 37, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv420, 8, 128, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv422, 8, 128, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv444, 8, 128, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv400, 8, 128, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv420, 10, 128, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 385, 137, (int)Av1ColorFormat.Yuv444, 12, 128, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 256, 256, (int)Av1ColorFormat.Yuv420, 8, 64, HeifEncodingSpeed.Level3);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 512, 512, (int)Av1ColorFormat.Yuv420, 8, 64, HeifEncodingSpeed.Level6);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 512, 512, (int)Av1ColorFormat.Yuv420, 8, 64, HeifEncodingSpeed.Level9);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 512, 512, (int)Av1ColorFormat.Yuv444, 10, 200, HeifEncodingSpeed.Level6);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 131, 67, (int)Av1ColorFormat.Yuv420, 8, 0, HeifEncodingSpeed.Level6);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Bike, 131, 67, (int)Av1ColorFormat.Yuv444, 10, 0, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.CalliphoraPartial, 300, 200, (int)Av1ColorFormat.Yuv420, 8, 96, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.CalliphoraPartial, 300, 200, (int)Av1ColorFormat.Yuv420, 8, 96, HeifEncodingSpeed.Level6);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv444, 8, 0, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv400, 8, 0, HeifEncodingSpeed.Level0);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv444, 8, 0, HeifEncodingSpeed.Level0, true);
+        ReferenceDecoderReproducesManagedDecodeCase(TestImages.Png.Splash, 500, 483, (int)Av1ColorFormat.Yuv400, 8, 0, HeifEncodingSpeed.Level0, false, true);
     }
 
-    private void ReferenceDecoderReproducesManagedDecodeCase(
+    private static void ReferenceDecoderReproducesManagedDecodeCase(
         string imagePath,
         int width,
         int height,

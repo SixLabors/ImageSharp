@@ -2,8 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 

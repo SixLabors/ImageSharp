@@ -20,13 +20,13 @@ public class Av1InterIntraEntropyTests
     [Fact]
     public void ReaderUsesBlockSizeGroup()
     {
-        this.ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block4x4, 0);
-        this.ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block8x8, 1);
-        this.ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block16x16, 2);
-        this.ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block32x32, 3);
+        ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block4x4, 0);
+        ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block8x8, 1);
+        ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block16x16, 2);
+        ReaderUsesBlockSizeGroupCase((int)Av1BlockSize.Block32x32, 3);
     }
 
-    private void ReaderUsesBlockSizeGroupCase(int blockSizeValue, int sizeGroup)
+    private static void ReaderUsesBlockSizeGroupCase(int blockSizeValue, int sizeGroup)
     {
         bool[] expected = [false, true, true, false, true, false, false, true];
         Av1Distribution writerDistribution = Av1DefaultDistributions.InterIntra[sizeGroup];

@@ -311,12 +311,12 @@ public class Av1InverseTransformTests
     {
         foreach (ITheoryDataRow row in Av1ForwardTransformTests.ValidTransformCases)
         {
-            object?[] values = row.GetData();
-            this.TwoDimensionalKernelsMatchReferenceCase((int)values[0]!, (int)values[1]!, (int)values[2]!);
+            object[] values = row.GetData();
+            TwoDimensionalKernelsMatchReferenceCase((int)values[0], (int)values[1], (int)values[2]);
         }
     }
 
-    private void TwoDimensionalKernelsMatchReferenceCase(
+    private static void TwoDimensionalKernelsMatchReferenceCase(
         int transformTypeValue,
         int transformSizeValue,
         int bitDepth)

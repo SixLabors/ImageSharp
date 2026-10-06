@@ -24,16 +24,16 @@ public class Av1SingleReferenceEntropyTests
     [Fact]
     public void SingleReferenceWriterRoundTripsEveryReference()
     {
-        this.SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Last);
-        this.SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Last2);
-        this.SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Last3);
-        this.SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Golden);
-        this.SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Backward);
-        this.SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Alternate2);
-        this.SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Alternate);
+        SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Last);
+        SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Last2);
+        SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Last3);
+        SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Golden);
+        SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Backward);
+        SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Alternate2);
+        SingleReferenceWriterRoundTripsEveryReferenceCase((int)Av1ReferenceFrameType.Alternate);
     }
 
-    private void SingleReferenceWriterRoundTripsEveryReferenceCase(int referenceFrameValue)
+    private static void SingleReferenceWriterRoundTripsEveryReferenceCase(int referenceFrameValue)
     {
         Av1ReferenceFrameType referenceFrame = (Av1ReferenceFrameType)referenceFrameValue;
         InlineArray8<byte> referenceCountStorage = default;

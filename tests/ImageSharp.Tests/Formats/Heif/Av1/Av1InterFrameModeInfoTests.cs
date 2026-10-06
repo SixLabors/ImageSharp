@@ -120,17 +120,17 @@ public class Av1InterFrameModeInfoTests
     [Fact]
     public void ReadInterFrameModeInfoReadsCompoundReferencePair()
     {
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(0, (int)Av1ReferenceFrameType.Backward, (int)Av1ReferenceFrameType.Alternate);
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(1, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Last2);
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(2, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Last3);
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(3, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Golden);
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(4, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Backward);
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(5, (int)Av1ReferenceFrameType.Last2, (int)Av1ReferenceFrameType.Alternate2);
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(6, (int)Av1ReferenceFrameType.Last3, (int)Av1ReferenceFrameType.Alternate);
-        this.ReadInterFrameModeInfoReadsCompoundReferencePairCase(7, (int)Av1ReferenceFrameType.Golden, (int)Av1ReferenceFrameType.Alternate);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(0, (int)Av1ReferenceFrameType.Backward, (int)Av1ReferenceFrameType.Alternate);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(1, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Last2);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(2, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Last3);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(3, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Golden);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(4, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Backward);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(5, (int)Av1ReferenceFrameType.Last2, (int)Av1ReferenceFrameType.Alternate2);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(6, (int)Av1ReferenceFrameType.Last3, (int)Av1ReferenceFrameType.Alternate);
+        ReadInterFrameModeInfoReadsCompoundReferencePairCase(7, (int)Av1ReferenceFrameType.Golden, (int)Av1ReferenceFrameType.Alternate);
     }
 
-    private void ReadInterFrameModeInfoReadsCompoundReferencePairCase(
+    private static void ReadInterFrameModeInfoReadsCompoundReferencePairCase(
         int pairIndex,
         int expectedPrimary,
         int expectedSecondary)

@@ -14,12 +14,12 @@ public class Av1PartitionTypeTests
     {
         foreach (ITheoryDataRow row in GetAllCombinations())
         {
-            object?[] values = row.GetData();
-            this.GetSubBlockSizeReturnsCorrectRatioCase((int)values[0]!, (int)values[1]!);
+            object[] values = row.GetData();
+            GetSubBlockSizeReturnsCorrectRatioCase((int)values[0], (int)values[1]);
         }
     }
 
-    private void GetSubBlockSizeReturnsCorrectRatioCase(int t, int s)
+    private static void GetSubBlockSizeReturnsCorrectRatioCase(int t, int s)
     {
         // Assign
         Av1PartitionType partitionType = (Av1PartitionType)t;

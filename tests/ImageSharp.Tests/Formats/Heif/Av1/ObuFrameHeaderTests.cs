@@ -157,17 +157,17 @@ public class ObuFrameHeaderTests
     [Fact]
     public void ReadSequenceHeaderRejectsConformanceFailure()
     {
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.UndefinedSequenceLevel);
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.InitialDisplayDelayAboveTen);
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.FrameIdentifierLengthAboveSixteen);
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.ZeroDisplayTick);
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.ZeroTimeScale);
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.OverflowingTicksPerPicture);
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.MainProfileSrgbIdentity);
-        this.ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.SubsampledIdentityMatrix);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.UndefinedSequenceLevel);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.InitialDisplayDelayAboveTen);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.FrameIdentifierLengthAboveSixteen);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.ZeroDisplayTick);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.ZeroTimeScale);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.OverflowingTicksPerPicture);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.MainProfileSrgbIdentity);
+        ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase.SubsampledIdentityMatrix);
     }
 
-    private void ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase invalidCase)
+    private static void ReadSequenceHeaderRejectsConformanceFailureCase(InvalidSequenceHeaderCase invalidCase)
     {
         byte[] bitStream = CreateNonReducedSequenceHeaderObu(invalidCase);
 

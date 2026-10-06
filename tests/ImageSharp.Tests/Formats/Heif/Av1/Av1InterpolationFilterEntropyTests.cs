@@ -50,12 +50,12 @@ public class Av1InterpolationFilterEntropyTests
     {
         foreach (ITheoryDataRow row in GetContexts())
         {
-            object?[] values = row.GetData();
-            this.EncoderUsesRequestedContextAndRefreshedCostsCase((int)values[0]!);
+            object[] values = row.GetData();
+            EncoderUsesRequestedContextAndRefreshedCostsCase((int)values[0]);
         }
     }
 
-    private void EncoderUsesRequestedContextAndRefreshedCostsCase(int context)
+    private static void EncoderUsesRequestedContextAndRefreshedCostsCase(int context)
     {
         ReadOnlySpan<Av1InterpolationFilter> filters =
         [

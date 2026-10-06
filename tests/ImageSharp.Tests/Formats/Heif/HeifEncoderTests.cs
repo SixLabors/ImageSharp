@@ -487,6 +487,7 @@ public class HeifEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
+
         // 4:4:4 keeps the check on the bit depth path: the Magick reference decoder upsamples 4:2:0 chroma with the
         // nearest sample, where libavif and the managed decoder interpolate, and this source is high-contrast text.
         HeifEncoder encoder = new()
@@ -1268,7 +1269,6 @@ public class HeifEncoderTests
                 SeparateChromaQuality = separate,
                 ChromaSubsampling = HeifChromaSubsampling.Yuv420
             });
-
 
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
@@ -2053,12 +2053,12 @@ public class HeifEncoderTests
     [Fact]
     public void Av1PreservesIdentityMatrixColorDescription()
     {
-        this.Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit10, false, false, false);
-        this.Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit12, true, true, false);
-        this.Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit8, false, false, true);
+        Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit10, false, false, false);
+        Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit12, true, true, false);
+        Av1PreservesIdentityMatrixColorDescriptionCase(HeifBitDepth.Bit8, false, false, true);
     }
 
-    private void Av1PreservesIdentityMatrixColorDescriptionCase(
+    private static void Av1PreservesIdentityMatrixColorDescriptionCase(
         HeifBitDepth bitDepth,
         bool fullRange,
         bool sequence,

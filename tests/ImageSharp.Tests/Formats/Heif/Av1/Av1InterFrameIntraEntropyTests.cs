@@ -23,12 +23,12 @@ public class Av1InterFrameIntraEntropyTests
     {
         foreach (ITheoryDataRow row in GetBlockSizeGroups())
         {
-            object?[] values = row.GetData();
-            this.ReadInterFrameYModeUsesNormativeSizeGroupCase((int)values[0]!, (int)values[1]!);
+            object[] values = row.GetData();
+            ReadInterFrameYModeUsesNormativeSizeGroupCase((int)values[0], (int)values[1]);
         }
     }
 
-    private void ReadInterFrameYModeUsesNormativeSizeGroupCase(int blockSizeValue, int sizeGroup)
+    private static void ReadInterFrameYModeUsesNormativeSizeGroupCase(int blockSizeValue, int sizeGroup)
     {
         Av1BlockSize blockSize = (Av1BlockSize)blockSizeValue;
         Av1PredictionMode[] expected =

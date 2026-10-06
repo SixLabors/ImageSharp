@@ -929,7 +929,6 @@ public class Av1ForwardTransformTests
                     2 => ((index * 73) % ((2 * sampleMaximum) + 1)) - sampleMaximum,
                     _ => 0,
                 });
-
             }
         }
 
@@ -1160,7 +1159,7 @@ public class Av1ForwardTransformTests
             int rowOffset = (quadrant >> 1) * half;
             int columnOffset = (quadrant & 1) * half;
             ReferenceHadamard(
-                residual[(rowOffset * stride + columnOffset)..],
+                residual[((rowOffset * stride) + columnOffset)..],
                 stride,
                 half,
                 highBitDepth,
@@ -1193,9 +1192,9 @@ public class Av1ForwardTransformTests
         Span<int> destination)
         where T : unmanaged, INumber<T>
     {
+        Span<int> values = stackalloc int[8];
         for (int column = 0; column < size; column++)
         {
-            Span<int> values = stackalloc int[8];
             for (int row = 0; row < size; row++)
             {
                 values[row] = int.CreateChecked(source[(row * stride) + column]);

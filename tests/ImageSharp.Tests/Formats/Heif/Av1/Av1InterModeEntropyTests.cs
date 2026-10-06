@@ -19,13 +19,13 @@ public class Av1InterModeEntropyTests
     [Fact]
     public void ReadInterModeMatchesReference()
     {
-        this.ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.NewMotionVector, 0, -1, -1);
-        this.ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.GlobalMotionVector, 1, 0, -1);
-        this.ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.NearestMotionVector, 1, 1, 0);
-        this.ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.NearMotionVector, 1, 1, 1);
+        ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.NewMotionVector, 0, -1, -1);
+        ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.GlobalMotionVector, 1, 0, -1);
+        ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.NearestMotionVector, 1, 1, 0);
+        ReadInterModeMatchesReferenceCase((int)Av1PredictionMode.NearMotionVector, 1, 1, 1);
     }
 
-    private void ReadInterModeMatchesReferenceCase(int expectedMode, int newMvSymbol, int zeroMvSymbol, int refMvSymbol)
+    private static void ReadInterModeMatchesReferenceCase(int expectedMode, int newMvSymbol, int zeroMvSymbol, int refMvSymbol)
     {
         const int modeContext = 77;
         Av1Distribution newMv = Av1DefaultDistributions.NewMv[5];

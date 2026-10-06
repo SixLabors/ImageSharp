@@ -151,7 +151,7 @@ public class Av1VarianceStatisticTests
             {
                 int sourceY = Math.Clamp(y, 0, height - 1);
                 int sourceX = Math.Clamp(x, 0, width - 1);
-                padded[((y + 1) * paddedStride) + x + 1] = Convert.ToInt32(source[(sourceY * stride) + sourceX]);
+                padded[((y + 1) * paddedStride) + x + 1] = Convert.ToInt32(source[(sourceY * stride) + sourceX], System.Globalization.CultureInfo.InvariantCulture);
             }
         }
 

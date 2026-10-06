@@ -19,12 +19,12 @@ public class Av1MotionVectorEntropyTests
     [Fact]
     public void WriteMotionVectorRoundTripsRequestedPrecision()
     {
-        this.WriteMotionVectorRoundTripsRequestedPrecisionCase((int)Av1MotionVectorPrecision.Integer, 16, -24);
-        this.WriteMotionVectorRoundTripsRequestedPrecisionCase((int)Av1MotionVectorPrecision.QuarterSample, 6, -10);
-        this.WriteMotionVectorRoundTripsRequestedPrecisionCase((int)Av1MotionVectorPrecision.EighthSample, 11, -17);
+        WriteMotionVectorRoundTripsRequestedPrecisionCase((int)Av1MotionVectorPrecision.Integer, 16, -24);
+        WriteMotionVectorRoundTripsRequestedPrecisionCase((int)Av1MotionVectorPrecision.QuarterSample, 6, -10);
+        WriteMotionVectorRoundTripsRequestedPrecisionCase((int)Av1MotionVectorPrecision.EighthSample, 11, -17);
     }
 
-    private void WriteMotionVectorRoundTripsRequestedPrecisionCase(
+    private static void WriteMotionVectorRoundTripsRequestedPrecisionCase(
         int precisionValue,
         int rowDelta,
         int columnDelta)

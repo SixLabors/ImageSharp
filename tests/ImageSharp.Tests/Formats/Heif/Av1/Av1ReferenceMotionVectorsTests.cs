@@ -58,7 +58,7 @@ public class Av1ReferenceMotionVectorsTests
 
         Av1TileInfo tileInfo = new(0, 0, frameHeader);
         partitionInfo.ComputeBoundaryOffsets(sequenceHeader, frameHeader, tileInfo);
-        Av1ReferenceMotionVectors referenceMotionVectors = new();
+        Av1ReferenceMotionVectors referenceMotionVectors = default;
 
         referenceMotionVectors.Build(
             ref partitionInfo,
@@ -122,7 +122,7 @@ public class Av1ReferenceMotionVectorsTests
 
         Av1TileInfo tileInfo = new(0, 0, frameHeader);
         partitionInfo.ComputeBoundaryOffsets(sequenceHeader, frameHeader, tileInfo);
-        Av1ReferenceMotionVectors referenceMotionVectors = new();
+        Av1ReferenceMotionVectors referenceMotionVectors = default;
 
         referenceMotionVectors.Build(
             ref partitionInfo,

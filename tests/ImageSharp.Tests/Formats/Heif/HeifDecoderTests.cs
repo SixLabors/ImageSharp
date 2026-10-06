@@ -70,13 +70,13 @@ public class HeifDecoderTests
     [Fact]
     public void DecodeStillAndBoundedSequenceFromSupportedStream()
     {
-        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.NonSeekable, 1, 4, 4);
-        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.ShortRead, 1, 4, 4);
-        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.NonSeekable, 5, 150, 150);
-        this.DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.ShortRead, 5, 150, 150);
+        DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.NonSeekable, 1, 4, 4);
+        DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.ShortRead, 1, 4, 4);
+        DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.NonSeekable, 5, 150, 150);
+        DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.ShortRead, 5, 150, 150);
     }
 
-    private void DecodeStillAndBoundedSequenceFromSupportedStreamCase(
+    private static void DecodeStillAndBoundedSequenceFromSupportedStreamCase(
         string imagePath,
         DecoderStreamKind streamKind,
         int expectedFrameCount,

@@ -33,21 +33,21 @@ public class Av1YuvConverterTests
     [Fact]
     public void ConvertSinglePixelMatchesKnownValues()
     {
-        this.ConvertSinglePixelCase(150, 100, 50, 107, 97, 155, true, ObuMatrixCoefficients.Bt709);
-        this.ConvertSinglePixelCase(150, 100, 50, 100, 50, 150, true, ObuMatrixCoefficients.Identity);
-        this.ConvertSinglePixelCase(150, 100, 50, 100, 128, 178, true, ObuMatrixCoefficients.SmpteYCgCo);
-        this.ConvertSinglePixelCase(150, 100, 50, 110, 96, 155, true, ObuMatrixCoefficients.Bt2020NonConstantLuminance);
-        this.ConvertSinglePixelCase(255, 255, 255, 235, 128, 128, false, ObuMatrixCoefficients.Bt709);
-        this.ConvertSinglePixelCase(150, 100, 50, 108, 101, 152, false, ObuMatrixCoefficients.Bt709);
+        ConvertSinglePixelCase(150, 100, 50, 107, 97, 155, true, ObuMatrixCoefficients.Bt709);
+        ConvertSinglePixelCase(150, 100, 50, 100, 50, 150, true, ObuMatrixCoefficients.Identity);
+        ConvertSinglePixelCase(150, 100, 50, 100, 128, 178, true, ObuMatrixCoefficients.SmpteYCgCo);
+        ConvertSinglePixelCase(150, 100, 50, 110, 96, 155, true, ObuMatrixCoefficients.Bt2020NonConstantLuminance);
+        ConvertSinglePixelCase(255, 255, 255, 235, 128, 128, false, ObuMatrixCoefficients.Bt709);
+        ConvertSinglePixelCase(150, 100, 50, 108, 101, 152, false, ObuMatrixCoefficients.Bt709);
     }
 
-    private void ConvertSinglePixelCase(byte r, byte g, byte b, int y, int u, int v, bool fullRange, ObuMatrixCoefficients matrixCoefficients)
+    private static void ConvertSinglePixelCase(byte r, byte g, byte b, int y, int u, int v, bool fullRange, ObuMatrixCoefficients matrixCoefficients)
     {
-        this.RgbToYuvSinglePixelCase(r, g, b, y, u, v, fullRange, (int)matrixCoefficients);
-        this.YuvToRgbSinglePixelCase(r, g, b, y, u, v, fullRange, (int)matrixCoefficients);
+        RgbToYuvSinglePixelCase(r, g, b, y, u, v, fullRange, (int)matrixCoefficients);
+        YuvToRgbSinglePixelCase(r, g, b, y, u, v, fullRange, (int)matrixCoefficients);
     }
 
-    private void RgbToYuvSinglePixelCase(byte r, byte g, byte b, int y, int u, int v, bool fullRange, int matrixCoefficients)
+    private static void RgbToYuvSinglePixelCase(byte r, byte g, byte b, int y, int u, int v, bool fullRange, int matrixCoefficients)
     {
         // Assign
         using Image<Rgb24> image = new(1, 1);
@@ -69,7 +69,7 @@ public class Av1YuvConverterTests
         Assert.Equal(v, actualV);
     }
 
-    private void YuvToRgbSinglePixelCase(byte r, byte g, byte b, int y, int u, int v, bool fullRange, int matrixCoefficients)
+    private static void YuvToRgbSinglePixelCase(byte r, byte g, byte b, int y, int u, int v, bool fullRange, int matrixCoefficients)
     {
         // Assign
         using Image<Rgb24> image = new(1, 1);
@@ -393,13 +393,13 @@ public class Av1YuvConverterTests
     [Fact]
     public void HighBitDepthRoundTrip()
     {
-        this.HighBitDepthRoundTripCase((int)Av1BitDepth.TenBit, (int)ObuMatrixCoefficients.Bt709);
-        this.HighBitDepthRoundTripCase((int)Av1BitDepth.TenBit, (int)ObuMatrixCoefficients.YCgCoRe);
-        this.HighBitDepthRoundTripCase((int)Av1BitDepth.TwelveBit, (int)ObuMatrixCoefficients.IptC2);
-        this.HighBitDepthRoundTripCase((int)Av1BitDepth.TwelveBit, (int)ObuMatrixCoefficients.YCgCoRo);
+        HighBitDepthRoundTripCase((int)Av1BitDepth.TenBit, (int)ObuMatrixCoefficients.Bt709);
+        HighBitDepthRoundTripCase((int)Av1BitDepth.TenBit, (int)ObuMatrixCoefficients.YCgCoRe);
+        HighBitDepthRoundTripCase((int)Av1BitDepth.TwelveBit, (int)ObuMatrixCoefficients.IptC2);
+        HighBitDepthRoundTripCase((int)Av1BitDepth.TwelveBit, (int)ObuMatrixCoefficients.YCgCoRo);
     }
 
-    private void HighBitDepthRoundTripCase(int bitDepth, int matrixCoefficients)
+    private static void HighBitDepthRoundTripCase(int bitDepth, int matrixCoefficients)
     {
         // Assign
         using Image<Rgb24> image = new(3, 1);
@@ -450,16 +450,16 @@ public class Av1YuvConverterTests
     [Fact]
     public void ColorOperatorSimdBatchesMatchScalarTail()
     {
-        this.ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Bt709, (int)ObuTransferCharacteristics.Bt709);
-        this.ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Identity, (int)ObuTransferCharacteristics.Bt709);
-        this.ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Bt2020ConstantLuminance, (int)ObuTransferCharacteristics.Bt202010Bit);
-        this.ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.ChromaticityDerivedConstantLuminance, (int)ObuTransferCharacteristics.Bt709);
-        this.ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Bt2100ICtCp, (int)ObuTransferCharacteristics.Smpte2084);
-        this.ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.IptC2, (int)ObuTransferCharacteristics.Bt709);
-        this.ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.YCgCoRe, (int)ObuTransferCharacteristics.Bt709);
+        ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Bt709, (int)ObuTransferCharacteristics.Bt709);
+        ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Identity, (int)ObuTransferCharacteristics.Bt709);
+        ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Bt2020ConstantLuminance, (int)ObuTransferCharacteristics.Bt202010Bit);
+        ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.ChromaticityDerivedConstantLuminance, (int)ObuTransferCharacteristics.Bt709);
+        ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.Bt2100ICtCp, (int)ObuTransferCharacteristics.Smpte2084);
+        ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.IptC2, (int)ObuTransferCharacteristics.Bt709);
+        ColorOperatorSimdBatchesMatchScalarTailCase((int)ObuMatrixCoefficients.YCgCoRe, (int)ObuTransferCharacteristics.Bt709);
     }
 
-    private void ColorOperatorSimdBatchesMatchScalarTailCase(int matrixCoefficients, int transferCharacteristics)
+    private static void ColorOperatorSimdBatchesMatchScalarTailCase(int matrixCoefficients, int transferCharacteristics)
     {
         const int width = 31;
 

@@ -168,25 +168,25 @@ public class Av1EntropyTests
     [Fact]
     public void RawBytesFromWriteLiteral4Bits()
     {
-        this.RawBytesFromWriteLiteral4BitsCase((uint)0, (byte)0, (byte)0, (byte)0, (byte)0, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)1, (byte)17, (byte)68, (byte)34, (byte)34, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)2, (byte)34, (byte)86, (byte)68, (byte)68, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)3, (byte)51, (byte)104, (byte)102, (byte)102, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)4, (byte)68, (byte)118, (byte)34, (byte)34, (byte)64);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)5, (byte)85, (byte)118, (byte)170, (byte)170, (byte)192);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)6, (byte)102, (byte)119, (byte)51, (byte)51, (byte)64);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)7, (byte)119, (byte)119, (byte)187, (byte)187, (byte)192);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)8, (byte)136, (byte)129, (byte)17, (byte)17, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)9, (byte)153, (byte)147, (byte)51, (byte)51, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)10, (byte)170, (byte)165, (byte)85, (byte)85, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)11, (byte)187, (byte)183, (byte)119, (byte)119, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)12, (byte)204, (byte)201, (byte)153, (byte)153, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)13, (byte)221, (byte)219, (byte)187, (byte)187, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)14, (byte)238, (byte)237, (byte)221, (byte)221, (byte)128);
-        this.RawBytesFromWriteLiteral4BitsCase((uint)15, (byte)255, (byte)255, (byte)255, (byte)255, (byte)128);
+        RawBytesFromWriteLiteral4BitsCase(0U, 0, 0, 0, 0, 128);
+        RawBytesFromWriteLiteral4BitsCase(1U, 17, 68, 34, 34, 128);
+        RawBytesFromWriteLiteral4BitsCase(2U, 34, 86, 68, 68, 128);
+        RawBytesFromWriteLiteral4BitsCase(3U, 51, 104, 102, 102, 128);
+        RawBytesFromWriteLiteral4BitsCase(4U, 68, 118, 34, 34, 64);
+        RawBytesFromWriteLiteral4BitsCase(5U, 85, 118, 170, 170, 192);
+        RawBytesFromWriteLiteral4BitsCase(6U, 102, 119, 51, 51, 64);
+        RawBytesFromWriteLiteral4BitsCase(7U, 119, 119, 187, 187, 192);
+        RawBytesFromWriteLiteral4BitsCase(8U, 136, 129, 17, 17, 128);
+        RawBytesFromWriteLiteral4BitsCase(9U, 153, 147, 51, 51, 128);
+        RawBytesFromWriteLiteral4BitsCase(10U, 170, 165, 85, 85, 128);
+        RawBytesFromWriteLiteral4BitsCase(11U, 187, 183, 119, 119, 128);
+        RawBytesFromWriteLiteral4BitsCase(12U, 204, 201, 153, 153, 128);
+        RawBytesFromWriteLiteral4BitsCase(13U, 221, 219, 187, 187, 128);
+        RawBytesFromWriteLiteral4BitsCase(14U, 238, 237, 221, 221, 128);
+        RawBytesFromWriteLiteral4BitsCase(15U, 255, 255, 255, 255, 128);
     }
 
-    private void RawBytesFromWriteLiteral4BitsCase(uint value, byte exp0, byte exp1, byte exp2, byte exp3, byte exp4)
+    private static void RawBytesFromWriteLiteral4BitsCase(uint value, byte exp0, byte exp1, byte exp2, byte exp3, byte exp4)
     {
         byte[] expected = [exp0, exp1, exp2, exp3, exp4];
         AssertRawBytesWritten(4, value, expected);
@@ -303,19 +303,19 @@ public class Av1EntropyTests
     {
         foreach (ITheoryDataRow row in GetRangeData(20))
         {
-            object?[] values = row.GetData();
-            this.RoundTripPartitionTypeCase((int)values[0]!);
+            object[] values = row.GetData();
+            RoundTripPartitionTypeCase((int)values[0]);
         }
 
         foreach (ITheoryDataRow row in GetSplitPartitionTypeData())
         {
-            object?[] values = row.GetData();
-            this.RoundTripSplitOrHorizontalPartitionTypeCase((int)values[0]!, (int)values[1]!);
-            this.RoundTripSplitOrVerticalPartitionTypeCase((int)values[0]!, (int)values[1]!);
+            object[] values = row.GetData();
+            RoundTripSplitOrHorizontalPartitionTypeCase((int)values[0], (int)values[1]);
+            RoundTripSplitOrVerticalPartitionTypeCase((int)values[0], (int)values[1]);
         }
     }
 
-    private void RoundTripPartitionTypeCase(int context)
+    private static void RoundTripPartitionTypeCase(int context)
     {
         // Assign
         Configuration configuration = Configuration.Default;
@@ -344,7 +344,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    private void RoundTripSplitOrHorizontalPartitionTypeCase(int size, int context)
+    private static void RoundTripSplitOrHorizontalPartitionTypeCase(int size, int context)
     {
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
@@ -374,7 +374,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    private void RoundTripSplitOrVerticalPartitionTypeCase(int size, int context)
+    private static void RoundTripSplitOrVerticalPartitionTypeCase(int size, int context)
     {
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
@@ -409,17 +409,17 @@ public class Av1EntropyTests
     {
         for (int context = 0; context < 3; context++)
         {
-            this.RoundTripSkipCase(context);
+            RoundTripSkipCase(context);
         }
 
         foreach (ITheoryDataRow row in GetTransformBlockSkipData())
         {
-            object?[] values = row.GetData();
-            this.RoundTripTransformBlockSkipCase((int)values[0]!, (int)values[1]!);
+            object[] values = row.GetData();
+            RoundTripTransformBlockSkipCase((int)values[0], (int)values[1]);
         }
     }
 
-    private void RoundTripSkipCase(int context)
+    private static void RoundTripSkipCase(int context)
     {
         // Assign
         Configuration configuration = Configuration.Default;
@@ -445,7 +445,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    private void RoundTripTransformBlockSkipCase(int transformContext, int skipContext)
+    private static void RoundTripTransformBlockSkipCase(int transformContext, int skipContext)
     {
         // Assign
         Av1TransformSize transformSizeContext = (Av1TransformSize)transformContext;
@@ -477,18 +477,18 @@ public class Av1EntropyTests
     {
         foreach (ITheoryDataRow row in GetTransformTypeData())
         {
-            object?[] values = row.GetData();
-            this.RoundTripTransformTypeCase((int)values[0]!, (int)values[1]!, (int)values[2]!);
+            object[] values = row.GetData();
+            RoundTripTransformTypeCase((int)values[0], (int)values[1], (int)values[2]);
         }
 
         foreach (ITheoryDataRow row in GetInterTransformTypeData())
         {
-            object?[] values = row.GetData();
-            this.RoundTripInterTransformTypeCase((int)values[0]!, (bool)values[1]!);
+            object[] values = row.GetData();
+            RoundTripInterTransformTypeCase((int)values[0], (bool)values[1]);
         }
     }
 
-    private void RoundTripTransformTypeCase(int txSizeContext, int intraMode, int intraDir)
+    private static void RoundTripTransformTypeCase(int txSizeContext, int intraMode, int intraDir)
     {
         // Assign
         Av1TransformSize transformSizeContext = (Av1TransformSize)txSizeContext;
@@ -523,7 +523,7 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    private void RoundTripInterTransformTypeCase(int txSize, bool useReducedTransformSet)
+    private static void RoundTripInterTransformTypeCase(int txSize, bool useReducedTransformSet)
     {
         Av1TransformSize transformSize = (Av1TransformSize)txSize;
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
@@ -619,11 +619,11 @@ public class Av1EntropyTests
     {
         for (int context = 0; context < 3; context++)
         {
-            this.RoundTripSegmentIdCase(context);
+            RoundTripSegmentIdCase(context);
         }
     }
 
-    private void RoundTripSegmentIdCase(int context)
+    private static void RoundTripSegmentIdCase(int context)
     {
         // Assign
         int[] values = [3, 6, 7, 0, 2, 0, 2, 1, 1];
@@ -681,12 +681,12 @@ public class Av1EntropyTests
     {
         foreach (ITheoryDataRow row in GetRangeData((int)Av1BlockSize.AllSizes))
         {
-            object?[] values = row.GetData();
-            this.RoundTripFilterIntraModeCase((int)values[0]!);
+            object[] values = row.GetData();
+            RoundTripFilterIntraModeCase((int)values[0]);
         }
     }
 
-    private void RoundTripFilterIntraModeCase(int bSize)
+    private static void RoundTripFilterIntraModeCase(int bSize)
     {
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)bSize;

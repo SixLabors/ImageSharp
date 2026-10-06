@@ -27,12 +27,12 @@ public class Av1CompoundBlockDecoderTests
     [Fact]
     public void InterChromaFromLumaIsStoredAfterBlock()
     {
-        this.InterChromaFromLumaIsStoredAfterBlockCase((int)Av1BitDepth.EightBit, (int)Av1ColorFormat.Yuv420, false);
-        this.InterChromaFromLumaIsStoredAfterBlockCase((int)Av1BitDepth.TenBit, (int)Av1ColorFormat.Yuv422, true);
-        this.InterChromaFromLumaIsStoredAfterBlockCase((int)Av1BitDepth.TwelveBit, (int)Av1ColorFormat.Yuv420, true);
+        InterChromaFromLumaIsStoredAfterBlockCase((int)Av1BitDepth.EightBit, (int)Av1ColorFormat.Yuv420, false);
+        InterChromaFromLumaIsStoredAfterBlockCase((int)Av1BitDepth.TenBit, (int)Av1ColorFormat.Yuv422, true);
+        InterChromaFromLumaIsStoredAfterBlockCase((int)Av1BitDepth.TwelveBit, (int)Av1ColorFormat.Yuv420, true);
     }
 
-    private void InterChromaFromLumaIsStoredAfterBlockCase(int bitDepthValue, int colorFormatValue, bool largeTransform)
+    private static void InterChromaFromLumaIsStoredAfterBlockCase(int bitDepthValue, int colorFormatValue, bool largeTransform)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
@@ -138,18 +138,18 @@ public class Av1CompoundBlockDecoderTests
     [Fact]
     public void DecodeBlockWithSelectableCompound()
     {
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.EightBit, (int)Av1CompoundType.DistanceWeighted);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TenBit, (int)Av1CompoundType.DistanceWeighted);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TwelveBit, (int)Av1CompoundType.DistanceWeighted);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.EightBit, (int)Av1CompoundType.Wedge);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TenBit, (int)Av1CompoundType.Wedge);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TwelveBit, (int)Av1CompoundType.Wedge);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.EightBit, (int)Av1CompoundType.DifferenceWeighted);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TenBit, (int)Av1CompoundType.DifferenceWeighted);
-        this.DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TwelveBit, (int)Av1CompoundType.DifferenceWeighted);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.EightBit, (int)Av1CompoundType.DistanceWeighted);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TenBit, (int)Av1CompoundType.DistanceWeighted);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TwelveBit, (int)Av1CompoundType.DistanceWeighted);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.EightBit, (int)Av1CompoundType.Wedge);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TenBit, (int)Av1CompoundType.Wedge);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TwelveBit, (int)Av1CompoundType.Wedge);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.EightBit, (int)Av1CompoundType.DifferenceWeighted);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TenBit, (int)Av1CompoundType.DifferenceWeighted);
+        DecodeBlockWithSelectableCompoundCase((int)Av1BitDepth.TwelveBit, (int)Av1CompoundType.DifferenceWeighted);
     }
 
-    private void DecodeBlockWithSelectableCompoundCase(int bitDepthValue, int compoundTypeValue)
+    private static void DecodeBlockWithSelectableCompoundCase(int bitDepthValue, int compoundTypeValue)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         Av1CompoundType compoundType = (Av1CompoundType)compoundTypeValue;

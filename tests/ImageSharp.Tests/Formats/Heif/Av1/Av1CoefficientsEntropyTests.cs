@@ -205,13 +205,13 @@ public class Av1CoefficientsEntropyTests
     {
         foreach (ITheoryDataRow row in GetTransformTypes())
         {
-            object?[] values = row.GetData();
-            this.RoundTripFullCoefficientsYSize4x4Case((int)values[0]!);
-            this.RoundTripFullCoefficientsUvSize4x4Case((int)values[0]!);
+            object[] values = row.GetData();
+            RoundTripFullCoefficientsYSize4x4Case((int)values[0]);
+            RoundTripFullCoefficientsUvSize4x4Case((int)values[0]);
         }
     }
 
-    private void RoundTripFullCoefficientsYSize4x4Case(int txType)
+    private static void RoundTripFullCoefficientsYSize4x4Case(int txType)
     {
         // Assign
         const ushort endOfBlock = 16;
@@ -224,7 +224,7 @@ public class Av1CoefficientsEntropyTests
         RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode, true, false);
     }
 
-    private void RoundTripFullCoefficientsUvSize4x4Case(int txType)
+    private static void RoundTripFullCoefficientsUvSize4x4Case(int txType)
     {
         // Assign
         const ushort endOfBlock = 16;

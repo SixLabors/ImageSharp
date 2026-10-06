@@ -6340,10 +6340,20 @@ internal static partial class Av1IntraSuperblockEncoder
                     filterBaseMode = bestMode;
                 }
 
+                // DC, with its filter intra trials, is the first mode of an inter frame. A luma cost above five
+                // quarters of the bound makes it invalid, so no luma winner remains, and stops the search unless
+                // the intra-in-inter pruning is off. Reference: the skip_intra_modes return of
+                // av1_handle_intra_y_mode(), whose result search_intra_modes_in_interframe() does not count, and its
+                // skip_intra_in_interframe break.
                 if (!intraFrame && index == filterStart + filterCount && dcStatistics.Cost != long.MaxValue &&
                     interCostLimit < long.MaxValue / 2 && dcStatistics.LumaCost > interCostLimit + (interCostLimit >> 2))
                 {
-                    break;
+                    bestStatistics = Av1RateDistortionStatistics.Invalid;
+                    this.lumaCandidateCount = 0;
+                    if (settings.IntraInInterPruningLevel != 0)
+                    {
+                        break;
+                    }
                 }
 
                 Av1PredictionMode mode;
@@ -6391,7 +6401,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         int adjusted = modeIndex - LumaModeSearchOrder.Length;
                         mode = (Av1PredictionMode)((int)Av1PredictionMode.Vertical + (adjusted / angles.Length));
                         angleDelta = angles[adjusted % angles.Length];
-                        if (settings.PruneOddIntraAngleDeltas &&
+
+                        // Only the intra frame search prunes odd deltas by cost; an inter frame only reorders them.
+                        // Reference: prune_luma_odd_delta_angles_using_rd_cost() in av1_rd_pick_intra_sby_mode(),
+                        // against set_y_mode_and_delta_angle() in search_intra_modes_in_interframe().
+                        if (intraFrame && settings.PruneOddIntraAngleDeltas &&
                             ShouldPruneOddAngleDelta(mode, angleDelta, directionalCosts, Math.Min(bestStatistics.Cost, interCostLimit)))
                         {
                             continue;
@@ -6419,6 +6433,27 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
+                    if (!intraFrame)
+                    {
+                        int knownRate = writer.GetInterFrameLumaModeCost(mode, blockSize) +
+                            writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) +
+                            writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
+
+                        // A mode whose known syntax already exceeds the bound is not searched, and the search stops
+                        // unless the intra-in-inter pruning is off. The test comes before the directional pruning.
+                        // Reference: the known_rd return at the start of av1_handle_intra_y_mode() and the
+                        // skip_intra_in_interframe break of search_intra_modes_in_interframe().
+                        if (Av1RateDistortion.GetCost(this.rateMultiplier, knownRate, 0) > interCostLimit)
+                        {
+                            if (settings.IntraInInterPruningLevel != 0)
+                            {
+                                break;
+                            }
+
+                            continue;
+                        }
+                    }
+
                     // An inter frame prunes directional modes only for a block that can code an angle delta; an intra
                     // frame prunes them for every block. Reference: the av1_use_angle_delta() test before
                     // prune_intra_mode_with_hog() in av1_handle_intra_y_mode(), against av1_rd_pick_intra_sby_mode().
@@ -6427,18 +6462,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         (directionalMask & (1 << ((int)mode - (int)Av1PredictionMode.Vertical))) != 0)
                     {
                         continue;
-                    }
-
-                    if (!intraFrame)
-                    {
-                        int knownRate = writer.GetInterFrameLumaModeCost(mode, blockSize) +
-                            writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) +
-                            writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
-
-                        if (Av1RateDistortion.GetCost(this.rateMultiplier, knownRate, 0) > interCostLimit)
-                        {
-                            break;
-                        }
                     }
                 }
 
@@ -6538,11 +6561,20 @@ internal static partial class Av1IntraSuperblockEncoder
                     directionalCosts[(direction * 7) + angleDelta + 3] = modeStatistics.Cost;
                 }
 
+                // A mode whose luma cost exceeds five quarters of the bound is not counted, and the search stops
+                // unless the intra-in-inter pruning is off. Reference: the skip_intra_modes return of
+                // av1_handle_intra_y_mode() and the skip_intra_in_interframe break of
+                // search_intra_modes_in_interframe().
                 if (!intraFrame && !filter && mode != Av1PredictionMode.DC &&
                     modeStatistics.Cost != long.MaxValue && interCostLimit < long.MaxValue / 2 &&
                     modeStatistics.LumaCost > interCostLimit + (interCostLimit >> 2))
                 {
-                    break;
+                    if (settings.IntraInInterPruningLevel != 0)
+                    {
+                        break;
+                    }
+
+                    continue;
                 }
 
                 if (mode == Av1PredictionMode.DC && (!filter || !intraFrame))

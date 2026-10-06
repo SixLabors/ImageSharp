@@ -8378,8 +8378,14 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             bool modelChroma = hasChroma && !winnerSearch && !settings.SkipInterpolationChromaModel;
-            int horizontalSkip = modelChroma ? 3 : 1;
-            int verticalSkip = horizontalSkip;
+
+            // The skip flags start from the frame's plane count and measure luma and the first chroma plane of every
+            // block, whether or not the block codes chroma. Reference: set_default_interp_skip_flags() and the
+            // plane loop of calc_interp_skip_pred_flag().
+            bool chromaPlanes = !this.source.IsMonochrome;
+            int defaultSkip = chromaPlanes ? 3 : 1;
+            int horizontalSkip = defaultSkip;
+            int verticalSkip = defaultSkip;
             const int interpolationExtension = 4;
             for (int referenceIndex = 0; referenceIndex < (compound ? 2 : 1); referenceIndex++)
             {
@@ -8393,13 +8399,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1MotionVector vector = referenceIndex == 0 ? primary : secondary;
-                for (int planeIndex = 0; planeIndex < (modelChroma ? 2 : 1); planeIndex++)
+                for (int planeIndex = 0; planeIndex < (chromaPlanes ? 2 : 1); planeIndex++)
                 {
                     int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                     int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
-                    Av1BlockSize planeSize = blockSize.GetSubsampled(subX != 0, subY != 0);
-                    int horizontalBorder = (interpolationExtension + planeSize.GetWidth()) << 4;
-                    int verticalBorder = (interpolationExtension + planeSize.GetHeight()) << 4;
+
+                    // The plane extent is the subsampled block extent, at least four samples. Reference: the
+                    // pd->width and pd->height that set_plane_n4() gives clamp_mv_to_umv_border_sb().
+                    int planeWidth = Math.Max(blockSize.GetWidth() >> subX, 4);
+                    int planeHeight = Math.Max(blockSize.GetHeight() >> subY, 4);
+                    int horizontalBorder = (interpolationExtension + planeWidth) << 4;
+                    int verticalBorder = (interpolationExtension + planeHeight) << 4;
 
                     // Once every tap lies outside an edge, border replication makes the fractional
                     // displacement irrelevant. Clamp in sixteenth-sample plane units before testing phase.
@@ -8425,7 +8435,23 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            int defaultSkip = modelChroma ? 3 : 1;
+            // A difference-weighted blend builds its mask during luma prediction, which chroma then reads, so luma is
+            // predicted for the vertical decision when only the horizontal one predicts. Reference: the
+            // COMPOUND_DIFFWTD test of calc_interp_skip_pred_flag().
+            if (compound && modeInfo.CompoundIndex && modeInfo.CompoundType == Av1CompoundType.DifferenceWeighted &&
+                horizontalSkip == 0 && verticalSkip == 1)
+            {
+                verticalSkip = 0;
+            }
+
+            // Chroma that the search does not model counts as skipped. Reference: the skip_model_rd_uv flags of
+            // calc_interp_skip_pred_flag(); a winner search models luma alone.
+            if (chromaPlanes && !modelChroma && (settings.SkipInterpolationChromaModel || winnerSearch))
+            {
+                horizontalSkip |= 2;
+                verticalSkip |= 2;
+            }
+
             bool horizontalPhase = horizontalSkip != defaultSkip;
             bool verticalPhase = verticalSkip != defaultSkip;
             int predictionSkip = horizontalSkip & verticalSkip;
@@ -8586,11 +8612,20 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     bestCost = trial.Cost;
-                    bestLumaSquaredError = trialLumaSquaredError;
                     modeInfo.HorizontalInterpolationFilter = (Av1InterpolationFilter)horizontal;
                     modeInfo.VerticalInterpolationFilter = (Av1InterpolationFilter)vertical;
                     filterRate = trialRate;
-                    trialPlaneStatistics[..].CopyTo(bestPlaneStatistics);
+
+                    // A win that skipped the chroma model keeps the earlier statistics, so the luma error that
+                    // pred_sse reads stays too. Reference: the rd_stats_luma and rd_stats updates of
+                    // interpolation_filter_rd(), made only for INTERP_EVAL_LUMA_EVAL_CHROMA and
+                    // INTERP_SKIP_LUMA_EVAL_CHROMA.
+                    if ((skipPlanes & 2) == 0)
+                    {
+                        bestLumaSquaredError = trialLumaSquaredError;
+                        trialPlaneStatistics[..].CopyTo(bestPlaneStatistics);
+                    }
+
                     if ((skipPlanes & 1) == 0)
                     {
                         Span<TSample> previousLuma = bestLuma;

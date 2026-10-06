@@ -2854,11 +2854,27 @@ internal static partial class Av1IntraSuperblockEncoder
             return pairListBuilt || (!this.IsSingleReferenceSkipped((int)first) && !this.IsSingleReferenceSkipped((int)second));
         }
 
+        /// <summary>
+        /// Prices the non-skip-mode symbol of the block winner and tries skip mode against it. Reference:
+        /// rd_pick_skip_mode().
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="macroBlock">The neighbor context of the block.</param>
+        /// <param name="blockOrigin">The luma origin of the block.</param>
+        /// <param name="skipModeContext">The skip mode symbol context.</param>
+        /// <param name="nonSkipModeStatistics">The cost of coding skip mode as off.</param>
+        /// <param name="modeInfo">The block decisions, updated when skip mode wins.</param>
+        /// <param name="block">The block coding state, updated when skip mode wins.</param>
+        /// <param name="selectedStatistics">The block winner, which receives the non-skip-mode cost and any skip mode win.</param>
+        /// <param name="selectedVector">The first vector of the winner.</param>
+        /// <param name="selectedSecondaryVector">The second vector of the winner.</param>
+        /// <param name="selectedStates">The transform states of the winner.</param>
         private void SelectSkipModeBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             int skipModeContext,
+            Av1RateDistortionStatistics nonSkipModeStatistics,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1RateDistortionStatistics selectedStatistics,
@@ -2885,6 +2901,30 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1MotionVector primaryVector = referenceMotionVectors.GetCompoundNearestReference(0);
             Av1MotionVector secondaryVector = referenceMotionVectors.GetCompoundNearestReference(1);
+
+            // Skip mode is not searched when its vectors fail the build_cur_mv() test, which only the second vector
+            // decides; see CompoundVectorsInFrameSearchBounds(). Reference: the build_cur_mv() return of
+            // rd_pick_skip_mode().
+            Av1PlaneRegion<TSample> boundsPlane = this.references.Span[(int)primaryReference].CodedView.GetPlane(Av1Plane.Y);
+            Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
+                new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
+                new Size(
+                    this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                    this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2),
+                Math.Min(boundsPlane.Bounds.X, boundsPlane.Bounds.Y));
+
+            if (!secondaryVector.IsInFrameSearchBounds(frameBounds))
+            {
+                return;
+            }
+
+            // The winner takes the cost of coding skip mode as off only once skip mode is tried. Reference: the
+            // skip_mode_cost[skip_mode_ctx][0] update of rd_pick_skip_mode().
+            if (selectedStatistics.Cost != long.MaxValue)
+            {
+                selectedStatistics.Add(this.rateMultiplier, nonSkipModeStatistics);
+            }
+
             Av1InterpolationFilter filter = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable
                 ? Av1InterpolationFilter.Regular
                 : frameHeader.InterpolationFilter;
@@ -5611,28 +5651,27 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether every component of a compound entry that does not search a new vector lies in the frame
-        /// displacement region. Reference: build_cur_mv(), which tests each such component with
-        /// clamp_and_check_mv().
+        /// Returns whether a compound entry may be searched, as libaom decides it. build_cur_mv() tests each component
+        /// that does not search a new vector with clamp_and_check_mv(), but each pass of its loop first assigns the
+        /// get_this_mv() result to the same flag, so the test of the first component is overwritten and only the
+        /// second component decides. A second component that searches a new vector leaves the entry valid. The
+        /// encoder keeps that behavior, because the entry set changes the coded decisions. Reference:
+        /// build_cur_mv().
         /// </summary>
         /// <param name="mode">The compound prediction mode.</param>
-        /// <param name="primary">The vector of the first reference.</param>
         /// <param name="secondary">The vector of the second reference.</param>
-        /// <param name="primaryModes">The single mode of the first component of each compound mode.</param>
         /// <param name="secondaryModes">The single mode of the second component of each compound mode.</param>
         /// <param name="frameBounds">The full-pixel frame displacement region of the block.</param>
         /// <returns><see langword="true"/> when the entry may be searched.</returns>
         private static bool CompoundVectorsInFrameSearchBounds(
             Av1PredictionMode mode,
-            Av1MotionVector primary,
             Av1MotionVector secondary,
-            ReadOnlySpan<Av1PredictionMode> primaryModes,
             ReadOnlySpan<Av1PredictionMode> secondaryModes,
             Rectangle frameBounds)
         {
+            // The first component's test does not survive the second pass of the build_cur_mv() loop.
             int modeIndex = (int)mode - (int)Av1PredictionMode.CompoundInterModeStart;
-            return (primaryModes[modeIndex] == Av1PredictionMode.NewMotionVector || primary.IsInFrameSearchBounds(frameBounds)) &&
-                (secondaryModes[modeIndex] == Av1PredictionMode.NewMotionVector || secondary.IsInFrameSearchBounds(frameBounds));
+            return secondaryModes[modeIndex] == Av1PredictionMode.NewMotionVector || secondary.IsInFrameSearchBounds(frameBounds);
         }
 
         /// <summary>
@@ -6202,8 +6241,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 continue;
                             }
 
-                            if (!CompoundVectorsInFrameSearchBounds(
-                                mode, primaryVectors[index], secondaryVectors[index], primaryModes, secondaryModes, frameBounds))
+                            if (!CompoundVectorsInFrameSearchBounds(mode, secondaryVectors[index], secondaryModes, frameBounds))
                             {
                                 candidateMask &= ~(1 << referenceIndices[index]);
                                 continue;
@@ -6273,8 +6311,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 if (rejectMode || (candidateMask & (1 << referenceIndices[candidateIndex])) == 0 ||
-                    !CompoundVectorsInFrameSearchBounds(
-                        mode, candidatePrimary, candidateSecondary, primaryModes, secondaryModes, frameBounds))
+                    !CompoundVectorsInFrameSearchBounds(mode, candidateSecondary, secondaryModes, frameBounds))
                 {
                     continue;
                 }

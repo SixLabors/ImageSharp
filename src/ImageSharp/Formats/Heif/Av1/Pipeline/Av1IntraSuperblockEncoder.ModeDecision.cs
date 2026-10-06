@@ -4448,21 +4448,25 @@ internal static partial class Av1IntraSuperblockEncoder
                     bool skipModeListsReady = this.HasSkipModeReferenceLists(
                         skipModeParameters.FirstReferenceFrame, skipModeParameters.SecondReferenceFrame);
 
-                    if (selectedStatistics.Cost != long.MaxValue && skipModeListsReady)
+                    byte availableReferences = this.picture.Parent.AvailableReferenceMask;
+                    bool searchesSkipMode = (availableReferences & (1 << (int)skipModeParameters.FirstReferenceFrame)) != 0 &&
+                        (availableReferences & (1 << (int)skipModeParameters.SecondReferenceFrame)) != 0 &&
+                        skipModeListsReady;
+
+                    // A searched skip mode prices the symbol itself, once its vectors pass the build_cur_mv() test.
+                    if (selectedStatistics.Cost != long.MaxValue && skipModeListsReady && !searchesSkipMode)
                     {
                         selectedStatistics.Add(this.rateMultiplier, syntaxStatistics);
                     }
 
-                    byte availableReferences = this.picture.Parent.AvailableReferenceMask;
-                    if ((availableReferences & (1 << (int)skipModeParameters.FirstReferenceFrame)) != 0 &&
-                        (availableReferences & (1 << (int)skipModeParameters.SecondReferenceFrame)) != 0 &&
-                        skipModeListsReady)
+                    if (searchesSkipMode)
                     {
                         this.SelectSkipModeBlock(
                             writer,
                             macroBlock,
                             blockOrigin,
                             skipModeContext,
+                            syntaxStatistics,
                             ref modeInfo,
                             ref block,
                             ref selectedStatistics,

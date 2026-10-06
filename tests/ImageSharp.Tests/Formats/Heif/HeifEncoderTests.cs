@@ -743,6 +743,9 @@ public class HeifEncoderTests
     }
 
     [Theory]
+    [InlineData(HeifEncodingSpeed.Level0, false)]
+    [InlineData(HeifEncodingSpeed.Level2, false)]
+    [InlineData(HeifEncodingSpeed.Level4, false)]
     [InlineData(HeifEncodingSpeed.Level6, false)]
     [InlineData(HeifEncodingSpeed.Level6, true)]
     [InlineData(HeifEncodingSpeed.Level9, true)]

@@ -232,6 +232,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// keeps when it resets best_rd and best_mode_index.
         /// </summary>
         private Av1RateDistortionStatistics leftoverInterEstimate;
+
+        /// <summary>
+        /// The luma cost that an intra mode of an inter frame must beat: the luma cost of the inter winner, or, after
+        /// the transform search of the retained candidates, the luma cost of the cheapest candidate that search
+        /// completed, even one above the block budget. Reference: best_inter_yrd in av1_rd_pick_inter_mode(), which
+        /// tx_search_best_inter_candidates() resets and sets from best_rd_in_this_partition, and the yrd_threshold of
+        /// search_intra_modes_in_interframe().
+        /// </summary>
+        private long interLumaThreshold;
         private int rateMultiplier;
         private int codedAreaLuma;
         private int codedAreaChroma;
@@ -4006,9 +4015,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     out lumaStatistics);
             }
 
-            // Chroma search is useful only after luma beats the selected inter predictor's luma cost.
-            // Empty luma residuals use the skip-symbol estimate for this gate; final intra syntax remains coded.
-            if (isInterFrame && lumaStatistics.LumaCost >= interStatistics.LumaCost)
+            // Chroma search is useful only after luma beats the inter luma cost: the winner's, or after the retained
+            // candidate search the cheapest completed candidate's, even above the budget. Empty luma residuals use
+            // the skip-symbol estimate for this gate; final intra syntax remains coded. Reference: the yrd_threshold
+            // test of search_intra_modes_in_interframe().
+            if (isInterFrame && lumaStatistics.LumaCost >= this.interLumaThreshold)
             {
                 lumaStatistics = Av1RateDistortionStatistics.Invalid;
             }

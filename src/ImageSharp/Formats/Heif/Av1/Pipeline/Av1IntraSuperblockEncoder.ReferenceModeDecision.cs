@@ -704,6 +704,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref selectedSecondaryVector,
                 ref selectedStates);
 
+            // The winner's luma cost gates the intra modes, unless the retained candidates are searched below.
+            this.interLumaThreshold = selectedStatistics.LumaCost;
             if (this.estimateInterCandidates)
             {
                 Av1RateDistortionStatistics bestEstimate = selectedStatistics;
@@ -716,7 +718,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref block,
                     out selectedVector,
                     out selectedSecondaryVector,
-                    out selectedStates);
+                    out selectedStates,
+                    out this.interLumaThreshold);
 
                 if (selectedStatistics.Cost == long.MaxValue)
                 {
@@ -1376,7 +1379,22 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Runs complete transform search on ranked predictions before publishing the inter winner.
+        /// Reference: tx_search_best_inter_candidates().
         /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="macroBlock">The neighbor context of the block.</param>
+        /// <param name="blockOrigin">The luma origin of the block.</param>
+        /// <param name="tileIndex">The tile of the block.</param>
+        /// <param name="modeInfo">The block decisions, which receive the winner.</param>
+        /// <param name="block">The block coding state, which receives the winner.</param>
+        /// <param name="selectedVector">The first vector of the winner.</param>
+        /// <param name="selectedSecondaryVector">The second vector of the winner.</param>
+        /// <param name="selectedStates">The transform states of the winner.</param>
+        /// <param name="lumaThreshold">
+        /// The luma cost of the cheapest candidate whose transform search completed, even one above the block budget,
+        /// or the maximum when none completed. Reference: the *yrd of best_rd_in_this_partition.
+        /// </param>
+        /// <returns>The winner, or invalid when no candidate is below the block budget.</returns>
         private Av1RateDistortionStatistics SearchRetainedInterCandidates(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -1386,16 +1404,15 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockStruct block,
             out Av1MotionVector selectedVector,
             out Av1MotionVector selectedSecondaryVector,
-            out InlineArray128<Av1EncoderTransformBlockState> selectedStates)
+            out InlineArray128<Av1EncoderTransformBlockState> selectedStates,
+            out long lumaThreshold)
         {
+            lumaThreshold = long.MaxValue;
+            long bestPartitionCost = long.MaxValue;
             this.estimateInterCandidates = false;
             this.searchingRetainedCandidates = true;
             Span<Av1InterModeCandidate> candidates = this.blockWorkspace.InterModeCandidates[..this.interCandidateCount];
             candidates.Sort();
-            for (int zk = 0; zk < candidates.Length; zk++)
-            {
-            }
-
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             int candidateCount = Math.Min(candidates.Length, settings.MaximumInterTransformCandidates);
             long firstEstimate = candidateCount == 0 ? long.MaxValue : candidates[0].EstimatedCost;
@@ -1523,6 +1540,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (statistics.Cost == long.MaxValue)
                 {
                     continue;
+                }
+
+                // Every completed search competes for the intra threshold, whether or not it fits the budget.
+                if (statistics.Cost < bestPartitionCost)
+                {
+                    bestPartitionCost = statistics.Cost;
+                    lumaThreshold = statistics.LumaCost;
                 }
 
                 if (statistics.Cost < Math.Min(this.blockCostLimit, selected.Cost))

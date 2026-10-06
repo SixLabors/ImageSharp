@@ -6287,10 +6287,22 @@ internal static partial class Av1IntraSuperblockEncoder
                             if (modelTranslation &&
                                 Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + translationModeRate, 0) <= modeCostLimit)
                             {
+                                // The model predicts a new-vector component from the raw stack entry at the signaled
+                                // index, not from a searched vector. Reference: the NEWMV branch of build_cur_mv(),
+                                // which simple_translation_pred_rd() calls.
+                                int componentModeIndex = (int)mode - (int)Av1PredictionMode.CompoundInterModeStart;
+                                Av1MotionVector translationPrimary = primaryModes[componentModeIndex] == Av1PredictionMode.NewMotionVector
+                                    ? referenceMotionVectors.GetCompoundNewReference(referenceIndices[index], 0)
+                                    : primaryVectors[index];
+
+                                Av1MotionVector translationSecondary = secondaryModes[componentModeIndex] == Av1PredictionMode.NewMotionVector
+                                    ? referenceMotionVectors.GetCompoundNewReference(referenceIndices[index], 1)
+                                    : secondaryVectors[index];
+
                                 long translationLumaSquaredError = 0;
                                 Av1RateDistortionStatistics estimate = this.GetInterFilterModelCost(
-                                    primaryVectors[index],
-                                    secondaryVectors[index],
+                                    translationPrimary,
+                                    translationSecondary,
                                     prediction,
                                     blockOrigin,
                                     blockSize,
@@ -8446,10 +8458,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1InterpolationFilter initialFilter = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable
                 ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter;
 
-            int regularRate = writesFilters
-                ? writer.GetSwitchableInterpolationFilterCost(initialFilter, verticalContext) +
-                    (dual ? writer.GetSwitchableInterpolationFilterCost(initialFilter, horizontalContext) : 0)
-                : 0;
+            // The default filter's model prices its switchable syntax even when the block codes none, because the
+            // rate is taken before the search learns that no filter is needed. The coded rate stays zero then.
+            // Reference: the *switchable_rate = get_switchable_rate() call ahead of the need_search return of
+            // av1_interpolation_filter_search(), against the av1_is_interp_needed() rate of motion_mode_rd().
+            int searchRate = writer.GetSwitchableInterpolationFilterCost(initialFilter, verticalContext) +
+                (dual ? writer.GetSwitchableInterpolationFilterCost(initialFilter, horizontalContext) : 0);
+
+            int regularRate = writesFilters ? searchRate : 0;
 
             InlineArray4<Av1RateDistortionStatistics> bestPlaneStatistics = default;
             InlineArray4<Av1RateDistortionStatistics> trialPlaneStatistics = default;
@@ -8472,7 +8488,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modelChroma,
                 initialFilter,
                 initialFilter,
-                regularRate,
+                searchRate,
                 long.MaxValue,
                 100,
                 0,

@@ -7190,11 +7190,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     // A mask changes which samples each reference contributes, so the vectors that
                     // suited an average are no longer the best pair. Only a mode that codes its own
                     // vectors can be refined, and the speed settings decide whether the refinement
-                    // is worth its cost for this blend.
+                    // is worth its cost for this blend. An average or distance blend refines unless the speed
+                    // keeps refinement for NEW_NEWMV only. Reference: skip_mv_refinement_for_avg_distwtd in
+                    // av1_compound_type_rd().
                     Av1MotionVector trialPrimary = initialPrimary;
                     Av1MotionVector trialSecondary = initialSecondary;
-                    bool refine = hasNew && (isWedge ? settings.RefineWedgeMotion : isMasked ? !modelMask :
-                        settings.CompoundMotionSearchLevel < 2 || mode == Av1PredictionMode.NewNewMotionVector);
+                    bool refinesUnmasked = settings.CompoundMotionSearchLevel < 2 || mode == Av1PredictionMode.NewNewMotionVector;
+                    bool refine = hasNew && (isWedge ? settings.RefineWedgeMotion : isMasked ? !modelMask : refinesUnmasked);
 
                     if (isWedge)
                     {
@@ -7319,11 +7321,20 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    // A kept wedge is estimated without a bound. Reference: the INT64_MAX bound of the
-                    // estimate_yrd_for_sb() call in the wedge reuse branch of av1_compound_type_rd().
+                    // A kept wedge is estimated without a bound, and a searched wedge against the best of its type
+                    // and the block. A difference blend searched without the model is bounded by the block's best.
+                    // An average or distance blend is estimated without a bound when its vectors may be refined,
+                    // whether or not the mode codes a new vector; otherwise its bound drops the whole mode syntax.
+                    // A modeled masked blend's bound drops only its type and vector syntax. Reference: the
+                    // estimate_yrd_for_sb() bounds of av1_compound_type_rd(), whose COMPOUND_DIFFWTD search branch
+                    // passes ref_best_rd and whose skip_mv_refinement_for_avg_distwtd branch subtracts
+                    // RDCOST(rs2 + rd_stats->rate), and of masked_compound_type_rd(), which subtracts
+                    // RDCOST(*rs2 + *out_rate_mv).
                     long residualBound = isWedge && !modelMask && reuseMask ? long.MaxValue :
                         isWedge && !modelMask ? Math.Min(typeEstimate, currentBest) :
-                        refine && !isMasked ? long.MaxValue :
+                        isMasked && !modelMask ? currentBest :
+                        !isMasked && refinesUnmasked ? long.MaxValue :
+                        !isMasked ? Math.Min(bestEstimate, threshold) - Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + totalModeRate, 0) :
                         Math.Min(bestEstimate, threshold) - Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + motionRate, 0);
 
                     long estimate;

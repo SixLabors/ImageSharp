@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -81,7 +82,71 @@ public static class VonKriesChromaticAdaptation
 
         Vector3 vector = targetWhitePointLms / sourceWhitePointLms;
 
-        for (nuint i = 0; i < (uint)count; i++)
+        int i = 0;
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<CieXyz, Vector3>(source);
+        ReadOnlySpan<float> components = MemoryMarshal.Cast<CieXyz, float>(source);
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> ratioX = Vector512.Create(vector.X);
+            Vector512<float> ratioY = Vector512.Create(vector.Y);
+            Vector512<float> ratioZ = Vector512.Create(vector.Z);
+            nuint vectorCount = components.Vector512Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
+            {
+                // Each complete group applies the configured adaptation matrix, LMS white-point scaling, then its inverse without clipping.
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
+                SimdUtils.Transform3(in matrix, x, y, z, out Vector512<float> l, out Vector512<float> m, out Vector512<float> s);
+                l *= ratioX;
+                m *= ratioY;
+                s *= ratioZ;
+                SimdUtils.Transform3(in inverseMatrix, l, m, s, out Vector512<float> adaptedX, out Vector512<float> adaptedY, out Vector512<float> adaptedZ);
+                SimdUtils.Interleave3(adaptedX, adaptedY, adaptedZ, ref Unsafe.As<CieXyz, float>(ref Unsafe.Add(ref destinationBase, i)));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> ratioX = Vector256.Create(vector.X);
+            Vector256<float> ratioY = Vector256.Create(vector.Y);
+            Vector256<float> ratioZ = Vector256.Create(vector.Z);
+            nuint vectorCount = components[(i * 3)..].Vector256Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
+            {
+                // Remaining eight-pixel groups preserve the same separate PCS stages and source order.
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
+                SimdUtils.Transform3(in matrix, x, y, z, out Vector256<float> l, out Vector256<float> m, out Vector256<float> s);
+                l *= ratioX;
+                m *= ratioY;
+                s *= ratioZ;
+                SimdUtils.Transform3(in inverseMatrix, l, m, s, out Vector256<float> adaptedX, out Vector256<float> adaptedY, out Vector256<float> adaptedZ);
+                SimdUtils.Interleave3(adaptedX, adaptedY, adaptedZ, ref Unsafe.As<CieXyz, float>(ref Unsafe.Add(ref destinationBase, i)));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> ratioX = Vector128.Create(vector.X);
+            Vector128<float> ratioY = Vector128.Create(vector.Y);
+            Vector128<float> ratioZ = Vector128.Create(vector.Z);
+            nuint vectorCount = components[(i * 3)..].Vector128Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
+            {
+                // Each transform remains a separate PCS stage, preserving the scalar adaptation order and unclipped range.
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
+                SimdUtils.Transform3(in matrix, x, y, z, out Vector128<float> l, out Vector128<float> m, out Vector128<float> s);
+                l *= ratioX;
+                m *= ratioY;
+                s *= ratioZ;
+                SimdUtils.Transform3(in inverseMatrix, l, m, s, out Vector128<float> adaptedX, out Vector128<float> adaptedY, out Vector128<float> adaptedZ);
+                SimdUtils.Interleave3(adaptedX, adaptedY, adaptedZ, ref Unsafe.As<CieXyz, float>(ref Unsafe.Add(ref destinationBase, i)));
+            }
+        }
+
+        for (; i < count; i++)
         {
             ref CieXyz sp = ref Unsafe.Add(ref sourceBase, i);
             ref CieXyz dp = ref Unsafe.Add(ref destinationBase, i);

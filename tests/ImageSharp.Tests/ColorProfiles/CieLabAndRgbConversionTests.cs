@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
@@ -66,6 +67,37 @@ public class CieLabAndRgbConversionTests
         for (int i = 0; i < actualSpan.Length; i++)
         {
             Assert.Equal(expected, actualSpan[i], Comparer);
+        }
+    }
+
+    /// <summary>
+    /// Verifies mixed Lab samples through vector groups and a scalar tail with configured white and RGB space.
+    /// </summary>
+    [Fact]
+    public void Convert_CieLab_to_Rgb_BulkMatchesScalarWithCustomOptions() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCieLabBulkWithCustomOptions, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Compares the mixed Lab row after disabled SIMD features are selected in separate processes before JIT compilation.
+    /// </summary>
+    private static void RunCieLabBulkWithCustomOptions()
+    {
+        CieLab[] source = new CieLab[31];
+        Rgb[] destination = new Rgb[source.Length];
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb };
+        ColorProfileConverter converter = new(options);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            // The range crosses Lab's linear/cubic threshold and both signed chroma axes.
+            source[i] = new CieLab(i * 6.25F, (i * 17F) - 136F, 128F - (i * 13F));
+        }
+
+        converter.Convert<CieLab, Rgb>(source, destination);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgb expected = converter.Convert<CieLab, Rgb>(source[i]);
+            Assert.Equal(expected, destination[i], Comparer);
         }
     }
 }

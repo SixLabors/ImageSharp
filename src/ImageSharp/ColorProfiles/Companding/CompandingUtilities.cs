@@ -28,7 +28,10 @@ public static class CompandingUtilities
     /// <param name="modifier">A modifier to pass to the function.</param>
     /// <returns>The <see cref="float"/> array.</returns>
     public static float[] GetCompressLookupTable<T>(Func<double, double, double> compandingFunction, double modifier = 0)
-        => CompressLookupTables.GetOrAdd((typeof(T), modifier), args => CreateLookupTableImpl(compandingFunction, args.Item2));
+    {
+        // The static factory receives the function only on a cache miss, avoiding a closure for each lookup hit.
+        return CompressLookupTables.GetOrAdd((typeof(T), modifier), static (args, function) => CreateLookupTableImpl(function, args.Item2), compandingFunction);
+    }
 
     /// <summary>
     /// Lazily creates and stores a companding expanding lookup table using the given function and modifier.
@@ -38,7 +41,10 @@ public static class CompandingUtilities
     /// <param name="modifier">A modifier to pass to the function.</param>
     /// <returns>The <see cref="float"/> array.</returns>
     public static float[] GetExpandLookupTable<T>(Func<double, double, double> compandingFunction, double modifier = 0)
-        => ExpandLookupTables.GetOrAdd((typeof(T), modifier), args => CreateLookupTableImpl(compandingFunction, args.Item2));
+    {
+        // The static factory receives the function only on a cache miss, avoiding a closure for each lookup hit.
+        return ExpandLookupTables.GetOrAdd((typeof(T), modifier), static (args, function) => CreateLookupTableImpl(function, args.Item2), compandingFunction);
+    }
 
     /// <summary>
     /// Creates a companding lookup table using the given function.

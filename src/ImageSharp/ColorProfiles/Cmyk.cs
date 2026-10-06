@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -169,8 +170,74 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <inheritdoc/>
     public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Cmyk> source, Span<Rgb> destination)
     {
-        // TODO: We can possibly optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        int i = 0;
+        ReadOnlySpan<Vector4> packed = MemoryMarshal.Cast<Cmyk, Vector4>(source);
+        ReadOnlySpan<float> components = MemoryMarshal.Cast<Cmyk, float>(source);
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> one = Vector512.Create(1F);
+
+            // Four packed component registers contain sixteen complete CMYK pixels.
+            nuint vectorCount = components.Vector512Count<float>() / 4;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
+            {
+                SimdUtils.Deinterleave4(packed, i, out Vector512<float> c, out Vector512<float> m, out Vector512<float> y, out Vector512<float> k);
+
+                // Keep the scalar subtraction before multiplication and leave the RGB range unclipped.
+                Vector512<float> factor = one - k;
+                Vector512<float> r = (one - c) * factor;
+                Vector512<float> g = (one - m) * factor;
+                Vector512<float> b = (one - y) * factor;
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> one = Vector256.Create(1F);
+
+            // Four packed component registers contain eight complete CMYK pixels.
+            nuint vectorCount = components[(i * 4)..].Vector256Count<float>() / 4;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
+            {
+                SimdUtils.Deinterleave4(packed, i, out Vector256<float> c, out Vector256<float> m, out Vector256<float> y, out Vector256<float> k);
+                Vector256<float> factor = one - k;
+                Vector256<float> r = (one - c) * factor;
+                Vector256<float> g = (one - m) * factor;
+                Vector256<float> b = (one - y) * factor;
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> one = Vector128.Create(1F);
+
+            // Four packed component registers contain four complete CMYK pixels.
+            nuint vectorCount = components[(i * 4)..].Vector128Count<float>() / 4;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
+            {
+                // Four CMYK pixels transpose into channel lanes so the scalar (1 - channel) * (1 - K) order is preserved.
+                Vector128<float> pixel0 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i]));
+                Vector128<float> pixel1 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 1]));
+                Vector128<float> pixel2 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 2]));
+                Vector128<float> pixel3 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 3]));
+                SimdUtils.Transpose4(pixel0, pixel1, pixel2, pixel3, out Vector128<float> c, out Vector128<float> m, out Vector128<float> y, out Vector128<float> k);
+                Vector128<float> factor = one - k;
+                Vector128<float> r = (one - c) * factor;
+                Vector128<float> g = (one - m) * factor;
+                Vector128<float> b = (one - y) * factor;
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        for (; i < source.Length; i++)
         {
             destination[i] = source[i].ToProfileConnectingSpace(options);
         }

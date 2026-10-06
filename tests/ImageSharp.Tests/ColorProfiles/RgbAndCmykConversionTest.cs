@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
@@ -73,6 +74,36 @@ public class RgbAndCmykConversionTest
         for (int i = 0; i < actualSpan.Length; i++)
         {
             Assert.Equal(expected, actualSpan[i], Comparer);
+        }
+    }
+
+    /// <summary>
+    /// Verifies mixed CMYK samples through all RGB and XYZ profile stages with configured working spaces.
+    /// </summary>
+    [Fact]
+    public void Convert_Cmyk_To_Rgb_BulkMatchesScalarWithCustomWorkingSpaces() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCmykBulkWithCustomWorkingSpaces, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Compares the mixed CMYK row after disabled SIMD features are selected in separate processes before JIT compilation.
+    /// </summary>
+    private static void RunCmykBulkWithCustomWorkingSpaces()
+    {
+        Cmyk[] source = new Cmyk[31];
+        Rgb[] destination = new Rgb[source.Length];
+        ColorConversionOptions options = new() { SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorProfileConverter converter = new(options);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = new Cmyk(((i * 13) % 17) / 16F, ((i * 7) % 17) / 16F, ((i * 11) % 17) / 16F, ((i * 5) % 17) / 16F);
+        }
+
+        converter.Convert<Cmyk, Rgb>(source, destination);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgb expected = converter.Convert<Cmyk, Rgb>(source[i]);
+            Assert.Equal(expected, destination[i], Comparer);
         }
     }
 }

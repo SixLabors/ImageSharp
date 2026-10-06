@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
@@ -15,6 +17,48 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 public class RgbAndCieXyzConversionTest
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0001F);
+
+    /// <summary>
+    /// Verifies mixed RGB/XYZ values through wide groups and tails using the selected working space.
+    /// </summary>
+    [Theory]
+    [InlineData(16)]
+    [InlineData(31)]
+    public void BulkRgbAndXyzConversionSupportsMixedInPlaceValues(int count) => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMixedRgbAndXyzConversion, count, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Compares aliased RGB/XYZ rows after disabled SIMD features are selected in separate processes before JIT compilation.
+    /// </summary>
+    /// <param name="serialized">The serialized row length.</param>
+    private static void RunMixedRgbAndXyzConversion(string serialized)
+    {
+        int count = FeatureTestRunner.Deserialize<int>(serialized);
+        ColorConversionOptions options = new() { SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb };
+        Rgb[] rgbSource = new Rgb[count];
+        CieXyz[] xyzSource = new CieXyz[count];
+        CieXyz[] xyzExpected = new CieXyz[count];
+        Rgb[] rgbExpected = new Rgb[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            rgbSource[i] = new Rgb((i * .023F) + .04F, (i * .017F) + .08F, (i * .029F) + .02F);
+            xyzSource[i] = new CieXyz((i * .031F) + .02F, (i * .027F) + .03F, (i * .019F) + .05F);
+            xyzExpected[i] = rgbSource[i].ToProfileConnectingSpace(options);
+            rgbExpected[i] = Rgb.FromProfileConnectingSpace(options, in xyzSource[i]);
+        }
+
+        // Both three-float color types alias their input arrays, exposing lane-order and group-boundary mistakes.
+        Span<CieXyz> actualXyz = MemoryMarshal.Cast<Rgb, CieXyz>(rgbSource.AsSpan());
+        Rgb.ToProfileConnectionSpace(options, rgbSource, actualXyz);
+        Span<Rgb> actualRgb = MemoryMarshal.Cast<CieXyz, Rgb>(xyzSource.AsSpan());
+        Rgb.FromProfileConnectionSpace(options, xyzSource, actualRgb);
+
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(xyzExpected[i], actualXyz[i], Comparer);
+            Assert.Equal(rgbExpected[i], actualRgb[i], Comparer);
+        }
+    }
 
     [Theory]
     [InlineData(0.96422, 1.00000, 0.82521, 1, 1, 1)]

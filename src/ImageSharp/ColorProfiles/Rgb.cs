@@ -282,12 +282,69 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
         Matrix4x4 matrix = GetCieXyzToRgbMatrix(options.TargetRgbWorkingSpace);
-        for (int i = 0; i < source.Length; i++)
+        InlineArray16<Vector4> buffer = default;
+        Span<Vector4> vectors = buffer;
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<CieXyz, Vector3>(source);
+
+        for (int offset = 0; offset < source.Length; offset += 16)
         {
-            // Convert to linear rgb then compress.
-            Rgb linear = new(Vector3.Transform(source[i].AsVector3Unsafe(), matrix));
-            Vector4 nonlinear = options.TargetRgbWorkingSpace.Compress(linear.ToScaledVector4());
-            destination[i] = FromScaledVector4(nonlinear);
+            int count = Math.Min(16, source.Length - offset);
+            Span<Vector4> block = vectors[..count];
+            int i = 0;
+            ReadOnlySpan<float> components = MemoryMarshal.Cast<CieXyz, float>(source.Slice(offset, count));
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                nuint vectorCount = components.Vector512Count<float>() / 3;
+
+                for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
+                {
+                    // Sixteen packed XYZ triples become sixteen linear RGB vectors with opaque fourth lanes.
+                    SimdUtils.Deinterleave3(packed, offset + i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
+                    SimdUtils.Transform3(in matrix, x, y, z, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
+                    SimdUtils.Interleave4(r, g, b, Vector512.Create(1F), ref Unsafe.As<Vector4, float>(ref block[i]));
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                nuint vectorCount = components[(i * 3)..].Vector256Count<float>() / 3;
+
+                for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
+                {
+                    // The eight-pixel remainder uses the same matrix and leaves alpha opaque for companding.
+                    SimdUtils.Deinterleave3(packed, offset + i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
+                    SimdUtils.Transform3(in matrix, x, y, z, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
+                    SimdUtils.Interleave4(r, g, b, Vector256.Create(1F), ref Unsafe.As<Vector4, float>(ref block[i]));
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                nuint vectorCount = components[(i * 3)..].Vector128Count<float>() / 3;
+
+                for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
+                {
+                    SimdUtils.Deinterleave3(packed, offset + i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
+                    SimdUtils.Transform3(in matrix, x, y, z, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
+
+                    // Transpose the linear channels into the existing working-space Vector4 span contract.
+                    SimdUtils.Transpose4(r, g, b, Vector128.Create(1F), out Vector128<float> pixel0, out Vector128<float> pixel1, out Vector128<float> pixel2, out Vector128<float> pixel3);
+                    ref Vector128<float> target = ref Unsafe.As<Vector4, Vector128<float>>(ref block[i]);
+                    target = pixel0;
+                    Unsafe.Add(ref target, 1) = pixel1;
+                    Unsafe.Add(ref target, 2) = pixel2;
+                    Unsafe.Add(ref target, 3) = pixel3;
+                }
+            }
+
+            for (; i < count; i++)
+            {
+                block[i] = new Vector4(Vector3.Transform(source[offset + i].AsVector3Unsafe(), matrix), 1F);
+            }
+
+            options.TargetRgbWorkingSpace.Compress(block);
+            FromScaledVector4(block, destination.Slice(offset, count));
         }
     }
 
@@ -307,15 +364,63 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
         Matrix4x4 matrix = GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace);
-        for (int i = 0; i < source.Length; i++)
+        InlineArray16<Vector4> buffer = default;
+        Span<Vector4> vectors = buffer;
+
+        for (int offset = 0; offset < source.Length; offset += 16)
         {
-            Rgb rgb = source[i];
+            int count = Math.Min(16, source.Length - offset);
+            Span<Vector4> block = vectors[..count];
 
-            // First expand to linear rgb
-            Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(rgb.ToScaledVector4()));
+            // The working space owns companding for all supported transfer functions and RGB ranges.
+            ToScaledVector4(source.Slice(offset, count), block);
+            options.SourceRgbWorkingSpace.Expand(block);
+            int i = 0;
+            ReadOnlySpan<float> components = MemoryMarshal.Cast<Vector4, float>(block);
 
-            // Then convert to xyz
-            destination[i] = new CieXyz(Vector3.Transform(linear.AsVector3Unsafe(), matrix));
+            if (Vector512.IsHardwareAccelerated)
+            {
+                nuint vectorCount = components.Vector512Count<float>() / 4;
+
+                for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
+                {
+                    // The working-space buffer is RGBA; the fourth lane is ignored after full-group deinterleave.
+                    SimdUtils.Deinterleave4(block, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b, out _);
+                    SimdUtils.Transform3(in matrix, r, g, b, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
+                    SimdUtils.Interleave3(x, y, z, ref Unsafe.As<CieXyz, float>(ref destination[offset + i]));
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                nuint vectorCount = components[(i * 4)..].Vector256Count<float>() / 4;
+
+                for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
+                {
+                    // Eight-pixel groups keep matrix arithmetic wide while storing exactly eight XYZ triples.
+                    SimdUtils.Deinterleave4(block, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b, out _);
+                    SimdUtils.Transform3(in matrix, r, g, b, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
+                    SimdUtils.Interleave3(x, y, z, ref Unsafe.As<CieXyz, float>(ref destination[offset + i]));
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                nuint vectorCount = components[(i * 4)..].Vector128Count<float>() / 4;
+
+                for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
+                {
+                    ref Vector128<float> first = ref Unsafe.As<Vector4, Vector128<float>>(ref block[i]);
+                    SimdUtils.Transpose4(first, Unsafe.Add(ref first, 1), Unsafe.Add(ref first, 2), Unsafe.Add(ref first, 3), out Vector128<float> r, out Vector128<float> g, out Vector128<float> b, out _);
+                    SimdUtils.Transform3(in matrix, r, g, b, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
+                    SimdUtils.Interleave3(x, y, z, ref Unsafe.As<CieXyz, float>(ref destination[offset + i]));
+                }
+            }
+
+            for (; i < count; i++)
+            {
+                destination[offset + i] = new CieXyz(Vector3.Transform(block[i].AsVector3(), matrix));
+            }
         }
     }
 
@@ -371,6 +476,11 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 
     internal Vector3 AsVector3Unsafe() => Unsafe.As<Rgb, Vector3>(ref Unsafe.AsRef(in this));
 
+    /// <summary>
+    /// Gets the XYZ-to-RGB matrix for the supplied working-space primaries and white point.
+    /// </summary>
+    /// <param name="workingSpace">The destination RGB working space.</param>
+    /// <returns>The XYZ-to-RGB matrix.</returns>
     private static Matrix4x4 GetCieXyzToRgbMatrix(RgbWorkingSpace workingSpace)
     {
         Matrix4x4 matrix = GetRgbToCieXyzMatrix(workingSpace);
@@ -378,6 +488,11 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         return inverseMatrix;
     }
 
+    /// <summary>
+    /// Gets the RGB-to-XYZ matrix for the supplied working-space primaries and white point.
+    /// </summary>
+    /// <param name="workingSpace">The source RGB working space.</param>
+    /// <returns>The RGB-to-XYZ matrix.</returns>
     private static Matrix4x4 GetRgbToCieXyzMatrix(RgbWorkingSpace workingSpace)
     {
         DebugGuard.NotNull(workingSpace, nameof(workingSpace));

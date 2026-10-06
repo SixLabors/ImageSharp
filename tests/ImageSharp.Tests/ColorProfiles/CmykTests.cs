@@ -42,4 +42,17 @@ public class CmykTests
         Assert.False(x.Equals((object)y));
         Assert.False(x.GetHashCode().Equals(y.GetHashCode()));
     }
+
+    /// <summary>
+    /// Verifies that bulk conversion rejects a destination shorter than the source.
+    /// </summary>
+    [Fact]
+    public void BulkConversionRejectsShortDestination()
+    {
+        Cmyk[] source = new Cmyk[4];
+        Rgb[] destination = new Rgb[3];
+        ColorConversionOptions options = new();
+
+        Assert.Throws<ArgumentException>(() => Cmyk.ToProfileConnectionSpace(options, source, destination));
+    }
 }

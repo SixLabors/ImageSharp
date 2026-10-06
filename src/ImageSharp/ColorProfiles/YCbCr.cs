@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -164,8 +165,61 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // TODO: We can optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        Matrix4x4 matrix = options.TransposedYCbCrTransform.Inverse;
+        Vector3 offset = options.TransposedYCbCrTransform.Offset;
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<YCbCr, Vector3>(source);
+        ReadOnlySpan<float> components = MemoryMarshal.Cast<YCbCr, float>(source);
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> offsetY = Vector512.Create(offset.X);
+            Vector512<float> offsetCb = Vector512.Create(offset.Y);
+            Vector512<float> offsetCr = Vector512.Create(offset.Z);
+            nuint vectorCount = components.Vector512Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
+            {
+                // Each complete group supplies sixteen packed triples; load all channels before the aliased RGB store.
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr);
+                SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> offsetY = Vector256.Create(offset.X);
+            Vector256<float> offsetCb = Vector256.Create(offset.Y);
+            Vector256<float> offsetCr = Vector256.Create(offset.Z);
+            nuint vectorCount = components[(i * 3)..].Vector256Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
+            {
+                // The remaining complete eight-pixel groups use the same configured offset and matrix.
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr);
+                SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> offsetY = Vector128.Create(offset.X);
+            Vector128<float> offsetCb = Vector128.Create(offset.Y);
+            Vector128<float> offsetCr = Vector128.Create(offset.Z);
+            nuint vectorCount = components[(i * 3)..].Vector128Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
+            {
+                // Four-pixel groups and the scalar tail retain the same configured offset and inverse transform.
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr);
+                SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        for (; i < source.Length; i++)
         {
             destination[i] = source[i].ToProfileConnectingSpace(options);
         }

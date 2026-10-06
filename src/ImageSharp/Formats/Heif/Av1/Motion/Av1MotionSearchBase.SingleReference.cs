@@ -137,6 +137,7 @@ internal static partial class Av1MotionSearchBase
     /// <returns>The value in full samples.</returns>
     private static int RoundToFullSample(int value) => (value + 3 + (value >= 0 ? 1 : 0)) >> 3;
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
     /// Orders starting candidates by decreasing weight with the C library qsort of the x64 reference build, which links
     /// the Microsoft C runtime; its order of equal weights is the order this reproduces. A range of up to eight entries
@@ -296,6 +297,7 @@ internal static partial class Av1MotionSearchBase
             high = highStack[stackPointer];
         }
     }
+#pragma warning restore CA1517
 
     /// <summary>
     /// Compares two starting candidates so that a heavier candidate orders first. Reference: compare_weight().

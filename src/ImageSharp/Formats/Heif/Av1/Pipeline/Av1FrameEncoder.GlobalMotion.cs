@@ -198,6 +198,7 @@ internal static partial class Av1FrameEncoder
             order < slotDisplayOrders[(int)slots[(int)Av1ReferenceFrameType.Last - 1]];
     }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
     /// Sorts references by distance, nearest first. The reference encoder sorts with the C library qsort, and the x64
     /// reference build is linked with the Microsoft C runtime, whose qsort sorts a list of up to eight entries by
@@ -224,6 +225,7 @@ internal static partial class Av1FrameEncoder
             (distances[largest], distances[high]) = (distances[high], distances[largest]);
         }
     }
+#pragma warning restore CA1517
 
     /// <summary>
     /// Fits the models of each searched family to one reference and keeps the one whose warped error is the smallest

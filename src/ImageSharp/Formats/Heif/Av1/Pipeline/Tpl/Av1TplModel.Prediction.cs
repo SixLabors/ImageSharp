@@ -528,7 +528,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// Writes the shared corner before both edges: the reconstructed corner, else the first sample of the available
     /// edge, else the midpoint. Reference: the need_above_left step of the intra edge builders.
     /// </summary>
-    private void SetCorner(Span<TSample> samples, int aboveIndex, int leftIndex, int topCount, int leftCount, int baseValue)
+    private void SetCorner(ReadOnlySpan<TSample> samples, int aboveIndex, int leftIndex, int topCount, int leftCount, int baseValue)
     {
         TSample corner = topCount > 0 && leftCount > 0
             ? samples[aboveIndex - 1]

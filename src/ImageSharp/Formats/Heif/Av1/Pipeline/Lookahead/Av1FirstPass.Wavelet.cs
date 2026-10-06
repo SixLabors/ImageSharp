@@ -277,6 +277,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
     }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
     /// Adds the wavelet AC energy of every unit of one row to its record. The energy covers the whole unit even
     /// where the measured block is smaller. Reference: the av1_haar_ac_sad_mxn_uint8_input() call of
@@ -305,6 +306,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             }
         }
     }
+#pragma warning restore CA1517
 
     /// <summary>
     /// Transforms one block at a time.

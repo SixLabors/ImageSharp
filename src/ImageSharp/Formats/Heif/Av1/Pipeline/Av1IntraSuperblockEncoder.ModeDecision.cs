@@ -5075,6 +5075,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return snapshot.Statistics;
         }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
         /// <summary>
         /// Leaves DCT_DCT as the retained type of every luma transform block that an encode of an inter decision
         /// quantized to nothing, so a later encode of the same decision transforms it with the default type.
@@ -5095,6 +5096,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
         }
+#pragma warning restore CA1517
 
         private void ReconstructSelectedIntraBlock(
             Av1SymbolEncoder writer,

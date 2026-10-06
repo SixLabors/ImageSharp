@@ -682,6 +682,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         return false;
     }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
     /// Sorts the starting vectors by increasing absolute difference. The reference encoder sorts them with the C
     /// library qsort, and the x64 reference build links the Microsoft C runtime, whose qsort sorts lists of up to eight
@@ -705,6 +706,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             (sads[largest], sads[high]) = (sads[high], sads[largest]);
         }
     }
+#pragma warning restore CA1517
 
     /// <summary>
     /// Keeps a motion search range of a model block within eight samples of the visible frame when the sharpness is

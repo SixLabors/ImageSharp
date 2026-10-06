@@ -261,7 +261,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="frames">The linear buffer.</param>
     /// <param name="index">The frame, at least 2.</param>
     /// <returns>Whether the frame is near a flash.</returns>
-    private static bool IsNearFlash(Span<Av1FirstPassStatistics> frames, int index)
+    private static bool IsNearFlash(ReadOnlySpan<Av1FirstPassStatistics> frames, int index)
         => frames[index].IsFlash != 0 || frames[index - 1].IsFlash != 0 || frames[index - 2].IsFlash != 0;
 
     /// <summary>
@@ -776,6 +776,7 @@ internal sealed partial class Av1SecondPass
         }
     }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
     /// Classes each frame of a scene as stable or highly varying from the mean and variance of its errors in a
     /// window, and starts a region at each change. Reference: find_stable_regions().
@@ -849,6 +850,7 @@ internal sealed partial class Av1SecondPass
         list[k].Last = thisLast;
         return k + 1;
     }
+#pragma warning restore CA1517
 
     /// <summary>
     /// Merges consecutive regions of the same type, except scene cuts, and removes empty regions.

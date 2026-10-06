@@ -3520,9 +3520,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         int bestMatch = 0;
                         for (int index = 0; index < referenceIndex; index++)
                         {
-                            // Every earlier list entry is compared, searched or not. Reference: the
-                            // av1_get_ref_mv_from_stack() call of handle_newmv().
-                            Av1MotionVector previousReference = candidateVectors[index];
+                            // Every earlier list entry is compared, searched or not, by the vector of the list
+                            // itself; the candidate array holds the search result of an entry already searched.
+                            // Reference: the av1_get_ref_mv_from_stack() call of handle_newmv().
+                            Av1MotionVector previousReference = referenceMotionVectors.GetNewReference(index);
                             int difference = Math.Max(
                                 Math.Abs(referenceVector.Row - previousReference.Row),
                                 Math.Abs(referenceVector.Column - previousReference.Column));
@@ -3540,7 +3541,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref Av1MotionSearchBase.ReferenceSearchResult previous = ref motionState.References[bestMatch];
                         if (minimumDifference < 16 * 8 && previous.IsValid)
                         {
-                            Av1MotionVector matchReference = candidateVectors[bestMatch];
+                            Av1MotionVector matchReference = referenceMotionVectors.GetNewReference(bestMatch);
                             int displacement = Math.Max(
                                 Math.Abs(previous.Vector.Row - matchReference.Row),
                                 Math.Abs(previous.Vector.Column - matchReference.Column));

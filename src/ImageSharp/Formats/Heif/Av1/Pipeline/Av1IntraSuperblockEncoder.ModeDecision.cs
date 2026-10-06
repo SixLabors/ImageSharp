@@ -542,6 +542,11 @@ internal static partial class Av1IntraSuperblockEncoder
             // reference pruning, and from none without statistics or with adaptive quantization. Reference:
             // init_ref_frame_space() in init_encode_rd_sb().
             this.tplKeepReferenceFrames[..].Clear();
+
+            // Every superblock starts without model blocks, so a frame or superblock without statistics never reads
+            // the vectors an earlier superblock gathered. Reference: the tpl_data_count reset at the start of
+            // av1_get_tpl_stats_sb() and after av1_rd_pick_partition() in encode_rd_sb().
+            this.tplSuperblockBlockCount = 0;
             if (parent.TplFrame is { } superblockTplFrame)
             {
                 if (parent.EncoderOptions.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.None)

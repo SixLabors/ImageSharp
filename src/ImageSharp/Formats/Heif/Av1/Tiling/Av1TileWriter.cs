@@ -914,11 +914,6 @@ internal partial class Av1TileWriter
         ref Av1MacroBlockModeInfo macroBlockModeInfo = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
         Av1BlockSize blockSize = macroBlockModeInfo.Block.BlockSize;
         pcs.MapModeInfoBlock(modeInfoPosition, blockSize);
-        if (TOperation.WritesOutput)
-        {
-            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add($"BLK {mi_col * 4},{mi_row * 4}");
-        }
-
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
 
         Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));

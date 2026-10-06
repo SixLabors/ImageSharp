@@ -1333,30 +1333,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 writer.RefreshCosts();
                             }
 
-                            if (Entropy.Av1SymbolWriter.DiagnosticSymbolTrace is not null)
-                            {
-                                System.Text.StringBuilder costLine = new($"COST {modeInfoColumn * 4},{modeInfoRow * 4} skip1");
-                                for (int c = 0; c < 13; c++)
-                                {
-                                    costLine.Append(' ').Append(writer.GetTransformBlockSkipCost(true, Av1TransformSize.Size8x8, c));
-                                }
-
-                                costLine.Append(" uv32");
-                                for (int c = 0; c < 13; c++)
-                                {
-                                    costLine.Append(' ').Append(writer.GetTransformBlockSkipCost(true, Av1TransformSize.Size32x32, c));
-                                }
-
-                                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(costLine.ToString());
-                                System.Text.StringBuilder txLine = new($"TXCOST {modeInfoColumn * 4},{modeInfoRow * 4}");
-                                for (int t = 0; t < 4; t++)
-                                {
-                                    txLine.Append(' ').Append(writer.GetTransformTypeCost((Av1TransformType)t, Av1TransformSize.Size8x8, frameHeader.UseReducedTransformSet, 200, Av1FilterIntraMode.AllFilterIntraModes, Prediction.Av1PredictionMode.Directional135Degrees, false));
-                                }
-
-                                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(txLine.ToString());
-                            }
-
                             int tileSuperblockRow = (modeInfoRow - tile.ModeInfoRowStart) >> superblockShift;
                             bool refreshMotionCosts = motionCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.Superblock ||
                                 (firstColumn && (tileSuperblockRow % motionCostRowInterval) == 0);

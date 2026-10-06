@@ -370,9 +370,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     ResidualRate = blueRate + redRate
                 };
 
-                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                    $"UVPAL {lumaOrigin.X},{lumaOrigin.Y} n={bluePaletteColors.Length} u {string.Join(' ', bluePaletteColors.ToArray())} v {string.Join(' ', redPaletteColors.ToArray())} rate={rate} tok={blueRate + redRate} dist={distortion} rd={candidateStatistics.Cost} best={bestStatistics.Cost}");
-
                 if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     // Every following palette size overwrites the shared maps and candidate spans, so a

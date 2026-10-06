@@ -86,11 +86,6 @@ internal sealed class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
-    /// Gets or sets the list that receives every coded symbol. TEMPORARY comparison tooling.
-    /// </summary>
-    internal static List<string>? DiagnosticSymbolTrace { get; set; }
-
-    /// <summary>
     /// Restores the initial range-coder state and begins a new output sequence.
     /// </summary>
     public void Reset() => this.Reset(0);
@@ -132,7 +127,6 @@ internal sealed class Av1SymbolWriter : IDisposable
         DebugGuard.MustBeLessThan(symbol, distribution.NumberOfSymbols, nameof(symbol));
         DebugGuard.IsTrue(distribution[distribution.NumberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
 
-        DiagnosticSymbolTrace?.Add($"S{symbol}/{distribution.NumberOfSymbols} {distribution[0]},{distribution[distribution.NumberOfSymbols > 1 ? 1 : 0]}");
         this.EncodeIntegerQ15(symbol, distribution);
         this.UpdateSymbol(symbol, distribution);
     }
@@ -263,7 +257,6 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// <param name="frequency">The probability that the value is true, scaled by 32768.</param>
     private void EncodeBoolQ15(bool val, uint frequency)
     {
-        DiagnosticSymbolTrace?.Add($"B{(val ? 1 : 0)} {frequency}");
         ulong l;
         uint r;
         uint v;

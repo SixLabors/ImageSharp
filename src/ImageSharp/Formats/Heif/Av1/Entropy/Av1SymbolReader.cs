@@ -75,27 +75,10 @@ internal ref struct Av1SymbolReader
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether <see cref="ValidateTrailingBits"/> accepts any tile ending.
-    /// TEMPORARY comparison tooling.
-    /// </summary>
-    internal static bool SkipTrailingBitValidationForDiagnostics { get; set; }
-
-    /// <summary>
-    /// Gets or sets the list that receives every decoded symbol. TEMPORARY comparison tooling.
-    /// </summary>
-    internal static List<string>? DiagnosticSymbolTrace { get; set; }
-
-    /// <summary>
     /// Validates that range decoding remained within the bounded tile payload and ended at the required trailing-one bit.
     /// </summary>
     public void ValidateTrailingBits()
     {
-        // TEMPORARY comparison tooling: lets a diagnostic test inspect a stream that fails this check.
-        if (SkipTrailingBitValidationForDiagnostics)
-        {
-            return;
-        }
-
         int consumedBitCount = this.GetConsumedBitCount();
         int consumedByteCount = (consumedBitCount + 7) >> 3;
         if (consumedByteCount > this.buffer.Length)
@@ -129,7 +112,6 @@ internal ref struct Av1SymbolReader
     public int ReadSymbol(Av1Distribution distribution)
     {
         int value = this.DecodeIntegerQ15(distribution);
-        DiagnosticSymbolTrace?.Add($"S{value}/{distribution.NumberOfSymbols} {distribution[0]},{distribution[distribution.NumberOfSymbols > 1 ? 1 : 0]}");
 
         // disable_cdf_update freezes every tile distribution while leaving range decoding unchanged.
         if (this.updateCdf)
@@ -148,7 +130,6 @@ internal ref struct Av1SymbolReader
     public bool ReadBoolean(uint frequency)
     {
         bool value = this.DecodeBoolQ15(frequency);
-        DiagnosticSymbolTrace?.Add($"B{(value ? 1 : 0)} {frequency}");
         return value;
     }
 
@@ -164,7 +145,6 @@ internal ref struct Av1SymbolReader
         for (int bit = bitCount - 1; bit >= 0; bit--)
         {
             bool bitValue = this.DecodeBoolQ15(prob);
-            DiagnosticSymbolTrace?.Add($"B{(bitValue ? 1 : 0)} {prob}");
             if (bitValue)
             {
                 literal |= 1 << bit;

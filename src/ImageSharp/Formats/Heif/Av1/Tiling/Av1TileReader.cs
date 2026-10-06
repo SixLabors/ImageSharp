@@ -946,7 +946,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="partitionType">The partition type that produced the block.</param>
     private void ParseBlock(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1PartitionType partitionType)
     {
-        Entropy.Av1SymbolReader.DiagnosticSymbolTrace?.Add($"BLK {modeInfoLocation.X * 4},{modeInfoLocation.Y * 4}");
         int rowIndex = modeInfoLocation.Y;
         int columnIndex = modeInfoLocation.X;
         int block4x4Width = blockSize.Get4x4WideCount();

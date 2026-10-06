@@ -823,9 +823,6 @@ internal static partial class Av1IntraSuperblockEncoder
                                 // The alpha pair is chosen on its own cost, without the UV mode symbol, so rounding
                                 // ties resolve as in libaom. Reference: the joint loop of cfl_rd_pick_alpha().
                                 Av1RateDistortionStatistics alphaStatistics = new(this.rateMultiplier, residualRate, distortion);
-                                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                                    $"UVCFL {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} cfl {packedIndex}:{jointSign} resrate {residualRate} dist {distortion} cost {alphaStatistics.Cost} best {bestAlphaStatistics.Cost}");
-
                                 if (alphaStatistics.Cost < bestAlphaStatistics.Cost)
                                 {
                                     bestAlphaStatistics = alphaStatistics;
@@ -1011,9 +1008,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         break;
                     }
-
-                    Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                        $"UVMODE {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} uvmode {(int)chromaMode} angle {angleDelta} rate {candidateStatistics.Rate} resrate {candidateStatistics.ResidualRate} dist {candidateStatistics.Distortion} cost {candidateStatistics.Cost} best {bestStatistics.Cost}");
 
                     angleCosts[angleDelta + 3] = candidateStatistics.Cost;
                     if (candidateStatistics.Cost < bestStatistics.Cost)
@@ -1333,9 +1327,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         ResidualRate = blueRate + redRate
                     };
-
-                    Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                        $"UVTILED {lumaOrigin.X},{lumaOrigin.Y} {blockSize} ymode {(int)lumaMode} uvmode {(int)chromaMode} angle {angleDelta} rate {candidateStatistics.Rate} resrate {candidateStatistics.ResidualRate} dist {candidateStatistics.Distortion} cost {candidateStatistics.Cost} best {bestStatistics.Cost}");
 
                     angleCosts[angleDelta + 3] = candidateStatistics.Cost;
                     if (candidateStatistics.Cost < bestStatistics.Cost)

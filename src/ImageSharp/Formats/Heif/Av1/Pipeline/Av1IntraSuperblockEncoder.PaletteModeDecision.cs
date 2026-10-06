@@ -72,9 +72,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 return false;
             }
 
-            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                $"PAL {blockOrigin.X},{blockOrigin.Y} {blockSize} colors {colorCount} bins {occupiedBins} best {bestStatistics.Cost} limit {this.blockCostLimit}");
-
             int maximumPaletteSize = Math.Min(colorCount, Av1Constants.PaletteMaxSize);
             InlineArray8<short> dominantColors = default;
             int dominantCount = 0;
@@ -391,9 +388,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 long headerCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0);
                 if ((headerCost >> (headerPruneLevel == 1 ? 1 : 0)) > Math.Min(this.blockCostLimit, bestStatistics.Cost))
                 {
-                    Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                        $"PALGATE {blockOrigin.X},{blockOrigin.Y} header {rate} headerCost {headerCost} best {bestStatistics.Cost} limit {this.blockCostLimit}");
-
                     headerBreakout = true;
                     return false;
                 }
@@ -457,9 +451,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedTransformSize = transformSize;
                 bestStatistics = candidateStatistics;
             }
-
-            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                $"PALCAND {blockOrigin.X},{blockOrigin.Y} n {paletteSize} header {rate} cost {candidateCost} best {bestStatistics.Cost} limit {this.blockCostLimit} selected {selected}");
 
             Av1EncoderPaletteInfo candidatePalette = default;
             candidatePalette.PaletteSizes[0] = (byte)paletteSize;

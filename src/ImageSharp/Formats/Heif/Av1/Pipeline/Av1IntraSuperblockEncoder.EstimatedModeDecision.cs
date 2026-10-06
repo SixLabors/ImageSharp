@@ -271,9 +271,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 // full transform search and would unfairly penalize horizontal and vertical estimates.
                 rate += writer.GetLumaModeCost(mode, aboveContext, leftContext);
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, distortion);
-                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                    $"NRD {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)mode} rate {rate} dist {distortion} rd {statistics.Cost} skip {skip} var {sourceVariance} sad {bestSad}");
-
                 if (statistics.Cost < bestStatistics.Cost)
                 {
                     bestStatistics = statistics;

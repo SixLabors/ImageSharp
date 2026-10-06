@@ -75,34 +75,6 @@ internal static partial class Av1IntraSuperblockEncoder
     ];
 
     /// <summary>
-    /// Reports whether a plane position falls inside the window named by AV1_TRACE_XY, which reads
-    /// "plane,x,y[,width,height]". Diagnostic only.
-    /// </summary>
-    private static bool TraceWindowMatches(Av1Plane plane, Point planeOrigin)
-    {
-        string? spec = Environment.GetEnvironmentVariable("AV1_TRACE_XY");
-        if (spec is null)
-        {
-            return false;
-        }
-
-        string[] parts = spec.Split(',');
-        if (parts.Length < 3 ||
-            !int.TryParse(parts[0], System.Globalization.CultureInfo.InvariantCulture, out int tracePlane) ||
-            !int.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, out int traceX) ||
-            !int.TryParse(parts[2], System.Globalization.CultureInfo.InvariantCulture, out int traceY))
-        {
-            return false;
-        }
-
-        int traceWidth = parts.Length > 3 && int.TryParse(parts[3], System.Globalization.CultureInfo.InvariantCulture, out int w) ? w : 8;
-        int traceHeight = parts.Length > 4 && int.TryParse(parts[4], System.Globalization.CultureInfo.InvariantCulture, out int h) ? h : 8;
-        return (int)plane == tracePlane &&
-            planeOrigin.X >= traceX && planeOrigin.X < traceX + traceWidth &&
-            planeOrigin.Y >= traceY && planeOrigin.Y < traceY + traceHeight;
-    }
-
-    /// <summary>
     /// Builds the fixed 8x8 partition skeleton consumed by interleaved mode decision and tile writing.
     /// </summary>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -2071,9 +2043,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref horizontalModeCache,
                         ref verticalModeCache);
                 }
-
-                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                    $"PART {blockOrigin.X},{blockOrigin.Y} {blockSize} type {(int)partitionType} rate {candidateStatistics.Rate} dist {candidateStatistics.Distortion} rd {candidateStatistics.Cost} acc {accumulatedCost} leaf {stoppedAtLeaf} best {bestStatistics.Cost}");
 
                 if (candidateStatistics.Cost >= bestStatistics.Cost)
                 {
@@ -6571,9 +6540,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.rateMultiplier, 0, this.GetIntraSmoothingOffset(blockOrigin, blockSize, samples, width));
                 }
 
-                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                    $"YMODE {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)mode} angle {angleDelta} filter {(int)filterMode} txsize {(int)bestSize} rate {modeStatistics.Rate} dist {modeStatistics.Distortion} cost {modeStatistics.Cost} lumacost {modeStatistics.LumaCost} best {bestStatistics.Cost}");
-
                 bool improves = intraFrame ? modeStatistics.Cost < Math.Min(bestStatistics.Cost, interCostLimit)
                     : modeStatistics.LumaCost < bestStatistics.LumaCost || (filter && modeStatistics.Cost != long.MaxValue);
 
@@ -6758,9 +6724,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     coefficients,
                     candidateStates,
                     out bool skipSmaller);
-
-                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                    $"TXDEPTH {blockOrigin.X},{blockOrigin.Y} {blockSize} mode {(int)mode} filter {(int)filterMode} palette {paletteSize} depth {depth} txsize {(int)size} rate {statistics.Rate} dist {statistics.Distortion} rd {statistics.Cost} txrd {statistics.TransformCost} limit {costLimit} var {sourceVariance}");
 
                 if (statistics.TransformCost < best.TransformCost)
                 {
@@ -7197,9 +7160,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             runningCost += Av1RateDistortion.GetCost(
                                 this.rateMultiplier, bestTransformRate, bestTransformDistortion);
-
-                            Entropy.Av1SymbolWriter.DiagnosticSymbolTrace?.Add(
-                                $"TXBLOCK {blockOrigin.X},{blockOrigin.Y} blk {transformColumn},{transformRow} txsize {(int)transformSize} mode {(int)mode} filter {(int)filterIntraMode} rate {bestTransformRate} dist {bestTransformDistortion} sse {searchResult.Sse} eob {bestTransformState.EndOfBlock} type {(int)bestTransformType} current {runningCost} best {costLimit} sctx {blockContext.SkipContext} dctx {blockContext.DcSignContext}");
 
                             if (runningCost > costLimit)
                             {
@@ -7922,60 +7882,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 // encode_block().
                 state.TransformType = Av1TransformType.DctDct;
             }
-
-            if (Entropy.Av1SymbolWriter.DiagnosticSymbolTrace is not null && TraceWindowMatches(plane, planeOrigin))
-            {
-                System.Text.StringBuilder reconLine = new();
-                reconLine.Append(
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    $"RECON p{(int)plane} {planeOrigin.X},{planeOrigin.Y} tx={(int)transformSize} in={(int)selectedState.TransformType} out={(int)state.TransformType} eob={state.EndOfBlock} qidx={this.blockQIndex} dqdc={this.quantization.DeltaQDc[planeIndex]} dqac={this.quantization.DeltaQAc[planeIndex]} pred");
-
-                for (int i = 0; i < width && i < 8; i++)
-                {
-                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {TOperator.GetSampleValue(prediction[i])}");
-                }
-
-                reconLine.Append(" res");
-                for (int i = 0; i < 8; i++)
-                {
-                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {residual[i]}");
-                }
-
-                reconLine.Append(" q");
-                for (int i = 0; i < 8; i++)
-                {
-                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {coefficients[i]}");
-                }
-
-                reconLine.Append(" dqfull");
-                for (int i = 0; i < 16; i++)
-                {
-                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {this.blockWorkspace.DequantizedCoefficients[i]}");
-                }
-
-                reconLine.Append(" qfull");
-                for (int i = 0; i < 16; i++)
-                {
-                    reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {coefficients[i]}");
-                }
-
-                reconLine.Append(" dst");
-                for (int r = 0; r < height && r < 8; r++)
-                {
-                    Span<TSample> reconRow = destinationPlane.GetRowSpan(planeOrigin.Y + r);
-                    for (int c = 0; c < width && c < 8; c++)
-                    {
-                        reconLine.Append(System.Globalization.CultureInfo.InvariantCulture, $" {TOperator.GetSampleValue(reconRow[planeOrigin.X + c])}");
-                    }
-                }
-
-                Entropy.Av1SymbolWriter.DiagnosticSymbolTrace.Add(reconLine.ToString());
-            }
         }
 
-        /// <summary>
-        /// Retains the prediction syntax needed to repeat transform search for one luma candidate.
-        /// </summary>
         /// <summary>
         /// One asymmetric sub-block's cached luma decision.
         /// </summary>

@@ -126,10 +126,34 @@ internal static partial class Av1ResidualBuilder
         Vector256<uint> total256 = Vector256<uint>.Zero;
         Vector128<uint> total128 = Vector128<uint>.Zero;
         int sum = 0;
+        int y = 0;
+        if (width == 4 && Vector128.IsHardwareAccelerated)
+        {
+            // A row of four samples fills only half a vector, so this path takes two sampled rows at a time. The second
+            // row of a pair is one row step below the first. The search can sample every other row, so a row step can be
+            // two rows.
+            Vector128<short> ones = Vector128.Create((short)1);
+            ref TSample sourceStart = ref MemoryMarshal.GetReference(source);
+            ref TSample predictionStart = ref MemoryMarshal.GetReference(prediction);
+            nuint sourceStep = (nuint)(rowStep * sourceStride);
+            nuint predictionStep = (nuint)(rowStep * predictionStride);
+            for (; y + rowStep < height; y += 2 * rowStep)
+            {
+                Vector128<short> difference = TOperator.LoadDifferenceRowPair(
+                    ref Unsafe.Add(ref sourceStart, (nuint)y * (nuint)sourceStride),
+                    sourceStep,
+                    ref Unsafe.Add(ref predictionStart, (nuint)y * (nuint)predictionStride),
+                    predictionStep);
+
+                // The vector holds the four differences of the first row, then the four of the second row. Abs makes
+                // each difference positive. A multiply-add with ones adds each pair of neighbors into one 32-bit lane.
+                total128 += Vector128_.MultiplyAddAdjacent(Vector128.Abs(difference), ones).AsUInt32();
+            }
+        }
 
         // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
         // which reads eight bytes or eight words without crossing a short row's boundary.
-        for (int y = 0; y < height; y += rowStep)
+        for (; y < height; y += rowStep)
         {
             ReadOnlySpan<TSample> sourceRow = source.Slice(y * sourceStride, width);
             ReadOnlySpan<TSample> predictionRow = prediction.Slice(y * predictionStride, width);
@@ -221,10 +245,44 @@ internal static partial class Av1ResidualBuilder
         Vector512<int> sum512 = Vector512<int>.Zero;
         Vector256<int> sum256 = Vector256<int>.Zero;
         Vector128<int> sum128 = Vector128<int>.Zero;
+        int y = 0;
+        if (width == 4 && height <= 64 && Vector128.IsHardwareAccelerated)
+        {
+            // A row of four samples fills only half a vector, so this path takes two rows at a time. Each pair gives
+            // one vector of eight differences. The path collects the sum of the differences and the sum of their
+            // squares. The variance uses both totals.
+            //
+            // The largest difference at 12 bits is 4095, so one lane gains at most 2 * 4095 * 4095 = 33538050 for each
+            // row pair. A block of 64 rows has 32 pairs, so a lane stays below 2^31. An odd last row goes to the row loop.
+            Vector128<short> ones = Vector128.Create((short)1);
+            Vector128<int> squares = Vector128<int>.Zero;
+            ref TSample sourceStart = ref MemoryMarshal.GetReference(source);
+            ref TSample predictionStart = ref MemoryMarshal.GetReference(prediction);
+            nuint sourceStep = (nuint)sourceStride;
+            nuint predictionStep = (nuint)predictionStride;
+            for (; y + 1 < height; y += 2)
+            {
+                Vector128<short> difference = TOperator.LoadDifferenceRowPair(
+                    ref Unsafe.Add(ref sourceStart, (nuint)y * sourceStep),
+                    sourceStep,
+                    ref Unsafe.Add(ref predictionStart, (nuint)y * predictionStep),
+                    predictionStep);
+
+                // A multiply-add with ones adds each pair of neighbor differences into one 32-bit lane. A multiply-add
+                // of the vector with itself squares each difference and adds each pair of neighbor squares.
+                sum128 += Vector128_.MultiplyAddAdjacent(difference, ones);
+                squares += Vector128_.MultiplyAddAdjacent(difference, difference);
+            }
+
+            // One lane fits in 32 bits, but the total of four lanes can be more than 2^32. Thus the lanes widen to
+            // 64 bits before the final sum.
+            Vector128<uint> squareLanes = squares.AsUInt32();
+            sumOfSquares = (long)Vector128.Sum(Vector128.WidenLower(squareLanes) + Vector128.WidenUpper(squareLanes));
+        }
 
         // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
         // which reads eight bytes or eight words without crossing a short row's boundary.
-        for (int y = 0; y < height; y++)
+        for (; y < height; y++)
         {
             ReadOnlySpan<TSample> sourceRow = source.Slice(y * sourceStride, width);
             ReadOnlySpan<TSample> predictionRow = prediction.Slice(y * predictionStride, width);
@@ -737,7 +795,7 @@ internal static partial class Av1ResidualBuilder
 
         for (; index < length; index++)
         {
-            sum += Unsafe.Add(ref sampleBase, index);
+            sum += Unsafe.Add(ref sampleBase, (nuint)index);
         }
 
         return sum;
@@ -786,7 +844,7 @@ internal static partial class Av1ResidualBuilder
 
         for (; index < length; index++)
         {
-            Unsafe.Add(ref sumBase, index) += Unsafe.Add(ref rowBase, index);
+            Unsafe.Add(ref sumBase, (nuint)index) += Unsafe.Add(ref rowBase, (nuint)index);
         }
     }
 
@@ -905,7 +963,7 @@ internal static partial class Av1ResidualBuilder
         long sum = 0;
         for (int y = 0; y < height; y++)
         {
-            ref short rowBase = ref Unsafe.Add(ref residualBase, y * stride);
+            ref short rowBase = ref Unsafe.Add(ref residualBase, (nuint)y * (nuint)stride);
             int x = 0;
             if (Vector512.IsHardwareAccelerated)
             {
@@ -933,7 +991,7 @@ internal static partial class Av1ResidualBuilder
 
             for (; x < width; x++)
             {
-                sum = TOperator.AccumulateSquares(Unsafe.Add(ref rowBase, x), sum);
+                sum = TOperator.AccumulateSquares(Unsafe.Add(ref rowBase, (nuint)x), sum);
             }
         }
 
@@ -963,7 +1021,7 @@ internal static partial class Av1ResidualBuilder
         long total = 0;
         for (int y = 0; y < height; y++)
         {
-            ref short rowBase = ref Unsafe.Add(ref residualBase, y * stride);
+            ref short rowBase = ref Unsafe.Add(ref residualBase, (nuint)y * (nuint)stride);
             int x = 0;
             if (Vector512.IsHardwareAccelerated)
             {
@@ -997,7 +1055,7 @@ internal static partial class Av1ResidualBuilder
 
             for (; x < width; x++)
             {
-                short value = Unsafe.Add(ref rowBase, x);
+                short value = Unsafe.Add(ref rowBase, (nuint)x);
                 total = TOperator.AccumulateSum(value, total);
                 sumOfSquares = TOperator.AccumulateSquares(value, sumOfSquares);
             }
@@ -1023,6 +1081,10 @@ internal static partial class Av1ResidualBuilder
     {
         ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref TSample predictionBase = ref MemoryMarshal.GetReference(prediction);
+        if (width < Vector256<short>.Count && height <= 64 && Vector128.IsHardwareAccelerated)
+        {
+            return SumSquaredErrorNarrow<TSample, TOperator>(ref sourceBase, sourceStride, ref predictionBase, predictionStride, width, height);
+        }
 
         // Every row of a block has the same width, so the stage boundaries are taken once rather
         // than per row.
@@ -1039,8 +1101,8 @@ internal static partial class Av1ResidualBuilder
             // The rows are addressed by offset rather than sliced. A transform block is small, so
             // constructing two spans and recomputing their vector counts for every row costs more
             // than the row of arithmetic it guards.
-            ref TSample sourceRow = ref Unsafe.Add(ref sourceBase, y * sourceStride);
-            ref TSample predictionRow = ref Unsafe.Add(ref predictionBase, y * predictionStride);
+            ref TSample sourceRow = ref Unsafe.Add(ref sourceBase, (nuint)y * (nuint)sourceStride);
+            ref TSample predictionRow = ref Unsafe.Add(ref predictionBase, (nuint)y * (nuint)predictionStride);
             int x = 0;
 
             // The squares accumulate in lanes and fold once per row. A row holds at most 64 samples
@@ -1085,12 +1147,97 @@ internal static partial class Av1ResidualBuilder
 
             for (; x < width; x++)
             {
-                int difference = TOperator.Subtract(Unsafe.Add(ref sourceRow, x), Unsafe.Add(ref predictionRow, x));
+                int difference = TOperator.Subtract(Unsafe.Add(ref sourceRow, (nuint)x), Unsafe.Add(ref predictionRow, (nuint)x));
                 total += difference * difference;
             }
         }
 
         return total;
+    }
+
+    /// <summary>
+    /// Sums the squared differences between a source block and a prediction block that is narrower than sixteen
+    /// samples. A vector holds eight differences. A row of four samples fills only half a vector, so two rows load
+    /// together. A row of eight or more samples loads its first eight samples as one vector. Each vector lane keeps a
+    /// running total for the whole block, and the lanes are added together once at the end.
+    /// </summary>
+    /// <remarks>
+    /// The largest difference at 12 bits is 4095. One lane gains at most two squares of 4095 for each row, so after
+    /// 64 rows a lane is still less than 2^32.
+    /// </remarks>
+    /// <typeparam name="TSample">The sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample operations.</typeparam>
+    /// <param name="sourceBase">The first source sample.</param>
+    /// <param name="sourceStride">The number of samples between source rows.</param>
+    /// <param name="predictionBase">The first prediction sample.</param>
+    /// <param name="predictionStride">The number of samples between prediction rows.</param>
+    /// <param name="width">The block width, below sixteen.</param>
+    /// <param name="height">The block height, at most sixty-four.</param>
+    /// <returns>The exact sum of squared differences.</returns>
+    private static long SumSquaredErrorNarrow<TSample, TOperator>(
+        ref TSample sourceBase,
+        int sourceStride,
+        ref TSample predictionBase,
+        int predictionStride,
+        int width,
+        int height)
+        where TSample : unmanaged
+        where TOperator : struct, IResidualOperator<TSample>
+    {
+        // The strides become native-width integers once, so each row address below is one multiply and one add.
+        nuint sourceStep = (nuint)sourceStride;
+        nuint predictionStep = (nuint)predictionStride;
+        nuint columns = (nuint)width;
+
+        // laneSquares keeps the squares that the vectors calculate. scalarSquares keeps the squares of the columns
+        // after the first eight, which the scalar loop calculates one at a time.
+        Vector128<int> laneSquares = Vector128<int>.Zero;
+        long scalarSquares = 0;
+        int row = 0;
+
+        // Step 1: if the block is four samples wide, load two rows at a time. The vector holds the four differences of
+        // the first row, then the four differences of the second row. If the height is odd, step 2 does the last row.
+        if (width == 4)
+        {
+            for (; row + 1 < height; row += 2)
+            {
+                ref TSample sourcePair = ref Unsafe.Add(ref sourceBase, (nuint)row * sourceStep);
+                ref TSample predictionPair = ref Unsafe.Add(ref predictionBase, (nuint)row * predictionStep);
+                Vector128<short> difference = TOperator.LoadDifferenceRowPair(ref sourcePair, sourceStep, ref predictionPair, predictionStep);
+
+                // A multiply-add of the vector with itself squares each difference, then adds each pair of neighbor
+                // squares into one 32-bit lane.
+                laneSquares += Vector128_.MultiplyAddAdjacent(difference, difference);
+            }
+        }
+
+        // Step 2: do each remaining row. If the row has eight or more samples, load its first eight differences as one
+        // vector. Then add the squares of the remaining columns one at a time. For example, a row of twelve samples
+        // does eight columns in the vector and four in the scalar loop.
+        bool rowFillsVector = width >= Vector128<short>.Count;
+        for (; row < height; row++)
+        {
+            ref TSample sourceRow = ref Unsafe.Add(ref sourceBase, (nuint)row * sourceStep);
+            ref TSample predictionRow = ref Unsafe.Add(ref predictionBase, (nuint)row * predictionStep);
+            nuint column = 0;
+            if (rowFillsVector)
+            {
+                Vector128<short> difference = TOperator.LoadDifference(ref sourceRow, ref predictionRow, 0, Vector128<short>.Zero);
+                laneSquares += Vector128_.MultiplyAddAdjacent(difference, difference);
+                column = (nuint)Vector128<short>.Count;
+            }
+
+            for (; column < columns; column++)
+            {
+                int difference = TOperator.Subtract(Unsafe.Add(ref sourceRow, column), Unsafe.Add(ref predictionRow, column));
+                scalarSquares += difference * difference;
+            }
+        }
+
+        // Step 3: add the four lanes together. One lane stays less than 2^32 for 64 rows, but the total of four lanes
+        // can be more than 2^32. Thus the lanes widen to 64 bits before the sum.
+        Vector128<uint> lanes = laneSquares.AsUInt32();
+        return scalarSquares + (long)Vector128.Sum(Vector128.WidenLower(lanes) + Vector128.WidenUpper(lanes));
     }
 
     private static void Subtract<TSample, TOperator>(
@@ -1119,14 +1266,36 @@ internal static partial class Av1ResidualBuilder
         bool use512 = Vector512.IsHardwareAccelerated && end512 >= 0;
         bool use256 = Vector256.IsHardwareAccelerated && end256 >= 0;
         bool use128 = Vector128.IsHardwareAccelerated && end128 >= 0;
+        int y = 0;
+        if (width == 4 && Vector128.IsHardwareAccelerated)
+        {
+            // A row of four samples fills only half a vector, so this path takes two rows at a time. The vector holds
+            // the four residuals of the first row in its low 64 bits and the four residuals of the second row in its
+            // high 64 bits. Each half is written to its own residual row as one 64-bit store.
+            nuint sourceStep = (nuint)sourceStride;
+            nuint predictionStep = (nuint)predictionStride;
+            nuint residualStep = (nuint)residualStride;
+            for (; y + 1 < height; y += 2)
+            {
+                Vector128<ulong> difference = TOperator.LoadDifferenceRowPair(
+                    ref Unsafe.Add(ref sourceBase, (nuint)y * sourceStep),
+                    sourceStep,
+                    ref Unsafe.Add(ref predictionBase, (nuint)y * predictionStep),
+                    predictionStep).AsUInt64();
 
-        for (int y = 0; y < height; y++)
+                ref short residualRow = ref Unsafe.Add(ref residualBase, (nuint)y * residualStep);
+                Unsafe.WriteUnaligned(ref Unsafe.As<short, byte>(ref residualRow), difference.ToScalar());
+                Unsafe.WriteUnaligned(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residualRow, residualStep)), difference.GetElement(1));
+            }
+        }
+
+        for (; y < height; y++)
         {
             // The rows are addressed by offset for the same reason the squared error addresses
             // them that way: a transform row is short, so per-row span work dominates.
-            ref TSample sourceRow = ref Unsafe.Add(ref sourceBase, y * sourceStride);
-            ref TSample predictionRow = ref Unsafe.Add(ref predictionBase, y * predictionStride);
-            ref short residualRow = ref Unsafe.Add(ref residualBase, y * residualStride);
+            ref TSample sourceRow = ref Unsafe.Add(ref sourceBase, (nuint)y * (nuint)sourceStride);
+            ref TSample predictionRow = ref Unsafe.Add(ref predictionBase, (nuint)y * (nuint)predictionStride);
+            ref short residualRow = ref Unsafe.Add(ref residualBase, (nuint)y * (nuint)residualStride);
             int x = 0;
 
             if (use512)
@@ -1158,7 +1327,7 @@ internal static partial class Av1ResidualBuilder
 
             for (; x < width; x++)
             {
-                Unsafe.Add(ref residualRow, x) = TOperator.Subtract(Unsafe.Add(ref sourceRow, x), Unsafe.Add(ref predictionRow, x));
+                Unsafe.Add(ref residualRow, (nuint)x) = TOperator.Subtract(Unsafe.Add(ref sourceRow, (nuint)x), Unsafe.Add(ref predictionRow, (nuint)x));
             }
         }
     }

@@ -1299,6 +1299,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                 Av1PlaneRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
                 ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
+                ReadOnlySpan<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(reconstructedPlane, origin);
+                Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
                 bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane);
 
                 // Prediction units use their largest permitted transform, independently of the
@@ -1316,11 +1318,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             for (int x = unitX; x < right; x += transformWidth)
                             {
                                 this.PrepareTransformReferenceSamples(
-                                    reconstructedPlane,
+                                    reconstructedBlock,
+                                    reconstructedPlane.Stride,
                                     blockOrigin,
-                                    origin,
                                     blockSize,
                                     macroBlock,
+                                    partitionType,
                                     y / transformHeight,
                                     x / transformWidth,
                                     width,

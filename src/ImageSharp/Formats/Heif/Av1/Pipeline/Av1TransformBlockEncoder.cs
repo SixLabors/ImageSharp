@@ -1847,7 +1847,10 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         out uint blockMseQ8)
     {
-        long sumOfSquares = Av1ResidualBuilder.SumSquares(residual, residualStride, visibleWidth, visibleHeight);
+        // Contiguous rows form one row, so a block narrower than a vector still fills the vectors.
+        long sumOfSquares = residualStride == visibleWidth
+            ? Av1ResidualBuilder.SumSquares(residual[..(visibleWidth * visibleHeight)])
+            : Av1ResidualBuilder.SumSquares(residual, residualStride, visibleWidth, visibleHeight);
 
         blockMseQ8 = visibleWidth > 0 && visibleHeight > 0
             ? (uint)((256 * sumOfSquares) / (visibleWidth * visibleHeight))
@@ -1892,13 +1895,12 @@ internal static partial class Av1TransformBlockEncoder
         out long perPixelMean,
         out ulong blockVariance)
     {
-        long sumOfSquares = 0;
-        long sum = 0;
-        for (int y = 0; y < visibleHeight; y++)
-        {
-            sumOfSquares += Av1ResidualBuilder.SumAndSumSquares(residual.Slice(y * residualStride, visibleWidth), out long rowSum);
-            sum += rowSum;
-        }
+        // If the stride is the same as the width, the rows follow each other in memory with no gap. Then the block is
+        // one long row, so a block narrower than a vector still fills complete vectors. The sums are exact integers,
+        // so the order of the additions does not change the result.
+        long sumOfSquares = residualStride == visibleWidth
+            ? Av1ResidualBuilder.SumAndSumSquares(residual[..(visibleWidth * visibleHeight)], out long sum)
+            : Av1ResidualBuilder.SumAndSumSquares(residual, residualStride, visibleWidth, visibleHeight, out sum);
 
         if (visibleWidth > 0 && visibleHeight > 0)
         {

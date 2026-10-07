@@ -132,6 +132,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> destination = this.reconstruction.GetPlane(Av1Plane.Y);
             Span<TSample> predictedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destination, blockOrigin);
             ReadOnlySpan<TSample> sourceSamples = source.Samples;
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
             bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
@@ -177,11 +178,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     for (int x = 0; x < codedExtent.Width; x += transformWidth)
                     {
                         this.PrepareTransformReferenceSamples(
-                            destination,
-                            blockOrigin,
+                            predictedBlock,
+                            destination.Stride,
                             blockOrigin,
                             blockSize,
                             macroBlock,
+                            partitionType,
                             y / transformHeight,
                             x / transformWidth,
                             destination.Stride,
@@ -594,6 +596,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> sourceSamples = source.Samples;
             bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane);
             Span<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destination, planeOrigin);
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
             Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
@@ -651,11 +654,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         for (int x = unitX; x < Math.Min(unitX + unitWidth, extent.Width); x += width)
                         {
                             this.PrepareTransformReferenceSamples(
-                                destination,
+                                reconstructedBlock,
+                                destination.Stride,
                                 blockOrigin,
-                                planeOrigin,
                                 blockSize,
                                 macroBlock,
+                                partitionType,
                                 y / height,
                                 x / width,
                                 destination.Stride,

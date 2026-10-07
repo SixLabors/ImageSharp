@@ -177,7 +177,7 @@ public class Av1ResidualBuilderTests
     {
         foreach (int width in new[] { 4, 8, 12, 16, 24, 31, 32, 63, 64, 127, 128 })
         {
-            foreach (int height in new[] { 4, 8, 16, 32, 64, 128 })
+            foreach (int height in new[] { 3, 4, 8, 16, 32, 64, 128 })
             {
                 ValidateByteRectangularSearchMetrics(width, height);
                 ValidateUInt16RectangularSearchMetrics(width, height, 1023);

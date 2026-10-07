@@ -127,11 +127,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Span<TSample> left = workspace.GetReferenceSamples(1);
                     this.PrepareTransformReferenceSamples(
-                        reconstruction,
+                        Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, origin),
+                        reconstruction.Stride,
                         blockOrigin,
-                        origin,
                         blockSize,
                         macroBlock,
+                        macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
                         0,
                         0,
                         width,
@@ -1495,6 +1496,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The edge filter strength depends on the neighbors of the block alone, so every transform block shares it.
             bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane);
+            ReadOnlySpan<TSample> reconstructionBlock = reconstructionSamples[reconstruction.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
 
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
             // moving to the next region. Candidate coefficients and states must retain that exact order.
@@ -1515,11 +1518,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             if (paletteColors.IsEmpty)
                             {
                                 this.PrepareTransformReferenceSamples(
-                                    reconstruction,
+                                    reconstructionBlock,
+                                    reconstruction.Stride,
                                     lumaOrigin,
-                                    chromaOrigin,
                                     blockSize,
                                     macroBlock,
+                                    partitionType,
                                     transformRow,
                                     transformColumn,
                                     blockWidth,

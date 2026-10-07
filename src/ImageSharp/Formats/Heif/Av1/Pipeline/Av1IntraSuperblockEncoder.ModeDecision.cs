@@ -5197,6 +5197,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<int> outputCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
                 bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane);
                 ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
+                Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
 
                 // Large coding blocks visit bounded 64x64 luma regions before advancing to the next region.
                 // Within each region, raster order supplies the reconstructed edges of later transforms.
@@ -5224,11 +5225,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                 else
                                 {
                                     this.PrepareTransformReferenceSamples(
-                                        destinationPlane,
+                                        reconstructedBlock,
+                                        destinationPlane.Stride,
                                         blockOrigin,
-                                        planeOrigin,
                                         blockSize,
                                         macroBlock,
+                                        partitionType,
                                         y / transformHeight,
                                         x / transformWidth,
                                         destinationPlane.Stride,
@@ -6866,7 +6868,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
 
             Span<TSample> reconstructionSamples = reconstructionPlane.Samples;
+            ReadOnlySpan<TSample> frameBlock = reconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
             ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
 
             // Reuse the second candidate plane for one prediction and two transform reconstructions.
             // Their disjoint spans remain live while the first candidate plane accumulates the block mosaic.
@@ -7044,11 +7048,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                 Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
                                 Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
                                 this.PrepareTransformReferenceSamples(
-                                    reconstructionPlane,
-                                    blockOrigin,
+                                    frameBlock,
+                                    reconstructionPlane.Stride,
                                     blockOrigin,
                                     blockSize,
                                     macroBlock,
+                                    partitionType,
                                     transformRow,
                                     transformColumn,
                                     blockWidth,
@@ -7258,12 +7263,38 @@ internal static partial class Av1IntraSuperblockEncoder
             return sourceVariance > sampleVariance && sourceVariance / (blockSize.GetWidth() * blockSize.GetHeight()) < 64;
         }
 
+        /// <summary>
+        /// Collects the samples next to one transform block that intra prediction reads: the corner sample, the row
+        /// above (with the samples above and to the right), and the column to the left (with the samples below and to
+        /// the left). If an edge is inside the block, the samples come from the candidate surface, which holds the
+        /// earlier transform blocks of this block. If an edge is on the block boundary, the samples come from the frame.
+        /// The partition type and the block position decide if the samples above and to the right, and below and to the
+        /// left, are already decoded and thus available.
+        /// </summary>
+        /// <param name="planeBlock">The frame plane from the plane block origin, which the caller reads once outside its loops.</param>
+        /// <param name="planeStride">The number of samples between rows of <paramref name="planeBlock"/>.</param>
+        /// <param name="lumaBlockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="partitionType">The partition type of the block, which selects the top-right and bottom-left availability.</param>
+        /// <param name="transformRow">The transform row in the block.</param>
+        /// <param name="transformColumn">The transform column in the block.</param>
+        /// <param name="candidateStride">The number of samples between rows of <paramref name="candidateReconstruction"/>.</param>
+        /// <param name="transformSize">The transform size.</param>
+        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+        /// <param name="candidateReconstruction">The surface that holds the earlier transform blocks of the block.</param>
+        /// <param name="aboveStorage">The corner followed by the top edge.</param>
+        /// <param name="leftStorage">The corner followed by the left edge.</param>
+        /// <param name="hasLeft">Whether the left edge is available.</param>
+        /// <param name="hasAbove">Whether the top edge is available.</param>
         private void PrepareTransformReferenceSamples(
-            Av1PlaneRegion<TSample> reconstructionPlane,
+            ReadOnlySpan<TSample> planeBlock,
+            int planeStride,
             Point lumaBlockOrigin,
-            Point planeBlockOrigin,
             Av1BlockSize blockSize,
             Av1MacroBlockD macroBlock,
+            Av1PartitionType partitionType,
             int transformRow,
             int transformColumn,
             int candidateStride,
@@ -7277,16 +7308,55 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool hasAbove)
         {
             long workStart = Av1WorkCounters.Start();
-            this.PrepareTransformReferenceSamplesCore(reconstructionPlane, lumaBlockOrigin, planeBlockOrigin, blockSize, macroBlock, transformRow, transformColumn, candidateStride, transformSize, subsamplingX, subsamplingY, candidateReconstruction, aboveStorage, leftStorage, out hasLeft, out hasAbove);
+            this.PrepareTransformReferenceSamplesCore(
+                planeBlock,
+                planeStride,
+                lumaBlockOrigin,
+                blockSize,
+                macroBlock,
+                partitionType,
+                transformRow,
+                transformColumn,
+                candidateStride,
+                transformSize,
+                subsamplingX,
+                subsamplingY,
+                candidateReconstruction,
+                aboveStorage,
+                leftStorage,
+                out hasLeft,
+                out hasAbove);
+
             Av1WorkCounters.Stop(Av1WorkCounters.ReferenceSamples, workStart);
         }
 
+        /// <summary>
+        /// Prepares the edge samples of one transform block, without the work counter.
+        /// </summary>
+        /// <param name="planeBlock">The frame plane from the plane block origin, which the caller reads once outside its loops.</param>
+        /// <param name="planeStride">The number of samples between rows of <paramref name="planeBlock"/>.</param>
+        /// <param name="lumaBlockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="partitionType">The partition type of the block, which selects the top-right and bottom-left availability.</param>
+        /// <param name="transformRow">The transform row in the block.</param>
+        /// <param name="transformColumn">The transform column in the block.</param>
+        /// <param name="candidateStride">The number of samples between rows of <paramref name="candidateReconstruction"/>.</param>
+        /// <param name="transformSize">The transform size.</param>
+        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+        /// <param name="candidateReconstruction">The surface that holds the earlier transform blocks of the block.</param>
+        /// <param name="aboveStorage">The corner followed by the top edge.</param>
+        /// <param name="leftStorage">The corner followed by the left edge.</param>
+        /// <param name="hasLeft">Whether the left edge is available.</param>
+        /// <param name="hasAbove">Whether the top edge is available.</param>
         private void PrepareTransformReferenceSamplesCore(
-            Av1PlaneRegion<TSample> reconstructionPlane,
+            ReadOnlySpan<TSample> planeBlock,
+            int planeStride,
             Point lumaBlockOrigin,
-            Point planeBlockOrigin,
             Av1BlockSize blockSize,
             Av1MacroBlockD macroBlock,
+            Av1PartitionType partitionType,
             int transformRow,
             int transformColumn,
             int candidateStride,
@@ -7347,7 +7417,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize availabilityBlockSize = Av1IntraReferenceAvailability.ScaleChromaBlockSize(
                 blockSize, subsamplingX != 0, subsamplingY != 0);
 
-            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
             bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
                 availabilityBlockSize,
@@ -7383,10 +7452,9 @@ internal static partial class Av1IntraSuperblockEncoder
             hasAbove = topCount > 0;
             hasLeft = leftCount > 0;
 
-            // The frame plane resolves to one reference; every neighbor is a fixed offset from the block origin.
-            // The frame border above and to the left of the block makes the negative offsets valid.
-            int planeStride = reconstructionPlane.Stride;
-            ref TSample planeBase = ref MemoryMarshal.GetReference(Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, planeBlockOrigin));
+            // Every frame neighbor is a fixed offset from the block origin. The frame border above and to the left of
+            // the block makes the negative offsets valid.
+            ref TSample planeBase = ref MemoryMarshal.GetReference(planeBlock);
             ref TSample candidateBase = ref MemoryMarshal.GetReference(candidateReconstruction);
             if (hasAbove)
             {
@@ -7609,38 +7677,42 @@ internal static partial class Av1IntraSuperblockEncoder
             int blockWidth = blockSize.GetWidth();
             int visibleWidth = blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
             int visibleHeight = blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
-            Span<TSample> modelPixels = workspace.GetCandidateReconstruction(0);
             Span<TSample> prediction = workspace.Prediction;
             Span<short> residual = workspace.Residual;
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
             Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
             bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
             Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
             Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
             Span<TSample> reconstructionSamples = reconstructionPlane.Samples;
+            ReadOnlySpan<TSample> frameBlock = reconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
+            int frameStride = reconstructionPlane.Stride;
             ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
             long cost = 0;
 
             // Each tile uses the predictions of the tiles before it, with no quantization and no inverse transform.
-            // Each prediction also goes into the frame, so a rejected mode leaves its samples there.
-            // Reference: the av1_predict_intra_block_facade() calls of intra_model_rd(), which write pd->dst.
+            // Each prediction goes into the frame, and a later tile reads its edges there, so a rejected mode leaves
+            // its samples in the frame. This is the same as the reference encoder, which writes each model prediction
+            // into the frame and reads the edges of the next tile from there.
             for (int y = 0; y < visibleHeight; y += tileSize)
             {
                 for (int x = 0; x < visibleWidth; x += tileSize)
                 {
                     this.PrepareTransformReferenceSamples(
-                        reconstructionPlane,
-                        blockOrigin,
+                        frameBlock,
+                        frameStride,
                         blockOrigin,
                         blockSize,
                         macroBlock,
+                        partitionType,
                         y / tileSize,
                         x / tileSize,
-                        blockWidth,
+                        frameStride,
                         transformSize,
                         0,
                         0,
-                        modelPixels,
+                        frameBlock,
                         aboveStorage,
                         leftStorage,
                         out bool hasLeft,
@@ -7696,11 +7768,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.bitDepth != Av1BitDepth.EightBit,
                         transformCoefficients,
                         transformWorkspace);
-
-                    for (int row = 0; row < tileSize; row++)
-                    {
-                        prediction.Slice(row * tileSize, tileSize).CopyTo(modelPixels.Slice(((y + row) * blockWidth) + x, tileSize));
-                    }
 
                     Av1TransformBlockEncoder.WriteFrameSamples(
                         reconstructionPlane, reconstructionSamples, transformOrigin, prediction, tileSize, tileSize, tileSize);

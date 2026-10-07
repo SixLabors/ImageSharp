@@ -203,12 +203,13 @@ internal static class Av1PalettePredictor
 
             ref byte paletteBase = ref Unsafe.As<ulong, byte>(ref packedPalette);
             Vector128<byte> palette128 = Vector128.Create(packedPalette, packedPalette).AsByte();
-            ref byte mapBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(colorIndexMap.Samples), colorIndexMap.Origin);
+            ref byte mapBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(colorIndexMap.Samples), (nuint)colorIndexMap.Origin);
+            nuint mapStride = (nuint)colorIndexMap.Stride;
 
             for (int row = 0; row < height; row++)
             {
-                ref byte mapRow = ref Unsafe.Add(ref mapBase, row * colorIndexMap.Stride);
-                ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
+                ref byte mapRow = ref Unsafe.Add(ref mapBase, (nuint)row * mapStride);
+                ref byte destinationRow = ref Unsafe.Add(ref destinationBase, (nuint)row * (nuint)destinationStride);
                 int column = 0;
 
                 if (Vector512.IsHardwareAccelerated)
@@ -298,12 +299,13 @@ internal static class Av1PalettePredictor
 
             ref ushort paletteBase = ref paletteStorage[0];
             Vector128<byte> palette128 = Vector128.LoadUnsafe(ref paletteBase).AsByte();
-            ref byte mapBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(colorIndexMap.Samples), colorIndexMap.Origin);
+            ref byte mapBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(colorIndexMap.Samples), (nuint)colorIndexMap.Origin);
+            nuint mapStride = (nuint)colorIndexMap.Stride;
 
             for (int row = 0; row < height; row++)
             {
-                ref byte mapRow = ref Unsafe.Add(ref mapBase, row * colorIndexMap.Stride);
-                ref short destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
+                ref byte mapRow = ref Unsafe.Add(ref mapBase, (nuint)row * mapStride);
+                ref short destinationRow = ref Unsafe.Add(ref destinationBase, (nuint)row * (nuint)destinationStride);
                 int column = 0;
 
                 if (Vector512.IsHardwareAccelerated)

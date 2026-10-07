@@ -146,6 +146,18 @@ internal static partial class Av1ResidualBuilder
         public static abstract Vector512<short> LoadDifference(ref TSample source, ref TSample prediction, int offset, Vector512<short> width);
 
         /// <summary>
+        /// Reads four samples from each of two source rows and four samples from each of two prediction rows, then
+        /// subtracts the prediction from the source. A row of four samples gives only four 16-bit differences, which is
+        /// half of a vector. Two rows together give eight differences, so they fill one vector.
+        /// </summary>
+        /// <param name="source">The first sample of the first source row.</param>
+        /// <param name="sourceStride">The number of samples between source rows.</param>
+        /// <param name="prediction">The first sample of the first prediction row.</param>
+        /// <param name="predictionStride">The number of samples between prediction rows.</param>
+        /// <returns>The four residuals of the first row followed by the four residuals of the second row.</returns>
+        public static abstract Vector128<short> LoadDifferenceRowPair(ref TSample source, nuint sourceStride, ref TSample prediction, nuint predictionStride);
+
+        /// <summary>
         /// Subtracts one source and prediction sample.
         /// </summary>
         /// <param name="source">The source sample.</param>
@@ -380,6 +392,29 @@ internal static partial class Av1ResidualBuilder
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<short> LoadDifferenceRowPair(ref byte source, nuint sourceStride, ref byte prediction, nuint predictionStride)
+        {
+            // Read the four bytes of each row as one 32-bit integer. The two integers go into the low eight bytes of the
+            // vector. Each read stays inside its row, so no read goes past the block.
+            Vector128<byte> s = Vector128.Create(
+                Unsafe.ReadUnaligned<uint>(ref source),
+                Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref source, sourceStride)),
+                0,
+                0).AsByte();
+
+            Vector128<byte> p = Vector128.Create(
+                Unsafe.ReadUnaligned<uint>(ref prediction),
+                Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref prediction, predictionStride)),
+                0,
+                0).AsByte();
+
+            // Widen the eight bytes to eight 16-bit values, then subtract. Both values are less than 256, so the
+            // unsigned 16-bit result, read as signed, is the correct difference from -255 to 255.
+            return (Vector128.WidenLower(s) - Vector128.WidenLower(p)).AsInt16();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> SumFourAbsoluteDifferences(
             Vector128<byte> source,
             Vector128<byte> prediction0,
@@ -570,6 +605,24 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<short> LoadDifference(ref ushort source, ref ushort prediction, int offset, Vector512<short> width)
             => (Vector512.LoadUnsafe(ref source, (nuint)offset) - Vector512.LoadUnsafe(ref prediction, (nuint)offset)).AsInt16();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<short> LoadDifferenceRowPair(ref ushort source, nuint sourceStride, ref ushort prediction, nuint predictionStride)
+        {
+            // Read the four 16-bit samples of each row as one 64-bit integer. The first row fills the low half of the
+            // vector and the second row fills the high half. Each read stays inside its row, so no read goes past the block.
+            Vector128<ushort> s = Vector128.Create(
+                Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref source)),
+                Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, sourceStride)))).AsUInt16();
+
+            Vector128<ushort> p = Vector128.Create(
+                Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref prediction)),
+                Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref prediction, predictionStride)))).AsUInt16();
+
+            // Samples have at most 12 bits, so the unsigned 16-bit result, read as signed, is the correct difference.
+            return (s - p).AsInt16();
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

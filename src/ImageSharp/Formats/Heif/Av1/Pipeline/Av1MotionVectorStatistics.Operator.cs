@@ -107,8 +107,8 @@ internal sealed partial class Av1MotionVectorStatistics
         ref TSample lumaOrigin = ref MemoryMarshal.GetReference(lumaSamples);
         for (int row = 0; row < height - 1; row++)
         {
-            ref TSample currentRow = ref Unsafe.Add(ref lumaOrigin, luma.GetOffset(0, Math.Min(origin.Y + row, lastRow)));
-            ref TSample nextRow = ref Unsafe.Add(ref lumaOrigin, luma.GetOffset(0, Math.Min(origin.Y + row + 1, lastRow)));
+            ref TSample currentRow = ref Unsafe.Add(ref lumaOrigin, (nuint)luma.GetOffset(0, Math.Min(origin.Y + row, lastRow)));
+            ref TSample nextRow = ref Unsafe.Add(ref lumaOrigin, (nuint)luma.GetOffset(0, Math.Min(origin.Y + row + 1, lastRow)));
             if (outside > 0)
             {
                 int edge = Math.Abs(TOperator.Load(ref nextRow, (nuint)lastColumn) - TOperator.Load(ref currentRow, (nuint)lastColumn)) >> shift;

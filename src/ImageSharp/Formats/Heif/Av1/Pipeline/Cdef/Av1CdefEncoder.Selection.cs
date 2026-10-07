@@ -148,6 +148,8 @@ internal static partial class Av1CdefEncoder
         }
 
         int selectedCount = 1 << parameters.BitCount;
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        Span<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
         for (int unit = 0; unit < unitIndices.Length; unit++)
         {
             int offset = unit * MaximumStrengthCount;
@@ -168,8 +170,7 @@ internal static partial class Av1CdefEncoder
                 }
             }
 
-            int blockIndex = picture.ModeInfoGrid.Span[unitIndices[unit]];
-            picture.ModeInfoAllocation.Span[blockIndex].CdefStrength = bestIndex;
+            allocation[grid[unitIndices[unit]]].CdefStrength = bestIndex;
         }
 
         // Error tables use compact candidate indices. Convert only after all units have selected

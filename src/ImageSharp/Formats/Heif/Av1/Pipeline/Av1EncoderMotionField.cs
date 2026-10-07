@@ -236,14 +236,22 @@ internal sealed class Av1EncoderMotionField : IDisposable
         Span<Av1FrameInfo.RetainedMotionFieldEntry> entries = field.Owner.Memory.Span;
         int rowCount = (this.modeInfoRowCount + 1) >> 1;
         int columnCount = (this.modeInfoColumnCount + 1) >> 1;
+
+        // The mode-information grid and the vectors are read once. A block and its vectors share the allocation
+        // index at the grid cell.
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        ReadOnlySpan<Av1EncoderDisplacementVector> vectors = picture.DisplacementVectors.Span;
+        ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts = picture.ReferenceContexts.Span;
+        int stride = picture.ModeInfoStride;
         for (int row = 0; row < rowCount; row++)
         {
             int modeInfoRow = Math.Min((row << 1) + 1, this.modeInfoRowCount - 1);
             for (int column = 0; column < columnCount; column++)
             {
                 int modeInfoColumn = Math.Min((column << 1) + 1, this.modeInfoColumnCount - 1);
-                Point position = new(modeInfoColumn, modeInfoRow);
-                ref readonly Av1EncoderBlockModeInfo mode = ref picture.GetFromModeInfoGrid(position).Block;
+                int blockIndex = grid[(modeInfoRow * stride) + modeInfoColumn];
+                ref readonly Av1EncoderBlockModeInfo mode = ref allocation[blockIndex].Block;
                 Av1ReferenceFrameType selectedReference = Av1ReferenceFrameType.None;
                 Av1MotionVector selectedMotionVector = default;
                 for (int index = 0; index < 2; index++)
@@ -254,9 +262,11 @@ internal sealed class Av1EncoderMotionField : IDisposable
                         continue;
                     }
 
-                    Av1MotionVector motionVector = index == 0
-                        ? picture.GetDisplacementVector(position)
-                        : picture.GetSecondaryDisplacementVector(position);
+                    Av1EncoderDisplacementVector vector = index == 0
+                        ? vectors[blockIndex]
+                        : referenceContexts[blockIndex].SecondaryVector;
+
+                    Av1MotionVector motionVector = new(vector.Row, vector.Column);
 
                     if (Math.Abs(motionVector.Row) > ReferenceMotionVectorLimit ||
                         Math.Abs(motionVector.Column) > ReferenceMotionVectorLimit)

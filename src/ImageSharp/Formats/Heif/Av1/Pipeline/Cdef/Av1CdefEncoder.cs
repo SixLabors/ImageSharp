@@ -120,13 +120,16 @@ internal static partial class Av1CdefEncoder
             int count = 0;
             Av1EncoderFrame<TSample>.PlanarSamples sourceSamples = source.CodedView.GetSamples();
             Av1EncoderFrame<TSample>.PlanarSamples reconstructionSamples = reconstruction.CodedView.GetSamples();
+            ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+            int stride = picture.ModeInfoStride;
 
             for (int row = 0; row < unitRows; row++)
             {
                 for (int column = 0; column < unitColumns; column++)
                 {
                     Point position = new(column << 4, row << 4);
-                    Av1BlockSize size = picture.GetFromModeInfoGrid(position).Block.BlockSize;
+                    Av1BlockSize size = allocation[grid[(position.Y * stride) + position.X]].Block.BlockSize;
                     bool wide = size is Av1BlockSize.Block128x128 or Av1BlockSize.Block128x64;
                     bool tall = size is Av1BlockSize.Block128x128 or Av1BlockSize.Block64x128;
                     if ((wide && (column & 1) != 0) || (tall && (row & 1) != 0))
@@ -136,7 +139,7 @@ internal static partial class Av1CdefEncoder
 
                     int width = Math.Min(wide ? 32 : 16, header.ModeInfoColumnCount - position.X);
                     int height = Math.Min(tall ? 32 : 16, header.ModeInfoRowCount - position.Y);
-                    int blockCount = GetBlocks(picture, position, width, height, blocks);
+                    int blockCount = GetBlocks(grid, allocation, stride, position, width, height, blocks);
                     if (blockCount == 0)
                     {
                         continue;
@@ -193,13 +196,22 @@ internal static partial class Av1CdefEncoder
     /// <summary>
     /// Collects the non-skipped eight-by-eight blocks of one search or application unit.
     /// </summary>
-    /// <param name="picture">The retained mode grid.</param>
+    /// <param name="grid">The mode-information grid, which the caller reads once outside its unit loop.</param>
+    /// <param name="allocation">The mode-information allocation, which the caller reads once outside its unit loop.</param>
+    /// <param name="stride">The number of grid cells between rows of <paramref name="grid"/>.</param>
     /// <param name="position">The unit origin in four-by-four luma units.</param>
     /// <param name="width">The unit width in mode units.</param>
     /// <param name="height">The unit height in mode units.</param>
     /// <param name="blocks">The destination for packed relative block coordinates.</param>
     /// <returns>The populated block count.</returns>
-    private static int GetBlocks(Av1PictureControlSet picture, Point position, int width, int height, Span<ushort> blocks)
+    private static int GetBlocks(
+        ReadOnlySpan<int> grid,
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation,
+        int stride,
+        Point position,
+        int width,
+        int height,
+        Span<ushort> blocks)
     {
         int count = 0;
         for (int y = 0; y < height; y += 2)
@@ -209,9 +221,10 @@ internal static partial class Av1CdefEncoder
                 bool skipped = true;
                 for (int dy = 0; dy < Math.Min(2, height - y); dy++)
                 {
+                    int rowOffset = (position.Y + y + dy) * stride;
                     for (int dx = 0; dx < Math.Min(2, width - x); dx++)
                     {
-                        skipped &= picture.GetFromModeInfoGrid(new Point(position.X + x + dx, position.Y + y + dy)).Block.Skip;
+                        skipped &= allocation[grid[rowOffset + position.X + x + dx]].Block.Skip;
                     }
                 }
 

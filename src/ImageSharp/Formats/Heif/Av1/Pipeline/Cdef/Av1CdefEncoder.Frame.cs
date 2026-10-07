@@ -62,11 +62,13 @@ internal static partial class Av1CdefEncoder
         }
 
         header.CdefParameters.BitCount = 0;
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        Span<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
         for (int row = 0; row < header.ModeInfoRowCount; row += 16)
         {
             for (int column = 0; column < header.ModeInfoColumnCount; column += 16)
             {
-                picture.GetFromModeInfoGrid(new Point(column, row)).CdefStrength = 0;
+                allocation[grid[(row * picture.ModeInfoStride) + column]].CdefStrength = 0;
             }
         }
     }
@@ -125,6 +127,9 @@ internal static partial class Av1CdefEncoder
         Span<bool> leftFiltered = stackalloc bool[3];
         int shift = reconstruction.LumaBitDepth - 8;
         Av1EncoderFrame<TSample>.PlanarSamples planes = reconstruction.CodedView.GetSamples();
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        int stride = picture.ModeInfoStride;
         for (int unitRow = 0; unitRow < header.ModeInfoRowCount; unitRow += 16)
         {
             leftFiltered.Clear();
@@ -148,12 +153,12 @@ internal static partial class Av1CdefEncoder
             for (int unitColumn = 0; unitColumn < header.ModeInfoColumnCount; unitColumn += 16)
             {
                 Point position = new(unitColumn, unitRow);
-                int strengthIndex = picture.GetFromModeInfoGrid(position).CdefStrength;
+                int strengthIndex = allocation[grid[(unitRow * stride) + unitColumn]].CdefStrength;
                 int yStrength = parameters.YStrength[strengthIndex];
                 int uvStrength = parameters.UvStrength[strengthIndex];
                 int width = Math.Min(16, header.ModeInfoColumnCount - unitColumn);
                 int height = Math.Min(16, header.ModeInfoRowCount - unitRow);
-                int count = GetBlocks(picture, position, width, height, blocks);
+                int count = GetBlocks(grid, allocation, stride, position, width, height, blocks);
                 if (count == 0 || (yStrength == 0 && (planeCount == 1 || uvStrength == 0)))
                 {
                     leftFiltered.Clear();

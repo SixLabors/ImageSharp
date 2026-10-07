@@ -115,18 +115,24 @@ internal static class Av1EncoderMotionVariation
         Av1BlockSize blockSize)
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
+
+        // The mode-information grid is read once; a neighbor is its allocation entry at the grid cell.
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        int stride = picture.ModeInfoStride;
         if (macroBlock.IsUpAvailable)
         {
             int endColumn = Math.Min(position.X + blockSize.Get4x4WideCount(), frameHeader.ModeInfoColumnCount);
+            int aboveRow = (position.Y - 1) * stride;
             for (int column = position.X; column < endColumn;)
             {
-                ref readonly Av1EncoderBlockModeInfo above = ref picture.GetFromModeInfoGrid(new Point(column, position.Y - 1)).Block;
+                ref readonly Av1EncoderBlockModeInfo above = ref allocation[grid[aboveRow + column]].Block;
                 int step = Math.Min(above.BlockSize.Get4x4WideCount(), MaximumNeighborStep);
                 if (step == 1)
                 {
                     // A 4-wide neighbor is read from the second cell of its 8-wide pair.
                     column &= ~1;
-                    above = ref picture.GetFromModeInfoGrid(new Point(column + 1, position.Y - 1)).Block;
+                    above = ref allocation[grid[aboveRow + column + 1]].Block;
                     step = 2;
                 }
 
@@ -144,12 +150,12 @@ internal static class Av1EncoderMotionVariation
             int endRow = Math.Min(position.Y + blockSize.Get4x4HighCount(), frameHeader.ModeInfoRowCount);
             for (int row = position.Y; row < endRow;)
             {
-                ref readonly Av1EncoderBlockModeInfo left = ref picture.GetFromModeInfoGrid(new Point(position.X - 1, row)).Block;
+                ref readonly Av1EncoderBlockModeInfo left = ref allocation[grid[(row * stride) + position.X - 1]].Block;
                 int step = Math.Min(left.BlockSize.Get4x4HighCount(), MaximumNeighborStep);
                 if (step == 1)
                 {
                     row &= ~1;
-                    left = ref picture.GetFromModeInfoGrid(new Point(position.X - 1, row + 1)).Block;
+                    left = ref allocation[grid[((row + 1) * stride) + position.X - 1]].Block;
                     step = 2;
                 }
 
@@ -195,10 +201,17 @@ internal static class Av1EncoderMotionVariation
         bool doTopLeft = true;
         bool doTopRight = true;
 
+        // The mode-information grid and the vectors are read once. A neighbor and its vector share the allocation
+        // index at the grid cell.
+        ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
+        ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
+        ReadOnlySpan<Av1EncoderDisplacementVector> vectors = picture.DisplacementVectors.Span;
+        int stride = picture.ModeInfoStride;
         if (macroBlock.IsUpAvailable)
         {
-            Point abovePosition = new(column, row - 1);
-            ref readonly Av1EncoderBlockModeInfo above = ref picture.GetFromModeInfoGrid(abovePosition).Block;
+            int aboveRow = (row - 1) * stride;
+            int index = grid[aboveRow + column];
+            ref readonly Av1EncoderBlockModeInfo above = ref allocation[index].Block;
             int aboveWidth = above.BlockSize.Get4x4WideCount();
             if (width <= aboveWidth)
             {
@@ -206,7 +219,7 @@ internal static class Av1EncoderMotionVariation
                 doTopLeft &= columnOffset >= 0;
                 doTopRight &= columnOffset + aboveWidth <= width;
                 if (IsSample(above, referenceFrame) &&
-                    RecordSample(picture, abovePosition, above, 0, -1, columnOffset, 1, sourcePoints, referencePoints, ref count))
+                    RecordSample(vectors[index], above, 0, -1, columnOffset, 1, sourcePoints, referencePoints, ref count))
                 {
                     return MaximumSampleCount;
                 }
@@ -216,11 +229,11 @@ internal static class Av1EncoderMotionVariation
                 int end = Math.Min(width, frameHeader.ModeInfoColumnCount - column);
                 for (int i = 0; i < end; i += aboveWidth)
                 {
-                    abovePosition = new Point(column + i, row - 1);
-                    above = ref picture.GetFromModeInfoGrid(abovePosition).Block;
+                    index = grid[aboveRow + column + i];
+                    above = ref allocation[index].Block;
                     aboveWidth = above.BlockSize.Get4x4WideCount();
                     if (IsSample(above, referenceFrame) &&
-                        RecordSample(picture, abovePosition, above, 0, -1, i, 1, sourcePoints, referencePoints, ref count))
+                        RecordSample(vectors[index], above, 0, -1, i, 1, sourcePoints, referencePoints, ref count))
                     {
                         return MaximumSampleCount;
                     }
@@ -230,15 +243,15 @@ internal static class Av1EncoderMotionVariation
 
         if (macroBlock.IsLeftAvailable)
         {
-            Point leftPosition = new(column - 1, row);
-            ref readonly Av1EncoderBlockModeInfo left = ref picture.GetFromModeInfoGrid(leftPosition).Block;
+            int index = grid[(row * stride) + column - 1];
+            ref readonly Av1EncoderBlockModeInfo left = ref allocation[index].Block;
             int leftHeight = left.BlockSize.Get4x4HighCount();
             if (height <= leftHeight)
             {
                 int rowOffset = -row % leftHeight;
                 doTopLeft &= rowOffset >= 0;
                 if (IsSample(left, referenceFrame) &&
-                    RecordSample(picture, leftPosition, left, rowOffset, 1, 0, -1, sourcePoints, referencePoints, ref count))
+                    RecordSample(vectors[index], left, rowOffset, 1, 0, -1, sourcePoints, referencePoints, ref count))
                 {
                     return MaximumSampleCount;
                 }
@@ -248,11 +261,11 @@ internal static class Av1EncoderMotionVariation
                 int end = Math.Min(height, frameHeader.ModeInfoRowCount - row);
                 for (int i = 0; i < end; i += leftHeight)
                 {
-                    leftPosition = new Point(column - 1, row + i);
-                    left = ref picture.GetFromModeInfoGrid(leftPosition).Block;
+                    index = grid[((row + i) * stride) + column - 1];
+                    left = ref allocation[index].Block;
                     leftHeight = left.BlockSize.Get4x4HighCount();
                     if (IsSample(left, referenceFrame) &&
-                        RecordSample(picture, leftPosition, left, i, 1, 0, -1, sourcePoints, referencePoints, ref count))
+                        RecordSample(vectors[index], left, i, 1, 0, -1, sourcePoints, referencePoints, ref count))
                     {
                         return MaximumSampleCount;
                     }
@@ -262,10 +275,10 @@ internal static class Av1EncoderMotionVariation
 
         if (doTopLeft && macroBlock.IsLeftAvailable && macroBlock.IsUpAvailable)
         {
-            Point topLeftPosition = new(column - 1, row - 1);
-            ref readonly Av1EncoderBlockModeInfo topLeft = ref picture.GetFromModeInfoGrid(topLeftPosition).Block;
+            int index = grid[((row - 1) * stride) + column - 1];
+            ref readonly Av1EncoderBlockModeInfo topLeft = ref allocation[index].Block;
             if (IsSample(topLeft, referenceFrame) &&
-                RecordSample(picture, topLeftPosition, topLeft, 0, -1, 0, -1, sourcePoints, referencePoints, ref count))
+                RecordSample(vectors[index], topLeft, 0, -1, 0, -1, sourcePoints, referencePoints, ref count))
             {
                 return MaximumSampleCount;
             }
@@ -286,10 +299,10 @@ internal static class Av1EncoderMotionVariation
             topRightColumn >= tile.ModeInfoColumnStart &&
             topRightColumn < tile.ModeInfoColumnEnd)
         {
-            Point topRightPosition = new(topRightColumn, topRightRow);
-            ref readonly Av1EncoderBlockModeInfo topRight = ref picture.GetFromModeInfoGrid(topRightPosition).Block;
+            int index = grid[(topRightRow * stride) + topRightColumn];
+            ref readonly Av1EncoderBlockModeInfo topRight = ref allocation[index].Block;
             if (IsSample(topRight, referenceFrame) &&
-                RecordSample(picture, topRightPosition, topRight, 0, -1, width, 1, sourcePoints, referencePoints, ref count))
+                RecordSample(vectors[index], topRight, 0, -1, width, 1, sourcePoints, referencePoints, ref count))
             {
                 return MaximumSampleCount;
             }
@@ -302,9 +315,18 @@ internal static class Av1EncoderMotionVariation
     /// Records one neighbor center and its displaced position, and reports whether the sample list is full.
     /// Reference: record_samples().
     /// </summary>
+    /// <param name="displacement">The motion vector of the neighbor.</param>
+    /// <param name="neighbor">The neighbor decisions.</param>
+    /// <param name="rowOffset">The row of the neighbor relative to the block, in 4x4 units.</param>
+    /// <param name="rowSign">The direction from the neighbor edge to its center row.</param>
+    /// <param name="columnOffset">The column of the neighbor relative to the block, in 4x4 units.</param>
+    /// <param name="columnSign">The direction from the neighbor edge to its center column.</param>
+    /// <param name="sourcePoints">Receives the neighbor center.</param>
+    /// <param name="referencePoints">Receives the displaced neighbor center.</param>
+    /// <param name="count">The number of samples, which the call increments.</param>
+    /// <returns><see langword="true"/> when the sample list is full.</returns>
     private static bool RecordSample(
-        Av1PictureControlSet picture,
-        Point neighborPosition,
+        Av1EncoderDisplacementVector displacement,
         Av1EncoderBlockModeInfo neighbor,
         int rowOffset,
         int rowSign,
@@ -316,7 +338,7 @@ internal static class Av1EncoderMotionVariation
     {
         int x = (columnOffset << Av1Constants.ModeInfoSizeLog2) + (columnSign * neighbor.BlockSize.GetWidth() / 2) - 1;
         int y = (rowOffset << Av1Constants.ModeInfoSizeLog2) + (rowSign * neighbor.BlockSize.GetHeight() / 2) - 1;
-        Av1MotionVector vector = picture.GetDisplacementVector(neighborPosition);
+        Av1MotionVector vector = new(displacement.Row, displacement.Column);
         Point sample = new(x * 8, y * 8);
         sourcePoints[count] = sample;
         referencePoints[count] = new Point(sample.X + vector.Column, sample.Y + vector.Row);

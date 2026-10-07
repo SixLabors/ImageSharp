@@ -19,6 +19,7 @@ internal static class Av1LoopFilterBase
     /// <typeparam name="TState">The owning encoder or decoder state.</typeparam>
     /// <typeparam name="TMode">The retained block-mode type.</typeparam>
     public interface IFrameOperator<TState, TMode>
+        where TState : allows ref struct
         where TMode : struct
     {
         /// <summary>
@@ -91,6 +92,7 @@ internal static class Av1LoopFilterBase
         int stride,
         int bitDepth)
         where TSample : unmanaged
+        where TState : allows ref struct
         where TMode : struct
         where TFrameOperator : struct, IFrameOperator<TState, TMode>
         where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
@@ -210,6 +212,7 @@ internal static class Av1LoopFilterBase
         int stride,
         int bitDepth)
         where TSample : unmanaged
+        where TState : allows ref struct
         where TMode : struct
         where TFrameOperator : struct, IFrameOperator<TState, TMode>
         where TEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>

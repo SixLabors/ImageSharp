@@ -5472,9 +5472,14 @@ internal static partial class Av1IntraSuperblockEncoder
             int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
             int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
             int endColumn = Math.Min(modeInfoColumn + blockSize.Get4x4WideCount(), this.picture.Parent.Common.ModeInfoColumnCount);
+
+            // The mode-information grid is read once; a neighbor is its allocation entry at the grid cell.
+            ReadOnlySpan<int> grid = this.picture.ModeInfoGrid.Span;
+            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = this.picture.ModeInfoAllocation.Span;
+            int stride = this.picture.ModeInfoStride;
             for (int column = modeInfoColumn; column < endColumn;)
             {
-                ref readonly Av1EncoderBlockModeInfo above = ref this.picture.GetFromModeInfoGrid(new Point(column, modeInfoRow - 1)).Block;
+                ref readonly Av1EncoderBlockModeInfo above = ref allocation[grid[((modeInfoRow - 1) * stride) + column]].Block;
                 if (MatchesNeighborReference(above, first, second))
                 {
                     return true;
@@ -5491,7 +5496,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int endRow = Math.Min(modeInfoRow + blockSize.Get4x4HighCount(), this.picture.Parent.Common.ModeInfoRowCount);
             for (int row = modeInfoRow; row < endRow;)
             {
-                ref readonly Av1EncoderBlockModeInfo left = ref this.picture.GetFromModeInfoGrid(new Point(modeInfoColumn - 1, row)).Block;
+                ref readonly Av1EncoderBlockModeInfo left = ref allocation[grid[(row * stride) + modeInfoColumn - 1]].Block;
                 if (MatchesNeighborReference(left, first, second))
                 {
                     return true;
@@ -10498,25 +10503,33 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Reference: av1_skip_u4x4_pred_in_obmc().
             bool smallPlane = planeSize is Av1BlockSize.Block4x4 or Av1BlockSize.Block8x4 or Av1BlockSize.Block4x8;
+
+            // The mode-information grid and the vectors are read once. A neighbor and its vector share the allocation
+            // index at the grid cell.
+            ReadOnlySpan<int> grid = this.picture.ModeInfoGrid.Span;
+            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = this.picture.ModeInfoAllocation.Span;
+            ReadOnlySpan<Av1EncoderDisplacementVector> vectors = this.picture.DisplacementVectors.Span;
+            int stride = this.picture.ModeInfoStride;
             if (this.obmcAboveAvailable && !smallPlane)
             {
                 int endColumn = Math.Min(position.X + widthUnits, this.picture.Parent.FrameHeader.ModeInfoColumnCount);
                 int limit = maximumNeighbors[System.Numerics.BitOperations.Log2((uint)widthUnits)];
+                int aboveRow = (position.Y - 1) * stride;
                 int count = 0;
                 int step;
                 for (int column = position.X; column < endColumn && count < limit; column += step)
                 {
-                    Point neighborPosition = new(column, position.Y - 1);
-                    step = Math.Min(this.picture.GetFromModeInfoGrid(neighborPosition).Block.BlockSize.Get4x4WideCount(), largestStep);
+                    int neighborIndex = grid[aboveRow + column];
+                    step = Math.Min(allocation[neighborIndex].Block.BlockSize.Get4x4WideCount(), largestStep);
                     if (step == 1)
                     {
                         // A four-sample neighbor is one half of a pair whose second block carries the chroma.
                         column &= ~1;
-                        neighborPosition = new Point(column + 1, position.Y - 1);
+                        neighborIndex = grid[aboveRow + column + 1];
                         step = 2;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo neighbor = ref this.picture.GetFromModeInfoGrid(neighborPosition).Block;
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref allocation[neighborIndex].Block;
                     if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
                     {
                         continue;
@@ -10527,11 +10540,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     int predictionHeight = Math.Clamp(blockSize.GetHeight() >> (subsamplingY + 1), 4, 64 >> (subsamplingY + 1));
                     int overlap = (Math.Min(blockSize.GetHeight(), 64) >> 1) >> subsamplingY;
                     int planeColumn = ((column - position.X) << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
+                    Av1EncoderDisplacementVector vector = vectors[neighborIndex];
                     this.PredictObmcNeighbor(
                         plane,
                         subsamplingX,
                         subsamplingY,
-                        neighborPosition,
+                        new Av1MotionVector(vector.Row, vector.Column),
                         neighbor,
                         new Point((column << Av1Constants.ModeInfoSizeLog2) >> subsamplingX, (position.Y << Av1Constants.ModeInfoSizeLog2) >> subsamplingY),
                         width,
@@ -10558,16 +10572,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 int step;
                 for (int row = position.Y; row < endRow && count < limit; row += step)
                 {
-                    Point neighborPosition = new(position.X - 1, row);
-                    step = Math.Min(this.picture.GetFromModeInfoGrid(neighborPosition).Block.BlockSize.Get4x4HighCount(), largestStep);
+                    int neighborIndex = grid[(row * stride) + position.X - 1];
+                    step = Math.Min(allocation[neighborIndex].Block.BlockSize.Get4x4HighCount(), largestStep);
                     if (step == 1)
                     {
                         row &= ~1;
-                        neighborPosition = new Point(position.X - 1, row + 1);
+                        neighborIndex = grid[((row + 1) * stride) + position.X - 1];
                         step = 2;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo neighbor = ref this.picture.GetFromModeInfoGrid(neighborPosition).Block;
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref allocation[neighborIndex].Block;
                     if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
                     {
                         continue;
@@ -10578,11 +10592,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     int predictionWidth = Math.Clamp(blockSize.GetWidth() >> (subsamplingX + 1), 4, 64 >> (subsamplingX + 1));
                     int overlap = (Math.Min(blockSize.GetWidth(), 64) >> 1) >> subsamplingX;
                     int planeRow = ((row - position.Y) << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
+                    Av1EncoderDisplacementVector vector = vectors[neighborIndex];
                     this.PredictObmcNeighbor(
                         plane,
                         subsamplingX,
                         subsamplingY,
-                        neighborPosition,
+                        new Av1MotionVector(vector.Row, vector.Column),
                         neighbor,
                         new Point((position.X << Av1Constants.ModeInfoSizeLog2) >> subsamplingX, (row << Av1Constants.ModeInfoSizeLog2) >> subsamplingY),
                         predictionWidth,
@@ -10615,7 +10630,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="plane">The plane.</param>
         /// <param name="subsamplingX">The horizontal subsampling shift.</param>
         /// <param name="subsamplingY">The vertical subsampling shift.</param>
-        /// <param name="neighborPosition">The neighbor mode-information position.</param>
+        /// <param name="vector">The motion vector of the neighbor.</param>
         /// <param name="neighbor">The neighbor decisions.</param>
         /// <param name="planeOrigin">The rectangle origin in plane samples.</param>
         /// <param name="width">The rectangle width.</param>
@@ -10627,7 +10642,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             int subsamplingX,
             int subsamplingY,
-            Point neighborPosition,
+            Av1MotionVector vector,
             Av1EncoderBlockModeInfo neighbor,
             Point planeOrigin,
             int width,
@@ -10636,8 +10651,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> predictionScratch,
             Av1BitDepth bitDepth)
         {
-            Av1MotionVector vector = this.picture.GetDisplacementVector(neighborPosition);
-
             // A neighbor predicts from its reference with that reference's scale factors. Reference:
             // av1_setup_build_prediction_by_above_pred() and av1_setup_build_prediction_by_left_pred().
             if (!neighbor.UseIntraBlockCopy && this.IsResizedReference(neighbor.ReferenceFrame))
@@ -10730,6 +10743,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 (lumaOrigin.X >> Av1Constants.ModeInfoSizeLog2) - columnStart,
                 (lumaOrigin.Y >> Av1Constants.ModeInfoSizeLog2) - rowStart);
 
+            // The mode-information grid and the vectors are read once. A covered block and its vector share the
+            // allocation index at the grid cell.
+            ReadOnlySpan<int> grid = this.picture.ModeInfoGrid.Span;
+            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = this.picture.ModeInfoAllocation.Span;
+            ReadOnlySpan<Av1EncoderDisplacementVector> vectors = this.picture.DisplacementVectors.Span;
+            int stride = this.picture.ModeInfoStride;
             for (int row = rowStart; row <= 0; row++)
             {
                 for (int column = columnStart; column <= 0; column++)
@@ -10739,8 +10758,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo covered =
-                        ref this.picture.GetFromModeInfoGrid(new Point(current.X + column, current.Y + row)).Block;
+                    ref readonly Av1EncoderBlockModeInfo covered = ref allocation[grid[((current.Y + row) * stride) + current.X + column]].Block;
 
                     if (covered.ReferenceFrame <= Av1ReferenceFrameType.Intra || covered.UseIntraBlockCopy)
                     {
@@ -10769,9 +10787,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1InterpolationFilter subVertical = verticalFilter;
                     if (modeRow != 0 || modeColumn != 0)
                     {
-                        Point position = new(current.X + modeColumn, current.Y + modeRow);
-                        ref readonly Av1EncoderBlockModeInfo covered = ref this.picture.GetFromModeInfoGrid(position).Block;
-                        subVector = this.picture.GetDisplacementVector(position);
+                        int coveredIndex = grid[((current.Y + modeRow) * stride) + current.X + modeColumn];
+                        ref readonly Av1EncoderBlockModeInfo covered = ref allocation[coveredIndex].Block;
+                        subVector = new Av1MotionVector(vectors[coveredIndex].Row, vectors[coveredIndex].Column);
                         subReferenceFrame = covered.ReferenceFrame;
                         subReference = references[(int)covered.ReferenceFrame].CodedView.GetPlane(plane);
                         subHorizontal = covered.HorizontalInterpolationFilter;

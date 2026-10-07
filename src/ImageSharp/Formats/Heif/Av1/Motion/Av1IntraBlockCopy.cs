@@ -492,10 +492,30 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Provides one allocation-free view over decoder or encoder mode-information storage.
     /// </summary>
-    private readonly struct ReferenceContext
+    private readonly ref struct ReferenceContext
     {
         private readonly Av1SuperblockInfo decodedSuperblock;
         private readonly Av1PictureControlSet? encodedPicture;
+
+        /// <summary>
+        /// The encoder mode-information grid, read once for the block. Each cell holds an index in the allocation.
+        /// </summary>
+        private readonly ReadOnlySpan<int> encodedGrid;
+
+        /// <summary>
+        /// The encoder mode-information allocation, read once for the block.
+        /// </summary>
+        private readonly ReadOnlySpan<Av1MacroBlockModeInfo> encodedModeInfo;
+
+        /// <summary>
+        /// The motion vectors of the encoder blocks, read once for the block.
+        /// </summary>
+        private readonly ReadOnlySpan<Av1EncoderDisplacementVector> encodedVectors;
+
+        /// <summary>
+        /// The number of grid cells between rows of <see cref="encodedGrid"/>.
+        /// </summary>
+        private readonly int encodedStride;
 
         public ReferenceContext(ref Av1PartitionInfo partitionInfo, int superblockModeInfoSize)
         {
@@ -523,6 +543,10 @@ internal static class Av1IntraBlockCopy
         {
             this.decodedSuperblock = default;
             this.encodedPicture = picture;
+            this.encodedGrid = picture.ModeInfoGrid.Span;
+            this.encodedModeInfo = picture.ModeInfoAllocation.Span;
+            this.encodedVectors = picture.DisplacementVectors.Span;
+            this.encodedStride = picture.ModeInfoStride;
             this.BlockSize = blockSize;
             this.RowIndex = modeInfoPosition.Y;
             this.ColumnIndex = modeInfoPosition.X;
@@ -584,14 +608,15 @@ internal static class Av1IntraBlockCopy
 
         public ReferenceBlock GetModeInfoAt(Point position)
         {
-            Av1PictureControlSet? picture = this.encodedPicture;
-            if (picture is not null)
+            if (this.encodedPicture is not null)
             {
-                Av1MacroBlockModeInfo encodedModeInfo = picture.GetFromModeInfoGrid(position);
+                int index = this.encodedGrid[(position.Y * this.encodedStride) + position.X];
+                ref readonly Av1EncoderBlockModeInfo block = ref this.encodedModeInfo[index].Block;
+                Av1EncoderDisplacementVector vector = this.encodedVectors[index];
                 return new ReferenceBlock(
-                    encodedModeInfo.Block.BlockSize,
-                    encodedModeInfo.Block.UseIntraBlockCopy,
-                    picture.GetDisplacementVector(position));
+                    block.BlockSize,
+                    block.UseIntraBlockCopy,
+                    new Av1MotionVector(vector.Row, vector.Column));
             }
 
             Av1BlockModeInfo decodedModeInfo = this.decodedSuperblock.GetModeInfoAt(position);

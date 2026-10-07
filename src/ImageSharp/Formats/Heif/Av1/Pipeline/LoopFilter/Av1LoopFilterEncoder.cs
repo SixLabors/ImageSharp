@@ -209,11 +209,12 @@ internal static class Av1LoopFilterEncoder
         // Each plane is one contiguous allocation. Retain its full bordered view so kernels may
         // access their edge neighborhoods without copying the plane or materializing decoder frame state.
         Span<TSample> storage = samples.Samples;
+        FrameState state = new(picture);
         for (int rowStart = 0; rowStart < header.ModeInfoRowCount; rowStart += rowsPerBand)
         {
             int rowEnd = Math.Min(rowStart + rowsPerBand, header.ModeInfoRowCount);
-            Av1LoopFilterBase.FilterBand<TSample, Av1PictureControlSet, Av1EncoderBlockModeInfo, FrameOperator, TVerticalOperator, THorizontalOperator>(
-                picture, header, plane, rowStart, rowEnd, subX, subY, storage, origin, samples.Stride, reconstruction.LumaBitDepth);
+            Av1LoopFilterBase.FilterBand<TSample, FrameState, Av1EncoderBlockModeInfo, FrameOperator, TVerticalOperator, THorizontalOperator>(
+                state, header, plane, rowStart, rowEnd, subX, subY, storage, origin, samples.Stride, reconstruction.LumaBitDepth);
         }
     }
 
@@ -549,13 +550,59 @@ internal static class Av1LoopFilterEncoder
     }
 
     /// <summary>
+    /// The encoder state that the deblocking traversal reads: the picture and its mode-information grid, read once
+    /// for a plane pass. Reference: the mi_grid_base pointer that av1_filter_block_plane_vert() and its
+    /// horizontal twin read.
+    /// </summary>
+    private readonly ref struct FrameState
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FrameState"/> struct.
+        /// </summary>
+        /// <param name="picture">The frame decisions.</param>
+        public FrameState(Av1PictureControlSet picture)
+        {
+            this.Picture = picture;
+            this.Grid = picture.ModeInfoGrid.Span;
+            this.Allocation = picture.ModeInfoAllocation.Span;
+            this.Stride = picture.ModeInfoStride;
+            this.Lossless = picture.Parent.FrameHeader.LosslessArray;
+        }
+
+        /// <summary>
+        /// Gets the frame decisions.
+        /// </summary>
+        public Av1PictureControlSet Picture { get; }
+
+        /// <summary>
+        /// Gets the mode-information grid. Each cell holds an index in <see cref="Allocation"/>.
+        /// </summary>
+        public ReadOnlySpan<int> Grid { get; }
+
+        /// <summary>
+        /// Gets the mode-information allocation.
+        /// </summary>
+        public ReadOnlySpan<Av1MacroBlockModeInfo> Allocation { get; }
+
+        /// <summary>
+        /// Gets the number of grid cells between rows of <see cref="Grid"/>.
+        /// </summary>
+        public int Stride { get; }
+
+        /// <summary>
+        /// Gets whether each segment is coded lossless.
+        /// </summary>
+        public ReadOnlySpan<bool> Lossless { get; }
+    }
+
+    /// <summary>
     /// Reads deblocking parameters from the retained encoder mode grid.
     /// </summary>
-    private readonly struct FrameOperator : Av1LoopFilterBase.IFrameOperator<Av1PictureControlSet, Av1EncoderBlockModeInfo>
+    private readonly struct FrameOperator : Av1LoopFilterBase.IFrameOperator<FrameState, Av1EncoderBlockModeInfo>
     {
         /// <inheritdoc/>
         public static void GetParameters(
-            Av1PictureControlSet state,
+            FrameState state,
             Point position,
             Av1Plane plane,
             int pass,
@@ -566,18 +613,19 @@ internal static class Av1LoopFilterEncoder
             out Av1TransformSize transformSize,
             out Av1EncoderBlockModeInfo mode)
         {
-            blockIndex = state.ModeInfoGrid.Span[(position.Y * state.ModeInfoStride) + position.X];
-            mode = state.ModeInfoAllocation.Span[blockIndex].Block;
+            blockIndex = state.Grid[(position.Y * state.Stride) + position.X];
+            mode = state.Allocation[blockIndex].Block;
             skippedTransform = mode.Skip && (mode.ReferenceFrame > Av1ReferenceFrameType.Intra || mode.UseIntraBlockCopy);
 
             // Chroma uses its own maximum plane transform. Non-skipped inter luma reads the
             // selected tree cell so filter lengths follow the transform boundary at this position.
-            transformSize = state.Parent.FrameHeader.LosslessArray[mode.SegmentId]
+            ReadOnlySpan<bool> lossless = state.Lossless;
+            transformSize = lossless[mode.SegmentId]
                 ? Av1TransformSize.Size4x4
                 : plane == Av1Plane.Y ? mode.TransformSize : mode.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
             if (plane == Av1Plane.Y && (mode.ReferenceFrame > Av1ReferenceFrameType.Intra || mode.UseIntraBlockCopy) &&
-                !mode.Skip && !state.Parent.FrameHeader.LosslessArray[mode.SegmentId])
+                !mode.Skip && !lossless[mode.SegmentId])
             {
                 int row = position.Y & (mode.BlockSize.Get4x4HighCount() - 1);
                 int column = position.X & (mode.BlockSize.Get4x4WideCount() - 1);
@@ -586,9 +634,9 @@ internal static class Av1LoopFilterEncoder
         }
 
         /// <inheritdoc/>
-        public static int GetFilterLevel(Av1PictureControlSet state, ref Av1EncoderBlockModeInfo mode, Point position, Av1Plane plane, int pass)
+        public static int GetFilterLevel(FrameState state, ref Av1EncoderBlockModeInfo mode, Point position, Av1Plane plane, int pass)
         {
-            ObuFrameHeader header = state.Parent.FrameHeader;
+            ObuFrameHeader header = state.Picture.Parent.FrameHeader;
             ObuLoopFilterParameters parameters = header.LoopFilterParameters;
             int index = plane == Av1Plane.Y ? pass : (int)plane + 1;
             int level = index switch

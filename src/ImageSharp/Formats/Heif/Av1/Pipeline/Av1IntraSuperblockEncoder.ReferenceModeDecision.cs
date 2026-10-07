@@ -8359,6 +8359,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     prediction,
                     workspace.Residual);
 
+                // The whole luma prediction goes into the frame before the transform blocks, also past the coded area.
+                // Reference: av1_enc_build_inter_predictor() into pd->dst in encode_superblock(), before av1_encode_sb().
+                if (plane == Av1Plane.Y)
+                {
+                    this.WriteInterLumaDestination(blockOrigin, modeInfo.Block.BlockSize, prediction);
+                }
+
                 Av1NeighborArrayUnit<byte> neighbors = plane switch
                 {
                     Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
@@ -8431,6 +8438,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         context,
                         true,
+                        blockOrigin,
+                        modeInfo.Block.BlockSize,
                         planeOrigin + new Size(offset.X, offset.Y),
                         plane,
                         transformSize,

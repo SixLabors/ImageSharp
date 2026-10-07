@@ -729,6 +729,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
                             else
                             {
+                                // At high bit depth sharpness 3, the trellis of a luma transform block tests the whole block in the frame
+                                // for a noise pattern. Reference: is_noise_pattern in av1_optimize_txb(), from encode_block_intra().
+                                this.blockWorkspace.LumaNoisePattern = plane == Av1Plane.Y && this.IsLumaNoisePattern(destination, blockOrigin, blockSize);
                                 Av1TransformBlockEncoder.EncodeLossyCandidate(
                                     this.blockWorkspace,
                                     writer,
@@ -749,6 +752,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                     true,
                                     0,
                                     ref state);
+
+                                this.blockWorkspace.LumaNoisePattern = false;
                             }
 
                             // A luma transform block that quantized to nothing returns to DCT_DCT.

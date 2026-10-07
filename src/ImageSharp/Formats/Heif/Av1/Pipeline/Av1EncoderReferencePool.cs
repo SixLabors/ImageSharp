@@ -98,7 +98,7 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
             this.free.Remove(entry);
             if (entry.Buffer.Frame.Width != frameWidth || entry.Buffer.Frame.Height != frameHeight)
             {
-                entry.ReplaceBuffer(this.CreateBuffer(frameWidth, frameHeight));
+                entry.ReplaceBuffer(this.CreateBuffer(frameWidth, frameHeight, entry.Buffer));
             }
 
             return entry;
@@ -106,7 +106,7 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
 
         entry = new Entry(
             this.entries.Count,
-            this.CreateBuffer(frameWidth, frameHeight),
+            this.CreateBuffer(frameWidth, frameHeight, null),
             new Av1FrameEntropyContext(this.qIndex),
             this.motionField.CreateSavedMotionField(this.configuration));
 
@@ -115,12 +115,14 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Allocates the planes of a frame of the given size.
+    /// Allocates the planes of a frame of the given size, over the memory of an earlier buffer when it is large enough.
+    /// Reference: aom_realloc_frame_buffer().
     /// </summary>
     /// <param name="frameWidth">The visible luma width of the frame.</param>
     /// <param name="frameHeight">The visible luma height of the frame.</param>
+    /// <param name="previous">The earlier buffer of the entry, or <see langword="null"/> for a new entry.</param>
     /// <returns>The frame storage.</returns>
-    private Av1EncoderFrameBuffer<TSample> CreateBuffer(int frameWidth, int frameHeight)
+    private Av1EncoderFrameBuffer<TSample> CreateBuffer(int frameWidth, int frameHeight, Av1EncoderFrameBuffer<TSample>? previous)
         => new(
             this.configuration,
             frameWidth,
@@ -129,7 +131,8 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
             this.colorFormat,
             this.chromaPositionX,
             this.chromaPositionY,
-            this.lumaBorder);
+            this.lumaBorder,
+            previous);
 
     /// <summary>
     /// Gets the buffer a slot points at.
@@ -240,14 +243,10 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
         public ObuSegmentationParameters Segmentation { get; } = new();
 
         /// <summary>
-        /// Replaces the frame storage with planes of another size, and releases the old planes.
+        /// Replaces the frame storage with planes of another size. The new storage took the old memory or released it.
         /// </summary>
         /// <param name="buffer">The new frame storage.</param>
-        public void ReplaceBuffer(Av1EncoderFrameBuffer<TSample> buffer)
-        {
-            this.Buffer.Dispose();
-            this.Buffer = buffer;
-        }
+        public void ReplaceBuffer(Av1EncoderFrameBuffer<TSample> buffer) => this.Buffer = buffer;
 
         /// <summary>
         /// Gets the segment map that the last frame coded into the buffer left, one identifier per 4x4 block, or

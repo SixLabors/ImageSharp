@@ -44,6 +44,35 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
         int chromaPositionX,
         int chromaPositionY,
         int lumaBorder)
+        : this(configuration, width, height, bitDepth, colorFormat, chromaPositionX, chromaPositionY, lumaBorder, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1EncoderFrameBuffer{TSample}"/> class over the memory of an
+    /// earlier buffer when that memory is large enough. The new frame then keeps the bytes of the earlier frame in its
+    /// new layout. Otherwise the earlier memory is released and a new allocation starts at zero.
+    /// Reference: the buffer_alloc_sz test of realloc_frame_buffer_aligned().
+    /// </summary>
+    /// <param name="configuration">The configuration providing the frame allocator.</param>
+    /// <param name="width">The visible luma width.</param>
+    /// <param name="height">The visible luma height.</param>
+    /// <param name="bitDepth">The native component precision.</param>
+    /// <param name="colorFormat">The native luma and chroma sampling layout.</param>
+    /// <param name="chromaPositionX">The horizontal chroma position in half-luma-sample units.</param>
+    /// <param name="chromaPositionY">The vertical chroma position in half-luma-sample units.</param>
+    /// <param name="lumaBorder">The border width and height in luma samples.</param>
+    /// <param name="previous">The earlier buffer whose memory this buffer takes, or <see langword="null"/>.</param>
+    public Av1EncoderFrameBuffer(
+        Configuration configuration,
+        int width,
+        int height,
+        int bitDepth,
+        Av1ColorFormat colorFormat,
+        int chromaPositionX,
+        int chromaPositionY,
+        int lumaBorder,
+        Av1EncoderFrameBuffer<TSample>? previous)
     {
         int subsamplingX = colorFormat is Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422 ? 1 : 0;
         int subsamplingY = colorFormat == Av1ColorFormat.Yuv420 ? 1 : 0;
@@ -64,9 +93,21 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
 
         // Component planes share one contiguous frame allocation; their offsets preserve the 32-byte plane
         // alignment. Each plane is a slice of it, so a kernel addresses the whole bordered plane with its stride.
-        // A new frame starts at zero. The variance measures of an edge block read samples past the coded area, which hold zero
-        // until a trial writes them. Reference: the memset of a new buffer_alloc in realloc_frame_buffer_aligned().
-        IMemoryOwner<TSample> owner = configuration.MemoryAllocator.Allocate<TSample>(storageLength, AllocationOptions.Clean);
+        // A frame that fits in the earlier memory keeps it and its bytes. A larger frame gets a new allocation that starts at zero.
+        // The variance measures of an edge block read samples past the coded area, so these bytes must be the same as libaom's.
+        // Reference: the buffer_alloc_sz test and the memset of a new buffer_alloc in realloc_frame_buffer_aligned().
+        IMemoryOwner<TSample> owner;
+        if (previous?.owner is not null && storageLength <= previous.owner.Memory.Length)
+        {
+            owner = previous.owner;
+            previous.owner = null;
+        }
+        else
+        {
+            previous?.Dispose();
+            owner = configuration.MemoryAllocator.Allocate<TSample>(storageLength, AllocationOptions.Clean);
+        }
+
         Memory<TSample> storage = owner.Memory;
         Av1PlaneRegion<TSample> lumaRegion = new(
             storage[..lumaElementCount],

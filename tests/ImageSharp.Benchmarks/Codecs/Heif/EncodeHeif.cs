@@ -123,7 +123,8 @@ public class EncodeHeif
 
         Run elevated with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
         Elevation adds the native memory columns of NativeMemoryProfiler. The Allocated and Alloc Ratio columns count managed memory only.
-        The native memory of ImageSharp is its pooled unmanaged buffers; the pool keeps them, so the profiler reports them as a leak.
+        The native leak of ImageSharp is whole 4 MB buffers of its unmanaged pool, which the pool keeps after Dispose returns them.
+        The encoder disposes every buffer that it allocates.
         Both encoders use quality 75, speed 6, 4:2:0 and SSIM tune. Magick's libheif encodes with one thread per
         logical core; the SingleCore case pins the Magick process to one core. The ImageSharp encoder uses one thread.
      */

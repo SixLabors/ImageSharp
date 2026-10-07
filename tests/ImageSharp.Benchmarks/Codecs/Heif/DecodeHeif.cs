@@ -98,6 +98,7 @@ public class DecodeHeif
 
         Run elevated with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
         Elevation adds the native memory columns of NativeMemoryProfiler. The Allocated and Alloc Ratio columns count managed memory only.
-        The native memory of ImageSharp is its pooled unmanaged buffers; the pool keeps them, so the profiler reports them as a leak.
+        The native leak of ImageSharp is whole 4 MB buffers of its unmanaged pool, which the pool keeps after Dispose returns them.
+        The decoder disposes every buffer that it allocates.
      */
 }

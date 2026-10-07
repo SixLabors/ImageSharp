@@ -68,6 +68,10 @@ public enum PixelTypes
 
     Abgr32 = 1 << 27,
 
+    Rgba32P = 1 << 28,
+
+    RgbaVectorP = 1 << 29,
+
     // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 
     // "All" is handled as a separate, individual case instead of using bitwise OR

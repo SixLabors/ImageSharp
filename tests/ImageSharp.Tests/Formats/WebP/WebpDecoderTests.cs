@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -10,6 +12,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+using Xunit.Sdk;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 
 // ReSharper disable InconsistentNaming
@@ -184,29 +187,31 @@ public class WebpDecoderTests
         image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
-    [Fact]
-    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_HardwareIntrinsics_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.AllowAll);
+    /// <summary>
+    /// Compares lossy decoding with uncompressed alpha against the reference decoder across hardware configurations.
+    /// </summary>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(Lossy.AlphaNoCompression, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha(TestImageProvider<Rgba32> provider)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunUncompressedAlphaDecode,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic,
+            provider);
 
-    [Fact]
-    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_WithoutAvx512_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.DisableAVX512F);
-
-    [Fact]
-    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_WithoutAvx2_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.DisableAVX2);
-
-    [Fact]
-    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_WithoutHardwareIntrinsics_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.DisableHWIntrinsic);
-
-    private static void RunUncompressedAlphaDecode()
+    /// <summary>
+    /// Checks the supplied image in the selected hardware configuration.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void RunUncompressedAlphaDecode(string providerDump, string intrinsics)
     {
-        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(
-            Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaNoCompression));
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
         using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
-        image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+        using Image<Rgba32> reference = provider.GetImage(ReferenceDecoder);
+
+        image.DebugSave(provider, intrinsics);
+        ImageComparer.Tolerant().VerifySimilarity(reference, image);
     }
 
     [Theory]
@@ -645,5 +650,122 @@ public class WebpDecoderTests
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
         Assert.Null(image.Metadata.IccProfile);
+    }
+
+    /// <summary>
+    /// Checks ICC color conversion and alpha storage with straight and associated destination pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(Lossy.WithIccpAndAlpha, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void Decode_LossyIccWithAlpha_UsesDestinationAlphaRepresentation<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunLossyIccAlphaDecode,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512v2 | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Restores the typed provider for the selected hardware configuration.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void RunLossyIccAlphaDecode(string providerDump, string intrinsics)
+    {
+        // RemoteExecutor calls a non-generic method. Restore the concrete provider selected by WithFile before decoding.
+        switch (FeatureTestRunner.DeserializeForXunit<IXunitSerializable>(providerDump))
+        {
+            case TestImageProvider<Rgba32> provider:
+                AssertLossyIccAlphaDecode(provider, intrinsics);
+                break;
+            case TestImageProvider<Rgba32P> provider:
+                AssertLossyIccAlphaDecode(provider, intrinsics);
+                break;
+            case TestImageProvider<RgbaVector> provider:
+                AssertLossyIccAlphaDecode(provider, intrinsics);
+                break;
+            case TestImageProvider<RgbaVectorP> provider:
+                AssertLossyIccAlphaDecode(provider, intrinsics);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Compares decoded colors with an independent ICC transform and checks stored alpha components.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void AssertLossyIccAlphaDecode<TPixel>(TestImageProvider<TPixel> provider, string intrinsics)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> actual = provider.GetImage(WebpDecoder.Instance);
+
+        TestFile file = TestFile.Create(provider.SourceFileOrDescription);
+        DecoderOptions options = new() { Configuration = provider.Configuration };
+        using MemoryStream stream = new(file.Bytes);
+        using Image<RgbaVector> expected = ReferenceDecoder.Decode<RgbaVector>(options, stream);
+
+        // These pixels are now sRGB. Do not attach the retained source profile to the saved comparison image.
+        actual.Metadata.IccProfile = null;
+        PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit16 };
+        actual.DebugSave(provider, intrinsics, extension: "png", encoder: encoder);
+
+        bool associated = TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
+        int transparentPixels = 0;
+        int partialAlphaPixels = 0;
+
+        // The measured ICC difference is at most 167 in 16-bit units, below one 8-bit code (257 units).
+        // Bound each stored RGB component to one source code, rather than allowing errors to disappear in an image average.
+        const int componentTolerance = ushort.MaxValue / byte.MaxValue;
+
+        for (int y = 0; y < actual.Height; y++)
+        {
+            Span<TPixel> actualRow = actual.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<RgbaVector> expectedRow = expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+
+            for (int x = 0; x < actualRow.Length; x++)
+            {
+                // These pixel formats expose stored RGB here, so this check sees association before any unassociation.
+                Vector4 actualPixel = actualRow[x].ToScaledVector4();
+                Vector4 expectedPixel = expectedRow[x].ToScaledVector4();
+
+                // The file stores alpha as byte codes. Compare those codes exactly, independent of float normalization rounding.
+                Assert.Equal(expectedRow[x].ToRgba32().A, actualRow[x].ToRgba32().A);
+
+                if (associated)
+                {
+                    // Multiply the independent straight reference RGB by alpha once; do not use our associated pixel packer for expectations.
+                    expectedPixel = new Vector4(new Vector3(expectedPixel.X, expectedPixel.Y, expectedPixel.Z) * expectedPixel.W, expectedPixel.W);
+                }
+
+                // Apply the destination's scalar quantization after calculating association, then compare its stored RGB in 16-bit units.
+                // This keeps byte rounding separate from the permitted ICC difference and checks the decoder's bulk packing against the scalar API.
+                TPixel expectedPacked = TPixel.FromScaledVector4(expectedPixel);
+                Rgba64 expectedStored = Rgba64.FromScaledVector4(expectedPacked.ToScaledVector4());
+                Rgba64 actualStored = Rgba64.FromScaledVector4(actualPixel);
+                Assert.InRange(Math.Abs(actualStored.R - expectedStored.R), 0, componentTolerance);
+                Assert.InRange(Math.Abs(actualStored.G - expectedStored.G), 0, componentTolerance);
+                Assert.InRange(Math.Abs(actualStored.B - expectedStored.B), 0, componentTolerance);
+
+                if (expectedPixel.W == 0F)
+                {
+                    transparentPixels++;
+                    if (associated)
+                    {
+                        Assert.Equal(Vector3.Zero, new Vector3(actualPixel.X, actualPixel.Y, actualPixel.Z));
+                    }
+                }
+                else if (expectedPixel.W < 1F)
+                {
+                    partialAlphaPixels++;
+                }
+            }
+        }
+
+        // Keep these alpha cases mandatory if the source fixture is ever replaced.
+        Assert.True(transparentPixels > 0);
+        Assert.True(partialAlphaPixels > 0);
     }
 }

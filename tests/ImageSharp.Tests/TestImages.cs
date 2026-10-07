@@ -827,6 +827,7 @@ public static class TestImages
             public const string WithExif = "Webp/exif_lossy.webp";
             public const string WithExifNotEnoughData = "Webp/exif_lossy_not_enough_data.webp";
             public const string WithIccp = "Webp/lossy_with_iccp.webp";
+            public const string WithIccpAndAlpha = "Webp/webp-color-profile-lossy-alpha.webp";
             public const string WithXmp = "Webp/xmp_lossy.webp";
             public const string BikeSmall = "Webp/bike_lossy_small.webp";
             public const string Animated = "Webp/leo_animated_lossy.webp";

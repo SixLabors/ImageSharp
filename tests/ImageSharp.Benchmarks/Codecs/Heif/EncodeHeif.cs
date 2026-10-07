@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
 using BenchmarkDotNet.Attributes;
 using ImageMagick;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -47,6 +48,17 @@ public class EncodeHeif
     }
 
     /// <summary>
+    /// Pins the benchmark process to the first core and reads the source image for both encoders.
+    /// </summary>
+    [GlobalSetup(Target = nameof(MagickAvifSingleCore))]
+    public void ReadImagesOnSingleCore()
+    {
+        // Each benchmark runs in its own process, so the pin confines every libheif thread of this case only.
+        Process.GetCurrentProcess().ProcessorAffinity = 1;
+        this.ReadImages();
+    }
+
+    /// <summary>
     /// Releases the source images.
     /// </summary>
     [GlobalCleanup]
@@ -66,6 +78,12 @@ public class EncodeHeif
         this.avifMagick.Quality = 75;
         this.avifMagick.Write(memoryStream, MagickFormat.Avif);
     }
+
+    /// <summary>
+    /// Encodes the image with Magick.NET on a single core.
+    /// </summary>
+    [Benchmark(Description = "Magick Avif SingleCore")]
+    public void MagickAvifSingleCore() => this.MagickAvif();
 
     /// <summary>
     /// Encodes the image with ImageSharp.
@@ -93,16 +111,18 @@ public class EncodeHeif
         Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
         WarmupCount=5
 
-        | Method            | TestImage      | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
-        |------------------ |--------------- |---------:|---------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
-        | 'Magick Avif'     | Png/Bike.png   | 236.9 ms |  4.37 ms |  4.08 ms |  1.00 |    0.02 |         - |         - |         - |   61.6 KB |        1.00 |
-        | 'ImageSharp Avif' | Png/Bike.png   | 359.3 ms | 27.11 ms | 25.36 ms |  1.52 |    0.11 |         - |         - |         - |  656.8 KB |       10.66 |
-        |                   |                |          |          |          |       |         |           |           |           |           |             |
-        | 'Magick Avif'     | Png/splash.png | 199.9 ms |  6.40 ms |  5.98 ms |  1.00 |    0.04 |         - |         - |         - |   61.6 KB |        1.00 |
-        | 'ImageSharp Avif' | Png/splash.png | 209.0 ms | 14.55 ms | 13.61 ms |  1.05 |    0.07 | 1000.0000 | 1000.0000 | 1000.0000 | 664.41 KB |       10.79 |
+        | Method                   | TestImage      | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
+        |------------------------- |--------------- |---------:|---------:|---------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
+        | 'Magick Avif'            | Png/Bike.png   | 235.6 ms |  4.66 ms |  3.89 ms | 235.6 ms |  1.00 |    0.02 |         - |         - |         - |   61.6 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Png/Bike.png   | 428.3 ms |  7.55 ms |  6.31 ms | 428.6 ms |  1.82 |    0.04 |         - |         - |         - |  71.01 KB |        1.15 |
+        | 'ImageSharp Avif'        | Png/Bike.png   | 340.6 ms | 44.16 ms | 41.31 ms | 306.3 ms |  1.45 |    0.17 |         - |         - |         - |  656.8 KB |       10.66 |
+        |                          |                |          |          |          |          |       |         |           |           |           |           |             |
+        | 'Magick Avif'            | Png/splash.png | 196.6 ms |  8.17 ms |  7.64 ms | 196.0 ms |  1.00 |    0.05 |         - |         - |         - |  60.55 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Png/splash.png | 252.9 ms |  7.11 ms |  6.30 ms | 251.6 ms |  1.29 |    0.06 |         - |         - |         - |  61.95 KB |        1.02 |
+        | 'ImageSharp Avif'        | Png/splash.png | 219.1 ms | 13.66 ms | 12.77 ms | 227.1 ms |  1.12 |    0.08 | 1000.0000 | 1000.0000 | 1000.0000 | 664.41 KB |       10.97 |
 
         Run with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
         Both encoders use quality 75, speed 6, 4:2:0 and SSIM tune. Magick's libheif encodes with one thread per
-        logical core; Magick.NET has no setting to change that. The ImageSharp encoder uses one thread.
+        logical core; the SingleCore case pins the Magick process to one core. The ImageSharp encoder uses one thread.
      */
 }

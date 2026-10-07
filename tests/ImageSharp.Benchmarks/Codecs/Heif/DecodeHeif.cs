@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
 using BenchmarkDotNet.Attributes;
 using ImageMagick;
 using SixLabors.ImageSharp.PixelFormats;
@@ -33,6 +34,17 @@ public class DecodeHeif
     public void ReadImages() => this.avifBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
     /// <summary>
+    /// Pins the benchmark process to the first core and reads the encoded test image.
+    /// </summary>
+    [GlobalSetup(Target = nameof(AvifMagickSingleCore))]
+    public void ReadImagesOnSingleCore()
+    {
+        // Each benchmark runs in its own process, so the pin confines every libheif thread of this case only.
+        Process.GetCurrentProcess().ProcessorAffinity = 1;
+        this.ReadImages();
+    }
+
+    /// <summary>
     /// Decodes the image with Magick.NET.
     /// </summary>
     /// <returns>The image width.</returns>
@@ -44,6 +56,13 @@ public class DecodeHeif
         using MagickImage image = new(memoryStream, settings);
         return image.Width;
     }
+
+    /// <summary>
+    /// Decodes the image with Magick.NET on a single core.
+    /// </summary>
+    /// <returns>The image width.</returns>
+    [Benchmark(Description = "Magick Avif SingleCore")]
+    public uint AvifMagickSingleCore() => this.AvifMagick();
 
     /// <summary>
     /// Decodes the image with ImageSharp.
@@ -67,13 +86,15 @@ public class DecodeHeif
         Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
         WarmupCount=5
 
-        | Method            | TestImage                    | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-        |------------------ |----------------------------- |---------:|---------:|---------:|------:|--------:|--------:|--------:|----------:|------------:|
-        | 'Magick Avif'     | Heif/Irvine_CA.avif          | 23.49 ms | 0.966 ms | 0.904 ms |  1.00 |    0.05 |       - |       - |   5.07 KB |        1.00 |
-        | 'ImageSharp Avif' | Heif/Irvine_CA.avif          | 17.75 ms | 0.812 ms | 0.759 ms |  0.76 |    0.04 | 31.2500 |       - | 537.38 KB |      105.90 |
-        |                   |                              |          |          |          |       |         |         |         |           |             |
-        | 'Magick Avif'     | Heif/libavif-kodim23-8b.avif | 25.63 ms | 1.012 ms | 0.947 ms |  1.00 |    0.05 |       - |       - |   5.07 KB |        1.00 |
-        | 'ImageSharp Avif' | Heif/libavif-kodim23-8b.avif | 15.23 ms | 1.197 ms | 1.120 ms |  0.60 |    0.05 | 31.2500 | 15.6250 | 533.23 KB |      105.09 |
+        | Method                   | TestImage                    | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0    | Allocated | Alloc Ratio |
+        |------------------------- |----------------------------- |---------:|---------:|---------:|------:|--------:|--------:|----------:|------------:|
+        | 'Magick Avif'            | Heif/Irvine_CA.avif          | 24.59 ms | 0.592 ms | 0.524 ms |  1.00 |    0.03 |       - |   5.07 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Heif/Irvine_CA.avif          | 20.31 ms | 0.422 ms | 0.374 ms |  0.83 |    0.02 |       - |   5.08 KB |        1.00 |
+        | 'ImageSharp Avif'        | Heif/Irvine_CA.avif          | 16.85 ms | 1.161 ms | 1.086 ms |  0.69 |    0.05 | 31.2500 | 537.38 KB |      105.90 |
+        |                          |                              |          |          |          |       |         |         |           |             |
+        | 'Magick Avif'            | Heif/libavif-kodim23-8b.avif | 26.39 ms | 1.073 ms | 1.003 ms |  1.00 |    0.05 |       - |   5.07 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Heif/libavif-kodim23-8b.avif | 23.03 ms | 1.092 ms | 0.968 ms |  0.87 |    0.05 |       - |   5.08 KB |        1.00 |
+        | 'ImageSharp Avif'        | Heif/libavif-kodim23-8b.avif | 15.51 ms | 1.188 ms | 1.112 ms |  0.59 |    0.05 | 31.2500 | 533.24 KB |      105.09 |
 
         Run with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
      */

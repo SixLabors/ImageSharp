@@ -7,7 +7,6 @@ using BenchmarkDotNet.Diagnostics.Windows;
 #endif
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
-using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
@@ -34,14 +33,13 @@ public partial class Config : ManualConfig
     public class Standard : Config
     {
         public Standard() => this.AddJob(
-                Job.Default.WithRuntime(CoreRuntime.Core80).WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
+                Job.Default.WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
     }
 
     public class Short : Config
     {
         public Short() => this.AddJob(
-                Job.Default.WithRuntime(CoreRuntime.Core80)
-                           .WithLaunchCount(1)
+                Job.Default.WithLaunchCount(1)
                            .WithWarmupCount(3)
                            .WithIterationCount(3)
                            .WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
@@ -55,7 +53,7 @@ public partial class Config : ManualConfig
     {
         public Analysis()
         {
-            this.AddJob(Job.ShortRun.WithRuntime(CoreRuntime.Core80).WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
+            this.AddJob(Job.ShortRun.WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
 
             this.AddDiagnoser(new DisassemblyDiagnoser(new DisassemblyDiagnoserConfig(
                 maxDepth: 3,
@@ -79,7 +77,6 @@ public partial class Config : ManualConfig
     {
         public StandardInProcess() => this.AddJob(
             Job.Default
-                .WithRuntime(CoreRuntime.Core80)
                 .WithToolchain(InProcessEmitToolchain.Instance)
                 .WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
     }

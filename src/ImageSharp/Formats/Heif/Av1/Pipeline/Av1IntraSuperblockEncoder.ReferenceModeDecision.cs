@@ -11215,6 +11215,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 derivedTransformType,
                 false,
                 costLimit,
+                false,
                 prediction,
                 residual,
                 inputStride,
@@ -11233,11 +11234,10 @@ internal static partial class Av1IntraSuperblockEncoder
             // of search_tx_type(), which best_rd_stats keeps.
             predictionDistortion = result.Sse;
 
-            // Callers retain the designated selected spans after this scratch workspace is reused by the next plane
-            // or motion vector.
-            if (bestReconstruction != selectedReconstruction[..sampleCount])
+            // Callers retain the selected coefficients after this scratch workspace is reused by the next plane or motion vector. An inter
+            // block is never reconstructed in the search, so there are no winner samples to keep. Reference: the is_inter test of recon_intra().
+            if (bestCoefficients != selectedCoefficients[..sampleCount])
             {
-                bestReconstruction.CopyTo(selectedReconstruction);
                 bestCoefficients.CopyTo(selectedCoefficients);
             }
         }

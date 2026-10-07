@@ -7154,6 +7154,10 @@ internal static partial class Av1IntraSuperblockEncoder
                             // The type search receives the budget that this block has left after its earlier transform
                             // blocks. Reference: the ref_best_rd that block_rd_txfm() gives search_tx_type().
                             long remainingCostLimit = costLimit == long.MaxValue ? long.MaxValue : costLimit - runningCost;
+
+                            // A later transform block of this block predicts from this one unless this one is the last.
+                            // Reference: the position test of recon_intra().
+                            bool laterBlockPredicts = (y + transformHeight) < blockHeight || (x + transformWidth) < blockWidth;
                             this.blockWorkspace.LumaNoisePattern = this.IsLumaNoisePattern(reconstructionPlane, blockOrigin, blockSize);
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
                                 writer,
@@ -7170,6 +7174,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 Av1TransformType.AllTransformTypes,
                                 dctOnlyPalette,
                                 remainingCostLimit,
+                                laterBlockPredicts,
                                 prediction,
                                 residual,
                                 transformWidth,
@@ -7194,9 +7199,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             // block that quantized to nothing. Nothing inside the block predicts from the last
                             // one, so the search never adds its residual back; the block encode does that
                             // later. Reference: the end of block and position gates of recon_intra().
-                            bool publishReconstruction = bestTransformState.EndOfBlock != 0 &&
-                                ((y + transformHeight) < blockHeight ||
-                                (x + transformWidth) < blockWidth);
+                            bool publishReconstruction = bestTransformState.EndOfBlock != 0 && laterBlockPredicts;
 
                             ReadOnlySpan<TSample> publishedSamples =
                                 publishReconstruction ? bestTransformReconstruction : prediction;

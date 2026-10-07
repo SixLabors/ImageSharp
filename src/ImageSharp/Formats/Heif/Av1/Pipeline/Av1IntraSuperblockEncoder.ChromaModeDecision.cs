@@ -1577,6 +1577,10 @@ internal static partial class Av1IntraSuperblockEncoder
                             Span<int> candidateDequantized = this.blockWorkspace.DequantizedCoefficients;
                             Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
 
+                            // A later transform block of the plane block predicts from this one unless this one is the last.
+                            // Reference: the position test of recon_intra().
+                            bool lastTransformBlock = (rowOffset + transformHeight) >= blockHeight && (columnOffset + transformWidth) >= blockWidth;
+
                             // A chroma block of an intra mode searches the one type that it derives from its mode.
                             // Reference: the uv_tx_type of get_tx_mask(), from av1_get_tx_type().
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
@@ -1593,6 +1597,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 transformType,
                                 false,
                                 costLimit == long.MaxValue ? long.MaxValue : costLimit - accumulatedCost,
+                                !lastTransformBlock,
                                 prediction,
                                 residual,
                                 transformWidth,
@@ -1608,17 +1613,18 @@ internal static partial class Av1IntraSuperblockEncoder
                                 bestTransformCoefficients[..transformSampleCount].CopyTo(transformCoefficients);
                             }
 
+                            // The block and the frame get the reconstruction only when the block has coefficients and is not the last
+                            // transform block of the plane block. Otherwise they keep the prediction, which is also the reconstruction
+                            // of an empty block. Reference: the end of block and position tests of recon_intra(), which writes pd->dst.
+                            bool publishReconstruction = searchResult.State.EndOfBlock != 0 && !lastTransformBlock;
+                            ReadOnlySpan<TSample> publishedSamples = publishReconstruction ? bestTransformReconstruction : prediction;
                             for (int row = 0; row < transformHeight; row++)
                             {
-                                bestTransformReconstruction.Slice(row * transformWidth, transformWidth)
+                                publishedSamples.Slice(row * transformWidth, transformWidth)
                                     .CopyTo(candidateReconstruction.Slice(reconstructionOffset + (row * blockWidth), transformWidth));
                             }
 
-                            // The frame gets the reconstruction only when the block has coefficients and is not the last
-                            // transform block of the plane block. Otherwise the frame keeps the prediction.
-                            // Reference: the end of block and position tests of recon_intra(), which writes pd->dst.
-                            bool lastTransformBlock = (rowOffset + transformHeight) >= blockHeight && (columnOffset + transformWidth) >= blockWidth;
-                            if (searchResult.State.EndOfBlock != 0 && !lastTransformBlock)
+                            if (publishReconstruction)
                             {
                                 Av1TransformBlockEncoder.WriteFrameSamples(
                                     reconstruction, transformOrigin, bestTransformReconstruction, transformWidth, transformWidth, transformHeight);
@@ -1711,7 +1717,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="context">The coefficient context of the transform block.</param>
         /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
         /// <param name="alphaQ3">The signed alpha, in Q3.</param>
-        /// <param name="reconstruction">The contiguous candidate samples. They get the prediction, then the reconstruction.</param>
+        /// <param name="reconstruction">
+        /// The contiguous candidate samples, which get the prediction. A CfL block is one transform block, so no later block predicts from its
+        /// reconstruction and the search does not build it. Reference: the last block test of recon_intra().
+        /// </param>
         /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst; empty when the call is not a libaom trial.</param>
         /// <param name="coefficients">The candidate coefficients.</param>
         /// <param name="state">The candidate transform state.</param>
@@ -1771,6 +1780,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformType.DctDct,
                 false,
                 long.MaxValue,
+                false,
                 prediction,
                 residual,
                 width,
@@ -1786,7 +1796,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 bestCoefficients[..sampleCount].CopyTo(coefficients);
             }
 
-            bestReconstruction.CopyTo(reconstruction);
             state = result.State;
             rate = result.Rate;
             return result.Distortion;

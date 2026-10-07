@@ -435,7 +435,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <remarks>
         /// The candidate and best buffers swap on each improvement, so the winner is never copied inside the loop.
-        /// On return the best span arguments hold the winner.
+        /// On return the best span arguments hold the winner. The best reconstruction is valid only when the winner has coefficients and
+        /// <paramref name="reconstructWinner"/> is set, or when the search measured the winner in pixels.
         /// </remarks>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="plane">The plane of the transform block.</param>
@@ -450,6 +451,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="derivedTransformType">The type a chroma block derives, which it searches alone. Reference: av1_get_tx_type().</param>
         /// <param name="dctOnly">Whether the search is restricted to DCT_DCT. Reference: dct_only_palette_nonrd.</param>
         /// <param name="costLimit">The budget left for the transform block. Reference: ref_best_rd.</param>
+        /// <param name="reconstructWinner">
+        /// Whether a later transform block of an intra block predicts from the winner. Reference: the position test of recon_intra().
+        /// </param>
         /// <param name="prediction">The prediction samples.</param>
         /// <param name="residual">The residual samples.</param>
         /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
@@ -474,6 +478,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformType derivedTransformType,
             bool dctOnly,
             long costLimit,
+            bool reconstructWinner,
             scoped ReadOnlySpan<TSample> prediction,
             scoped Span<short> residual,
             int inputStride,
@@ -811,9 +816,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Later transforms predict from the winner's samples, so it is reconstructed once when the search
-            // measured it in the transform domain. Policy 1 then also replaces its distortion.
-            if (!bestReconstructed)
+            // The winner is reconstructed only when it has coefficients and either a later transform block predicts from it, or policy 1
+            // measures its final distortion in pixels. An empty winner reconstructs to its prediction, which the caller uses instead.
+            // Reference: calc_pixel_domain_distortion_final with best_eob, and recon_intra(), at the end of search_tx_type().
+            bool measureWinner = measureWinnerInPixelDomain && best.State.EndOfBlock != 0;
+            if (!bestReconstructed && best.State.EndOfBlock != 0 && (reconstructWinner || measureWinner))
             {
                 Av1WorkCounters.Count(Av1WorkCounters.ReconIntraInv);
                 long workRecon = Av1WorkCounters.Start();
@@ -833,7 +840,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     best.ReconstructionState);
 
                 Av1WorkCounters.Stop(Av1WorkCounters.ReconIntraInv, workRecon);
-                if (measureWinnerInPixelDomain && best.State.EndOfBlock != 0)
+                if (measureWinner)
                 {
                     best.Distortion = pixelDistortion;
                     best.Sse = blockError;

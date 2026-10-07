@@ -624,7 +624,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // A predicted empty block searches no transform type: the prediction stands as the reconstruction, and
             // the block costs the all-zero flag alone, priced with the contexts that av1_get_entropy_contexts()
-            // reads at the block origin rather than with the contexts of earlier transform blocks.
+            // reads at the block origin rather than with the contexts of earlier transform blocks. As
+            // predict_dc_only_block() does, only the end of block is set to zero: the coefficient buffer keeps its
+            // samples, because every reader stops at the end of block.
             if (predictedSkip)
             {
                 best.Type = Av1TransformType.DctDct;
@@ -634,7 +636,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     true, Av1SymbolContextHelper.GetTransformSizeContext(transformSize), originContext.SkipContext, componentType);
 
                 best.Distortion = blockError;
-                bestCoefficients[..transformSampleCount].Clear();
                 for (int row = 0; row < transformHeight; row++)
                 {
                     prediction.Slice(row * inputStride, transformWidth).CopyTo(bestReconstruction.Slice(row * transformWidth, transformWidth));

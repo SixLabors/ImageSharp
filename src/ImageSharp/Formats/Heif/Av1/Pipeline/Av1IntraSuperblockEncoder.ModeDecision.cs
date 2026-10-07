@@ -3900,7 +3900,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 paletteInfo = default;
             }
 
-            Span<int> lumaCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y);
             Span<Av1EncoderTransformBlockState> lumaTransformBlocks =
                 this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y);
 
@@ -4001,7 +4000,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
-                    lumaCoefficients[this.codedAreaLuma..],
                     retainedLumaStates,
                     Math.Min(this.blockCostLimit, interStatistics.Cost),
                     ref paletteInfo,
@@ -4052,8 +4050,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 chromaArea = chromaExtent.Width * chromaExtent.Height;
                 if (lumaStatistics.Cost != long.MaxValue)
                 {
-                    Span<int> blueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
-                    Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
                     Span<Av1EncoderTransformBlockState> blueTransformBlocks =
                         this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.U);
 
@@ -4075,8 +4071,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         tileIndex,
                         modeInfo.Block.Mode,
                         chromaTransformSize,
-                        blueCoefficients[this.codedAreaChroma..],
-                        redCoefficients[this.codedAreaChroma..],
                         retainedBlueStates,
                         retainedRedStates,
                         ref paletteInfo,
@@ -4266,7 +4260,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         blockOrigin,
                         blockSize,
                         tileIndex,
-                        lumaCoefficients[this.codedAreaLuma..],
                         retainedLumaStates,
                         modeInfo.Block.Mode,
                         ref refinedPalette,
@@ -4353,7 +4346,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
-                    lumaCoefficients[this.codedAreaLuma..],
                     retainedLumaStates,
                     64,
                     writer.GetInterFrameLumaModeCost(Av1PredictionMode.DC, blockSize),
@@ -5888,7 +5880,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             long interCostLimit,
             ref Av1EncoderPaletteInfo paletteInfo,
@@ -5898,7 +5889,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1RateDistortionStatistics selectedStatistics)
         {
             long workStart = Av1WorkCounters.Start();
-            Av1PredictionMode workResult = this.SelectLumaModeCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedCoefficients, retainedStates, interCostLimit, ref paletteInfo, out selectedAngleDelta, out selectedFilterIntraMode, out selectedTransformSize, out selectedStatistics);
+            Av1PredictionMode workResult = this.SelectLumaModeCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, interCostLimit, ref paletteInfo, out selectedAngleDelta, out selectedFilterIntraMode, out selectedTransformSize, out selectedStatistics);
             Av1WorkCounters.Stop(Av1WorkCounters.IntraSby, workStart);
             return workResult;
         }
@@ -5909,7 +5900,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             long interCostLimit,
             ref Av1EncoderPaletteInfo paletteInfo,
@@ -5927,7 +5917,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 blockSize,
                 tileIndex,
-                retainedCoefficients,
                 retainedStates,
                 interCostLimit,
                 ref paletteInfo,
@@ -5960,7 +5949,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     blockSize,
                     tileIndex,
-                    retainedCoefficients,
                     retainedStates,
                     mode,
                     ref paletteInfo,
@@ -6041,7 +6029,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             Av1PredictionMode mode,
             ref Av1EncoderPaletteInfo paletteInfo,
@@ -6051,7 +6038,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1RateDistortionStatistics selectedStatistics)
         {
             long workStart = Av1WorkCounters.Start();
-            Av1PredictionMode workResult = this.RefineLumaModeCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedCoefficients, retainedStates, mode, ref paletteInfo, ref selectedAngleDelta, ref selectedFilterIntraMode, ref selectedTransformSize, ref selectedStatistics);
+            Av1PredictionMode workResult = this.RefineLumaModeCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, mode, ref paletteInfo, ref selectedAngleDelta, ref selectedFilterIntraMode, ref selectedTransformSize, ref selectedStatistics);
             Av1WorkCounters.Stop(Av1WorkCounters.RefineLumaMode, workStart);
             return workResult;
         }
@@ -6062,7 +6049,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             Av1PredictionMode mode,
             ref Av1EncoderPaletteInfo paletteInfo,
@@ -6116,7 +6102,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     : 0;
 
                 Span<TSample> samples = workspace.GetCandidateReconstruction(0);
-                Span<int> coefficients = workspace.GetCandidateCoefficients(0);
 
                 // Repeat transform search for every retained predictor with winner-stage settings.
                 // Each trial starts from the same external block edges and its own palette map.
@@ -6157,9 +6142,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         settings.UseIntraTransformRdBreakout ? candidateLimit : long.MaxValue,
                         candidateLimit,
                         samples,
-                        coefficients,
                         workspace.CandidateTransformBlocks,
-                        retainedCoefficients,
                         retainedStates,
                         out Av1TransformSize size);
 
@@ -6209,7 +6192,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             long interCostLimit,
             ref Av1EncoderPaletteInfo paletteInfo,
@@ -6219,7 +6201,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1RateDistortionStatistics selectedStatistics)
         {
             long workStart = Av1WorkCounters.Start();
-            Av1PredictionMode workResult = this.SelectLumaPredictionCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedCoefficients, retainedStates, interCostLimit, ref paletteInfo, out selectedAngleDelta, out selectedFilterIntraMode, out selectedTransformSize, out selectedStatistics);
+            Av1PredictionMode workResult = this.SelectLumaPredictionCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, interCostLimit, ref paletteInfo, out selectedAngleDelta, out selectedFilterIntraMode, out selectedTransformSize, out selectedStatistics);
             Av1WorkCounters.Stop(Av1WorkCounters.SelectLumaPrediction, workStart);
             return workResult;
         }
@@ -6230,7 +6212,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             long interCostLimit,
             ref Av1EncoderPaletteInfo paletteInfo,
@@ -6254,7 +6235,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             int sampleCount = width * height;
             Span<TSample> samples = workspace.GetCandidateReconstruction(0)[..sampleCount];
-            Span<int> coefficients = workspace.GetCandidateCoefficients(0)[..sampleCount];
             int sizeContext = Av1TileWriter.GetTransformSizeContext(
                 this.picture.TransformFunctionContexts[tileIndex], macroBlock, blockOrigin, blockSize);
 
@@ -6314,7 +6294,6 @@ internal static partial class Av1IntraSuperblockEncoder
                             blockOrigin,
                             blockSize,
                             tileIndex,
-                            retainedCoefficients,
                             retainedStates,
                             64,
                             Av1TileWriter.GetLumaModeCost(writer, macroBlock, blockSize, Av1PredictionMode.DC, 0, intraFrame),
@@ -6532,9 +6511,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     intraFrame ? Math.Min(bestStatistics.Cost, interCostLimit) : interCostLimit,
                     long.MaxValue,
                     samples,
-                    coefficients,
                     workspace.CandidateTransformBlocks,
-                    retainedCoefficients,
                     retainedStates,
                     out Av1TransformSize bestSize);
 
@@ -6729,9 +6706,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceLimit">The bound the search arrives with. Reference: ref_best_rd.</param>
         /// <param name="selectionLimit">The whole cost the best depth must be below to be retained.</param>
         /// <param name="samples">The candidate reconstruction storage.</param>
-        /// <param name="coefficients">The candidate coefficient storage.</param>
         /// <param name="candidateStates">The candidate transform block storage.</param>
-        /// <param name="retainedCoefficients">The retained coefficients.</param>
         /// <param name="retainedStates">The retained transform block states.</param>
         /// <param name="bestSize">The transform size of the best depth.</param>
         /// <returns>The statistics of the best depth, or invalid statistics when no depth completed.</returns>
@@ -6757,9 +6732,7 @@ internal static partial class Av1IntraSuperblockEncoder
             long referenceLimit,
             long selectionLimit,
             Span<TSample> samples,
-            Span<int> coefficients,
             Span<Av1EncoderTransformBlockState> candidateStates,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             out Av1TransformSize bestSize)
         {
@@ -6793,7 +6766,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     sizeContext,
                     costLimit,
                     samples,
-                    coefficients,
                     candidateStates,
                     out bool skipSmaller);
 
@@ -6804,7 +6776,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (statistics.Cost < selectionLimit)
                     {
                         Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0);
-                        CopyTiledCandidate(coefficients, candidateStates, codedExtent, size, retainedCoefficients, retainedStates);
+                        CopyTiledCandidate(candidateStates, codedExtent, size, retainedStates);
                     }
                 }
 
@@ -6846,12 +6818,11 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformSizeContext,
             long costLimit,
             Span<TSample> candidateReconstruction,
-            Span<int> candidateCoefficients,
             Span<Av1EncoderTransformBlockState> candidateTransformBlocks,
             out bool skipSmallerTransforms)
         {
             long workStart = Av1WorkCounters.Start();
-            Av1RateDistortionStatistics workResult = this.GetUniformLumaCandidateCostCore(writer, macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, transformSize, tileIndex, sourceVariance, mode, angleDelta, filterIntraMode, paletteSize, paletteColors, paletteHeaderRate, paletteDisabledCost, transformSizeContext, costLimit, candidateReconstruction, candidateCoefficients, candidateTransformBlocks, out skipSmallerTransforms);
+            Av1RateDistortionStatistics workResult = this.GetUniformLumaCandidateCostCore(writer, macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, transformSize, tileIndex, sourceVariance, mode, angleDelta, filterIntraMode, paletteSize, paletteColors, paletteHeaderRate, paletteDisabledCost, transformSizeContext, costLimit, candidateReconstruction, candidateTransformBlocks, out skipSmallerTransforms);
             Av1WorkCounters.Stop(Av1WorkCounters.UniformLuma, workStart);
             return workResult;
         }
@@ -6876,7 +6847,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformSizeContext,
             long costLimit,
             Span<TSample> candidateReconstruction,
-            Span<int> candidateCoefficients,
             Span<Av1EncoderTransformBlockState> candidateTransformBlocks,
             out bool skipSmallerTransforms)
         {
@@ -7147,10 +7117,6 @@ internal static partial class Av1IntraSuperblockEncoder
                                 blockSize,
                                 transformSize);
 
-                            Span<int> retainedTransformCoefficients = candidateCoefficients.Slice(
-                                transformIndex * transformSampleCount,
-                                transformSampleCount);
-
                             // The type search receives the budget that this block has left after its earlier transform
                             // blocks. Reference: the ref_best_rd that block_rd_txfm() gives search_tx_type().
                             long remainingCostLimit = costLimit == long.MaxValue ? long.MaxValue : costLimit - runningCost;
@@ -7191,9 +7157,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             long bestTransformDistortion = searchResult.Distortion;
                             Av1EncoderTransformBlockState bestTransformState = searchResult.State;
 
-                            // Publish the winner once after transform search. Later transforms consume its pixels
-                            // from the block mosaic and its coefficient context from the local edge arrays.
-                            bestTransformCoefficients.CopyTo(retainedTransformCoefficients);
+                            // Later transforms read the pixels of the winner from the block mosaic and its coefficient context
+                            // from the local edge arrays. The quantized coefficients are not kept: as in libaom, the block encode
+                            // quantizes the selected mode again. Reference: best_txb_ctx in search_tx_type().
 
                             // The last transform block of the block keeps its prediction here, and so does a
                             // block that quantized to nothing. Nothing inside the block predicts from the last
@@ -7222,7 +7188,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             distortion += bestTransformDistortion;
                             candidateTransformBlocks[transformIndex] = bestTransformState;
                             byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
-                                retainedTransformCoefficients,
+                                bestTransformCoefficients,
                                 transformSize,
                                 bestTransformType,
                                 bestTransformState.EndOfBlock);
@@ -7846,27 +7812,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 visibleWidth,
                 1,
                 threshold);
-        }
-
-        /// <summary>
-        /// Keeps the coefficients and transform state of a new best candidate that has one transform block.
-        /// The frame samples do not change: libaom keeps a winner only in its mode info and coefficient buffers, and
-        /// pd->dst keeps what the last trial wrote.
-        /// </summary>
-        /// <param name="candidateCoefficients">The candidate coefficients.</param>
-        /// <param name="retainedCoefficients">The coefficients that the winner keeps.</param>
-        /// <param name="transformSize">The transform size of the candidate.</param>
-        /// <param name="candidateState">The candidate transform state.</param>
-        /// <param name="retainedState">The transform state that the winner keeps.</param>
-        private static void CopyCandidate(
-            ReadOnlySpan<int> candidateCoefficients,
-            Span<int> retainedCoefficients,
-            Av1TransformSize transformSize,
-            Av1EncoderTransformBlockState candidateState,
-            ref Av1EncoderTransformBlockState retainedState)
-        {
-            candidateCoefficients[..transformSize.GetSize2d()].CopyTo(retainedCoefficients);
-            retainedState = candidateState;
         }
 
         private void ReconstructSelectedTransform(

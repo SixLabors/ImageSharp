@@ -781,7 +781,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y)[this.codedAreaLuma..];
             Span<Av1EncoderTransformBlockState> states = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y)[
                 (this.codedAreaLuma / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..];
 
@@ -799,7 +798,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 origin,
                 blockSize,
                 tileIndex,
-                coefficients,
                 states,
                 colorThreshold,
                 writer.GetInterFrameLumaModeCost(Av1PredictionMode.DC, blockSize),

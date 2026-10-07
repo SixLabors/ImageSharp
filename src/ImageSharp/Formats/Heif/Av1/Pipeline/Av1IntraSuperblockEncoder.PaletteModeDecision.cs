@@ -25,7 +25,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int colorThreshold,
             int dcModeCost,
@@ -34,7 +33,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1TransformSize selectedTransformSize)
         {
             long workStart = Av1WorkCounters.Start();
-            bool workResult = this.SelectLumaPaletteCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedCoefficients, retainedStates, colorThreshold, dcModeCost, ref bestStatistics, ref paletteInfo, ref selectedTransformSize);
+            bool workResult = this.SelectLumaPaletteCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, colorThreshold, dcModeCost, ref bestStatistics, ref paletteInfo, ref selectedTransformSize);
             Av1WorkCounters.Stop(Av1WorkCounters.PaletteYSearch, workStart);
             return workResult;
         }
@@ -45,7 +44,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             ushort tileIndex,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int colorThreshold,
             int dcModeCost,
@@ -174,7 +172,6 @@ internal static partial class Av1IntraSuperblockEncoder
                             neighborContext,
                             centroids,
                             colorIndexMap,
-                            retainedCoefficients,
                             retainedStates,
                             gateHeader ? headerPruneLevel : 0,
                             dcModeCost,
@@ -260,7 +257,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int neighborContext,
             Span<short> centroids,
             Av1PlaneRegion<byte> colorIndexMap,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int headerPruneLevel,
             int dcModeCost,
@@ -270,7 +266,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool headerBreakout)
         {
             long workStart = Av1WorkCounters.Start();
-            bool workResult = this.EvaluateLumaPaletteCandidateCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, transformSizeContext, sourceVariance, samples, rows, columns, colorCache, blockSizeContext, neighborContext, centroids, colorIndexMap, retainedCoefficients, retainedStates, headerPruneLevel, dcModeCost, ref bestStatistics, ref paletteInfo, ref selectedTransformSize, out headerBreakout);
+            bool workResult = this.EvaluateLumaPaletteCandidateCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, transformSizeContext, sourceVariance, samples, rows, columns, colorCache, blockSizeContext, neighborContext, centroids, colorIndexMap, retainedStates, headerPruneLevel, dcModeCost, ref bestStatistics, ref paletteInfo, ref selectedTransformSize, out headerBreakout);
             Av1WorkCounters.Stop(Av1WorkCounters.PaletteCandidate, workStart);
             return workResult;
         }
@@ -291,7 +287,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int neighborContext,
             Span<short> centroids,
             Av1PlaneRegion<byte> colorIndexMap,
-            Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int headerPruneLevel,
             int dcModeCost,
@@ -397,7 +392,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
             int sampleCount = blockWidth * blockHeight;
             Span<TSample> candidateReconstruction = modeDecisionWorkspace.GetCandidateReconstruction(0)[..sampleCount];
-            Span<int> candidateCoefficients = modeDecisionWorkspace.GetCandidateCoefficients(0)[..sampleCount];
             bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             int maximumDepth = lossless || this.picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select ||
@@ -431,9 +425,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateLimit,
                 candidateLimit,
                 candidateReconstruction,
-                candidateCoefficients,
                 modeDecisionWorkspace.CandidateTransformBlocks,
-                retainedCoefficients,
                 retainedStates,
                 out Av1TransformSize transformSize);
 

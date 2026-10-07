@@ -28,15 +28,13 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
-            Span<int> retainedBlueCoefficients,
-            Span<int> retainedRedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
             Span<Av1EncoderTransformBlockState> retainedRedStates,
             ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
             long workStart = Av1WorkCounters.Start();
-            bool workResult = this.SelectChromaPaletteCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, tileIndex, lumaMode, transformSize, retainedBlueCoefficients, retainedRedCoefficients, retainedBlueStates, retainedRedStates, ref bestStatistics, ref paletteInfo);
+            bool workResult = this.SelectChromaPaletteCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, tileIndex, lumaMode, transformSize, retainedBlueStates, retainedRedStates, ref bestStatistics, ref paletteInfo);
             Av1WorkCounters.Stop(Av1WorkCounters.ChromaPalette, workStart);
             return workResult;
         }
@@ -50,8 +48,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
-            Span<int> retainedBlueCoefficients,
-            Span<int> retainedRedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
             Span<Av1EncoderTransformBlockState> retainedRedStates,
             ref Av1RateDistortionStatistics bestStatistics,
@@ -373,12 +369,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     // Every later palette size overwrites the shared maps and candidate spans, so a new best keeps its
-                    // coefficients, colors and indices together. The frame keeps what the last trial wrote.
+                    // transform states, colors and indices together. The frame keeps what the last trial wrote.
                     Size codedExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY);
-                    CopyTiledCandidate(
-                        candidateBlueCoefficients, candidateBlueStates, codedExtent, transformSize, retainedBlueCoefficients, retainedBlueStates);
-
-                    CopyTiledCandidate(candidateRedCoefficients, candidateRedStates, codedExtent, transformSize, retainedRedCoefficients, retainedRedStates);
+                    CopyTiledCandidate(candidateBlueStates, codedExtent, transformSize, retainedBlueStates);
+                    CopyTiledCandidate(candidateRedStates, codedExtent, transformSize, retainedRedStates);
 
                     for (int row = 0; row < height; row++)
                     {

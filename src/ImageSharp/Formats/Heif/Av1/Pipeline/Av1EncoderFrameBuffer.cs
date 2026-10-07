@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -63,7 +64,9 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
 
         // Component planes share one contiguous frame allocation; their offsets preserve the 32-byte plane
         // alignment. Each plane is a slice of it, so a kernel addresses the whole bordered plane with its stride.
-        IMemoryOwner<TSample> owner = configuration.MemoryAllocator.Allocate<TSample>(storageLength);
+        // A new frame starts at zero. The variance measures of an edge block read samples past the coded area, which hold zero
+        // until a trial writes them. Reference: the memset of a new buffer_alloc in realloc_frame_buffer_aligned().
+        IMemoryOwner<TSample> owner = configuration.MemoryAllocator.Allocate<TSample>(storageLength, AllocationOptions.Clean);
         Memory<TSample> storage = owner.Memory;
         Av1PlaneRegion<TSample> lumaRegion = new(
             storage[..lumaElementCount],

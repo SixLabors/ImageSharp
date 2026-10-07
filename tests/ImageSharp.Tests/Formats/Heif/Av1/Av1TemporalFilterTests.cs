@@ -159,7 +159,9 @@ public class Av1TemporalFilterTests
         ReferenceApplyFilter(
             planes, prediction, subsamplingX, subsamplingY, bitDepth, noise, vectors, errors, qFactor, strength, level, separateFactors, 64, expectedAccumulator, expectedCount);
 
-        Av1TemporalFilter.ApplyFilter<TSample, TOperator>(workspace, frame, 0, 0, noise, vectors, errors, qFactor, strength, level);
+        Av1TemporalFilter.ApplyFilter<TSample, TOperator>(
+            workspace, frame, frame.CodedView.GetSamples(), 0, 0, noise, vectors, errors, qFactor, strength, level);
+
         Assert.Equal(expectedAccumulator, accumulator[..pixels].ToArray());
         Assert.Equal(expectedCount, count[..pixels].ToArray());
     }

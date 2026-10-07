@@ -290,7 +290,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             Memory<int> previousQIndex = tileState.Slice(cdefPresetLength, tileCount);
             Memory<int> tileDataOffsets = tileState.Slice(cdefPresetLength + tileCount, tileCount);
             Memory<int> tileDataLengths = tileState.Slice(cdefPresetLength + (2 * tileCount), tileCount);
-            InlineArray3<Memory<Av1LoopRestorationUnit>> restorationUnits = default;
+            Memory<Av1LoopRestorationUnit> restorationUnits = default;
+            InlineArray3<int> restorationUnitOffsets = default;
             Memory<Av1LoopRestorationUnit> restorationReferences = default;
             if (sequenceHeader.EnableRestoration)
             {
@@ -300,13 +301,15 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                     stateStorage.Slice(restorationStorageOffset, restorationStorageLength));
 
                 Memory<Av1LoopRestorationUnit> restorationStorage = restorationMemory.Memory;
+                Span<int> unitOffsets = restorationUnitOffsets;
                 int offset = 0;
                 for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
                 {
-                    restorationUnits[plane] = restorationStorage.Slice(offset, restorationLengths[plane]);
+                    unitOffsets[plane] = offset;
                     offset += restorationLengths[plane];
                 }
 
+                restorationUnits = restorationStorage[..offset];
                 restorationReferences = restorationStorage.Slice(offset, restorationReferenceCount);
                 restorationReferences.Span.Fill(Av1LoopRestorationUnit.CreateDefault());
             }
@@ -414,6 +417,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 TileDataOffsets = tileDataOffsets,
                 TileDataLengths = tileDataLengths,
                 RestorationUnits = restorationUnits,
+                RestorationUnitOffsets = restorationUnitOffsets,
                 RestorationReferences = restorationReferences
             };
         }

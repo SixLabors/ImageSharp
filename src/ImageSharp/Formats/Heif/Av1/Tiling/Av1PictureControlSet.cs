@@ -122,9 +122,16 @@ internal class Av1PictureControlSet
     public required Memory<int> TileDataLengths { get; set; }
 
     /// <summary>
-    /// Gets or sets the selected restoration units for each component plane.
+    /// Gets or sets the selected restoration units of every component plane, plane after plane. A loop over the planes
+    /// reads this span once and slices each plane at its <see cref="RestorationUnitOffsets"/> entry for the plane's unit count.
+    /// Reference: the unit_info of each rst_info plane.
     /// </summary>
-    public InlineArray3<Memory<Av1LoopRestorationUnit>> RestorationUnits { get; set; }
+    public Memory<Av1LoopRestorationUnit> RestorationUnits { get; set; }
+
+    /// <summary>
+    /// Gets or sets the offset of each component plane's units in <see cref="RestorationUnits"/>.
+    /// </summary>
+    public InlineArray3<int> RestorationUnitOffsets { get; set; }
 
     /// <summary>
     /// Gets or sets the per-tile, per-plane restoration coefficient histories.

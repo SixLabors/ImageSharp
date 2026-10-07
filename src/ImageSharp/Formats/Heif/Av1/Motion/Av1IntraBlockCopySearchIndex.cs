@@ -89,85 +89,30 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         /// <summary>
         /// Compares two complete 8x8 blocks.
         /// </summary>
-        /// <param name="plane">The plane containing both blocks.</param>
-        /// <param name="first">The first block origin.</param>
-        /// <param name="second">The second block origin.</param>
+        /// <param name="first">The first block, from its top-left sample.</param>
+        /// <param name="firstStride">The number of samples between rows of <paramref name="first"/>.</param>
+        /// <param name="second">The second block, from its top-left sample.</param>
+        /// <param name="secondStride">The number of samples between rows of <paramref name="second"/>.</param>
         /// <returns><see langword="true"/> when every sample is equal.</returns>
-        public static abstract bool BlocksEqual(Av1PlaneRegion<TSample> plane, Point first, Point second);
-
-        /// <summary>
-        /// Compares complete 8x8 blocks of two planes.
-        /// </summary>
-        /// <param name="first">The plane containing the first block.</param>
-        /// <param name="firstOrigin">The first block origin.</param>
-        /// <param name="second">The plane containing the second block.</param>
-        /// <param name="secondOrigin">The second block origin.</param>
-        /// <returns><see langword="true"/> when every sample is equal.</returns>
-        public static abstract bool BlocksEqual(
-            Av1PlaneRegion<TSample> first, Point firstOrigin, Av1PlaneRegion<TSample> second, Point secondOrigin);
+        public static abstract bool BlocksEqual(ReadOnlySpan<TSample> first, int firstStride, ReadOnlySpan<TSample> second, int secondStride);
 
         /// <summary>
         /// Returns whether every row of an 8x8 block repeats its first sample. Reference:
         /// av1_hash_is_horizontal_perfect().
         /// </summary>
-        /// <param name="plane">The plane containing the block.</param>
-        /// <param name="origin">The block origin.</param>
+        /// <param name="block">The block, from its top-left sample.</param>
+        /// <param name="stride">The number of samples between rows of <paramref name="block"/>.</param>
         /// <returns><see langword="true"/> when every row is flat.</returns>
-        public static abstract bool IsHorizontalPerfect(Av1PlaneRegion<TSample> plane, Point origin);
+        public static abstract bool IsHorizontalPerfect(ReadOnlySpan<TSample> block, int stride);
 
         /// <summary>
         /// Returns whether every column of an 8x8 block repeats its first sample. Reference:
         /// av1_hash_is_vertical_perfect().
         /// </summary>
-        /// <param name="plane">The plane containing the block.</param>
-        /// <param name="origin">The block origin.</param>
+        /// <param name="block">The block, from its top-left sample.</param>
+        /// <param name="stride">The number of samples between rows of <paramref name="block"/>.</param>
         /// <returns><see langword="true"/> when every column is flat.</returns>
-        public static abstract bool IsVerticalPerfect(Av1PlaneRegion<TSample> plane, Point origin);
-
-        /// <summary>
-        /// Gets the sum of absolute differences between the source block and reconstructed predictor.
-        /// </summary>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="sourceOrigin">The source block origin.</param>
-        /// <param name="reconstruction">The reconstructed luma plane.</param>
-        /// <param name="predictionOrigin">The predictor block origin.</param>
-        /// <returns>The unnormalized absolute difference over the complete 8x8 block.</returns>
-        public static abstract int GetSumOfAbsoluteDifferences(
-            Av1PlaneRegion<TSample> source,
-            Point sourceOrigin,
-            Av1PlaneRegion<TSample> reconstruction,
-            Point predictionOrigin);
-
-        /// <summary>
-        /// Gets four sums of absolute differences for horizontally adjacent reconstructed predictors.
-        /// </summary>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="sourceOrigin">The source block origin.</param>
-        /// <param name="reconstruction">The reconstructed luma plane.</param>
-        /// <param name="firstPredictionOrigin">The first of four horizontally adjacent predictor origins.</param>
-        /// <param name="sums">Storage receiving the four unnormalized absolute differences.</param>
-        public static abstract void GetFourSumsOfAbsoluteDifferences(
-            Av1PlaneRegion<TSample> source,
-            Point sourceOrigin,
-            Av1PlaneRegion<TSample> reconstruction,
-            Point firstPredictionOrigin,
-            Span<int> sums);
-
-        /// <summary>
-        /// Gets the normalized 8x8 variance between a source block and reconstructed predictor.
-        /// </summary>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="sourceOrigin">The source block origin.</param>
-        /// <param name="reconstruction">The reconstructed luma plane.</param>
-        /// <param name="predictionOrigin">The predictor block origin.</param>
-        /// <param name="bitDepth">The coded sample precision.</param>
-        /// <returns>The variance in the eight-bit distortion domain.</returns>
-        public static abstract int GetVariance(
-            Av1PlaneRegion<TSample> source,
-            Point sourceOrigin,
-            Av1PlaneRegion<TSample> reconstruction,
-            Point predictionOrigin,
-            Av1BitDepth bitDepth);
+        public static abstract bool IsVerticalPerfect(ReadOnlySpan<TSample> block, int stride);
     }
 
     /// <summary>
@@ -221,9 +166,16 @@ internal readonly struct Av1IntraBlockCopySearchIndex
 
         int sourceWidth = this.width - 1;
         Span<uint> previous = MemoryMarshal.Cast<byte, uint>(this.storage.Span)[..(sourceWidth * (this.height - 1))];
+        ReadOnlySpan<TSample> sourceSamples = source.Samples;
+        int sourceOffset = source.Origin;
         for (int y = 0; y < this.height - 1; y++)
         {
-            PackSeedRow<TSample, TOperation>(source.GetRowSpan(y), source.GetRowSpan(y + 1), previous.Slice(y * sourceWidth, sourceWidth));
+            PackSeedRow<TSample, TOperation>(
+                sourceSamples.Slice(sourceOffset, source.Width),
+                sourceSamples.Slice(sourceOffset + source.Stride, source.Width),
+                previous.Slice(y * sourceWidth, sourceWidth));
+
+            sourceOffset += source.Stride;
         }
 
         for (int size = 4; size <= maximumSize; size <<= 1)
@@ -373,6 +325,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int reconstructionOffset = ((reconstructionBounds.Y + blockOrigin.Y) * reconstruction.Stride) +
             reconstructionBounds.X + blockOrigin.X;
 
+        ReadOnlySpan<TSample> sourceBlock = source.Samples[sourceOffset..];
+        ReadOnlySpan<TSample> reconstructionSamples = reconstruction.Samples;
         Point start = new(reference.Column >> 3, reference.Row >> 3);
         Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
         int directionCount = settings.UseFastIntraBlockCopySearch ? 1 : 2;
@@ -408,9 +362,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
 
             Rectangle bounds = Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1);
             Av1MotionSearchBase.FullPixelSearch<TSample, TOperation> search = new(
-                source.Samples[sourceOffset..],
+                sourceBlock,
                 source.Stride,
-                reconstruction.Samples,
+                reconstructionSamples,
                 reconstruction.Stride,
                 reconstructionOffset,
                 new Size(width, height),

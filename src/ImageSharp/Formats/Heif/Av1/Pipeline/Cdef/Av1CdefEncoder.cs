@@ -118,6 +118,8 @@ internal static partial class Av1CdefEncoder
             Span<ulong> chromaErrors = errors.Slice(errorLength, errorLength);
             Span<int> indices = indexOwner.Memory.Span[..capacity];
             int count = 0;
+            Av1EncoderFrame<TSample>.PlanarSamples sourceSamples = source.CodedView.GetSamples();
+            Av1EncoderFrame<TSample>.PlanarSamples reconstructionSamples = reconstruction.CodedView.GetSamples();
 
             for (int row = 0; row < unitRows; row++)
             {
@@ -144,6 +146,8 @@ internal static partial class Av1CdefEncoder
                         picture,
                         source,
                         reconstruction,
+                        sourceSamples,
+                        reconstructionSamples,
                         position,
                         width,
                         height,
@@ -230,6 +234,8 @@ internal static partial class Av1CdefEncoder
     /// <param name="picture">The frame parameters.</param>
     /// <param name="source">The original component planes.</param>
     /// <param name="reconstruction">The deblocked component planes.</param>
+    /// <param name="sourceSamples">The samples of <paramref name="source"/>, read once before the unit loop.</param>
+    /// <param name="reconstructionSamples">The samples of <paramref name="reconstruction"/>, read once before the unit loop.</param>
     /// <param name="position">The unit origin in mode units.</param>
     /// <param name="width">The unit width in mode units.</param>
     /// <param name="height">The unit height in mode units.</param>
@@ -245,6 +251,8 @@ internal static partial class Av1CdefEncoder
         Av1PictureControlSet picture,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reconstruction,
+        Av1EncoderFrame<TSample>.PlanarSamples sourceSamples,
+        Av1EncoderFrame<TSample>.PlanarSamples reconstructionSamples,
         Point position,
         int width,
         int height,
@@ -282,14 +290,14 @@ internal static partial class Av1CdefEncoder
             int unitHeight = height << (2 - subY);
             Av1PlaneRegion<TSample> samples = reconstruction.CodedView.GetPlane(plane);
             Av1PlaneRegion<TSample> original = source.CodedView.GetPlane(plane);
-            CopyUnit<TSample, TOperator>(samples, x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
+            CopyUnit<TSample, TOperator>(samples, reconstructionSamples.GetPlane(plane), x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
             if (planeIndex == 0)
             {
                 FindDirections(input, blocks, directions, variances, shift);
                 directions.CopyTo(chromaDirections);
             }
 
-            ReadOnlySpan<TSample> originalStorage = original.Samples;
+            ReadOnlySpan<TSample> originalStorage = sourceSamples.GetPlane(plane);
             int originalOffset = ((original.Bounds.Y + y) * original.Stride) + original.Bounds.X + x;
             int blockWidth = 8 >> subX;
             int blockHeight = 8 >> subY;
@@ -348,6 +356,7 @@ internal static partial class Av1CdefEncoder
     /// <typeparam name="TSample">The native component storage type.</typeparam>
     /// <typeparam name="TOperator">The closed component operations.</typeparam>
     /// <param name="plane">The bordered component plane.</param>
+    /// <param name="storage">The samples of <paramref name="plane"/>, which the caller reads once outside its unit loop.</param>
     /// <param name="x">The unit's plane column.</param>
     /// <param name="y">The unit's plane row.</param>
     /// <param name="width">The unit width.</param>
@@ -357,6 +366,7 @@ internal static partial class Av1CdefEncoder
     /// <param name="input">The bordered filtering workspace.</param>
     private static void CopyUnit<TSample, TOperator>(
         Av1PlaneRegion<TSample> plane,
+        ReadOnlySpan<TSample> storage,
         int x,
         int y,
         int width,
@@ -373,7 +383,6 @@ internal static partial class Av1CdefEncoder
         int bottom = y + height == planeHeight ? 0 : VerticalBorder;
         input.Fill(Av1CdefFilter.VeryLarge);
         int offset = ((plane.Bounds.Y + y - top) * plane.Stride) + plane.Bounds.X + x - left;
-        ReadOnlySpan<TSample> storage = plane.Samples;
         TOperator.Copy(
             storage[offset..],
             plane.Stride,

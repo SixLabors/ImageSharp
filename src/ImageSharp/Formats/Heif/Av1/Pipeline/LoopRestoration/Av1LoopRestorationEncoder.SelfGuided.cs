@@ -219,6 +219,7 @@ internal static partial class Av1LoopRestorationEncoder
     {
         ReadOnlySpan<int> radii = Av1SelfGuidedFilter.ParameterRadii.Slice(parameterSet * 2, 2);
         ReadOnlySpan<TSample> storage = reconstruction.Samples;
+        ReadOnlySpan<TSample> sourceStorage = source.Samples;
         ProjectionMoments moments = default;
         int offset = 0;
         for (int y = 0; y < source.Height; y += processingHeight)
@@ -240,8 +241,8 @@ internal static partial class Av1LoopRestorationEncoder
                 for (int row = 0; row < height; row++)
                 {
                     AccumulateProjectionMoments<TSample, TProjection, ProjectionStatisticsOperator>(
-                        source.GetRowSpan(y + row).Slice(x, width),
-                        reconstruction.GetRowSpan(y + row).Slice(x, width),
+                        sourceStorage.Slice(source.GetOffset(x, y + row), width),
+                        storage.Slice(reconstruction.GetOffset(x, y + row), width),
                         first.Slice(row * width, width),
                         second.Slice(row * width, width),
                         ref moments);
@@ -394,6 +395,8 @@ internal static partial class Av1LoopRestorationEncoder
         ProjectionWeights weights = new(firstWeight, secondWeight);
         LaneTotals totals = default;
         int offset = 0;
+        ReadOnlySpan<TSample> sourceStorage = source.Samples;
+        ReadOnlySpan<TSample> reconstructionStorage = reconstruction.Samples;
         for (int y = 0; y < source.Height; y += processingHeight)
         {
             int height = Math.Min(processingHeight, source.Height - y);
@@ -403,8 +406,8 @@ internal static partial class Av1LoopRestorationEncoder
                 for (int row = 0; row < height; row++, offset += width)
                 {
                     AccumulateProjectionError<TSample, TProjection, ProjectionStatisticsOperator>(
-                        source.GetRowSpan(y + row).Slice(x, width),
-                        reconstruction.GetRowSpan(y + row).Slice(x, width),
+                        sourceStorage.Slice(source.GetOffset(x, y + row), width),
+                        reconstructionStorage.Slice(reconstruction.GetOffset(x, y + row), width),
                         filtered0.Slice(offset, width),
                         filtered1.Slice(offset, width),
                         weights,

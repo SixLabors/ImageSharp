@@ -66,6 +66,7 @@ internal sealed partial class Av1MotionVectorStatistics
     /// <typeparam name="TSample">The sample type.</typeparam>
     /// <typeparam name="TOperator">The texture operator of the sample type.</typeparam>
     /// <param name="luma">The visible luma plane.</param>
+    /// <param name="lumaSamples">The samples of <paramref name="luma"/>, which the caller reads once outside its block loop.</param>
     /// <param name="origin">The block origin.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
@@ -75,6 +76,7 @@ internal sealed partial class Av1MotionVectorStatistics
     /// <param name="diagonal">The product total.</param>
     internal static void AccumulateTexture<TSample, TOperator>(
         Av1PlaneRegion<TSample> luma,
+        ReadOnlySpan<TSample> lumaSamples,
         Point origin,
         int width,
         int height,
@@ -102,10 +104,11 @@ internal sealed partial class Av1MotionVectorStatistics
         int horizontalTotal = 0;
         int verticalTotal = 0;
         int diagonalTotal = 0;
+        ref TSample lumaOrigin = ref MemoryMarshal.GetReference(lumaSamples);
         for (int row = 0; row < height - 1; row++)
         {
-            ref TSample currentRow = ref MemoryMarshal.GetReference(luma.GetRowSpan(Math.Min(origin.Y + row, lastRow)));
-            ref TSample nextRow = ref MemoryMarshal.GetReference(luma.GetRowSpan(Math.Min(origin.Y + row + 1, lastRow)));
+            ref TSample currentRow = ref Unsafe.Add(ref lumaOrigin, luma.GetOffset(0, Math.Min(origin.Y + row, lastRow)));
+            ref TSample nextRow = ref Unsafe.Add(ref lumaOrigin, luma.GetOffset(0, Math.Min(origin.Y + row + 1, lastRow)));
             if (outside > 0)
             {
                 int edge = Math.Abs(TOperator.Load(ref nextRow, (nuint)lastColumn) - TOperator.Load(ref currentRow, (nuint)lastColumn)) >> shift;

@@ -2820,22 +2820,24 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     {
         reader.ReadPaletteColorMap(paletteSize, planeType, rows, columns, colorIndexMap);
 
+        // The map is read once; map row r starts one stride per row after the map origin.
+        Span<byte> mapSamples = colorIndexMap.Samples;
         if (columns < planeWidth)
         {
             // Blocks clipped by the right image edge repeat their final coded column into the padded block area.
             for (int row = 0; row < rows; row++)
             {
-                Span<byte> colorIndexRow = colorIndexMap.GetRowSpan(row);
+                Span<byte> colorIndexRow = mapSamples.Slice(colorIndexMap.GetOffset(0, row), colorIndexMap.Width);
                 colorIndexRow.Slice(columns, planeWidth - columns)
                     .Fill(colorIndexRow[columns - 1]);
             }
         }
 
         // Blocks clipped by the bottom image edge repeat their final coded row for later transform reconstruction.
-        ReadOnlySpan<byte> finalRow = colorIndexMap.GetRowSpan(rows - 1);
+        ReadOnlySpan<byte> finalRow = mapSamples.Slice(colorIndexMap.GetOffset(0, rows - 1), colorIndexMap.Width);
         for (int row = rows; row < planeHeight; row++)
         {
-            finalRow.CopyTo(colorIndexMap.GetRowSpan(row));
+            finalRow.CopyTo(mapSamples.Slice(colorIndexMap.GetOffset(0, row), colorIndexMap.Width));
         }
     }
 

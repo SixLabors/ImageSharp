@@ -1682,10 +1682,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Include the padded source row and column above/left. The complete 64x64 parent
                 // was checked by the partition controller; the frame owner supplies its physical border.
-                for (int y = 0; y < 65; y++)
+                ReadOnlySpan<TSample> sourceSamples = source.Samples;
+                int rowOffset = source.GetOffset(blockOrigin.X - 1, blockOrigin.Y - 1);
+                for (int y = 0; y < 65; y++, rowOffset += source.Stride)
                 {
-                    ReadOnlySpan<TSample> row = source.GetPlaneRowSpan(source.Bounds.Y + blockOrigin.Y + y - 1)
-                        .Slice(source.Bounds.X + blockOrigin.X - 1, 65);
+                    ReadOnlySpan<TSample> row = sourceSamples.Slice(rowOffset, 65);
 
                     for (int x = 0; x < 65; x++)
                     {

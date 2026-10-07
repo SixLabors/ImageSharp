@@ -30,6 +30,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> zeros = stackalloc TSample[Av1VarianceBoost.SubblockSize];
             zeros.Clear();
             Av1PlaneRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
+            ReadOnlySpan<TSample> lumaSamples = luma.Samples;
             int shift = this.bitDepth.GetBitCount() - 8;
             int index = 0;
             for (int row = 0; row < Av1VarianceBoost.SuperblockSize; row += Av1VarianceBoost.SubblockSize)
@@ -37,7 +38,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int column = 0; column < Av1VarianceBoost.SuperblockSize; column += Av1VarianceBoost.SubblockSize)
                 {
                     TOperator.GetMoments(
-                        Av1TransformBlockEncoder.GetPlaneSpan(luma, new Point(origin.X + column, origin.Y + row)),
+                        lumaSamples[luma.GetOffset(origin.X + column, origin.Y + row)..],
                         luma.Stride,
                         zeros,
                         0,

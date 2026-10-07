@@ -62,7 +62,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int rows = blockHeight + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
             int columns = blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
             Span<short> samples = workspace.GetSamples(0)[..(rows * columns)];
-            TOperator.CopyPaletteSamples(sourcePlane, blockOrigin, rows, columns, samples);
+            TOperator.CopyPaletteSamples(
+                sourcePlane.Samples[sourcePlane.GetOffset(blockOrigin.X, blockOrigin.Y)..], sourcePlane.Stride, rows, columns, samples);
+
             Span<int> counts = workspace.LumaColorCounts[..(1 << this.bitDepth.GetBitCount())];
             int colorCount = this.CountPaletteColors(samples, counts, out int occupiedBins, out short minimum, out short maximum);
             if (occupiedBins <= 1 || occupiedBins > colorThreshold)
@@ -233,9 +235,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (selected)
             {
+                Span<byte> retainedIndices = workspace.RetainedIndices;
+                Span<byte> mapSamples = colorIndexMap.Samples;
                 for (int row = 0; row < blockHeight; row++)
                 {
-                    workspace.RetainedIndices.Slice(row * blockWidth, blockWidth).CopyTo(colorIndexMap.GetRowSpan(row));
+                    retainedIndices.Slice(row * blockWidth, blockWidth).CopyTo(mapSamples.Slice(colorIndexMap.GetOffset(0, row), blockWidth));
                 }
             }
 
@@ -351,18 +355,23 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Span<byte> colorIndices = workspace.Indices;
             Av1PaletteKMeans.AssignIndices(samples, paletteCentroids, colorIndices);
+
+            // The map is read once; map row r starts one stride per row after the map origin.
+            Span<byte> mapSamples = colorIndexMap.Samples;
+            int mapOrigin = colorIndexMap.Origin;
+            int mapStride = colorIndexMap.Stride;
             for (int row = 0; row < rows; row++)
             {
-                Span<byte> mapRow = colorIndexMap.GetRowSpan(row)[..blockWidth];
+                Span<byte> mapRow = mapSamples.Slice(mapOrigin + (row * mapStride), blockWidth);
                 colorIndices.Slice(row * columns, columns).CopyTo(mapRow);
                 mapRow[columns..].Fill(mapRow[columns - 1]);
             }
 
             // Padding repeats the last active edge so transform prediction matches coded-frame edge extension.
+            Span<byte> lastMapRow = mapSamples.Slice(mapOrigin + ((rows - 1) * mapStride), blockWidth);
             for (int row = rows; row < blockHeight; row++)
             {
-                colorIndexMap.GetRowSpan(rows - 1)[..blockWidth]
-                    .CopyTo(colorIndexMap.GetRowSpan(row));
+                lastMapRow.CopyTo(mapSamples.Slice(mapOrigin + (row * mapStride), blockWidth));
             }
 
             // The intra reference cost of an inter frame joins the total only after the search, so the header gate
@@ -376,7 +385,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Real-time mode search prices only the first map index; the rest of the color map is discounted.
             // Reference: rt_sf.discount_color_cost in intra_mode_info_cost_y().
             rate += this.picture.Parent.SpeedSettings.DiscountPaletteColorCost
-                ? Av1SymbolEncoder.GetUniformCost(paletteSize, colorIndexMap.GetRowSpan(0)[0])
+                ? Av1SymbolEncoder.GetUniformCost(paletteSize, mapSamples[mapOrigin])
                 : writer.GetPaletteColorMapCost(paletteSize, Av1PlaneType.Y, rows, columns, colorIndexMap);
 
             if (headerPruneLevel != 0)
@@ -434,9 +443,10 @@ internal static partial class Av1IntraSuperblockEncoder
             bool selected = candidateCost < candidateLimit;
             if (selected)
             {
+                Span<byte> retainedIndices = workspace.RetainedIndices;
                 for (int row = 0; row < blockHeight; row++)
                 {
-                    colorIndexMap.GetRowSpan(row)[..blockWidth].CopyTo(workspace.RetainedIndices[(row * blockWidth)..]);
+                    mapSamples.Slice(mapOrigin + (row * mapStride), blockWidth).CopyTo(retainedIndices[(row * blockWidth)..]);
                 }
 
                 paletteInfo.PaletteSizes[0] = (byte)paletteSize;

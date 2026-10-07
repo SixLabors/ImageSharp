@@ -97,16 +97,19 @@ internal static partial class Av1IntraSuperblockEncoder
         int height = transformSize.GetHeight();
         bool hasLeft = blockOrigin.X > 0;
         bool hasAbove = blockOrigin.Y > 0;
+        ReadOnlySpan<TSample> reconstructionSamples = reconstructionPlane.Samples;
         ReadOnlySpan<TSample> above = hasAbove
-            ? reconstructionPlane.GetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, width)
+            ? reconstructionSamples.Slice(reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y - 1), width)
             : [];
 
         Span<TSample> left = TOperator.GetLeftReference(blockWorkspace.Residual, height);
         if (hasLeft)
         {
+            // The left edge walks down the column before the block, one stride per row.
+            int leftOffset = reconstructionPlane.GetOffset(blockOrigin.X - 1, blockOrigin.Y);
             for (int row = 0; row < height; row++)
             {
-                left[row] = reconstructionPlane.GetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
+                left[row] = reconstructionSamples[leftOffset + (row * reconstructionPlane.Stride)];
             }
         }
 

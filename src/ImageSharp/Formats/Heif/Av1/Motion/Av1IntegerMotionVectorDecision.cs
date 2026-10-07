@@ -41,19 +41,21 @@ internal sealed class Av1IntegerMotionVectorDecision
         int total = 0;
         int collocated = 0;
         int smooth = 0;
+        ReadOnlySpan<TSample> currentSamples = current.Samples;
+        ReadOnlySpan<TSample> lastSamples = last.Samples;
         for (int y = 0; y + BlockSize <= current.Height; y += BlockSize)
         {
             for (int x = 0; x + BlockSize <= current.Width; x += BlockSize)
             {
-                Point origin = new(x, y);
+                ReadOnlySpan<TSample> currentBlock = currentSamples[current.GetOffset(x, y)..];
                 total++;
-                if (TOperator.BlocksEqual(current, origin, last, origin))
+                if (TOperator.BlocksEqual(currentBlock, current.Stride, lastSamples[last.GetOffset(x, y)..], last.Stride))
                 {
                     collocated++;
                     continue;
                 }
 
-                if (TOperator.IsHorizontalPerfect(current, origin) || TOperator.IsVerticalPerfect(current, origin))
+                if (TOperator.IsHorizontalPerfect(currentBlock, current.Stride) || TOperator.IsVerticalPerfect(currentBlock, current.Stride))
                 {
                     smooth++;
                 }

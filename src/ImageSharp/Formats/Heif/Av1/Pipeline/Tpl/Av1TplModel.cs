@@ -144,9 +144,15 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private readonly int[] reconstructionIds;
 
     /// <summary>
-    /// The block statistics pool, one entry per look-ahead frame. Reference: tpl_stats_pool.
+    /// The block statistics pool, one contiguous entry of <see cref="statisticsEntryLength"/> blocks per look-ahead
+    /// frame. Reference: tpl_stats_pool.
     /// </summary>
-    private readonly IMemoryOwner<Av1TplBlockStatistics>[] statisticsPool;
+    private readonly IMemoryOwner<Av1TplBlockStatistics> statisticsPool;
+
+    /// <summary>
+    /// The number of block statistics in each entry of <see cref="statisticsPool"/>.
+    /// </summary>
+    private readonly int statisticsEntryLength;
 
     /// <summary>
     /// The reconstruction pool, one frame per look-ahead frame. Reference: tpl_rec_pool.
@@ -225,14 +231,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
         Av1TplFrameStatistics first = this.frames[0];
         this.modeInfo = new Av1TplModeInfoGrid(this.ModeInfoColumns, this.ModeInfoRows);
-        this.statisticsPool = new IMemoryOwner<Av1TplBlockStatistics>[this.lagInFrames];
+        this.statisticsEntryLength = first.Width * first.Height;
+        this.statisticsPool = configuration.MemoryAllocator.Allocate<Av1TplBlockStatistics>(
+            this.statisticsEntryLength * this.lagInFrames,
+            AllocationOptions.Clean);
+
         this.reconstructionPool = new Av1EncoderFrameBuffer<TSample>[this.lagInFrames];
         for (int frame = 0; frame < this.lagInFrames; frame++)
         {
-            this.statisticsPool[frame] = configuration.MemoryAllocator.Allocate<Av1TplBlockStatistics>(
-                first.Width * first.Height,
-                AllocationOptions.Clean);
-
             this.reconstructionPool[frame] = this.CreateFrameBuffer();
         }
 
@@ -314,10 +320,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             this.frames[frame].IsValid = false;
         }
 
-        for (int frame = 0; frame < this.statisticsPool.Length; frame++)
-        {
-            this.statisticsPool[frame].Memory.Span.Clear();
-        }
+        this.statisticsPool.Memory.Span.Clear();
     }
 
     /// <summary>
@@ -391,9 +394,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         }
 
         this.disposed = true;
-        for (int frame = 0; frame < this.statisticsPool.Length; frame++)
+        this.statisticsPool.Dispose();
+        for (int frame = 0; frame < this.reconstructionPool.Length; frame++)
         {
-            this.statisticsPool[frame].Dispose();
             this.reconstructionPool[frame].Dispose();
         }
 
@@ -414,9 +417,11 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             Av1PlaneRegion<TSample> to = destination.CodedView.GetPlane((Av1Plane)plane);
             int rows = plane == 0 ? source.Height : (source.Height + source.ChromaSubsamplingY) >> source.ChromaSubsamplingY;
             int columns = plane == 0 ? source.Width : (source.Width + source.ChromaSubsamplingX) >> source.ChromaSubsamplingX;
+            ReadOnlySpan<TSample> fromSamples = from.Samples;
+            Span<TSample> toSamples = to.Samples;
             for (int row = 0; row < rows; row++)
             {
-                from.GetRowSpan(row)[..columns].CopyTo(to.GetRowSpan(row));
+                fromSamples.Slice(from.GetOffset(0, row), columns).CopyTo(toSamples.Slice(to.GetOffset(0, row), columns));
             }
         }
 

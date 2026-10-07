@@ -1428,6 +1428,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out InlineArray128<Av1EncoderTransformBlockState> selectedStates,
             out long lumaThreshold)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             lumaThreshold = long.MaxValue;
             long bestPartitionCost = long.MaxValue;
             this.estimateInterCandidates = false;
@@ -1535,7 +1536,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // tx_search_best_inter_candidates().
                     if (!this.useObmcPrediction && !this.useWarpedPrediction)
                     {
-                        this.WriteInterLumaDestination(blockOrigin, predictionModeInfo.BlockSize, workspace.LumaPrediction);
+                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionModeInfo.BlockSize, workspace.LumaPrediction);
                     }
                 }
 
@@ -1970,6 +1971,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector vector,
             Av1MotionVector secondaryVector)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             if (modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra)
             {
                 this.PrepareInterIntraPrediction(
@@ -2058,7 +2060,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // The rebuilt luma goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
                 // refine_winner_mode_tx().
-                this.WriteInterLumaDestination(blockOrigin, predictionSize, prediction);
+                this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionSize, prediction);
                 return;
             }
 
@@ -2092,14 +2094,20 @@ internal static partial class Av1IntraSuperblockEncoder
                     workspace.PredictionScratch,
                     this.bitDepth);
 
+                Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
                 TOperator.SubtractPrediction(
-                    this.source.GetPlane(Av1Plane.Y), blockOrigin, prediction[..(width * height)], residual[..(width * height)], width, height);
+                    Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin),
+                    lumaSource.Stride,
+                    prediction[..(width * height)],
+                    residual[..(width * height)],
+                    width,
+                    height);
 
                 // A global warp is allowed at sharpness 3, so its rebuilt luma goes into the frame. A local warp is not.
                 // Reference: av1_enc_build_inter_predictor() in refine_winner_mode_tx().
                 if (!this.useWarpedPrediction)
                 {
-                    this.WriteInterLumaDestination(blockOrigin, predictionSize, prediction);
+                    this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionSize, prediction);
                 }
 
                 return;
@@ -2148,7 +2156,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             // Reference: av1_enc_build_inter_predictor() in refine_winner_mode_tx().
-            this.WriteInterLumaDestination(blockOrigin, predictionSize, prediction);
+            this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionSize, prediction);
         }
 
         /// <summary>
@@ -2240,6 +2248,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int blockWidth = modeInfo.BlockSize.GetWidth();
             int blockHeight = modeInfo.BlockSize.GetHeight();
             Span<short> residual = workspace.Residual[..(blockWidth * blockHeight)];
+            Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             bool residualPrepared = false;
 
             // The recursive search exits early when the modeled luma cost is already well above its bound.
@@ -2248,7 +2257,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.SpeedSettings.GetModelBasedTransformPruneLevel(this.picture.Parent.FrameUpdateType) != 0)
             {
                 TOperator.SubtractPrediction(
-                    this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, blockWidth, blockHeight);
+                    Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin),
+                    lumaSource.Stride,
+                    workspace.LumaPrediction,
+                    residual,
+                    blockWidth,
+                    blockHeight);
 
                 residualPrepared = true;
                 if (this.PrunesTransformSearchByModel(blockOrigin, modeInfo.BlockSize, modeInfo.ReferenceFrame, residual, costLimit))
@@ -2270,7 +2284,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!residualPrepared)
                 {
                     TOperator.SubtractPrediction(
-                        this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, blockWidth, blockHeight);
+                        Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin),
+                        lumaSource.Stride,
+                        workspace.LumaPrediction,
+                        residual,
+                        blockWidth,
+                        blockHeight);
                 }
 
                 hash = Av1MacroblockRateDistortionRecord.GetHash(residual, modeInfo.BlockSize);
@@ -2480,8 +2499,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Span<short> residual = workspace.Residual[..(width * height)];
+            Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, residual, width, height);
+                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin), lumaSource.Stride, workspace.LumaPrediction, residual, width, height);
 
             // The whole block is subtracted with the DCT_DCT border padding. Reference: av1_subtract_plane().
             Av1TransformBlockEncoder.PadBorderResidual(
@@ -2699,8 +2719,14 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Point origin = blockOrigin + new Size(column << 2, row << 2);
+            Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                this.source.GetPlane(Av1Plane.Y), origin, prediction, workspace.Residual, transformSize.GetWidth(), transformSize.GetHeight());
+                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, origin),
+                lumaSource.Stride,
+                prediction,
+                workspace.Residual,
+                transformSize.GetWidth(),
+                transformSize.GetHeight());
 
             Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Luminance,
@@ -3120,6 +3146,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1MotionVector selectedSecondaryVector,
             ref InlineArray128<Av1EncoderTransformBlockState> selectedStates)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1ReferenceFrameType primaryReference = frameHeader.SkipModeParameters.FirstReferenceFrame;
@@ -3215,7 +3242,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The luma prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in skip_mode_rd().
                 if (plane == Av1Plane.Y)
                 {
-                    this.WriteInterLumaDestination(blockOrigin, blockSize, prediction);
+                    this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, prediction);
                 }
 
                 // Skip mode carries no coefficient or transform-choice syntax. Accumulate visible
@@ -3306,6 +3333,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref InlineArray3<Av1MotionVector> searchedNewVectors,
             ref byte searchedNewVectorMask)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1TransformSize lumaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
                 ? Av1TransformSize.Size4x4
@@ -3634,7 +3662,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
                         // simple_translation_pred_rd().
-                        this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
+                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
 
                         // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                         // simple_translation_pred_rd().
@@ -4541,6 +4569,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool selectedWedge,
             out int selectedWedgeIndex)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             Av1ModeCosts modeCosts = writer.ModeCosts;
@@ -4597,7 +4626,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The blend goes into pd->dst, which is the frame after the single prediction into tmp_buf.
                 // Reference: av1_combine_interintra() in compute_best_interintra_mode(), after restore_dst_buf() in
                 // av1_handle_inter_intra_mode().
-                this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
+                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                     sourcePlane.Stride,
@@ -4646,7 +4675,7 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
 
             // Reference: the av1_combine_interintra() rebuild of the best mode in handle_smooth_inter_intra_mode().
-            this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
+            this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
             int smoothRate = motionRate + modeCosts.GetInterIntraMode(blockSize, selectedMode) + modeCosts.GetWedgeInterIntra(blockSize, 0);
             long smoothBound = bestCost < 9 * (long.MaxValue / 16) ? (bestCost / 9) * 16 : long.MaxValue;
             smoothBound -= Av1RateDistortion.GetCost(this.rateMultiplier, smoothRate, 0);
@@ -4852,7 +4881,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     // The refined vector predicts luma into pd->dst, and the blend goes there too. Reference: av1_enc_build_inter_predictor()
                     // and av1_combine_interintra() after av1_compound_single_motion_search() in handle_wedge_inter_intra_mode().
-                    this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
+                    this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
                     TOperator.GetMoments(
                         Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                         sourcePlane.Stride,
@@ -4900,7 +4929,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
 
                 // Reference: the av1_combine_interintra() call for rd >= *best_rd in handle_wedge_inter_intra_mode().
-                this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
+                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
             }
 
             int selectedWedgeRate = wedgeMotionRate + wedgeSyntaxRate;
@@ -4941,8 +4970,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
+            Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                this.source.GetPlane(Av1Plane.Y), blockOrigin, workspace.LumaPrediction, workspace.Residual, width, height);
+                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin), lumaSource.Stride, workspace.LumaPrediction, workspace.Residual, width, height);
 
             // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
             // av1_subtract_plane() call of estimate_yrd_for_sb().
@@ -5113,10 +5143,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 aboveStorage,
                 leftStorage);
 
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.PrepareIntra(
                 this.blockWorkspace,
-                this.source.GetPlane(plane),
-                planeOrigin,
+                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                sourcePlane.Stride,
                 intraPrediction,
                 width,
                 aboveStorage.Slice(1, width + height),
@@ -5151,6 +5182,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool useWedge,
             int wedgeIndex)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask();
             int planeCount = hasChroma ? 3 : 1;
@@ -5203,7 +5235,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // av1_enc_build_inter_predictor().
                 if (plane == Av1Plane.Y)
                 {
-                    this.WriteInterLumaDestination(blockOrigin, blockSize, interPrediction);
+                    this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interPrediction);
                 }
             }
         }
@@ -6151,6 +6183,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1MotionVector selectedSecondaryVector,
             ref InlineArray128<Av1EncoderTransformBlockState> selectedStates)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             if ((this.picture.Parent.AvailableReferenceMask & (1 << (int)primaryReference)) == 0 ||
@@ -6549,7 +6582,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                                 // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
                                 // simple_translation_pred_rd().
-                                this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
+                                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
 
                                 // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                                 // simple_translation_pred_rd().
@@ -7209,6 +7242,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1DifferenceWeightedMaskType selectedMaskType,
             out int selectedTypeRate)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
@@ -7645,7 +7679,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // av1_compound_type_rd().
                     if (type == Av1CompoundType.Average && !useCachedEstimate)
                     {
-                        this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
+                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
                     }
 
                     long model = this.GetCompoundPredictionModelCost(
@@ -7925,8 +7959,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> difference = workspace.Residual[..count];
             Span<byte> mask = this.blockWorkspace.GetCompoundPredictionMask()[..count];
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            TOperator.SubtractPrediction(sourcePlane, blockOrigin, firstPrediction, firstResidual, width, height);
-            TOperator.SubtractPrediction(sourcePlane, blockOrigin, secondPrediction, secondResidual, width, height);
+            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+            TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, firstPrediction, firstResidual, width, height);
+            TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, secondPrediction, secondResidual, width, height);
 
             // The second prediction minus the first. Reference: the aom_subtract_block() call that fills
             // diff10 in av1_compound_type_rd().
@@ -8319,6 +8354,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector secondaryVector,
             ReadOnlySpan<Av1EncoderTransformBlockState> states)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             this.SetCodedBlockSegment(blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             bool isInterIntra = modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
@@ -8414,7 +8450,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Reference: av1_enc_build_inter_predictor() into pd->dst in encode_superblock(), before av1_encode_sb().
                 if (plane == Av1Plane.Y)
                 {
-                    this.WriteInterLumaDestination(blockOrigin, modeInfo.Block.BlockSize, prediction);
+                    this.WriteInterLumaDestination(lumaFrame, blockOrigin, modeInfo.Block.BlockSize, prediction);
                 }
 
                 Av1NeighborArrayUnit<byte> neighbors = plane switch
@@ -8637,6 +8673,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out int filterRate,
             out long modelCost)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             bool winnerSearch = settings.UseWinnerInterpolation && this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Winner;
             bool compound = modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
@@ -8882,7 +8919,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // av1_interpolation_filter_search(), and fast_interp_search().
             if (!winnerSearch)
             {
-                this.WriteInterLumaDestination(blockOrigin, blockSize, bestLuma);
+                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, bestLuma);
             }
 
             // These copy the libaom destination state through the trials. After the default filter, pd->dst moves to tmp_dst.
@@ -8954,7 +8991,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The trial predicted luma into pd->dst. Reference: interp_model_rd_eval() in interpolation_filter_rd().
                 if (!winnerSearch && (skipPlanes & 1) == 0 && !destinationIsTemporary)
                 {
-                    this.WriteInterLumaDestination(blockOrigin, blockSize, trialLuma);
+                    this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, trialLuma);
                 }
 
                 if (trial.Cost != long.MaxValue && trial.Cost * scale / 100 < bestCost)
@@ -9021,7 +9058,7 @@ internal static partial class Av1IntraSuperblockEncoder
             destinationIsTemporary = !destinationIsTemporary;
             if (winnerSearch || (rebuildLuma && !destinationIsTemporary))
             {
-                this.WriteInterLumaDestination(blockOrigin, blockSize, bestLuma);
+                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, bestLuma);
             }
 
             if (!lumaUsesWorkspace)
@@ -9080,7 +9117,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // call after av1_interpolation_filter_search() in handle_inter_mode().
                     if (planeIndex == 0 && !destinationIsTemporary)
                     {
-                        this.WriteInterLumaDestination(blockOrigin, blockSize, prediction);
+                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, prediction);
                     }
                 }
             }
@@ -9285,6 +9322,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out InlineArray16<Av1EncoderTransformBlockState> blueState,
             out InlineArray16<Av1EncoderTransformBlockState> redState)
         {
+            Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
             bool isCompound = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
             this.lumaSearchFailed = false;
             this.unbiasedInterTrialCost = long.MaxValue;
@@ -9475,7 +9513,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Reference: av1_enc_build_inter_predictor() in handle_inter_mode() and rd_pick_intrabc_mode_sb().
             if (!usePreparedPrediction && !this.useObmcPrediction && !this.useWarpedPrediction)
             {
-                this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
+                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
             }
 
             // Sharpness 3 measures the candidate's luma prediction, which the plane loop leaves in the current
@@ -10560,8 +10598,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Point planeOrigin = new(this.obmcBlockOrigin.X >> subsamplingX, this.obmcBlockOrigin.Y >> subsamplingY);
             int sampleCount = planeWidth * planeHeight;
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.SubtractPrediction(
-                this.source.GetPlane(plane), planeOrigin, prediction[..sampleCount], residual[..sampleCount], planeWidth, planeHeight);
+                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                sourcePlane.Stride,
+                prediction[..sampleCount],
+                residual[..sampleCount],
+                planeWidth,
+                planeHeight);
         }
 
         /// <summary>
@@ -10776,8 +10820,14 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int sampleCount = planeWidth * planeHeight;
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.SubtractPrediction(
-                this.source.GetPlane(plane), planeOrigin, prediction[..sampleCount], residual[..sampleCount], planeWidth, planeHeight);
+                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                sourcePlane.Stride,
+                prediction[..sampleCount],
+                residual[..sampleCount],
+                planeWidth,
+                planeHeight);
 
             return true;
         }
@@ -10922,7 +10972,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth);
 
                 TOperator.SubtractPrediction(
-                    sourcePlane, planeOrigin, prediction[..sampleCount], residual[..sampleCount], width, height);
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                    sourcePlane.Stride,
+                    prediction[..sampleCount],
+                    residual[..sampleCount],
+                    width,
+                    height);
 
                 return;
             }
@@ -10971,13 +11026,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// in pd->dst. The port also does not write OBMC and warped predictions: libaom skips those modes at sharpness 3, and only
         /// sharpness 3 reads the luma samples that an earlier inter trial left.
         /// </summary>
+        /// <param name="lumaFrame">The samples of the reconstructed luma plane, which the caller reads once outside its loops.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="prediction">The contiguous luma prediction of the block.</param>
-        private readonly void WriteInterLumaDestination(Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> prediction)
+        private readonly void WriteInterLumaDestination(Span<TSample> lumaFrame, Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> prediction)
         {
             int width = blockSize.GetWidth();
-            Av1TransformBlockEncoder.WriteFrameSamples(this.reconstruction.GetPlane(Av1Plane.Y), blockOrigin, prediction, width, width, blockSize.GetHeight());
+            Av1TransformBlockEncoder.WriteFrameSamples(
+                this.reconstruction.GetPlane(Av1Plane.Y), lumaFrame, blockOrigin, prediction, width, width, blockSize.GetHeight());
         }
 
         /// <summary>
@@ -11024,7 +11081,12 @@ internal static partial class Av1IntraSuperblockEncoder
             if (usePreparedPrediction)
             {
                 TOperator.SubtractPrediction(
-                    sourcePlane, planeOrigin, prediction[..sampleCount], residual[..sampleCount], predictionSize.GetWidth(), predictionSize.GetHeight());
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                    sourcePlane.Stride,
+                    prediction[..sampleCount],
+                    residual[..sampleCount],
+                    predictionSize.GetWidth(),
+                    predictionSize.GetHeight());
             }
             else if (predictionMode >= Av1PredictionMode.CompoundInterModeStart)
             {
@@ -11163,7 +11225,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.bitDepth);
 
                     TOperator.SubtractPrediction(
-                        sourcePlane, planeOrigin, prediction[..sampleCount], residual[..sampleCount], predictionSize.GetWidth(), predictionSize.GetHeight());
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                        sourcePlane.Stride,
+                        prediction[..sampleCount],
+                        residual[..sampleCount],
+                        predictionSize.GetWidth(),
+                        predictionSize.GetHeight());
 
                     return;
                 }
@@ -11267,7 +11334,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 true,
                 blockContext,
                 originContext,
-                sourcePlane,
+                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                sourcePlane.Stride,
                 planeOrigin,
                 transformSize,
                 predictionMode,

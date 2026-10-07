@@ -201,9 +201,11 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
             Av1PlaneRegion<byte> restored = destinationBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
             Av1PlaneRegion<byte> target = frameBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
             int height = Av1Math.DivideLog2Ceiling(frameHeader.FrameSize.FrameHeight, subsamplingY);
+            ReadOnlySpan<byte> restoredSamples = restored.Samples;
+            Span<byte> targetSamples = target.Samples;
             for (int row = 0; row < height; row++)
             {
-                restored.GetRowSpan(row).CopyTo(target.GetRowSpan(row));
+                restoredSamples.Slice(restored.GetOffset(0, row), restored.Width).CopyTo(targetSamples.Slice(target.GetOffset(0, row), target.Width));
             }
         }
     }

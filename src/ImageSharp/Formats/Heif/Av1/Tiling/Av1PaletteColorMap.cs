@@ -13,7 +13,8 @@ internal static class Av1PaletteColorMap
     /// <summary>
     /// Derives the palette color order, current color-order index, and entropy context for one map position.
     /// </summary>
-    /// <param name="colorIndexMap">The partially or completely populated color-index map.</param>
+    /// <param name="colorIndexMap">The partially or completely populated color-index map, from its first sample.</param>
+    /// <param name="stride">The number of map samples between rows.</param>
     /// <param name="row">The current map row.</param>
     /// <param name="column">The current map column.</param>
     /// <param name="paletteSize">The number of colors in the palette.</param>
@@ -22,7 +23,8 @@ internal static class Av1PaletteColorMap
     /// <param name="colorOrderIndex">The current index in <paramref name="colorOrder" />, or a negative value while decoding.</param>
     /// <returns>The color-index entropy context in the range from zero through four.</returns>
     public static int GetContext(
-        Av1PlaneRegion<byte> colorIndexMap,
+        ReadOnlySpan<byte> colorIndexMap,
+        int stride,
         int row,
         int column,
         int paletteSize,
@@ -32,21 +34,20 @@ internal static class Av1PaletteColorMap
     {
         Span<int> scores = stackalloc int[Av1Constants.PaletteMaxSize];
         scores.Clear();
-        ReadOnlySpan<byte> currentRow = colorIndexMap.GetRowSpan(row);
+        int index = (row * stride) + column;
         if (column > 0)
         {
-            scores[currentRow[column - 1]] += 2;
+            scores[colorIndexMap[index - 1]] += 2;
         }
 
         if (row > 0)
         {
-            ReadOnlySpan<byte> aboveRow = colorIndexMap.GetRowSpan(row - 1);
             if (column > 0)
             {
-                scores[aboveRow[column - 1]]++;
+                scores[colorIndexMap[index - stride - 1]]++;
             }
 
-            scores[aboveRow[column]] += 2;
+            scores[colorIndexMap[index - stride]] += 2;
         }
 
         Span<int> inverseColorOrder = stackalloc int[Av1Constants.PaletteMaxSize];

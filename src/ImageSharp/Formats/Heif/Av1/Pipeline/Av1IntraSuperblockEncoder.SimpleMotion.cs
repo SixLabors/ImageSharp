@@ -162,8 +162,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // The prediction goes into pd->dst, which is the frame at this block. Reference: av1_enc_build_inter_predictor() in
                 // av1_simple_motion_search().
-                Av1TransformBlockEncoder.WriteFrameSamples(
-                    this.reconstruction.GetPlane(Av1Plane.Y), blockOrigin, prediction, size.Width, size.Width, size.Height);
+                Av1PlaneRegion<TSample> luma = this.reconstruction.GetPlane(Av1Plane.Y);
+                Av1TransformBlockEncoder.WriteFrameSamples(luma, luma.Samples, blockOrigin, prediction, size.Width, size.Width, size.Height);
 
                 TOperator.GetMoments(
                     source, sourcePlane.Stride, prediction, size.Width, size.Width, size.Height, out int sum, out long squares);

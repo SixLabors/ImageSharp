@@ -819,6 +819,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1Plane plane = index == 0 ? Av1Plane.U : Av1Plane.V;
                     Av1PlaneRegion<TSample> chromaSource = this.source.GetPlane(plane);
+                    ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin);
 
                     // chroma_check() measures zero motion against LAST, whichever reference the partition chose:
                     // pre[0] when that is LAST, otherwise the LAST buffer through setup_pred_plane().
@@ -828,7 +829,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;
 
                     uint sad = (uint)TOperator.SumAbsoluteDifferences(
-                        Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
+                        sourceBlock,
                         chromaSource.Stride,
                         prediction,
                         zeroMotion ? chromaReference.Stride : width,
@@ -842,7 +843,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         Av1PlaneRegion<TSample> golden = this.goldenReference.GetPlane(plane);
                         uint sadGolden = (uint)TOperator.SumAbsoluteDifferences(
-                            Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
+                            sourceBlock,
                             chromaSource.Stride,
                             Av1TransformBlockEncoder.GetPlaneSpan(golden, chromaOrigin),
                             golden.Stride,
@@ -857,7 +858,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         Av1PlaneRegion<TSample> alternate = searchReferences[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(plane);
                         uint sadAlternate = (uint)TOperator.SumAbsoluteDifferences(
-                            Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
+                            sourceBlock,
                             chromaSource.Stride,
                             Av1TransformBlockEncoder.GetPlaneSpan(alternate, chromaOrigin),
                             alternate.Stride,
@@ -1144,6 +1145,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // Each four-by-four average is one variance sample. Positions outside the coded frame
                 // contribute zero moments, while present blocks retain their complete padded samples.
+                ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
                 for (int y = 0; y < 8; y += 4)
                 {
                     for (int x = 0; x < 8; x += 4)
@@ -1151,7 +1153,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Point origin = blockOrigin + new Size(x, y);
                         if (origin.X < sourcePlane.Width && origin.Y < sourcePlane.Height)
                         {
-                            int difference = TOperator.GetAverage4x4(sourcePlane, origin) - 128;
+                            int difference = TOperator.GetAverage4x4(sourceSamples[sourcePlane.GetOffset(origin.X, origin.Y)..], sourcePlane.Stride) - 128;
                             node.Sum += difference;
                             node.SumSquares += (uint)(difference * difference);
                         }

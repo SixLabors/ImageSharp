@@ -124,6 +124,7 @@ internal static partial class Av1CdefEncoder
         Span<ushort> borders = borderOwner.Memory.Span;
         Span<bool> leftFiltered = stackalloc bool[3];
         int shift = reconstruction.LumaBitDepth - 8;
+        Av1EncoderFrame<TSample>.PlanarSamples planes = reconstruction.CodedView.GetSamples();
         for (int unitRow = 0; unitRow < header.ModeInfoRowCount; unitRow += 16)
         {
             leftFiltered.Clear();
@@ -137,7 +138,7 @@ internal static partial class Av1CdefEncoder
                     int planeWidth = header.ModeInfoColumnCount << (2 - subX);
                     int row = ((unitRow + 16) << (2 - subY)) - VerticalBorder;
                     Av1PlaneRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
-                    ReadOnlySpan<TSample> storage = plane.Samples;
+                    ReadOnlySpan<TSample> storage = planes.GetPlane((Av1Plane)planeIndex);
                     int offset = ((plane.Bounds.Y + row) * plane.Stride) + plane.Bounds.X;
                     int lineOffset = lineOffsets[planeIndex] + ((rowIndex & 1) * VerticalBorder * planeWidth);
                     TOperator.Copy(storage[offset..], plane.Stride, borders[lineOffset..], planeWidth, planeWidth, VerticalBorder);
@@ -177,7 +178,8 @@ internal static partial class Av1CdefEncoder
                     int unitWidth = width << (2 - subX);
                     int unitHeight = height << (2 - subY);
                     Av1PlaneRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
-                    CopyUnit<TSample, TOperator>(plane, x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
+                    Span<TSample> storage = planes.GetPlane((Av1Plane)planeIndex);
+                    CopyUnit<TSample, TOperator>(plane, storage, x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
                     if (unitRow != 0)
                     {
                         int left = x == 0 ? 0 : HorizontalBorder;
@@ -215,7 +217,6 @@ internal static partial class Av1CdefEncoder
                     // Capture the right edge before replacing any samples in this unit. Subsequent
                     // units restore these samples over their already-filtered left neighborhood.
                     Av1CdefFilter.CopyPlane(input, unitWidth, SourceStride, column, 0, HorizontalBorder, HorizontalBorder, preservedHeight);
-                    Span<TSample> storage = plane.Samples;
                     int offset = ((plane.Bounds.Y + y) * plane.Stride) + plane.Bounds.X + x;
                     FilterUnit<TSample, TOperator>(
                         input,

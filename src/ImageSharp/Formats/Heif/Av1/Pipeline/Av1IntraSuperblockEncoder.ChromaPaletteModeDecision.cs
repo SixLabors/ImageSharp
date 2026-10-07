@@ -106,8 +106,17 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> redSamples = workspace.GetSamples(1)[..activeSampleCount];
             Av1PlaneRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
             Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
-            TOperator.CopyPaletteSamples(blueSource, chromaOrigin, rows, columns, blueSamples);
-            TOperator.CopyPaletteSamples(redSource, chromaOrigin, rows, columns, redSamples);
+
+            // Every palette size reads the same source and frame planes, so they are read once.
+            ReadOnlySpan<TSample> blueSourceSamples = blueSource.Samples;
+            ReadOnlySpan<TSample> redSourceSamples = redSource.Samples;
+            Span<TSample> blueReconstructionSamples = blueReconstruction.Samples;
+            Span<TSample> redReconstructionSamples = redReconstruction.Samples;
+            TOperator.CopyPaletteSamples(
+                blueSourceSamples[blueSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..], blueSource.Stride, rows, columns, blueSamples);
+
+            TOperator.CopyPaletteSamples(
+                redSourceSamples[redSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..], redSource.Stride, rows, columns, redSamples);
 
             // Count native values for clustering, but count occupied 8-bit bins for deciding whether
             // palette is suitable. Binning controls the search only; centroids keep the full sample precision.
@@ -142,6 +151,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 .GetPaletteMaps()
                 .GetMap(Av1PlaneType.Uv, width, height);
 
+            // The map is read once; map row r starts one stride per row after the map origin.
+            Span<byte> mapSamples = colorIndexMap.Samples;
+            int mapOrigin = colorIndexMap.Origin;
+            int mapStride = colorIndexMap.Stride;
             Span<byte> retainedColorIndexMap = workspace.RetainedIndices;
             Span<short> blueCentroids = workspace.GetCentroids(0);
             Span<short> redCentroids = workspace.GetCentroids(1);
@@ -228,16 +241,16 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 for (int row = 0; row < rows; row++)
                 {
-                    Span<byte> mapRow = colorIndexMap.GetRowSpan(row)[..width];
+                    Span<byte> mapRow = mapSamples.Slice(mapOrigin + (row * mapStride), width);
                     colorIndices.Slice(row * columns, columns).CopyTo(mapRow);
                     mapRow[columns..].Fill(mapRow[columns - 1]);
                 }
 
                 // The shared U/V map covers the complete declared chroma block even at visible frame edges.
+                Span<byte> lastMapRow = mapSamples.Slice(mapOrigin + ((rows - 1) * mapStride), width);
                 for (int row = rows; row < height; row++)
                 {
-                    colorIndexMap.GetRowSpan(rows - 1)[..width]
-                        .CopyTo(colorIndexMap.GetRowSpan(row));
+                    lastMapRow.CopyTo(mapSamples.Slice(mapOrigin + (row * mapStride), width));
                 }
 
                 Span<ushort> bluePaletteColors = bluePaletteColorStorage[..paletteSize];
@@ -302,7 +315,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     Av1Plane.U,
                     blueSource,
+                    blueSourceSamples,
                     blueReconstruction,
+                    blueReconstructionSamples,
                     bluePaletteColors,
                     colorIndexMap,
                     candidateBlueReconstruction,
@@ -338,7 +353,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     Av1Plane.V,
                     redSource,
+                    redSourceSamples,
                     redReconstruction,
+                    redReconstructionSamples,
                     redPaletteColors,
                     colorIndexMap,
                     candidateRedReconstruction,
@@ -376,8 +393,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     for (int row = 0; row < height; row++)
                     {
-                        colorIndexMap.GetRowSpan(row)[..width]
-                            .CopyTo(retainedColorIndexMap[(row * width)..]);
+                        mapSamples.Slice(mapOrigin + (row * mapStride), width).CopyTo(retainedColorIndexMap[(row * width)..]);
                     }
 
                     paletteInfo.PaletteSizes[1] = (byte)paletteSize;
@@ -392,8 +408,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int row = 0; row < height; row++)
                 {
-                    retainedColorIndexMap.Slice(row * width, width)
-                        .CopyTo(colorIndexMap.GetRowSpan(row));
+                    retainedColorIndexMap.Slice(row * width, width).CopyTo(mapSamples.Slice(mapOrigin + (row * mapStride), width));
                 }
             }
 

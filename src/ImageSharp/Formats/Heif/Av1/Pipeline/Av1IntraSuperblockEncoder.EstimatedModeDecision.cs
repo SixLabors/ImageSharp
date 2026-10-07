@@ -131,6 +131,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
             Av1PlaneRegion<TSample> destination = this.reconstruction.GetPlane(Av1Plane.Y);
             Span<TSample> predictedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destination, blockOrigin);
+            ReadOnlySpan<TSample> sourceSamples = source.Samples;
+            bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
             Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
@@ -195,8 +197,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         Point origin = blockOrigin + new Size(x, y);
                         TOperator.PrepareIntra(
                             this.blockWorkspace,
-                            source,
-                            origin,
+                            sourceSamples[source.GetOffset(origin.X, origin.Y)..],
+                            source.Stride,
                             predictedBlock[((y * destination.Stride) + x)..],
                             destination.Stride,
                             aboveStorage.Slice(1, transformWidth + transformHeight),
@@ -206,7 +208,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             mode,
                             0,
                             this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                            this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
+                            smoothEdges,
                             residual,
                             transformSize,
                             this.bitDepth);
@@ -214,7 +216,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         if (pruneSad)
                         {
                             uint sad = (uint)TOperator.SumAbsoluteDifferences(
-                                Av1TransformBlockEncoder.GetPlaneSpan(source, origin),
+                                sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                                 source.Stride,
                                 predictedBlock,
                                 destination.Stride,
@@ -589,6 +591,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int sampleCount = transformSize.GetSize2d();
             Av1PlaneRegion<TSample> source = this.source.GetPlane(plane);
             Av1PlaneRegion<TSample> destination = this.reconstruction.GetPlane(plane);
+            ReadOnlySpan<TSample> sourceSamples = source.Samples;
+            bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane);
             Span<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destination, planeOrigin);
             Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
@@ -674,8 +678,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             {
                                 Span<TSample> prediction = workspace.Prediction[..sampleCount];
                                 TOperator.PreparePalette(
-                                    source,
-                                    origin,
+                                    sourceSamples[source.GetOffset(origin.X, origin.Y)..],
+                                    source.Stride,
                                     paletteColors,
                                     paletteMap.GetSubRegion(x, y, width, height),
                                     prediction,
@@ -693,8 +697,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             {
                                 TOperator.PrepareIntra(
                                     this.blockWorkspace,
-                                    source,
-                                    origin,
+                                    sourceSamples[source.GetOffset(origin.X, origin.Y)..],
+                                    source.Stride,
                                     transform,
                                     destination.Stride,
                                     aboveStorage.Slice(1, width + height),
@@ -704,7 +708,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     mode,
                                     0,
                                     this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                                    this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
+                                    smoothEdges,
                                     residual,
                                     transformSize,
                                     this.bitDepth);

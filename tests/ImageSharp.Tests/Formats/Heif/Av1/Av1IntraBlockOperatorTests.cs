@@ -101,8 +101,6 @@ public class Av1IntraBlockOperatorTests
         samples[(15 * size) + 23]++;
         wideSamples[(15 * size) + 23]++;
 
-        Av1PlaneRegion<byte> plane = new(samples, size, new Rectangle(0, 0, size, size));
-        Av1PlaneRegion<ushort> widePlane = new(wideSamples, size, new Rectangle(0, 0, size, size));
         for (int y = 0; y <= size - 8; y++)
         {
             for (int x = 0; x <= size - 8; x++)
@@ -111,17 +109,17 @@ public class Av1IntraBlockOperatorTests
                 Point second = new(x, y);
                 Assert.Equal(
                     BlocksEqualReference(samples, size, first, second),
-                    Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(plane, first, second));
+                    Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(samples, size, samples.AsSpan((y * size) + x), size));
 
                 Assert.Equal(
                     BlocksEqualReference(wideSamples, size, first, second),
-                    Av1IntraSuperblockEncoder.UInt16Operator.BlocksEqual(widePlane, first, second));
+                    Av1IntraSuperblockEncoder.UInt16Operator.BlocksEqual(wideSamples, size, wideSamples.AsSpan((y * size) + x), size));
             }
         }
 
-        Assert.True(Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(plane, new Point(0, 0), new Point(16, 16)));
-        Assert.False(Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(plane, new Point(0, 0), new Point(16, 8)));
-        Assert.False(Av1IntraSuperblockEncoder.UInt16Operator.BlocksEqual(widePlane, new Point(0, 0), new Point(16, 8)));
+        Assert.True(Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(samples, size, samples.AsSpan((16 * size) + 16), size));
+        Assert.False(Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(samples, size, samples.AsSpan((8 * size) + 16), size));
+        Assert.False(Av1IntraSuperblockEncoder.UInt16Operator.BlocksEqual(wideSamples, size, wideSamples.AsSpan((8 * size) + 16), size));
 
         for (int y = 0; y <= size - 4; y++)
         {
@@ -138,8 +136,8 @@ public class Av1IntraBlockOperatorTests
                     }
                 }
 
-                Assert.Equal((sum + 8) >> 4, Av1IntraSuperblockEncoder.ByteOperator.GetAverage4x4(plane, new Point(x, y)));
-                Assert.Equal((wideSum + 8) >> 4, Av1IntraSuperblockEncoder.UInt16Operator.GetAverage4x4(widePlane, new Point(x, y)));
+                Assert.Equal((sum + 8) >> 4, Av1IntraSuperblockEncoder.ByteOperator.GetAverage4x4(samples.AsSpan((y * size) + x), size));
+                Assert.Equal((wideSum + 8) >> 4, Av1IntraSuperblockEncoder.UInt16Operator.GetAverage4x4(wideSamples.AsSpan((y * size) + x), size));
             }
         }
     }

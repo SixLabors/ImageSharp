@@ -92,9 +92,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<short> horizontal = stackalloc short[128];
                 Span<short> vertical = stackalloc short[128];
                 int interior = columns - 2;
+                ReadOnlySpan<TSample> sourceSamples = source.Samples;
                 for (int row = 1; row < rows - 1; row++)
                 {
-                    TOperator.CopyPaletteSamples(source, new Point(origin.X, origin.Y + row - 1), 3, columns, window);
+                    TOperator.CopyPaletteSamples(sourceSamples[source.GetOffset(origin.X, origin.Y + row - 1)..], source.Stride, 3, columns, window);
                     Av1GradientHistogram.ComputeRow(window, columns, 1, magnitudes, bins, horizontal, vertical);
                     for (int column = 0; column < interior; column++)
                     {

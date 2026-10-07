@@ -248,6 +248,8 @@ internal sealed class Av1NoiseEstimate
 
         // One 16x16 block in four, away from the right and bottom edges, adds its change against the previous source
         // when its four 8x8 blocks stayed still.
+        ReadOnlySpan<byte> sourceSamples = source.Samples;
+        ReadOnlySpan<byte> lastSamples = lastSource.Samples;
         for (int row = 0; row < this.modeInfoRows - 3; row += 8)
         {
             for (int column = 0; column < this.modeInfoColumns - 3; column += 8)
@@ -263,9 +265,9 @@ internal sealed class Av1NoiseEstimate
                 {
                     Point origin = new(column << 2, row << 2);
                     Av1MotionSearchBase.ByteOperator.GetMoments(
-                        Av1TransformBlockEncoder.GetPlaneSpan(source, origin),
+                        sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                         source.Stride,
-                        Av1TransformBlockEncoder.GetPlaneSpan(lastSource, origin),
+                        lastSamples[lastSource.GetOffset(origin.X, origin.Y)..],
                         lastSource.Stride,
                         16,
                         16,

@@ -231,8 +231,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 height,
                 predictionScratch);
 
+            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.SubtractPrediction(
-                this.source.GetPlane(plane), planeOrigin, prediction[..sampleCount], residual[..sampleCount], width, height);
+                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                sourcePlane.Stride,
+                prediction[..sampleCount],
+                residual[..sampleCount],
+                width,
+                height);
         }
     }
 }

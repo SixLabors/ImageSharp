@@ -99,15 +99,6 @@ internal sealed class Av1TplFrameStatistics
     public Span<Av1TplBlockStatistics> Statistics => this.statistics.Span;
 
     /// <summary>
-    /// Gets the statistics of the 16x16 block that covers a mode-information position.
-    /// </summary>
-    /// <param name="modeInfoRow">The mode-information row.</param>
-    /// <param name="modeInfoColumn">The mode-information column.</param>
-    /// <returns>A reference to the block statistics.</returns>
-    public ref Av1TplBlockStatistics GetBlock(int modeInfoRow, int modeInfoColumn)
-        => ref this.statistics.Span[GetPosition(modeInfoRow, modeInfoColumn, this.Stride, Av1TplModelConstants.BlockModeInfoLog2)];
-
-    /// <summary>
     /// Returns the storage index of a mode-information position. Reference: av1_tpl_ptr_pos().
     /// </summary>
     /// <param name="modeInfoRow">The mode-information row.</param>

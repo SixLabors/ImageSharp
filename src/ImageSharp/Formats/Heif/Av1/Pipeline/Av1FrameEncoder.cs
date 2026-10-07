@@ -1871,6 +1871,8 @@ internal static partial class Av1FrameEncoder
         Av1PlaneRegion<TSample> current = source.GetPlane(Av1Plane.Y);
         Av1PlaneRegion<TSample> previous = previousSource.GetPlane(Av1Plane.Y);
         Span<ulong> blockErrors = parent.SourceBlockSad.Span;
+        ReadOnlySpan<TSample> currentSamples = current.Samples;
+        ReadOnlySpan<TSample> previousSamples = previous.Samples;
         int columns = (gridSize.Width + 63) >> 6;
         int rows = (gridSize.Height + 63) >> 6;
         int unchanged = 0;
@@ -1884,9 +1886,9 @@ internal static partial class Av1FrameEncoder
             {
                 Point origin = new(column << 6, row << 6);
                 ulong sad = (ulong)TOperator.SumAbsoluteDifferences(
-                    Av1TransformBlockEncoder.GetPlaneSpan(current, origin),
+                    currentSamples[current.GetOffset(origin.X, origin.Y)..],
                     current.Stride,
-                    Av1TransformBlockEncoder.GetPlaneSpan(previous, origin),
+                    previousSamples[previous.GetOffset(origin.X, origin.Y)..],
                     previous.Stride,
                     64,
                     64,
@@ -2858,10 +2860,11 @@ internal static partial class Av1FrameEncoder
                 int height = Av1Math.DivideLog2Ceiling(source.Height, subsamplingY);
                 Av1PlaneRegion<TSample> from = source.CodedView.GetPlane((Av1Plane)plane);
                 Av1PlaneRegion<TSample> to = destination.CodedView.GetPlane((Av1Plane)plane);
+                ReadOnlySpan<TSample> fromSamples = from.Samples;
+                Span<TSample> toSamples = to.Samples;
                 for (int y = 0; y < height; y++)
                 {
-                    from.Samples.Slice(((from.Bounds.Y + y) * from.Stride) + from.Bounds.X, width)
-                        .CopyTo(to.Samples.Slice(((to.Bounds.Y + y) * to.Stride) + to.Bounds.X, width));
+                    fromSamples.Slice(from.GetOffset(0, y), width).CopyTo(toSamples.Slice(to.GetOffset(0, y), width));
                 }
             }
 
@@ -4103,9 +4106,10 @@ internal static partial class Av1FrameEncoder
             Av1PlaneRegion<byte> plane = frame.CodedView.GetPlane(Av1Plane.Y);
             int width = frame.Width;
             ushort[] samples = new ushort[width * frame.Height];
+            ReadOnlySpan<byte> planeSamples = plane.Samples;
             for (int y = 0; y < frame.Height; y++)
             {
-                ReadOnlySpan<byte> row = plane.GetRowSpan(y);
+                ReadOnlySpan<byte> row = planeSamples.Slice(plane.GetOffset(0, y), width);
                 for (int x = 0; x < width; x++)
                 {
                     samples[(y * width) + x] = row[x];
@@ -4125,9 +4129,10 @@ internal static partial class Av1FrameEncoder
             Av1PlaneRegion<ushort> plane = frame.CodedView.GetPlane(Av1Plane.Y);
             int width = frame.Width;
             ushort[] samples = new ushort[width * frame.Height];
+            ReadOnlySpan<ushort> planeSamples = plane.Samples;
             for (int y = 0; y < frame.Height; y++)
             {
-                plane.GetRowSpan(y)[..width].CopyTo(samples.AsSpan(y * width, width));
+                planeSamples.Slice(plane.GetOffset(0, y), width).CopyTo(samples.AsSpan(y * width, width));
             }
 
             return samples;

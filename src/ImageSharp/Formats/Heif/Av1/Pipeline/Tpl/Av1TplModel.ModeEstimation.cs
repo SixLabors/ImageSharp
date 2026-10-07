@@ -219,15 +219,22 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     {
         Av1TplFrameStatistics frame = this.GetFrame(this.frameIndex);
         const int Step = 1 << Av1TplModelConstants.BlockModeInfoLog2;
+
+        // The frame's planes and block statistics are read once. Reference: the cur_buf and tpl_stats_ptr that
+        // mc_flow_dispenser() sets before its block loops.
+        int entry = GetEntry(this.frameIndex);
+        PlaneAccess source = GetPlane(this.sourcePictures[entry], 0);
+        PlaneAccess reconstruction = GetPlane(this.reconstructionPictures[entry], 0);
+        Span<Av1TplBlockStatistics> blocks = frame.Statistics;
         for (int modeInfoRow = 0; modeInfoRow < this.ModeInfoRows; modeInfoRow += Step)
         {
             for (int modeInfoColumn = 0; modeInfoColumn < this.ModeInfoColumns; modeInfoColumn += Step)
             {
                 Av1TplBlockStatistics statistics = default;
-                this.EstimateMode(input, modeInfoRow, modeInfoColumn, ref statistics);
+                this.EstimateMode(input, source, reconstruction, blocks, modeInfoRow, modeInfoColumn, ref statistics);
 
                 // Every stored cost and distortion is at least one. Reference: tpl_model_store().
-                ref Av1TplBlockStatistics stored = ref frame.GetBlock(modeInfoRow, modeInfoColumn);
+                ref Av1TplBlockStatistics stored = ref blocks[GetBlockPosition(frame, modeInfoRow, modeInfoColumn)];
                 stored = statistics;
                 stored.IntraCost = Math.Max(1, stored.IntraCost);
                 stored.InterCost = Math.Max(1, stored.InterCost);
@@ -248,15 +255,27 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// Measures one 16x16 block: the intra search, the single reference motion search with neighbor starting vectors,
     /// the compound search, then the rates and distortions of the winner. Reference: mode_estimation().
     /// </summary>
-    private void EstimateMode(Av1TplSetupInput<TSample> input, int modeInfoRow, int modeInfoColumn, ref Av1TplBlockStatistics statistics)
+    /// <param name="input">The setup input of the group.</param>
+    /// <param name="source">The source luma plane of the frame.</param>
+    /// <param name="reconstruction">The reconstructed luma plane of the frame.</param>
+    /// <param name="blocks">The block statistics of the frame, which hold the vectors of the neighbors already measured.</param>
+    /// <param name="modeInfoRow">The mode-information row of the block.</param>
+    /// <param name="modeInfoColumn">The mode-information column of the block.</param>
+    /// <param name="statistics">The statistics of the block.</param>
+    private void EstimateMode(
+        Av1TplSetupInput<TSample> input,
+        PlaneAccess source,
+        PlaneAccess reconstruction,
+        ReadOnlySpan<Av1TplBlockStatistics> blocks,
+        int modeInfoRow,
+        int modeInfoColumn,
+        ref Av1TplBlockStatistics statistics)
     {
         const int Size = Av1TplModelConstants.BlockSize;
         const int ModeInfoSize = Size >> 2;
         Av1TplSpeedFeatures speedFeatures = input.SpeedFeatures;
         Av1TplFrameStatistics frame = this.GetFrame(this.frameIndex);
         int entry = GetEntry(this.frameIndex);
-        PlaneAccess source = GetPlane(this.sourcePictures[entry], 0);
-        PlaneAccess reconstruction = GetPlane(this.reconstructionPictures[entry], 0);
         int x = modeInfoColumn * 4;
         int y = modeInfoRow * 4;
         int sourceIndex = source.IndexOf(x, y);
@@ -350,7 +369,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             int startCount = 1;
             if (this.upAvailable)
             {
-                Av1MotionVector vector = frame.GetBlock(modeInfoRow - ModeInfoSize, modeInfoColumn).MotionVectors[reference];
+                Av1MotionVector vector = blocks[GetBlockPosition(frame, modeInfoRow - ModeInfoSize, modeInfoColumn)].MotionVectors[reference];
                 if (!IsAlike(vector, centers[..startCount], speedFeatures.SkipAlikeStartingMotionVector))
                 {
                     centers[startCount++] = vector;
@@ -359,7 +378,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
             if (this.leftAvailable)
             {
-                Av1MotionVector vector = frame.GetBlock(modeInfoRow, modeInfoColumn - ModeInfoSize).MotionVectors[reference];
+                Av1MotionVector vector = blocks[GetBlockPosition(frame, modeInfoRow, modeInfoColumn - ModeInfoSize)].MotionVectors[reference];
                 if (!IsAlike(vector, centers[..startCount], speedFeatures.SkipAlikeStartingMotionVector))
                 {
                     centers[startCount++] = vector;
@@ -368,7 +387,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
             if (this.upAvailable && modeInfoColumn + ModeInfoSize < this.tileModeInfoColumnEnd)
             {
-                Av1MotionVector vector = frame.GetBlock(modeInfoRow - ModeInfoSize, modeInfoColumn + ModeInfoSize).MotionVectors[reference];
+                Av1MotionVector vector = blocks[GetBlockPosition(frame, modeInfoRow - ModeInfoSize, modeInfoColumn + ModeInfoSize)].MotionVectors[reference];
                 if (!IsAlike(vector, centers[..startCount], speedFeatures.SkipAlikeStartingMotionVector))
                 {
                     centers[startCount++] = vector;

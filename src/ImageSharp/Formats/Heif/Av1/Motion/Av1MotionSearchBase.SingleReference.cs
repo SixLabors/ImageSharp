@@ -1117,7 +1117,7 @@ internal static partial class Av1MotionSearchBase
 
             // The prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() before
             // av1_estimate_txfm_yrd() in av1_single_motion_search().
-            Av1TransformBlockEncoder.WriteFrameSamples(this.frame, this.blockOrigin, this.prediction, width, width, height);
+            Av1TransformBlockEncoder.WriteFrameSamples(this.frame, this.frame.Samples, this.blockOrigin, this.prediction, width, width, height);
 
             // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
             // av1_subtract_txb() call of av1_estimate_txfm_yrd().

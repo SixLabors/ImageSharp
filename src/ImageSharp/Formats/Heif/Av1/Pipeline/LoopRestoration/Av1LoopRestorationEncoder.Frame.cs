@@ -171,6 +171,9 @@ internal static partial class Av1LoopRestorationEncoder
         InlineArray3<int> selectedModeStorage = default;
         Span<int> selectedModes = selectedModeStorage;
         Span<UnitSearchResult> searchResults = searchOwner.Memory.Span;
+        Span<Av1LoopRestorationUnit> restorationUnits = picture.RestorationUnits.Span;
+        InlineArray3<int> unitOffsetStorage = picture.RestorationUnitOffsets;
+        ReadOnlySpan<int> unitOffsets = unitOffsetStorage;
 
         for (int unitSize = settings.MaximumUnitSize; unitSize >= settings.MinimumUnitSize; unitSize >>= 1)
         {
@@ -245,7 +248,7 @@ internal static partial class Av1LoopRestorationEncoder
                     Math.Max(1, (region.Height + (unitSize >> 1)) / unitSize);
 
                 ReadOnlySpan<UnitSearchResult> results = searchResults.Slice(searchOffsets[plane], count);
-                Span<Av1LoopRestorationUnit> retained = picture.RestorationUnits[plane].Span;
+                Span<Av1LoopRestorationUnit> retained = restorationUnits.Slice(unitOffsets[plane], count);
                 for (int index = 0; index < count; index++)
                 {
                     retained[index] = results[index].Parameters;
@@ -295,7 +298,7 @@ internal static partial class Av1LoopRestorationEncoder
 
             int columns = Math.Max(1, (region.Width + (bestUnitSize >> 1)) / bestUnitSize);
             int rows = Math.Max(1, (region.Height + (bestUnitSize >> 1)) / bestUnitSize);
-            ReadOnlySpan<Av1LoopRestorationUnit> retained = picture.RestorationUnits[plane].Span;
+            ReadOnlySpan<Av1LoopRestorationUnit> retained = restorationUnits.Slice(unitOffsets[plane], rows * columns);
             for (int row = 0; row < rows; row++)
             {
                 for (int column = 0; column < columns; column++)
@@ -307,9 +310,11 @@ internal static partial class Av1LoopRestorationEncoder
 
             // The complete plane must be filtered before replacing its source. Adjacent units
             // consume the same reconstruction even when they choose different filter families.
+            Span<TSample> trialSamples = trial.Samples;
+            Span<TSample> regionSamples = region.Samples;
             for (int row = 0; row < region.Height; row++)
             {
-                trial.GetRowSpan(row).CopyTo(region.GetRowSpan(row));
+                trialSamples.Slice(trial.GetOffset(0, row), region.Width).CopyTo(regionSamples.Slice(region.GetOffset(0, row), region.Width));
             }
         }
     }

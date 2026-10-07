@@ -525,9 +525,10 @@ internal static class Av1LoopFilterEncoder
     private static void CopyPlane<TSample>(Av1PlaneRegion<TSample> plane, Span<TSample> destination)
         where TSample : unmanaged
     {
+        ReadOnlySpan<TSample> samples = plane.Samples;
         for (int y = 0; y < plane.Height; y++)
         {
-            plane.GetRowSpan(y).CopyTo(destination.Slice(y * plane.Width, plane.Width));
+            samples.Slice(plane.GetOffset(0, y), plane.Width).CopyTo(destination.Slice(y * plane.Width, plane.Width));
         }
     }
 
@@ -540,9 +541,10 @@ internal static class Av1LoopFilterEncoder
     private static void RestorePlane<TSample>(ReadOnlySpan<TSample> source, Av1PlaneRegion<TSample> plane)
         where TSample : unmanaged
     {
+        Span<TSample> samples = plane.Samples;
         for (int y = 0; y < plane.Height; y++)
         {
-            source.Slice(y * plane.Width, plane.Width).CopyTo(plane.GetRowSpan(y));
+            source.Slice(y * plane.Width, plane.Width).CopyTo(samples.Slice(plane.GetOffset(0, y), plane.Width));
         }
     }
 

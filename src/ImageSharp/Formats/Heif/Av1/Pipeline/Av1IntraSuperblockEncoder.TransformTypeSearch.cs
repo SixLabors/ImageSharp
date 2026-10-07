@@ -449,7 +449,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="isInter">Whether the block is inter predicted, which selects the transform set and the trellis weights.</param>
         /// <param name="blockContext">The coefficient contexts of the transform block.</param>
         /// <param name="originContext">The coefficient contexts at the origin of the coding block, which price a predicted empty block.</param>
-        /// <param name="sourcePlane">The source samples of the plane.</param>
+        /// <param name="source">The source transform block, from its top-left sample.</param>
+        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
         /// <param name="transformOrigin">The transform block origin in plane samples.</param>
         /// <param name="transformSize">The transform size.</param>
         /// <param name="mode">The prediction mode that selects the transform-type context.</param>
@@ -476,7 +477,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool isInter,
             Av1TransformBlockContext blockContext,
             Av1TransformBlockContext originContext,
-            Av1PlaneRegion<TSample> sourcePlane,
+            ReadOnlySpan<TSample> source,
+            int sourceStride,
             Point transformOrigin,
             Av1TransformSize transformSize,
             Av1PredictionMode mode,
@@ -769,7 +771,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateDistortion = TOperator.ReconstructPredictionCandidate(
                             this.blockWorkspace,
                             candidateDequantized,
-                            sourcePlane,
+                            source,
+                            sourceStride,
                             transformOrigin,
                             prediction,
                             inputStride,
@@ -842,7 +845,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 long pixelDistortion = TOperator.ReconstructPredictionCandidate(
                     this.blockWorkspace,
                     bestDequantized,
-                    sourcePlane,
+                    source,
+                    sourceStride,
                     transformOrigin,
                     prediction,
                     inputStride,

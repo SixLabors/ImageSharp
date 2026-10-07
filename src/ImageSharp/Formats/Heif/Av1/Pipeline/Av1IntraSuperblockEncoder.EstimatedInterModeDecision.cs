@@ -672,7 +672,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
                 int width = blockSize.GetWidth();
                 int height = blockSize.GetHeight();
-                TOperator.SubtractPrediction(this.source.GetPlane(Av1Plane.Y), origin, prediction, workspace.Residual, width, height);
+                Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
+                TOperator.SubtractPrediction(
+                    Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, origin), lumaSource.Stride, prediction, workspace.Residual, width, height);
+
                 Size extent = new(
                     width + (Math.Min(0, macroBlock.ToRightEdge) >> 3),
                     height + (Math.Min(0, macroBlock.ToBottomEdge) >> 3));
@@ -1295,6 +1298,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                 Av1PlaneRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
+                ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
+                bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane);
 
                 // Prediction units use their largest permitted transform, independently of the
                 // smaller luma estimation tiles. Interior edges contain prediction, never residuals.
@@ -1330,10 +1335,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
                                 Point transformOrigin = origin + new Size(x, y);
                                 Span<TSample> predictedTransform = prediction[((y * width) + x)..];
+                                ReadOnlySpan<TSample> sourceTransform = sourceSamples[sourcePlane.GetOffset(transformOrigin.X, transformOrigin.Y)..];
                                 TOperator.PrepareIntra(
                                     this.blockWorkspace,
-                                    sourcePlane,
-                                    transformOrigin,
+                                    sourceTransform,
+                                    sourcePlane.Stride,
                                     predictedTransform,
                                     width,
                                     above.Slice(1, transformWidth + transformHeight),
@@ -1343,7 +1349,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     planeIndex == 0 ? mode : chromaMode,
                                     0,
                                     this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                                    this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
+                                    smoothEdges,
                                     residual,
                                     predictionSize,
                                     this.bitDepth);
@@ -1351,7 +1357,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 if (planeIndex != 0)
                                 {
                                     TOperator.GetMoments(
-                                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, transformOrigin),
+                                        sourceTransform,
                                         sourcePlane.Stride,
                                         predictedTransform,
                                         width,
@@ -1399,7 +1405,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (planeIndex == 0)
                 {
                     TOperator.SubtractPrediction(
-                        sourcePlane, origin, prediction, residual, width, planeSize.GetHeight());
+                        sourceSamples[sourcePlane.GetOffset(origin.X, origin.Y)..], sourcePlane.Stride, prediction, residual, width, planeSize.GetHeight());
 
                     Size residualExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
                     Av1IntraModeEstimator.Estimate(
@@ -1548,8 +1554,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
                 else if (!modeInfo.Skip)
                 {
+                    Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                     TOperator.SubtractPrediction(
-                        this.source.GetPlane(plane), planeOrigin, prediction, workspace.Residual, stride, planeBlock.GetHeight());
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                        sourcePlane.Stride,
+                        prediction,
+                        workspace.Residual,
+                        stride,
+                        planeBlock.GetHeight());
                 }
 
                 Av1PlaneRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
@@ -2971,8 +2983,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             Span<short> residual = workspace.Residual;
+            Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                this.source.GetPlane(Av1Plane.Y), blockOrigin, lumaPrediction, residual, width, height);
+                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin), lumaSource.Stride, lumaPrediction, residual, width, height);
 
             // Estimation visits transforms whose origins remain inside the coded frame. It still
             // transforms the full padded block at each edge, matching the predictor's sample extent.

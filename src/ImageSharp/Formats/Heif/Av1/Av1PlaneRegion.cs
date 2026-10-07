@@ -144,13 +144,49 @@ internal readonly struct Av1PlaneRegion<TSample>
     }
 
     /// <summary>
+    /// Copies the rectangle into packed rows that are <see cref="Width"/> samples apart.
+    /// </summary>
+    /// <param name="destination">The packed rows, at least <see cref="Width"/> times <see cref="Height"/> samples.</param>
+    public void CopyTo(Span<TSample> destination)
+    {
+        // The plane is resolved once; each row is a slice of it.
+        ReadOnlySpan<TSample> samples = this.plane.Span;
+        int offset = this.Origin;
+        int width = this.Bounds.Width;
+        for (int y = 0; y < this.Bounds.Height; y++, offset += this.Stride)
+        {
+            samples.Slice(offset, width).CopyTo(destination.Slice(y * width, width));
+        }
+    }
+
+    /// <summary>
+    /// Copies packed rows that are <see cref="Width"/> samples apart into the rectangle.
+    /// </summary>
+    /// <param name="source">The packed rows, at least <see cref="Width"/> times <see cref="Height"/> samples.</param>
+    public void CopyFrom(ReadOnlySpan<TSample> source)
+    {
+        // The plane is resolved once; each row is a slice of it.
+        Span<TSample> samples = this.plane.Span;
+        int offset = this.Origin;
+        int width = this.Bounds.Width;
+        for (int y = 0; y < this.Bounds.Height; y++, offset += this.Stride)
+        {
+            source.Slice(y * width, width).CopyTo(samples.Slice(offset, width));
+        }
+    }
+
+    /// <summary>
     /// Sets every sample of the rectangle to zero.
     /// </summary>
     public void Clear()
     {
-        for (int y = 0; y < this.Bounds.Height; y++)
+        // The plane is resolved once; each row is a slice of it.
+        Span<TSample> samples = this.plane.Span;
+        int offset = this.Origin;
+        int width = this.Bounds.Width;
+        for (int y = 0; y < this.Bounds.Height; y++, offset += this.Stride)
         {
-            this.GetRowSpan(y).Clear();
+            samples.Slice(offset, width).Clear();
         }
     }
 
@@ -160,9 +196,13 @@ internal readonly struct Av1PlaneRegion<TSample>
     /// <param name="value">The sample value.</param>
     public void Fill(TSample value)
     {
-        for (int y = 0; y < this.Bounds.Height; y++)
+        // The plane is resolved once; each row is a slice of it.
+        Span<TSample> samples = this.plane.Span;
+        int offset = this.Origin;
+        int width = this.Bounds.Width;
+        for (int y = 0; y < this.Bounds.Height; y++, offset += this.Stride)
         {
-            this.GetRowSpan(y).Fill(value);
+            samples.Slice(offset, width).Fill(value);
         }
     }
 }

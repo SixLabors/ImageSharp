@@ -139,6 +139,11 @@ internal partial class Av1TileWriter
         ObuSequenceHeader sequence = pcs.Sequence.SequenceHeader;
         ObuFrameHeader header = pcs.Parent.FrameHeader;
         ObuColorConfig color = sequence.ColorConfig;
+        Span<Av1LoopRestorationUnit> references = pcs.RestorationReferences.Span;
+        int referenceOffset = tileIndex * color.PlaneCount;
+        ReadOnlySpan<Av1LoopRestorationUnit> allUnits = pcs.RestorationUnits.Span;
+        InlineArray3<int> unitOffsetStorage = pcs.RestorationUnitOffsets;
+        ReadOnlySpan<int> unitOffsets = unitOffsetStorage;
         for (int plane = 0; plane < color.PlaneCount; plane++)
         {
             ObuLoopRestorationItem item = header.LoopRestorationParameters.Items[plane];
@@ -164,8 +169,8 @@ internal partial class Av1TileWriter
 
             int firstRow = ((ec_ctx.SuperblockOrigin.Y >> subY) + item.Size - 1) / item.Size;
             int lastRow = Math.Min(rows, (((ec_ctx.SuperblockOrigin.Y + superblockSize) >> subY) + item.Size - 1) / item.Size);
-            ref Av1LoopRestorationUnit reference = ref pcs.RestorationReferences.Span[(tileIndex * color.PlaneCount) + plane];
-            ReadOnlySpan<Av1LoopRestorationUnit> units = pcs.RestorationUnits[plane].Span;
+            ref Av1LoopRestorationUnit reference = ref references[referenceOffset + plane];
+            ReadOnlySpan<Av1LoopRestorationUnit> units = allUnits.Slice(unitOffsets[plane], rows * columns);
 
             // Each unit is signaled before the partition syntax of the superblock containing its
             // upper-left corner. Coefficient histories advance only for transmitted filters.

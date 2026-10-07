@@ -392,5 +392,60 @@ internal readonly struct Av1EncoderFrame<TSample>
 
         /// <inheritdoc/>
         public Span<TSample> GetChromaRedRowSpan(int row) => this.chromaRed.GetRowSpan(row);
+
+        /// <summary>
+        /// Reads the samples of every component plane once, for a loop over blocks or planes.
+        /// </summary>
+        /// <returns>The samples of the three planes.</returns>
+        public PlanarSamples GetSamples() => new(this.luma.Samples, this.chromaBlue.Samples, this.chromaRed.Samples);
+    }
+
+    /// <summary>
+    /// The samples of the component planes of a frame, read once from their memory, so that a loop over blocks or planes
+    /// addresses them without reading the memory again. Each plane keeps the layout of its <see cref="Av1PlaneRegion{TSample}"/>.
+    /// Reference: the plane buffer pointers of YV12_BUFFER_CONFIG.
+    /// </summary>
+    internal readonly ref struct PlanarSamples
+    {
+        /// <summary>
+        /// The luma samples.
+        /// </summary>
+        private readonly Span<TSample> luma;
+
+        /// <summary>
+        /// The blue-difference samples, or an empty span for monochrome frames.
+        /// </summary>
+        private readonly Span<TSample> chromaBlue;
+
+        /// <summary>
+        /// The red-difference samples, or an empty span for monochrome frames.
+        /// </summary>
+        private readonly Span<TSample> chromaRed;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PlanarSamples"/> struct.
+        /// </summary>
+        /// <param name="luma">The luma samples.</param>
+        /// <param name="chromaBlue">The blue-difference samples.</param>
+        /// <param name="chromaRed">The red-difference samples.</param>
+        public PlanarSamples(Span<TSample> luma, Span<TSample> chromaBlue, Span<TSample> chromaRed)
+        {
+            this.luma = luma;
+            this.chromaBlue = chromaBlue;
+            this.chromaRed = chromaRed;
+        }
+
+        /// <summary>
+        /// Gets the samples of a component plane.
+        /// </summary>
+        /// <param name="plane">The component plane.</param>
+        /// <returns>The complete plane samples, borders included.</returns>
+        public Span<TSample> GetPlane(Av1Plane plane)
+            => plane switch
+            {
+                Av1Plane.Y => this.luma,
+                Av1Plane.U => this.chromaBlue,
+                _ => this.chromaRed
+            };
     }
 }

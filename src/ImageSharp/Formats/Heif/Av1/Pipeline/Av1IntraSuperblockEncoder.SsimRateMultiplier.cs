@@ -64,6 +64,7 @@ internal static partial class Av1IntraSuperblockEncoder
         int columns = (modeInfoColumns + 3) / 4;
         int rows = (modeInfoRows + 3) / 4;
         Av1PlaneRegion<TSample> luma = source.CodedView.GetPlane(Av1Plane.Y);
+        ReadOnlySpan<TSample> lumaSamples = luma.Samples;
         int shift = bitDepth.GetBitCount() - 8;
         Span<TSample> midpoint = stackalloc TSample[8];
         midpoint.Fill(TOperator.CreateSample(128 << shift));
@@ -80,7 +81,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         // Reference: av1_get_perpixel_variance_facade() for an 8x8 luma block.
                         TOperator.GetMoments(
-                            Av1TransformBlockEncoder.GetPlaneSpan(luma, new Point(modeInfoColumn << 2, modeInfoRow << 2)),
+                            lumaSamples[luma.GetOffset(modeInfoColumn << 2, modeInfoRow << 2)..],
                             luma.Stride,
                             midpoint,
                             0,

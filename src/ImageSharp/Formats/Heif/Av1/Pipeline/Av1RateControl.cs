@@ -1336,8 +1336,8 @@ internal sealed class Av1RateControl
         Span<TSample> averaged = stackalloc TSample[64 * 64];
 
         // Edge blocks reach into the replicated border, so the averages read the complete bordered buffer.
-        Av1PlaneRegion<TSample> bordered = source.GetFullPlane();
-        Point sourceOffset = source.Bounds.Location;
+        ReadOnlySpan<TSample> sourceSamples = source.Samples;
+        ReadOnlySpan<TSample> lastSamples = lastReconstruction.Samples;
         ulong total = 0;
         for (int row = 0; row < rows; row++)
         {
@@ -1348,7 +1348,8 @@ internal sealed class Av1RateControl
                 {
                     for (int x = 0; x < 64; x += 4)
                     {
-                        TSample average = TBlock.CreateSample(TBlock.GetAverage4x4(bordered, new Point(sourceOffset.X + origin.X + x, sourceOffset.Y + origin.Y + y)));
+                        int offset = source.GetOffset(origin.X + x, origin.Y + y);
+                        TSample average = TBlock.CreateSample(TBlock.GetAverage4x4(sourceSamples[offset..], source.Stride));
                         for (int m = 0; m < 4; m++)
                         {
                             averaged.Slice(((y + m) * 64) + x, 4).Fill(average);
@@ -1359,7 +1360,7 @@ internal sealed class Av1RateControl
                 TMotion.GetMoments(
                     averaged,
                     64,
-                    Av1TransformBlockEncoder.GetPlaneSpan(lastReconstruction, origin),
+                    lastSamples[lastReconstruction.GetOffset(origin.X, origin.Y)..],
                     lastReconstruction.Stride,
                     64,
                     64,

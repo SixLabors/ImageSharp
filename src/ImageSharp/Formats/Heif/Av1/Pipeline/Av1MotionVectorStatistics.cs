@@ -368,10 +368,12 @@ internal sealed partial class Av1MotionVectorStatistics
         where TOperator : struct, ITextureOperator<TSample>
     {
         int shift = bitDepth - 8;
+        ReadOnlySpan<TSample> lumaSamples = luma.Samples;
         foreach (TextureBlock block in this.textureBlocks)
         {
             AccumulateTexture<TSample, TOperator>(
                 luma,
+                lumaSamples,
                 block.Origin,
                 block.Size.GetWidth(),
                 block.Size.GetHeight(),

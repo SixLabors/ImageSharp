@@ -478,6 +478,10 @@ internal static partial class Av1TemporalFilter
         ReadOnlySpan<TSample> sourceSamples = sourceLuma.Samples;
         int stride = sourceLuma.Stride;
         int sourceOrigin = (sourceLuma.Bounds.Y * stride) + sourceLuma.Bounds.X;
+        Av1EncoderFrame<TSample>.PlanarSamples frameToFilterSamples = frameToFilter.CodedView.GetSamples();
+        Av1EncoderFrame<TSample>.PlanarSamples outputSamples = output.CodedView.GetSamples();
+        Av1PlaneRegion<TSample> filteredLuma = output.CodedView.GetPlane(Av1Plane.Y);
+        ReadOnlySpan<TSample> filteredSamples = outputSamples.GetPlane(Av1Plane.Y);
         Span<Av1MotionVector> subblockVectors = stackalloc Av1MotionVector[SubblockCount];
         Span<int> subblockErrors = stackalloc int[SubblockCount];
         Span<uint> accumulator = workspace.Accumulator[..context.BlockPixels];
@@ -553,7 +557,7 @@ internal static partial class Av1TemporalFilter
 
                 if (frame == filterFrame)
                 {
-                    AccumulateFrame<TSample, TOperator>(frameToFilter, blockRow, blockColumn, accumulator, count);
+                    AccumulateFrame<TSample, TOperator>(frameToFilter, frameToFilterSamples, blockRow, blockColumn, accumulator, count);
                 }
                 else
                 {
@@ -563,6 +567,7 @@ internal static partial class Av1TemporalFilter
                     ApplyFilter<TSample, TOperator>(
                         workspace,
                         frameToFilter,
+                        frameToFilterSamples,
                         blockRow,
                         blockColumn,
                         noiseLevels,
@@ -574,16 +579,15 @@ internal static partial class Av1TemporalFilter
                 }
             }
 
-            NormalizeBlock<TSample, TOperator>(output, blockRow, blockColumn, accumulator, count);
+            NormalizeBlock<TSample, TOperator>(output, outputSamples, blockRow, blockColumn, accumulator, count);
 
             // compute_frame_diff: the 64x64 luma squared difference between the source and the filtered block.
-            Av1PlaneRegion<TSample> filteredLuma = output.CodedView.GetPlane(Av1Plane.Y);
             int filteredStride = filteredLuma.Stride;
             int filteredOrigin = ((filteredLuma.Bounds.Y + (blockRow * BlockSize)) * filteredStride) + filteredLuma.Bounds.X + (blockColumn * BlockSize);
             GetVariance<TSample, TSearch>(
                 sourceSamples[blockOrigin..],
                 stride,
-                filteredLuma.Samples[filteredOrigin..],
+                filteredSamples[filteredOrigin..],
                 filteredStride,
                 BlockSize,
                 BlockSize,
@@ -602,12 +606,14 @@ internal static partial class Av1TemporalFilter
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
     /// <param name="frame">The frame to filter.</param>
+    /// <param name="frameSamples">The samples of <paramref name="frame"/>, which the caller reads once outside its block loop.</param>
     /// <param name="blockRow">The block row.</param>
     /// <param name="blockColumn">The block column.</param>
     /// <param name="accumulator">The weighted sums of all planes.</param>
     /// <param name="count">The weight totals of all planes.</param>
     internal static void AccumulateFrame<TSample, TOperator>(
         Av1EncoderFrame<TSample> frame,
+        Av1EncoderFrame<TSample>.PlanarSamples frameSamples,
         int blockRow,
         int blockColumn,
         Span<uint> accumulator,
@@ -619,7 +625,17 @@ internal static partial class Av1TemporalFilter
         int planeCount = frame.IsMonochrome ? 1 : 3;
         for (int plane = 0; plane < planeCount; plane++)
         {
-            GetPlaneBlock(frame, (Av1Plane)plane, blockRow, blockColumn, out ReadOnlySpan<TSample> samples, out int stride, out int width, out int height);
+            GetPlaneBlock(
+                frame,
+                frameSamples,
+                (Av1Plane)plane,
+                blockRow,
+                blockColumn,
+                out ReadOnlySpan<TSample> samples,
+                out int stride,
+                out int width,
+                out int height);
+
             AccumulateSelf<TSample, TOperator>(
                 samples, stride, accumulator.Slice(planeOffset, width * height), count.Slice(planeOffset, width * height), width, height);
 
@@ -636,6 +652,7 @@ internal static partial class Av1TemporalFilter
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
     /// <param name="workspace">The filter scratch storage holding the prediction and the accumulators.</param>
     /// <param name="frameToFilter">The frame to filter.</param>
+    /// <param name="frameToFilterSamples">The samples of <paramref name="frameToFilter"/>, which the caller reads once outside its block loop.</param>
     /// <param name="blockRow">The block row.</param>
     /// <param name="blockColumn">The block column.</param>
     /// <param name="noiseLevels">The noise level of every plane.</param>
@@ -647,6 +664,7 @@ internal static partial class Av1TemporalFilter
     internal static void ApplyFilter<TSample, TOperator>(
         Av1TemporalFilterWorkspace<TSample> workspace,
         Av1EncoderFrame<TSample> frameToFilter,
+        Av1EncoderFrame<TSample>.PlanarSamples frameToFilterSamples,
         int blockRow,
         int blockColumn,
         ReadOnlySpan<double> noiseLevels,
@@ -703,7 +721,17 @@ internal static partial class Av1TemporalFilter
         int planeCount = isMonochrome ? 1 : 3;
         for (int plane = 0; plane < planeCount; plane++)
         {
-            GetPlaneBlock(frameToFilter, (Av1Plane)plane, blockRow, blockColumn, out ReadOnlySpan<TSample> samples, out int stride, out int width, out int height);
+            GetPlaneBlock(
+                frameToFilter,
+                frameToFilterSamples,
+                (Av1Plane)plane,
+                blockRow,
+                blockColumn,
+                out ReadOnlySpan<TSample> samples,
+                out int stride,
+                out int width,
+                out int height);
+
             int subsamplingX = plane == 0 ? 0 : frameToFilter.ChromaSubsamplingX;
             int subsamplingY = plane == 0 ? 0 : frameToFilter.ChromaSubsamplingY;
             int referenceCount = 25 + (plane == 0 ? 0 : 1 << (subsamplingX + subsamplingY));
@@ -759,12 +787,14 @@ internal static partial class Av1TemporalFilter
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
     /// <param name="output">The filtered frame.</param>
+    /// <param name="outputSamples">The samples of <paramref name="output"/>, which the caller reads once outside its block loop.</param>
     /// <param name="blockRow">The block row.</param>
     /// <param name="blockColumn">The block column.</param>
     /// <param name="accumulator">The weighted sums of all planes.</param>
     /// <param name="count">The weight totals of all planes.</param>
     internal static void NormalizeBlock<TSample, TOperator>(
         Av1EncoderFrame<TSample> output,
+        Av1EncoderFrame<TSample>.PlanarSamples outputSamples,
         int blockRow,
         int blockColumn,
         ReadOnlySpan<uint> accumulator,
@@ -788,7 +818,7 @@ internal static partial class Av1TemporalFilter
                 count.Slice(planeOffset, width * height),
                 width,
                 height,
-                region.Samples[origin..],
+                outputSamples.GetPlane((Av1Plane)plane)[origin..],
                 stride);
 
             planeOffset += width * height;
@@ -801,6 +831,7 @@ internal static partial class Av1TemporalFilter
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <param name="frame">The frame.</param>
+    /// <param name="frameSamples">The samples of <paramref name="frame"/>, which the caller reads once outside its block loop.</param>
     /// <param name="plane">The plane.</param>
     /// <param name="blockRow">The block row.</param>
     /// <param name="blockColumn">The block column.</param>
@@ -810,6 +841,7 @@ internal static partial class Av1TemporalFilter
     /// <param name="height">The block height in the plane.</param>
     private static void GetPlaneBlock<TSample>(
         Av1EncoderFrame<TSample> frame,
+        Av1EncoderFrame<TSample>.PlanarSamples frameSamples,
         Av1Plane plane,
         int blockRow,
         int blockColumn,
@@ -826,7 +858,7 @@ internal static partial class Av1TemporalFilter
         Av1PlaneRegion<TSample> region = frame.CodedView.GetPlane(plane);
         stride = region.Stride;
         int origin = ((region.Bounds.Y + (blockRow * height)) * stride) + region.Bounds.X + (blockColumn * width);
-        samples = region.Samples[origin..];
+        samples = frameSamples.GetPlane(plane)[origin..];
     }
 
     /// <summary>

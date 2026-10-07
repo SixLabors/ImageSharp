@@ -105,10 +105,12 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="context">The neighboring coefficient contexts.</param>
     /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
     /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-    /// <param name="source">The coded source plane.</param>
+    /// <param name="source">The source block, from its top-left sample.</param>
+    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
     /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
+    /// <param name="frameSamples">The samples of <paramref name="frame"/>, which the caller reads once outside its loops.</param>
     /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
@@ -134,10 +136,12 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformBlockContext context,
         int rateMultiplier,
         bool useChromaWeights,
-        Av1PlaneRegion<byte> source,
+        ReadOnlySpan<byte> source,
+        int sourceStride,
         Point blockOrigin,
         Span<byte> reconstruction,
         Av1PlaneRegion<byte> frame,
+        Span<byte> frameSamples,
         ReadOnlySpan<byte> above,
         ReadOnlySpan<byte> left,
         bool hasLeft,
@@ -160,12 +164,11 @@ internal static partial class Av1TransformBlockEncoder
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
         PrepareIntraPrediction(
             workspace,
-            sourceSamples,
-            source.Stride,
+            source,
+            sourceStride,
             reconstruction,
             width,
             above,
@@ -181,13 +184,14 @@ internal static partial class Av1TransformBlockEncoder
 
         // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the frame keeps the prediction.
         // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
-        WriteFrameSamples(frame, blockOrigin, reconstruction, width, width, height);
+        WriteFrameSamples(frame, frameSamples, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
         // transform keeps half of its coefficients, so its transform-domain error is not comparable.
-        int visibleWidth = workspace.GetVisibleSize(plane, blockOrigin, width, height).Width;
-        int visibleHeight = workspace.GetVisibleSize(plane, blockOrigin, width, height).Height;
+        Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
+        int visibleWidth = visible.Width;
+        int visibleHeight = visible.Height;
         int predictDcLevel = GetPredictDcLevel(workspace);
 
         // A 64-point transform is excluded from skip prediction, because its DC coefficient carries no
@@ -285,8 +289,8 @@ internal static partial class Av1TransformBlockEncoder
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
-            sourceSamples,
-            source.Stride,
+            source,
+            sourceStride,
             reconstruction,
             width,
             visibleWidth,
@@ -305,8 +309,9 @@ internal static partial class Av1TransformBlockEncoder
     /// </remarks>
     /// <param name="workspace">The workspace supplying transform scratch storage.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
-    /// <param name="source">The coded source plane.</param>
-    /// <param name="blockOrigin">The transform origin in plane samples.</param>
+    /// <param name="source">The source transform block, from its top-left sample.</param>
+    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
+    /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
     /// <param name="prediction">The prepared prediction surface.</param>
     /// <param name="inputStride">The number of prediction samples between rows.</param>
     /// <param name="reconstruction">The candidate reconstruction.</param>
@@ -319,7 +324,8 @@ internal static partial class Av1TransformBlockEncoder
     public static long ReconstructPredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Av1PlaneRegion<byte> source,
+        ReadOnlySpan<byte> source,
+        int sourceStride,
         Point blockOrigin,
         ReadOnlySpan<byte> prediction,
         int inputStride,
@@ -331,15 +337,47 @@ internal static partial class Av1TransformBlockEncoder
         Av1EncoderTransformBlockState state)
     {
         long workStart = Av1WorkCounters.Start();
-        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, state);
+        long workResult = ReconstructPredictionLossyCandidateCore(
+            workspace,
+            dequantized,
+            source,
+            sourceStride,
+            blockOrigin,
+            prediction,
+            inputStride,
+            reconstruction,
+            reconstructionStride,
+            transformSize,
+            qIndex,
+            plane,
+            state);
+
         Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
         return workResult;
     }
 
+    /// <summary>
+    /// Reconstructs the eight-bit candidate and measures its distortion, without the work counter.
+    /// </summary>
+    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
+    /// <param name="source">The source transform block, from its top-left sample.</param>
+    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
+    /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
+    /// <param name="prediction">The prepared prediction surface.</param>
+    /// <param name="inputStride">The number of prediction samples between rows.</param>
+    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
+    /// <param name="transformSize">The candidate transform dimensions.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Av1PlaneRegion<byte> source,
+        ReadOnlySpan<byte> source,
+        int sourceStride,
         Point blockOrigin,
         ReadOnlySpan<byte> prediction,
         int inputStride,
@@ -353,7 +391,6 @@ internal static partial class Av1TransformBlockEncoder
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
         if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size8x8 &&
             Av1TransformKernels.IsSupported)
@@ -416,13 +453,14 @@ internal static partial class Av1TransformBlockEncoder
         }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
+        Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
         long distortion = Av1ResidualBuilder.SumSquaredError(
-            sourceSamples,
-            source.Stride,
+            source,
+            sourceStride,
             reconstruction,
             reconstructionStride,
-            workspace.GetVisibleSize(plane, blockOrigin, width, height).Width,
-            workspace.GetVisibleSize(plane, blockOrigin, width, height).Height);
+            visible.Width,
+            visible.Height);
 
         return distortion << 4;
     }
@@ -502,10 +540,12 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="context">The neighboring coefficient contexts.</param>
     /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
     /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-    /// <param name="source">The coded source plane.</param>
+    /// <param name="source">The source block, from its top-left sample.</param>
+    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
     /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
+    /// <param name="frameSamples">The samples of <paramref name="frame"/>, which the caller reads once outside its loops.</param>
     /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
@@ -532,10 +572,12 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformBlockContext context,
         int rateMultiplier,
         bool useChromaWeights,
-        Av1PlaneRegion<ushort> source,
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
         Point blockOrigin,
         Span<ushort> reconstruction,
         Av1PlaneRegion<ushort> frame,
+        Span<ushort> frameSamples,
         ReadOnlySpan<ushort> above,
         ReadOnlySpan<ushort> left,
         bool hasLeft,
@@ -559,12 +601,11 @@ internal static partial class Av1TransformBlockEncoder
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
         PrepareIntraPrediction(
             workspace,
-            sourceSamples,
-            source.Stride,
+            source,
+            sourceStride,
             reconstruction,
             width,
             above,
@@ -581,13 +622,14 @@ internal static partial class Av1TransformBlockEncoder
 
         // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the frame keeps the prediction.
         // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
-        WriteFrameSamples(frame, blockOrigin, reconstruction, width, width, height);
+        WriteFrameSamples(frame, frameSamples, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
         // transform keeps half of its coefficients, so its transform-domain error is not comparable.
-        int visibleWidth = workspace.GetVisibleSize(plane, blockOrigin, width, height).Width;
-        int visibleHeight = workspace.GetVisibleSize(plane, blockOrigin, width, height).Height;
+        Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
+        int visibleWidth = visible.Width;
+        int visibleHeight = visible.Height;
         int predictDcLevel = GetPredictDcLevel(workspace);
 
         // A 64-point transform is excluded from skip prediction, because its DC coefficient carries no
@@ -685,8 +727,8 @@ internal static partial class Av1TransformBlockEncoder
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
-            sourceSamples,
-            source.Stride,
+            source,
+            sourceStride,
             reconstruction,
             width,
             visibleWidth,
@@ -710,8 +752,9 @@ internal static partial class Av1TransformBlockEncoder
     /// </remarks>
     /// <param name="workspace">The workspace supplying transform scratch storage.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
-    /// <param name="source">The coded source plane.</param>
-    /// <param name="blockOrigin">The transform origin in plane samples.</param>
+    /// <param name="source">The source transform block, from its top-left sample.</param>
+    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
+    /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
     /// <param name="prediction">The prepared prediction surface.</param>
     /// <param name="inputStride">The number of prediction samples between rows.</param>
     /// <param name="reconstruction">The candidate reconstruction.</param>
@@ -725,7 +768,8 @@ internal static partial class Av1TransformBlockEncoder
     public static long ReconstructPredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Av1PlaneRegion<ushort> source,
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
         Point blockOrigin,
         ReadOnlySpan<ushort> prediction,
         int inputStride,
@@ -738,15 +782,49 @@ internal static partial class Av1TransformBlockEncoder
         Av1EncoderTransformBlockState state)
     {
         long workStart = Av1WorkCounters.Start();
-        long workResult = ReconstructPredictionLossyCandidateCore(workspace, dequantized, source, blockOrigin, prediction, inputStride, reconstruction, reconstructionStride, transformSize, qIndex, plane, bitDepth, state);
+        long workResult = ReconstructPredictionLossyCandidateCore(
+            workspace,
+            dequantized,
+            source,
+            sourceStride,
+            blockOrigin,
+            prediction,
+            inputStride,
+            reconstruction,
+            reconstructionStride,
+            transformSize,
+            qIndex,
+            plane,
+            bitDepth,
+            state);
+
         Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
         return workResult;
     }
 
+    /// <summary>
+    /// Reconstructs the high-bit-depth candidate and measures its distortion, without the work counter.
+    /// </summary>
+    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
+    /// <param name="source">The source transform block, from its top-left sample.</param>
+    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
+    /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
+    /// <param name="prediction">The prepared prediction surface.</param>
+    /// <param name="inputStride">The number of prediction samples between rows.</param>
+    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
+    /// <param name="transformSize">The candidate transform dimensions.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<int> dequantized,
-        Av1PlaneRegion<ushort> source,
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
         Point blockOrigin,
         ReadOnlySpan<ushort> prediction,
         int inputStride,
@@ -761,7 +839,6 @@ internal static partial class Av1TransformBlockEncoder
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
         // Each transform trial overwrites reconstruction but consumes the prepared prediction read-only.
         // Row copies preserve a larger candidate surface without materializing a second compact block.
@@ -786,13 +863,14 @@ internal static partial class Av1TransformBlockEncoder
         }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
+        Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
         long distortion = Av1ResidualBuilder.SumSquaredError(
-            sourceSamples,
-            source.Stride,
+            source,
+            sourceStride,
             reconstruction,
             reconstructionStride,
-            workspace.GetVisibleSize(plane, blockOrigin, width, height).Width,
-            workspace.GetVisibleSize(plane, blockOrigin, width, height).Height);
+            visible.Width,
+            visible.Height);
 
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
@@ -2397,26 +2475,42 @@ internal static partial class Av1TransformBlockEncoder
     /// </summary>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <param name="plane">The frame plane, or an empty plane for no write.</param>
+    /// <param name="planeSamples">The samples of <paramref name="plane"/>, which the caller reads once outside its loops.</param>
     /// <param name="origin">The origin of the rectangle, in plane samples.</param>
     /// <param name="samples">The samples, row by row.</param>
     /// <param name="stride">The row stride of the samples.</param>
     /// <param name="width">The rectangle width.</param>
     /// <param name="height">The rectangle height.</param>
-    public static void WriteFrameSamples<TSample>(Av1PlaneRegion<TSample> plane, Point origin, ReadOnlySpan<TSample> samples, int stride, int width, int height)
+    public static void WriteFrameSamples<TSample>(
+        Av1PlaneRegion<TSample> plane,
+        Span<TSample> planeSamples,
+        Point origin,
+        ReadOnlySpan<TSample> samples,
+        int stride,
+        int width,
+        int height)
         where TSample : unmanaged
     {
-        if (plane.Samples.IsEmpty)
+        if (planeSamples.IsEmpty)
         {
             return;
         }
 
-        Span<TSample> destination = GetPlaneSpan(plane, origin);
+        Span<TSample> destination = planeSamples[plane.GetOffset(origin.X, origin.Y)..];
         for (int row = 0; row < height; row++)
         {
             samples.Slice(row * stride, width).CopyTo(destination.Slice(row * plane.Stride, width));
         }
     }
 
+    /// <summary>
+    /// Gets the plane samples from a block origin to the end of the plane. A caller in a loop reads
+    /// <see cref="Av1PlaneRegion{TSample}.Samples"/> once and slices it at <see cref="Av1PlaneRegion{TSample}.GetOffset"/> instead.
+    /// </summary>
+    /// <typeparam name="TSample">The sample storage type.</typeparam>
+    /// <param name="plane">The plane.</param>
+    /// <param name="blockOrigin">The block origin, relative to the plane rectangle.</param>
+    /// <returns>The samples from the block origin; rows are <see cref="Av1PlaneRegion{TSample}.Stride"/> apart.</returns>
     public static Span<TSample> GetPlaneSpan<TSample>(Av1PlaneRegion<TSample> plane, Point blockOrigin)
         where TSample : unmanaged
     {

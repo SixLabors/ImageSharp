@@ -407,9 +407,13 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// Lends a pool entry's statistics storage and reconstruction to a frame entry. Reference: the tpl_stats_pool and
     /// tpl_rec_pool assignments of init_gop_frames_for_tpl().
     /// </summary>
+    /// <param name="entry">The frame entry that receives the storage.</param>
+    /// <param name="poolIndex">The pool entry that lends the storage.</param>
     private void AttachPool(int entry, int poolIndex)
     {
-        this.frames[entry].AttachStatistics(this.statisticsPool[poolIndex].Memory);
+        // Each pool entry is one equal slice of the single statistics allocation.
+        int length = this.statisticsEntryLength;
+        this.frames[entry].AttachStatistics(this.statisticsPool.Memory.Slice(poolIndex * length, length));
         this.reconstructionPictures[entry] = this.reconstructionPool[poolIndex].Frame;
         this.reconstructionIds[entry] = poolIndex;
     }
@@ -430,25 +434,41 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         }
 
         int step = 1 << Av1TplModelConstants.BlockModeInfoLog2;
+        Av1TplFrameStatistics frame = this.GetFrame(frameIndex);
+        Span<Av1TplBlockStatistics> blocks = frame.Statistics;
         for (int row = 0; row < this.ModeInfoRows; row += step)
         {
             for (int column = 0; column < this.ModeInfoColumns; column += step)
             {
                 // Reference: tpl_model_update().
-                this.UpdateBlock(row, column, frameIndex, 0);
-                this.UpdateBlock(row, column, frameIndex, 1);
+                ref Av1TplBlockStatistics block = ref blocks[GetBlockPosition(frame, row, column)];
+                this.UpdateBlock(frame, ref block, row, column, 0);
+                this.UpdateBlock(frame, ref block, row, column, 1);
             }
         }
     }
 
     /// <summary>
+    /// Returns the index of a block in the statistics of a frame.
+    /// </summary>
+    /// <param name="frame">The frame statistics.</param>
+    /// <param name="modeInfoRow">The mode-information row of the block.</param>
+    /// <param name="modeInfoColumn">The mode-information column of the block.</param>
+    /// <returns>The index in <see cref="Av1TplFrameStatistics.Statistics"/>.</returns>
+    private static int GetBlockPosition(Av1TplFrameStatistics frame, int modeInfoRow, int modeInfoColumn)
+        => Av1TplFrameStatistics.GetPosition(modeInfoRow, modeInfoColumn, frame.Stride, Av1TplModelConstants.BlockModeInfoLog2);
+
+    /// <summary>
     /// Spreads the dependency of one prediction of a block over the up to four blocks of the referenced frame that its
     /// motion-compensated footprint overlaps, weighted by the overlap area. Reference: tpl_model_update_b().
     /// </summary>
-    private void UpdateBlock(int modeInfoRow, int modeInfoColumn, int frameIndex, int reference)
+    /// <param name="frame">The statistics of the frame of the block.</param>
+    /// <param name="block">The statistics of the block.</param>
+    /// <param name="modeInfoRow">The mode-information row of the block.</param>
+    /// <param name="modeInfoColumn">The mode-information column of the block.</param>
+    /// <param name="reference">The prediction of the block, zero or one.</param>
+    private void UpdateBlock(Av1TplFrameStatistics frame, ref Av1TplBlockStatistics block, int modeInfoRow, int modeInfoColumn, int reference)
     {
-        Av1TplFrameStatistics frame = this.GetFrame(frameIndex);
-        ref Av1TplBlockStatistics block = ref frame.GetBlock(modeInfoRow, modeInfoColumn);
         bool compound = block.ReferenceFrameIndex[1] >= 0;
         if (block.ReferenceFrameIndex[reference] < 0)
         {

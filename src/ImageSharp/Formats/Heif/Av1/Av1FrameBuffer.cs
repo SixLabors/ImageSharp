@@ -402,14 +402,18 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             int storageWidth = width * this.storageElementsPerSample;
             int sourceStorageX = sourceOriginX * this.storageElementsPerSample;
             int destinationStorageX = destinationOriginX * this.storageElementsPerSample;
+            ReadOnlySpan<T> sourceSamples = sourceBuffer.Samples;
+            Span<T> destinationSamples = destinationBuffer.Samples;
+            int sourceOffset = (sourceOriginY * sourceBuffer.Stride) + sourceStorageX;
+            int destinationOffset = (destinationOriginY * destinationBuffer.Stride) + destinationStorageX;
 
             // A film-grain presentation owns only the active picture. Grain synthesis creates its odd-edge
             // extension before reading it, so copying reference borders or unused sequence-sized storage is waste.
             for (int row = 0; row < height; row++)
             {
-                sourceBuffer.GetPlaneRowSpan(sourceOriginY + row)
-                    .Slice(sourceStorageX, storageWidth)
-                    .CopyTo(destinationBuffer.GetPlaneRowSpan(destinationOriginY + row).Slice(destinationStorageX, storageWidth));
+                sourceSamples.Slice(sourceOffset, storageWidth).CopyTo(destinationSamples.Slice(destinationOffset, storageWidth));
+                sourceOffset += sourceBuffer.Stride;
+                destinationOffset += destinationBuffer.Stride;
             }
         }
     }

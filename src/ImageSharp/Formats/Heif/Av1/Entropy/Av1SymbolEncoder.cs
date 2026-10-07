@@ -494,6 +494,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// Handles one context-adaptive palette color-order index.
         /// </summary>
         /// <param name="encoder">The tile symbol encoder.</param>
+        /// <param name="modeCosts">The mode rates, which the traversal reads once for the whole map.</param>
         /// <param name="paletteSize">The number of colors in the palette.</param>
         /// <param name="planeType">The luma or chroma plane class.</param>
         /// <param name="colorContext">The spatial color-index context.</param>
@@ -501,6 +502,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// <returns>The index's rate contribution.</returns>
         public static abstract int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,
             int colorContext,
@@ -3259,6 +3261,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int mapStride = colorIndexMap.Stride;
         ReadOnlySpan<byte> map = colorIndexMap.Samples[colorIndexMap.Origin..];
 
+        // The rates are read once for the whole map, as cost_and_tokenize_map() takes its color_cost table once.
+        Av1ModeCosts modeCosts = this.ModeCosts;
+
         for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
         {
             int firstColumn = Math.Min(diagonal, columns - 1);
@@ -3282,6 +3287,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
                 cost += TOperation.ProcessColorIndex(
                     this,
+                    modeCosts,
                     paletteSize,
                     planeType,
                     colorContext,
@@ -3578,6 +3584,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         public static int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,
             int colorContext,
@@ -3605,6 +3612,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         public static int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,
             int colorContext,
@@ -3630,14 +3638,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         public static int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,
             int colorContext,
             int colorOrderIndex)
-            => encoder.GetPaletteColorIndexCost(
-                colorOrderIndex,
-                paletteSize,
-                colorContext,
-                planeType);
+            => planeType == Av1PlaneType.Y
+                ? modeCosts.GetPaletteYColorIndex(paletteSize - 2, colorContext, colorOrderIndex)
+                : modeCosts.GetPaletteUvColorIndex(paletteSize - 2, colorContext, colorOrderIndex);
     }
 }

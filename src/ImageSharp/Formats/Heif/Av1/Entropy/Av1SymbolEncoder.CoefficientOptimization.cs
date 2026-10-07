@@ -185,7 +185,10 @@ internal sealed partial class Av1SymbolEncoder
         int scanIndex = endOfBlock - 1;
         int coefficientIndex = scan[scanIndex];
         int magnitude = Math.Abs(quantized[coefficientIndex]);
-        InlineArray3<int> nonzeroIndices = default;
+
+        // The indices are taken as a span once, outside the loops, rather than through the inline array indexer.
+        InlineArray3<int> nonzeroIndexStorage = default;
+        Span<int> nonzeroIndices = nonzeroIndexStorage;
         nonzeroIndices[0] = coefficientIndex;
         int nonzeroCount = 1;
 

@@ -184,10 +184,12 @@ internal static partial class Av1ForwardTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void HadamardRowOfFour(ref short residual, int stride, ref short coefficients)
     {
+        // The rows are taken as a span once, outside the loop, rather than through the inline array indexer.
         InlineArray8<Vector512<short>> rows = default;
+        Span<Vector512<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
         {
-            rows[row] = Vector512.LoadUnsafe(ref residual, (nuint)(row * stride));
+            rowSpan[row] = Vector512.LoadUnsafe(ref residual, (nuint)(row * stride));
         }
 
         HadamardColumns(ref rows);
@@ -206,10 +208,11 @@ internal static partial class Av1ForwardTransformer
     private static void HadamardQuadrants(ref short residual, int stride, ref short coefficients)
     {
         InlineArray8<Vector512<short>> rows = default;
+        Span<Vector512<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
         {
             // The top quadrant pair fills the lower 256 bits and the bottom pair the upper 256 bits.
-            rows[row] = Vector512.Create(
+            rowSpan[row] = Vector512.Create(
                 Vector256.LoadUnsafe(ref residual, (nuint)(row * stride)),
                 Vector256.LoadUnsafe(ref residual, (nuint)((8 + row) * stride)));
         }
@@ -228,10 +231,11 @@ internal static partial class Av1ForwardTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreLanes(ref InlineArray8<Vector512<short>> rows, ref short coefficients)
     {
+        Span<Vector512<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
         {
-            Vector256<short> lower = rows[row].GetLower();
-            Vector256<short> upper = rows[row].GetUpper();
+            Vector256<short> lower = rowSpan[row].GetLower();
+            Vector256<short> upper = rowSpan[row].GetUpper();
             lower.GetLower().StoreUnsafe(ref coefficients, (nuint)(row * 8));
             lower.GetUpper().StoreUnsafe(ref coefficients, (nuint)(64 + (row * 8)));
             upper.GetLower().StoreUnsafe(ref coefficients, (nuint)(128 + (row * 8)));
@@ -553,10 +557,12 @@ internal static partial class Av1ForwardTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void HadamardBlocks(ref short residual, int stride, ref short coefficients, Vector128<short> width)
     {
+        // The rows are taken as a span once, outside the loops, rather than through the inline array indexer.
         InlineArray8<Vector128<short>> rows = default;
+        Span<Vector128<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
         {
-            rows[row] = Vector128.LoadUnsafe(ref residual, (nuint)(row * stride));
+            rowSpan[row] = Vector128.LoadUnsafe(ref residual, (nuint)(row * stride));
         }
 
         HadamardColumns(ref rows);
@@ -564,7 +570,7 @@ internal static partial class Av1ForwardTransformer
         HadamardColumns(ref rows);
         for (int row = 0; row < 8; row++)
         {
-            rows[row].StoreUnsafe(ref coefficients, (nuint)(row * 8));
+            rowSpan[row].StoreUnsafe(ref coefficients, (nuint)(row * 8));
         }
     }
 
@@ -579,10 +585,12 @@ internal static partial class Av1ForwardTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void HadamardBlocks(ref short residual, int stride, ref short coefficients, Vector256<short> width)
     {
+        // The rows are taken as a span once, outside the loops, rather than through the inline array indexer.
         InlineArray8<Vector256<short>> rows = default;
+        Span<Vector256<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
         {
-            rows[row] = Vector256.LoadUnsafe(ref residual, (nuint)(row * stride));
+            rowSpan[row] = Vector256.LoadUnsafe(ref residual, (nuint)(row * stride));
         }
 
         HadamardColumns(ref rows);
@@ -590,8 +598,8 @@ internal static partial class Av1ForwardTransformer
         HadamardColumns(ref rows);
         for (int row = 0; row < 8; row++)
         {
-            rows[row].GetLower().StoreUnsafe(ref coefficients, (nuint)(row * 8));
-            rows[row].GetUpper().StoreUnsafe(ref coefficients, (nuint)(64 + (row * 8)));
+            rowSpan[row].GetLower().StoreUnsafe(ref coefficients, (nuint)(row * 8));
+            rowSpan[row].GetUpper().StoreUnsafe(ref coefficients, (nuint)(64 + (row * 8)));
         }
     }
 

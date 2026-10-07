@@ -1556,6 +1556,8 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="context">The neighboring coefficient contexts.</param>
     /// <param name="residual">The source-minus-prediction block.</param>
     /// <param name="residualStride">The number of residual samples between rows.</param>
+    /// <param name="transformCoefficients">The forward transform output, which the caller reads once for its type loop.</param>
+    /// <param name="transformWorkspace">The forward transform workspace, which the caller reads once for its type loop.</param>
     /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
     /// <param name="dequantizedCoefficients">The candidate reconstruction coefficients.</param>
     /// <param name="transformSize">The transform dimensions.</param>
@@ -1585,6 +1587,8 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformBlockContext context,
         ReadOnlySpan<short> residual,
         int residualStride,
+        Span<int> transformCoefficients,
+        Span<int> transformWorkspace,
         Span<int> quantizedCoefficients,
         Span<int> dequantizedCoefficients,
         Av1TransformSize transformSize,
@@ -1610,7 +1614,7 @@ internal static partial class Av1TransformBlockEncoder
     {
         Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
-        Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
+        Span<int> transformed = transformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
         Span<int> dequantized = dequantizedCoefficients[..coefficientCount];
         bool optimize = !skipTrellis;
@@ -1642,7 +1646,7 @@ internal static partial class Av1TransformBlockEncoder
                 transformType,
                 transformSize,
                 bitDepth.GetBitCount(),
-                workspace.TransformWorkspace);
+                transformWorkspace);
 
             Av1WorkCounters.Stop(Av1WorkCounters.FwdXform, workXform);
         }

@@ -1464,6 +1464,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 chromaBlockSize,
                 transformSize);
 
+            // The edge filter strength depends on the neighbors of the block alone, so every transform block shares it.
+            bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane);
+
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
             // moving to the next region. Candidate coefficients and states must retain that exact order.
             for (int regionRow = 0; regionRow < codedExtent.Height; regionRow += maximumUnitHeight)
@@ -1513,7 +1516,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     predictionMode,
                                     angleDelta,
                                     this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                                    this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane),
+                                    smoothEdges,
                                     residual,
                                     transformSize,
                                     this.bitDepth);

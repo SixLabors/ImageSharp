@@ -555,7 +555,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // A predicted empty block searches no type, and a DC-only block DCT_DCT alone. Every other block
             // searches the types that get_tx_mask() selects, in the order its estimates leave.
-            InlineArray16<Av1TransformType> transformOrder = default;
+            // The order is taken as a span once, outside the loops, rather than through the inline array indexer.
+            InlineArray16<Av1TransformType> transformOrderStorage = default;
+            Span<Av1TransformType> transformOrder = transformOrderStorage;
             for (int type = 0; type < Av1TransformTypeProbabilities.TypeCount; type++)
             {
                 transformOrder[type] = (Av1TransformType)type;
@@ -612,6 +614,10 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
+
+            // The forward transform output and its workspace are read once, outside the type loop.
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
             long highEnergyThreshold = 128L * 128 * transformSampleCount;
             bool isHighEnergy = !dcOnlyBlock && blockError >= highEnergyThreshold;
             int adaptiveSearchLevel = settings.InterAdaptiveTransformSearchLevel;
@@ -667,6 +673,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockContext,
                     residual,
                     inputStride,
+                    transformCoefficients,
+                    transformWorkspace,
                     candidateCoefficients,
                     candidateDequantized,
                     transformSize,
@@ -717,7 +725,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateDistortion = Av1TransformBlockEncoder.GetTransformError(
                         this.blockWorkspace,
                         componentType,
-                        this.blockWorkspace.TransformCoefficients[..codedCoefficientCount],
+                        transformCoefficients[..codedCoefficientCount],
                         candidateDequantized[..codedCoefficientCount],
                         transformSize,
                         transformType,
@@ -739,7 +747,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformDomainDistortion = Av1TransformBlockEncoder.GetTransformError(
                             this.blockWorkspace,
                             componentType,
-                            this.blockWorkspace.TransformCoefficients[..codedCoefficientCount],
+                            transformCoefficients[..codedCoefficientCount],
                             candidateDequantized[..codedCoefficientCount],
                             transformSize,
                             transformType,

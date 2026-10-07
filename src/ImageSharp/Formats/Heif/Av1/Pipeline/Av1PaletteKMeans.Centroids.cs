@@ -37,8 +37,11 @@ internal static partial class Av1PaletteKMeans
 
         if (Vector512.IsHardwareAccelerated)
         {
-            InlineArray8<Vector512<int>> laneSums = default;
-            InlineArray8<Vector512<short>> laneCounts = default;
+            // The lanes are taken as spans once, outside the loops, rather than through the inline array indexer.
+            InlineArray8<Vector512<int>> laneSumStorage = default;
+            InlineArray8<Vector512<short>> laneCountStorage = default;
+            Span<Vector512<int>> laneSums = laneSumStorage;
+            Span<Vector512<short>> laneCounts = laneCountStorage;
             Vector512<short> ones = Vector512.Create((short)1);
             for (; offset <= samples.Length - Vector512<short>.Count; offset += Vector512<short>.Count)
             {
@@ -64,8 +67,10 @@ internal static partial class Av1PaletteKMeans
 
         if (Vector256.IsHardwareAccelerated)
         {
-            InlineArray8<Vector256<int>> laneSums = default;
-            InlineArray8<Vector256<short>> laneCounts = default;
+            InlineArray8<Vector256<int>> laneSumStorage = default;
+            InlineArray8<Vector256<short>> laneCountStorage = default;
+            Span<Vector256<int>> laneSums = laneSumStorage;
+            Span<Vector256<short>> laneCounts = laneCountStorage;
             Vector256<short> ones = Vector256.Create((short)1);
             for (; offset <= samples.Length - Vector256<short>.Count; offset += Vector256<short>.Count)
             {
@@ -91,8 +96,10 @@ internal static partial class Av1PaletteKMeans
 
         if (Vector128.IsHardwareAccelerated)
         {
-            InlineArray8<Vector128<int>> laneSums = default;
-            InlineArray8<Vector128<short>> laneCounts = default;
+            InlineArray8<Vector128<int>> laneSumStorage = default;
+            InlineArray8<Vector128<short>> laneCountStorage = default;
+            Span<Vector128<int>> laneSums = laneSumStorage;
+            Span<Vector128<short>> laneCounts = laneCountStorage;
             Vector128<short> ones = Vector128.Create((short)1);
             for (; offset <= samples.Length - Vector128<short>.Count; offset += Vector128<short>.Count)
             {

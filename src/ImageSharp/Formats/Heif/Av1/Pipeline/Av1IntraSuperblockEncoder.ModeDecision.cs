@@ -6910,6 +6910,9 @@ internal static partial class Av1IntraSuperblockEncoder
             bool dctOnlyPalette = paletteSize > 0 && !this.picture.Parent.FrameHeader.IsIntra &&
                 this.picture.Parent.IsScreenContent && this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision;
 
+            // The edge filter strength depends on the neighbors of the block alone, so every transform block shares it.
+            bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
+
             // Prediction and transform-size syntax belongs to the coding block. Each residual transform
             // contributes its own coefficient cost; lossless and fixed-size modes do not signal a size choice.
             bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
@@ -7069,7 +7072,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                         mode,
                                         angleDelta,
                                         this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                                        this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
+                                        smoothEdges,
                                         residual,
                                         transformSize,
                                         this.bitDepth);

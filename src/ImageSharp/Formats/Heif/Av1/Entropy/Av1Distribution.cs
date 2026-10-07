@@ -403,18 +403,21 @@ internal sealed class Av1Distribution
 
         // Switching tmp to zero at the observed symbol moves the thresholds on either side toward the sample while
         // preserving their inverse-cumulative ordering in one pass. Arithmetic stays wide until the stored update;
-        // each step moves toward zero or 32768, so narrowing cannot discard a significant probability bit.
-        for (int i = 0; i < this.NumberOfSymbols - 1; i++)
+        // each step moves toward zero or 32768, so narrowing cannot discard a significant probability bit. The
+        // thresholds are taken as a span once, outside the loop, rather than through the inline array indexer.
+        Span<ushort> probabilities = this.probabilities;
+        int thresholdCount = this.NumberOfSymbols - 1;
+        for (int i = 0; i < thresholdCount; i++)
         {
             tmp = i == value ? 0 : tmp;
-            uint p = this.probabilities[i];
+            uint p = probabilities[i];
             if (tmp < p)
             {
-                this.probabilities[i] -= (ushort)((p - tmp) >> rate);
+                probabilities[i] -= (ushort)((p - tmp) >> rate);
             }
             else
             {
-                this.probabilities[i] += (ushort)((tmp - p) >> rate);
+                probabilities[i] += (ushort)((tmp - p) >> rate);
             }
         }
 

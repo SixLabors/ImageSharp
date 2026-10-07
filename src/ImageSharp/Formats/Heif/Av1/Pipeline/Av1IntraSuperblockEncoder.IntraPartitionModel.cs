@@ -1711,7 +1711,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 return false;
             }
 
+            // The inline arrays are taken as spans once, outside the loops, rather than through their indexers.
             InlineArray64<float> featureStorage = default;
+            Span<float> features = featureStorage;
             int featureCount = 0;
             int localX = blockOrigin.X & 63;
             int localY = blockOrigin.Y & 63;
@@ -1724,13 +1726,13 @@ internal static partial class Av1IntraSuperblockEncoder
             switch (blockSize)
             {
                 case Av1BlockSize.Block64x64:
-                    retained[..20].CopyTo(featureStorage);
+                    retained[..20].CopyTo(features);
                     featureCount = 20;
                     for (int position = 0; position < 4; position++)
                     {
                         for (int channel = 0; channel < 4; channel++)
                         {
-                            featureStorage[featureCount++] = retained[20 + (channel * 4) + position];
+                            features[featureCount++] = retained[20 + (channel * 4) + position];
                         }
                     }
 
@@ -1742,12 +1744,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     score = IntraPartitionBranch0LogitsBias[0];
                     break;
                 case Av1BlockSize.Block32x32:
-                    retained[..20].CopyTo(featureStorage);
+                    retained[..20].CopyTo(features);
                     featureCount = 20;
                     int position32 = ((localY >> 5) * 2) + (localX >> 5);
                     for (int channel = 0; channel < 4; channel++)
                     {
-                        featureStorage[featureCount++] = retained[20 + (channel * 4) + position32];
+                        features[featureCount++] = retained[20 + (channel * 4) + position32];
                     }
 
                     weights0 = IntraPartitionBranch1DnnLayer0Kernel;
@@ -1762,12 +1764,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     int position16 = ((localY / 16) * 4) + (localX / 16);
                     for (int channel = 0; channel < 4; channel++)
                     {
-                        featureStorage[featureCount++] = retained[20 + (channel * 4) + parentPosition16];
+                        features[featureCount++] = retained[20 + (channel * 4) + parentPosition16];
                     }
 
                     for (int channel = 0; channel < 20; channel++)
                     {
-                        featureStorage[featureCount++] = retained[36 + (channel * 16) + position16];
+                        features[featureCount++] = retained[36 + (channel * 16) + position16];
                     }
 
                     weights0 = IntraPartitionBranch2DnnLayer0Kernel;
@@ -1782,12 +1784,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     int position8 = ((localY / 8) * 8) + (localX / 8);
                     for (int channel = 0; channel < 20; channel++)
                     {
-                        featureStorage[featureCount++] = retained[36 + (channel * 16) + parentPosition8];
+                        features[featureCount++] = retained[36 + (channel * 16) + parentPosition8];
                     }
 
                     for (int channel = 0; channel < 20; channel++)
                     {
-                        featureStorage[featureCount++] = retained[356 + (channel * 64) + position8];
+                        features[featureCount++] = retained[356 + (channel * 64) + position8];
                     }
 
                     weights0 = IntraPartitionBranch3DnnLayer0Kernel;
@@ -1801,14 +1803,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     return false;
             }
 
-            featureStorage[featureCount++] = this.intraPartitionLogQuantizer;
-            InlineArray16<float> hidden = default;
+            features[featureCount++] = this.intraPartitionLogQuantizer;
+            InlineArray16<float> hiddenStorage = default;
+            Span<float> hidden = hiddenStorage;
             for (int node = 0; node < 16; node++)
             {
                 float activation = bias0[node];
                 for (int feature = 0; feature < featureCount; feature++)
                 {
-                    activation += weights0[(node * featureCount) + feature] * featureStorage[feature];
+                    activation += weights0[(node * featureCount) + feature] * features[feature];
                 }
 
                 hidden[node] = Math.Max(activation, 0F);

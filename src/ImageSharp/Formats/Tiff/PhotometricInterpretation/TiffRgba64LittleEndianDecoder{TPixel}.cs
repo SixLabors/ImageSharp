@@ -56,8 +56,8 @@ internal sealed class TiffRgba64LittleEndianDecoder<TPixel> : TiffBaseColorDecod
             int offset = (y - top) * rowBytes;
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
             ReadOnlySpan<Rgba64> samples = MemoryMarshal.Cast<byte, Rgba64>(data.Slice(offset, rowBytes));
-            PixelOperations<Rgba64>.Instance.ToVector4(this.configuration, samples, vectors, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectors, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, samples, vectors);
+            PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectors, pixelRow);
         }
     }
 }

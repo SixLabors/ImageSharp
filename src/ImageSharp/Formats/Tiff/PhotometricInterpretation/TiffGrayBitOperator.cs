@@ -26,7 +26,7 @@ internal readonly struct TiffGrayBitOperator : ITiffColorOperator<float>
     }
 
     /// <inheritdoc />
-    public PixelConversionModifiers Modifiers => PixelConversionModifiers.Scale;
+    public PixelAlphaRepresentation AlphaRepresentation => PixelAlphaRepresentation.None;
 
     /// <inheritdoc />
     public void Convert(ref float c0, ref float c1, ref float c2, ref float c3)

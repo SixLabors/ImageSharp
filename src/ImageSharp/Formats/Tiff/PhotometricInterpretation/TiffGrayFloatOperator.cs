@@ -20,7 +20,7 @@ internal readonly struct TiffGrayFloatOperator : ITiffColorOperator<float>
     public TiffGrayFloatOperator(bool whiteIsZero) => this.whiteIsZero = whiteIsZero;
 
     /// <inheritdoc />
-    public PixelConversionModifiers Modifiers => PixelConversionModifiers.Scale;
+    public PixelAlphaRepresentation AlphaRepresentation => PixelAlphaRepresentation.None;
 
     /// <inheritdoc />
     public void Convert(ref float c0, ref float c1, ref float c2, ref float c3)

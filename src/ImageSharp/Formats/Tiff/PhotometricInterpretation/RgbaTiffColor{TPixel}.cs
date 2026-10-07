@@ -55,8 +55,6 @@ internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         Span<Vector4> vectors = vectorBuffer;
 
         bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Scale | (hasAssociatedAlpha ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
-
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
@@ -77,7 +75,14 @@ internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 }
 
                 this.colorOperator.Convert(block);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), modifiers);
+                if (hasAssociatedAlpha)
+                {
+                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
             }
 
             bitReader.NextRow();

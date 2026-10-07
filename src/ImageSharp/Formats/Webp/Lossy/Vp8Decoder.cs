@@ -13,11 +13,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class Vp8Decoder : IDisposable
 {
-    private const int UpsamplingBufferSize = (14 * 32) + 15;
+    // The widest upsampling block produces 64 pixels. Keep U and V for each of its two output rows in separate planes.
+    private const int UpsamplingBufferSize = 4 * 64;
 
     private Vp8MacroBlock leftMacroBlock;
 
-    // Vector upsampling needs 15 bytes of left padding, 128 interleaved UV bytes, two 128-byte BGR rows, and two 32-byte luma rows.
+    // Reuse the four 64-byte chroma planes for each upsampling block.
     private readonly IMemoryOwner<byte> upsamplingBuffer;
 
     /// <summary>

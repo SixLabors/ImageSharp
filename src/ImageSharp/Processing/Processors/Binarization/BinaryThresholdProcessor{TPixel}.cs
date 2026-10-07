@@ -41,7 +41,6 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
 
         Configuration configuration = this.Configuration;
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply;
         using IMemoryOwner<Vector4> rowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(interest.Width);
         Span<Vector4> vectors = rowBuffer.GetSpan()[..interest.Width];
 
@@ -50,7 +49,7 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         for (int y = interest.Top; y < interest.Bottom; y++)
         {
             Span<TPixel> row = source.PixelBuffer.DangerousGetRowSpan(y).Slice(interest.X, interest.Width);
-            operations.ToVector4(configuration, row, vectors, modifiers);
+            operations.ToUnassociatedScaledVector4(configuration, row, vectors);
 
             for (int x = 0; x < vectors.Length; x++)
             {
@@ -191,11 +190,7 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixel> row = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
-            PixelOperations<TPixel>.Instance.ToVector4(
-                this.configuration,
-                row,
-                span,
-                PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, row, span);
 
             for (int x = 0; x < row.Length; x++)
             {

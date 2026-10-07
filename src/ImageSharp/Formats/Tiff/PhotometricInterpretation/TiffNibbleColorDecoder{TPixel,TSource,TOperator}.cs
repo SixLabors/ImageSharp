@@ -97,7 +97,19 @@ internal sealed class TiffNibbleColorDecoder<TPixel, TSource, TOperator> : TiffB
                     }
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), this.colorOperator.Modifiers);
+                // The operator has scaled the samples; its alpha representation selects the matching pixel packer.
+                switch (this.colorOperator.AlphaRepresentation)
+                {
+                    case PixelAlphaRepresentation.Associated:
+                        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                        break;
+                    case PixelAlphaRepresentation.Unassociated:
+                        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                        break;
+                    default:
+                        PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                        break;
+                }
             }
 
             // RGB444 rows with odd width end in a padding nibble; the next row starts at the next byte.

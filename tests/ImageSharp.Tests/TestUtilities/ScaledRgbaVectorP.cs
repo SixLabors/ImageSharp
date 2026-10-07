@@ -152,7 +152,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     private sealed class ScaledPixelOperations : AssociatedAlphaPixelOperations<ScaledRgbaVectorP>
     {
         /// <inheritdoc />
-        protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -170,7 +170,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -184,7 +184,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -194,7 +194,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -202,7 +202,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -214,7 +214,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -227,7 +227,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -242,7 +242,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 

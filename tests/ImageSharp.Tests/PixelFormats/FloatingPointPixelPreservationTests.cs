@@ -446,7 +446,7 @@ public class FloatingPointPixelPreservationTests
             source[i] = inputs[i % inputs.Length];
         }
 
-        PixelOperations<HalfVector4>.Instance.FromVector4Destructive(Configuration.Default, source, actual, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<HalfVector4>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, actual);
 
         for (int i = 0; i < actual.Length; i++)
         {
@@ -555,7 +555,7 @@ public class FloatingPointPixelPreservationTests
         }
 
         // Associated formats otherwise interpret the vectors using their native alpha representation.
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration.Default, source, actual, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, actual);
         Assert.Equal(expected, actual);
     }
 
@@ -624,7 +624,7 @@ public class FloatingPointPixelPreservationTests
             Assert.Equal(expected[i], TPixel.FromAssociatedScaledVector4(source[i]));
         }
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration.Default, source, actual, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source, actual);
         Assert.Equal(expected, actual);
     }
 

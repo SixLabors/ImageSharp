@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -82,6 +83,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
 
             using (this.webImageInfo = this.ReadVp8Info(stream, metadata))
             {
+                ColorProfileConverter? colorProfileConverter = WebpColorConverterBase.CreateIccConverter(this.configuration, metadata.IccProfile);
+
                 if (this.webImageInfo.Features is { Animation: true })
                 {
                     using WebpAnimationDecoder animationDecoder = new(
@@ -92,13 +95,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.backgroundColorHandling,
                         this.ExecuteAncillarySegmentAction);
 
-                    image = animationDecoder.Decode<TPixel>(stream, metadata, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
-
-                    // Convert the image even when its background is ignored; this call must run before checking the background policy.
-                    if (TryConvertIccProfile(image) && this.backgroundColorHandling != BackgroundColorHandling.Ignore)
-                    {
-                        this.ConvertBackgroundColor<TPixel>(metadata);
-                    }
+                    image = animationDecoder.Decode<TPixel>(
+                        stream, metadata, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize, colorProfileConverter);
 
                     return image;
                 }
@@ -119,7 +117,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration);
 
-                    losslessDecoder.Decode(pixels, image.Width, image.Height);
+                    losslessDecoder.Decode(pixels, image.Width, image.Height, colorProfileConverter);
                 }
                 else
                 {
@@ -128,7 +126,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration);
 
-                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
+                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData, colorProfileConverter);
                 }
 
                 // There can be optional chunks after the image data, like EXIF and XMP.
@@ -137,7 +135,6 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.ParseOptionalChunks(stream, metadata, this.webImageInfo.Features, buffer);
                 }
 
-                _ = TryConvertIccProfile(image);
                 return image;
             }
         }

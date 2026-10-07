@@ -26,97 +26,177 @@ internal static partial class Vector4Converters
         private static readonly int Vector4ConversionThreshold = CalculateVector4ConversionThreshold();
 
         /// <summary>
-        /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.ToVector4(Configuration,ReadOnlySpan{TPixel},Span{Vector4},PixelConversionModifiers)"/>
-        /// The method works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+        /// Converts RGBA-compatible pixels to vectors with unassociated alpha.
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel format.</typeparam>
         /// <param name="configuration">The configuration.</param>
         /// <param name="pixelOperations">The pixel operations instance.</param>
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
-        /// <param name="modifiers">The conversion modifier flags.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void ToVector4<TPixel>(
+        internal static void ToUnassociatedVector4<TPixel>(
             Configuration configuration,
             PixelOperations<TPixel> pixelOperations,
             ReadOnlySpan<TPixel> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
+            Span<Vector4> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            int count = source.Length;
-            destination = destination[..count];
-
-            // Not worth for small buffers:
-            if (count < Vector4ConversionThreshold)
+            if (source.Length < Vector4ConversionThreshold)
             {
-                Default.UnsafeToVector4(source, destination, modifiers);
+                Default.UnsafeToUnassociatedVector4<TPixel>(source, destination);
 
                 return;
             }
 
-            // ToVector4 expands each pixel into a 16-byte vector. Reuse the unwritten destination tail as RGBA staging
-            // so pixelOperations can reorder the source without allocating a temporary row.
-            int countWithoutLastItem = count - 1;
-            ReadOnlySpan<TPixel> reducedSource = source[..countWithoutLastItem];
-            Span<Rgba32> lastQuarterOfDestination = MemoryMarshal.Cast<Vector4, Rgba32>(destination).Slice((3 * count) + 1, countWithoutLastItem);
-            pixelOperations.ToRgba32(configuration, reducedSource, lastQuarterOfDestination);
-
-            // Staging overlaps the final output vector, which remains unwritten until the staged bytes are consumed.
-            SimdUtils.ByteToNormalizedFloat(
-                MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestination),
-                MemoryMarshal.Cast<Vector4, float>(destination[..countWithoutLastItem]));
-
-            destination[countWithoutLastItem] = source[countWithoutLastItem].ToVector4();
-
-            // TODO: Investigate optimized 1-pass approach!
-            ApplyForwardConversionModifiers(destination, modifiers);
+            UnpackVector4(configuration, pixelOperations, source, destination);
         }
 
         /// <summary>
-        /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4Destructive(Configuration,Span{Vector4},Span{TPixel},PixelConversionModifiers)"/>
-        /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+        /// Converts RGBA-compatible pixels to vectors with associated alpha.
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel format.</typeparam>
         /// <param name="configuration">The configuration.</param>
         /// <param name="pixelOperations">The pixel operations instance.</param>
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
-        /// <param name="modifiers">The conversion modifier flags.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void FromVector4<TPixel>(
+        internal static void ToAssociatedVector4<TPixel>(
             Configuration configuration,
             PixelOperations<TPixel> pixelOperations,
-            Span<Vector4> source,
-            Span<TPixel> destination,
-            PixelConversionModifiers modifiers)
+            ReadOnlySpan<TPixel> source,
+            Span<Vector4> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
+            if (source.Length < Vector4ConversionThreshold)
+            {
+                Default.UnsafeToAssociatedVector4<TPixel>(source, destination);
+
+                return;
+            }
+
+            UnpackVector4(configuration, pixelOperations, source, destination);
+            Numerics.Premultiply(destination[..source.Length]);
+        }
+
+        /// <summary>
+        /// Converts vectors with unassociated alpha to RGBA-compatible pixels.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="pixelOperations">The pixel operations instance.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void FromUnassociatedVector4<TPixel>(
+            Configuration configuration,
+            PixelOperations<TPixel> pixelOperations,
+            Span<Vector4> source,
+            Span<TPixel> destination)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            if (source.Length < Vector4ConversionThreshold)
+            {
+                Default.UnsafeFromUnassociatedVector4<TPixel>(source, destination);
+
+                return;
+            }
+
+            PackVector4(configuration, pixelOperations, source, destination);
+        }
+
+        /// <summary>
+        /// Converts vectors with associated alpha to RGBA-compatible pixels.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="pixelOperations">The pixel operations instance.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void FromAssociatedVector4<TPixel>(
+            Configuration configuration,
+            PixelOperations<TPixel> pixelOperations,
+            Span<Vector4> source,
+            Span<TPixel> destination)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            if (source.Length < Vector4ConversionThreshold)
+            {
+                Default.UnsafeFromAssociatedVector4<TPixel>(source, destination);
+
+                return;
+            }
+
+            Numerics.UnPremultiply(source);
+            PackVector4(configuration, pixelOperations, source, destination);
+        }
+
+        /// <summary>
+        /// Unpacks RGBA-compatible pixels into normalized vectors using the shared staging layout.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="pixelOperations">The pixel operations instance.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
+        private static void UnpackVector4<TPixel>(
+            Configuration configuration,
+            PixelOperations<TPixel> pixelOperations,
+            ReadOnlySpan<TPixel> source,
+            Span<Vector4> destination)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int count = source.Length;
+            destination = destination[..count];
+
+            // The destination tail holds packed RGBA staging while the earlier vectors expand to floats.
+            int countWithoutLastItem = count - 1;
+            ReadOnlySpan<TPixel> reducedSource = source[..countWithoutLastItem];
+            Span<Rgba32> rgbaStaging = MemoryMarshal.Cast<Vector4, Rgba32>(destination).Slice((3 * count) + 1, countWithoutLastItem);
+            pixelOperations.ToRgba32(configuration, reducedSource, rgbaStaging);
+
+            // Staging overlaps the final output vector, which remains unwritten until the staged bytes are consumed.
+            SimdUtils.ByteToNormalizedFloat(
+                MemoryMarshal.Cast<Rgba32, byte>(rgbaStaging),
+                MemoryMarshal.Cast<Vector4, float>(destination[..countWithoutLastItem]));
+
+            destination[countWithoutLastItem] = source[countWithoutLastItem].ToUnassociatedVector4();
+        }
+
+        /// <summary>
+        /// Packs normalized vectors into RGBA-compatible pixels.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="pixelOperations">The pixel operations instance.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
+        private static void PackVector4<TPixel>(
+            Configuration configuration,
+            PixelOperations<TPixel> pixelOperations,
+            Span<Vector4> source,
+            Span<TPixel> destination)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             int count = source.Length;
 
             // Source defines the conversion length. Do not expose spare destination capacity
             // to downstream shuffles whose scalar tail is destination-length driven.
             destination = destination[..count];
 
-            // Not worth for small buffers:
-            if (count < Vector4ConversionThreshold)
-            {
-                Default.UnsafeFromVector4(source, destination, modifiers);
-
-                return;
-            }
-
-            // TODO: Investigate optimized 1-pass approach!
-            ApplyBackwardConversionModifiers(source, modifiers);
-
-            // For the opposite direction it's not easy to implement the trick used in RunRgba32CompatibleToVector4Conversion,
-            // so let's allocate a temporary buffer as usually:
+            // The opposite direction cannot stage inside the input because every vector is read by the saturating packer.
             using IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count);
             Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
 

@@ -241,7 +241,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
                     span[x] = sum;
                 }
 
-                pixelOperations.FromVector4Destructive(this.configuration, span, destinationRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, span, destinationRowSpan);
             }
         }
     }

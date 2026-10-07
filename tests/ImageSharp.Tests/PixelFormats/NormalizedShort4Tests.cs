@@ -81,7 +81,7 @@ public class NormalizedShort4Tests
         Array.Fill(source, pixel);
 
         PixelOperations<NormalizedShort4>.Instance.ToVector4(Configuration.Default, source, native);
-        PixelOperations<NormalizedShort4>.Instance.ToVector4(Configuration.Default, source, scaled, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedShort4>.Instance.ToScaledVector4(Configuration.Default, source, scaled);
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -91,7 +91,7 @@ public class NormalizedShort4Tests
 
         Vector4[] destructiveSource = new Vector4[source.Length];
         NormalizedShort4[] actualPixels = new NormalizedShort4[source.Length];
-        PixelOperations<NormalizedShort4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedShort4>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.All(actualPixels, actual => Assert.Equal(0x8001800180018001UL, actual.PackedValue));
 
         Vector4 special = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 2F);
@@ -99,7 +99,7 @@ public class NormalizedShort4Tests
         Assert.Equal(expectedSpecial, NormalizedShort4.FromScaledVector4(special).PackedValue);
 
         Array.Fill(destructiveSource, special);
-        PixelOperations<NormalizedShort4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedShort4>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.All(actualPixels, actual => Assert.Equal(expectedSpecial, actual.PackedValue));
     }
 

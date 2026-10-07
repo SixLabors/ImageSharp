@@ -18,16 +18,18 @@ public partial struct RgbaHalf
     internal class PixelOperations : PixelOperations<RgbaHalf>
     {
         /// <inheritdoc />
-        protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             HalfTypeHelper.Unpack(MemoryMarshal.Cast<RgbaHalf, ushort>(source), MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
         }
 
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             // Association is fused with half expansion so the conversion reads and writes each span once.
@@ -35,24 +37,36 @@ public partial struct RgbaHalf
         }
 
         /// <inheritdoc />
-        protected override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
-            => this.ToAssociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        protected override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToUnassociatedVector4(configuration, source, destination);
+        }
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaHalf> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToAssociatedVector4(configuration, source, destination);
+        }
+
+        /// <inheritdoc />
+        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             HalfTypeHelper.Pack(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.Cast<RgbaHalf, ushort>(destination[..source.Length]));
         }
 
         /// <inheritdoc />
-        protected override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
+        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             // Unassociation is fused with half-precision packing so processors do not pay for another pass over their vector buffer.
@@ -60,11 +74,21 @@ public partial struct RgbaHalf
         }
 
         /// <inheritdoc />
-        protected override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
-            => this.FromUnassociatedVector4Destructive(configuration, source, destination);
+        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.FromUnassociatedVector4Destructive(configuration, source, destination);
+        }
 
         /// <inheritdoc />
-        protected override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
-            => this.FromAssociatedVector4Destructive(configuration, source, destination);
+        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaHalf> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.FromAssociatedVector4Destructive(configuration, source, destination);
+        }
     }
 }

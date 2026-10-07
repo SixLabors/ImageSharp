@@ -231,17 +231,25 @@ internal static class AotCompilerTools
     private static void AotCompilePixelOperations<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // These default arguments are never consumed. Direct calls are required so the IL contains the exact closed
-        // MethodSpecs that Mono WASM AOT can otherwise miss when following static-abstract pixel dispatch indirectly.
+        // These default arguments are never consumed. Direct calls root each named bulk conversion for this pixel type,
+        // which Mono WASM AOT may miss when following static-abstract pixel dispatch indirectly.
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         _ = operations.GetPixelTypeInfo();
         _ = operations.GetPixelBlender(default);
         _ = operations.GetPixelBlender(default, default);
         operations.FromVector4Destructive(default, default, default);
-        operations.FromVector4Destructive(default, default, default, default);
         operations.ToVector4(default, default, default);
-        operations.ToVector4(default, default, default, default);
+        operations.FromScaledVector4Destructive(default, default, default);
+        operations.ToScaledVector4(default, default, default);
+        operations.FromUnassociatedVector4Destructive(default, default, default);
+        operations.ToUnassociatedVector4(default, default, default);
+        operations.FromAssociatedVector4Destructive(default, default, default);
+        operations.ToAssociatedVector4(default, default, default);
+        operations.FromUnassociatedScaledVector4Destructive(default, default, default);
+        operations.ToUnassociatedScaledVector4(default, default, default);
+        operations.FromAssociatedScaledVector4Destructive(default, default, default);
+        operations.ToAssociatedScaledVector4(default, default, default);
         operations.PackFromRgbPlanes(default, default, default, default);
         operations.UnpackIntoRgbPlanes(default, default, default, default);
 

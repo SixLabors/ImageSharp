@@ -76,12 +76,12 @@ public class HalfSingleTests
         }
 
         Vector4[] actualVectors = new Vector4[source.Length];
-        PixelOperations<HalfSingle>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        PixelOperations<HalfSingle>.Instance.ToScaledVector4(Configuration.Default, source, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         Vector4[] destructiveSource = [.. expectedVectors];
         HalfSingle[] actualPixels = new HalfSingle[source.Length];
-        PixelOperations<HalfSingle>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<HalfSingle>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.Equal(source, actualPixels);
     }
 

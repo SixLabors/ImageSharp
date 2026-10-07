@@ -184,6 +184,31 @@ public class WebpDecoderTests
         image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
+    [Fact]
+    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_HardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.AllowAll);
+
+    [Fact]
+    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_WithoutAvx512_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.DisableAVX512F);
+
+    [Fact]
+    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_WithoutAvx2_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.DisableAVX2);
+
+    [Fact]
+    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUncompressedAlphaDecode, HwIntrinsics.DisableHWIntrinsic);
+
+    private static void RunUncompressedAlphaDecode()
+    {
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(
+            Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaNoCompression));
+        using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
     [Theory]
     [WithFile(Lossless.Alpha, PixelTypes.Rgba32)]
     public void WebpDecoder_CanDecode_Lossless_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)

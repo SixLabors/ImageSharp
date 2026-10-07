@@ -76,8 +76,8 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                     Span<Vector4> vectors = vectorBlock[..count];
 
                     // Opaque alpha makes scaling alone equivalent for straight and associated target pixels.
-                    PixelOperations<Rgba32>.Instance.ToVector4(this.configuration, packedBlock[..count], vectors, PixelConversionModifiers.Scale);
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count), PixelConversionModifiers.Scale);
+                    PixelOperations<Rgba32>.Instance.ToScaledVector4(this.configuration, packedBlock[..count], vectors);
+                    PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count));
                 }
 
                 offset += width;
@@ -111,7 +111,7 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 }
 
                 this.colorOperator.Convert(block);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), PixelConversionModifiers.Scale);
+                PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
             }
 
             rBitReader.NextRow();

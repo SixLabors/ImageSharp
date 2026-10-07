@@ -143,7 +143,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
             Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
             PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToUnassociatedScaledVector4(this.configuration, pixelRow, vectorBuffer);
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
@@ -165,7 +165,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scalingFactor * vector.X, scalingFactor * vector.Y, scalingFactor * vector.Z, vector.W);
             }
 
-            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.FromUnassociatedScaledVector4Destructive(this.configuration, vectorBuffer, pixelRow);
         }
     }
 
@@ -215,7 +215,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
             Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
             PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToUnassociatedScaledVector4(this.configuration, pixelRow, vectorBuffer);
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
@@ -235,7 +235,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scaledX, scaledY, scaledZ, alpha);
             }
 
-            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.FromUnassociatedScaledVector4Destructive(this.configuration, vectorBuffer, pixelRow);
         }
     }
 }

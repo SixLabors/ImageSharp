@@ -22,7 +22,7 @@ internal sealed class TiffFloatWriter<TPixel> : TiffCompositeColorWriter<TPixel>
     private readonly bool whiteIsZero;
     private readonly bool clearTransparentPixels;
     private readonly bool singleComponentSource;
-    private readonly PixelConversionModifiers modifiers;
+    private readonly bool associated;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffFloatWriter{TPixel}"/> class.
@@ -52,11 +52,9 @@ internal sealed class TiffFloatWriter<TPixel> : TiffCompositeColorWriter<TPixel>
 
         PixelTypeInfo info = TPixel.GetPixelTypeInfo();
         this.singleComponentSource = info.ComponentInfo?.ComponentCount == 1;
-        this.modifiers = bitsPerPixel == 128 && info.AlphaRepresentation == PixelAlphaRepresentation.Associated
-            ? PixelConversionModifiers.Premultiply
-            : PixelConversionModifiers.UnPremultiply;
 
-        this.modifiers |= PixelConversionModifiers.Scale;
+        // Only four-sample output retains alpha, so only that layout preserves an associated source representation.
+        this.associated = bitsPerPixel == 128 && info.AlphaRepresentation == PixelAlphaRepresentation.Associated;
     }
 
     /// <inheritdoc />
@@ -74,7 +72,14 @@ internal sealed class TiffFloatWriter<TPixel> : TiffCompositeColorWriter<TPixel>
         {
             int count = Math.Min(BlockSize, pixels.Length - offset);
             Span<Vector4> block = vectors[..count];
-            PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, pixels.Slice(offset, count), block, this.modifiers);
+            if (this.associated)
+            {
+                PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.Configuration, pixels.Slice(offset, count), block);
+            }
+            else
+            {
+                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.Configuration, pixels.Slice(offset, count), block);
+            }
 
             // Clear in the native row buffer, after conversion, so clearing transparent color
             // never normalizes unrelated HDR pixels in the source image.

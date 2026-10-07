@@ -60,8 +60,8 @@ internal sealed class TiffRgba64BigEndianDecoder<TPixel> : TiffBaseColorDecoder<
                     // TIFF associated pixels with zero alpha carry zero decoded color.
                     TiffOperatedColorConverter<TiffPacked16NativeSource, TiffRgba64AssociatedOperator, TiffPackedRgba64Store, ushort, ushort>.Convert(data.Slice(rowOffset + (x * 8), count * 8), [], [], [], MemoryMarshal.Cast<Rgba64, ushort>(sampleBlock), source, colorOperator, store);
                     Span<Vector4> vectorBlock = vectors[..count];
-                    PixelOperations<Rgba64>.Instance.ToVector4(this.configuration, sampleBlock, vectorBlock, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBlock, pixelRow.Slice(x, count), PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                    PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, sampleBlock, vectorBlock);
+                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectorBlock, pixelRow.Slice(x, count));
                 }
                 else
                 {

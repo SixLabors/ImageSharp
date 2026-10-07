@@ -77,11 +77,11 @@ internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
             PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
             // Color matrices transform logical color components, so associated storage must be unassociated before applying the matrix.
-            pixelOperations.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            pixelOperations.ToUnassociatedScaledVector4(this.configuration, rowSpan, span);
 
             ColorNumerics.Transform(span, ref Unsafe.AsRef(in this.matrix));
 
-            pixelOperations.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, span, rowSpan);
         }
     }
 }

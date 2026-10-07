@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Common;
@@ -131,35 +130,6 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         return expected;
     }
 
-    /// <summary>
-    /// Creates the scalar oracle for companded scaled input.
-    /// </summary>
-    /// <param name="source">The source vectors.</param>
-    /// <param name="associated">Whether the source vectors use associated alpha.</param>
-    /// <returns>The converted pixels.</returns>
-    internal static TPixel[] CreateCompandedExpectedPixelData(Vector4[] source, bool associated)
-    {
-        TPixel[] expected = new TPixel[source.Length];
-
-        for (int i = 0; i < source.Length; i++)
-        {
-            Vector4 vector = source[i];
-
-            if (associated)
-            {
-                Numerics.UnPremultiply(ref vector);
-            }
-
-            vector = SRgbCompanding.Compress(vector);
-
-            // Transfer functions operate on straight RGB. Let the destination pixel perform any required association so its stored
-            // alpha quantization participates exactly once, matching the public bulk conversion contract.
-            expected[i] = TPixel.FromUnassociatedScaledVector4(vector);
-        }
-
-        return expected;
-    }
-
     [Fact]
     public void PixelTypeInfoHasCorrectBitsPerPixel()
     {
@@ -208,39 +178,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) =>
-                {
-                    Span<TPixel> destPixels = d.GetSpan();
-                    this.Operations.FromVector4Destructive(this.Configuration, s, destPixels, PixelConversionModifiers.Scale);
-                });
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void FromCompandedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            v = SRgbCompanding.Expand(v);
-
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        Vector4[] source = CreateVector4TestData(count, SourceAction);
-        TPixel[] expected = CreateCompandedExpectedPixelData(source, this.HasAssociatedAlpha);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) => this.Operations.FromVector4Destructive(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale),
-            false);
+            (s, d) => this.Operations.FromScaledVector4Destructive(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -261,27 +199,15 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) =>
-            {
-                this.Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.Premultiply);
-            });
+            (s, d) => this.Operations.FromAssociatedVector4Destructive(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
     [MemberData(nameof(ArraySizesData))]
     public void FromPremultipliedScaledVector4(int count)
     {
-        void SourceAction(ref Vector4 v)
-        {
-            if (!this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
+        // The named API always receives associated vectors; straight destination formats unassociate them while packing.
+        void SourceAction(ref Vector4 v) => Numerics.Premultiply(ref v);
 
         void ExpectedAction(ref Vector4 v)
         {
@@ -297,41 +223,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) =>
-            {
-                this.Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale);
-            });
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void FromCompandedPremultipliedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            v = SRgbCompanding.Expand(v);
-            Numerics.Premultiply(ref v);
-        }
-
-        Vector4[] source = CreateVector4TestData(count, SourceAction);
-        TPixel[] expected = CreateCompandedExpectedPixelData(source, true);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) =>
-            {
-                this.Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale);
-            },
-            false);
+            (s, d) => this.Operations.FromAssociatedScaledVector4Destructive(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -437,51 +329,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.Scale));
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void ToCompandedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        void ExpectedAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.UnPremultiply(ref v);
-            }
-
-            v = SRgbCompanding.Expand(v);
-
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        TPixel[] source = CreateScaledPixelTestData(count, SourceAction);
-        Vector4[] expected = CreateExpectedScaledVector4Data(source, ExpectedAction);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale));
+            (s, d) => this.Operations.ToScaledVector4(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -500,7 +348,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) => this.Operations.ToVector4(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply));
+            (s, d) => this.Operations.ToAssociatedVector4(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -525,47 +373,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void ToCompandedPremultipliedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        void ExpectedAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.UnPremultiply(ref v);
-            }
-
-            v = SRgbCompanding.Expand(v);
-            Numerics.Premultiply(ref v);
-        }
-
-        TPixel[] source = CreateScaledPixelTestData(count, SourceAction);
-        Vector4[] expected = CreateExpectedScaledVector4Data(source, ExpectedAction);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
+            (s, d) => this.Operations.ToAssociatedScaledVector4(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]

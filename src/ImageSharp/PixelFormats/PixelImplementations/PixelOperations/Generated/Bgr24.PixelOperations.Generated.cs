@@ -38,24 +38,52 @@ public partial struct Bgr24
         }
 
         /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<Bgr24> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(PixelConversionModifiers.Scale));
-        }
+        public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
+            => Vector4Converters.RgbaCompatible.FromUnassociatedVector4(configuration, this, sourceVectors, destination);
 
         /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<Bgr24> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
-        }
+        public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
+            => this.FromVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
+            => this.FromVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
+            => Vector4Converters.RgbaCompatible.FromAssociatedVector4(configuration, this, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
+            => this.FromVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
+            => this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void ToVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
+            => Vector4Converters.RgbaCompatible.ToUnassociatedVector4(configuration, this, source, destination);
+
+        /// <inheritdoc />
+        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
+            => this.ToVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
+            => this.ToVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
+            => Vector4Converters.RgbaCompatible.ToAssociatedVector4(configuration, this, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
+            => this.ToVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
+            => this.ToAssociatedVector4(configuration, source, destination);
     
         /// <inheritdoc />
         public override void ToRgba32(

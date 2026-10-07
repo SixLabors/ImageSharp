@@ -202,11 +202,11 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
                 expectedUnassociatedScaled[0] = pixels[0].ToUnassociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.None);
-            operations.ToVector4(Configuration.Default, pixels, actualAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToVector4(Configuration.Default, pixels, actualNative);
+            operations.ToAssociatedVector4(Configuration.Default, pixels, actualAssociatedNative);
+            operations.ToAssociatedScaledVector4(Configuration.Default, pixels, actualAssociatedScaled);
+            operations.ToUnassociatedVector4(Configuration.Default, pixels, actualUnassociatedNative);
+            operations.ToUnassociatedScaledVector4(Configuration.Default, pixels, actualUnassociatedScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedAssociatedNative, actualAssociatedNative);
@@ -247,10 +247,14 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
             Vector4[] unassociatedScaledSource = [.. unassociatedScaled];
             Vector4[] associatedScaledSource = [.. associatedScaled];
 
-            operations.FromVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.FromVector4Destructive(Configuration.Default, unassociatedScaledSource, actualFromUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.FromUnassociatedVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative);
+            operations.FromAssociatedVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative);
+            operations.FromUnassociatedScaledVector4Destructive(
+                Configuration.Default,
+                unassociatedScaledSource,
+                actualFromUnassociatedScaled);
+
+            operations.FromAssociatedScaledVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled);
 
             Assert.Equal(expectedFromUnassociatedNative, actualFromUnassociatedNative);
             Assert.Equal(expectedFromAssociatedNative, actualFromAssociatedNative);
@@ -271,8 +275,8 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
             Vector4[] actualNativeSource = [.. expectedNative];
             Vector4[] actualScaledSource = [.. expectedAssociatedScaled];
 
-            operations.FromVector4Destructive(Configuration.Default, actualNativeSource, actualFromNative, PixelConversionModifiers.None);
-            operations.FromVector4Destructive(Configuration.Default, actualScaledSource, actualFromScaled, PixelConversionModifiers.Scale);
+            operations.FromVector4Destructive(Configuration.Default, actualNativeSource, actualFromNative);
+            operations.FromScaledVector4Destructive(Configuration.Default, actualScaledSource, actualFromScaled);
 
             Assert.Equal(expectedFromNative, actualFromNative);
             Assert.Equal(expectedFromScaled, actualFromScaled);
@@ -341,8 +345,8 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
             expectedScaled[i] = pixels[i].ToScaledVector4();
         }
 
-        PixelOperations<HalfVector4P>.Instance.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.None);
-        PixelOperations<HalfVector4P>.Instance.ToVector4(Configuration.Default, pixels, actualScaled, PixelConversionModifiers.Scale);
+        PixelOperations<HalfVector4P>.Instance.ToVector4(Configuration.Default, pixels, actualNative);
+        PixelOperations<HalfVector4P>.Instance.ToScaledVector4(Configuration.Default, pixels, actualScaled);
 
         AssertVectorBitsEqual(expectedNative, actualNative);
         AssertVectorBitsEqual(expectedScaled, actualScaled);
@@ -393,7 +397,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
 
         Vector4[] destructiveSource = [.. source];
 
-        PixelOperations<HalfVector4P>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actual, PixelConversionModifiers.None);
+        PixelOperations<HalfVector4P>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actual);
 
         for (int i = 0; i < expected.Length; i++)
         {
@@ -456,10 +460,14 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
             Vector4[] unassociatedScaledSource = [.. unassociatedScaled];
             Vector4[] associatedScaledSource = [.. associatedScaled];
 
-            operations.FromVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.FromVector4Destructive(Configuration.Default, unassociatedScaledSource, actualFromUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.FromUnassociatedVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative);
+            operations.FromAssociatedVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative);
+            operations.FromUnassociatedScaledVector4Destructive(
+                Configuration.Default,
+                unassociatedScaledSource,
+                actualFromUnassociatedScaled);
+
+            operations.FromAssociatedScaledVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled);
 
             Assert.Equal(expectedFromUnassociatedNative, actualFromUnassociatedNative);
             Assert.Equal(expectedFromAssociatedNative, actualFromAssociatedNative);
@@ -483,10 +491,10 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
                 expectedUnassociatedScaled[i] = expectedFromAssociatedScaled[i].ToUnassociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToAssociatedVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedNative);
+            operations.ToAssociatedScaledVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedScaled);
+            operations.ToUnassociatedVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedNative);
+            operations.ToUnassociatedScaledVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedScaled);
 
             AssertVectorBitsEqual(expectedAssociatedNative, actualAssociatedNative);
             AssertVectorBitsEqual(expectedAssociatedScaled, actualAssociatedScaled);
@@ -659,8 +667,8 @@ public class AssociatedAlphaPackedPixelConversionTests
                 expectedScaled[i] = pixels[i].ToAssociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.ToAssociatedVector4(Configuration.Default, pixels, actualNative);
+            operations.ToAssociatedScaledVector4(Configuration.Default, pixels, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);
@@ -698,8 +706,8 @@ public class AssociatedAlphaPackedPixelConversionTests
                 expectedScaled[i] = TPixel.FromAssociatedScaledVector4(scaledSource[i]);
             }
 
-            operations.FromVector4Destructive(Configuration.Default, nativeSource, actualNative, PixelConversionModifiers.Premultiply);
-            operations.FromVector4Destructive(Configuration.Default, scaledSource, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.FromAssociatedVector4Destructive(Configuration.Default, nativeSource, actualNative);
+            operations.FromAssociatedScaledVector4Destructive(Configuration.Default, scaledSource, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);
@@ -736,8 +744,8 @@ public class AssociatedAlphaPackedPixelConversionTests
                 expectedScaled[0] = pixels[0].ToUnassociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.UnPremultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToUnassociatedVector4(Configuration.Default, pixels, actualNative);
+            operations.ToUnassociatedScaledVector4(Configuration.Default, pixels, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);
@@ -769,8 +777,8 @@ public class AssociatedAlphaPackedPixelConversionTests
             Vector4[] nativeSource = [.. vectors];
             Vector4[] scaledSource = [.. vectors];
 
-            operations.FromVector4Destructive(Configuration.Default, nativeSource, actualNative, PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, scaledSource, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.FromUnassociatedVector4Destructive(Configuration.Default, nativeSource, actualNative);
+            operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, scaledSource, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);

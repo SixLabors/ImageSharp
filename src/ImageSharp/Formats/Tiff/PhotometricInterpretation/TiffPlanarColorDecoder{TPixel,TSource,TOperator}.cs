@@ -61,7 +61,20 @@ internal sealed class TiffPlanarColorDecoder<TPixel, TSource, TOperator> : TiffB
                 // Each source span begins at the same pixel in its own plane. The register
                 // traversal receives complete bounded groups and writes this block only once.
                 TiffOperatedColorConverter<TSource, TOperator, TiffVector4Store, float, Vector4>.Convert(first.Slice(byteOffset, byteCount), second.Slice(byteOffset, byteCount), third.Slice(byteOffset, byteCount), this.source.ComponentCount == 4 ? fourth.Slice(byteOffset, byteCount) : [], block, this.source, this.colorOperator, default);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), this.colorOperator.Modifiers);
+
+                // The operator has scaled the samples; its alpha representation selects the matching pixel packer.
+                switch (this.colorOperator.AlphaRepresentation)
+                {
+                    case PixelAlphaRepresentation.Associated:
+                        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                        break;
+                    case PixelAlphaRepresentation.Unassociated:
+                        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                        break;
+                    default:
+                        PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                        break;
+                }
             }
 
             rowOffset += width * this.source.BytesPerPixel;

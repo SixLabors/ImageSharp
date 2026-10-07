@@ -18,7 +18,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 {
     private readonly ColorProfileConverter colorProfileConverter;
     private readonly Configuration configuration;
-    private readonly PixelConversionModifiers modifiers;
+    private readonly bool hasProfile;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CmykTiffColor{TPixel}"/> class.
@@ -33,7 +33,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         ColorConversionOptions options = new() { SourceIccProfile = profile, TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null, MemoryAllocator = allocator };
 
         this.colorProfileConverter = new ColorProfileConverter(options);
-        this.modifiers = hasProfile ? PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply : PixelConversionModifiers.Scale;
+        this.hasProfile = hasProfile;
     }
 
     /// <inheritdoc/>
@@ -68,7 +68,16 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
                 // Pixel packing may overwrite its input, so convert a bounded RGB block into separate scratch.
                 Rgb.ToScaledVector4(rgbRow.Slice(x, count), block);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), this.modifiers);
+
+                // ICC output is straight RGB; without ICC, retain the existing native-alpha packing path.
+                if (this.hasProfile)
+                {
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
             }
         }
     }

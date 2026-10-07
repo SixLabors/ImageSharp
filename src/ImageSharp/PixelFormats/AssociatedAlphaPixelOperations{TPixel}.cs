@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Numerics;
-using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
@@ -21,162 +20,44 @@ public abstract class AssociatedAlphaPixelOperations<TPixel> : PixelOperations<T
         => AssociatedAlphaPixelBlenders<TPixel>.GetPixelBlender(colorMode, alphaMode);
 
     /// <inheritdoc />
-    protected abstract override void ToUnassociatedVector4(
-        Configuration configuration,
-        ReadOnlySpan<TPixel> source,
-        Span<Vector4> destination);
+    public abstract override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination);
 
     /// <inheritdoc />
-    protected abstract override void ToAssociatedVector4(
-        Configuration configuration,
-        ReadOnlySpan<TPixel> source,
-        Span<Vector4> destination);
+    public abstract override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination);
 
     /// <inheritdoc />
-    protected abstract override void FromUnassociatedVector4Destructive(
-        Configuration configuration,
-        Span<Vector4> source,
-        Span<TPixel> destination);
+    public abstract override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination);
 
     /// <inheritdoc />
-    protected abstract override void FromAssociatedVector4Destructive(
-        Configuration configuration,
-        Span<Vector4> source,
-        Span<TPixel> destination);
+    public abstract override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination);
 
     /// <inheritdoc />
-    protected abstract override void ToUnassociatedScaledVector4(
-        Configuration configuration,
-        ReadOnlySpan<TPixel> source,
-        Span<Vector4> destination);
+    public abstract override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination);
 
     /// <inheritdoc />
-    protected abstract override void ToAssociatedScaledVector4(
-        Configuration configuration,
-        ReadOnlySpan<TPixel> source,
-        Span<Vector4> destination);
+    public abstract override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination);
 
     /// <inheritdoc />
-    protected abstract override void FromUnassociatedScaledVector4Destructive(
-        Configuration configuration,
-        Span<Vector4> source,
-        Span<TPixel> destination);
+    public abstract override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination);
 
     /// <inheritdoc />
-    protected abstract override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination);
+    public abstract override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination);
 
     /// <inheritdoc />
-    public override void FromVector4Destructive(
-        Configuration configuration,
-        Span<Vector4> sourceVectors,
-        Span<TPixel> destination,
-        PixelConversionModifiers modifiers)
-    {
-        Guard.NotNull(configuration, nameof(configuration));
-        Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
-
-        bool associated = modifiers.IsDefined(PixelConversionModifiers.Premultiply) || !modifiers.IsDefined(PixelConversionModifiers.UnPremultiply);
-        bool scaled = modifiers.IsDefined(PixelConversionModifiers.Scale);
-
-        if (modifiers.IsDefined(PixelConversionModifiers.SRgbCompand))
-        {
-            // Transfer functions operate on straight color components. Associated input must therefore be unassociated before companding.
-            if (associated)
-            {
-                Numerics.UnPremultiply(sourceVectors);
-            }
-
-            SRgbCompanding.Compress(sourceVectors);
-
-            if (scaled)
-            {
-                this.FromUnassociatedScaledVector4Destructive(configuration, sourceVectors, destination);
-            }
-            else
-            {
-                this.FromUnassociatedVector4Destructive(configuration, sourceVectors, destination);
-            }
-
-            return;
-        }
-
-        if (scaled)
-        {
-            if (associated)
-            {
-                this.FromAssociatedScaledVector4Destructive(configuration, sourceVectors, destination);
-            }
-            else
-            {
-                this.FromUnassociatedScaledVector4Destructive(configuration, sourceVectors, destination);
-            }
-        }
-        else if (associated)
-        {
-            this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
-        }
-        else
-        {
-            this.FromUnassociatedVector4Destructive(configuration, sourceVectors, destination);
-        }
-    }
+    public override void ToVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+        => this.ToAssociatedVector4(configuration, source, destination);
 
     /// <inheritdoc />
-    public override void ToVector4(
-        Configuration configuration,
-        ReadOnlySpan<TPixel> source,
-        Span<Vector4> destinationVectors,
-        PixelConversionModifiers modifiers)
-    {
-        Guard.NotNull(configuration, nameof(configuration));
-        Guard.DestinationShouldNotBeTooShort(source, destinationVectors, nameof(destinationVectors));
+    public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+        => this.ToAssociatedScaledVector4(configuration, source, destination);
 
-        bool associated = modifiers.IsDefined(PixelConversionModifiers.Premultiply) || !modifiers.IsDefined(PixelConversionModifiers.UnPremultiply);
-        bool scaled = modifiers.IsDefined(PixelConversionModifiers.Scale);
+    /// <inheritdoc />
+    public override void FromVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
+        => this.FromAssociatedVector4Destructive(configuration, source, destination);
 
-        if (modifiers.IsDefined(PixelConversionModifiers.SRgbCompand))
-        {
-            // Extract straight color before applying the transfer function; companding associated components would make RGB depend on alpha.
-            if (scaled)
-            {
-                this.ToUnassociatedScaledVector4(configuration, source, destinationVectors);
-            }
-            else
-            {
-                this.ToUnassociatedVector4(configuration, source, destinationVectors);
-            }
-
-            Span<Vector4> converted = destinationVectors[..source.Length];
-            SRgbCompanding.Expand(converted);
-
-            if (associated)
-            {
-                Numerics.Premultiply(converted);
-            }
-
-            return;
-        }
-
-        if (scaled)
-        {
-            if (associated)
-            {
-                this.ToAssociatedScaledVector4(configuration, source, destinationVectors);
-            }
-            else
-            {
-                this.ToUnassociatedScaledVector4(configuration, source, destinationVectors);
-            }
-        }
-        else if (associated)
-        {
-            this.ToAssociatedVector4(configuration, source, destinationVectors);
-        }
-        else
-        {
-            this.ToUnassociatedVector4(configuration, source, destinationVectors);
-        }
-    }
+    /// <inheritdoc />
+    public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
+        => this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
 
     /// <inheritdoc />
     public override void FromArgb32(Configuration configuration, ReadOnlySpan<Argb32> source, Span<TPixel> destination)
@@ -310,15 +191,15 @@ public abstract class AssociatedAlphaPixelOperations<TPixel> : PixelOperations<T
         Span<Vector4> vectorSpan = tempVectors.GetSpan()[..sliceLength];
         PixelOperations<TDestinationPixel> destinationOperations = PixelOperations<TDestinationPixel>.Instance;
 
-        // Generated destination dispatch routes conversion back through this source operation's ToX override. Extract through this
-        // operation's protected bulk hook, then use the destination's public modifier contract to avoid recursive dispatch.
+        // Generated destination conversions can route back through this source operation, so read through the source hook directly.
+        // The destination then applies its own alpha rules when it packs the straight vectors.
         for (int i = 0; i < numberOfSlices; i++)
         {
             int start = i * sliceLength;
             ReadOnlySpan<TPixel> sourceSlice = source.Slice(start, sliceLength);
             Span<TDestinationPixel> destinationSlice = destination.Slice(start, sliceLength);
             this.ToUnassociatedScaledVector4(configuration, sourceSlice, vectorSpan);
-            destinationOperations.FromVector4Destructive(configuration, vectorSpan, destinationSlice, PixelConversionModifiers.Scale);
+            destinationOperations.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, destinationSlice);
         }
 
         int endOfCompleteSlices = numberOfSlices * sliceLength;
@@ -330,7 +211,7 @@ public abstract class AssociatedAlphaPixelOperations<TPixel> : PixelOperations<T
             Span<TDestinationPixel> destinationSlice = destination.Slice(endOfCompleteSlices, remainder);
             vectorSpan = vectorSpan[..remainder];
             this.ToUnassociatedScaledVector4(configuration, sourceSlice, vectorSpan);
-            destinationOperations.FromVector4Destructive(configuration, vectorSpan, destinationSlice, PixelConversionModifiers.Scale);
+            destinationOperations.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, destinationSlice);
         }
     }
 }

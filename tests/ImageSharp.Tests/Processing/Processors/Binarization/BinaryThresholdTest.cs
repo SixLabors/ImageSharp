@@ -237,7 +237,6 @@ public class BinaryThresholdTest
     {
         Vector4[] vectors = new Vector4[source.Width];
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply;
         float minimum = float.PositiveInfinity;
         float maximum = float.NegativeInfinity;
 
@@ -245,7 +244,10 @@ public class BinaryThresholdTest
         // the range and expected mask independently from the unmodified image.
         for (int y = bounds.Top; y < bounds.Bottom; y++)
         {
-            operations.ToVector4(source.Configuration, source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y), vectors, modifiers);
+            operations.ToUnassociatedScaledVector4(
+                source.Configuration,
+                source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y),
+                vectors);
 
             for (int x = bounds.Left; x < bounds.Right; x++)
             {
@@ -261,7 +263,10 @@ public class BinaryThresholdTest
 
         for (int y = 0; y < source.Height; y++)
         {
-            operations.ToVector4(source.Configuration, source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y), vectors, modifiers);
+            operations.ToUnassociatedScaledVector4(
+                source.Configuration,
+                source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y),
+                vectors);
 
             for (int x = 0; x < source.Width; x++)
             {

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 internal readonly struct TiffRgba64PlanarOperator : ITiffColorOperator<ushort>
 {
     /// <inheritdoc/>
-    public PixelConversionModifiers Modifiers => PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply;
+    public PixelAlphaRepresentation AlphaRepresentation => PixelAlphaRepresentation.Associated;
 
     /// <inheritdoc/>
     public void Convert(ref ushort c0, ref ushort c1, ref ushort c2, ref ushort c3)

@@ -56,11 +56,14 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
         ReadOnlySpan<TPixelSource> source,
         Span<Vector4> destination)
     {
-        PixelConversionModifiers modifiers = TOperator.IsAssociatedAlpha
-            ? PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply
-            : PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply;
-
-        PixelOperations<TPixelSource>.Instance.ToVector4(configuration, source, destination, modifiers);
+        if (TOperator.IsAssociatedAlpha)
+        {
+            PixelOperations<TPixelSource>.Instance.ToAssociatedScaledVector4(configuration, source, destination);
+        }
+        else
+        {
+            PixelOperations<TPixelSource>.Instance.ToUnassociatedScaledVector4(configuration, source, destination);
+        }
     }
 
     /// <inheritdoc />
@@ -75,11 +78,14 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
         Span<Vector4> source,
         Span<TPixel> destination)
     {
-        PixelConversionModifiers modifiers = TOperator.IsAssociatedAlpha
-            ? PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply
-            : PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply;
-
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, source, destination, modifiers);
+        if (TOperator.IsAssociatedAlpha)
+        {
+            PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(configuration, source, destination);
+        }
+        else
+        {
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, source, destination);
+        }
     }
 
     /// <inheritdoc />

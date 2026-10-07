@@ -718,7 +718,7 @@ public abstract class PixelBlender<TPixel>
         ReadOnlySpan<TPixelSource> source,
         Span<Vector4> destination)
         where TPixelSource : unmanaged, IPixel<TPixelSource>
-        => PixelOperations<TPixelSource>.Instance.ToVector4(configuration, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        => PixelOperations<TPixelSource>.Instance.ToUnassociatedScaledVector4(configuration, source, destination);
 
     /// <summary>
     /// Converts a source pixel to the vector representation consumed by the blend functions.
@@ -738,7 +738,7 @@ public abstract class PixelBlender<TPixel>
         Configuration configuration,
         Span<Vector4> source,
         Span<TPixel> destination)
-        => PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        => PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, source, destination);
 
     /// <summary>
     /// Blend 2 rows together.

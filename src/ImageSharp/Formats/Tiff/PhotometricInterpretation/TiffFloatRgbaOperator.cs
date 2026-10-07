@@ -20,7 +20,7 @@ internal readonly struct TiffFloatRgbaOperator : ITiffColorOperator<float>
     public TiffFloatRgbaOperator(bool associated) => this.associated = associated;
 
     /// <inheritdoc />
-    public PixelConversionModifiers Modifiers => PixelConversionModifiers.Scale | (this.associated ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
+    public PixelAlphaRepresentation AlphaRepresentation => this.associated ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated;
 
     /// <inheritdoc />
     public void Convert(ref float c0, ref float c1, ref float c2, ref float c3)

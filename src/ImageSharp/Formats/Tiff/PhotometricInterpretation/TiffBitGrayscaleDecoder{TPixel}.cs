@@ -95,7 +95,7 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
                     ConvertFour(Vector128.WidenUpper(lower), this.colorOperator, ref vectors[4]);
                     ConvertFour(Vector128.WidenLower(upper), this.colorOperator, ref vectors[8]);
                     ConvertFour(Vector128.WidenUpper(upper), this.colorOperator, ref vectors[12]);
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, 16), this.colorOperator.Modifiers);
+                    PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, 16));
                 }
             }
 
@@ -137,7 +137,7 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
                     block[i] = new Vector4(intensity, green, blue, alpha);
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), this.colorOperator.Modifiers);
+                PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
             }
 
             rowOffset += rowByteCount;

@@ -17,16 +17,20 @@ public partial struct RgbaVectorP
     internal class PixelOperations : AssociatedAlphaPixelOperations<RgbaVectorP>
     {
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
             MemoryMarshal.Cast<RgbaVectorP, Vector4>(source).CopyTo(destination);
         }
 
         /// <inheritdoc />
-        protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
             MemoryMarshal.Cast<RgbaVectorP, Vector4>(source).CopyTo(destination);
 
             // Unassociate the destination after copying so the stored source components are unchanged.
@@ -34,15 +38,18 @@ public partial struct RgbaVectorP
         }
 
         /// <inheritdoc />
-        protected override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
+        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
             MemoryMarshal.Cast<Vector4, RgbaVectorP>(source).CopyTo(destination);
         }
 
         /// <inheritdoc />
-        protected override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
+        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             // The source is destructive by contract, so associate it before copying to storage.
@@ -51,19 +58,39 @@ public partial struct RgbaVectorP
         }
 
         /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
-            => this.ToAssociatedVector4(configuration, source, destination);
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToAssociatedVector4(configuration, source, destination);
+        }
 
         /// <inheritdoc />
-        protected override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVectorP> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToUnassociatedVector4(configuration, source, destination);
+        }
 
         /// <inheritdoc />
-        protected override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
-            => this.FromAssociatedVector4Destructive(configuration, source, destination);
+        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.FromAssociatedVector4Destructive(configuration, source, destination);
+        }
 
         /// <inheritdoc />
-        protected override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
-            => this.FromUnassociatedVector4Destructive(configuration, source, destination);
+        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<RgbaVectorP> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.FromUnassociatedVector4Destructive(configuration, source, destination);
+        }
     }
 }

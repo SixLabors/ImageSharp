@@ -178,8 +178,6 @@ internal sealed class ExrEncoderCore
             throw new ImageFormatException("Image is too large to encode in EXR format.");
         }
 
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale;
-
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<float> redBuffer = rgbBuffer.GetSpan()[..width];
@@ -206,14 +204,13 @@ internal sealed class ExrEncoderCore
             for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
-                PixelOperations<TPixel>.Instance.UnpackToFloatPlanes(
+                PixelOperations<TPixel>.Instance.UnpackToAssociatedScaledFloatPlanes(
                     this.configuration,
                     pixelRowSpan,
                     redBuffer,
                     greenBuffer,
                     blueBuffer,
-                    alphaBuffer,
-                    modifiers);
+                    alphaBuffer);
 
                 // Write pixel data to row block buffer.
                 Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);

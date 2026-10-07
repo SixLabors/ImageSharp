@@ -201,22 +201,21 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         bool compand,
         bool premultiplyAlpha)
     {
-        // Resampling uses normalized vectors and interpolates them in the alpha representation selected by the processor options.
-        PixelConversionModifiers alphaModifier = premultiplyAlpha ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply;
-        PixelConversionModifiers conversionModifiers = (PixelConversionModifiers.Scale | alphaModifier).ApplyCompanding(compand);
-
         Buffer2DRegion<TPixel> sourceRegion = source.PixelBuffer.GetRegion(sourceRectangle);
 
+        // Resampling uses normalized vectors and interpolates them in the alpha representation selected by the processor options.
         // To reintroduce parallel processing, we would launch multiple workers
         // for different row intervals of the image.
         using ResizeWorker<TPixel> worker = new(
             configuration,
             sourceRegion,
-            conversionModifiers,
+            compand,
+            premultiplyAlpha,
             horizontalKernelMap,
             verticalKernelMap,
             interest,
             destinationRectangle.Location);
+
         worker.Initialize();
 
         RowInterval workingInterval = new(interest.Top, interest.Bottom);

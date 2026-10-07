@@ -14,9 +14,10 @@ internal interface ITiffColorOperator<TSample>
     where TSample : unmanaged
 {
     /// <summary>
-    /// Gets the source numeric and alpha representation used for target pixel packing.
+    /// Gets the alpha representation of the converted, scaled vector samples.
+    /// A value of <see cref="PixelAlphaRepresentation.None"/> means the operator supplies opaque alpha.
     /// </summary>
-    PixelConversionModifiers Modifiers { get; }
+    PixelAlphaRepresentation AlphaRepresentation { get; }
 
     /// <summary>
     /// Converts one pixel in the source's component units.

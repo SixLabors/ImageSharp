@@ -39,7 +39,6 @@ internal sealed class TiffRgba32PackedDecoder<TPixel> : TiffBaseColorDecoder<TPi
         TiffRgba32PackedSource source = new(this.reverseEndianness);
         TiffRgba32PackedOperator colorOperator = new(this.associated);
         TiffPackedVector4Store store = default;
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Scale | (this.associated ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
         int offset = 0;
 
         for (int y = top; y < top + height; y++)
@@ -54,7 +53,17 @@ internal sealed class TiffRgba32PackedDecoder<TPixel> : TiffBaseColorDecoder<TPi
                 // Convert up to sixteen pixels together so PixelOperations can pack them in bulk.
                 // Slice the source to complete pixels so its final 32-bit read stays in this row.
                 TiffOperatedColorConverter<TiffRgba32PackedSource, TiffRgba32PackedOperator, TiffPackedVector4Store, float, Vector4>.Convert(data.Slice(offset, count * 16), [], [], [], block, source, colorOperator, store);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), modifiers);
+
+                // The operator preserves stored alpha association, so select the matching destination packer.
+                if (this.associated)
+                {
+                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
+
                 offset += count * 16;
             }
         }

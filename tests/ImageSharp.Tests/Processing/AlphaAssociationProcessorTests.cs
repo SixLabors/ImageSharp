@@ -73,7 +73,7 @@ public class AlphaAssociationProcessorTests
             expectedVectors[i] = pixels[i].ToUnassociatedVector4();
         }
 
-        operations.ToVector4(Configuration.Default, pixels, actualVectors, PixelConversionModifiers.UnPremultiply);
+        operations.ToUnassociatedVector4(Configuration.Default, pixels, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         for (int i = 0; i < length; i++)
@@ -81,7 +81,7 @@ public class AlphaAssociationProcessorTests
             expectedVectors[i] = pixels[i].ToAssociatedVector4();
         }
 
-        operations.ToVector4(Configuration.Default, pixels, actualVectors, PixelConversionModifiers.Premultiply);
+        operations.ToAssociatedVector4(Configuration.Default, pixels, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         for (int i = 0; i < length; i++)
@@ -90,7 +90,7 @@ public class AlphaAssociationProcessorTests
             expectedPixels[i] = ScaledRgbaVectorP.FromUnassociatedVector4(expectedVectors[i]);
         }
 
-        operations.FromVector4Destructive(Configuration.Default, expectedVectors, actualPixels, PixelConversionModifiers.UnPremultiply);
+        operations.FromUnassociatedVector4Destructive(Configuration.Default, expectedVectors, actualPixels);
         Assert.Equal(expectedPixels, actualPixels);
 
         for (int i = 0; i < length; i++)
@@ -99,7 +99,7 @@ public class AlphaAssociationProcessorTests
             expectedPixels[i] = ScaledRgbaVectorP.FromAssociatedVector4(expectedVectors[i]);
         }
 
-        operations.FromVector4Destructive(Configuration.Default, expectedVectors, actualPixels, PixelConversionModifiers.Premultiply);
+        operations.FromAssociatedVector4Destructive(Configuration.Default, expectedVectors, actualPixels);
         Assert.Equal(expectedPixels, actualPixels);
     }
 

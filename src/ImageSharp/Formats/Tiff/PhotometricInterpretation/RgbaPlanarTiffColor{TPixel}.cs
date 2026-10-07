@@ -76,7 +76,6 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
             InlineArray64<Vector4> vectorBuffer = default;
             Span<Rgba32> packedBlock = packedBuffer;
             Span<Vector4> vectorBlock = vectorBuffer;
-            PixelConversionModifiers destinationModifiers = PixelConversionModifiers.Scale | (hasAssociatedAlpha ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
             TiffPlanar8NativeSource source = default;
             TiffRgba32Store store = default;
             int offset = 0;
@@ -94,8 +93,15 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                     TiffNativeColorConverter<TiffPlanar8NativeSource, TiffRgba32Store, byte>.Convert(red.Slice(offset + x, count), green.Slice(offset + x, count), blue.Slice(offset + x, count), alpha.Slice(offset + x, count), MemoryMarshal.AsBytes(packedBlock[..count]), source, store);
 
                     Span<Vector4> vectors = vectorBlock[..count];
-                    PixelOperations<Rgba32>.Instance.ToVector4(this.configuration, packedBlock[..count], vectors, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count), destinationModifiers);
+                    PixelOperations<Rgba32>.Instance.ToUnassociatedScaledVector4(this.configuration, packedBlock[..count], vectors);
+                    if (hasAssociatedAlpha)
+                    {
+                        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count));
+                    }
+                    else
+                    {
+                        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count));
+                    }
                 }
 
                 offset += width;
@@ -110,8 +116,6 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
         BitReader aBitReader = new(data[3].GetSpan());
         InlineArray16<Vector4> rawBuffer = default;
         Span<Vector4> raw = rawBuffer;
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Scale | (hasAssociatedAlpha ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
-
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
@@ -130,7 +134,14 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 }
 
                 this.colorOperator.Convert(block);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), modifiers);
+                if (hasAssociatedAlpha)
+                {
+                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
             }
 
             rBitReader.NextRow();

@@ -66,7 +66,7 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 }
 
                 this.colorOperator.Convert(block);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), PixelConversionModifiers.Scale);
+                PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
             }
 
             bitReader.NextRow();

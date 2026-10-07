@@ -48,8 +48,8 @@ internal class Rgba8888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 // The TIFF samples already contain associated RGB. Reinterpret them as Rgba32 only to normalize and unpack the
                 // channels; asking that unassociated storage type to associate them would multiply RGB a second time.
                 ReadOnlySpan<Rgba32> associatedSamples = MemoryMarshal.Cast<byte, Rgba32>(data.Slice(offset, byteCount));
-                PixelOperations<Rgba32>.Instance.ToVector4(this.configuration, associatedSamples, vectorsSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorsSpan, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                PixelOperations<Rgba32>.Instance.ToUnassociatedScaledVector4(this.configuration, associatedSamples, vectorsSpan);
+                PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectorsSpan, pixelRow);
             }
             else
             {

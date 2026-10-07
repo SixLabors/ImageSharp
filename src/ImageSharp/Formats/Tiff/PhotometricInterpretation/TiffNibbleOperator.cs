@@ -26,7 +26,9 @@ internal readonly struct TiffNibbleOperator : ITiffColorOperator<float>
     }
 
     /// <inheritdoc />
-    public PixelConversionModifiers Modifiers => PixelConversionModifiers.Scale | (this.hasAlpha ? this.associated ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply : PixelConversionModifiers.None);
+    public PixelAlphaRepresentation AlphaRepresentation => !this.hasAlpha
+        ? PixelAlphaRepresentation.None
+        : this.associated ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated;
 
     /// <inheritdoc />
     public void Convert(ref float c0, ref float c1, ref float c2, ref float c3)

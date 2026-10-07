@@ -66,9 +66,9 @@ internal sealed class TiffRgba64PlanarDecoder<TPixel> : TiffBasePlanarColorDecod
                 {
                     TiffOperatedColorConverter<TiffPlanar16NativeSource, TiffRgba64PlanarOperator, TiffRgba64Store, ushort, ushort>.Convert(red.Slice(byteOffset, byteCount), green.Slice(byteOffset, byteCount), blue.Slice(byteOffset, byteCount), alpha.Slice(byteOffset, byteCount), nativeBlock, source, colorOperator, store);
                     Span<Vector4> vectorBlock = vectors[..count];
-                    PixelOperations<Rgba64>.Instance.ToVector4(this.configuration, sampleBlock, vectorBlock, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                    PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, sampleBlock, vectorBlock);
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBlock, pixelRow.Slice(x, count), PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectorBlock, pixelRow.Slice(x, count));
                 }
                 else
                 {

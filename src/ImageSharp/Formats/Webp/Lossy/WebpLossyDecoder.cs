@@ -3,9 +3,12 @@
 #nullable disable
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -48,7 +51,7 @@ internal sealed class WebpLossyDecoder
     }
 
     /// <summary>
-    /// Decodes the lossless webp image from the stream.
+    /// Decodes the lossy webp image from the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="pixels">The pixel buffer to store the decoded data.</param>
@@ -56,7 +59,9 @@ internal sealed class WebpLossyDecoder
     /// <param name="height">The height of the image.</param>
     /// <param name="info">Information about the image.</param>
     /// <param name="alphaData">The ALPH chunk data.</param>
-    public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info, IMemoryOwner<byte> alphaData)
+    /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
+    public void Decode<TPixel>(
+        Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info, IMemoryOwner<byte> alphaData, ColorProfileConverter colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Paragraph 9.2: color space and clamp type follow.
@@ -100,8 +105,9 @@ internal sealed class WebpLossyDecoder
         // Paragraph 13.4: Parse probabilities.
         this.ParseProbabilities(decoder);
 
-        // Decode image data.
-        this.ParseFrame(decoder, io);
+        // Select the native YCbCr converter once from the embedded source profile.
+        WebpColorConverterBase colorConverter = WebpColorConverterBase.GetYCbCrConverter(colorProfileConverter);
+        this.ParseFrame(decoder, io, colorConverter);
 
         if (info.Features?.Alpha == true)
         {
@@ -113,49 +119,40 @@ internal sealed class WebpLossyDecoder
                 this.memoryAllocator,
                 this.configuration);
             alphaDecoder.Decode();
-            DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, alphaDecoder.Alpha);
+            this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, alphaDecoder.Alpha.Memory.Span, colorConverter, colorProfileConverter);
         }
         else
         {
-            this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels);
+            this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, ReadOnlySpan<byte>.Empty, colorConverter, colorProfileConverter);
         }
     }
 
-    private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> decodedPixels)
+    private void DecodePixelValues<TPixel>(
+        int width,
+        int height,
+        Span<byte> pixelData,
+        Buffer2D<TPixel> decodedPixels,
+        ReadOnlySpan<byte> alpha,
+        WebpColorConverterBase colorConverter,
+        ColorProfileConverter colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        using IMemoryOwner<Vector4> vectorOwner = colorProfileConverter is null ? null : this.memoryAllocator.Allocate<Vector4>(width);
+        using IMemoryOwner<Rgb> rgbOwner = colorProfileConverter is null ? null : this.memoryAllocator.Allocate<Rgb>(width);
+        Span<Vector4> vectors = vectorOwner is null ? Span<Vector4>.Empty : vectorOwner.Memory.Span;
+        Span<Rgb> rgb = rgbOwner is null ? Span<Rgb>.Empty : rgbOwner.Memory.Span;
+
         int widthMul3 = width * 3;
         for (int y = 0; y < height; y++)
         {
             Span<byte> row = pixelData.Slice(y * widthMul3, widthMul3);
             Span<TPixel> decodedPixelRow = decodedPixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-                this.configuration,
-                row,
-                decodedPixelRow,
-                width);
+            ReadOnlySpan<byte> alphaRow = alpha.IsEmpty ? ReadOnlySpan<byte>.Empty : alpha.Slice(y * width, width);
+            colorConverter.ConvertYuvRow(this.configuration, row, alphaRow, colorProfileConverter, vectors, rgb, decodedPixelRow);
         }
     }
 
-    private static void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> decodedPixels, IMemoryOwner<byte> alpha)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Span<byte> alphaSpan = alpha.Memory.Span;
-        Span<Bgr24> pixelsBgr = MemoryMarshal.Cast<byte, Bgr24>(pixelData);
-        for (int y = 0; y < height; y++)
-        {
-            int yMulWidth = y * width;
-            Span<TPixel> decodedPixelRow = decodedPixels.DangerousGetRowSpan(y);
-            for (int x = 0; x < width; x++)
-            {
-                int offset = yMulWidth + x;
-                Bgr24 bgr = pixelsBgr[offset];
-                decodedPixelRow[x] = TPixel.FromBgra32(new Bgra32(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
-            }
-        }
-    }
-
-    private void ParseFrame(Vp8Decoder dec, Vp8Io io)
+    private void ParseFrame(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
     {
         for (dec.MbY = 0; dec.MbY < dec.BottomRightMbY; ++dec.MbY)
         {
@@ -179,7 +176,7 @@ internal sealed class WebpLossyDecoder
             InitScanline(dec);
 
             // Reconstruct, filter and emit the row.
-            this.ProcessRow(dec, io);
+            this.ProcessRow(dec, io, colorConverter);
         }
     }
 
@@ -300,10 +297,10 @@ internal sealed class WebpLossyDecoder
         dec.MbX = 0;
     }
 
-    private void ProcessRow(Vp8Decoder dec, Vp8Io io)
+    private void ProcessRow(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
     {
         this.ReconstructRow(dec);
-        FinishRow(dec, io);
+        FinishRow(dec, io, colorConverter);
     }
 
     private void ReconstructRow(Vp8Decoder dec)
@@ -652,7 +649,7 @@ internal sealed class WebpLossyDecoder
         }
     }
 
-    private static void FinishRow(Vp8Decoder dec, Vp8Io io)
+    private static void FinishRow(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
     {
         int extraYRows = WebpConstants.FilterExtraRows[(int)dec.Filter];
         int ySize = extraYRows * dec.CacheYStride;
@@ -701,7 +698,7 @@ internal sealed class WebpLossyDecoder
             io.MbY = yStart;
             io.MbW = io.Width;
             io.MbH = yEnd - yStart;
-            EmitRgb(dec, io);
+            EmitRgb(dec, io, colorConverter);
         }
 
         // Rotate top samples if needed.
@@ -713,7 +710,7 @@ internal sealed class WebpLossyDecoder
         }
     }
 
-    private static int EmitRgb(Vp8Decoder dec, Vp8Io io)
+    private static int EmitRgb(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
     {
         Span<byte> buf = dec.Pixels.Memory.Span;
         int numLinesOut = io.MbH; // a priori guess.
@@ -738,12 +735,12 @@ internal sealed class WebpLossyDecoder
         if (y == 0)
         {
             // First line is special cased. We mirror the u/v samples at boundary.
-            YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst, default, mbw, uvBuffer);
+            colorConverter.UpSample(curY, default, curU, curV, curU, curV, dst, default, mbw, uvBuffer);
         }
         else
         {
             // We can finish the left-over line from previous call.
-            YuvConversion.UpSample(tmpYBuffer, curY, topU, topV, curU, curV, buf[(dstStartIdx - bufferStride)..], dst, mbw, uvBuffer);
+            colorConverter.UpSample(tmpYBuffer, curY, topU, topV, curU, curV, buf[(dstStartIdx - bufferStride)..], dst, mbw, uvBuffer);
             numLinesOut++;
         }
 
@@ -756,7 +753,7 @@ internal sealed class WebpLossyDecoder
             topV = curV;
             curU = curU[io.UvStride..];
             curV = curV[io.UvStride..];
-            YuvConversion.UpSample(curY[io.YStride..], curY[ioStride2..], topU, topV, curU, curV, dst[bufferStride..], dst[bufferStride2..], mbw, uvBuffer);
+            colorConverter.UpSample(curY[io.YStride..], curY[ioStride2..], topU, topV, curU, curV, dst[bufferStride..], dst[bufferStride2..], mbw, uvBuffer);
             curY = curY[ioStride2..];
             dst = dst[bufferStride2..];
         }
@@ -778,7 +775,7 @@ internal sealed class WebpLossyDecoder
             // Process the very last row of even-sized picture.
             if ((yEnd & 1) == 0)
             {
-                YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst[bufferStride..], default, mbw, uvBuffer);
+                colorConverter.UpSample(curY, default, curU, curV, curU, curV, dst[bufferStride..], default, mbw, uvBuffer);
             }
         }
 

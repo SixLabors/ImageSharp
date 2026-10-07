@@ -25,7 +25,7 @@ internal class TiffLabColorDecoder<TPixel, TSource> : TiffBaseColorDecoder<TPixe
     private readonly Configuration configuration;
     private readonly TSource source;
     private readonly ColorProfileConverter converter;
-    private readonly PixelConversionModifiers modifiers;
+    private readonly bool hasProfile;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffLabColorDecoder{TPixel, TSource}"/> class.
@@ -42,7 +42,7 @@ internal class TiffLabColorDecoder<TPixel, TSource> : TiffBaseColorDecoder<TPixe
         ColorConversionOptions options = new() { SourceIccProfile = iccProfile, TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null, MemoryAllocator = allocator };
 
         this.converter = new ColorProfileConverter(options);
-        this.modifiers = hasProfile ? PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply : PixelConversionModifiers.Scale;
+        this.hasProfile = hasProfile;
     }
 
     /// <inheritdoc />
@@ -71,7 +71,16 @@ internal class TiffLabColorDecoder<TPixel, TSource> : TiffBaseColorDecoder<TPixe
 
                 // Pixel packing destructively edits the scratch block, leaving the converted RGB row intact.
                 Rgb.ToScaledVector4(rgbRow.Slice(x, count), block);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), this.modifiers);
+
+                // ICC output is straight RGB; without ICC, retain the existing native-alpha packing path.
+                if (this.hasProfile)
+                {
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                }
             }
 
             offset += rowByteCount;

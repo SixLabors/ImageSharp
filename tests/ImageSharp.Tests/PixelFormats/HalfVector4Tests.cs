@@ -85,12 +85,12 @@ public class HalfVector4Tests
         Array.Fill(expectedVectors, new Vector4((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue));
 
         Vector4[] actualVectors = new Vector4[source.Length];
-        PixelOperations<HalfVector4>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        PixelOperations<HalfVector4>.Instance.ToScaledVector4(Configuration.Default, source, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         Vector4[] destructiveSource = [.. expectedVectors];
         HalfVector4[] actualPixels = new HalfVector4[source.Length];
-        PixelOperations<HalfVector4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<HalfVector4>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.Equal(source, actualPixels);
     }
 

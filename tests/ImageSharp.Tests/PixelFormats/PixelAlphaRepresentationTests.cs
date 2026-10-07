@@ -4,6 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -153,15 +154,53 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             pixels[i] = TPixel.FromUnassociatedScaledVector4(source);
         }
 
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToUnassociatedVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.UnPremultiply));
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToAssociatedVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.Premultiply));
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToUnassociatedScaledVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToAssociatedScaledVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedVector4(),
+            static (operations, source, destination) => operations.ToUnassociatedVector4(Configuration.Default, source, destination));
 
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToUnassociatedVector4(), static vector => TPixel.FromUnassociatedVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.UnPremultiply));
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToAssociatedVector4(), static vector => TPixel.FromAssociatedVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Premultiply));
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToUnassociatedScaledVector4(), static vector => TPixel.FromUnassociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToAssociatedScaledVector4(), static vector => TPixel.FromAssociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedVector4(),
+            static (operations, source, destination) => operations.ToAssociatedVector4(Configuration.Default, source, destination));
+
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedScaledVector4(),
+            static (operations, source, destination) => operations.ToUnassociatedScaledVector4(Configuration.Default, source, destination));
+
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedScaledVector4(),
+            static (operations, source, destination) => operations.ToAssociatedScaledVector4(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedVector4(),
+            static vector => TPixel.FromUnassociatedVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromUnassociatedVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedVector4(),
+            static vector => TPixel.FromAssociatedVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromAssociatedVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedScaledVector4(),
+            static vector => TPixel.FromUnassociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedScaledVector4(),
+            static vector => TPixel.FromAssociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromAssociatedScaledVector4Destructive(Configuration.Default, source, destination));
     }
 
     [Fact]
@@ -174,8 +213,17 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             associated[i] = Associate(OutOfRangeUnassociatedScaledVectors[i]);
         }
 
-        AssertBulkFromMatchesScalar(OutOfRangeUnassociatedScaledVectors, static vector => TPixel.FromUnassociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
-        AssertBulkFromMatchesScalar(associated, static vector => TPixel.FromAssociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
+        AssertBulkFromMatchesScalar(
+            OutOfRangeUnassociatedScaledVectors,
+            static vector => TPixel.FromUnassociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            associated,
+            static vector => TPixel.FromAssociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromAssociatedScaledVector4Destructive(Configuration.Default, source, destination));
     }
 
     [Theory]
@@ -183,8 +231,9 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void BulkCompandingHonorsRequestedAlphaRepresentationAndRange(bool scaled, bool associated)
+    public void PixelRowProcessingCompandsStraightRgbAndPreservesRequestedRepresentation(bool scaled, bool associated)
     {
+        // Exercise multiple vector blocks and a tail row span in the processing path.
         const int length = 259;
         TPixel[] pixels = new TPixel[length];
 
@@ -193,54 +242,52 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             pixels[i] = TPixel.FromUnassociatedScaledVector4(UnassociatedScaledVectors[i % UnassociatedScaledVectors.Length]);
         }
 
+        // The row-processing API owns transfer-function conversion; these options describe its vector range and alpha contract.
         PixelConversionModifiers modifiers = PixelConversionModifiers.SRgbCompand
             | (scaled ? PixelConversionModifiers.Scale : PixelConversionModifiers.None)
             | (associated ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
 
-        Vector4[] expectedVectors = new Vector4[length];
+        using Image<TPixel> image = new(length, 1);
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            image[i, 0] = pixels[i];
+        }
+
+        image.Mutate(context => context.ProcessPixelRowsAsVector4(
+            row =>
+            {
+                // Halving linear red makes transfer-function ordering observable in the final encoded pixel.
+                for (int i = 0; i < row.Length; i++)
+                {
+                    row[i].X *= .5F;
+                }
+            },
+            modifiers));
 
         for (int i = 0; i < pixels.Length; i++)
         {
-            expectedVectors[i] = scaled ? pixels[i].ToUnassociatedScaledVector4() : pixels[i].ToUnassociatedVector4();
+            Vector4 expected = scaled ? pixels[i].ToUnassociatedScaledVector4() : pixels[i].ToUnassociatedVector4();
+            expected = SRgbCompanding.Expand(expected);
+
+            if (associated)
+            {
+                Numerics.Premultiply(ref expected);
+            }
+
+            expected.X *= .5F;
+
+            if (associated)
+            {
+                Numerics.UnPremultiply(ref expected);
+            }
+
+            expected = SRgbCompanding.Compress(expected);
+            TPixel expectedPixel = scaled
+                ? TPixel.FromUnassociatedScaledVector4(expected)
+                : TPixel.FromUnassociatedVector4(expected);
+
+            Assert.Equal(expectedPixel, image[i, 0]);
         }
-
-        // Transfer functions operate on straight RGB. Association is therefore applied after expansion on the outbound path.
-        SRgbCompanding.Expand(expectedVectors);
-
-        if (associated)
-        {
-            Numerics.Premultiply(expectedVectors);
-        }
-
-        Vector4[] actualVectors = new Vector4[length];
-        PixelOperations<TPixel>.Instance.ToVector4(Configuration.Default, pixels, actualVectors, modifiers);
-
-        Assert.Equal(expectedVectors, actualVectors);
-
-        Vector4[] expectedPixelSource = [.. expectedVectors];
-
-        if (associated)
-        {
-            Numerics.UnPremultiply(expectedPixelSource);
-        }
-
-        // Reverse the transfer only after restoring straight RGB, matching the observable modifier order for inbound vectors.
-        SRgbCompanding.Compress(expectedPixelSource);
-
-        TPixel[] expectedPixels = new TPixel[length];
-
-        for (int i = 0; i < expectedPixels.Length; i++)
-        {
-            expectedPixels[i] = scaled
-                ? TPixel.FromUnassociatedScaledVector4(expectedPixelSource[i])
-                : TPixel.FromUnassociatedVector4(expectedPixelSource[i]);
-        }
-
-        Vector4[] actualPixelSource = [.. expectedVectors];
-        TPixel[] actualPixels = new TPixel[length];
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration.Default, actualPixelSource, actualPixels, modifiers);
-
-        Assert.Equal(expectedPixels, actualPixels);
     }
 
     private static void AssertBulkToMatchesScalar(TPixel[] pixels, Func<TPixel, Vector4> scalar, BulkToVector4 bulk)
@@ -340,7 +387,7 @@ public class RgbaCompatiblePixelOperationsTests
         Vector4[] vectors = new Vector4[length + 3];
         vectors.AsSpan(length).Fill(vectorSentinel);
 
-        PixelOperations<TPixel>.Instance.ToVector4(Configuration.Default, pixels, vectors, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(Configuration.Default, pixels, vectors);
 
         Assert.All(vectors[..length], vector => Assert.Equal(expectedVector, vector));
         Assert.All(vectors[length..], vector => Assert.Equal(vectorSentinel, vector));
@@ -352,7 +399,7 @@ public class RgbaCompatiblePixelOperationsTests
         TPixel[] destination = new TPixel[length + 3];
         destination.AsSpan(length).Fill(pixelSentinel);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination);
 
         // A 259-pixel source crosses the 128- and 256-bit optimized thresholds while leaving spare destination capacity to detect writes beyond the source length.
         Assert.All(destination[..length], pixel => Assert.Equal(expectedPixel, pixel));

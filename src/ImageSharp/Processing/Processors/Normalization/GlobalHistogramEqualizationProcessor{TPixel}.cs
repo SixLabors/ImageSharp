@@ -126,7 +126,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
 
             Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
             PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToUnassociatedScaledVector4(this.configuration, pixelRow, vectorBuffer);
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
@@ -139,7 +139,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
             }
 
-            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.FromUnassociatedScaledVector4Destructive(this.configuration, vectorBuffer, pixelRow);
         }
     }
 }

@@ -55,7 +55,7 @@ public class NormalizedShort2Tests
         Array.Fill(source, pixel);
 
         PixelOperations<NormalizedShort2>.Instance.ToVector4(Configuration.Default, source, native);
-        PixelOperations<NormalizedShort2>.Instance.ToVector4(Configuration.Default, source, scaled, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedShort2>.Instance.ToScaledVector4(Configuration.Default, source, scaled);
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -66,7 +66,7 @@ public class NormalizedShort2Tests
         Vector4[] destructiveSource = new Vector4[source.Length];
         Array.Fill(destructiveSource, expectedScaled);
         NormalizedShort2[] actualPixels = new NormalizedShort2[source.Length];
-        PixelOperations<NormalizedShort2>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedShort2>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.All(actualPixels, actual => Assert.Equal(0x80018001U, actual.PackedValue));
     }
 

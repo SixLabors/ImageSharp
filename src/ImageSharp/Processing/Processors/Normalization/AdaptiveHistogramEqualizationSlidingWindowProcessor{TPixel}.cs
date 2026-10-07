@@ -256,7 +256,10 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
         int y,
         int tileWidth,
         Configuration configuration)
-        => PixelOperations<TPixel>.Instance.ToVector4(configuration, source.DangerousGetRowSpan(y).Slice(start: x, length: tileWidth), rowPixels, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        => PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(
+            configuration,
+            source.DangerousGetRowSpan(y).Slice(start: x, length: tileWidth),
+            rowPixels);
 
     /// <summary>
     /// Adds a column of grey values to the histogram.

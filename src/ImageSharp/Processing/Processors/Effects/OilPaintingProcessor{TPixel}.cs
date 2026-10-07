@@ -127,7 +127,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                 Span<TPixel> sourceRowAreaPixelSpan = sourceRowPixelSpan.Slice(this.bounds.X, this.bounds.Width);
 
                 // Intensity bins and channel averages describe logical colors, so they must not depend on the pixel storage association.
-                pixelOperations.ToVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                pixelOperations.ToUnassociatedScaledVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span);
 
                 for (int x = this.bounds.X; x < this.bounds.Right; x++)
                 {
@@ -184,7 +184,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
                 Span<TPixel> targetRowAreaPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-                pixelOperations.FromVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan);
             }
         }
     }

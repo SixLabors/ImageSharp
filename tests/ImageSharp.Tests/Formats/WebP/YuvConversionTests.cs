@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Formats.Webp.Lossy;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -31,16 +31,37 @@ public class YuvConversionTests
     [Fact]
     public void UpSampleYuvToRgb_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.AllowAll);
 
+    // Disabling AVX512v2 keeps AVX512BW available without VBMI, exercising the BW-only byte packing path.
+    [Fact]
+    public void UpSampleYuvToRgb_WithNarrowerHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        RunUpSampleYuvToRgbTest,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512v2 | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
     [Fact]
     public void UpSampleYuvToRgb_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.DisableHWIntrinsic);
 
+    /// <summary>
+    /// Checks the established YUV fixture across the scalar and supported SIMD paths.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format selected by the fixture.</typeparam>
+    /// <param name="provider">The fixture provider.</param>
     [Theory]
     [WithFile(TestImages.Webp.Yuv, PixelTypes.Rgba32)]
     public void ConvertRgbToYuv_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertRgbToYuv, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+
+    /// <summary>
+    /// Checks the fixture's encoded Y, U, and V bytes against the established expected arrays.
+    /// </summary>
+    /// <param name="providerDump">The serialized Rgba32 fixture provider.</param>
+    private static void AssertRgbToYuv(string providerDump)
     {
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
         // arrange
-        using Image<TPixel> image = provider.GetImage();
+        using Image<Rgba32> image = provider.GetImage();
         Configuration config = image.Configuration;
         MemoryAllocator memoryAllocator = config.MemoryAllocator;
         int pixels = image.Width * image.Height;
@@ -142,7 +163,8 @@ public class YuvConversionTests
         ];
 
         // act
-        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
+        WebpColorConverterBase converter = WebpColorConverterBase.GetConverter(WebpColorType.Yuv);
+        converter.ConvertFromRgb(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));
@@ -150,13 +172,28 @@ public class YuvConversionTests
         Assert.True(expectedV.AsSpan().SequenceEqual(v[..expectedV.Length]));
     }
 
+    /// <summary>
+    /// Checks the alpha fixture across the scalar and supported SIMD paths.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format selected by the fixture.</typeparam>
+    /// <param name="provider">The fixture provider.</param>
     [Theory]
     [WithFile(TestImages.Png.TestPattern31x31HalfTransparent, PixelTypes.Rgba32)]
     public void ConvertRgbToYuv_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertRgbToYuvWithAlpha, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+
+    /// <summary>
+    /// Checks the fixture's encoded Y, U, and V bytes against the established expected arrays.
+    /// </summary>
+    /// <param name="providerDump">The serialized Rgba32 fixture provider.</param>
+    private static void AssertRgbToYuvWithAlpha(string providerDump)
     {
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
         // arrange
-        using Image<TPixel> image = provider.GetImage();
+        using Image<Rgba32> image = provider.GetImage();
         Configuration config = image.Configuration;
         MemoryAllocator memoryAllocator = config.MemoryAllocator;
         int pixels = image.Width * image.Height;
@@ -248,7 +285,8 @@ public class YuvConversionTests
         ];
 
         // act
-        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
+        WebpColorConverterBase converter = WebpColorConverterBase.GetConverter(WebpColorType.Yuv);
+        converter.ConvertFromRgb(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));

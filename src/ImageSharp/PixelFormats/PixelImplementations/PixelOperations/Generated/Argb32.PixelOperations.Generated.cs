@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -38,19 +37,71 @@ public partial struct Argb32
             source.CopyTo(destination.Slice(0, source.Length));
         }
 
-
         /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<Argb32> destination,
-            PixelConversionModifiers modifiers)
+        public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destination)
         {
             Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
 
             destination = destination[..sourceVectors.Length];
-            Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers.Remove(PixelConversionModifiers.Scale));
+            PackFromVector4(sourceVectors, destination);
+        }
 
+        /// <inheritdoc />
+        public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destination)
+            => this.FromVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destination)
+            => this.FromVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destination)
+        {
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
+
+            Numerics.UnPremultiply(sourceVectors);
+            PackFromVector4(sourceVectors, destination[..sourceVectors.Length]);
+        }
+
+        /// <inheritdoc />
+        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destination)
+            => this.FromVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destination)
+            => this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
+
+        /// <inheritdoc />
+        public override void ToVector4(Configuration configuration, ReadOnlySpan<Argb32> source, Span<Vector4> destination)
+            => Vector4Converters.RgbaCompatible.ToUnassociatedVector4(configuration, this, source, destination);
+
+        /// <inheritdoc />
+        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Argb32> source, Span<Vector4> destination)
+            => this.ToVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Argb32> source, Span<Vector4> destination)
+            => this.ToVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Argb32> source, Span<Vector4> destination)
+            => Vector4Converters.RgbaCompatible.ToAssociatedVector4(configuration, this, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Argb32> source, Span<Vector4> destination)
+            => this.ToVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Argb32> source, Span<Vector4> destination)
+            => this.ToAssociatedVector4(configuration, source, destination);
+
+        /// <summary>
+        /// Converts normalized vector components to saturated bytes and shuffles them into the pixel channel order.
+        /// </summary>
+        /// <param name="sourceVectors">The source vectors.</param>
+        /// <param name="destination">The destination pixels.</param>
+        private static void PackFromVector4(Span<Vector4> sourceVectors, Span<Argb32> destination)
+        {
             Span<byte> destinationBytes = MemoryMarshal.Cast<Argb32, byte>(destination);
 
             // The SIMD saturating conversion produces RGBA byte order. Reusing the destination
@@ -59,17 +110,8 @@ public partial struct Argb32
             SimdUtils.NormalizedFloatToByteSaturate(
                 MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                 destinationBytes);
-            PixelConverter.FromRgba32.ToArgb32(destinationBytes, destinationBytes);
-        }
 
-        /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<Argb32> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(PixelConversionModifiers.Scale));
+            PixelConverter.FromRgba32.ToArgb32(destinationBytes, destinationBytes);
         }
     
         /// <inheritdoc />

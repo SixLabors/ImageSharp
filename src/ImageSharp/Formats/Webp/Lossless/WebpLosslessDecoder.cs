@@ -3,9 +3,12 @@
 #nullable disable
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -93,13 +96,14 @@ internal sealed class WebpLosslessDecoder
     /// <param name="pixels">The pixel buffer to store the decoded data.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
+    /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
+    public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, ColorProfileConverter colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Vp8LDecoder decoder = new(width, height, this.memoryAllocator);
         this.DecodeImageStream(decoder, width, height, true);
         this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
-        this.DecodePixelValues(decoder, pixels, width, height);
+        this.DecodePixelValues(decoder, pixels, width, height, colorProfileConverter);
     }
 
     public IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
@@ -180,7 +184,7 @@ internal sealed class WebpLosslessDecoder
         return pixelData;
     }
 
-    private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Buffer2D<TPixel> pixels, int width, int height)
+    private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Buffer2D<TPixel> pixels, int width, int height, ColorProfileConverter colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<uint> pixelData = decoder.Pixels.GetSpan();
@@ -190,15 +194,24 @@ internal sealed class WebpLosslessDecoder
 
         Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
         int bytesPerRow = width * 4;
+        using IMemoryOwner<Vector4> vectorOwner = colorProfileConverter is null
+            ? null
+            : this.memoryAllocator.Allocate<Vector4>(width);
+
+        using IMemoryOwner<Rgb> rgbOwner = colorProfileConverter is null
+            ? null
+            : this.memoryAllocator.Allocate<Rgb>(width);
+
+        Span<Vector4> vectors = vectorOwner is null ? Span<Vector4>.Empty : vectorOwner.Memory.Span;
+        Span<Rgb> rgb = rgbOwner is null ? Span<Rgb>.Empty : rgbOwner.Memory.Span;
+        WebpColorConverterBase colorConverter = WebpColorConverterBase.GetConverter(WebpColorType.Rgba);
+
         for (int y = 0; y < height; y++)
         {
             Span<byte> rowAsBytes = pixelDataAsBytes.Slice(y * bytesPerRow, bytesPerRow);
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                this.configuration,
-                rowAsBytes[..bytesPerRow],
-                pixelRow[..width],
-                width);
+            ReadOnlySpan<Bgra32> source = MemoryMarshal.Cast<byte, Bgra32>(rowAsBytes);
+            colorConverter.ConvertRgbRow(this.configuration, source, colorProfileConverter, vectors, rgb, pixelRow[..width]);
         }
     }
 

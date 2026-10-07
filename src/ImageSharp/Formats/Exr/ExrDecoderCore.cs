@@ -166,7 +166,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         int width = this.Width;
         int height = this.Height;
         int channelCount = this.Channels.Count;
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale;
 
         // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
         using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
@@ -219,14 +218,13 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     offset += ReadFloatChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
-                PixelOperations<TPixel>.Instance.PackFromFloatPlanes(
+                PixelOperations<TPixel>.Instance.PackFromAssociatedScaledFloatPlanes(
                     this.configuration,
                     redPixelData,
                     greenPixelData,
                     bluePixelData,
                     hasAlpha ? alphaPixelData : Span<float>.Empty,
-                    pixelRow,
-                    modifiers);
+                    pixelRow);
 
                 decodedRows++;
             }

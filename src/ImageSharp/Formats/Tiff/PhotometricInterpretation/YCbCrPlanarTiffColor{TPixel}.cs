@@ -143,7 +143,7 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
                 // The ICC result is sRGB; PixelOperations applies the destination pixel's scaling and alpha contract.
                 Rgb.ToScaledVector4(rgbRow, vectorRow);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorRow, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, vectorRow, pixelRow);
                 offset += width + widthPadding;
             }
 

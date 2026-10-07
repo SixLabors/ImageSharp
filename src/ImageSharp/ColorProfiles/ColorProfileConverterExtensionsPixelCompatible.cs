@@ -78,11 +78,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Encoded RGB samples are straight, so associated pixel formats are unassociated while extracting into the separate destination.
-        PixelOperations<TPixel>.Instance.ToVector4(
-            configuration,
-            source,
-            destination,
-            PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(configuration, source, destination);
 
         converter.Convert(destination[..source.Length], scratch[..source.Length]);
     }

@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -406,7 +407,8 @@ internal class Vp8Encoder : IDisposable
         Span<byte> v = this.V.GetSpan();
 
         Buffer2DRegion<TPixel> pixels = frame.PixelBuffer.GetRegion(bounds);
-        bool hasAlpha = YuvConversion.ConvertRgbToYuv(pixels, this.configuration, this.memoryAllocator, y, u, v);
+        WebpColorConverterBase colorConverter = WebpColorConverterBase.GetConverter(WebpColorType.Yuv);
+        bool hasAlpha = colorConverter.ConvertFromRgb(pixels, this.configuration, this.memoryAllocator, y, u, v);
 
         if (!hasAnimation)
         {

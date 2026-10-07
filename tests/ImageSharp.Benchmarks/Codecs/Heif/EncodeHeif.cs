@@ -111,15 +111,15 @@ public class EncodeHeif
         Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
         WarmupCount=5
 
-        | Method                   | TestImage      | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
-        |------------------------- |--------------- |---------:|---------:|---------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
-        | 'Magick Avif'            | Png/Bike.png   | 235.6 ms |  4.66 ms |  3.89 ms | 235.6 ms |  1.00 |    0.02 |         - |         - |         - |   61.6 KB |        1.00 |
-        | 'Magick Avif SingleCore' | Png/Bike.png   | 428.3 ms |  7.55 ms |  6.31 ms | 428.6 ms |  1.82 |    0.04 |         - |         - |         - |  71.01 KB |        1.15 |
-        | 'ImageSharp Avif'        | Png/Bike.png   | 340.6 ms | 44.16 ms | 41.31 ms | 306.3 ms |  1.45 |    0.17 |         - |         - |         - |  656.8 KB |       10.66 |
-        |                          |                |          |          |          |          |       |         |           |           |           |           |             |
-        | 'Magick Avif'            | Png/splash.png | 196.6 ms |  8.17 ms |  7.64 ms | 196.0 ms |  1.00 |    0.05 |         - |         - |         - |  60.55 KB |        1.00 |
-        | 'Magick Avif SingleCore' | Png/splash.png | 252.9 ms |  7.11 ms |  6.30 ms | 251.6 ms |  1.29 |    0.06 |         - |         - |         - |  61.95 KB |        1.02 |
-        | 'ImageSharp Avif'        | Png/splash.png | 219.1 ms | 13.66 ms | 12.77 ms | 227.1 ms |  1.12 |    0.08 | 1000.0000 | 1000.0000 | 1000.0000 | 664.41 KB |       10.97 |
+        | Method                   | TestImage      | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
+        |------------------------- |--------------- |---------:|---------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
+        | 'Magick Avif'            | Png/Bike.png   | 182.3 ms |  1.41 ms |  1.32 ms |  1.00 |    0.01 |         - |         - |         - |   61.6 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Png/Bike.png   | 405.7 ms |  5.90 ms |  5.23 ms |  2.23 |    0.03 |         - |         - |         - |  71.01 KB |        1.15 |
+        | 'ImageSharp Avif'        | Png/Bike.png   | 305.2 ms |  1.37 ms |  1.21 ms |  1.67 |    0.01 |         - |         - |         - | 656.82 KB |       10.66 |
+        |                          |                |          |          |          |       |         |           |           |           |           |             |
+        | 'Magick Avif'            | Png/splash.png | 176.3 ms | 10.10 ms |  9.45 ms |  1.00 |    0.07 |         - |         - |         - |   61.6 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Png/splash.png | 249.7 ms |  2.86 ms |  2.39 ms |  1.42 |    0.08 |         - |         - |         - |  61.91 KB |        1.01 |
+        | 'ImageSharp Avif'        | Png/splash.png | 202.7 ms | 15.77 ms | 13.98 ms |  1.15 |    0.10 | 1000.0000 | 1000.0000 | 1000.0000 | 664.42 KB |       10.79 |
 
         Run with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
         Both encoders use quality 75, speed 6, 4:2:0 and SSIM tune. Magick's libheif encodes with one thread per

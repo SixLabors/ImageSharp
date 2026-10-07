@@ -383,6 +383,12 @@ internal static partial class Av1MotionSearchBase
         private readonly Size visibleFrameSize;
         private readonly Av1EncoderBlockWorkspace workspace;
         private readonly Span<TSample> prediction;
+
+        /// <summary>
+        /// The frame luma plane that gets each prediction of the winner estimate, as libaom writes pd->dst, or the default value
+        /// when the search writes no frame.
+        /// </summary>
+        private readonly Av1PlaneRegion<TSample> frame;
         private readonly Span<short> residual;
         private readonly Span<short> convolutionScratch;
         private readonly Span<int> quantized;
@@ -420,6 +426,10 @@ internal static partial class Av1MotionSearchBase
         /// <param name="visibleFrameSize">The visible frame size, which bounds the search at sharpness 3.</param>
         /// <param name="workspace">The worker transform and search-site storage.</param>
         /// <param name="prediction">The worker search prediction buffer, also reused for final predictions.</param>
+        /// <param name="frame">
+        /// The frame luma plane that gets each prediction of the winner estimate, as libaom writes pd->dst, or the default value
+        /// when the search writes no frame.
+        /// </param>
         /// <param name="residual">The packed block residual destination.</param>
         /// <param name="convolutionScratch">The signed intermediate storage for final prediction.</param>
         /// <param name="quantized">The scratch quantized coefficients for one transform.</param>
@@ -454,6 +464,7 @@ internal static partial class Av1MotionSearchBase
             Size visibleFrameSize,
             Av1EncoderBlockWorkspace workspace,
             Span<TSample> prediction,
+            Av1PlaneRegion<TSample> frame,
             Span<short> residual,
             Span<short> convolutionScratch,
             Span<int> quantized,
@@ -484,6 +495,7 @@ internal static partial class Av1MotionSearchBase
             this.visibleFrameSize = visibleFrameSize;
             this.workspace = workspace;
             this.prediction = prediction;
+            this.frame = frame;
             this.residual = residual;
             this.convolutionScratch = convolutionScratch;
             this.quantized = quantized;
@@ -1097,6 +1109,10 @@ internal static partial class Av1MotionSearchBase
                     (vector.Row & 7) << 1,
                     this.bitDepth.GetBitCount());
             }
+
+            // The prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() before
+            // av1_estimate_txfm_yrd() in av1_single_motion_search().
+            Av1TransformBlockEncoder.WriteFrameSamples(this.frame, this.blockOrigin, this.prediction, width, width, height);
 
             // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
             // av1_subtract_txb() call of av1_estimate_txfm_yrd().

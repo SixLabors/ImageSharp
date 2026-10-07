@@ -2078,6 +2078,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // The estimated motion entry measures prediction error and vector rate only. Coefficient
                 // edges are unused here; residual modeling follows the final motion/filter selection.
+                // The non-RD path gives no frame, so this search does not write the frame.
                 Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                     sourcePlane.Stride,
@@ -2090,6 +2091,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     new Size(header.FrameSize.FrameWidth, header.FrameSize.FrameHeight),
                     this.blockWorkspace,
                     this.blockWorkspace.GetMotionSearchPrediction<TSample>(),
+                    default,
                     this.blockWorkspace.Residual,
                     workspace.PredictionScratch,
                     workspace.TransformCoefficients,

@@ -1516,6 +1516,13 @@ internal static partial class Av1IntraSuperblockEncoder
                             prediction,
                             workspace.Residual);
                     }
+
+                    // The rebuilt luma goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
+                    // tx_search_best_inter_candidates().
+                    if (!this.useObmcPrediction && !this.useWarpedPrediction)
+                    {
+                        this.WriteInterLumaDestination(blockOrigin, predictionModeInfo.BlockSize, workspace.LumaPrediction);
+                    }
                 }
 
                 searchCount++;
@@ -2035,6 +2042,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     primaryWarped,
                     secondaryWarped);
 
+                // The rebuilt luma goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
+                // refine_winner_mode_tx().
+                this.WriteInterLumaDestination(blockOrigin, predictionSize, prediction);
                 return;
             }
 
@@ -2070,6 +2080,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 TOperator.SubtractPrediction(
                     this.source.GetPlane(Av1Plane.Y), blockOrigin, prediction[..(width * height)], residual[..(width * height)], width, height);
+
+                // A global warp is allowed at sharpness 3, so its rebuilt luma goes into the frame. A local warp is not.
+                // Reference: av1_enc_build_inter_predictor() in refine_winner_mode_tx().
+                if (!this.useWarpedPrediction)
+                {
+                    this.WriteInterLumaDestination(blockOrigin, predictionSize, prediction);
+                }
 
                 return;
             }
@@ -2113,7 +2130,11 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.useObmcPrediction)
             {
                 this.ApplyObmcPrediction(Av1Plane.Y, 0, 0, prediction, residual, workspace.PredictionScratch);
+                return;
             }
+
+            // Reference: av1_enc_build_inter_predictor() in refine_winner_mode_tx().
+            this.WriteInterLumaDestination(blockOrigin, predictionSize, prediction);
         }
 
         /// <summary>
@@ -3174,6 +3195,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     prediction,
                     workspace.Residual);
 
+                // The luma prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in skip_mode_rd().
+                if (plane == Av1Plane.Y)
+                {
+                    this.WriteInterLumaDestination(blockOrigin, blockSize, prediction);
+                }
+
                 // Skip mode carries no coefficient or transform-choice syntax. Accumulate visible
                 // prediction error directly and abandon later planes once the candidate cannot win.
                 // A frame that pads its border measures the samples inside the frame only. Reference:
@@ -3453,6 +3480,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 new Size(frameHeader.FrameSize.FrameWidth, frameHeader.FrameSize.FrameHeight),
                 this.blockWorkspace,
                 this.blockWorkspace.GetMotionSearchPrediction<TSample>(),
+                this.reconstruction.GetPlane(Av1Plane.Y),
                 this.blockWorkspace.Residual,
                 workspace.PredictionScratch,
                 workspace.TransformCoefficients,
@@ -3582,6 +3610,10 @@ internal static partial class Av1IntraSuperblockEncoder
                             workspace.RedPrediction,
                             planeStatistics,
                             ref translationLumaSquaredError);
+
+                        // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
+                        // simple_translation_pred_rd().
+                        this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
 
                         // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                         // simple_translation_pred_rd().
@@ -4534,6 +4566,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 interPrediction.CopyTo(blendedPrediction);
                 Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, mode, invert: true);
                 TOperator.BlendInterIntraPrediction(blendedPrediction, intraPrediction, mask, width, height);
+
+                // The blend goes into pd->dst, which is the frame after the single prediction into tmp_buf.
+                // Reference: av1_combine_interintra() in compute_best_interintra_mode(), after restore_dst_buf() in
+                // av1_handle_inter_intra_mode().
+                this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                     sourcePlane.Stride,
@@ -4580,6 +4617,9 @@ internal static partial class Av1IntraSuperblockEncoder
             interPrediction.CopyTo(blendedPrediction);
             Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, selectedMode, invert: true);
             TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+
+            // Reference: the av1_combine_interintra() rebuild of the best mode in handle_smooth_inter_intra_mode().
+            this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
             int smoothRate = motionRate + modeCosts.GetInterIntraMode(blockSize, selectedMode) + modeCosts.GetWedgeInterIntra(blockSize, 0);
             long smoothBound = bestCost < 9 * (long.MaxValue / 16) ? (bestCost / 9) * 16 : long.MaxValue;
             smoothBound -= Av1RateDistortion.GetCost(this.rateMultiplier, smoothRate, 0);
@@ -4782,6 +4822,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+
+                    // The refined vector predicts luma into pd->dst, and the blend goes there too. Reference: av1_enc_build_inter_predictor()
+                    // and av1_combine_interintra() after av1_compound_single_motion_search() in handle_wedge_inter_intra_mode().
+                    this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
                     TOperator.GetMoments(
                         Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                         sourcePlane.Stride,
@@ -4827,6 +4871,9 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 interPrediction.CopyTo(blendedPrediction);
                 TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+
+                // Reference: the av1_combine_interintra() call for rd >= *best_rd in handle_wedge_inter_intra_mode().
+                this.WriteInterLumaDestination(blockOrigin, blockSize, blendedPrediction);
             }
 
             int selectedWedgeRate = wedgeMotionRate + wedgeSyntaxRate;
@@ -5125,6 +5172,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 TOperator.BlendInterIntraPrediction(interPrediction, intraPrediction[..sampleCount], mask, width, height);
+
+                // The blended luma goes into pd->dst, which is the frame. Reference: av1_build_interintra_predictor() in
+                // av1_enc_build_inter_predictor().
+                if (plane == Av1Plane.Y)
+                {
+                    this.WriteInterLumaDestination(blockOrigin, blockSize, interPrediction);
+                }
             }
         }
 
@@ -6446,6 +6500,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                     planeStatistics,
                                     ref translationLumaSquaredError);
 
+                                // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
+                                // simple_translation_pred_rd().
+                                this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
+
                                 // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                                 // simple_translation_pred_rd().
                                 this.SetPredictionSse(prediction.ReferenceFrame, translationLumaSquaredError);
@@ -7531,6 +7589,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     int typeIndex = (int)type;
                     bool useCachedEstimate = record.Rates[typeIndex] != int.MaxValue &&
                         (modelMask || (!isMasked && settings.CompoundMotionSearchLevel == 2 && mode != Av1PredictionMode.NewNewMotionVector));
+
+                    // Only the average blend predicts into the frame. libaom then moves the luma pd->dst to tmp_dst for the
+                    // later types, and an average with stored statistics predicts nothing. Reference: the
+                    // av1_enc_build_inter_predictor() calls of COMPOUND_AVERAGE and the restore_dst_buf() calls with tmp_dst in
+                    // av1_compound_type_rd().
+                    if (type == Av1CompoundType.Average && !useCachedEstimate)
+                    {
+                        this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
+                    }
 
                     long model = this.GetCompoundPredictionModelCost(
                         blockOrigin,
@@ -8748,6 +8815,22 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.VerticalInterpolationFilter = initialFilter;
             filterRate = regularRate;
 
+            // The default filter predicts into pd->dst, which is the frame here. The winner search keeps its frame
+            // write to the end, where the frame holds its best prediction. Reference: the first interp_model_rd_eval() of
+            // av1_interpolation_filter_search(), and fast_interp_search().
+            if (!winnerSearch)
+            {
+                this.WriteInterLumaDestination(blockOrigin, blockSize, bestLuma);
+            }
+
+            // These copy the libaom destination state through the trials. After the default filter, pd->dst moves to tmp_dst.
+            // A winning trial that measured a plane swaps pd->dst between the frame and tmp_dst. A trial predicts luma into the
+            // pd->dst of that time. A win that measured chroma only toggles the luma rebuild flag.
+            // Reference: restore_dst_buf() with tmp_dst, swap_dst_buf() and recalc_luma_mc_data in av1_interpolation_filter_search()
+            // and interpolation_filter_rd().
+            bool destinationIsTemporary = true;
+            bool rebuildLuma = false;
+
             // Reference: the pred_sse store after the default filter's model in av1_interpolation_filter_search().
             this.SetPredictionSse(modeInfo.ReferenceFrame, bestLumaSquaredError);
             if (writesFilters && compound && bestCandidateCost != long.MaxValue && (bestCost >> 1) > singleReferenceCost)
@@ -8806,12 +8889,31 @@ internal static partial class Av1IntraSuperblockEncoder
                     trialPlaneStatistics,
                     ref trialLumaSquaredError);
 
+                // The trial predicted luma into pd->dst. Reference: interp_model_rd_eval() in interpolation_filter_rd().
+                if (!winnerSearch && (skipPlanes & 1) == 0 && !destinationIsTemporary)
+                {
+                    this.WriteInterLumaDestination(blockOrigin, blockSize, trialLuma);
+                }
+
                 if (trial.Cost != long.MaxValue && trial.Cost * scale / 100 < bestCost)
                 {
                     bestCost = trial.Cost;
                     modeInfo.HorizontalInterpolationFilter = (Av1InterpolationFilter)horizontal;
                     modeInfo.VerticalInterpolationFilter = (Av1InterpolationFilter)vertical;
                     filterRate = trialRate;
+
+                    // Reference: the recalc_luma_mc_data updates and swap_dst_buf() of a win in interpolation_filter_rd().
+                    if (!winnerSearch && skipPlanes != defaultSkip)
+                    {
+                        rebuildLuma = skipPlanes switch
+                        {
+                            0 => false,
+                            1 => !rebuildLuma,
+                            _ => rebuildLuma
+                        };
+
+                        destinationIsTemporary = !destinationIsTemporary;
+                    }
 
                     // A win that skipped the chroma model keeps the earlier statistics, so the luma error that
                     // pred_sse reads stays too. Reference: the rd_stats_luma and rd_stats updates of
@@ -8848,6 +8950,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     break;
                 }
+            }
+
+            // The search ends with pd->dst on the buffer of the best prediction. When the luma of that buffer is not the best luma,
+            // libaom predicts the best luma into it again. The winner search leaves its best prediction in the frame.
+            // Reference: the swap_dst_buf() and the recalc_luma_mc_data rebuild at the end of av1_interpolation_filter_search(),
+            // and the copy into orig_dst at the end of fast_interp_search().
+            destinationIsTemporary = !destinationIsTemporary;
+            if (winnerSearch || (rebuildLuma && !destinationIsTemporary))
+            {
+                this.WriteInterLumaDestination(blockOrigin, blockSize, bestLuma);
             }
 
             if (!lumaUsesWorkspace)
@@ -8900,6 +9012,13 @@ internal static partial class Av1IntraSuperblockEncoder
                         blockSize,
                         prediction,
                         workspace.Residual);
+
+                    // A difference-weighted blend predicts luma into pd->dst again. Reference: the av1_enc_build_inter_predictor()
+                    // call after av1_interpolation_filter_search() in handle_inter_mode().
+                    if (planeIndex == 0 && !destinationIsTemporary)
+                    {
+                        this.WriteInterLumaDestination(blockOrigin, blockSize, prediction);
+                    }
                 }
             }
 
@@ -9283,6 +9402,13 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             candidate.PredictionError = predictionError;
+
+            // A new prediction goes into pd->dst, which is the frame here. A prepared prediction is already in pd->dst.
+            // Reference: av1_enc_build_inter_predictor() in handle_inter_mode() and rd_pick_intrabc_mode_sb().
+            if (!usePreparedPrediction && !this.useObmcPrediction && !this.useWarpedPrediction)
+            {
+                this.WriteInterLumaDestination(blockOrigin, blockSize, workspace.LumaPrediction);
+            }
 
             // Sharpness 3 measures the candidate's luma prediction, which the plane loop leaves in the current
             // destination, unless the image tune's bias replaces the charge. Reference: get_variance_stats() reading
@@ -10767,6 +10893,22 @@ internal static partial class Av1IntraSuperblockEncoder
                 scratch,
                 predictionSize,
                 this.bitDepth);
+        }
+
+        /// <summary>
+        /// Writes a luma inter prediction into the frame at the block, as av1_enc_build_inter_predictor() and av1_combine_interintra()
+        /// write pd->dst when pd->dst is the frame. A later trial can read these samples from the frame, so the frame must hold them.
+        /// The port does not write chroma inter predictions into the frame: no libaom code reads chroma samples that an earlier trial left
+        /// in pd->dst. The port also does not write OBMC and warped predictions: libaom skips those modes at sharpness 3, and only
+        /// sharpness 3 reads the luma samples that an earlier inter trial left.
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="prediction">The contiguous luma prediction of the block.</param>
+        private readonly void WriteInterLumaDestination(Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> prediction)
+        {
+            int width = blockSize.GetWidth();
+            Av1TransformBlockEncoder.WriteFrameSamples(this.reconstruction.GetPlane(Av1Plane.Y), blockOrigin, prediction, width, width, blockSize.GetHeight());
         }
 
         /// <summary>

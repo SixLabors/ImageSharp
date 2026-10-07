@@ -44,11 +44,11 @@ internal static class Vector256_
             return Avx2.Shuffle(vector, indices);
         }
 
-        // The .NET 10 fallback treats indices as full-width when AVX2 is unavailable. Reusing
-        // the low mask for each half preserves the lane-local vpshufb contract on AVX-only CPUs.
-        Vector128<byte> indicesLo = indices.GetLower();
-        Vector128<byte> lower = Vector128.ShuffleNative(vector.GetLower(), indicesLo);
-        Vector128<byte> upper = Vector128.ShuffleNative(vector.GetUpper(), indicesLo);
+        // Each half has its own byte indices. Like vpshufb, keep the low four index bits and the high zeroing bit;
+        // bits 4-6 must not select outside the 128-bit lane on platforms with different native shuffle semantics.
+        Vector128<byte> indexMask = Vector128.Create((byte)0x8F);
+        Vector128<byte> lower = Vector128.Shuffle(vector.GetLower(), indices.GetLower() & indexMask);
+        Vector128<byte> upper = Vector128.Shuffle(vector.GetUpper(), indices.GetUpper() & indexMask);
         return Vector256.Create(lower, upper);
     }
 

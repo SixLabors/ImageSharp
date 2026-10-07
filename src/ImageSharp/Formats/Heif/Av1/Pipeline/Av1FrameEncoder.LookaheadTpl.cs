@@ -238,10 +238,10 @@ internal static partial class Av1FrameEncoder
                     this.MotionSettings);
 
             /// <inheritdoc/>
-            public int SetupTplStatistics(Av1SecondPass secondPass, int gopEvaluation)
+            public int SetupTplStatistics(Av1SecondPass secondPass)
             {
                 this.BuildInput(secondPass, secondPass.Group.KeyFrames[0], secondPass.FrameNumber);
-                int evaluation = this.model.SetupStatistics(this.input, gopEvaluation);
+                int evaluation = this.model.SetupStatistics(this.input, true);
                 this.RecordModelQuantizer();
                 return evaluation;
             }
@@ -284,13 +284,10 @@ internal static partial class Av1FrameEncoder
                     return;
                 }
 
-                if (!frame.ReusesTplStatistics)
-                {
-                    secondPass.PreloadTplQuantizers();
-                    this.BuildInput(secondPass, frame.IsKeyFrame, frame.FrameNumber);
-                    _ = this.model.SetupStatistics(this.input, 0);
-                    this.RecordModelQuantizer();
-                }
+                secondPass.PreloadTplQuantizers();
+                this.BuildInput(secondPass, frame.IsKeyFrame, frame.FrameNumber);
+                _ = this.model.SetupStatistics(this.input, false);
+                this.RecordModelQuantizer();
             }
 
             /// <summary>

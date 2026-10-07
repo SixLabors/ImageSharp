@@ -56,21 +56,6 @@ public class Av1RateDistortionStatisticsTests
     }
 
     /// <summary>
-    /// Verifies that the av1_rd_pick_inter_mode() charge adds the priced offset to the mode cost as it stands, which
-    /// need not be the price of the rate and distortion.
-    /// </summary>
-    [Fact]
-    public void ModeSmoothingOffsetAddsPricedOffsetToCost()
-    {
-        Av1RateDistortionStatistics statistics = new(RateMultiplier, 1000, 5000) { Cost = 999999 };
-
-        statistics.AddModeSmoothingOffset(RateMultiplier, Offset);
-
-        Assert.Equal(5040, statistics.Distortion);
-        Assert.Equal(999999 + RdCost(RateMultiplier, 0, Offset), statistics.Cost);
-    }
-
-    /// <summary>
     /// Mirrors the RDCOST macro: the rate scaled by the multiplier and rounded off by AV1_PROB_COST_SHIFT bits, plus
     /// the distortion scaled up by RDDIV_BITS bits.
     /// </summary>

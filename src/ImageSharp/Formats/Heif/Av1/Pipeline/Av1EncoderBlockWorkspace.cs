@@ -521,6 +521,26 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public int MacroblockEnergy { get; set; }
 
     /// <summary>
+    /// Gets or sets the block size that <see cref="SubBlockEnergyDifference"/> was measured for. Like the reference's,
+    /// it keeps its value across blocks and frames, so a later block of the same size reuses the stored difference.
+    /// It starts as the smallest block size, as a zeroed macroblock does. Reference: x->sub_block_energy_bsize.
+    /// </summary>
+    public Av1BlockSize SubBlockEnergyBlockSize { get; set; }
+
+    /// <summary>
+    /// Gets or sets the sub-block energy difference measured for <see cref="SubBlockEnergyBlockSize"/>.
+    /// Reference: x->sub_block_energy_diff.
+    /// </summary>
+    public int SubBlockEnergyDifference { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the luma being transformed is a noise pattern: at high bit depth
+    /// sharpness 3, a block destination smoother than a source of low detail. The block search sets it for the
+    /// residual trials it measures. Reference: is_noise_pattern in av1_optimize_txb().
+    /// </summary>
+    public bool LumaNoisePattern { get; set; }
+
+    /// <summary>
     /// Gets the worker's motion-feature nodes in breadth-first quadtree order.
     /// </summary>
     public Span<Av1SimpleMotionData> SimpleMotionData => MemoryMarshal.Cast<int, Av1SimpleMotionData>(
@@ -752,9 +772,13 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
             ? this.GetQuantizationMatrix(componentType, transformSize, transformType)
             : default;
 
+        // A luma noise pattern keeps more coefficients, but the image tunes' shift takes precedence. Reference: the
+        // is_noise_pattern rshift and min_eob_cutoff of av1_optimize_txb() and update_coeff_eob().
+        bool noisePattern = componentType == Av1ComponentType.Luminance && this.LumaNoisePattern;
         return new Av1CoefficientOptimizationWeights(
             options.Sharpness,
-            options.Tuning.IsImageTuning() ? 7 : 5,
+            options.Tuning.IsImageTuning() ? 7 : noisePattern ? 6 : 5,
+            noisePattern ? 8 : 5,
             distortionWeights,
             this.GetInverseQuantizationMatrix(componentType, transformSize, transformType));
     }

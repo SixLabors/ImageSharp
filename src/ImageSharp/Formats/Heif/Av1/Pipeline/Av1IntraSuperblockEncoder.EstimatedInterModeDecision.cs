@@ -1387,7 +1387,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                         unitDistortion = predictionDistortion;
                                     }
 
-                                    rate += unitRate;
+                                    rate = (int)Math.Min((long)rate + unitRate, int.MaxValue / 2);
                                     distortion += unitDistortion;
                                 }
                             }
@@ -1416,7 +1416,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         out long lumaDistortion,
                         out skip);
 
-                    rate += lumaRate;
+                    // Each addition stays below the invalid-rate sentinel. Reference: the INT_MAX / 2 clamp of
+                    // av1_estimate_block_intra().
+                    rate = (int)Math.Min((long)rate + lumaRate, int.MaxValue / 2);
                     distortion += lumaDistortion;
                 }
             }

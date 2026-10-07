@@ -361,13 +361,6 @@ internal static partial class Av1MotionSearchBase
         public InlineArray6<byte> StartReferenceIndices;
         public InlineArray3<ReferenceSearchResult> References;
         public int StartCount;
-
-        /// <summary>
-        /// Whether the last search predicted luma to compare its two candidates by rate and distortion, which leaves
-        /// the second candidate's luma in the search's prediction buffer. Reference: the two
-        /// av1_enc_build_inter_predictor() calls of av1_single_motion_search() when disable_second_mv is off.
-        /// </summary>
-        public bool PredictedSecondCandidate;
     }
 
     /// <summary>
@@ -788,7 +781,6 @@ internal static partial class Av1MotionSearchBase
             ref ReferenceSearchResult current = ref state.References[referenceIndex];
             current.ReferenceVector = referenceVector;
             current.DrlRate = drlRate;
-            state.PredictedSecondCandidate = false;
             int stepParameter = frameStepParameter;
             if (settings.AutomaticStepSizeLevel != 0 && showFrame)
             {
@@ -1017,8 +1009,6 @@ internal static partial class Av1MotionSearchBase
 
                             long secondRateDistortion = this.EstimateCandidate(
                                 secondResult.Vector, referenceVector, horizontalFilter, verticalFilter);
-
-                            state.PredictedSecondCandidate = true;
 
                             if (secondRateDistortion < firstRateDistortion)
                             {

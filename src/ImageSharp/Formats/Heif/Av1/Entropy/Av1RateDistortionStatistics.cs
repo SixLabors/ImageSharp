@@ -123,10 +123,10 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds an eighth to the distortion and the cost of a valid inter mode, after its prediction took the same bias.
-    /// Reference: the AOM_TUNE_IQ branches of adjust_cost() and adjust_rdcost() in av1_rd_pick_inter_mode().
+    /// Adds an eighth to the distortion and to the cost as it stands, which need not be the price of the rate and
+    /// distortion. Reference: the AOM_TUNE_IQ branch of adjust_rdcost().
     /// </summary>
-    public void AddInterModeBias()
+    public void AddInterCostBias()
     {
         this.Distortion += this.Distortion >> 3;
         this.Cost += this.Cost >> 3;
@@ -149,18 +149,6 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds the sharpness 3 offset to the distortion and its price to the cost of a valid inter mode. Reference: the
-    /// sharpness branches of adjust_cost() and adjust_rdcost() in av1_rd_pick_inter_mode().
-    /// </summary>
-    /// <param name="rateMultiplier">The rate multiplier of the block.</param>
-    /// <param name="offset">The amount by which the source variance measure exceeds the prediction's.</param>
-    public void AddModeSmoothingOffset(int rateMultiplier, long offset)
-    {
-        this.Distortion += offset;
-        this.Cost += Av1RateDistortion.GetCost(rateMultiplier, 0, offset);
-    }
-
-    /// <summary>
     /// Adds the sharpness 3 offset to the distortion and prices the cost again. Reference: the sharpness branch of
     /// adjust_rdcost().
     /// </summary>
@@ -169,6 +157,20 @@ internal struct Av1RateDistortionStatistics
     public void AddSmoothingOffset(int rateMultiplier, long offset)
     {
         this.Distortion += offset;
+        this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
+    }
+
+    /// <summary>
+    /// Adds the distortion that an extra cost amounts to, rounded to the nearest distortion unit, and prices the cost
+    /// again. Reference: the extra_rd to extra_dist conversion of the sub-block energy adjustment in adjust_rdcost().
+    /// </summary>
+    /// <param name="rateMultiplier">The rate multiplier of the block.</param>
+    /// <param name="extraCost">The extra cost, which must be positive.</param>
+    public void AddEnergyCost(int rateMultiplier, long extraCost)
+    {
+        // RDCOST scales the distortion up by RDDIV_BITS, so the extra cost comes back to distortion with that shift.
+        const int DistortionShift = 7;
+        this.Distortion += (extraCost + (1L << (DistortionShift - 1))) >> DistortionShift;
         this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
     }
 

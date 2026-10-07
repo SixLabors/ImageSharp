@@ -94,12 +94,6 @@ internal readonly struct Av1SecondPassFrame
     public int ArfBoost { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the group length test already ran the temporal dependency model on this
-    /// group with its final length, so that its statistics are reused. Reference: skip_tpl_setup_stats.
-    /// </summary>
-    public bool ReusesTplStatistics { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether the first pass classed the source as animation or graphics.
     /// Reference: fr_content_type equal to FC_GRAPHICS_ANIMATION.
     /// </summary>

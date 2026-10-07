@@ -1009,6 +1009,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         break;
                     }
 
+                    this.PenalizeSmoothChromaMode(ref candidateStatistics, chromaMode);
                     angleCosts[angleDelta + 3] = candidateStatistics.Cost;
                     if (candidateStatistics.Cost < bestStatistics.Cost)
                     {
@@ -1328,6 +1329,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ResidualRate = blueRate + redRate
                     };
 
+                    this.PenalizeSmoothChromaMode(ref candidateStatistics, chromaMode);
                     angleCosts[angleDelta + 3] = candidateStatistics.Cost;
                     if (candidateStatistics.Cost < bestStatistics.Cost)
                     {
@@ -1372,6 +1374,23 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1ChromaPredictionMode chromaMode)
             => speed < HeifEncodingSpeed.Level4 ||
                 (LumaDerivedChromaModeMasks[(int)lumaMode] & (1 << (int)chromaMode)) != 0;
+
+        /// <summary>
+        /// Adds a quarter to the cost of a valid smooth chroma candidate at high bit depth sharpness 3, in every frame
+        /// type. The raised cost decides the comparison and bounds the later candidates; the rate and distortion stay.
+        /// Reference: is_smooth_uv_mode in av1_rd_pick_intra_sbuv_mode().
+        /// </summary>
+        /// <param name="statistics">The candidate statistics.</param>
+        /// <param name="chromaMode">The candidate chroma mode.</param>
+        private readonly void PenalizeSmoothChromaMode(ref Av1RateDistortionStatistics statistics, Av1ChromaPredictionMode chromaMode)
+        {
+            if (statistics.Cost != long.MaxValue &&
+                this.UsesHighBitDepthSharpness &&
+                chromaMode is Av1ChromaPredictionMode.Smooth or Av1ChromaPredictionMode.SmoothVertical or Av1ChromaPredictionMode.SmoothHorizontal)
+            {
+                statistics.Cost += statistics.Cost >> 2;
+            }
+        }
 
         /// <summary>
         /// Returns the per-sample variance of a chroma source block around the mid-gray level.

@@ -13,23 +13,23 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOperator>
 {
     /// <summary>
-    /// Measures and propagates the statistics of the golden group that starts at the current frame. With a nonzero
-    /// evaluation mode it also judges whether the group should stay long. Reference: av1_tpl_setup_stats().
+    /// Measures and propagates the statistics of the golden group that starts at the current frame. An approximate
+    /// evaluation measures only the lower alternate layers and judges whether the group should stay long.
+    /// Reference: av1_tpl_setup_stats().
     /// </summary>
     /// <param name="input">The encoder state the run reads.</param>
-    /// <param name="gopEvaluation">
-    /// Zero for the coding run, or the golden group length evaluation mode: one compares the base and next alternate
-    /// references on complete statistics, two and three use approximate statistics of the lower layers.
-    /// Reference: gop_eval.
+    /// <param name="approximateEvaluation">
+    /// False for the coding run; true for the golden group length evaluation of the speed's decision method.
+    /// Reference: approx_gop_eval.
     /// </param>
     /// <returns>
-    /// For an evaluation, one to keep the longer group, zero to shorten it, and two when mode two cannot decide; zero
-    /// for a coding run, and one when the group has no alternate layers.
+    /// For an evaluation, one to keep the longer group and zero to shorten it; zero for a coding run, and one when the
+    /// group has no alternate layers.
     /// </returns>
-    public int SetupStatistics(Av1TplSetupInput<TSample> input, int gopEvaluation)
+    public int SetupStatistics(Av1TplSetupInput<TSample> input, bool approximateEvaluation)
     {
         Av1TplGroup group = input.Group;
-        bool approximateEvaluation = gopEvaluation > 1;
+        int gopLengthDecisionMethod = input.SpeedFeatures.GopLengthDecisionMethod;
 
         // av1_configure_buffer_updates() runs for every entry and leaves the frame type of the last entry in
         // cm->current_frame.frame_type, which init_mc_flow_dispenser() passes to the rate multiplier.
@@ -62,7 +62,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
         for (int frameIndex = 0; frameIndex < groupFrames; frameIndex++)
         {
-            if (SkipFrame(group, frameIndex, gopEvaluation, approximateEvaluation, reduceNumberOfFrames))
+            if (SkipFrame(group, frameIndex, gopLengthDecisionMethod, approximateEvaluation, reduceNumberOfFrames))
             {
                 continue;
             }
@@ -78,7 +78,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         // Backward propagation from the last frame to the second.
         for (int frameIndex = groupFrames - 1; frameIndex >= 0; frameIndex--)
         {
-            if (SkipFrame(group, frameIndex, gopEvaluation, approximateEvaluation, reduceNumberOfFrames))
+            if (SkipFrame(group, frameIndex, gopLengthDecisionMethod, approximateEvaluation, reduceNumberOfFrames))
             {
                 continue;
             }
@@ -96,7 +96,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             return 1;
         }
 
-        if (gopEvaluation == 0)
+        if (!approximateEvaluation)
         {
             return 0;
         }
@@ -106,37 +106,28 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         int secondIndex = Math.Min(groupFrames - 1, group.ArfIndex + 1);
         beta[0] = Av1TplDecisions.GetFrameImportance(this.GetFrame(firstIndex));
         beta[1] = Av1TplDecisions.GetFrameImportance(this.GetFrame(secondIndex));
-        return EvaluateGopLength(beta, gopEvaluation);
+        return EvaluateGopLength(beta, gopLengthDecisionMethod);
     }
 
     /// <summary>
     /// Decides the golden group length from the importance of the base alternate reference and of the next layer.
     /// Reference: eval_gop_length().
     /// </summary>
-    private static int EvaluateGopLength(ReadOnlySpan<double> beta, int gopEvaluation)
+    /// <param name="beta">The importance of the base alternate reference and of the next layer.</param>
+    /// <param name="gopLengthDecisionMethod">The speed's decision method, zero or one.</param>
+    /// <returns>One to keep the longer group, zero to shorten it.</returns>
+    private static int EvaluateGopLength(ReadOnlySpan<double> beta, int gopLengthDecisionMethod)
     {
-        switch (gopEvaluation)
+        switch (gopLengthDecisionMethod)
         {
+            case 0:
+                // Shorten the group unless the base layer reference depends clearly more than the next layer and
+                // depends reasonably.
+                return (beta[0] < beta[1] + 0.1) || beta[0] <= 1.4 ? 0 : 1;
             case 1:
-                // Allow the longer group if the base layer reference depends much more than the next layer and both
-                // depend reasonably.
-                return (beta[0] >= beta[1] + 0.7) && beta[0] > 3.0 ? 1 : 0;
-            case 2:
-                if ((beta[0] >= beta[1] + 0.4) && beta[0] > 1.6)
-                {
-                    return 1;
-                }
-
-                if ((beta[0] < beta[1] + 0.1) || beta[0] <= 1.4)
-                {
-                    return 0;
-                }
-
-                return 2;
-            case 3:
                 return beta[0] > 1.1 ? 1 : 0;
             default:
-                return 2;
+                throw new InvalidOperationException("The golden group length decision method is disabled.");
         }
     }
 
@@ -144,10 +135,21 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// Returns whether a group entry is not measured: overlays always, higher layers and extension frames in an
     /// approximate evaluation, and leaf frames when their measurement is reduced. Reference: skip_tpl_for_frame().
     /// </summary>
-    private static bool SkipFrame(Av1TplGroup group, int frameIndex, int gopEvaluation, bool approximateEvaluation, bool reduceNumberOfFrames)
+    /// <param name="group">The golden group.</param>
+    /// <param name="frameIndex">The group entry.</param>
+    /// <param name="gopLengthDecisionMethod">The speed's decision method.</param>
+    /// <param name="approximateEvaluation">Whether the run is an approximate length evaluation.</param>
+    /// <param name="reduceNumberOfFrames">Whether leaf frames are left unmeasured.</param>
+    /// <returns>Whether the entry is skipped.</returns>
+    private static bool SkipFrame(
+        Av1TplGroup group,
+        int frameIndex,
+        int gopLengthDecisionMethod,
+        bool approximateEvaluation,
+        bool reduceNumberOfFrames)
     {
-        // Mode two measures the base layer and two more alternate layers; mode three one more.
-        int alternateLayers = gopEvaluation == 2 ? 3 : 2;
+        // Method zero measures the base layer and two more alternate layers; method one only one more.
+        int alternateLayers = gopLengthDecisionMethod == 0 ? 3 : 2;
         int gopLength = GetGopLength(group);
         if (group.UpdateType[frameIndex] is Av1FrameUpdateType.IntermediateOverlay or Av1FrameUpdateType.Overlay)
         {

@@ -175,6 +175,7 @@ internal sealed partial class Av1SymbolEncoder
         // domain once; each comparison retains the signed error change relative to a zero coefficient.
         // Sharpness lowers the multiplier, and the image tunes shift it further. Reference: av1_optimize_txb().
         int sharpness = weights.Sharpness;
+        int endOfBlockCutoff = weights.EndOfBlockCutoff;
         long multiplier = (long)rateMultiplier * (8 - sharpness) * (planeWeight << (2 * (bitDepth.GetBitCount() - 8)));
         multiplier = (multiplier + (1L << (weights.RateShift - 1))) >> weights.RateShift;
         ReadOnlySpan<byte> distortionWeights = weights.DistortionWeights;
@@ -294,8 +295,9 @@ internal sealed partial class Av1SymbolEncoder
             long lowerCost = Av1RateDistortion.GetCost(multiplier, accumulatedRate + lowerRate, accumulatedDistortion + lowerDistortion);
             long newDistortion = distortion;
 
-            // Sharpness keeps the low levels of the first coefficients. Reference: update_coeff_eob().
-            bool allowLower = sharpness == 0 || magnitude > (scanIndex <= 5 ? 2 : 1);
+            // Sharpness keeps the low levels of the first coefficients, further into the scan for a noise pattern.
+            // Reference: min_eob_cutoff and qc_threshold in update_coeff_eob().
+            bool allowLower = sharpness == 0 || magnitude > (scanIndex <= endOfBlockCutoff ? 2 : 1);
             bool lowerLevel = allowLower && lowerCost < cost;
             if (lowerLevel)
             {
@@ -345,7 +347,7 @@ internal sealed partial class Av1SymbolEncoder
                 }
             }
 
-            if ((sharpness == 0 || newEnd >= 5) && newCost < cost)
+            if ((sharpness == 0 || newEnd >= endOfBlockCutoff) && newCost < cost)
             {
                 // Only the sparse tail is considered for end-position removal. Clearing its retained
                 // nonzero entries also updates the forward-neighbor levels consumed by earlier positions.

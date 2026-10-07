@@ -36,7 +36,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <summary>
     /// The number of sample buffers retained by one mode decision.
     /// </summary>
-    public const int SampleBufferCount = 13;
+    public const int SampleBufferCount = 12;
 
     /// <summary>
     /// The sample capacity shared by sequential transform trials.
@@ -182,14 +182,6 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// Gets the spare red-difference reconstruction that holds an earlier winner while a candidate awaits a final test.
     /// </summary>
     public Span<TSample> SpareRedReconstruction => this.GetSamples(11);
-
-    /// <summary>
-    /// Gets the luma samples of the block's frame buffer destination while the current prediction lives elsewhere.
-    /// The interpolation filter search can leave its winner in the second buffer, and the frame buffer then keeps the
-    /// last losing trial, which later cost charges read. Reference: orig_dst after av1_interpolation_filter_search()
-    /// and restore_dst_buf() in handle_inter_mode().
-    /// </summary>
-    public Span<TSample> DestinationLuma => this.GetSamples(12);
 
     /// <summary>
     /// Gets the spare luma coefficients that hold an earlier winner while a candidate awaits a final test.

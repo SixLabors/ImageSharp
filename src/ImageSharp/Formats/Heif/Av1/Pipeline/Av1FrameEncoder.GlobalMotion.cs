@@ -124,17 +124,17 @@ internal static partial class Av1FrameEncoder
         // Reference: disable_gm_search_based_on_stats(), on for every good-quality speed.
         bool searchDisabledByStatistics = search.DisabledByStatistics;
 
-        Av1PlaneRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
+        // Only the reference's size must match. Every frame buffer of the encoder has the same border, so a reference
+        // of that size also has the source's stride, which the estimator relies on. Reference: the y_crop_width and
+        // y_crop_height tests of update_valid_ref_frames_for_gm().
         for (int frame = (int)Av1ReferenceFrameType.Alternate; frame >= (int)Av1ReferenceFrameType.Last; frame--)
         {
             Av1EncoderFrame<TSample> reference = references[frame];
             int slot = (int)slots[frame - 1];
             bool pruned = pruningEnabled && PrunesReferenceForGlobalMotion(frame, slots, search.SlotDisplayOrders, selectiveLevel);
-            Av1PlaneRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
             if ((search.RecodeAllowed && (search.ReferenceFrameFlags & (1 << frame)) == 0) ||
                 reference.Width != source.Width ||
                 reference.Height != source.Height ||
-                referenceLuma.Stride != sourceLuma.Stride ||
                 !IsGlobalMotionSearched(searchType, frame) ||
                 pruned ||
                 search.SlotPyramidLevels[slot] > search.PyramidLevel ||

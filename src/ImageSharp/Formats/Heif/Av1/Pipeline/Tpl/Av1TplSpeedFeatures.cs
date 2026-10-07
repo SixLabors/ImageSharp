@@ -38,7 +38,7 @@ internal readonly struct Av1TplSpeedFeatures
         bool is1080pOrLarger = minimumDimension >= 1080;
 
         // init_tpl_sf() defaults.
-        int gopLengthDecisionMethod = 1;
+        int gopLengthDecisionMethod = 0;
         bool pruneIntraModes = false;
         int pruneStartingMotionVector = 0;
         int reduceFirstStepSize = 0;
@@ -92,14 +92,14 @@ internal readonly struct Av1TplSpeedFeatures
             pruneStartingMotionVector = 3;
             lumaOnlyRateDistortion = true;
             subpelForceStop = SearchPrecision.Integer;
-            gopLengthDecisionMethod = 2;
+            gopLengthDecisionMethod = 1;
             useSadForModeDecision = 2;
         }
 
         if (speed >= HeifEncodingSpeed.Level6)
         {
             selectiveReferenceFrame = 6;
-            gopLengthDecisionMethod = 3;
+            gopLengthDecisionMethod = 2;
         }
 
         // set_good_speed_features_framesize_dependent().

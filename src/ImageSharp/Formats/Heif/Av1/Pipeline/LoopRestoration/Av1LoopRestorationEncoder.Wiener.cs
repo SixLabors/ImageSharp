@@ -176,25 +176,46 @@ internal static partial class Av1LoopRestorationEncoder
                 maximum = Math.Max(maximum, Math.Abs(matrix[(column * stride) + index]));
             }
 
-            int matrixScale = maximum < 1 << 22 ? 1 : 64;
-            int multiplierScale = maximum < 1 << 22 ? 1 : 128;
-            int combinedScale = matrixScale * multiplierScale;
-            for (int row = column; row < count - 1; row++)
+            // A pivot row of small magnitude eliminates in integers. A larger one would overflow the products, so it
+            // eliminates in double precision and truncates each update. Reference: the scale_threshold branches of
+            // linsolve_wiener().
+            if (maximum < 1 << 22)
             {
-                long divisor = matrix[(column * stride) + column];
-                if (divisor == 0)
+                for (int row = column; row < count - 1; row++)
                 {
-                    return false;
-                }
+                    long divisor = matrix[(column * stride) + column];
+                    if (divisor == 0)
+                    {
+                        return false;
+                    }
 
-                long multiplier = matrix[((row + 1) * stride) + column] / multiplierScale;
-                for (int index = 0; index < count; index++)
+                    long multiplier = matrix[((row + 1) * stride) + column];
+                    for (int index = 0; index < count; index++)
+                    {
+                        matrix[((row + 1) * stride) + index] -= matrix[(column * stride) + index] * multiplier / divisor;
+                    }
+
+                    rightHandSide[row + 1] -= multiplier * rightHandSide[column] / divisor;
+                }
+            }
+            else
+            {
+                for (int row = column; row < count - 1; row++)
                 {
-                    matrix[((row + 1) * stride) + index] -=
-                        matrix[(column * stride) + index] / matrixScale * multiplier / divisor * combinedScale;
-                }
+                    if (matrix[(column * stride) + column] == 0)
+                    {
+                        return false;
+                    }
 
-                rightHandSide[row + 1] -= multiplier * rightHandSide[column] / divisor * multiplierScale;
+                    double multiplier = matrix[((row + 1) * stride) + column];
+                    double divisor = matrix[(column * stride) + column];
+                    for (int index = 0; index < count; index++)
+                    {
+                        matrix[((row + 1) * stride) + index] -= (long)(matrix[(column * stride) + index] * multiplier / divisor);
+                    }
+
+                    rightHandSide[row + 1] -= (long)(multiplier * rightHandSide[column] / divisor);
+                }
             }
         }
 

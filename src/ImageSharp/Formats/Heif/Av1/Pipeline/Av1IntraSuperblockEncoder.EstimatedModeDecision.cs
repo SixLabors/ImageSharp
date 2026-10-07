@@ -252,7 +252,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             out long transformDistortion,
                             out bool transformSkip);
 
-                        rate += transformRate;
+                        // The sum stays below the invalid-rate sentinel. Reference: the INT_MAX / 2 clamp of
+                        // av1_estimate_block_intra().
+                        rate = (int)Math.Min((long)rate + transformRate, int.MaxValue / 2);
                         distortion += transformDistortion;
 
                         // Each prediction unit replaces the estimate's skip decision along with its transform result.

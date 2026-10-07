@@ -183,7 +183,6 @@ internal sealed partial class Av1SecondPass
     private int lastKeyFrameQIndex;
     private int arfQ;
     private int lastCodedQIndex;
-    private bool skipTplSetupStatistics;
     private bool screenContentType;
     private bool isGraphicsAnimation;
     private double macroblockAverageEnergy;
@@ -294,9 +293,9 @@ internal sealed partial class Av1SecondPass
         this.minimumGoldenInterval = Math.Min(minimum, this.maximumGoldenInterval);
         this.baselineGoldenInterval = (this.minimumGoldenInterval + this.maximumGoldenInterval) / 2;
 
-        // Speeds 0 to 4 run the complete group test, speed 5 the cheaper boost-gated test, and speed 6 none.
-        // Reference: gop_length_decision_method of set_good_speed_features_framesize_independent().
-        this.gopLengthDecisionMethod = speed >= 6 ? 3 : speed >= 5 ? 2 : 1;
+        // Speeds 0 to 4 run the test on three alternate layers, speed 5 the boost-gated test on two, and speed 6 none.
+        // Reference: gop_length_decision_method of init_tpl_sf() and set_good_speed_features_framesize_independent().
+        this.gopLengthDecisionMethod = speed >= 6 ? 2 : speed >= 5 ? 1 : 0;
 
         // Speeds 0 and 1 may code any frame again, faster speeds only key frames, golden frames and alternate
         // references. Reference: the recode_loop of set_good_speed_features_framesize_independent().
@@ -333,9 +332,8 @@ internal sealed partial class Av1SecondPass
         /// <see cref="Av1GopStructure.QValues"/>. Reference: av1_tpl_setup_stats().
         /// </summary>
         /// <param name="secondPass">The decisions that own the trial group.</param>
-        /// <param name="gopEvaluation">The evaluation: 1 for the complete group, 2 for three layers, 3 for two.</param>
-        /// <returns>The evaluation result: 0 to shorten, 1 to keep, 2 when undecided.</returns>
-        int SetupTplStatistics(Av1SecondPass secondPass, int gopEvaluation);
+        /// <returns>The evaluation result: 0 to shorten, 1 to keep.</returns>
+        int SetupTplStatistics(Av1SecondPass secondPass);
 
         /// <summary>
         /// Discards the filtered frames of the previous group before a new group is defined. Reference:
@@ -413,9 +411,6 @@ internal sealed partial class Av1SecondPass
             return false;
         }
 
-        // Each frame starts without reusing the model's statistics; only the length test of a new group may reuse
-        // them. Reference: the skip_tpl_setup_stats reset of av1_encode_strategy().
-        this.skipTplSetupStatistics = false;
         bool startsGroup = this.groupFrameIndex == this.group.Size;
         this.GetSecondPassParameters();
 
@@ -475,7 +470,6 @@ internal sealed partial class Av1SecondPass
             MaxLayerDepth = this.group.MaxLayerDepth,
             PyramidLevel = GetTruePyramidLevel(this.group.LayerDepths[index], displayOrder, this.group.MaxLayerDepth),
             ArfBoost = this.group.ArfBoosts[index],
-            ReusesTplStatistics = this.skipTplSetupStatistics,
             IsGraphicsAnimation = this.isGraphicsAnimation,
             MacroblockAverageEnergy = this.macroblockAverageEnergy,
             FrameAverageHaarEnergy = this.frameAverageHaarEnergy
@@ -912,7 +906,7 @@ internal sealed partial class Av1SecondPass
         if (maximumGopLength > MaximumLookaheadGoldenLength &&
             this.gopLengthEvaluator is not null &&
             this.lagInFrames >= 32 &&
-            this.gopLengthDecisionMethod != 3)
+            this.gopLengthDecisionMethod != 2)
         {
             int thisIndex = this.framesSinceKey + this.goldenIntervals[this.currentGoldenIndex] - 1;
             int thisRegion = this.FindRegionsIndex(thisIndex);
@@ -966,40 +960,15 @@ internal sealed partial class Av1SecondPass
         // that of the last coded frame, because the new key frame, if any, has not yet been classified.
         this.PreloadTplQuantizers();
 
-        bool shorten;
-        if (this.gopLengthDecisionMethod == 2)
+        // Both methods judge from approximate statistics of the lower alternate layers; the second also needs a low
+        // boost. Reference: the gop_length_decision_method branches of is_shorter_gf_interval_better().
+        if (this.gopLengthDecisionMethod == 1)
         {
-            shorten = this.goldenBoost < this.statisticsUsedForGoldenBoost * GoldenMinimumBoost * 1.4 &&
-                this.gopLengthEvaluator.SetupTplStatistics(this, 3) == 0;
-        }
-        else
-        {
-            bool completeTpl = true;
-            bool temporalFilterEnabled = this.framesSinceKey > 0 && this.group.ArfIndex > -1;
-            shorten = false;
-            if (this.gopLengthDecisionMethod == 1)
-            {
-                int evaluation = this.gopLengthEvaluator.SetupTplStatistics(this, 2);
-                if (evaluation != 2)
-                {
-                    completeTpl = false;
-                    shorten = evaluation == 0;
-                }
-            }
-
-            if (completeTpl)
-            {
-                shorten = this.gopLengthEvaluator.SetupTplStatistics(this, 1) == 0;
-
-                // The model's statistics of the kept group are reused when the alternate reference is filtered.
-                if (temporalFilterEnabled && !shorten)
-                {
-                    this.skipTplSetupStatistics = true;
-                }
-            }
+            return this.goldenBoost < this.statisticsUsedForGoldenBoost * GoldenMinimumBoost * 1.4 &&
+                this.gopLengthEvaluator.SetupTplStatistics(this) == 0;
         }
 
-        return shorten;
+        return this.gopLengthDecisionMethod == 0 && this.gopLengthEvaluator.SetupTplStatistics(this) == 0;
     }
 
     /// <summary>

@@ -323,6 +323,13 @@ internal sealed partial class Av1SecondPass
     private bool UsesBitBudget => this.mode != Av1RateControlMode.Quality;
 
     /// <summary>
+    /// Gets a value indicating whether a high bit depth sequence codes at sharpness 3, which holds back the quick
+    /// redistribution of undershoot bits while the sequence is overspent. Reference: the bit_depth &gt; 8 &amp;&amp;
+    /// sharpness == 3 tests of vbr_rate_correction() and av1_twopass_postencode_update().
+    /// </summary>
+    private bool UsesHighBitDepthSharpness => this.bitDepth.GetBitCount() > 8 && this.sharpness == 3;
+
+    /// <summary>
     /// Returns the quantizer index whose quantizer sets the strength of the temporal filter: the quality level, or
     /// under a bit budget the running average quantizer of the frame type of the frame being coded.
     /// Reference: get_q() of the temporal filter.
@@ -763,11 +770,15 @@ internal sealed partial class Av1SecondPass
                 frameTarget += this.variableBitrateBitsOffTarget >= 0 ? maximumDelta : -maximumDelta;
             }
 
-            // An ordinary frame takes back the bits of a large local undershoot quickly.
+            // An ordinary frame takes back the bits of a large local undershoot quickly, unless high bit depth
+            // sharpness 3 finds the sequence overspent. Reference: the fast redistribution test of
+            // vbr_rate_correction().
             Av1FrameUpdateType updateType = this.group.UpdateTypes[this.groupFrameIndex];
             bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
             bool sourceIsAlternate = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
-            if (!boosted && this.variableBitrateBitsOffTargetFast != 0 && !sourceIsAlternate)
+            if (!boosted && this.variableBitrateBitsOffTargetFast != 0 &&
+                (!this.UsesHighBitDepthSharpness || this.variableBitrateBitsOffTarget >= 0) &&
+                !sourceIsAlternate)
             {
                 long oneFrameBits = Math.Max(this.averageFrameBandwidth, frameTarget);
                 long fastExtraBits = Math.Min(this.variableBitrateBitsOffTargetFast, oneFrameBits);
@@ -1128,7 +1139,6 @@ internal sealed partial class Av1SecondPass
         {
             // An overshoot beyond the tolerance raises the ceiling while the rate error says bits are overspent.
             int percentError = (int)((this.rollingActualBits - (long)this.rollingTargetBits) * 100 / this.rollingTargetBits);
-            percentError = Math.Clamp(percentError, 0, 100);
             if (percentError >= OverShootPercentage && this.rateErrorEstimate < 0)
             {
                 this.extendMaximumQ += 1;
@@ -1151,15 +1161,24 @@ internal sealed partial class Av1SecondPass
         this.extendMinimumQ = Math.Clamp(this.extendMinimumQ, -minimumQAdjustmentLimit, minimumQAdjustmentLimit);
         this.extendMaximumQ = Math.Clamp(this.extendMaximumQ, 0, maximumQAdjustmentLimit);
 
-        // An unexpectedly well predicted ordinary frame feeds the bits it left back quickly.
+        // An unexpectedly well predicted ordinary frame feeds the bits it left back quickly. At high bit depth
+        // sharpness 3 an overspent sequence drops the quick bits instead. Reference: the vbr_bits_off_target_fast
+        // update of av1_twopass_postencode_update().
         Av1FrameUpdateType updateType = this.group.UpdateTypes[this.groupFrameIndex];
         if (updateType is not (Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate))
         {
-            int fastExtraThreshold = this.baseFrameTarget / HighUndershootRatio;
-            if (projectedFrameSize < fastExtraThreshold)
+            if (this.UsesHighBitDepthSharpness && this.variableBitrateBitsOffTarget < 0)
             {
-                this.variableBitrateBitsOffTargetFast += fastExtraThreshold - projectedFrameSize;
-                this.variableBitrateBitsOffTargetFast = Math.Min(this.variableBitrateBitsOffTargetFast, 4L * this.averageFrameBandwidth);
+                this.variableBitrateBitsOffTargetFast = 0;
+            }
+            else
+            {
+                int fastExtraThreshold = this.baseFrameTarget / HighUndershootRatio;
+                if (projectedFrameSize < fastExtraThreshold)
+                {
+                    this.variableBitrateBitsOffTargetFast += fastExtraThreshold - projectedFrameSize;
+                    this.variableBitrateBitsOffTargetFast = Math.Min(this.variableBitrateBitsOffTargetFast, 4L * this.averageFrameBandwidth);
+                }
             }
         }
     }

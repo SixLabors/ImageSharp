@@ -257,12 +257,6 @@ internal static partial class Av1IntraSuperblockEncoder
         // The cost of the last completed inter trial before the image tune bias. Reference: curr_rd in motion_mode_rd().
         private long unbiasedInterTrialCost;
 
-        // Whether the block's frame buffer destination holds the current luma prediction. It does from the first build
-        // of an interpolation filter search, and stops when the search leaves its winner in the second buffer; the
-        // destination then keeps the last losing trial in DestinationLuma. Reference: xd->plane[0].dst against
-        // orig_dst through av1_interpolation_filter_search() and restore_dst_buf() in handle_inter_mode().
-        private bool destinationIsPrediction;
-
         // The sharpness 3 distortion offset of the luma samples that the intra luma search of an inter frame leaves
         // for its chroma search. Reference: the pd->dst that adjust_rdcost() reads on intra_rd_stats in
         // search_intra_modes_in_interframe().
@@ -3983,9 +3977,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                // Any sharpness skips the intra search of a block wider or taller than 16 samples. Reference: the
-                // sharpness return at the start of search_intra_modes_in_interframe().
-                if (this.blockWorkspace.EncoderOptions.Sharpness != 0 && (blockSize.GetWidth() > 16 || blockSize.GetHeight() > 16))
+                // Any sharpness skips the intra search of a block wider or taller than 16 samples, except high bit depth
+                // sharpness 3, which searches every size. Reference: allow_larger_intra and the sharpness return at the
+                // start of search_intra_modes_in_interframe().
+                if (this.blockWorkspace.EncoderOptions.Sharpness != 0 && !this.UsesHighBitDepthSharpness &&
+                    (blockSize.GetWidth() > 16 || blockSize.GetHeight() > 16))
                 {
                     skipIntra = true;
                 }
@@ -4127,6 +4123,21 @@ internal static partial class Av1IntraSuperblockEncoder
             if (regularStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
             {
                 regularStatistics.AddSmoothingOffset(this.rateMultiplier, this.intraSmoothingOffset);
+            }
+            else if (regularStatistics.Cost != long.MaxValue && isInterFrame && this.ChargesHighBitDepthTextureLoss)
+            {
+                // At a high bit depth the charge also follows the luma winner's mode, and its extra cost scales the
+                // merged cost. Reference: the high bit depth branch of adjust_rdcost() on intra_rd_stats, whose
+                // rdcost is this_rd.
+                this.ChargeTextureLoss(
+                    ref regularStatistics,
+                    regularStatistics.Cost,
+                    this.intraSmoothingOffset,
+                    blockOrigin,
+                    blockSize,
+                    false,
+                    false,
+                    IsSmoothTextureMode(modeInfo.Block.Mode));
             }
 
             // An inter frame keeps the intra result only when it beats the budget of the block, so a block
@@ -4288,6 +4299,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         refinedLuma.Add(this.rateMultiplier, refinedChroma);
                         Av1RateDistortionStatistics refinedStatistics = this.GetRegularBlockCost(
                             writer, macroBlock, refinedLuma);
+
+                        if (this.UsesHighBitDepthSharpness)
+                        {
+                            this.ChargeRefinedIntraTextureLoss(ref refinedStatistics, blockOrigin, blockSize, refinedMode);
+                        }
 
                         if (refinedStatistics.Cost < this.SelectedBlockStatistics.Cost)
                         {
@@ -6022,6 +6038,38 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0),
                         blockSize.GetWidth());
             }
+            else if (selectedStatistics.Cost != long.MaxValue && this.ChargesHighBitDepthTextureLoss)
+            {
+                // At a high bit depth the offset follows the luma winner's mode; an intra mode never skips here.
+                // Blocks of every size take the intra search, so the measure reads whatever the samples hold.
+                // Reference: the high bit depth branch of adjust_rdcost() on intra_rd_stats.
+                Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
+                long sourceVariance;
+                long sampleVariance;
+                if (storeLumaForChromaFromLuma)
+                {
+                    this.GetVarianceStatistics(
+                        blockOrigin,
+                        blockSize,
+                        Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin),
+                        reconstructionPlane.Stride,
+                        out sourceVariance,
+                        out sampleVariance);
+                }
+                else
+                {
+                    this.GetVarianceStatistics(
+                        blockOrigin,
+                        blockSize,
+                        this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0),
+                        blockSize.GetWidth(),
+                        out sourceVariance,
+                        out sampleVariance);
+                }
+
+                this.intraSmoothingOffset = GetTextureLossOffset(
+                    sourceVariance, sampleVariance, blockSize, false, IsSmoothTextureMode(refinedMode), false, default);
+            }
 
             return refinedMode;
         }
@@ -6590,6 +6638,21 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     modeStatistics.LumaCost += Av1RateDistortion.GetCost(
                         this.rateMultiplier, 0, this.GetIntraSmoothingOffset(blockOrigin, blockSize, samples, width));
+                }
+                else if (modeStatistics.LumaCost != long.MaxValue && !intraFrame && this.ChargesHighBitDepthTextureLoss)
+                {
+                    // An intra mode never skips here, and a smooth mode pays four times. Reference: the
+                    // mbmi->skip_txfm = 0 of search_intra_modes_in_interframe() and the high bit depth branch of
+                    // adjust_cost().
+                    bool smoothMode = IsSmoothTextureMode(mode);
+                    this.GetVarianceStatistics(
+                        blockOrigin, blockSize, samples, width, out long candidateSourceVariance, out long candidateSampleVariance);
+
+                    long offset = GetTextureLossOffset(
+                        candidateSourceVariance, candidateSampleVariance, blockSize, false, smoothMode, false, default);
+
+                    modeStatistics.LumaCost = this.ChargeTextureLossCost(
+                        modeStatistics.LumaCost, offset, blockOrigin, blockSize, false, false, smoothMode);
                 }
 
                 bool improves = intraFrame ? modeStatistics.Cost < Math.Min(bestStatistics.Cost, interCostLimit)

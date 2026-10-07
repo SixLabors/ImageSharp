@@ -372,31 +372,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
-                    // Every following palette size overwrites the shared maps and candidate spans, so a
-                    // global improvement must retain reconstruction, coefficients, colors, and indices together.
+                    // Every later palette size overwrites the shared maps and candidate spans, so a new best keeps its
+                    // coefficients, colors and indices together. The frame keeps what the last trial wrote.
+                    Size codedExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY);
                     CopyTiledCandidate(
-                        candidateBlueReconstruction,
-                        candidateBlueCoefficients,
-                        candidateBlueStates,
-                        blueReconstruction,
-                        chromaOrigin,
-                        width,
-                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
-                        transformSize,
-                        retainedBlueCoefficients,
-                        retainedBlueStates);
+                        candidateBlueCoefficients, candidateBlueStates, codedExtent, transformSize, retainedBlueCoefficients, retainedBlueStates);
 
-                    CopyTiledCandidate(
-                        candidateRedReconstruction,
-                        candidateRedCoefficients,
-                        candidateRedStates,
-                        redReconstruction,
-                        chromaOrigin,
-                        width,
-                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
-                        transformSize,
-                        retainedRedCoefficients,
-                        retainedRedStates);
+                    CopyTiledCandidate(candidateRedCoefficients, candidateRedStates, codedExtent, transformSize, retainedRedCoefficients, retainedRedStates);
 
                     for (int row = 0; row < height; row++)
                     {

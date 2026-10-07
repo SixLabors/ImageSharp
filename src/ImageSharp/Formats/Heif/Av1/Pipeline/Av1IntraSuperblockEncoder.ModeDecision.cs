@@ -6801,17 +6801,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     bestSize = size;
                     if (statistics.Cost < selectionLimit)
                     {
-                        CopyTiledCandidate(
-                            samples,
-                            coefficients,
-                            candidateStates,
-                            reconstructionPlane,
-                            blockOrigin,
-                            blockSize.GetWidth(),
-                            GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0),
-                            size,
-                            retainedCoefficients,
-                            retainedStates);
+                        Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, size, 0, 0);
+                        CopyTiledCandidate(coefficients, candidateStates, codedExtent, size, retainedCoefficients, retainedStates);
                     }
                 }
 
@@ -7852,26 +7843,24 @@ internal static partial class Av1IntraSuperblockEncoder
                 threshold);
         }
 
+        /// <summary>
+        /// Keeps the coefficients and transform state of a new best candidate that has one transform block.
+        /// The frame samples do not change: libaom keeps a winner only in its mode info and coefficient buffers, and
+        /// pd->dst keeps what the last trial wrote.
+        /// </summary>
+        /// <param name="candidateCoefficients">The candidate coefficients.</param>
+        /// <param name="retainedCoefficients">The coefficients that the winner keeps.</param>
+        /// <param name="transformSize">The transform size of the candidate.</param>
+        /// <param name="candidateState">The candidate transform state.</param>
+        /// <param name="retainedState">The transform state that the winner keeps.</param>
         private static void CopyCandidate(
-            ReadOnlySpan<TSample> candidateReconstruction,
             ReadOnlySpan<int> candidateCoefficients,
-            Av1PlaneRegion<TSample> reconstructionPlane,
-            Point blockOrigin,
             Span<int> retainedCoefficients,
             Av1TransformSize transformSize,
             Av1EncoderTransformBlockState candidateState,
             ref Av1EncoderTransformBlockState retainedState)
         {
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
             candidateCoefficients[..transformSize.GetSize2d()].CopyTo(retainedCoefficients);
-            Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin);
-            for (int row = 0; row < height; row++)
-            {
-                candidateReconstruction.Slice(row * width, width)
-                    .CopyTo(destination.Slice(row * reconstructionPlane.Stride, width));
-            }
-
             retainedState = candidateState;
         }
 

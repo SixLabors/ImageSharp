@@ -108,6 +108,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
     /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
@@ -136,6 +137,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1PlaneRegion<byte> source,
         Point blockOrigin,
         Span<byte> reconstruction,
+        Av1PlaneRegion<byte> frame,
         ReadOnlySpan<byte> above,
         ReadOnlySpan<byte> left,
         bool hasLeft,
@@ -176,6 +178,10 @@ internal static partial class Av1TransformBlockEncoder
             smoothIntraEdges,
             workspace.Residual,
             transformSize);
+
+        // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the frame keeps the prediction.
+        // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
+        WriteFrameSamples(frame, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
@@ -499,6 +505,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
     /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
@@ -528,6 +535,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1PlaneRegion<ushort> source,
         Point blockOrigin,
         Span<ushort> reconstruction,
+        Av1PlaneRegion<ushort> frame,
         ReadOnlySpan<ushort> above,
         ReadOnlySpan<ushort> left,
         bool hasLeft,
@@ -570,6 +578,10 @@ internal static partial class Av1TransformBlockEncoder
             workspace.Residual,
             transformSize,
             bitDepth);
+
+        // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the frame keeps the prediction.
+        // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
+        WriteFrameSamples(frame, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point

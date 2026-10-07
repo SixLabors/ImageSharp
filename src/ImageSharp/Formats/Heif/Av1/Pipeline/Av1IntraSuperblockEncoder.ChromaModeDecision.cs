@@ -185,6 +185,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         lumaQ3,
                         alpha,
                         samples,
+                        reconstruction,
                         coefficients,
                         ref states[0],
                         out planeRate);
@@ -237,17 +238,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<Av1EncoderTransformBlockState> committedStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
                     (this.codedAreaChroma / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..];
 
-                CopyTiledCandidate(
-                    samples,
-                    coefficients,
-                    states,
-                    reconstruction,
-                    origin,
-                    width,
-                    extent,
-                    transformSize,
-                    this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)[this.codedAreaChroma..],
-                    committedStates);
+                Span<int> committedCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)[this.codedAreaChroma..];
+                CopyTiledCandidate(coefficients, states, extent, transformSize, committedCoefficients, committedStates);
             }
 
             return new(this.rateMultiplier, rate + residualRate, distortion)
@@ -682,6 +674,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformSize,
                             this.bitDepth,
                             candidateBlueReconstruction,
+                            blueReconstruction,
                             workspace.Residual,
                             this.blockWorkspace.TransformCoefficients,
                             this.blockWorkspace.TransformWorkspace);
@@ -698,6 +691,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformSize,
                             this.bitDepth,
                             candidateRedReconstruction,
+                            redReconstruction,
                             workspace.Residual,
                             this.blockWorkspace.TransformCoefficients,
                             this.blockWorkspace.TransformWorkspace);
@@ -730,11 +724,17 @@ internal static partial class Av1IntraSuperblockEncoder
                         int lastBlueCandidate = Math.Min(Av1ChromaFromLumaMath.AlphaCandidateCount, estimatedBlueCandidate + radius + 1);
                         int firstRedCandidate = Math.Max(0, estimatedRedCandidate - radius);
                         int lastRedCandidate = Math.Min(Av1ChromaFromLumaMath.AlphaCandidateCount, estimatedRedCandidate + radius + 1);
-                        for (int alphaCandidateIndex = firstBlueCandidate;
-                            evaluateAlpha && alphaCandidateIndex < lastBlueCandidate;
-                            alphaCandidateIndex++)
+
+                        // Each plane codes the estimate first, then the candidates above it, then the candidates below it.
+                        // Each trial writes its prediction into the frame in that order. Reference: cfl_pick_plane_rd().
+                        for (int order = 0; evaluateAlpha && order <= 2 * radius; order++)
                         {
-                            int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
+                            int alphaCandidateIndex = order <= radius ? estimatedBlueCandidate + order : estimatedBlueCandidate - (order - radius);
+                            if (alphaCandidateIndex < firstBlueCandidate || alphaCandidateIndex >= lastBlueCandidate)
+                            {
+                                continue;
+                            }
+
                             Av1EncoderTransformBlockState candidateBlueState = default;
                             blueDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
                                 writer,
@@ -746,18 +746,22 @@ internal static partial class Av1IntraSuperblockEncoder
                                 blueDc,
                                 blueContext,
                                 lumaQ3,
-                                alphaQ3,
+                                Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex),
                                 candidateBlueReconstruction[..sampleCount],
+                                blueReconstruction,
                                 candidateBlueCoefficients[..sampleCount],
                                 ref candidateBlueState,
                                 out blueRates[alphaCandidateIndex]);
                         }
 
-                        for (int alphaCandidateIndex = firstRedCandidate;
-                            evaluateAlpha && alphaCandidateIndex < lastRedCandidate;
-                            alphaCandidateIndex++)
+                        for (int order = 0; evaluateAlpha && order <= 2 * radius; order++)
                         {
-                            int alphaQ3 = Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex);
+                            int alphaCandidateIndex = order <= radius ? estimatedRedCandidate + order : estimatedRedCandidate - (order - radius);
+                            if (alphaCandidateIndex < firstRedCandidate || alphaCandidateIndex >= lastRedCandidate)
+                            {
+                                continue;
+                            }
+
                             Av1EncoderTransformBlockState candidateRedState = default;
                             redDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
                                 writer,
@@ -769,8 +773,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                 redDc,
                                 redContext,
                                 lumaQ3,
-                                alphaQ3,
+                                Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex),
                                 candidateRedReconstruction[..sampleCount],
+                                redReconstruction,
                                 candidateRedCoefficients[..sampleCount],
                                 ref candidateRedState,
                                 out redRates[alphaCandidateIndex]);
@@ -862,8 +867,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         if (chromaFromLumaSelected)
                         {
-                            // The alpha tables retain only rate and distortion. Regenerate the two selected planes
-                            // once here instead of copying reconstruction and coefficient blocks for all 66 trials.
+                            // The alpha tables keep only rate and distortion. Code the two selected planes again here to get
+                            // their coefficients. This is not a libaom trial, so it does not write the frame.
                             Av1EncoderTransformBlockState candidateBlueState = default;
                             _ = this.GetChromaFromLumaPlaneCost(
                                 writer,
@@ -877,19 +882,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                 lumaQ3,
                                 Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedBlueCandidateIndex),
                                 candidateBlueReconstruction[..sampleCount],
+                                default,
                                 candidateBlueCoefficients[..sampleCount],
                                 ref candidateBlueState,
                                 out _);
 
-                            CopyCandidate(
-                                candidateBlueReconstruction,
-                                candidateBlueCoefficients,
-                                blueReconstruction,
-                                chromaOrigin,
-                                retainedBlueCoefficients,
-                                transformSize,
-                                candidateBlueState,
-                                ref retainedBlueStates[0]);
+                            CopyCandidate(candidateBlueCoefficients, retainedBlueCoefficients, transformSize, candidateBlueState, ref retainedBlueStates[0]);
 
                             Av1EncoderTransformBlockState candidateRedState = default;
                             _ = this.GetChromaFromLumaPlaneCost(
@@ -904,19 +902,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                 lumaQ3,
                                 Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedRedCandidateIndex),
                                 candidateRedReconstruction[..sampleCount],
+                                default,
                                 candidateRedCoefficients[..sampleCount],
                                 ref candidateRedState,
                                 out _);
 
-                            CopyCandidate(
-                                candidateRedReconstruction,
-                                candidateRedCoefficients,
-                                redReconstruction,
-                                chromaOrigin,
-                                retainedRedCoefficients,
-                                transformSize,
-                                candidateRedState,
-                                ref retainedRedStates[0]);
+                            CopyCandidate(candidateRedCoefficients, retainedRedCoefficients, transformSize, candidateRedState, ref retainedRedStates[0]);
                         }
                     }
                 }
@@ -1013,26 +1004,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     angleCosts[angleDelta + 3] = candidateStatistics.Cost;
                     if (candidateStatistics.Cost < bestStatistics.Cost)
                     {
-                        CopyCandidate(
-                            candidateBlueReconstruction,
-                            candidateBlueCoefficients,
-                            blueReconstruction,
-                            chromaOrigin,
-                            retainedBlueCoefficients,
-                            transformSize,
-                            candidateBlueState,
-                            ref retainedBlueStates[0]);
-
-                        CopyCandidate(
-                            candidateRedReconstruction,
-                            candidateRedCoefficients,
-                            redReconstruction,
-                            chromaOrigin,
-                            retainedRedCoefficients,
-                            transformSize,
-                            candidateRedState,
-                            ref retainedRedStates[0]);
-
+                        CopyCandidate(candidateBlueCoefficients, retainedBlueCoefficients, transformSize, candidateBlueState, ref retainedBlueStates[0]);
+                        CopyCandidate(candidateRedCoefficients, retainedRedCoefficients, transformSize, candidateRedState, ref retainedRedStates[0]);
                         bestStatistics = candidateStatistics;
                         bestMode = chromaMode;
                         selectedAngleDelta = angleDelta;
@@ -1333,29 +1306,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     angleCosts[angleDelta + 3] = candidateStatistics.Cost;
                     if (candidateStatistics.Cost < bestStatistics.Cost)
                     {
+                        Size codedExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY);
                         CopyTiledCandidate(
-                            candidateBlueReconstruction,
-                            candidateBlueCoefficients,
-                            candidateBlueStates,
-                            blueReconstruction,
-                            chromaOrigin,
-                            blockWidth,
-                            GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
-                            transformSize,
-                            retainedBlueCoefficients,
-                            retainedBlueStates);
+                            candidateBlueCoefficients, candidateBlueStates, codedExtent, transformSize, retainedBlueCoefficients, retainedBlueStates);
 
                         CopyTiledCandidate(
-                            candidateRedReconstruction,
-                            candidateRedCoefficients,
-                            candidateRedStates,
-                            redReconstruction,
-                            chromaOrigin,
-                            blockWidth,
-                            GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
-                            transformSize,
-                            retainedRedCoefficients,
-                            retainedRedStates);
+                            candidateRedCoefficients, candidateRedStates, codedExtent, transformSize, retainedRedCoefficients, retainedRedStates);
 
                         bestStatistics = candidateStatistics;
                         bestMode = chromaMode;
@@ -1413,6 +1369,38 @@ internal static partial class Av1IntraSuperblockEncoder
             return GetPerPixelVariance(source, origin, width, height, bitDepth, midpoint);
         }
 
+        /// <summary>
+        /// Codes one plane of an intra or palette candidate, one transform block at a time, in coding order.
+        /// Each transform block writes its prediction into the frame, and then its reconstruction when recon_intra()
+        /// writes it. Reference: av1_txfm_rd_in_plane() and block_rd_txfm() for an intra block.
+        /// </summary>
+        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="macroBlock">The block neighborhood.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in plane samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="chromaBlockSize">The plane block size.</param>
+        /// <param name="transformSize">The transform size.</param>
+        /// <param name="maximumUnitBlockSize">The largest coding unit in plane samples.</param>
+        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
+        /// <param name="lumaMode">The luma prediction mode of the block.</param>
+        /// <param name="predictionMode">The prediction mode of the plane.</param>
+        /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+        /// <param name="plane">The plane.</param>
+        /// <param name="source">The source plane.</param>
+        /// <param name="reconstruction">The frame plane. It gives the edge samples and gets each trial write, as libaom pd->dst.</param>
+        /// <param name="paletteColors">The palette colors; empty for an intra candidate.</param>
+        /// <param name="colorIndexMap">The palette color index map; empty for an intra candidate.</param>
+        /// <param name="candidateReconstruction">The contiguous candidate reconstruction of the plane block.</param>
+        /// <param name="candidateCoefficients">The candidate coefficients, in transform block order.</param>
+        /// <param name="candidateStates">The candidate transform states.</param>
+        /// <param name="topContexts">The top coefficient contexts of the plane block.</param>
+        /// <param name="leftContexts">The left coefficient contexts of the plane block.</param>
+        /// <param name="costLimit">The cost limit for an early exit.</param>
+        /// <param name="predictionDistortion">The residual energy of leaving the plane uncoded.</param>
+        /// <param name="rate">The coefficient rate, or <see cref="int.MaxValue"/> after an early exit.</param>
+        /// <returns>The distortion, or <see cref="long.MaxValue"/> after an early exit.</returns>
         private long GetTiledPlaneCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -1565,6 +1553,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformSize);
                             }
 
+                            // The prediction goes into the frame. Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm().
+                            Av1TransformBlockEncoder.WriteFrameSamples(
+                                reconstruction, transformOrigin, prediction, transformWidth, transformWidth, transformHeight);
+
                             Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
                                 componentType,
                                 topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4),
@@ -1622,6 +1614,16 @@ internal static partial class Av1IntraSuperblockEncoder
                                     .CopyTo(candidateReconstruction.Slice(reconstructionOffset + (row * blockWidth), transformWidth));
                             }
 
+                            // The frame gets the reconstruction only when the block has coefficients and is not the last
+                            // transform block of the plane block. Otherwise the frame keeps the prediction.
+                            // Reference: the end of block and position tests of recon_intra(), which writes pd->dst.
+                            bool lastTransformBlock = (rowOffset + transformHeight) >= blockHeight && (columnOffset + transformWidth) >= blockWidth;
+                            if (searchResult.State.EndOfBlock != 0 && !lastTransformBlock)
+                            {
+                                Av1TransformBlockEncoder.WriteFrameSamples(
+                                    reconstruction, transformOrigin, bestTransformReconstruction, transformWidth, transformWidth, transformHeight);
+                            }
+
                             ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
                             state = searchResult.State;
                             long transformDistortion = searchResult.Distortion;
@@ -1665,22 +1667,27 @@ internal static partial class Av1IntraSuperblockEncoder
             return distortion;
         }
 
+        /// <summary>
+        /// Keeps the coefficients and transform states of a new best candidate that has many transform blocks.
+        /// The frame samples do not change: libaom keeps a winner only in its mode info and coefficient buffers, and
+        /// pd->dst keeps what the last trial wrote.
+        /// </summary>
+        /// <param name="candidateCoefficients">The candidate coefficients, in transform block order.</param>
+        /// <param name="candidateStates">The candidate transform states, one for each transform block.</param>
+        /// <param name="codedExtent">The coded part of the plane block.</param>
+        /// <param name="transformSize">The transform size of the candidate.</param>
+        /// <param name="retainedCoefficients">The coefficients that the winner keeps.</param>
+        /// <param name="retainedStates">The transform states that the winner keeps, one for each coefficient unit.</param>
         private static void CopyTiledCandidate(
-            ReadOnlySpan<TSample> candidateReconstruction,
             ReadOnlySpan<int> candidateCoefficients,
             ReadOnlySpan<Av1EncoderTransformBlockState> candidateStates,
-            Av1PlaneRegion<TSample> reconstruction,
-            Point blockOrigin,
-            int blockWidth,
             Size codedExtent,
             Av1TransformSize transformSize,
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates)
         {
             int blockSampleCount = codedExtent.Width * codedExtent.Height;
-            int transformStateStride =
-                transformSize.GetSize2d() /
-                Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+            int transformStateStride = transformSize.GetSize2d() / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
 
             candidateCoefficients[..blockSampleCount].CopyTo(retainedCoefficients);
             int transformCount = blockSampleCount / transformSize.GetSize2d();
@@ -1688,15 +1695,28 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 retainedStates[transformIndex * transformStateStride] = candidateStates[transformIndex];
             }
-
-            Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, blockOrigin);
-            for (int row = 0; row < codedExtent.Height; row++)
-            {
-                candidateReconstruction.Slice(row * blockWidth, codedExtent.Width)
-                    .CopyTo(destination.Slice(row * reconstruction.Stride, codedExtent.Width));
-            }
         }
 
+        /// <summary>
+        /// Codes one chroma-from-luma alpha for one chroma plane, as one transform block at the block origin.
+        /// Reference: cfl_compute_rd() with full transform search.
+        /// </summary>
+        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="lumaMode">The luma prediction mode of the block.</param>
+        /// <param name="plane">The chroma plane.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="source">The source plane.</param>
+        /// <param name="dc">The DC prediction sample of the plane.</param>
+        /// <param name="context">The coefficient context of the transform block.</param>
+        /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
+        /// <param name="alphaQ3">The signed alpha, in Q3.</param>
+        /// <param name="reconstruction">The contiguous candidate samples. They get the prediction, then the reconstruction.</param>
+        /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst; empty when the call is not a libaom trial.</param>
+        /// <param name="coefficients">The candidate coefficients.</param>
+        /// <param name="state">The candidate transform state.</param>
+        /// <param name="rate">The coefficient rate.</param>
+        /// <returns>The distortion.</returns>
         private long GetChromaFromLumaPlaneCost(
             Av1SymbolEncoder writer,
             Av1PredictionMode lumaMode,
@@ -1709,18 +1729,22 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<short> lumaQ3,
             int alphaQ3,
             Span<TSample> reconstruction,
+            Av1PlaneRegion<TSample> frame,
             Span<int> coefficients,
             ref Av1EncoderTransformBlockState state,
             out int rate)
         {
-            // CfL adds the scaled luma AC contribution to the DC predictor. The prediction is built in the caller's
-            // reconstruction, which receives the winner after the search.
+            // CfL adds the scaled luma AC part to the DC prediction. The prediction is built in the candidate samples.
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
             int sampleCount = transformSize.GetSize2d();
             Span<TSample> prediction = reconstruction[..sampleCount];
             prediction.Fill(dc);
             TOperator.ApplyChromaFromLuma(lumaQ3, prediction, alphaQ3, transformSize, this.bitDepth);
+
+            // The prediction goes into the frame. The block is one transform block, so the frame keeps the prediction.
+            // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
+            Av1TransformBlockEncoder.WriteFrameSamples(frame, chromaOrigin, prediction, width, width, height);
             Span<short> residual = this.blockWorkspace.Residual[..sampleCount];
             TOperator.SubtractPrediction(source, chromaOrigin, prediction, residual, width, height);
 
@@ -1768,6 +1792,24 @@ internal static partial class Av1IntraSuperblockEncoder
             return result.Distortion;
         }
 
+        /// <summary>
+        /// Estimates the best chroma-from-luma alpha of one plane from the transform energy of each prediction.
+        /// Reference: cfl_pick_plane_parameter() with intra_model_rd().
+        /// </summary>
+        /// <param name="blockWorkspace">The block workspace.</param>
+        /// <param name="plane">The chroma plane.</param>
+        /// <param name="source">The source plane.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="dc">The DC prediction sample of the plane.</param>
+        /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="prediction">The contiguous prediction samples.</param>
+        /// <param name="frame">The frame plane that gets each prediction, as libaom writes pd->dst.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="coefficients">The transform coefficients.</param>
+        /// <param name="transformWorkspace">The forward transform workspace.</param>
+        /// <returns>The alpha candidate index of the estimate.</returns>
         private static int FindBestChromaFromLumaEstimate(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1Plane plane,
@@ -1778,16 +1820,49 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth,
             Span<TSample> prediction,
+            Av1PlaneRegion<TSample> frame,
             Span<short> residual,
             Span<int> coefficients,
             Span<int> transformWorkspace)
         {
             long workStart = Av1WorkCounters.Start();
-            int workResult = FindBestChromaFromLumaEstimateCore(blockWorkspace, plane, source, chromaOrigin, dc, lumaQ3, transformSize, bitDepth, prediction, residual, coefficients, transformWorkspace);
+            int workResult = FindBestChromaFromLumaEstimateCore(
+                blockWorkspace,
+                plane,
+                source,
+                chromaOrigin,
+                dc,
+                lumaQ3,
+                transformSize,
+                bitDepth,
+                prediction,
+                frame,
+                residual,
+                coefficients,
+                transformWorkspace);
+
             Av1WorkCounters.Stop(Av1WorkCounters.CflEstimate, workStart);
             return workResult;
         }
 
+        /// <summary>
+        /// Estimates the best chroma-from-luma alpha of one plane. It starts at zero, then walks up and then down,
+        /// and stops each walk when the transform energy does not improve.
+        /// </summary>
+        /// <param name="blockWorkspace">The block workspace.</param>
+        /// <param name="plane">The chroma plane.</param>
+        /// <param name="source">The source plane.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="dc">The DC prediction sample of the plane.</param>
+        /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="prediction">The contiguous prediction samples.</param>
+        /// <param name="frame">The frame plane that gets each prediction, as libaom writes pd->dst.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="coefficients">The transform coefficients.</param>
+        /// <param name="transformWorkspace">The forward transform workspace.</param>
+        /// <returns>The alpha candidate index of the estimate.</returns>
         private static int FindBestChromaFromLumaEstimateCore(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1Plane plane,
@@ -1798,6 +1873,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth,
             Span<TSample> prediction,
+            Av1PlaneRegion<TSample> frame,
             Span<short> residual,
             Span<int> coefficients,
             Span<int> transformWorkspace)
@@ -1816,12 +1892,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     int candidate = Av1ChromaFromLumaMath.AlphaZeroIndex + (direction * step);
                     prediction[..sampleCount].Fill(dc);
-                    TOperator.ApplyChromaFromLuma(
-                        lumaQ3,
-                        prediction,
-                        Av1ChromaFromLumaMath.CandidateIndexToAlpha(candidate),
-                        transformSize,
-                        bitDepth);
+                    TOperator.ApplyChromaFromLuma(lumaQ3, prediction, Av1ChromaFromLumaMath.CandidateIndexToAlpha(candidate), transformSize, bitDepth);
+
+                    // The prediction goes into the frame. Reference: av1_predict_intra_block_facade() into pd->dst in intra_model_rd().
+                    Av1TransformBlockEncoder.WriteFrameSamples(
+                        frame, chromaOrigin, prediction, transformSize.GetWidth(), transformSize.GetWidth(), transformSize.GetHeight());
 
                     TOperator.SubtractPrediction(source, chromaOrigin, prediction, residual, transformSize.GetWidth(), transformSize.GetHeight());
 
@@ -2001,6 +2076,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blueSource,
                 chromaOrigin,
                 candidateBlueReconstruction,
+                this.reconstruction.GetPlane(Av1Plane.U),
                 blueAbove,
                 blueLeft,
                 hasLeft,
@@ -2061,6 +2137,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 redSource,
                 chromaOrigin,
                 candidateRedReconstruction,
+                this.reconstruction.GetPlane(Av1Plane.V),
                 redAbove,
                 redLeft,
                 hasLeft,

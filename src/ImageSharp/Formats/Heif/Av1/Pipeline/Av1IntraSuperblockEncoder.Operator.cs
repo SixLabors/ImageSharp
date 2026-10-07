@@ -310,6 +310,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
         /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+        /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
         /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
         /// <param name="left">The left reference samples.</param>
         /// <param name="hasLeft">Whether the left reference is available.</param>
@@ -339,6 +340,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> source,
             Point blockOrigin,
             Span<TSample> reconstruction,
+            Av1PlaneRegion<TSample> frame,
             ReadOnlySpan<TSample> above,
             ReadOnlySpan<TSample> left,
             bool hasLeft,
@@ -1304,6 +1306,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<byte> source,
             Point blockOrigin,
             Span<byte> reconstruction,
+            Av1PlaneRegion<byte> frame,
             ReadOnlySpan<byte> above,
             ReadOnlySpan<byte> left,
             bool hasLeft,
@@ -1332,6 +1335,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 source,
                 blockOrigin,
                 reconstruction,
+                frame,
                 above,
                 left,
                 hasLeft,
@@ -2494,6 +2498,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<ushort> source,
             Point blockOrigin,
             Span<ushort> reconstruction,
+            Av1PlaneRegion<ushort> frame,
             ReadOnlySpan<ushort> above,
             ReadOnlySpan<ushort> left,
             bool hasLeft,
@@ -2522,6 +2527,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 source,
                 blockOrigin,
                 reconstruction,
+                frame,
                 above,
                 left,
                 hasLeft,

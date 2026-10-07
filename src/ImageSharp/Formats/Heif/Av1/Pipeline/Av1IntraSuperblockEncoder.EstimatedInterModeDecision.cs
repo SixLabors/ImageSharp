@@ -1416,8 +1416,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         out long lumaDistortion,
                         out skip);
 
-                    // Each addition stays below the invalid-rate sentinel. Reference: the INT_MAX / 2 clamp of
-                    // av1_estimate_block_intra().
+                    // Each addition stays below the invalid-rate value. Reference: the INT_MAX / 2 clamp of av1_estimate_block_intra().
                     rate = (int)Math.Min((long)rate + lumaRate, int.MaxValue / 2);
                     distortion += lumaDistortion;
                 }

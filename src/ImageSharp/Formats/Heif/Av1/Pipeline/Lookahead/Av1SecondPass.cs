@@ -293,7 +293,7 @@ internal sealed partial class Av1SecondPass
         this.minimumGoldenInterval = Math.Min(minimum, this.maximumGoldenInterval);
         this.baselineGoldenInterval = (this.minimumGoldenInterval + this.maximumGoldenInterval) / 2;
 
-        // Speeds 0 to 4 run the test on three alternate layers, speed 5 the boost-gated test on two, and speed 6 none.
+        // Speeds 0 to 4 do the test on three alternate layers. Speed 5 does the test on two layers, after a boost test. Speed 6 does no test.
         // Reference: gop_length_decision_method of init_tpl_sf() and set_good_speed_features_framesize_independent().
         this.gopLengthDecisionMethod = speed >= 6 ? 2 : speed >= 5 ? 1 : 0;
 
@@ -960,12 +960,11 @@ internal sealed partial class Av1SecondPass
         // that of the last coded frame, because the new key frame, if any, has not yet been classified.
         this.PreloadTplQuantizers();
 
-        // Both methods judge from approximate statistics of the lower alternate layers; the second also needs a low
-        // boost. Reference: the gop_length_decision_method branches of is_shorter_gf_interval_better().
+        // Both methods use approximate statistics of the lower alternate layers. The second method also needs a low boost.
+        // Reference: the gop_length_decision_method branches of is_shorter_gf_interval_better().
         if (this.gopLengthDecisionMethod == 1)
         {
-            return this.goldenBoost < this.statisticsUsedForGoldenBoost * GoldenMinimumBoost * 1.4 &&
-                this.gopLengthEvaluator.SetupTplStatistics(this) == 0;
+            return this.goldenBoost < this.statisticsUsedForGoldenBoost * GoldenMinimumBoost * 1.4 && this.gopLengthEvaluator.SetupTplStatistics(this) == 0;
         }
 
         return this.gopLengthDecisionMethod == 0 && this.gopLengthEvaluator.SetupTplStatistics(this) == 0;

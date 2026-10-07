@@ -124,9 +124,9 @@ internal static partial class Av1FrameEncoder
         // Reference: disable_gm_search_based_on_stats(), on for every good-quality speed.
         bool searchDisabledByStatistics = search.DisabledByStatistics;
 
-        // Only the reference's size must match. Every frame buffer of the encoder has the same border, so a reference
-        // of that size also has the source's stride, which the estimator relies on. Reference: the y_crop_width and
-        // y_crop_height tests of update_valid_ref_frames_for_gm().
+        // Only the size of the reference must match. All frame buffers of the encoder have the same border.
+        // So a reference of that size also has the stride of the source, and the estimator uses this.
+        // Reference: the y_crop_width and y_crop_height tests of update_valid_ref_frames_for_gm().
         for (int frame = (int)Av1ReferenceFrameType.Alternate; frame >= (int)Av1ReferenceFrameType.Last; frame--)
         {
             Av1EncoderFrame<TSample> reference = references[frame];

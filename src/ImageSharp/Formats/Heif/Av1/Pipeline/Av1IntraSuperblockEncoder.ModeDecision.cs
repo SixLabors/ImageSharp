@@ -3977,11 +3977,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                // Any sharpness skips the intra search of a block wider or taller than 16 samples, except high bit depth
-                // sharpness 3, which searches every size. Reference: allow_larger_intra and the sharpness return at the
-                // start of search_intra_modes_in_interframe().
-                if (this.blockWorkspace.EncoderOptions.Sharpness != 0 && !this.UsesHighBitDepthSharpness &&
-                    (blockSize.GetWidth() > 16 || blockSize.GetHeight() > 16))
+                // A nonzero sharpness skips the intra search of a block wider or taller than 16 samples.
+                // High bit depth sharpness 3 is an exception: it searches all sizes.
+                // Reference: allow_larger_intra and the sharpness return at the start of search_intra_modes_in_interframe().
+                bool largeBlock = blockSize.GetWidth() > 16 || blockSize.GetHeight() > 16;
+                if (this.blockWorkspace.EncoderOptions.Sharpness != 0 && !this.UsesHighBitDepthSharpness && largeBlock)
                 {
                     skipIntra = true;
                 }
@@ -4126,18 +4126,11 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (regularStatistics.Cost != long.MaxValue && isInterFrame && this.ChargesHighBitDepthTextureLoss)
             {
-                // At a high bit depth the charge also follows the luma winner's mode, and its extra cost scales the
-                // merged cost. Reference: the high bit depth branch of adjust_rdcost() on intra_rd_stats, whose
-                // rdcost is this_rd.
-                this.ChargeTextureLoss(
-                    ref regularStatistics,
-                    regularStatistics.Cost,
-                    this.intraSmoothingOffset,
-                    blockOrigin,
-                    blockSize,
-                    false,
-                    false,
-                    IsSmoothTextureMode(modeInfo.Block.Mode));
+                // At a high bit depth, the charge also uses the mode of the luma winner, and its extra cost scales the merged cost.
+                // Reference: the high bit depth branch of adjust_rdcost() on intra_rd_stats. Its rdcost is this_rd.
+                bool smoothMode = IsSmoothTextureMode(modeInfo.Block.Mode);
+                long currentCost = regularStatistics.Cost;
+                this.ChargeTextureLoss(ref regularStatistics, currentCost, this.intraSmoothingOffset, blockOrigin, blockSize, false, false, smoothMode);
             }
 
             // An inter frame keeps the intra result only when it beats the budget of the block, so a block
@@ -6019,56 +6012,22 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.codedAreaLuma = retainedLumaArea;
             }
 
-            // The chroma search leaves the luma samples as they are now: the winner when chroma-from-luma coded it
-            // again, otherwise whatever the last luma candidate wrote. Sharpness 3 measures them here, before the
-            // chroma search reuses the candidate buffers. Reference: the pd->dst that adjust_rdcost() reads on
-            // intra_rd_stats in search_intra_modes_in_interframe().
+            // The frame holds the luma that the search left. That is the winner when chroma-from-luma coded it again, else the last luma trial.
+            // The chroma search writes only the chroma planes, so this measure is the same as one after the chroma search.
+            // Reference: the pd->dst that adjust_rdcost() reads on intra_rd_stats in search_intra_modes_in_interframe().
+            Av1PlaneRegion<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y);
+            ReadOnlySpan<TSample> lumaFrameBlock = Av1TransformBlockEncoder.GetPlaneSpan(lumaFrame, blockOrigin);
             if (selectedStatistics.Cost != long.MaxValue && this.ChargesSmoothing)
             {
-                Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
-                this.intraSmoothingOffset = storeLumaForChromaFromLuma
-                    ? this.GetIntraSmoothingOffset(
-                        blockOrigin,
-                        blockSize,
-                        Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin),
-                        reconstructionPlane.Stride)
-                    : this.GetIntraSmoothingOffset(
-                        blockOrigin,
-                        blockSize,
-                        this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0),
-                        blockSize.GetWidth());
+                this.intraSmoothingOffset = this.GetIntraSmoothingOffset(blockOrigin, blockSize, lumaFrameBlock, lumaFrame.Stride);
             }
             else if (selectedStatistics.Cost != long.MaxValue && this.ChargesHighBitDepthTextureLoss)
             {
-                // At a high bit depth the offset follows the luma winner's mode; an intra mode never skips here.
-                // Blocks of every size take the intra search, so the measure reads whatever the samples hold.
+                // At a high bit depth, the offset uses the mode of the luma winner. An intra mode never skips here.
                 // Reference: the high bit depth branch of adjust_rdcost() on intra_rd_stats.
-                Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
-                long sourceVariance;
-                long sampleVariance;
-                if (storeLumaForChromaFromLuma)
-                {
-                    this.GetVarianceStatistics(
-                        blockOrigin,
-                        blockSize,
-                        Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin),
-                        reconstructionPlane.Stride,
-                        out sourceVariance,
-                        out sampleVariance);
-                }
-                else
-                {
-                    this.GetVarianceStatistics(
-                        blockOrigin,
-                        blockSize,
-                        this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0),
-                        blockSize.GetWidth(),
-                        out sourceVariance,
-                        out sampleVariance);
-                }
-
-                this.intraSmoothingOffset = GetTextureLossOffset(
-                    sourceVariance, sampleVariance, blockSize, false, IsSmoothTextureMode(refinedMode), false, default);
+                this.GetVarianceStatistics(blockOrigin, blockSize, lumaFrameBlock, lumaFrame.Stride, out long sourceVariance, out long sampleVariance);
+                bool smoothMode = IsSmoothTextureMode(refinedMode);
+                this.intraSmoothingOffset = GetTextureLossOffset(sourceVariance, sampleVariance, blockSize, false, smoothMode, false, default);
             }
 
             return refinedMode;
@@ -6581,12 +6540,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     // Adjust predictor ranking only after its transform grid has been selected. Raw rate
                     // and distortion remain unchanged for chroma and partition cost accumulation.
-                    // The samples this reads are the ones the last grid tried left behind, not the winning
-                    // grid's: choosing a grid restores the transform type map and nothing else.
-                    // Reference: the tail of choose_tx_size_type_from_rd(), which copies best_txk_type_map
-                    // into xd->tx_type_map and leaves pd->dst as the final uniform_txfm_yrd() call left it.
-                    modeStatistics.Cost = (long)(modeStatistics.Cost * this.GetIntraVarianceFactor(
-                        blockOrigin, blockSize, samples, width));
+                    // The frame holds the samples of the last grid trial, not of the winning grid. The choice of a grid restores only the transform type map.
+                    // Reference: the tail of choose_tx_size_type_from_rd(). It copies best_txk_type_map into xd->tx_type_map.
+                    // Then pd->dst keeps the last uniform_txfm_yrd() trial.
+                    ReadOnlySpan<TSample> lumaFrameBlock = Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin);
+                    double varianceFactor = this.GetIntraVarianceFactor(blockOrigin, blockSize, lumaFrameBlock, reconstructionPlane.Stride);
+                    modeStatistics.Cost = (long)(modeStatistics.Cost * varianceFactor);
                 }
 
                 if (!intraFrame && filter)
@@ -6630,29 +6589,25 @@ internal static partial class Av1IntraSuperblockEncoder
                     dcStatistics = modeStatistics;
                 }
 
-                // In an inter frame, sharpness 3 charges the luma cost of a mode whose samples are smoother than the
-                // source, after the mode's own search and before it is compared. The samples are the ones the last
-                // grid tried left behind. Reference: adjust_cost() on intra_rd_y in
-                // search_intra_modes_in_interframe().
+                // In an inter frame, sharpness 3 adds a charge to the luma cost of a mode that is smoother than the source.
+                // The charge comes after the search of the mode and before the comparison. The frame holds the samples of the last grid trial.
+                // Reference: adjust_cost() on intra_rd_y in search_intra_modes_in_interframe().
+                ReadOnlySpan<TSample> frameSamples = Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin);
                 if (modeStatistics.LumaCost != long.MaxValue && this.ChargesSmoothing)
                 {
-                    modeStatistics.LumaCost += Av1RateDistortion.GetCost(
-                        this.rateMultiplier, 0, this.GetIntraSmoothingOffset(blockOrigin, blockSize, samples, width));
+                    long smoothingOffset = this.GetIntraSmoothingOffset(blockOrigin, blockSize, frameSamples, reconstructionPlane.Stride);
+                    modeStatistics.LumaCost += Av1RateDistortion.GetCost(this.rateMultiplier, 0, smoothingOffset);
                 }
                 else if (modeStatistics.LumaCost != long.MaxValue && !intraFrame && this.ChargesHighBitDepthTextureLoss)
                 {
-                    // An intra mode never skips here, and a smooth mode pays four times. Reference: the
-                    // mbmi->skip_txfm = 0 of search_intra_modes_in_interframe() and the high bit depth branch of
-                    // adjust_cost().
+                    // An intra mode never skips here, and a smooth mode pays four times.
+                    // Reference: the mbmi->skip_txfm = 0 of search_intra_modes_in_interframe() and the high bit depth branch of adjust_cost().
                     bool smoothMode = IsSmoothTextureMode(mode);
                     this.GetVarianceStatistics(
-                        blockOrigin, blockSize, samples, width, out long candidateSourceVariance, out long candidateSampleVariance);
+                        blockOrigin, blockSize, frameSamples, reconstructionPlane.Stride, out long candidateSourceVariance, out long candidateSampleVariance);
 
-                    long offset = GetTextureLossOffset(
-                        candidateSourceVariance, candidateSampleVariance, blockSize, false, smoothMode, false, default);
-
-                    modeStatistics.LumaCost = this.ChargeTextureLossCost(
-                        modeStatistics.LumaCost, offset, blockOrigin, blockSize, false, false, smoothMode);
+                    long offset = GetTextureLossOffset(candidateSourceVariance, candidateSampleVariance, blockSize, false, smoothMode, false, default);
+                    modeStatistics.LumaCost = this.ChargeTextureLossCost(modeStatistics.LumaCost, offset, blockOrigin, blockSize, false, false, smoothMode);
                 }
 
                 bool improves = intraFrame ? modeStatistics.Cost < Math.Min(bestStatistics.Cost, interCostLimit)
@@ -7174,6 +7129,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                 }
                             }
 
+                            // The prediction goes into the frame. Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm().
+                            Av1TransformBlockEncoder.WriteFrameSamples(
+                                reconstructionPlane, transformOrigin, prediction, transformWidth, transformWidth, transformHeight);
+
                             if (this.picture.Parent.SpeedSettings.PruneIntraTransformDepth &&
                                 this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Winner &&
                                 !codedLossless && this.bitDepth.GetBitCount() == 8 &&
@@ -7202,6 +7161,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             // The type search receives the budget that this block has left after its earlier transform
                             // blocks. Reference: the ref_best_rd that block_rd_txfm() gives search_tx_type().
                             long remainingCostLimit = costLimit == long.MaxValue ? long.MaxValue : costLimit - runningCost;
+                            this.blockWorkspace.LumaNoisePattern = this.IsLumaNoisePattern(reconstructionPlane, blockOrigin, blockSize);
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
                                 writer,
                                 Av1Plane.Y,
@@ -7227,6 +7187,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 ref candidateDequantizedCoefficients,
                                 ref bestDequantizedCoefficients);
 
+                            this.blockWorkspace.LumaNoisePattern = false;
                             Av1TransformType bestTransformType = searchResult.Type;
                             int bestTransformRate = searchResult.Rate;
                             long bestTransformDistortion = searchResult.Distortion;
@@ -7255,6 +7216,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                             reconstructionOffset + (row * blockWidth),
                                             transformWidth));
                             }
+
+                            // The frame gets the same samples. Reference: recon_intra() into pd->dst.
+                            Av1TransformBlockEncoder.WriteFrameSamples(
+                                reconstructionPlane, transformOrigin, publishedSamples, transformWidth, transformWidth, transformHeight);
 
                             hasCoefficients |= bestTransformState.EndOfBlock != 0;
                             rate += bestTransformRate;
@@ -7298,6 +7263,29 @@ internal static partial class Av1IntraSuperblockEncoder
                 // av1_handle_intra_y_mode().
                 LumaCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion)
             };
+        }
+
+        /// <summary>
+        /// Returns true when the frame luma of a block is a noise pattern at high bit depth sharpness 3.
+        /// The block is a noise pattern when its frame samples are smoother than the source and the source has low detail.
+        /// Then the trellis keeps more coefficients.
+        /// The frame holds all writes of the trials of the block so far, also from earlier trials.
+        /// Reference: is_noise_pattern in av1_optimize_txb(), from av1_get_variance_stats() on pd->dst.
+        /// </summary>
+        /// <param name="plane">The luma plane of the frame.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>True when the block is a noise pattern.</returns>
+        private readonly bool IsLumaNoisePattern(Av1PlaneRegion<TSample> plane, Point blockOrigin, Av1BlockSize blockSize)
+        {
+            if (!this.UsesHighBitDepthSharpness)
+            {
+                return false;
+            }
+
+            ReadOnlySpan<TSample> frameBlock = Av1TransformBlockEncoder.GetPlaneSpan(plane, blockOrigin);
+            this.GetVarianceStatistics(blockOrigin, blockSize, frameBlock, plane.Stride, out long sourceVariance, out long sampleVariance);
+            return sourceVariance > sampleVariance && sourceVariance / (blockSize.GetWidth() * blockSize.GetHeight()) < 64;
         }
 
         private void PrepareTransformReferenceSamples(
@@ -7659,8 +7647,9 @@ internal static partial class Av1IntraSuperblockEncoder
             bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
             long cost = 0;
 
-            // Each tile consumes the preceding predictions, without quantization or inverse transforms.
-            // Keep this mosaic separate from the frame so rejected modes cannot change neighboring pixels.
+            // Each tile uses the predictions of the tiles before it, with no quantization and no inverse transform.
+            // Each prediction also goes into the frame, so a rejected mode leaves its samples there.
+            // Reference: the av1_predict_intra_block_facade() calls of intra_model_rd(), which write pd->dst.
             for (int y = 0; y < visibleHeight; y += tileSize)
             {
                 for (int x = 0; x < visibleWidth; x += tileSize)
@@ -7737,6 +7726,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         prediction.Slice(row * tileSize, tileSize).CopyTo(modelPixels.Slice(((y + row) * blockWidth) + x, tileSize));
                     }
+
+                    Av1TransformBlockEncoder.WriteFrameSamples(reconstructionPlane, transformOrigin, prediction, tileSize, tileSize, tileSize);
                 }
             }
 

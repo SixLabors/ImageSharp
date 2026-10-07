@@ -2374,6 +2374,32 @@ internal static partial class Av1TransformBlockEncoder
         return scaleShift >= 0 ? error >> scaleShift : error << -scaleShift;
     }
 
+    /// <summary>
+    /// Writes samples into the frame that is coded. Each trial of a block writes its prediction and reconstruction there.
+    /// An empty plane gets no write. Reference: the writes of a search into pd->dst, which points into cur_frame.
+    /// </summary>
+    /// <typeparam name="TSample">The sample storage type.</typeparam>
+    /// <param name="plane">The frame plane, or an empty plane for no write.</param>
+    /// <param name="origin">The origin of the rectangle, in plane samples.</param>
+    /// <param name="samples">The samples, row by row.</param>
+    /// <param name="stride">The row stride of the samples.</param>
+    /// <param name="width">The rectangle width.</param>
+    /// <param name="height">The rectangle height.</param>
+    public static void WriteFrameSamples<TSample>(Av1PlaneRegion<TSample> plane, Point origin, ReadOnlySpan<TSample> samples, int stride, int width, int height)
+        where TSample : unmanaged
+    {
+        if (plane.Samples.IsEmpty)
+        {
+            return;
+        }
+
+        Span<TSample> destination = GetPlaneSpan(plane, origin);
+        for (int row = 0; row < height; row++)
+        {
+            samples.Slice(row * stride, width).CopyTo(destination.Slice(row * plane.Stride, width));
+        }
+    }
+
     public static Span<TSample> GetPlaneSpan<TSample>(Av1PlaneRegion<TSample> plane, Point blockOrigin)
         where TSample : unmanaged
     {

@@ -380,20 +380,14 @@ internal static partial class Av1TemporalFilter
                 isDcDifferenceLarge = unchecked(50u * error) < (uint)fractional.SquaredError;
                 isLowContrast = sourceVariance <= 2 * (long)fractional.Variance;
 
-                // High bit depth sharpness 3 keeps the zero vector for a still region: when its error is within a
-                // sixteenth of the search's, or its mean is below 16. The decisions above keep the searched error.
-                // Reference: the CONFIG_AV1_HIGHBITDEPTH zero motion override of tf_motion_search().
+                // High bit depth sharpness 3 keeps the zero vector for a region with no motion.
+                // That occurs when the zero-vector error is within one sixteenth of the searched error, or its mean is less than 16.
+                // The decisions above keep the searched error. Reference: the CONFIG_AV1_HIGHBITDEPTH zero motion override of tf_motion_search().
                 if (parameters.BitDepth > 8 && parameters.Sharpness == 3)
                 {
+                    ReadOnlySpan<TSample> referenceBlock = this.reference[(this.referenceOrigin + blockOffset)..];
                     uint zeroError = GetVariance<TSample, TSearch>(
-                        this.reference[(this.referenceOrigin + blockOffset)..],
-                        this.stride,
-                        blockSource,
-                        this.stride,
-                        BlockSize,
-                        BlockSize,
-                        parameters.BitDepth,
-                        out _);
+                        referenceBlock, this.stride, blockSource, this.stride, BlockSize, BlockSize, parameters.BitDepth, out _);
 
                     if (zeroError <= unchecked(error + (error >> 4)) || zeroError / BlockPixels < 16)
                     {

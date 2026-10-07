@@ -491,8 +491,8 @@ internal static partial class Av1TemporalFilter
             count.Clear();
             Av1MotionVector referenceVector = default;
 
-            // Sub-block motion search is skipped when the 4x4 log variances of the block span at most 4.0, and always
-            // at high bit depth sharpness 3. Reference: allow_me_for_sub_blks in av1_tf_do_filtering_row().
+            // The sub-block motion search does not occur when the 4x4 log variances of the block differ by 4.0 or less.
+            // It also never occurs at high bit depth sharpness 3. Reference: allow_me_for_sub_blks in av1_tf_do_filtering_row().
             bool highBitDepthSharpness = context.BitDepth > 8 && settings.Sharpness == 3;
             bool allowSubblockSearch = !highBitDepthSharpness;
             int blockOrigin = sourceOrigin + (blockRow * BlockSize * stride) + (blockColumn * BlockSize);
@@ -545,8 +545,7 @@ internal static partial class Av1TemporalFilter
                     strength = Math.Min(strength, 1);
                 }
 
-                // A high bit depth turns the filtering of a low-contrast block off. Reference: the
-                // mbd->bd > 8 ? 0 : 3 cap of av1_tf_do_filtering_row().
+                // A high bit depth turns off the filter of a low-contrast block. Reference: the mbd->bd > 8 ? 0 : 3 cap of av1_tf_do_filtering_row().
                 if (settings.Sharpness == 3 && isLowContrast)
                 {
                     strength = Math.Min(strength, highBitDepthSharpness ? 0 : 3);

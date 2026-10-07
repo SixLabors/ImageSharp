@@ -13,18 +13,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOperator>
 {
     /// <summary>
-    /// Measures and propagates the statistics of the golden group that starts at the current frame. An approximate
-    /// evaluation measures only the lower alternate layers and judges whether the group should stay long.
+    /// Measures and propagates the statistics of the golden group that starts at the current frame.
+    /// An approximate evaluation measures only the lower alternate layers, and decides if the group stays long.
     /// Reference: av1_tpl_setup_stats().
     /// </summary>
-    /// <param name="input">The encoder state the run reads.</param>
-    /// <param name="approximateEvaluation">
-    /// False for the coding run; true for the golden group length evaluation of the speed's decision method.
-    /// Reference: approx_gop_eval.
-    /// </param>
+    /// <param name="input">The encoder state that the run reads.</param>
+    /// <param name="approximateEvaluation">False for the coding run. True for the length evaluation of the golden group. Reference: approx_gop_eval.</param>
     /// <returns>
-    /// For an evaluation, one to keep the longer group and zero to shorten it; zero for a coding run, and one when the
-    /// group has no alternate layers.
+    /// For an evaluation, one keeps the longer group and zero shortens it. A coding run gives zero, and a group with no alternate layers gives one.
     /// </returns>
     public int SetupStatistics(Av1TplSetupInput<TSample> input, bool approximateEvaluation)
     {
@@ -114,15 +110,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// Reference: eval_gop_length().
     /// </summary>
     /// <param name="beta">The importance of the base alternate reference and of the next layer.</param>
-    /// <param name="gopLengthDecisionMethod">The speed's decision method, zero or one.</param>
+    /// <param name="gopLengthDecisionMethod">The decision method of the speed, zero or one.</param>
     /// <returns>One to keep the longer group, zero to shorten it.</returns>
     private static int EvaluateGopLength(ReadOnlySpan<double> beta, int gopLengthDecisionMethod)
     {
         switch (gopLengthDecisionMethod)
         {
             case 0:
-                // Shorten the group unless the base layer reference depends clearly more than the next layer and
-                // depends reasonably.
+                // Shorten the group, unless the base layer reference has a clearly higher and a sufficient dependency.
                 return (beta[0] < beta[1] + 0.1) || beta[0] <= 1.4 ? 0 : 1;
             case 1:
                 return beta[0] > 1.1 ? 1 : 0;
@@ -137,18 +132,13 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// </summary>
     /// <param name="group">The golden group.</param>
     /// <param name="frameIndex">The group entry.</param>
-    /// <param name="gopLengthDecisionMethod">The speed's decision method.</param>
-    /// <param name="approximateEvaluation">Whether the run is an approximate length evaluation.</param>
-    /// <param name="reduceNumberOfFrames">Whether leaf frames are left unmeasured.</param>
-    /// <returns>Whether the entry is skipped.</returns>
-    private static bool SkipFrame(
-        Av1TplGroup group,
-        int frameIndex,
-        int gopLengthDecisionMethod,
-        bool approximateEvaluation,
-        bool reduceNumberOfFrames)
+    /// <param name="gopLengthDecisionMethod">The decision method of the speed.</param>
+    /// <param name="approximateEvaluation">True when the run is an approximate length evaluation.</param>
+    /// <param name="reduceNumberOfFrames">True when the leaf frames get no measure.</param>
+    /// <returns>True when the entry is skipped.</returns>
+    private static bool SkipFrame(Av1TplGroup group, int frameIndex, int gopLengthDecisionMethod, bool approximateEvaluation, bool reduceNumberOfFrames)
     {
-        // Method zero measures the base layer and two more alternate layers; method one only one more.
+        // Method zero measures the base layer and two more alternate layers. Method one measures only one more layer.
         int alternateLayers = gopLengthDecisionMethod == 0 ? 3 : 2;
         int gopLength = GetGopLength(group);
         if (group.UpdateType[frameIndex] is Av1FrameUpdateType.IntermediateOverlay or Av1FrameUpdateType.Overlay)

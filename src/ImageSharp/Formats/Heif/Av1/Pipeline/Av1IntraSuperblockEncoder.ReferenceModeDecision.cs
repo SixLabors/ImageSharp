@@ -57,41 +57,34 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly bool BiasesInterCosts => this.blockWorkspace.EncoderOptions.Tuning.IsImageTuning();
 
         /// <summary>
-        /// Gets a value indicating whether eight-bit sharpness 3 charges a block whose samples are smoother than its
-        /// source. A high bit depth takes its own rules instead. Intra frames, golden and alternate reference frames
-        /// are exempt, so every caller sees an inter frame. Reference: the sharpness and frame_is_kf_gf_arf() tests of
-        /// adjust_rdcost() and adjust_cost(), after their high bit depth branch.
+        /// Gets a value indicating whether 8-bit sharpness 3 adds a charge to a block that is smoother than its source.
+        /// A high bit depth uses different rules. Intra frames, golden frames and alternate reference frames get no charge.
+        /// Reference: the sharpness and frame_is_kf_gf_arf() tests of adjust_rdcost() and adjust_cost(), after their high bit depth branch.
         /// </summary>
         private readonly bool ChargesSmoothing =>
-            this.blockWorkspace.EncoderOptions.Sharpness == 3 &&
-            !this.UsesHighBitDepthSharpness &&
-            !this.picture.Parent.FrameHeader.IsIntra &&
+            this.blockWorkspace.EncoderOptions.Sharpness == 3 && !this.UsesHighBitDepthSharpness && !this.picture.Parent.FrameHeader.IsIntra &&
             this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate);
 
         /// <summary>
-        /// Gets a value indicating whether the high bit depth sharpness 3 rules apply: the texture-loss charges, the skip
-        /// penalties, and the trellis and chroma biases. Reference: the xd->bd &gt; 8 &amp;&amp; sharpness == 3 tests of
-        /// adjust_rdcost(), adjust_cost(), av1_get_tx_skip_dist() and their callers.
+        /// Gets a value indicating whether the high bit depth sharpness 3 rules apply.
+        /// Reference: the xd->bd &gt; 8 &amp;&amp; sharpness == 3 tests of adjust_rdcost(), adjust_cost(), av1_get_tx_skip_dist() and their callers.
         /// </summary>
-        private readonly bool UsesHighBitDepthSharpness =>
-            this.bitDepth.GetBitCount() > 8 && this.blockWorkspace.EncoderOptions.Sharpness == 3;
+        private readonly bool UsesHighBitDepthSharpness => this.bitDepth.GetBitCount() > 8 && this.blockWorkspace.EncoderOptions.Sharpness == 3;
 
         /// <summary>
-        /// Gets a value indicating whether high bit depth sharpness 3 charges a block's cost for texture loss. Only intra
-        /// frames are exempt; golden and alternate reference frames are charged. Reference: the frame_is_intra_only()
-        /// return of the high bit depth branch of adjust_rdcost() and adjust_cost().
+        /// Gets a value indicating whether high bit depth sharpness 3 adds a texture-loss charge to a block cost.
+        /// Only intra frames get no charge. Golden frames and alternate reference frames get the charge.
+        /// Reference: the frame_is_intra_only() return of the high bit depth branch of adjust_rdcost() and adjust_cost().
         /// </summary>
-        private readonly bool ChargesHighBitDepthTextureLoss =>
-            this.UsesHighBitDepthSharpness && !this.picture.Parent.FrameHeader.IsIntra;
+        private readonly bool ChargesHighBitDepthTextureLoss => this.UsesHighBitDepthSharpness && !this.picture.Parent.FrameHeader.IsIntra;
 
         /// <summary>
-        /// Gets a value indicating whether high bit depth sharpness 3 penalizes a skipped transform. Intra frames, golden
-        /// and alternate reference frames are exempt. Reference: the frame_is_kf_gf_arf() tests of
-        /// av1_is_skip_txfm_penalized() and av1_get_tx_skip_dist().
+        /// Gets a value indicating whether high bit depth sharpness 3 adds a penalty to a skipped transform.
+        /// Intra frames, golden frames and alternate reference frames get no penalty.
+        /// Reference: the frame_is_kf_gf_arf() tests of av1_is_skip_txfm_penalized() and av1_get_tx_skip_dist().
         /// </summary>
         private readonly bool PenalizesHighBitDepthSkip =>
-            this.UsesHighBitDepthSharpness &&
-            !this.picture.Parent.FrameHeader.IsIntra &&
+            this.UsesHighBitDepthSharpness && !this.picture.Parent.FrameHeader.IsIntra &&
             this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate);
 
         /// <summary>
@@ -1713,19 +1706,15 @@ internal static partial class Av1IntraSuperblockEncoder
             // compound prediction. Reference: the skip_blk test of refine_winner_mode_tx().
             bool compound = candidateModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
 
-            // High bit depth sharpness 3 penalizes the skip in the comparison only. Reference: the
-            // av1_get_tx_skip_dist() call before the skip_blk test of refine_winner_mode_tx().
+            // High bit depth sharpness 3 adds a skip penalty to the comparison only.
+            // Reference: the av1_get_tx_skip_dist() call before the skip_blk test of refine_winner_mode_tx().
             Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             long comparedCodedDistortion = candidateStatistics.Distortion;
             long comparedSkipDistortion = candidateStatistics.PredictionDistortion;
             if (this.UsesHighBitDepthSharpness)
             {
                 this.PenalizeTransformSkip(
-                    blockOrigin,
-                    modeInfo.Block.BlockSize,
-                    workspace.LumaPrediction,
-                    ref comparedCodedDistortion,
-                    ref comparedSkipDistortion);
+                    blockOrigin, modeInfo.Block.BlockSize, workspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
             }
 
             bool skip = (this.blockWorkspace.EncoderOptions.Sharpness == 0 || !compound) &&
@@ -1774,13 +1763,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (this.UsesHighBitDepthSharpness)
             {
-                this.ChargeRefinedInterTextureLoss(
-                    ref refinedStatistics,
-                    blockOrigin,
-                    modeInfo.Block,
-                    vector,
-                    workspace.LumaPrediction,
-                    modeInfo.Block.Skip || skip);
+                bool refinedSkip = modeInfo.Block.Skip || skip;
+                this.ChargeRefinedInterTextureLoss(ref refinedStatistics, blockOrigin, modeInfo.Block, vector, workspace.LumaPrediction, refinedSkip);
             }
 
             // The winner is priced again from its rate and distortion, which drops the cost bias of the image tune but
@@ -1802,18 +1786,17 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Prices a refined inter winner at high bit depth sharpness 3 as the reference does: from statistics whose cost
-        /// starts at zero. The image tunes add an eighth to the distortion and scale the zero cost; otherwise the
-        /// texture-loss charge prices the cost only when its offset is positive. A refined winner whose cost stays zero
-        /// always replaces the selection. Reference: the tmp_rd_stats branch of refine_winner_mode_tx(), whose
-        /// av1_init_rd_stats() leaves rdcost at zero before adjust_rdcost().
+        /// Sets the cost of a refined inter winner at high bit depth sharpness 3, as the reference does. The cost starts at zero.
+        /// The image tunes add one eighth to the distortion and to the zero cost. Else the texture-loss charge sets a cost only when its offset is positive.
+        /// A refined winner with a cost of zero always replaces the selection.
+        /// Reference: the tmp_rd_stats branch of refine_winner_mode_tx(). Its av1_init_rd_stats() sets rdcost to zero before adjust_rdcost().
         /// </summary>
         /// <param name="statistics">The refined statistics.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="block">The winner's mode information.</param>
-        /// <param name="vector">The winner's first motion vector.</param>
-        /// <param name="prediction">The winner's luma prediction.</param>
-        /// <param name="skip">Whether the winner or its refinement skips the transform.</param>
+        /// <param name="block">The mode information of the winner.</param>
+        /// <param name="vector">The first motion vector of the winner.</param>
+        /// <param name="prediction">The luma prediction of the winner.</param>
+        /// <param name="skip">True when the winner or its refinement skips the transform.</param>
         private readonly void ChargeRefinedInterTextureLoss(
             ref Av1RateDistortionStatistics statistics,
             Point blockOrigin,
@@ -1836,19 +1819,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool compound = block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
             bool interIntra = block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
-            this.GetVarianceStatistics(
-                blockOrigin, block.BlockSize, prediction, block.BlockSize.GetWidth(), out long sourceVariance, out long sampleVariance);
-
-            long offset = GetTextureLossOffset(
-                sourceVariance, sampleVariance, block.BlockSize, skip, compound || interIntra, !compound, vector);
-
+            this.GetVarianceStatistics(blockOrigin, block.BlockSize, prediction, block.BlockSize.GetWidth(), out long sourceVariance, out long sampleVariance);
+            long offset = GetTextureLossOffset(sourceVariance, sampleVariance, block.BlockSize, skip, compound || interIntra, !compound, vector);
             this.ChargeTextureLoss(ref statistics, 0, offset, blockOrigin, block.BlockSize, true, compound, false);
         }
 
         /// <summary>
-        /// Prices a refined intra winner of an inter frame at high bit depth sharpness 3 as the reference does: from
-        /// statistics whose cost starts at zero, which the texture-loss charge prices only when its offset is positive.
-        /// The measure reads the luma that the refinement's last transform trial left. An intra mode never skips.
+        /// Sets the cost of a refined intra winner in an inter frame at high bit depth sharpness 3, as the reference does.
+        /// The cost starts at zero. The texture-loss charge sets a cost only when its offset is positive.
+        /// The measure reads the frame luma that the last transform trial of the refinement left. An intra mode never skips.
         /// Reference: the tmp_rd_stats branch of refine_winner_mode_tx() with is_inter_mode() false.
         /// </summary>
         /// <param name="statistics">The refined statistics.</param>
@@ -1856,10 +1835,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <param name="mode">The refined luma mode.</param>
         private readonly void ChargeRefinedIntraTextureLoss(
-            ref Av1RateDistortionStatistics statistics,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Av1PredictionMode mode)
+            ref Av1RateDistortionStatistics statistics, Point blockOrigin, Av1BlockSize blockSize, Av1PredictionMode mode)
         {
             statistics.Cost = 0;
             if (!this.ChargesHighBitDepthTextureLoss)
@@ -1868,14 +1844,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             bool smoothMode = IsSmoothTextureMode(mode);
-            this.GetVarianceStatistics(
-                blockOrigin,
-                blockSize,
-                this.blockWorkspace.GetModeDecisionWorkspace<TSample>().GetCandidateReconstruction(0),
-                blockSize.GetWidth(),
-                out long sourceVariance,
-                out long sampleVariance);
-
+            Av1PlaneRegion<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y);
+            ReadOnlySpan<TSample> lumaFrameBlock = Av1TransformBlockEncoder.GetPlaneSpan(lumaFrame, blockOrigin);
+            this.GetVarianceStatistics(blockOrigin, blockSize, lumaFrameBlock, lumaFrame.Stride, out long sourceVariance, out long sampleVariance);
             long offset = GetTextureLossOffset(sourceVariance, sampleVariance, blockSize, false, smoothMode, false, default);
             this.ChargeTextureLoss(ref statistics, 0, offset, blockOrigin, blockSize, false, false, smoothMode);
         }
@@ -2146,19 +2117,19 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Evaluates a prepared luma prediction with local coefficient and transform edge contexts. At high bit depth
-        /// sharpness 3 the trellis of every luma trial treats the block as a noise pattern when its prediction, which
-        /// the destination holds throughout the residual search, is smoother than a source of low detail. Reference:
-        /// is_noise_pattern in av1_optimize_txb(), read through av1_get_variance_stats() on pd->dst.
+        /// Evaluates a prepared luma prediction with local coefficient and transform edge contexts.
+        /// At high bit depth sharpness 3, the trellis of each luma trial can treat the block as a noise pattern.
+        /// During an inter residual search, the destination holds the prediction, so the test reads the prediction.
+        /// Reference: is_noise_pattern in av1_optimize_txb(), from av1_get_variance_stats() on pd->dst.
         /// </summary>
         /// <param name="writer">The symbol encoder that supplies the coefficient costs.</param>
-        /// <param name="macroBlock">The block's neighborhood.</param>
+        /// <param name="macroBlock">The neighborhood of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
-        /// <param name="modeInfo">The block's mode information, which receives the transform sizes.</param>
-        /// <param name="states">Receives the luma transform states.</param>
+        /// <param name="modeInfo">The mode information of the block, which gets the transform sizes.</param>
+        /// <param name="states">Gets the luma transform states.</param>
         /// <param name="costLimit">The cost above which the search fails.</param>
-        /// <param name="stateCount">Receives the number of transform states written.</param>
+        /// <param name="stateCount">Gets the number of transform states written.</param>
         /// <returns>The luma statistics.</returns>
         private Av1RateDistortionStatistics EvaluateInterLumaTree(
             Av1SymbolEncoder writer,
@@ -2174,21 +2145,14 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.UsesHighBitDepthSharpness)
             {
                 Av1BlockSize blockSize = modeInfo.BlockSize;
-                this.GetVarianceStatistics(
-                    blockOrigin,
-                    blockSize,
-                    this.blockWorkspace.GetInterPredictionWorkspace<TSample>().LumaPrediction,
-                    blockSize.GetWidth(),
-                    out long sourceVariance,
-                    out long sampleVariance);
-
-                noisePattern = sourceVariance > sampleVariance &&
-                    sourceVariance / (blockSize.GetWidth() * blockSize.GetHeight()) < 64;
+                ReadOnlySpan<TSample> prediction = this.blockWorkspace.GetInterPredictionWorkspace<TSample>().LumaPrediction;
+                this.GetVarianceStatistics(blockOrigin, blockSize, prediction, blockSize.GetWidth(), out long sourceVariance, out long sampleVariance);
+                noisePattern = sourceVariance > sampleVariance && sourceVariance / (blockSize.GetWidth() * blockSize.GetHeight()) < 64;
             }
 
             this.blockWorkspace.LumaNoisePattern = noisePattern;
-            Av1RateDistortionStatistics statistics = this.EvaluateInterLumaTreeCore(
-                writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, states, costLimit, out stateCount);
+            Av1RateDistortionStatistics statistics =
+                this.EvaluateInterLumaTreeCore(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, states, costLimit, out stateCount);
 
             this.blockWorkspace.LumaNoisePattern = false;
             return statistics;
@@ -2198,13 +2162,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Evaluates a prepared luma prediction with local coefficient and transform edge contexts.
         /// </summary>
         /// <param name="writer">The symbol encoder that supplies the coefficient costs.</param>
-        /// <param name="macroBlock">The block's neighborhood.</param>
+        /// <param name="macroBlock">The neighborhood of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
-        /// <param name="modeInfo">The block's mode information, which receives the transform sizes.</param>
-        /// <param name="states">Receives the luma transform states.</param>
+        /// <param name="modeInfo">The mode information of the block, which gets the transform sizes.</param>
+        /// <param name="states">Gets the luma transform states.</param>
         /// <param name="costLimit">The cost above which the search fails.</param>
-        /// <param name="stateCount">Receives the number of transform states written.</param>
+        /// <param name="stateCount">Gets the number of transform states written.</param>
         /// <returns>The luma statistics.</returns>
         private Av1RateDistortionStatistics EvaluateInterLumaTreeCore(
             Av1SymbolEncoder writer,
@@ -2413,28 +2377,24 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // When skipping the whole luma residual costs no more than coding it, the largest-transform search reports
-            // the skip, with the prediction error and no rate; high bit depth sharpness 3 penalizes the skip first.
+            // When a skip of the whole luma residual costs no more than coding it, the largest-transform search reports a skip.
+            // The skip has the prediction error and no rate. At high bit depth sharpness 3, the skip gets a penalty first.
             // The largest transform signals no size, so the coded cost has no size rate. The record keeps the result.
-            // Reference: the forced skip test at the end of uniform_txfm_yrd() under TX_MODE_LARGEST, and
-            // save_mb_rd_info() in av1_pick_uniform_tx_size_type_yrd().
+            // Reference: the forced skip test at the end of uniform_txfm_yrd() with TX_MODE_LARGEST.
+            // Also save_mb_rd_info() in av1_pick_uniform_tx_size_type_yrd().
             if (uniformSearch && statistics.HasCoefficients && !this.picture.Parent.FrameHeader.CodedLossless)
             {
                 long codedDistortion = statistics.Distortion;
                 long skipDistortion = statistics.PredictionDistortion;
                 if (this.UsesHighBitDepthSharpness)
                 {
-                    this.PenalizeTransformSkip(
-                        blockOrigin, modeInfo.BlockSize, workspace.LumaPrediction, ref codedDistortion, ref skipDistortion);
+                    this.PenalizeTransformSkip(blockOrigin, modeInfo.BlockSize, workspace.LumaPrediction, ref codedDistortion, ref skipDistortion);
                 }
 
-                if (Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion) <=
-                    Av1RateDistortion.GetCost(this.rateMultiplier, codedRate + statistics.Rate, codedDistortion))
+                long forcedSkipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion);
+                if (forcedSkipCost <= Av1RateDistortion.GetCost(this.rateMultiplier, codedRate + statistics.Rate, codedDistortion))
                 {
-                    statistics = new(this.rateMultiplier, 0, statistics.PredictionDistortion)
-                    {
-                        PredictionDistortion = statistics.PredictionDistortion
-                    };
+                    statistics = new(this.rateMultiplier, 0, statistics.PredictionDistortion) { PredictionDistortion = statistics.PredictionDistortion };
                 }
             }
 
@@ -2472,13 +2432,11 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
 
-            // High bit depth sharpness 3 never predicts a skip for a prediction smoother than a source of low detail.
+            // High bit depth sharpness 3 never predicts a skip when the prediction is smoother than a source with low detail.
             // Reference: av1_is_skip_txfm_penalized() at the start of predict_skip_txfm().
             if (this.PenalizesHighBitDepthSkip)
             {
-                this.GetVarianceStatistics(
-                    blockOrigin, blockSize, workspace.LumaPrediction, width, out long sourceVariance, out long sampleVariance);
-
+                this.GetVarianceStatistics(blockOrigin, blockSize, workspace.LumaPrediction, width, out long sourceVariance, out long sampleVariance);
                 if (sourceVariance > sampleVariance && sourceVariance / (width * height) < 64)
                 {
                     distortion = 0;
@@ -6819,54 +6777,39 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="samples">The luma samples of the whole block that its destination holds, at the block origin.</param>
         /// <param name="stride">The row stride of the samples.</param>
         /// <returns>The distortion offset.</returns>
-        private readonly long GetSmoothingOffset(
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            ReadOnlySpan<TSample> samples,
-            int stride)
+        private readonly long GetSmoothingOffset(Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> samples, int stride)
         {
             this.GetVarianceStatistics(blockOrigin, blockSize, samples, stride, out long sourceVariance, out long sampleVariance);
             return Math.Max(sourceVariance - sampleVariance, 0);
         }
 
         /// <summary>
-        /// Measures how far the block's source and its luma samples each depart from their own 3x3 smoothing. A high
-        /// bit depth scales both measures to eight bits. The source past the coded frame repeats its edge, as the
-        /// reference's extended source border does. Reference: av1_get_variance_stats().
+        /// Measures how much the block source and the block luma samples each differ from their own 3x3 smoothing.
+        /// A high bit depth scales both measures to 8 bits.
+        /// Past the coded frame, the source repeats its edge, as the extended source border of the reference does.
+        /// Reference: av1_get_variance_stats().
         /// </summary>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="samples">The luma samples of the whole block that its destination holds, at the block origin.</param>
+        /// <param name="samples">The luma samples of the whole block in its destination, at the block origin.</param>
         /// <param name="stride">The row stride of the samples.</param>
-        /// <param name="sourceVariance">Receives the source measure.</param>
-        /// <param name="sampleVariance">Receives the samples' measure.</param>
+        /// <param name="sourceVariance">Gets the source measure.</param>
+        /// <param name="sampleVariance">Gets the measure of the samples.</param>
         private readonly void GetVarianceStatistics(
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            ReadOnlySpan<TSample> samples,
-            int stride,
-            out long sourceVariance,
-            out long sampleVariance)
+            Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> samples, int stride, out long sourceVariance, out long sampleVariance)
         {
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
 
-            // Sharpness 3 turns border padding off, so the visible size is the coded eight-sample boundary, which the
-            // source fills by repeating its edge. Every block origin lies inside it.
+            // Sharpness 3 turns border padding off. So the visible size is the coded 8-sample boundary, and the source repeats its edge past it.
+            // Each block origin is inside this boundary.
             Size visible = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, width, height);
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            sourceVariance = TOperator.GetVarianceStatistic(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
-                sourcePlane.Stride,
-                width,
-                height,
-                visible.Width,
-                visible.Height);
-
+            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+            sourceVariance = TOperator.GetVarianceStatistic(sourceBlock, sourcePlane.Stride, width, height, visible.Width, visible.Height);
             sampleVariance = TOperator.GetVarianceStatistic(samples, stride, width, height, width, height);
 
-            // Both measures round to the eight-bit scale. Reference: the ROUND_POWER_OF_TWO of
-            // get_variance_stats_hbd().
+            // Both measures round to the 8-bit scale. Reference: the ROUND_POWER_OF_TWO of get_variance_stats_hbd().
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
             if (shift != 0)
             {
@@ -6877,28 +6820,22 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the distortion that high bit depth sharpness 3 adds for the texture a block loses: the amount by which
-        /// the source's departure from its own smoothing exceeds the samples'. It is quadrupled for a skipped block of
-        /// low source detail, a smooth intra mode, an inter-intra blend or a compound prediction. A single reference
-        /// prediction of low source detail also pays for its motion vector length. Reference: var_offset in the high
-        /// bit depth branch of adjust_rdcost() and adjust_cost().
+        /// Gets the distortion that high bit depth sharpness 3 adds for the texture that a block loses.
+        /// The offset is the amount by which the source measure is more than the sample measure.
+        /// The offset is four times larger for a skipped block with low source detail, a smooth intra mode, an inter-intra blend or a compound.
+        /// A single-reference prediction with low source detail also pays for the length of its motion vector.
+        /// Reference: var_offset in the high bit depth branch of adjust_rdcost() and adjust_cost().
         /// </summary>
         /// <param name="sourceVariance">The source measure from <see cref="GetVarianceStatistics"/>.</param>
-        /// <param name="sampleVariance">The samples' measure from <see cref="GetVarianceStatistics"/>.</param>
+        /// <param name="sampleVariance">The sample measure from <see cref="GetVarianceStatistics"/>.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="skip">Whether the block skips its transform.</param>
-        /// <param name="quadruples">Whether the mode is a smooth intra mode, an inter-intra blend or a compound.</param>
-        /// <param name="singleReference">Whether the block is a single reference inter prediction.</param>
-        /// <param name="vector">The block's first motion vector.</param>
+        /// <param name="skip">True when the block skips its transform.</param>
+        /// <param name="quadruples">True for a smooth intra mode, an inter-intra blend or a compound.</param>
+        /// <param name="singleReference">True for a single-reference inter prediction.</param>
+        /// <param name="vector">The first motion vector of the block.</param>
         /// <returns>The distortion offset.</returns>
         private static long GetTextureLossOffset(
-            long sourceVariance,
-            long sampleVariance,
-            Av1BlockSize blockSize,
-            bool skip,
-            bool quadruples,
-            bool singleReference,
-            Av1MotionVector vector)
+            long sourceVariance, long sampleVariance, Av1BlockSize blockSize, bool skip, bool quadruples, bool singleReference, Av1MotionVector vector)
         {
             long offset = sourceVariance > sampleVariance ? sourceVariance - sampleVariance : 0;
             long sourceVariancePerSample = sourceVariance / (blockSize.GetWidth() * blockSize.GetHeight());
@@ -6920,10 +6857,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the spread between the most and least detailed 8x8 sub-blocks of the block's source, as the difference
-        /// of their rounded natural logarithms of per-sample variance plus one. A block narrower or shorter than 16 has
-        /// none. The result is kept with its block size and returned again for any later block of that size, whatever
-        /// its position, as the reference's cache does. Reference: get_sub_block_energy_diff().
+        /// Gets the energy difference between the most detailed and the least detailed 8x8 sub-blocks of the block source.
+        /// The energy of a sub-block is the rounded natural logarithm of its per-sample variance plus one. A block narrower or shorter than 16 has none.
+        /// The result is kept with its block size. A later block of the same size gets the same result at any position, as the cache of the reference does.
+        /// Reference: get_sub_block_energy_diff().
         /// </summary>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6951,18 +6888,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     for (int column = 0; column < width; column += 8)
                     {
-                        TOperator.GetMoments(
-                            Av1TransformBlockEncoder.GetPlaneSpan(luma, new Point(blockOrigin.X + column, blockOrigin.Y + row)),
-                            luma.Stride,
-                            zeros,
-                            0,
-                            8,
-                            8,
-                            out int sum,
-                            out long squares);
+                        ReadOnlySpan<TSample> subBlock = Av1TransformBlockEncoder.GetPlaneSpan(luma, new Point(blockOrigin.X + column, blockOrigin.Y + row));
+                        TOperator.GetMoments(subBlock, luma.Stride, zeros, 0, 8, 8, out int sum, out long squares);
 
-                        // High bit depths round both moments to eight-bit precision first, and the variance never
-                        // falls below zero. Reference: aom_highbd_10_variance8x8() and aom_highbd_12_variance8x8().
+                        // A high bit depth first rounds both moments to 8-bit precision. The variance is never less than zero.
+                        // Reference: aom_highbd_10_variance8x8() and aom_highbd_12_variance8x8().
                         long normalizedSum = sum;
                         long normalizedSquares = squares;
                         if (shift > 0)
@@ -6988,22 +6918,18 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Raises the distortions that a skip decision compares when high bit depth sharpness 3 penalizes a skip: when
-        /// the source departs from its smoothing more than the prediction does, the coded distortion gains the
-        /// difference and the skipped distortion gains it too, four times over for a source of low detail. Reference:
-        /// av1_get_tx_skip_dist().
+        /// Increases the distortions that a skip decision compares, when high bit depth sharpness 3 adds a skip penalty.
+        /// When the source measure is more than the prediction measure, the coded distortion gets the difference.
+        /// The skip distortion also gets the difference, four times for a source with low detail.
+        /// Reference: av1_get_tx_skip_dist().
         /// </summary>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="prediction">The block's luma prediction, which its destination holds.</param>
-        /// <param name="codedDistortion">The distortion of coding the residual.</param>
-        /// <param name="skipDistortion">The distortion of skipping the residual.</param>
+        /// <param name="prediction">The luma prediction of the block, which its destination holds.</param>
+        /// <param name="codedDistortion">The distortion when the residual is coded.</param>
+        /// <param name="skipDistortion">The distortion when the residual is skipped.</param>
         private readonly void PenalizeTransformSkip(
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            ReadOnlySpan<TSample> prediction,
-            ref long codedDistortion,
-            ref long skipDistortion)
+            Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> prediction, ref long codedDistortion, ref long skipDistortion)
         {
             if (!this.PenalizesHighBitDepthSkip)
             {
@@ -7023,29 +6949,29 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets a value indicating whether the texture-loss charge treats a mode as smooth: DC, the smooth modes and
-        /// Paeth. Reference: is_smooth_intra_mode in adjust_rdcost() and adjust_cost().
+        /// Gets a value indicating whether the texture-loss charge treats a mode as smooth. The smooth modes are DC, the three smooth modes and Paeth.
+        /// Reference: is_smooth_intra_mode in adjust_rdcost() and adjust_cost().
         /// </summary>
         /// <param name="mode">The prediction mode.</param>
-        /// <returns>Whether the mode is smooth.</returns>
+        /// <returns>True when the mode is smooth.</returns>
         private static bool IsSmoothTextureMode(Av1PredictionMode mode)
-            => mode is Av1PredictionMode.DC or Av1PredictionMode.Smooth or Av1PredictionMode.SmoothVertical or
-                Av1PredictionMode.SmoothHorizontal or Av1PredictionMode.Paeth;
+            => mode is Av1PredictionMode.DC or Av1PredictionMode.Smooth or Av1PredictionMode.SmoothVertical or Av1PredictionMode.SmoothHorizontal or
+                Av1PredictionMode.Paeth;
 
         /// <summary>
-        /// Charges an inter trial for texture loss at high bit depth sharpness 3, on a valid luma cost and on its
-        /// statistics. Reference: the adjust_cost() of this_yrd and the adjust_rdcost() of rd_stats in motion_mode_rd().
+        /// Adds the texture-loss charge of high bit depth sharpness 3 to an inter trial, on a valid luma cost and on the trial statistics.
+        /// Reference: the adjust_cost() of this_yrd and the adjust_rdcost() of rd_stats in motion_mode_rd().
         /// </summary>
-        /// <param name="statistics">The trial's statistics.</param>
-        /// <param name="currentCost">The cost the trial's statistics carry before the charge.</param>
+        /// <param name="statistics">The statistics of the trial.</param>
+        /// <param name="currentCost">The cost of the trial statistics before the charge.</param>
         /// <param name="sourceVariance">The source measure from <see cref="GetVarianceStatistics"/>.</param>
-        /// <param name="sampleVariance">The prediction's measure from <see cref="GetVarianceStatistics"/>.</param>
+        /// <param name="sampleVariance">The prediction measure from <see cref="GetVarianceStatistics"/>.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="skip">Whether the trial skips its transform.</param>
-        /// <param name="isCompound">Whether the trial is a compound.</param>
-        /// <param name="isInterIntra">Whether the trial is an inter-intra blend.</param>
-        /// <param name="vector">The trial's first motion vector.</param>
+        /// <param name="skip">True when the trial skips its transform.</param>
+        /// <param name="isCompound">True when the trial is a compound.</param>
+        /// <param name="isInterIntra">True when the trial is an inter-intra blend.</param>
+        /// <param name="vector">The first motion vector of the trial.</param>
         private readonly void ChargeInterTextureLoss(
             ref Av1RateDistortionStatistics statistics,
             long currentCost,
@@ -7058,15 +6984,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool isInterIntra,
             Av1MotionVector vector)
         {
-            long offset = GetTextureLossOffset(
-                sourceVariance,
-                sampleVariance,
-                blockSize,
-                skip,
-                isCompound || isInterIntra,
-                !isCompound,
-                vector);
-
+            long offset = GetTextureLossOffset(sourceVariance, sampleVariance, blockSize, skip, isCompound || isInterIntra, !isCompound, vector);
             if (statistics.LumaCost != long.MaxValue)
             {
                 statistics.LumaCost = this.ChargeTextureLossCost(statistics.LumaCost, offset, blockOrigin, blockSize, true, isCompound, false);
@@ -7076,19 +6994,19 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Charges a block's statistics for texture loss at high bit depth sharpness 3: the distortion offset, then, for a
-        /// block of 16x16 or larger with an energy spread, an extra cost scaled from the cost as it stands. An intra mode
-        /// pays the full spread when smooth and a quarter of it otherwise; a compound pays a quarter of its cost; a
-        /// single reference pays nothing more. Reference: the high bit depth branch of adjust_rdcost().
+        /// Adds the texture-loss charge of high bit depth sharpness 3 to the statistics of a block. First the distortion gets the offset.
+        /// Then a block of 16x16 or larger with an energy difference gets an extra cost, from the cost before this step.
+        /// A smooth intra mode pays the full difference, and another intra mode pays one quarter of it. A compound pays one quarter of its cost.
+        /// A single reference pays nothing more. Reference: the high bit depth branch of adjust_rdcost().
         /// </summary>
-        /// <param name="statistics">The statistics to charge.</param>
-        /// <param name="currentCost">The cost the statistics carry before the charge, which the extra cost scales.</param>
-        /// <param name="offset">The texture loss offset.</param>
+        /// <param name="statistics">The statistics that get the charge.</param>
+        /// <param name="currentCost">The cost of the statistics before the charge. The extra cost scales this cost.</param>
+        /// <param name="offset">The texture-loss offset.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="isInter">Whether the block is an inter prediction.</param>
-        /// <param name="isCompound">Whether the inter prediction is a compound.</param>
-        /// <param name="smoothIntra">Whether the intra mode is DC or a smooth or Paeth mode.</param>
+        /// <param name="isInter">True for an inter prediction.</param>
+        /// <param name="isCompound">True for a compound inter prediction.</param>
+        /// <param name="smoothIntra">True for the DC, smooth or Paeth intra modes.</param>
         private readonly void ChargeTextureLoss(
             ref Av1RateDistortionStatistics statistics,
             long currentCost,
@@ -7116,10 +7034,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            long extraCost = !isInter ? smoothIntra ? currentCost * difference : currentCost * difference / 4
-                : isCompound ? currentCost / 4
-                : 0;
-
+            long extraCost = !isInter ? smoothIntra ? currentCost * difference : currentCost * difference / 4 : isCompound ? currentCost / 4 : 0;
             if (extraCost > 0)
             {
                 statistics.AddEnergyCost(this.rateMultiplier, extraCost);
@@ -7127,26 +7042,20 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Charges a luma cost for texture loss at high bit depth sharpness 3: the priced distortion offset, then, for a
-        /// block of 16x16 or larger with an energy spread, a multiple of the cost as it stands, by the same rules as
-        /// <see cref="ChargeTextureLoss"/>. Reference: the high bit depth branch of adjust_cost().
+        /// Adds the texture-loss charge of high bit depth sharpness 3 to a luma cost. First the cost gets the price of the offset.
+        /// Then a block of 16x16 or larger with an energy difference gets a multiple of the cost, by the same rules as <see cref="ChargeTextureLoss"/>.
+        /// Reference: the high bit depth branch of adjust_cost().
         /// </summary>
-        /// <param name="cost">The luma cost to charge.</param>
-        /// <param name="offset">The texture loss offset.</param>
+        /// <param name="cost">The luma cost that gets the charge.</param>
+        /// <param name="offset">The texture-loss offset.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="isInter">Whether the block is an inter prediction.</param>
-        /// <param name="isCompound">Whether the inter prediction is a compound.</param>
-        /// <param name="smoothIntra">Whether the intra mode is DC or a smooth or Paeth mode.</param>
-        /// <returns>The charged cost.</returns>
+        /// <param name="isInter">True for an inter prediction.</param>
+        /// <param name="isCompound">True for a compound inter prediction.</param>
+        /// <param name="smoothIntra">True for the DC, smooth or Paeth intra modes.</param>
+        /// <returns>The cost with the charge.</returns>
         private readonly long ChargeTextureLossCost(
-            long cost,
-            long offset,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            bool isInter,
-            bool isCompound,
-            bool smoothIntra)
+            long cost, long offset, Point blockOrigin, Av1BlockSize blockSize, bool isInter, bool isCompound, bool smoothIntra)
         {
             if (offset > 0)
             {
@@ -7164,9 +7073,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return cost;
             }
 
-            return !isInter ? smoothIntra ? cost + (cost * difference) : cost + (cost * difference / 4)
-                : isCompound ? cost + (cost / 4)
-                : cost;
+            return !isInter ? smoothIntra ? cost + (cost * difference) : cost + (cost * difference / 4) : isCompound ? cost + (cost / 4) : cost;
         }
 
         /// <summary>
@@ -9385,22 +9292,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? this.GetSmoothingOffset(blockOrigin, blockSize, workspace.LumaPrediction, blockSize.GetWidth())
                 : 0;
 
-            // High bit depth sharpness 3 measures the same prediction, and decides its charge once the skip is known.
+            // High bit depth sharpness 3 measures the same prediction. It sets the charge when the skip is known.
             // Reference: av1_get_variance_stats() in the high bit depth branch of adjust_rdcost() of motion_mode_rd().
-            bool chargesTextureLoss = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts &&
-                this.ChargesHighBitDepthTextureLoss;
-
+            bool chargesTextureLoss = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts && this.ChargesHighBitDepthTextureLoss;
             long predictionSourceVariance = 0;
             long predictionSampleVariance = 0;
             if (chargesTextureLoss)
             {
                 this.GetVarianceStatistics(
-                    blockOrigin,
-                    blockSize,
-                    workspace.LumaPrediction,
-                    blockSize.GetWidth(),
-                    out predictionSourceVariance,
-                    out predictionSampleVariance);
+                    blockOrigin, blockSize, workspace.LumaPrediction, blockSize.GetWidth(), out predictionSourceVariance, out predictionSampleVariance);
             }
 
             if (this.estimateInterCandidates)
@@ -9411,9 +9311,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         predictionError, out estimatedRate, out estimatedDistortion);
                 }
 
-                // An estimate clears the skip flag that each motion mode trial starts with, so a winner that has only
-                // an estimate is not skippable for the mode thresholds. Reference: the rd_stats->skip_txfm = 0 of the
-                // !do_tx_search branch of motion_mode_rd(), and the best_mode_skippable of update_search_state().
+                // An estimate clears the skip flag that each motion mode trial starts with.
+                // So a winner that has only an estimate is not skippable for the mode thresholds.
+                // Reference: the rd_stats->skip_txfm = 0 of the !do_tx_search branch of motion_mode_rd(), and the best_mode_skippable of update_search_state().
                 Av1RateDistortionStatistics estimate = new(this.rateMultiplier, predictionRate + estimatedRate, estimatedDistortion)
                 {
                     ResidualRate = estimatedRate,
@@ -9449,8 +9349,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
                 else if (chargesTextureLoss)
                 {
-                    // An estimate never skips, and its cost is the estimate's. Reference: the rd_stats->rdcost = est_rd
-                    // and rd_stats->skip_txfm = 0 of the !do_tx_search branch of motion_mode_rd().
+                    // An estimate never skips, and its cost is the estimated cost.
+                    // Reference: the rd_stats->rdcost = est_rd and rd_stats->skip_txfm = 0 of the !do_tx_search branch of motion_mode_rd().
                     this.ChargeInterTextureLoss(
                         ref estimate,
                         estimate.Cost,
@@ -9506,20 +9406,11 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (chargesTextureLoss && statistics.Cost != long.MaxValue)
             {
-                // The residual search starts its statistics from zero and never prices them, so the extra cost scales
-                // nothing unless the offset prices them first. Reference: the av1_init_rd_stats() of
-                // av1_txfm_search(), which leaves rd_stats->rdcost at zero.
+                // The residual search starts its statistics at zero and never sets their cost.
+                // So the extra cost scales zero, unless the offset sets the cost first.
+                // Reference: the av1_init_rd_stats() of av1_txfm_search(), which sets rd_stats->rdcost to zero.
                 this.ChargeInterTextureLoss(
-                    ref statistics,
-                    0,
-                    predictionSourceVariance,
-                    predictionSampleVariance,
-                    blockOrigin,
-                    blockSize,
-                    skip,
-                    isCompound,
-                    isInterIntra,
-                    vector);
+                    ref statistics, 0, predictionSourceVariance, predictionSampleVariance, blockOrigin, blockSize, skip, isCompound, isInterIntra, vector);
             }
 
             return statistics;
@@ -9818,14 +9709,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 skippable = lumaSkippable && !blueHasCoefficients && !redHasCoefficients;
 
-                // High bit depth sharpness 3 penalizes the skip in the comparison only. Reference: the
-                // av1_get_tx_skip_dist() call before the choose_skip_txfm comparison of av1_txfm_search().
+                // High bit depth sharpness 3 adds a skip penalty to the comparison only.
+                // Reference: the av1_get_tx_skip_dist() call before the choose_skip_txfm comparison of av1_txfm_search().
                 long comparedCodedDistortion = codedDistortion;
                 long comparedSkipDistortion = skipDistortion;
                 if (!skippable && this.UsesHighBitDepthSharpness)
                 {
-                    this.PenalizeTransformSkip(
-                        blockOrigin, blockSize, workspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
+                    this.PenalizeTransformSkip(blockOrigin, blockSize, workspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
                 }
 
                 skip = skippable ||
@@ -9872,9 +9762,9 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedStatistics.LumaCost = skip ? skippedLumaCost : codedLumaCost;
             selectedStatistics.HasCoefficients = !skip;
 
-            // The residual search reports the skip it chose, whether the residual was empty or the comparison chose
-            // it, and best_mode_skippable and the partition search read that. Reference: the rd_stats->skip_txfm = 1
-            // and rd_stats->skip_txfm = 0 of the choose_skip_txfm branches of av1_txfm_search().
+            // The residual search reports the skip that it chose, from an empty residual or from the comparison.
+            // best_mode_skippable and the partition search read this result.
+            // Reference: the rd_stats->skip_txfm = 1 and rd_stats->skip_txfm = 0 of the choose_skip_txfm branches of av1_txfm_search().
             selectedStatistics.AllTransformsEmpty = skip;
             selectedStatistics.ResidualRate = selectedStatistics.Rate - predictionRate;
             selectedStatistics.PredictionDistortion = skipDistortion;

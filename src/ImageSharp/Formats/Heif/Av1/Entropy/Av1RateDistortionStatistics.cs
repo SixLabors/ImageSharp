@@ -123,8 +123,8 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds an eighth to the distortion and to the cost as it stands, which need not be the price of the rate and
-    /// distortion. Reference: the AOM_TUNE_IQ branch of adjust_rdcost().
+    /// Adds one eighth to the distortion and one eighth to the current cost. The current cost can differ from the price of the rate and distortion.
+    /// Reference: the AOM_TUNE_IQ branch of adjust_rdcost().
     /// </summary>
     public void AddInterCostBias()
     {
@@ -161,14 +161,14 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds the distortion that an extra cost amounts to, rounded to the nearest distortion unit, and prices the cost
-    /// again. Reference: the extra_rd to extra_dist conversion of the sub-block energy adjustment in adjust_rdcost().
+    /// Changes an extra cost into distortion, rounded to the nearest unit, and adds it. Then it calculates the cost again.
+    /// Reference: the extra_rd to extra_dist conversion of the sub-block energy adjustment in adjust_rdcost().
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier of the block.</param>
     /// <param name="extraCost">The extra cost, which must be positive.</param>
     public void AddEnergyCost(int rateMultiplier, long extraCost)
     {
-        // RDCOST scales the distortion up by RDDIV_BITS, so the extra cost comes back to distortion with that shift.
+        // RDCOST shifts the distortion up by RDDIV_BITS. So the extra cost shifts down by the same amount to become distortion.
         const int DistortionShift = 7;
         this.Distortion += (extraCost + (1L << (DistortionShift - 1))) >> DistortionShift;
         this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);

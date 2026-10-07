@@ -423,11 +423,10 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                     keyFrameUpdate,
                     out Av1MotionVector vector);
 
-                // High bit depth sharpness 3 keeps a zero best vector unless a nonzero one improves its error by more
-                // than a sixteenth. Reference: the CONFIG_AV1_HIGHBITDEPTH bias toward (0,0) in mode_estimation().
-                if (this.bitDepth.GetBitCount() > 8 && input.Sharpness == 3 &&
-                    bestSme != uint.MaxValue && bestReferenceVector.IsZero && !vector.IsZero &&
-                    unchecked(sme + (sme >> 4)) >= bestSme)
+                // High bit depth sharpness 3 keeps a zero best vector, unless a nonzero vector decreases the error by more than one sixteenth.
+                // Reference: the CONFIG_AV1_HIGHBITDEPTH bias toward (0,0) in mode_estimation().
+                bool keepsZeroVector = bestSme != uint.MaxValue && bestReferenceVector.IsZero && !vector.IsZero && unchecked(sme + (sme >> 4)) >= bestSme;
+                if (this.bitDepth.GetBitCount() > 8 && input.Sharpness == 3 && keepsZeroVector)
                 {
                     continue;
                 }

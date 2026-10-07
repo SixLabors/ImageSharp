@@ -323,9 +323,9 @@ internal sealed partial class Av1SecondPass
     private bool UsesBitBudget => this.mode != Av1RateControlMode.Quality;
 
     /// <summary>
-    /// Gets a value indicating whether a high bit depth sequence codes at sharpness 3, which holds back the quick
-    /// redistribution of undershoot bits while the sequence is overspent. Reference: the bit_depth &gt; 8 &amp;&amp;
-    /// sharpness == 3 tests of vbr_rate_correction() and av1_twopass_postencode_update().
+    /// Gets a value indicating whether a high bit depth sequence uses sharpness 3.
+    /// Then the fast return of undershoot bits stops while the sequence uses too many bits.
+    /// Reference: the bit_depth &gt; 8 &amp;&amp; sharpness == 3 tests of vbr_rate_correction() and av1_twopass_postencode_update().
     /// </summary>
     private bool UsesHighBitDepthSharpness => this.bitDepth.GetBitCount() > 8 && this.sharpness == 3;
 
@@ -770,15 +770,14 @@ internal sealed partial class Av1SecondPass
                 frameTarget += this.variableBitrateBitsOffTarget >= 0 ? maximumDelta : -maximumDelta;
             }
 
-            // An ordinary frame takes back the bits of a large local undershoot quickly, unless high bit depth
-            // sharpness 3 finds the sequence overspent. Reference: the fast redistribution test of
-            // vbr_rate_correction().
+            // An ordinary frame quickly takes back the bits of a large local undershoot.
+            // At high bit depth sharpness 3, this does not occur while the sequence uses too many bits.
+            // Reference: the fast redistribution test of vbr_rate_correction().
             Av1FrameUpdateType updateType = this.group.UpdateTypes[this.groupFrameIndex];
             bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
             bool sourceIsAlternate = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
-            if (!boosted && this.variableBitrateBitsOffTargetFast != 0 &&
-                (!this.UsesHighBitDepthSharpness || this.variableBitrateBitsOffTarget >= 0) &&
-                !sourceIsAlternate)
+            bool overspent = this.UsesHighBitDepthSharpness && this.variableBitrateBitsOffTarget < 0;
+            if (!boosted && this.variableBitrateBitsOffTargetFast != 0 && !overspent && !sourceIsAlternate)
             {
                 long oneFrameBits = Math.Max(this.averageFrameBandwidth, frameTarget);
                 long fastExtraBits = Math.Min(this.variableBitrateBitsOffTargetFast, oneFrameBits);
@@ -1161,9 +1160,9 @@ internal sealed partial class Av1SecondPass
         this.extendMinimumQ = Math.Clamp(this.extendMinimumQ, -minimumQAdjustmentLimit, minimumQAdjustmentLimit);
         this.extendMaximumQ = Math.Clamp(this.extendMaximumQ, 0, maximumQAdjustmentLimit);
 
-        // An unexpectedly well predicted ordinary frame feeds the bits it left back quickly. At high bit depth
-        // sharpness 3 an overspent sequence drops the quick bits instead. Reference: the vbr_bits_off_target_fast
-        // update of av1_twopass_postencode_update().
+        // An ordinary frame with an unexpectedly good prediction quickly returns the bits that it did not use.
+        // At high bit depth sharpness 3, a sequence that uses too many bits clears the quick bits instead.
+        // Reference: the vbr_bits_off_target_fast update of av1_twopass_postencode_update().
         Av1FrameUpdateType updateType = this.group.UpdateTypes[this.groupFrameIndex];
         if (updateType is not (Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate))
         {

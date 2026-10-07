@@ -172,8 +172,8 @@ internal static class Av1IntraModeEstimator
 
         // Quantized magnitudes estimate token rate in four probability units; each transform adds
         // a logarithmic end-position cost. Prediction and skip syntax are charged by the mode controller.
-        // The rate stays below the invalid-rate sentinel, with room for the mode, vector and chroma rates that
-        // callers add. Reference: the INT_MAX / 2 clamp of av1_block_yrd() and av1_block_yrd_idtx().
+        // The rate stays below the invalid-rate value, with space for the mode, vector and chroma rates that the callers add.
+        // Reference: the INT_MAX / 2 clamp of av1_block_yrd() and av1_block_yrd_idtx().
         rate = (int)Math.Min(((long)magnitudeSum << 11) + ((long)endOfBlockCost << 9), int.MaxValue / 2);
     }
 }

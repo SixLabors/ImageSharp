@@ -1376,17 +1376,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 (LumaDerivedChromaModeMasks[(int)lumaMode] & (1 << (int)chromaMode)) != 0;
 
         /// <summary>
-        /// Adds a quarter to the cost of a valid smooth chroma candidate at high bit depth sharpness 3, in every frame
-        /// type. The raised cost decides the comparison and bounds the later candidates; the rate and distortion stay.
+        /// Adds one quarter to the cost of a valid smooth chroma candidate at high bit depth sharpness 3, in all frame types.
+        /// The higher cost decides the comparison and limits the later candidates. The rate and distortion do not change.
         /// Reference: is_smooth_uv_mode in av1_rd_pick_intra_sbuv_mode().
         /// </summary>
         /// <param name="statistics">The candidate statistics.</param>
         /// <param name="chromaMode">The candidate chroma mode.</param>
         private readonly void PenalizeSmoothChromaMode(ref Av1RateDistortionStatistics statistics, Av1ChromaPredictionMode chromaMode)
         {
-            if (statistics.Cost != long.MaxValue &&
-                this.UsesHighBitDepthSharpness &&
-                chromaMode is Av1ChromaPredictionMode.Smooth or Av1ChromaPredictionMode.SmoothVertical or Av1ChromaPredictionMode.SmoothHorizontal)
+            bool smoothMode =
+                chromaMode is Av1ChromaPredictionMode.Smooth or Av1ChromaPredictionMode.SmoothVertical or Av1ChromaPredictionMode.SmoothHorizontal;
+
+            if (statistics.Cost != long.MaxValue && this.UsesHighBitDepthSharpness && smoothMode)
             {
                 statistics.Cost += statistics.Cost >> 2;
             }

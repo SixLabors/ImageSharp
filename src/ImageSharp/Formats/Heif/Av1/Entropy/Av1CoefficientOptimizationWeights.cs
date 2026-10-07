@@ -14,16 +14,12 @@ internal readonly ref struct Av1CoefficientOptimizationWeights
     /// Initializes a new instance of the <see cref="Av1CoefficientOptimizationWeights"/> struct.
     /// </summary>
     /// <param name="sharpness">The encoder sharpness from zero through seven.</param>
-    /// <param name="rateShift">The shift of the rate multiplier; 7 for the image tunes, 6 for a noise pattern, else 5.</param>
-    /// <param name="endOfBlockCutoff">The scan position up to which sharpness protects coefficients; 8 for a noise pattern, else 5.</param>
+    /// <param name="rateShift">The shift of the rate multiplier. It is 7 for the image tunes, 6 for a noise pattern, and 5 for all other blocks.</param>
+    /// <param name="endOfBlockCutoff">The last scan position that sharpness protects. It is 8 for a noise pattern and 5 for all other blocks.</param>
     /// <param name="distortionWeights">The quantization matrix of the QM-PSNR metric, or empty for plain squared error.</param>
     /// <param name="inverseWeights">The inverse quantization matrix, or empty for a flat matrix.</param>
     public Av1CoefficientOptimizationWeights(
-        int sharpness,
-        int rateShift,
-        int endOfBlockCutoff,
-        ReadOnlySpan<byte> distortionWeights,
-        ReadOnlySpan<byte> inverseWeights)
+        int sharpness, int rateShift, int endOfBlockCutoff, ReadOnlySpan<byte> distortionWeights, ReadOnlySpan<byte> inverseWeights)
     {
         this.Sharpness = sharpness;
         this.RateShift = rateShift;
@@ -33,12 +29,12 @@ internal readonly ref struct Av1CoefficientOptimizationWeights
     }
 
     /// <summary>
-    /// Gets the weights of the default configuration: no sharpness, the default shift and cutoff, and flat matrices.
+    /// Gets the weights of the default configuration. It has no sharpness, the default shift and cutoff, and flat matrices.
     /// </summary>
     public static Av1CoefficientOptimizationWeights Default => new(0, 5, 5, default, default);
 
     /// <summary>
-    /// Gets the scan position up to which sharpness keeps a coefficient above two and refuses a shorter end of block.
+    /// Gets the last scan position that sharpness protects. Up to this position, sharpness keeps a level above two and keeps the end of block.
     /// Reference: min_eob_cutoff in update_coeff_eob().
     /// </summary>
     public int EndOfBlockCutoff { get; }

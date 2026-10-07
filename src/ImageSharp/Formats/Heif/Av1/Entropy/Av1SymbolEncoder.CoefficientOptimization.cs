@@ -295,7 +295,7 @@ internal sealed partial class Av1SymbolEncoder
             long lowerCost = Av1RateDistortion.GetCost(multiplier, accumulatedRate + lowerRate, accumulatedDistortion + lowerDistortion);
             long newDistortion = distortion;
 
-            // Sharpness keeps the low levels of the first coefficients, further into the scan for a noise pattern.
+            // Sharpness keeps the low levels of the first coefficients. For a noise pattern, it keeps them further into the scan.
             // Reference: min_eob_cutoff and qc_threshold in update_coeff_eob().
             bool allowLower = sharpness == 0 || magnitude > (scanIndex <= endOfBlockCutoff ? 2 : 1);
             bool lowerLevel = allowLower && lowerCost < cost;

@@ -176,9 +176,8 @@ internal static partial class Av1LoopRestorationEncoder
                 maximum = Math.Max(maximum, Math.Abs(matrix[(column * stride) + index]));
             }
 
-            // A pivot row of small magnitude eliminates in integers. A larger one would overflow the products, so it
-            // eliminates in double precision and truncates each update. Reference: the scale_threshold branches of
-            // linsolve_wiener().
+            // A pivot row with small values does the elimination in integers. A row with large values can overflow the products.
+            // So that row does the elimination in double precision, and truncates each update. Reference: the scale_threshold branches of linsolve_wiener().
             if (maximum < 1 << 22)
             {
                 for (int row = column; row < count - 1; row++)

@@ -39,7 +39,8 @@ public class EncodeHeif
             this.avif = Image.Load<Rgba32>(this.TestImageFullPath);
             this.avifMagick = new MagickImage(this.TestImageFullPath);
 
-            // Magick passes these to libheif, which defaults to speed 6 and 4:2:0; they are set so both encoders match.
+            // Magick passes these to libheif, which defaults to speed 6, 4:2:0 and SSIM tune; Magick cannot set the
+            // tune, so the ImageSharp encoder sets SSIM to match.
             this.avifMagick.Settings.SetDefine(MagickFormat.Heic, "speed", "6");
             this.avifMagick.Settings.SetDefine(MagickFormat.Heic, "chroma", "420");
         }
@@ -77,6 +78,7 @@ public class EncodeHeif
         {
             Quality = 75,
             Speed = HeifEncodingSpeed.Level6,
+            Tuning = HeifTuning.Ssim,
             ChromaSubsampling = HeifChromaSubsampling.Yuv420
         });
     }
@@ -86,20 +88,21 @@ public class EncodeHeif
         AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
         .NET SDK 11.0.100-preview.7.26381.103
           [Host]     : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
-          Job-RCQXAA : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+          Job-UCFAVH : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
 
-        Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
-        WarmupCount=3
+        Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
+        WarmupCount=5
 
-        | Method            | TestImage      | Mean     | Error     | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
-        |------------------ |--------------- |---------:|----------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
-        | 'Magick Avif'     | Png/Bike.png   | 184.6 ms |  19.39 ms |  1.06 ms |  1.00 |    0.01 |         - |         - |         - |  61.65 KB |        1.00 |
-        | 'ImageSharp Avif' | Png/Bike.png   | 324.2 ms | 514.22 ms | 28.19 ms |  1.76 |    0.13 |         - |         - |         - | 648.82 KB |       10.52 |
-        |                   |                |          |           |          |       |         |           |           |           |           |             |
-        | 'Magick Avif'     | Png/splash.png | 167.3 ms |  23.69 ms |  1.30 ms |  1.00 |    0.01 |         - |         - |         - |  61.66 KB |        1.00 |
-        | 'ImageSharp Avif' | Png/splash.png | 229.2 ms |  91.54 ms |  5.02 ms |  1.37 |    0.03 | 1000.0000 | 1000.0000 | 1000.0000 |  657.2 KB |       10.66 |
+        | Method            | TestImage      | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
+        |------------------ |--------------- |---------:|---------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
+        | 'Magick Avif'     | Png/Bike.png   | 236.9 ms |  4.37 ms |  4.08 ms |  1.00 |    0.02 |         - |         - |         - |   61.6 KB |        1.00 |
+        | 'ImageSharp Avif' | Png/Bike.png   | 359.3 ms | 27.11 ms | 25.36 ms |  1.52 |    0.11 |         - |         - |         - |  656.8 KB |       10.66 |
+        |                   |                |          |          |          |       |         |           |           |           |           |             |
+        | 'Magick Avif'     | Png/splash.png | 199.9 ms |  6.40 ms |  5.98 ms |  1.00 |    0.04 |         - |         - |         - |   61.6 KB |        1.00 |
+        | 'ImageSharp Avif' | Png/splash.png | 209.0 ms | 14.55 ms | 13.61 ms |  1.05 |    0.07 | 1000.0000 | 1000.0000 | 1000.0000 | 664.41 KB |       10.79 |
 
-        Both encoders use quality 75, speed 6 and 4:2:0. Magick's libheif encodes with one thread per logical core;
-        Magick.NET has no setting to change that. The ImageSharp encoder uses one thread.
+        Run with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
+        Both encoders use quality 75, speed 6, 4:2:0 and SSIM tune. Magick's libheif encodes with one thread per
+        logical core; Magick.NET has no setting to change that. The ImageSharp encoder uses one thread.
      */
 }

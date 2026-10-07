@@ -62,17 +62,19 @@ public class DecodeHeif
         AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
         .NET SDK 11.0.100-preview.7.26381.103
           [Host]     : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
-          Job-RCQXAA : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+          Job-UCFAVH : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
 
-        Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
-        WarmupCount=3
+        Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
+        WarmupCount=5
 
-        | Method            | TestImage                    | Mean     | Error     | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-        |------------------ |----------------------------- |---------:|----------:|---------:|------:|--------:|--------:|--------:|----------:|------------:|
-        | 'Magick Avif'     | Heif/Irvine_CA.avif          | 20.97 ms | 15.277 ms | 0.837 ms |  1.00 |    0.05 |       - |       - |   5.07 KB |        1.00 |
-        | 'ImageSharp Avif' | Heif/Irvine_CA.avif          | 14.78 ms |  1.847 ms | 0.101 ms |  0.71 |    0.02 | 31.2500 |       - | 537.38 KB |      105.90 |
-        |                   |                              |          |           |          |       |         |         |         |           |             |
-        | 'Magick Avif'     | Heif/libavif-kodim23-8b.avif | 22.76 ms |  3.266 ms | 0.179 ms |  1.00 |    0.01 |       - |       - |   5.07 KB |        1.00 |
-        | 'ImageSharp Avif' | Heif/libavif-kodim23-8b.avif | 13.19 ms |  1.723 ms | 0.094 ms |  0.58 |    0.01 | 31.2500 | 15.6250 | 533.23 KB |      105.09 |
+        | Method            | TestImage                    | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
+        |------------------ |----------------------------- |---------:|---------:|---------:|------:|--------:|--------:|--------:|----------:|------------:|
+        | 'Magick Avif'     | Heif/Irvine_CA.avif          | 23.49 ms | 0.966 ms | 0.904 ms |  1.00 |    0.05 |       - |       - |   5.07 KB |        1.00 |
+        | 'ImageSharp Avif' | Heif/Irvine_CA.avif          | 17.75 ms | 0.812 ms | 0.759 ms |  0.76 |    0.04 | 31.2500 |       - | 537.38 KB |      105.90 |
+        |                   |                              |          |          |          |       |         |         |         |           |             |
+        | 'Magick Avif'     | Heif/libavif-kodim23-8b.avif | 25.63 ms | 1.012 ms | 0.947 ms |  1.00 |    0.05 |       - |       - |   5.07 KB |        1.00 |
+        | 'ImageSharp Avif' | Heif/libavif-kodim23-8b.avif | 15.23 ms | 1.197 ms | 1.120 ms |  0.60 |    0.05 | 31.2500 | 15.6250 | 533.23 KB |      105.09 |
+
+        Run with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
      */
 }

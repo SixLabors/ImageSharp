@@ -111,17 +111,19 @@ public class EncodeHeif
         Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
         WarmupCount=5
 
-        | Method                   | TestImage      | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
-        |------------------------- |--------------- |---------:|---------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
-        | 'Magick Avif'            | Png/Bike.png   | 182.3 ms |  1.41 ms |  1.32 ms |  1.00 |    0.01 |         - |         - |         - |   61.6 KB |        1.00 |
-        | 'Magick Avif SingleCore' | Png/Bike.png   | 405.7 ms |  5.90 ms |  5.23 ms |  2.23 |    0.03 |         - |         - |         - |  71.01 KB |        1.15 |
-        | 'ImageSharp Avif'        | Png/Bike.png   | 305.2 ms |  1.37 ms |  1.21 ms |  1.67 |    0.01 |         - |         - |         - | 656.82 KB |       10.66 |
-        |                          |                |          |          |          |       |         |           |           |           |           |             |
-        | 'Magick Avif'            | Png/splash.png | 176.3 ms | 10.10 ms |  9.45 ms |  1.00 |    0.07 |         - |         - |         - |   61.6 KB |        1.00 |
-        | 'Magick Avif SingleCore' | Png/splash.png | 249.7 ms |  2.86 ms |  2.39 ms |  1.42 |    0.08 |         - |         - |         - |  61.91 KB |        1.01 |
-        | 'ImageSharp Avif'        | Png/splash.png | 202.7 ms | 15.77 ms | 13.98 ms |  1.15 |    0.10 | 1000.0000 | 1000.0000 | 1000.0000 | 664.42 KB |       10.79 |
+        | Method                   | TestImage      | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0      | Allocated native memory | Native memory leak | Gen1      | Gen2      | Allocated | Alloc Ratio |
+        |------------------------- |--------------- |---------:|---------:|---------:|------:|--------:|----------:|------------------------:|-------------------:|----------:|----------:|----------:|------------:|
+        | 'Magick Avif'            | Png/Bike.png   | 234.1 ms |  6.26 ms |  5.85 ms |  1.00 |    0.03 |         - |               32,302 KB |               0 KB |         - |         - |  65.55 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Png/Bike.png   | 427.6 ms | 11.63 ms |  9.71 ms |  1.83 |    0.06 |         - |               30,607 KB |               0 KB |         - |         - |  71.01 KB |        1.08 |
+        | 'ImageSharp Avif'        | Png/Bike.png   | 357.0 ms | 27.36 ms | 22.85 ms |  1.53 |    0.10 |         - |                    1 KB |                  - |         - |         - | 656.82 KB |       10.02 |
+        |                          |                |          |          |          |       |         |           |                         |                    |           |           |           |             |
+        | 'Magick Avif'            | Png/splash.png | 190.5 ms | 10.31 ms |  9.64 ms |  1.00 |    0.07 |         - |               64,770 KB |               0 KB |         - |         - |   61.6 KB |        1.00 |
+        | 'Magick Avif SingleCore' | Png/splash.png | 248.9 ms | 10.20 ms |  9.54 ms |  1.31 |    0.08 |         - |               61,906 KB |               0 KB |         - |         - |  61.98 KB |        1.01 |
+        | 'ImageSharp Avif'        | Png/splash.png | 199.8 ms |  9.10 ms |  7.60 ms |  1.05 |    0.06 | 1000.0000 |               23,408 KB |          12,288 KB | 1000.0000 | 1000.0000 | 664.42 KB |       10.79 |
 
-        Run with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
+        Run elevated with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
+        Elevation adds the native memory columns of NativeMemoryProfiler. The Allocated and Alloc Ratio columns count managed memory only.
+        The native memory of ImageSharp is its pooled unmanaged buffers; the pool keeps them, so the profiler reports them as a leak.
         Both encoders use quality 75, speed 6, 4:2:0 and SSIM tune. Magick's libheif encodes with one thread per
         logical core; the SingleCore case pins the Magick process to one core. The ImageSharp encoder uses one thread.
      */

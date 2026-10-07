@@ -6110,6 +6110,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Span<TSample> samples = workspace.GetCandidateReconstruction(0);
 
+                // Every retained predictor of the block shares these neighbor values, so they are read once.
+                LumaBlockState blockState = this.GetLumaBlockState(writer, macroBlock, blockOrigin, blockSize);
+
                 // Repeat transform search for every retained predictor with winner-stage settings.
                 // Each trial starts from the same external block edges and its own palette map.
                 for (int index = 0; index < this.lumaCandidateCount; index++)
@@ -6131,6 +6134,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         reconstructionPlane,
                         blockOrigin,
                         blockSize,
+                        in blockState,
                         blockSize.GetMaximumTransformSize(),
                         maximumDepth,
                         tileIndex,
@@ -6282,6 +6286,29 @@ internal static partial class Av1IntraSuperblockEncoder
             bool stopFilters = false;
             Av1PredictionMode filterBaseMode = Av1PredictionMode.DC;
 
+            // The mode loop below tries many modes for the same block. Everything that does not depend on the mode
+            // is read here once: the spans of the model cost, the smooth-edge state and partition type, the modes
+            // of the left and above neighbors, and the inter frame syntax rate of an intra block.
+            LumaBlockState blockState = this.GetLumaBlockState(writer, macroBlock, blockOrigin, blockSize);
+            LumaModelInputs modelInputs = new(
+                workspace,
+                this.blockWorkspace,
+                sourcePlane,
+                reconstructionPlane,
+                blockOrigin,
+                blockState.PartitionType,
+                blockState.SmoothEdges,
+                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter);
+
+            bool hasLeftNeighbor = macroBlock.IsLeftAvailable;
+            bool hasAboveNeighbor = macroBlock.IsUpAvailable;
+            Av1PredictionMode leftNeighborMode = hasLeftNeighbor ? macroBlock.GetRelativeModeInfo(-1).Block.Mode : Av1PredictionMode.DC;
+            Av1PredictionMode aboveNeighborMode = hasAboveNeighbor
+                ? macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Mode
+                : Av1PredictionMode.DC;
+
+            int interFrameSyntaxRate = intraFrame ? 0 : blockState.IntraInterRate + blockState.NoSkipRate;
+
             // A predictor first chooses its own transform grid. Only that completed result competes
             // with other predictors, so an empty residual cannot change ranking midway through type search.
             // Filter predictors follow DC in inter pictures and follow spatial/palette search in intra pictures.
@@ -6427,9 +6454,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (!intraFrame)
                     {
-                        int knownRate = writer.GetInterFrameLumaModeCost(mode, blockSize) +
-                            writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) +
-                            writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
+                        int knownRate = writer.GetInterFrameLumaModeCost(mode, blockSize) + interFrameSyntaxRate;
 
                         // A mode whose known syntax already exceeds the bound is not searched, and the search stops
                         // unless the intra-in-inter pruning is off. The test comes before the directional pruning.
@@ -6460,7 +6485,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!filter || intraFrame)
                 {
                     long modelCost = this.GetLumaModelCost(
-                        macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, mode, angleDelta, filterMode);
+                        macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, in modelInputs, mode, angleDelta, filterMode);
 
                     if (filter)
                     {
@@ -6474,7 +6499,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     else if (ShouldPruneIntraModel(
                         modelCost,
                         mode,
-                        macroBlock,
+                        hasLeftNeighbor,
+                        leftNeighborMode,
+                        hasAboveNeighbor,
+                        aboveNeighborMode,
                         this.blockQIndex,
                         modelCosts,
                         settings.IntraModelCandidateCount,
@@ -6500,6 +6528,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     reconstructionPlane,
                     blockOrigin,
                     blockSize,
+                    in blockState,
                     maximumSize,
                     maximumDepth,
                     tileIndex,
@@ -6693,6 +6722,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="reconstructionPlane">The reconstruction luma plane.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
+        /// <param name="blockState">The block values that every mode trial shares, read once by the caller.</param>
         /// <param name="startSize">The largest transform size searched.</param>
         /// <param name="maximumDepth">The number of splits the search can make below the start size.</param>
         /// <param name="tileIndex">The tile index.</param>
@@ -6719,6 +6749,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
+            in LumaBlockState blockState,
             Av1TransformSize startSize,
             int maximumDepth,
             ushort tileIndex,
@@ -6755,6 +6786,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     reconstructionPlane,
                     blockOrigin,
                     blockSize,
+                    in blockState,
                     size,
                     tileIndex,
                     sourceVariance,
@@ -6800,6 +6832,29 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Evaluates an intra transform grid with local reconstruction and coefficient contexts, stopping at the supplied cost bound.
         /// </summary>
+        /// <param name="writer">The tile symbol encoder.</param>
+        /// <param name="macroBlock">The block's neighbor state.</param>
+        /// <param name="sourcePlane">The source luma plane.</param>
+        /// <param name="reconstructionPlane">The reconstruction luma plane.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="blockState">The block values that every mode trial shares, read once by the caller.</param>
+        /// <param name="transformSize">The transform size of the grid.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="sourceVariance">The source variance of the block.</param>
+        /// <param name="mode">The luma prediction mode.</param>
+        /// <param name="angleDelta">The luma angle delta.</param>
+        /// <param name="filterIntraMode">The filter intra mode.</param>
+        /// <param name="paletteSize">The luma palette size, or zero.</param>
+        /// <param name="paletteColors">The luma palette colors.</param>
+        /// <param name="paletteHeaderRate">The palette syntax rate.</param>
+        /// <param name="paletteDisabledCost">The rate that signals no palette.</param>
+        /// <param name="transformSizeContext">The transform size context.</param>
+        /// <param name="costLimit">The cost at which the evaluation stops.</param>
+        /// <param name="candidateReconstruction">The candidate reconstruction storage.</param>
+        /// <param name="candidateTransformBlocks">The candidate transform block storage.</param>
+        /// <param name="skipSmallerTransforms">Whether smaller transform sizes need no search.</param>
+        /// <returns>The statistics of the grid, or invalid statistics when the cost limit stopped it.</returns>
         private Av1RateDistortionStatistics GetUniformLumaCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -6807,6 +6862,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
+            in LumaBlockState blockState,
             Av1TransformSize transformSize,
             ushort tileIndex,
             int sourceVariance,
@@ -6824,11 +6880,35 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool skipSmallerTransforms)
         {
             long workStart = Av1WorkCounters.Start();
-            Av1RateDistortionStatistics workResult = this.GetUniformLumaCandidateCostCore(writer, macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, transformSize, tileIndex, sourceVariance, mode, angleDelta, filterIntraMode, paletteSize, paletteColors, paletteHeaderRate, paletteDisabledCost, transformSizeContext, costLimit, candidateReconstruction, candidateTransformBlocks, out skipSmallerTransforms);
+            Av1RateDistortionStatistics workResult = this.GetUniformLumaCandidateCostCore(
+                writer,
+                macroBlock,
+                sourcePlane,
+                reconstructionPlane,
+                blockOrigin,
+                blockSize,
+                in blockState,
+                transformSize,
+                tileIndex,
+                sourceVariance,
+                mode,
+                angleDelta,
+                filterIntraMode,
+                paletteSize,
+                paletteColors,
+                paletteHeaderRate,
+                paletteDisabledCost,
+                transformSizeContext,
+                costLimit,
+                candidateReconstruction,
+                candidateTransformBlocks,
+                out skipSmallerTransforms);
+
             Av1WorkCounters.Stop(Av1WorkCounters.UniformLuma, workStart);
             return workResult;
         }
 
+        /// <inheritdoc cref="GetUniformLumaCandidateCost"/>
         private Av1RateDistortionStatistics GetUniformLumaCandidateCostCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -6836,6 +6916,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
+            in LumaBlockState blockState,
             Av1TransformSize transformSize,
             ushort tileIndex,
             int sourceVariance,
@@ -6870,7 +6951,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> reconstructionSamples = reconstructionPlane.Samples;
             ReadOnlySpan<TSample> frameBlock = reconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
             ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
-            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
+            Av1PartitionType partitionType = blockState.PartitionType;
 
             // Reuse the second candidate plane for one prediction and two transform reconstructions.
             // Their disjoint spans remain live while the first candidate plane accumulates the block mosaic.
@@ -6918,7 +6999,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.IsScreenContent && this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision;
 
             // The edge filter strength depends on the neighbors of the block alone, so every transform block shares it.
-            bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
+            bool smoothEdges = blockState.SmoothEdges;
 
             // Prediction and transform-size syntax belongs to the coding block. Each residual transform
             // contributes its own coefficient cost; lossless and fixed-size modes do not signal a size choice.
@@ -6954,10 +7035,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     angleDelta,
                     this.picture.Parent.FrameHeader.IsIntra);
 
-                if (!this.picture.Parent.FrameHeader.IsIntra)
-                {
-                    rate += writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock));
-                }
+                // The block state holds zero for an intra frame, which codes no intra/inter flag.
+                rate += blockState.IntraInterRate;
 
                 if (mode == Av1PredictionMode.DC)
                 {
@@ -6994,7 +7073,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // non-skip flag and the transform-size syntax, because an intra block always signals non-skip.
             // block_rd_txfm (L3122-3140) then adds the rate-distortion cost of each transform and drops the
             // candidate as soon as the running cost passes the reference.
-            int noSkipRate = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
+            int noSkipRate = blockState.NoSkipRate;
 
             // Lossless coding starts the running cost at zero. Reference: the current_rd of 0 that
             // choose_smallest_tx_size() passes to av1_txfm_rd_in_plane().
@@ -7640,33 +7719,59 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Measures the complete luma prediction using square Hadamard tiles without residual reconstruction.
         /// </summary>
+        /// <param name="macroBlock">The block, which gives the visible size at the frame edge.</param>
+        /// <param name="sourcePlane">The source luma plane.</param>
+        /// <param name="reconstructionPlane">The reconstructed luma plane, which gets each tile prediction.</param>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="inputs">The spans and block values that every mode trial of the block uses.</param>
+        /// <param name="mode">The intra prediction mode.</param>
+        /// <param name="angleDelta">The signed directional angle adjustment.</param>
+        /// <param name="filterMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/> for none.</param>
+        /// <returns>The sum of the Hadamard costs of all visible tiles.</returns>
         private long GetLumaModelCost(
             Av1MacroBlockD macroBlock,
             Av1PlaneRegion<TSample> sourcePlane,
             Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
+            in LumaModelInputs inputs,
             Av1PredictionMode mode,
             int angleDelta,
             Av1FilterIntraMode filterMode)
         {
             long workStart = Av1WorkCounters.Start();
-            long workResult = this.GetLumaModelCostCore(macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, mode, angleDelta, filterMode);
+            long workResult = this.GetLumaModelCostCore(
+                macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, in inputs, mode, angleDelta, filterMode);
+
             Av1WorkCounters.Stop(Av1WorkCounters.LumaModelCost, workStart);
             return workResult;
         }
 
+        /// <summary>
+        /// Measures the complete luma prediction using square Hadamard tiles, without the work counter.
+        /// </summary>
+        /// <param name="macroBlock">The block, which gives the visible size at the frame edge.</param>
+        /// <param name="sourcePlane">The source luma plane.</param>
+        /// <param name="reconstructionPlane">The reconstructed luma plane, which gets each tile prediction.</param>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="inputs">The spans and block values that every mode trial of the block uses.</param>
+        /// <param name="mode">The intra prediction mode.</param>
+        /// <param name="angleDelta">The signed directional angle adjustment.</param>
+        /// <param name="filterMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/> for none.</param>
+        /// <returns>The sum of the Hadamard costs of all visible tiles.</returns>
         private long GetLumaModelCostCore(
             Av1MacroBlockD macroBlock,
             Av1PlaneRegion<TSample> sourcePlane,
             Av1PlaneRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Av1BlockSize blockSize,
+            in LumaModelInputs inputs,
             Av1PredictionMode mode,
             int angleDelta,
             Av1FilterIntraMode filterMode)
         {
-            Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Av1TransformSize transformSize = blockSize.GetMaximumTransformSize().GetSquareSize();
             if (transformSize > Av1TransformSize.Size32x32)
             {
@@ -7677,18 +7782,24 @@ internal static partial class Av1IntraSuperblockEncoder
             int blockWidth = blockSize.GetWidth();
             int visibleWidth = blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
             int visibleHeight = blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
-            Span<TSample> prediction = workspace.Prediction;
-            Span<short> residual = workspace.Residual;
-            Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
-            Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
-            bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
-            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
-            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
-            Span<TSample> reconstructionSamples = reconstructionPlane.Samples;
-            ReadOnlySpan<TSample> frameBlock = reconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
+
+            // The caller reads every span and block value once for all mode trials, so the tile loop below only
+            // indexes them.
+            Span<TSample> prediction = inputs.Prediction;
+            Span<short> residual = inputs.Residual;
+            Span<TSample> aboveStorage = inputs.AboveStorage;
+            Span<TSample> leftStorage = inputs.LeftStorage;
+            Span<int> transformCoefficients = inputs.TransformCoefficients;
+            Span<int> transformWorkspace = inputs.TransformWorkspace;
+            Span<TSample> reconstructionSamples = inputs.ReconstructionSamples;
+            ReadOnlySpan<TSample> frameBlock = inputs.FrameBlock;
+            ReadOnlySpan<TSample> sourceSamples = inputs.SourceSamples;
+            bool smoothEdges = inputs.SmoothEdges;
+            bool enableEdgeFilter = inputs.EnableEdgeFilter;
+            Av1PartitionType partitionType = inputs.PartitionType;
             int frameStride = reconstructionPlane.Stride;
-            ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
+            int sourceStride = sourcePlane.Stride;
+            bool highBitDepth = this.bitDepth != Av1BitDepth.EightBit;
             long cost = 0;
 
             // Each tile uses the predictions of the tiles before it, with no quantization and no inverse transform.
@@ -7727,7 +7838,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         TOperator.PrepareIntra(
                             this.blockWorkspace,
                             sourceTransform,
-                            sourcePlane.Stride,
+                            sourceStride,
                             prediction,
                             tileSize,
                             above,
@@ -7736,7 +7847,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             hasAbove,
                             mode,
                             angleDelta,
-                            this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                            enableEdgeFilter,
                             smoothEdges,
                             residual,
                             transformSize,
@@ -7747,7 +7858,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         TOperator.PrepareFilterIntra(
                             this.blockWorkspace,
                             sourceTransform,
-                            sourcePlane.Stride,
+                            sourceStride,
                             prediction,
                             above,
                             left,
@@ -7757,17 +7868,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.bitDepth);
                     }
 
-                    // intra_model_rd() subtracts with the border padding of the picture.
+                    // The residual of a tile that crosses the picture edge is padded the same way as the coded
+                    // residual, so the model cost sees the same values that the final encode sees.
                     Av1TransformBlockEncoder.PadBorderResidual(
                         this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, tileSize, tileSize, tileSize, Av1TransformType.DctDct);
 
-                    cost += Av1ForwardTransformer.GetHadamardCost(
-                        residual,
-                        tileSize,
-                        tileSize,
-                        this.bitDepth != Av1BitDepth.EightBit,
-                        transformCoefficients,
-                        transformWorkspace);
+                    cost += Av1ForwardTransformer.GetHadamardCost(residual, tileSize, tileSize, highBitDepth, transformCoefficients, transformWorkspace);
 
                     Av1TransformBlockEncoder.WriteFrameSamples(
                         reconstructionPlane, reconstructionSamples, transformOrigin, prediction, tileSize, tileSize, tileSize);
@@ -7777,10 +7883,43 @@ internal static partial class Av1IntraSuperblockEncoder
             return cost;
         }
 
+        /// <summary>
+        /// Reads the luma block values that depend only on the block and its neighbors, not on the mode that is tried.
+        /// </summary>
+        /// <param name="writer">The symbol costs of the tile.</param>
+        /// <param name="macroBlock">The block and its neighbor availability.</param>
+        /// <param name="blockOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The values that every mode trial of the block shares.</returns>
+        private LumaBlockState GetLumaBlockState(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, Point blockOrigin, Av1BlockSize blockSize)
+            => new(
+                macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
+                this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
+                writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock)),
+                this.picture.Parent.FrameHeader.IsIntra ? 0 : writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)));
+
+        /// <summary>
+        /// Keeps the lowest model costs seen so far and decides if a mode is too expensive to search further.
+        /// </summary>
+        /// <param name="modelCost">The model cost of the mode.</param>
+        /// <param name="mode">The intra prediction mode.</param>
+        /// <param name="hasLeft">Whether the left neighbor is available.</param>
+        /// <param name="leftMode">The mode of the left neighbor.</param>
+        /// <param name="hasAbove">Whether the above neighbor is available.</param>
+        /// <param name="aboveMode">The mode of the above neighbor.</param>
+        /// <param name="qIndex">The quantizer index of the block.</param>
+        /// <param name="topModelCosts">The lowest model costs so far, in increasing order.</param>
+        /// <param name="topModelCount">The number of costs that <paramref name="topModelCosts"/> keeps.</param>
+        /// <param name="adaptToNeighbors">Whether a mode that differs from the neighbor modes is pruned more.</param>
+        /// <param name="bestModelCost">The lowest model cost so far.</param>
+        /// <returns><see langword="true"/> if the mode is pruned.</returns>
         private static bool ShouldPruneIntraModel(
             long modelCost,
             Av1PredictionMode mode,
-            Av1MacroBlockD macroBlock,
+            bool hasLeft,
+            Av1PredictionMode leftMode,
+            bool hasAbove,
+            Av1PredictionMode aboveMode,
             int qIndex,
             Span<long> topModelCosts,
             int topModelCount,
@@ -7806,11 +7945,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int pruningIndex = topModelCount - 1;
             if (adaptToNeighbors)
             {
-                bool leftDiffers = macroBlock.IsLeftAvailable &&
-                    macroBlock.GetRelativeModeInfo(-1).Block.Mode != mode;
-
-                bool aboveDiffers = macroBlock.IsUpAvailable &&
-                    macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Mode != mode;
+                bool leftDiffers = hasLeft && leftMode != mode;
+                bool aboveDiffers = hasAbove && aboveMode != mode;
 
                 if ((qIndex <= 127 && (leftDiffers || aboveDiffers)) ||
                     (qIndex > 127 && leftDiffers && aboveDiffers))
@@ -8050,6 +8186,150 @@ internal static partial class Av1IntraSuperblockEncoder
                 // encode_block().
                 state.TransformType = Av1TransformType.DctDct;
             }
+        }
+
+        /// <summary>
+        /// Holds the luma block values that depend only on the block and its neighbors. A mode search reads them
+        /// once before it tries its modes and transform sizes.
+        /// </summary>
+        private readonly struct LumaBlockState
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="LumaBlockState"/> struct.
+            /// </summary>
+            /// <param name="partitionType">The partition type of the block.</param>
+            /// <param name="smoothEdges">Whether a neighbor of the block uses a smooth mode.</param>
+            /// <param name="noSkipRate">The rate of the flag that says the block has coefficients.</param>
+            /// <param name="intraInterRate">The rate of the flag that says the block is intra, or zero in an intra frame.</param>
+            public LumaBlockState(Av1PartitionType partitionType, bool smoothEdges, int noSkipRate, int intraInterRate)
+            {
+                this.PartitionType = partitionType;
+                this.SmoothEdges = smoothEdges;
+                this.NoSkipRate = noSkipRate;
+                this.IntraInterRate = intraInterRate;
+            }
+
+            /// <summary>
+            /// Gets the partition type of the block.
+            /// </summary>
+            public Av1PartitionType PartitionType { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether a neighbor of the block uses a smooth mode, which selects the edge filter strength.
+            /// </summary>
+            public bool SmoothEdges { get; }
+
+            /// <summary>
+            /// Gets the rate of the flag that says the block has coefficients.
+            /// </summary>
+            public int NoSkipRate { get; }
+
+            /// <summary>
+            /// Gets the rate of the flag that says the block is intra, or zero in an intra frame.
+            /// </summary>
+            public int IntraInterRate { get; }
+        }
+
+        /// <summary>
+        /// Holds the spans and block values that every luma model trial of one block uses. The mode search builds
+        /// it once before its mode loop, so no trial reads a plane, a workspace buffer or the mode grid again.
+        /// </summary>
+        private readonly ref struct LumaModelInputs
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="LumaModelInputs"/> struct.
+            /// </summary>
+            /// <param name="workspace">The mode decision workspace of the block.</param>
+            /// <param name="blockWorkspace">The block workspace, which owns the transform buffers.</param>
+            /// <param name="sourcePlane">The source luma plane.</param>
+            /// <param name="reconstructionPlane">The reconstructed luma plane.</param>
+            /// <param name="blockOrigin">The block origin in luma samples.</param>
+            /// <param name="partitionType">The partition type of the block.</param>
+            /// <param name="smoothEdges">Whether a neighbor of the block uses a smooth mode, which selects the edge filter strength.</param>
+            /// <param name="enableEdgeFilter">Whether the sequence enables the intra edge filter.</param>
+            public LumaModelInputs(
+                Av1EncoderModeDecisionWorkspace<TSample> workspace,
+                Av1EncoderBlockWorkspace blockWorkspace,
+                Av1PlaneRegion<TSample> sourcePlane,
+                Av1PlaneRegion<TSample> reconstructionPlane,
+                Point blockOrigin,
+                Av1PartitionType partitionType,
+                bool smoothEdges,
+                bool enableEdgeFilter)
+            {
+                this.Prediction = workspace.Prediction;
+                this.Residual = workspace.Residual;
+                this.AboveStorage = workspace.GetReferenceSamples(2);
+                this.LeftStorage = workspace.GetReferenceSamples(3);
+                this.TransformCoefficients = blockWorkspace.TransformCoefficients;
+                this.TransformWorkspace = blockWorkspace.TransformWorkspace;
+                this.SourceSamples = sourcePlane.Samples;
+                this.ReconstructionSamples = reconstructionPlane.Samples;
+                this.FrameBlock = this.ReconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
+                this.PartitionType = partitionType;
+                this.SmoothEdges = smoothEdges;
+                this.EnableEdgeFilter = enableEdgeFilter;
+            }
+
+            /// <summary>
+            /// Gets the buffer that receives each tile prediction.
+            /// </summary>
+            public Span<TSample> Prediction { get; }
+
+            /// <summary>
+            /// Gets the buffer that receives each tile residual.
+            /// </summary>
+            public Span<short> Residual { get; }
+
+            /// <summary>
+            /// Gets the buffer for the corner sample and the top edge of a tile.
+            /// </summary>
+            public Span<TSample> AboveStorage { get; }
+
+            /// <summary>
+            /// Gets the buffer for the corner sample and the left edge of a tile.
+            /// </summary>
+            public Span<TSample> LeftStorage { get; }
+
+            /// <summary>
+            /// Gets the buffer for the Hadamard coefficients.
+            /// </summary>
+            public Span<int> TransformCoefficients { get; }
+
+            /// <summary>
+            /// Gets the intermediate buffer of the Hadamard transform.
+            /// </summary>
+            public Span<int> TransformWorkspace { get; }
+
+            /// <summary>
+            /// Gets all samples of the source luma plane.
+            /// </summary>
+            public ReadOnlySpan<TSample> SourceSamples { get; }
+
+            /// <summary>
+            /// Gets all samples of the reconstructed luma plane.
+            /// </summary>
+            public Span<TSample> ReconstructionSamples { get; }
+
+            /// <summary>
+            /// Gets the reconstructed luma plane from the block origin.
+            /// </summary>
+            public ReadOnlySpan<TSample> FrameBlock { get; }
+
+            /// <summary>
+            /// Gets the partition type of the block.
+            /// </summary>
+            public Av1PartitionType PartitionType { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether a neighbor of the block uses a smooth mode.
+            /// </summary>
+            public bool SmoothEdges { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether the sequence enables the intra edge filter.
+            /// </summary>
+            public bool EnableEdgeFilter { get; }
         }
 
         /// <summary>

@@ -176,6 +176,7 @@ internal sealed partial class HeifEncoderCore
                     image.Frames.RootFrame,
                     compressedPixels,
                     settings,
+                    false,
                     cancellationToken);
 
                 this.WriteAv1ImageItems(
@@ -1156,6 +1157,7 @@ internal sealed partial class HeifEncoderCore
             image.Frames.RootFrame,
             stream,
             settings,
+            true,
             cancellationToken);
 
         this.WriteAv1ImageItems(image, stream, settings, encoding, items, links);
@@ -1189,9 +1191,19 @@ internal sealed partial class HeifEncoderCore
             Math.Max(cellWidth, MinimumGridCellDimension),
             Math.Max(cellHeight, MinimumGridCellDimension));
 
+        // A single image writes no alpha grid when every alpha sample of every cell is opaque. Reference: the
+        // AVIF_ADD_IMAGE_FLAG_SINGLE test of avifEncoderAddImageInternal().
+        bool hasAlpha = settings.HasAlpha &&
+            !Av1FrameEncoder.IsGridAlphaOpaque(
+                this.configuration,
+                image.Frames.RootFrame,
+                new Size(cellWidth, cellHeight),
+                encodedCellSize,
+                settings.AlphaConfig);
+
         long cellCount = (long)columns * rows;
         long itemCount = 1 + cellCount;
-        if (settings.HasAlpha)
+        if (hasAlpha)
         {
             itemCount += 1 + cellCount;
         }
@@ -1281,7 +1293,7 @@ internal sealed partial class HeifEncoderCore
             }
         }
 
-        if (settings.HasAlpha)
+        if (hasAlpha)
         {
             descriptorOffset = stream.Length;
             descriptorLength = WriteGridDescriptor(stream, rows, columns, image.Size);
@@ -1429,12 +1441,23 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Encodes one frame as the color and optional alpha payloads used by a primary AV1 image item.
+    /// Encodes one frame as the color and optional alpha payloads used by a primary AV1 image item. A single image
+    /// writes no alpha payload when every converted alpha sample is opaque; the primary image of a sequence keeps its
+    /// alpha, because later samples can be transparent. Reference: the AVIF_ADD_IMAGE_FLAG_SINGLE test of
+    /// avifEncoderAddImageInternal().
     /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="frame">The frame to encode.</param>
+    /// <param name="stream">The shared destination for consecutive item payloads.</param>
+    /// <param name="settings">The resolved encoding settings.</param>
+    /// <param name="singleImage">Whether the frame is a single image rather than the primary image of a sequence.</param>
+    /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
+    /// <returns>The payload extents of the color and alpha.</returns>
     private Av1ImageItemEncoding CompressAv1ImageItem<TPixel>(
         ImageFrame<TPixel> frame,
         ChunkedMemoryStream stream,
         Av1EncodingSettings settings,
+        bool singleImage,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -1457,16 +1480,35 @@ internal sealed partial class HeifEncoderCore
         {
             cancellationToken.ThrowIfCancellationRequested();
             alphaOffset = stream.Length;
-            ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
-                this.configuration,
-                frame,
-                stream,
-                settings.AlphaConfig,
-                settings.AlphaQIndex,
-                settings.AlphaOptions);
+            ObuSequenceHeader alphaHeader;
+            bool alphaWritten = true;
+            if (singleImage)
+            {
+                alphaWritten = Av1FrameEncoder.TryEncodeSingleImageAlpha(
+                    this.configuration,
+                    frame,
+                    stream,
+                    settings.AlphaConfig,
+                    settings.AlphaQIndex,
+                    settings.AlphaOptions,
+                    out alphaHeader);
+            }
+            else
+            {
+                alphaHeader = Av1FrameEncoder.EncodeAlpha(
+                    this.configuration,
+                    frame,
+                    stream,
+                    settings.AlphaConfig,
+                    settings.AlphaQIndex,
+                    settings.AlphaOptions);
+            }
 
-            alphaLength = stream.Length - alphaOffset;
-            alphaConfiguration = new Av1CodecConfiguration(alphaHeader);
+            if (alphaWritten)
+            {
+                alphaLength = stream.Length - alphaOffset;
+                alphaConfiguration = new Av1CodecConfiguration(alphaHeader);
+            }
         }
 
         return new Av1ImageItemEncoding(

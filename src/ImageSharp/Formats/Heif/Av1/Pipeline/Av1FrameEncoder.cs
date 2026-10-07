@@ -88,10 +88,25 @@ internal static partial class Av1FrameEncoder
     /// </summary>
     private const int DefaultConstantQualityLevel = 10;
 
+    /// <summary>
+    /// Selects which source channels a still frame codes.
+    /// </summary>
     private enum FrameEncodingKind
     {
+        /// <summary>
+        /// The color channels.
+        /// </summary>
         StillColor,
-        StillAlpha
+
+        /// <summary>
+        /// The alpha channel, coded even when it is opaque.
+        /// </summary>
+        StillAlpha,
+
+        /// <summary>
+        /// The alpha channel of a single image, which is not coded when every sample is opaque.
+        /// </summary>
+        SingleImageAlpha
     }
 
     /// <summary>
@@ -396,6 +411,135 @@ internal static partial class Av1FrameEncoder
         Av1EncoderOptions options)
         => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, options, true);
 
+    /// <summary>
+    /// Encodes the alpha channel of a single image as a reduced-still-picture monochrome AV1 frame, unless every
+    /// converted alpha sample is opaque. Reference: the avifImageIsOpaque() test of avifEncoderAddImageInternal() with
+    /// AVIF_ADD_IMAGE_FLAG_SINGLE.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoding options used to select frame and block search policies.</param>
+    /// <param name="sequenceHeader">Receives the sequence header describing the encoded payload.</param>
+    /// <returns><see langword="false"/> when the alpha is opaque and nothing was written.</returns>
+    public static bool TryEncodeSingleImageAlpha<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options,
+        out ObuSequenceHeader sequenceHeader)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
+        return TryEncode(
+            configuration,
+            image,
+            sourceRectangle,
+            sourceRectangle.Size,
+            stream,
+            colorConfig,
+            qIndex,
+            options,
+            FrameEncodingKind.SingleImageAlpha,
+            out sequenceHeader);
+    }
+
+    /// <summary>
+    /// Returns whether every converted alpha sample of every grid cell of a single image is opaque. The cells are
+    /// converted one at a time into one reused buffer, and the test stops at the first cell with a transparent sample.
+    /// Reference: the cell loop over avifImageIsOpaque() in avifEncoderAddImageInternal() with AVIF_ADD_IMAGE_FLAG_SINGLE.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="cellSize">The size of each grid cell in the source image.</param>
+    /// <param name="encodedCellSize">The encoded cell dimensions, including any required edge padding.</param>
+    /// <param name="colorConfig">The resolved monochrome precision configuration of the alpha.</param>
+    /// <returns><see langword="true"/> when every alpha sample is opaque.</returns>
+    public static bool IsGridAlphaOpaque<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Size cellSize,
+        Size encodedCellSize,
+        ObuColorConfig colorConfig)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
+        if (colorConfig.BitDepth == Av1BitDepth.EightBit)
+        {
+            using Av1EncoderFrameBuffer<byte> buffer = new(
+                configuration,
+                encodedCellSize.Width,
+                encodedCellSize.Height,
+                ByteSampleBitDepth,
+                colorFormat,
+                chromaPositionX: CenteredChromaSamplePosition,
+                chromaPositionY: CenteredChromaSamplePosition,
+                lumaBorder: Av1EncoderFrame<byte>.LumaBorder);
+
+            for (int y = 0; y < image.Height; y += cellSize.Height)
+            {
+                for (int x = 0; x < image.Width; x += cellSize.Width)
+                {
+                    Rectangle cell = new(x, y, Math.Min(cellSize.Width, image.Width - x), Math.Min(cellSize.Height, image.Height - y));
+                    PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, cell, buffer.Frame, colorConfig, true);
+                    if (!IsOpaque(buffer.Frame, cell.Size, byte.MaxValue))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        int bitDepth = colorConfig.BitDepth.GetBitCount();
+        ushort opaqueValue = (ushort)((1 << bitDepth) - 1);
+        using Av1EncoderFrameBuffer<ushort> highBitDepthBuffer = new(
+            configuration,
+            encodedCellSize.Width,
+            encodedCellSize.Height,
+            bitDepth,
+            colorFormat,
+            chromaPositionX: CenteredChromaSamplePosition,
+            chromaPositionY: CenteredChromaSamplePosition,
+            lumaBorder: Av1EncoderFrame<ushort>.LumaBorder);
+
+        for (int y = 0; y < image.Height; y += cellSize.Height)
+        {
+            for (int x = 0; x < image.Width; x += cellSize.Width)
+            {
+                Rectangle cell = new(x, y, Math.Min(cellSize.Width, image.Width - x), Math.Min(cellSize.Height, image.Height - y));
+                PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, cell, highBitDepthBuffer.Frame, colorConfig, true);
+                if (!IsOpaque(highBitDepthBuffer.Frame, cell.Size, opaqueValue))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Encodes one reduced-still-picture AV1 frame of the color or the alpha of a source region.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
+    /// <param name="frameSize">The encoded frame dimensions.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved color and precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoding options used to select frame and block search policies.</param>
+    /// <param name="encodingKind">Whether the frame codes color or alpha.</param>
+    /// <returns>The sequence header describing the encoded payload.</returns>
     private static ObuSequenceHeader Encode<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
@@ -408,11 +552,54 @@ internal static partial class Av1FrameEncoder
         FrameEncodingKind encodingKind)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        _ = TryEncode(
+            configuration,
+            image,
+            sourceRectangle,
+            frameSize,
+            stream,
+            colorConfig,
+            qIndex,
+            options,
+            encodingKind,
+            out ObuSequenceHeader sequenceHeader);
+
+        return sequenceHeader;
+    }
+
+    /// <summary>
+    /// Encodes one reduced-still-picture AV1 frame of the color or the alpha of a source region, or writes nothing
+    /// for the opaque alpha of a single image.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
+    /// <param name="frameSize">The encoded frame dimensions.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved color and precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="options">The encoding options used to select frame and block search policies.</param>
+    /// <param name="encodingKind">Whether the frame codes color, alpha, or the alpha of a single image.</param>
+    /// <param name="sequenceHeader">Receives the sequence header describing the encoded payload.</param>
+    /// <returns><see langword="false"/> when the alpha of a single image is opaque and nothing was written.</returns>
+    private static bool TryEncode<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Rectangle sourceRectangle,
+        Size frameSize,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        Av1EncoderOptions options,
+        FrameEncodingKind encodingKind,
+        out ObuSequenceHeader sequenceHeader)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         int width = frameSize.Width;
         int height = frameSize.Height;
-        bool encodeAlpha = encodingKind == FrameEncodingKind.StillAlpha;
         Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
-        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+        sequenceHeader = CreateSequenceHeader(
             width,
             height,
             colorConfig,
@@ -426,9 +613,8 @@ internal static partial class Av1FrameEncoder
             ObuFrameType.KeyFrame);
 
         int tileBufferLength = GetTileBufferLength(width, height, colorConfig);
-        if (colorConfig.BitDepth == Av1BitDepth.EightBit)
-        {
-            EncodeByte(
+        return colorConfig.BitDepth == Av1BitDepth.EightBit
+            ? EncodeByte(
                 configuration,
                 image,
                 sourceRectangle,
@@ -439,11 +625,8 @@ internal static partial class Av1FrameEncoder
                 colorFormat,
                 tileBufferLength,
                 options,
-                encodeAlpha);
-        }
-        else
-        {
-            EncodeHighBitDepth(
+                encodingKind)
+            : EncodeHighBitDepth(
                 configuration,
                 image,
                 sourceRectangle,
@@ -454,10 +637,7 @@ internal static partial class Av1FrameEncoder
                 colorFormat,
                 tileBufferLength,
                 options,
-                encodeAlpha);
-        }
-
-        return sequenceHeader;
+                encodingKind);
     }
 
     private static SequenceEncoder CreateSequenceEncoder(
@@ -873,7 +1053,23 @@ internal static partial class Av1FrameEncoder
         PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, sourceRectangle, source, colorConfig, false);
     }
 
-    private static void EncodeByte<TPixel>(
+    /// <summary>
+    /// Encodes one eight-bit still frame, or writes nothing for the opaque alpha of a single image.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
+    /// <param name="frameSize">The encoded frame dimensions.</param>
+    /// <param name="stream">The destination receiving the AV1 payload.</param>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="frameHeader">The frame header.</param>
+    /// <param name="colorFormat">The coded color format.</param>
+    /// <param name="tileBufferLength">The length of the tile symbol buffer.</param>
+    /// <param name="options">The encoding options.</param>
+    /// <param name="encodingKind">Whether the frame codes color, alpha, or the alpha of a single image.</param>
+    /// <returns><see langword="false"/> when the alpha of a single image is opaque and nothing was written.</returns>
+    private static bool EncodeByte<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
@@ -884,7 +1080,7 @@ internal static partial class Av1FrameEncoder
         Av1ColorFormat colorFormat,
         int tileBufferLength,
         Av1EncoderOptions options,
-        bool encodeAlpha)
+        FrameEncodingKind encodingKind)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Av1EncoderFrameBuffer<byte> source = new(
@@ -896,6 +1092,16 @@ internal static partial class Av1FrameEncoder
             chromaPositionX: CenteredChromaSamplePosition,
             chromaPositionY: CenteredChromaSamplePosition,
             lumaBorder: Av1EncoderFrame<byte>.LumaBorder);
+
+        PrepareSource<TPixel, byte, HeifByteSampleConverter>(
+            configuration, image, sourceRectangle, source.Frame, sequenceHeader.ColorConfig, encodingKind != FrameEncodingKind.StillColor);
+
+        // libavif writes no alpha item for a single image whose converted alpha samples are all opaque.
+        // Reference: avifImageIsOpaque() in avifEncoderAddImageInternal().
+        if (encodingKind == FrameEncodingKind.SingleImageAlpha && IsOpaque(source.Frame, sourceRectangle.Size, byte.MaxValue))
+        {
+            return false;
+        }
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             configuration,
@@ -921,16 +1127,13 @@ internal static partial class Av1FrameEncoder
         // The frame starts at the requested quantizer, which a bit budget replaces after the screen content decision.
         int requestedQIndex = frameHeader.QuantizationParameters.BaseQIndex;
         ScreenContentDecision decision = default;
-        bool isScreenContent = PrepareFrame(
+        bool isScreenContent = ConfigureFrameTools(
             configuration,
-            image,
-            sourceRectangle,
             source.Frame,
             reconstruction.Frame,
             sequenceHeader,
             frameHeader,
             options,
-            encodeAlpha,
             ref decision);
 
         // The coefficient contexts start from the final quantizer.
@@ -997,9 +1200,27 @@ internal static partial class Av1FrameEncoder
             blockWorkspace,
             symbolEncoder,
             true);
+
+        return true;
     }
 
-    private static void EncodeHighBitDepth<TPixel>(
+    /// <summary>
+    /// Encodes one high-bit-depth still frame, or writes nothing for the opaque alpha of a single image.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
+    /// <param name="frameSize">The encoded frame dimensions.</param>
+    /// <param name="stream">The destination receiving the AV1 payload.</param>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="frameHeader">The frame header.</param>
+    /// <param name="colorFormat">The coded color format.</param>
+    /// <param name="tileBufferLength">The length of the tile symbol buffer.</param>
+    /// <param name="options">The encoding options.</param>
+    /// <param name="encodingKind">Whether the frame codes color, alpha, or the alpha of a single image.</param>
+    /// <returns><see langword="false"/> when the alpha of a single image is opaque and nothing was written.</returns>
+    private static bool EncodeHighBitDepth<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
@@ -1010,7 +1231,7 @@ internal static partial class Av1FrameEncoder
         Av1ColorFormat colorFormat,
         int tileBufferLength,
         Av1EncoderOptions options,
-        bool encodeAlpha)
+        FrameEncodingKind encodingKind)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bitDepth = sequenceHeader.ColorConfig.BitDepth.GetBitCount();
@@ -1023,6 +1244,16 @@ internal static partial class Av1FrameEncoder
             chromaPositionX: CenteredChromaSamplePosition,
             chromaPositionY: CenteredChromaSamplePosition,
             lumaBorder: Av1EncoderFrame<ushort>.LumaBorder);
+
+        PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
+            configuration, image, sourceRectangle, source.Frame, sequenceHeader.ColorConfig, encodingKind != FrameEncodingKind.StillColor);
+
+        // libavif writes no alpha item for a single image whose converted alpha samples are all opaque.
+        // Reference: avifImageIsOpaque() in avifEncoderAddImageInternal().
+        if (encodingKind == FrameEncodingKind.SingleImageAlpha && IsOpaque(source.Frame, sourceRectangle.Size, (ushort)((1 << bitDepth) - 1)))
+        {
+            return false;
+        }
 
         using Av1EncoderFrameBuffer<ushort> reconstruction = new(
             configuration,
@@ -1048,16 +1279,13 @@ internal static partial class Av1FrameEncoder
         // The frame starts at the requested quantizer, which a bit budget replaces after the screen content decision.
         int requestedQIndex = frameHeader.QuantizationParameters.BaseQIndex;
         ScreenContentDecision decision = default;
-        bool isScreenContent = PrepareFrame(
+        bool isScreenContent = ConfigureFrameTools(
             configuration,
-            image,
-            sourceRectangle,
             source.Frame,
             reconstruction.Frame,
             sequenceHeader,
             frameHeader,
             options,
-            encodeAlpha,
             ref decision);
 
         // The coefficient contexts start from the final quantizer.
@@ -1124,40 +1352,32 @@ internal static partial class Av1FrameEncoder
             blockWorkspace,
             symbolEncoder,
             true);
+
+        return true;
     }
 
     /// <summary>
-    /// Converts one source frame and resolves every content-dependent coding tool before picture-state allocation.
+    /// Returns whether every sample of the visible luma plane equals the opaque value, as avifImageIsOpaque() tests the
+    /// converted alpha plane.
     /// </summary>
-    private static bool PrepareFrame<TPixel>(
-        Configuration configuration,
-        ImageFrame<TPixel> image,
-        Rectangle sourceRectangle,
-        Av1EncoderFrame<byte> source,
-        Av1EncoderFrame<byte> reference,
-        ObuSequenceHeader sequenceHeader,
-        ObuFrameHeader frameHeader,
-        Av1EncoderOptions options,
-        bool encodeAlpha,
-        ref ScreenContentDecision decision)
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <typeparam name="TSample">The sample type.</typeparam>
+    /// <param name="frame">The converted frame, whose luma plane holds the alpha samples.</param>
+    /// <param name="size">The visible size of the plane.</param>
+    /// <param name="opaqueValue">The opaque value of the coded depth.</param>
+    /// <returns><see langword="true"/> when every visible sample is opaque.</returns>
+    private static bool IsOpaque<TSample>(Av1EncoderFrame<TSample> frame, Size size, TSample opaqueValue)
+        where TSample : unmanaged, IEquatable<TSample>
     {
-        PrepareSource<TPixel, byte, HeifByteSampleConverter>(
-            configuration,
-            image,
-            sourceRectangle,
-            source,
-            sequenceHeader.ColorConfig,
-            encodeAlpha);
+        Av1EncoderFrame<TSample>.PlanarView view = frame.CodedView.GetSubView(size.Width, size.Height);
+        for (int y = 0; y < size.Height; y++)
+        {
+            if (view.GetLumaRowSpan(y)[..size.Width].ContainsAnyExcept(opaqueValue))
+            {
+                return false;
+            }
+        }
 
-        return ConfigureFrameTools(
-            configuration,
-            source,
-            reference,
-            sequenceHeader,
-            frameHeader,
-            options,
-            ref decision);
+        return true;
     }
 
     /// <summary>
@@ -1324,40 +1544,6 @@ internal static partial class Av1FrameEncoder
             motionSettings.AllowIntraBlockCopy &&
             frameHeader.AllowScreenContentTools &&
             decision.AllowIntraBlockCopy;
-    }
-
-    /// <summary>
-    /// Converts one high-bit-depth source frame and resolves every content-dependent coding tool before picture-state allocation.
-    /// </summary>
-    private static bool PrepareFrame<TPixel>(
-        Configuration configuration,
-        ImageFrame<TPixel> image,
-        Rectangle sourceRectangle,
-        Av1EncoderFrame<ushort> source,
-        Av1EncoderFrame<ushort> reference,
-        ObuSequenceHeader sequenceHeader,
-        ObuFrameHeader frameHeader,
-        Av1EncoderOptions options,
-        bool encodeAlpha,
-        ref ScreenContentDecision decision)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
-            configuration,
-            image,
-            sourceRectangle,
-            source,
-            sequenceHeader.ColorConfig,
-            encodeAlpha);
-
-        return ConfigureFrameTools(
-            configuration,
-            source,
-            reference,
-            sequenceHeader,
-            frameHeader,
-            options,
-            ref decision);
     }
 
     /// <summary>

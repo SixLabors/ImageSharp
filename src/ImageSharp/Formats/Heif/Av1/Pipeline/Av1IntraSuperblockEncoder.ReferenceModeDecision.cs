@@ -4392,6 +4392,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     error = (error + (1L << (shift - 1))) >> shift;
                 }
 
+                // The model stores its luma error as the reference's prediction error, except when the cached mode
+                // is reused without a model. Reference: model_rd_for_sb_with_curvfit() in
+                // compute_best_interintra_mode(), which handle_smooth_inter_intra_mode() skips for a cached mode.
+                if (!settings.ReuseInterIntraMode || cachedMode < 0)
+                {
+                    this.SetPredictionSse(referenceFrame, error);
+                }
+
                 Av1RateDistortion.ModelPredictionError(
                     blockSize,
                     error,
@@ -4634,6 +4642,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         error = (error + (1L << (shift - 1))) >> shift;
                     }
 
+                    // Reference: the model_rd_for_sb_with_curvfit() store to pred_sse after the refined vector of
+                    // handle_wedge_inter_intra_mode().
+                    this.SetPredictionSse(referenceFrame, error);
                     Av1RateDistortion.ModelPredictionError(
                         blockSize,
                         error,

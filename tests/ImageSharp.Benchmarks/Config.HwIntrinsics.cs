@@ -57,7 +57,7 @@ public partial class Config
     {
         public HwIntrinsics_SSE_AVX()
         {
-            this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+            this.AddJob(Job.Default
                 .WithEnvironmentVariables(
                     new EnvironmentVariable(EnableHWIntrinsic, Off),
                     new EnvironmentVariable(FeatureSIMD, Off))
@@ -65,14 +65,14 @@ public partial class Config
 
             if (Sse.IsSupported)
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                this.AddJob(Job.Default
                     .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX, Off))
                     .WithId("2. SSE"));
             }
 
             if (Avx.IsSupported)
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                this.AddJob(Job.Default
                     .WithId("3. AVX"));
             }
         }
@@ -82,7 +82,7 @@ public partial class Config
     {
         public HwIntrinsics_SSE_AVX_AVX512F()
         {
-            this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+            this.AddJob(Job.Default
                 .WithEnvironmentVariables(
                     new EnvironmentVariable(EnableHWIntrinsic, Off),
                     new EnvironmentVariable(FeatureSIMD, Off))
@@ -90,21 +90,21 @@ public partial class Config
 
             if (Sse.IsSupported)
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                this.AddJob(Job.Default
                     .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX, Off))
                     .WithId("2. SSE"));
             }
 
             if (Avx.IsSupported)
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                this.AddJob(Job.Default
                     .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX512F, Off))
                     .WithId("3. AVX"));
             }
 
             if (Avx512F.IsSupported)
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                this.AddJob(Job.Default
                     .WithId("3. AVX512F"));
             }
         }

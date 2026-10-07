@@ -59,17 +59,18 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.BlackIsZero:
             case TiffPhotometricInterpretation.WhiteIsZero:
             {
-                using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(configuration);
+                using SpectralConverter<Rgb24> spectralConverterGray = new GrayJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
 
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
+
+                // The nested APP2 profile remains the TIFF frame's source profile when the IFD has none.
+                this.metadata.IccProfile ??= jpegDecoder.Metadata?.IccProfile;
 
                 _ = IccProfile.TryGetIccProfileForColorConversion(
                     jpegDecoder.Metadata?.IccProfile,
                     out IccProfile? profile);
 
-                using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(
-                    profile,
-                    cancellationToken);
+                using Buffer2D<Rgb24> decompressedBuffer = spectralConverterGray.GetPixelBuffer(profile, cancellationToken);
                 JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverterGray.Configuration, buffer, decompressedBuffer);
                 break;
             }
@@ -81,6 +82,8 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
                 using SpectralConverter<Rgb24> spectralConverter = new TiffOldJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
 
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
+
+                this.metadata.IccProfile ??= jpegDecoder.Metadata?.IccProfile;
 
                 _ = IccProfile.TryGetIccProfileForColorConversion(
                     jpegDecoder.Metadata?.IccProfile,

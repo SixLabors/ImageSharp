@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,6 +33,8 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         int offset = 0;
+        InlineArray16<Rgb48> sourceBuffer = default;
+        Span<Rgb48> sourceBlock = sourceBuffer;
 
         for (int y = top; y < top + height; y++)
         {
@@ -39,17 +42,17 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
             if (this.isBigEndian)
             {
-                for (int x = 0; x < pixelRow.Length; x++)
+                for (int x = 0; x < width; x += sourceBlock.Length)
                 {
-                    ushort r = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
-                    ushort g = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
-                    ushort b = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
+                    int count = Math.Min(width - x, sourceBlock.Length);
+                    Span<Rgb48> samples = sourceBlock[..count];
 
-                    pixelRow[x] = TPixel.FromRgb48(new Rgb48(r, g, b));
+                    // Six stored bytes per pixel become three native-endian ushort lanes for bulk packing.
+                    TiffUtilities.CopyUShorts(data.Slice(offset + (x * 6), count * 6), MemoryMarshal.Cast<Rgb48, ushort>(samples), bigEndian: true, invert: false);
+                    PixelOperations<TPixel>.Instance.FromRgb48(this.configuration, samples, pixelRow.Slice(x, count));
                 }
+
+                offset += width * 6;
             }
             else
             {

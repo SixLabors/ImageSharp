@@ -21,8 +21,10 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="configuration">The configuration instance to use for the conversion.</param>
     /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct.</param>
     /// <param name="profile">The ICC profile to use for the conversion.</param>
-    public void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+    /// <param name="grayscaleRgbBytes">Optional interleaved RGB byte output for grayscale ICC; when empty, grayscale output uses the component planes.</param>
+    public void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile, Span<byte> grayscaleRgbBytes = default)
     {
+        JpegColorSpace componentColorSpace = this.ColorSpace;
         Span<float> c0 = values.Component0;
         Span<float> c1 = values.Component1;
         Span<float> c2 = values.Component2;
@@ -30,7 +32,7 @@ internal abstract partial class JpegColorConverterBase
 
         // Four-component JPEG models need room for an interleaved CMYK or YccK source. Every conversion
         // finishes with three packed RGB floats, which safely occupy the start of the same temporary buffer.
-        bool hasFourthComponent = this.ColorSpace is JpegColorSpace.Ycck
+        bool hasFourthComponent = componentColorSpace is JpegColorSpace.Ycck
             or JpegColorSpace.Cmyk
             or JpegColorSpace.TiffYccK
             or JpegColorSpace.TiffCmyk;
@@ -39,7 +41,7 @@ internal abstract partial class JpegColorConverterBase
         using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(length * packedComponentCount);
         Span<float> packed = memoryOwner.Memory.Span;
 
-        if (this.ColorSpace == JpegColorSpace.Grayscale)
+        if (componentColorSpace == JpegColorSpace.Grayscale)
         {
             // The single luminance plane is the ICC source, so it is normalized in place. The temporary
             // buffer is still RGB-sized because the profile conversion expands each Y sample to three lanes.
@@ -55,47 +57,62 @@ internal abstract partial class JpegColorConverterBase
 
             ColorProfileConverter converter = new(options);
             converter.Convert<Y, Rgb>(source, destination);
-            UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..length], c0, c1, c2);
+
+            if (!grayscaleRgbBytes.IsEmpty)
+            {
+                // The packed ICC result can fill the existing RGB byte row directly; scattering into aliased grayscale planes would overwrite channels.
+                SimdUtils.NormalizedFloatToByteSaturate(packed[..grayscaleRgbBytes.Length], grayscaleRgbBytes);
+                return;
+            }
+
+            SimdUtils.UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..length], c0, c1, c2);
             return;
         }
 
-        // RGB and YCbCr become packed RGB before the profile transform. CMYK models remain packed CMYK,
-        // because their source profile describes that four-component space rather than an intermediate RGB space.
+        // RGB planes and YCbCr with an RGB profile become packed RGB before ICC. A YCbCr source profile
+        // consumes packed YCbCr directly; CMYK models retain their four-component source space.
         bool profileSourceIsCmyk = false;
+        bool profileSourceIsYCbCr = componentColorSpace == JpegColorSpace.YCbCr && profile.Header.DataColorSpace == IccColorSpaceType.YCbCr;
 
-        switch (this.ColorSpace)
+        switch (componentColorSpace)
         {
             case JpegColorSpace.RGB:
                 // JPEG RGB planes use the integer sample domain; ICC RGB values use normalized interleaved lanes.
-                PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / this.MaximumValue);
+                SimdUtils.PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / this.MaximumValue);
                 break;
 
             case JpegColorSpace.YCbCr:
-                // ICC profiles rarely expose YCbCr transforms. BT.601 therefore produces RGB in the profile's
-                // source space first, and that packed RGB becomes the input to the profile transform below.
-                PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / this.MaximumValue);
+                // A YCbCr ICC profile consumes normalized components directly; an RGB ICC profile consumes
+                // RGB converted from the stored YCbCr components before the profile transform.
+                SimdUtils.PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / this.MaximumValue);
 
-                ColorProfileConverter yCbCrConverter = new();
-                Span<YCbCr> yCbCr = MemoryMarshal.Cast<float, YCbCr>(packed);
-                Span<Rgb> yCbCrDestination = MemoryMarshal.Cast<float, Rgb>(packed);
-                yCbCrConverter.Convert<YCbCr, Rgb>(yCbCr, yCbCrDestination);
+                if (!profileSourceIsYCbCr)
+                {
+                    // ICC profiles rarely expose YCbCr transforms. BT.601 therefore produces RGB in the profile's
+                    // source space first, and that packed RGB becomes the input to the profile transform below.
+                    ColorProfileConverter yCbCrConverter = new();
+                    Span<YCbCr> yCbCr = MemoryMarshal.Cast<float, YCbCr>(packed);
+                    Span<Rgb> yCbCrDestination = MemoryMarshal.Cast<float, Rgb>(packed);
+                    yCbCrConverter.Convert<YCbCr, Rgb>(yCbCr, yCbCrDestination);
+                }
+
                 break;
 
             case JpegColorSpace.Cmyk:
                 // Adobe-style JPEG CMYK stores inverted samples, while ICC consumes conventional normalized CMYK.
-                PackedInvertNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
+                SimdUtils.PackedInvertNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
                 profileSourceIsCmyk = true;
                 break;
 
             case JpegColorSpace.TiffCmyk:
                 // TIFF JPEG CMYK is already non-inverted, so only normalization and interleaving are required.
-                PackedNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
+                SimdUtils.PackedNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
                 profileSourceIsCmyk = true;
                 break;
 
             case JpegColorSpace.Ycck:
                 // Adobe-style JPEG YccK is inverted before its format-defined YccK-to-CMYK transform.
-                PackedInvertNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
+                SimdUtils.PackedInvertNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
 
                 ColorProfileConverter yccKConverter = new();
                 Span<Cmyk> yccKCmyk = MemoryMarshal.Cast<float, Cmyk>(packed);
@@ -105,7 +122,7 @@ internal abstract partial class JpegColorConverterBase
 
             case JpegColorSpace.TiffYccK:
                 // TIFF JPEG YccK is non-inverted, but otherwise uses the same YccK-to-CMYK transform.
-                PackedNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
+                SimdUtils.PackedNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
 
                 ColorProfileConverter tiffYccKConverter = new();
                 Span<Cmyk> tiffYccKCmyk = MemoryMarshal.Cast<float, Cmyk>(packed);
@@ -129,6 +146,11 @@ internal abstract partial class JpegColorConverterBase
             // supports this established in-place contraction, and the source span retains its original length.
             profileConverter.Convert<Cmyk, Rgb>(MemoryMarshal.Cast<float, Cmyk>(packed), rgb);
         }
+        else if (profileSourceIsYCbCr)
+        {
+            // A YCbCr source profile consumes normalized component values directly, before any RGB matrix.
+            profileConverter.Convert<YCbCr, Rgb>(MemoryMarshal.Cast<float, YCbCr>(packed)[..length], rgb);
+        }
         else
         {
             profileConverter.Convert<Rgb, Rgb>(rgb, rgb);
@@ -136,6 +158,6 @@ internal abstract partial class JpegColorConverterBase
 
         // Only the packed RGB prefix is meaningful after four-component conversion; scatter it back to the
         // decoder's three planar output buffers while leaving the fourth source component untouched.
-        UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..length], c0, c1, c2);
+        SimdUtils.UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..length], c0, c1, c2);
     }
 }

@@ -1171,6 +1171,39 @@ public static class TestImages
         public const string CieLabPlanar = "Tiff/CieLabPlanar.tiff";
         public const string CieLabLzwPredictor = "Tiff/CieLab_lzwcompressed_predictor.tiff";
 
+        // Libtiff-generated color conversion fixtures: 17 pixels cross a SIMD group and leave a tail.
+        public const string Lab8Contiguous65X3 = "Tiff/ColorConversion/lab8-contig-65x3.tiff";
+        public const string Lab8Planar65X3 = "Tiff/ColorConversion/lab8-planar-65x3.tiff";
+        public const string Lab16LittleEndianContiguous65X3 = "Tiff/ColorConversion/lab16-le-contig-65x3.tiff";
+        public const string Lab16LittleEndianPlanar65X3 = "Tiff/ColorConversion/lab16-le-planar-65x3.tiff";
+        public const string Lab16BigEndianContiguous65X3 = "Tiff/ColorConversion/lab16-be-contig-65x3.tiff";
+        public const string Lab16BigEndianPlanar65X3 = "Tiff/ColorConversion/lab16-be-planar-65x3.tiff";
+        public const string Lab8Contiguous65X3LcmsRgb = "Tiff/ColorConversion/lab8-contig-65x3-lcms-rgb.tiff";
+        public const string Lab8Planar65X3LcmsRgb = "Tiff/ColorConversion/lab8-planar-65x3-lcms-rgb.tiff";
+        public const string Lab16LittleEndianContiguous65X3LcmsRgb = "Tiff/ColorConversion/lab16-le-contig-65x3-lcms-rgb.tiff";
+        public const string Lab16LittleEndianPlanar65X3LcmsRgb = "Tiff/ColorConversion/lab16-le-planar-65x3-lcms-rgb.tiff";
+        public const string Lab16BigEndianContiguous65X3LcmsRgb = "Tiff/ColorConversion/lab16-be-contig-65x3-lcms-rgb.tiff";
+        public const string Lab16BigEndianPlanar65X3LcmsRgb = "Tiff/ColorConversion/lab16-be-planar-65x3-lcms-rgb.tiff";
+        public const string Rgb44465X3 = "Tiff/ColorConversion/rgb444-65x3.tiff";
+        public const string Rgba4444Straight65X3 = "Tiff/ColorConversion/rgba4444-straight-65x3.tiff";
+        public const string Rgba4444Associated65X3 = "Tiff/ColorConversion/rgba4444-associated-65x3.tiff";
+        public const string FlowerRgb24ContiguousReference = "Tiff/ColorConversion/flower-rgb-contig-24-ref8.tiff";
+        public const string FlowerRgb24ContiguousLittleEndianReference = "Tiff/ColorConversion/flower-rgb-contig-24-lsb-ref8.tiff";
+        public const string FlowerRgb24PlanarReference = "Tiff/ColorConversion/flower-rgb-planar-24-ref8.tiff";
+        public const string FlowerRgb24PlanarLittleEndianReference = "Tiff/ColorConversion/flower-rgb-planar-24-lsb-ref8.tiff";
+        public const string FlowerRgb32ContiguousReference = "Tiff/ColorConversion/flower-rgb-contig-32-ref8.tiff";
+        public const string FlowerRgb32ContiguousLittleEndianReference = "Tiff/ColorConversion/flower-rgb-contig-32-lsb-ref8.tiff";
+        public const string FlowerRgb32PlanarReference = "Tiff/ColorConversion/flower-rgb-planar-32-ref8.tiff";
+        public const string FlowerRgb32PlanarLittleEndianReference = "Tiff/ColorConversion/flower-rgb-planar-32-lsb-ref8.tiff";
+        public const string Rgba24BigEndianReference = "Tiff/ColorConversion/rgba24-msb-ref8.tiff";
+        public const string Rgba24LittleEndianReference = "Tiff/ColorConversion/rgba24-lsb-ref8.tiff";
+        public const string Rgba24PlanarBigEndianReference = "Tiff/ColorConversion/rgba24-planar-msb-ref8.tiff";
+        public const string Rgba24PlanarLittleEndianReference = "Tiff/ColorConversion/rgba24-planar-lsb-ref8.tiff";
+        public const string Rgba32BigEndianReference = "Tiff/ColorConversion/rgba32-msb-ref8.tiff";
+        public const string Rgba32LittleEndianReference = "Tiff/ColorConversion/rgba32-lsb-ref8.tiff";
+        public const string Rgba32PlanarBigEndianReference = "Tiff/ColorConversion/rgba32-planar-msb-ref8.tiff";
+        public const string Rgba32PlanarLittleEndianReference = "Tiff/ColorConversion/rgba32-planar-lsb-ref8.tiff";
+
         public const string Cmyk = "Tiff/Cmyk.tiff";
         public const string Cmyk64BitDeflate = "Tiff/cmyk_deflate_64bit.tiff";
         public const string CmykLzwPredictor = "Tiff/Cmyk-lzw-predictor.tiff";

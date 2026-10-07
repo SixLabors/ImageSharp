@@ -85,11 +85,12 @@ public class CieLabAndRgbConversionTests
         Rgb[] destination = new Rgb[source.Length];
         ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb };
         ColorProfileConverter converter = new(options);
+        ReadOnlySpan<CieLab> samples = [new(0F, 0F, 0F), new(1F, 1F, -1F), new(7.9F, -40F, 35F), new(8.1F, 40F, -35F), new(25F, -128F, 127F), new(50F, 64F, -64F), new(75F, -32F, 96F), new(100F, 0F, 0F), new(12.5F, 12F, 24F), new(87.5F, -73F, -19F), new(33F, 83F, -45F)];
 
         for (int i = 0; i < source.Length; i++)
         {
-            // The range crosses Lab's linear/cubic threshold and both signed chroma axes.
-            source[i] = new CieLab(i * 6.25F, (i * 17F) - 136F, 128F - (i * 13F));
+            // The eleven-sample period shifts across 16-lane groups; values straddle L*=8 and signed chroma axes.
+            source[i] = samples[i % samples.Length];
         }
 
         converter.Convert<CieLab, Rgb>(source, destination);

@@ -281,9 +281,13 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.DecodeImageWithStrips(tags, frame, width, height, cancellationToken);
         }
 
-        // Palette entries were already converted before index expansion. Other RGB-compatible samples
-        // still need their frame-level transform after decoding.
-        if (this.ColorType is > TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar)
+        // Nested JPEG decoders own their source ICC transforms. Direct grayscale must instead be
+        // transformed after TIFF has applied BlackIsZero or WhiteIsZero sample interpretation.
+        bool directSamples = this.CompressionType is not (TiffDecoderCompressionType.Jpeg or TiffDecoderCompressionType.OldJpeg);
+        bool grayscaleOrRgb = this.PhotometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero
+            || this.ColorType is > TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar;
+
+        if (directSamples && grayscaleOrRgb)
         {
             _ = TryConvertIccProfile(frame);
         }
@@ -861,7 +865,6 @@ internal class TiffDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel> =>
         TiffColorDecoderFactory<TPixel>.Create(
             metadata,
-            this.Options,
             this.configuration,
             this.memoryAllocator,
             this.ColorType,
@@ -878,7 +881,6 @@ internal class TiffDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel> =>
         TiffColorDecoderFactory<TPixel>.CreatePlanar(
             metadata,
-            this.Options,
             this.configuration,
             this.memoryAllocator,
             this.ColorType,

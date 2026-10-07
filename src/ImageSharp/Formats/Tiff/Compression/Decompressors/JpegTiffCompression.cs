@@ -53,17 +53,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 
     /// <inheritdoc/>
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
-    {
-        if (this.jpegTables != null)
-        {
-            this.DecodeJpegData(stream, buffer, cancellationToken);
-        }
-        else
-        {
-            using Image<Rgb24> image = Image.Load<Rgb24>(this.options.GeneralOptions, stream);
-            JpegCompressionUtils.CopyImageBytesToBuffer(this.options.GeneralOptions.Configuration, buffer, image.Frames.RootFrame.PixelBuffer);
-        }
-    }
+        => this.DecodeJpegData(stream, buffer, cancellationToken);
 
     private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)
     {
@@ -74,17 +64,22 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.BlackIsZero:
             case TiffPhotometricInterpretation.WhiteIsZero:
             {
-                using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(configuration);
-                HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, cancellationToken);
+                using SpectralConverter<Rgb24> spectralConverterGray = new GrayJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
 
-                jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
+                if (this.jpegTables is not null)
+                {
+                    HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, cancellationToken);
+                    jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
+                }
+
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
-                _ = IccProfile.TryGetIccProfileForColorConversion(
-                    jpegDecoder.Metadata?.IccProfile,
-                    out IccProfile? profile);
+                // The IFD profile takes precedence; otherwise retain the nested APP2 source profile.
+                this.metadata.IccProfile ??= jpegDecoder.Metadata?.IccProfile;
 
-                using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(profile, cancellationToken);
+                _ = IccProfile.TryGetIccProfileForColorConversion(this.metadata.IccProfile, out IccProfile? profile);
+
+                using Buffer2D<Rgb24> decompressedBuffer = spectralConverterGray.GetPixelBuffer(profile, cancellationToken);
                 JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverterGray.Configuration, buffer, decompressedBuffer);
                 break;
             }
@@ -93,15 +88,22 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.Rgb:
             case TiffPhotometricInterpretation.Separated:
             {
-                using SpectralConverter<Rgb24> spectralConverter = new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
-                HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);
+                // Complete JPEG streams retain normal JPEG color deduction; table-based strips use TIFF's photometric interpretation.
+                using SpectralConverter<Rgb24> spectralConverter = this.jpegTables is null
+                    ? new SpectralConverter<Rgb24>(configuration)
+                    : new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
 
-                jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
+                if (this.jpegTables is not null)
+                {
+                    HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);
+                    jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
+                }
+
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
-                _ = IccProfile.TryGetIccProfileForColorConversion(
-                    jpegDecoder.Metadata?.IccProfile,
-                    out IccProfile? profile);
+                this.metadata.IccProfile ??= jpegDecoder.Metadata?.IccProfile;
+
+                _ = IccProfile.TryGetIccProfileForColorConversion(this.metadata.IccProfile, out IccProfile? profile);
 
                 using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(profile, cancellationToken);
                 JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverter.Configuration, buffer, decompressedBuffer);

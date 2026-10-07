@@ -170,7 +170,7 @@ public class RgbTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new RgbTiffColor<Rgba32>(bitsPerSample).Decode(inputData, pixels, left, top, width, height);
+                new RgbTiffColor<Rgba32>(Configuration.Default, bitsPerSample).Decode(inputData, pixels, left, top, width, height);
             });
     }
 

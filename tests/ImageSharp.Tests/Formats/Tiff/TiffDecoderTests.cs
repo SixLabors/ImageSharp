@@ -241,6 +241,51 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_2Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    /// <summary>
+    /// Compares existing grayscale fixtures with Magick across SIMD and scalar feature modes.
+    /// </summary>
+    /// <typeparam name="TPixel">The decoded pixel type.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(Flower2BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower6BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower8BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower10BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower12BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower16BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower16BitGrayLittleEndian, PixelTypes.Rgba32)]
+    [WithFile(Flower16BitGrayMinIsWhiteBigEndian, PixelTypes.Rgba32)]
+    [WithFile(Flower16BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
+    public void TiffDecoder_GrayscaleReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertExistingReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+
+    /// <summary>
+    /// Compares existing RGB and RGBA planar fixtures with Magick across SIMD modes.
+    /// </summary>
+    /// <typeparam name="TPixel">The decoded pixel type.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(FlowerRgb888Planar6Strips, PixelTypes.Rgba32)]
+    [WithFile(FlowerRgb888Planar15Strips, PixelTypes.Rgba32)]
+    [WithFile(Rgba8BitPlanarUnassociatedAlpha, PixelTypes.Rgba32)]
+    [WithFile(Rgba16BitPlanarUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+    [WithFile(Rgba16BitPlanarUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+    public void TiffDecoder_PlanarReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertExistingReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+
+    /// <summary>
+    /// Checks the entire decoded fixture against its independent Magick reference.
+    /// </summary>
+    /// <param name="providerDump">The serialized source image provider.</param>
+    private static void AssertExistingReference(string providerDump)
+    {
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+        TestTiffDecoder(provider);
+    }
+
     [Theory]
     [WithFile(FlowerRgb222Contiguous, PixelTypes.Rgba32)]
     [WithFile(FlowerRgb222Planar, PixelTypes.Rgba32)]
@@ -374,11 +419,18 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(FlowerYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_YCbCr_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertYcbcrReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+
+    /// <summary>
+    /// Compares the full YCbCr image with its checked-in reference in the selected hardware mode.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    private static void AssertYcbcrReference(string providerDump)
     {
-        // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
-        // converting the pixel data from Magick.NET to our format with YCbCr?
-        using Image<TPixel> image = provider.GetImage();
-        image.DebugSave(provider);
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+        using Image<Rgba32> image = provider.GetImage(TiffDecoder.Instance);
+
+        // Magick's YCbCr interpretation differs, so this family uses its checked-in exact reference.
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
@@ -402,11 +454,18 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(CmykJpeg, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Cmyk<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertCmykReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+
+    /// <summary>
+    /// Compares the full CMYK image with its checked-in reference in the selected hardware mode.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    private static void AssertCmykReference(string providerDump)
     {
-        // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
-        // converting the pixel data from Magick.NET to our format with CMYK?
-        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-        image.DebugSave(provider);
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+        using Image<Rgba32> image = provider.GetImage(TiffDecoder.Instance);
+
+        // Magick's CMYK interpretation differs, so this family uses its checked-in exact reference.
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
@@ -448,8 +507,13 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     [Theory]
+    [WithFile(Icc.PerceptualCmyk, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualCieLab, PixelTypes.Rgba32)]
     [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
     [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]
+    [WithFile(Issue3198, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
     public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -460,6 +524,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using Image<TPixel> converted = provider.GetImage(TiffDecoder.Instance, convertOptions);
 
         ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+        TiffFrameMetadata sourceFrameMetadata = sourceInfo.FrameMetadataCollection[0].GetTiffMetadata();
+        TiffFrameMetadata preservedFrameMetadata = preserved.Frames.RootFrame.Metadata.GetTiffMetadata();
+        TiffFrameMetadata convertedFrameMetadata = converted.Frames.RootFrame.Metadata.GetTiffMetadata();
 
         Assert.NotNull(preserved.Metadata.IccProfile);
         Assert.NotSame(preserved.Frames.RootFrame.Metadata.IccProfile, preserved.Metadata.IccProfile);
@@ -469,6 +536,14 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
         Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
         Assert.Equal(sourceInfo.FrameMetadataCollection[0].IccProfile.ToByteArray(), preserved.Frames.RootFrame.Metadata.IccProfile.ToByteArray());
+
+        // ICC conversion changes pixels, while TIFF metadata retains the source file's encoded sample layout.
+        Assert.Equal(sourceFrameMetadata.PhotometricInterpretation, preservedFrameMetadata.PhotometricInterpretation);
+        Assert.Equal(sourceFrameMetadata.BitsPerSample, preservedFrameMetadata.BitsPerSample);
+        Assert.Equal(sourceFrameMetadata.BitsPerPixel, preservedFrameMetadata.BitsPerPixel);
+        Assert.Equal(sourceFrameMetadata.PhotometricInterpretation, convertedFrameMetadata.PhotometricInterpretation);
+        Assert.Equal(sourceFrameMetadata.BitsPerSample, convertedFrameMetadata.BitsPerSample);
+        Assert.Equal(sourceFrameMetadata.BitsPerPixel, convertedFrameMetadata.BitsPerPixel);
 
         ImageComparer.Exact.VerifySimilarity(converted, preserved);
 
@@ -902,13 +977,13 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
 
-        // The image is handcrafted to simulate issue 2679. ImageMagick will throw an expection here and wont decode,
-        // so we compare to rererence output instead.
+        // The image is handcrafted to simulate issue 2679. ImageMagick throws an exception and cannot decode it,
+        // so compare against reference output instead.
         image.DebugSave(provider, appendPixelTypeToFileName: false);
-        image.CompareToReferenceOutput(
-            ImageComparer.Exact,
-            provider,
-            appendPixelTypeToFileName: false);
+
+        // JPEG has already expanded the subsampled chroma before TIFF receives the RGB pixels.
+        // Comparing the whole image catches TIFF incorrectly applying the subsampling a second time.
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]

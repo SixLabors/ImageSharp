@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -16,13 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private readonly float rFactor;
+    private readonly Configuration configuration;
 
-    private readonly float gFactor;
-
-    private readonly float bFactor;
-
-    private readonly float aFactor;
+    private readonly TiffBitPackedColorOperator colorOperator;
 
     private readonly ushort bitsPerSampleR;
 
@@ -34,17 +31,21 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
     private readonly TiffExtraSampleType? extraSampleType;
 
-    public RgbaPlanarTiffColor(TiffExtraSampleType? extraSampleType, TiffBitsPerSample bitsPerSample)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RgbaPlanarTiffColor{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The image configuration.</param>
+    /// <param name="extraSampleType">The alpha sample interpretation.</param>
+    /// <param name="bitsPerSample">The per-channel sample depths.</param>
+    public RgbaPlanarTiffColor(Configuration configuration, TiffExtraSampleType? extraSampleType, TiffBitsPerSample bitsPerSample)
     {
+        this.configuration = configuration;
         this.bitsPerSampleR = bitsPerSample.Channel0;
         this.bitsPerSampleG = bitsPerSample.Channel1;
         this.bitsPerSampleB = bitsPerSample.Channel2;
         this.bitsPerSampleA = bitsPerSample.Channel3;
 
-        this.rFactor = (1 << this.bitsPerSampleR) - 1.0f;
-        this.gFactor = (1 << this.bitsPerSampleG) - 1.0f;
-        this.bFactor = (1 << this.bitsPerSampleB) - 1.0f;
-        this.aFactor = (1 << this.bitsPerSampleA) - 1.0f;
+        this.colorOperator = new TiffBitPackedColorOperator(this.bitsPerSampleR, this.bitsPerSampleG, this.bitsPerSampleB, this.bitsPerSampleA);
 
         this.extraSampleType = extraSampleType;
     }
@@ -62,30 +63,74 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     {
         bool hasAssociatedAlpha = this.extraSampleType.HasValue && this.extraSampleType == TiffExtraSampleType.AssociatedAlphaData;
 
+        if (this.bitsPerSampleR == 8 && this.bitsPerSampleG == 8 && this.bitsPerSampleB == 8 && this.bitsPerSampleA == 8)
+        {
+            ReadOnlySpan<byte> red = data[0].GetSpan();
+            ReadOnlySpan<byte> green = data[1].GetSpan();
+            ReadOnlySpan<byte> blue = data[2].GetSpan();
+            ReadOnlySpan<byte> alpha = data[3].GetSpan();
+
+            // Each plane supplies one byte per pixel. Sixty-four bytes fill a 512-bit register in each channel,
+            // so both buffers hold one widest group and the shorter final group without touching the next row.
+            InlineArray64<Rgba32> packedBuffer = default;
+            InlineArray64<Vector4> vectorBuffer = default;
+            Span<Rgba32> packedBlock = packedBuffer;
+            Span<Vector4> vectorBlock = vectorBuffer;
+            PixelConversionModifiers destinationModifiers = PixelConversionModifiers.Scale | (hasAssociatedAlpha ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
+            TiffPlanar8NativeSource source = default;
+            TiffRgba32Store store = default;
+            int offset = 0;
+
+            for (int y = top; y < top + height; y++)
+            {
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
+                for (int x = 0; x < width; x += vectorBlock.Length)
+                {
+                    // Slice every plane and the output to the final group's actual pixel count.
+                    int count = Math.Min(width - x, vectorBlock.Length);
+
+                    // SIMD interleaves R, G, B, and A into native RGBA bytes. PixelOperations then interprets
+                    // the stored alpha association and packs the requested destination pixel type in bulk.
+                    TiffNativeColorConverter<TiffPlanar8NativeSource, TiffRgba32Store, byte>.Convert(red.Slice(offset + x, count), green.Slice(offset + x, count), blue.Slice(offset + x, count), alpha.Slice(offset + x, count), MemoryMarshal.AsBytes(packedBlock[..count]), source, store);
+
+                    Span<Vector4> vectors = vectorBlock[..count];
+                    PixelOperations<Rgba32>.Instance.ToVector4(this.configuration, packedBlock[..count], vectors, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count), destinationModifiers);
+                }
+
+                offset += width;
+            }
+
+            return;
+        }
+
         BitReader rBitReader = new(data[0].GetSpan());
         BitReader gBitReader = new(data[1].GetSpan());
         BitReader bBitReader = new(data[2].GetSpan());
         BitReader aBitReader = new(data[3].GetSpan());
+        InlineArray16<Vector4> rawBuffer = default;
+        Span<Vector4> raw = rawBuffer;
+        PixelConversionModifiers modifiers = PixelConversionModifiers.Scale | (hasAssociatedAlpha ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
 
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-            for (int x = 0; x < pixelRow.Length; x++)
+            for (int x = 0; x < pixelRow.Length; x += raw.Length)
             {
-                float r = rBitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
-                float g = gBitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
-                float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
-                float a = aBitReader.ReadBits(this.bitsPerSampleA) / this.aFactor;
+                int count = Math.Min(raw.Length, pixelRow.Length - x);
+                Span<Vector4> block = raw[..count];
 
-                Vector4 vector = new(r, g, b, a);
-                if (hasAssociatedAlpha)
+                for (int i = 0; i < count; i++)
                 {
-                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(vector);
+                    float r = rBitReader.ReadBits(this.bitsPerSampleR);
+                    float g = gBitReader.ReadBits(this.bitsPerSampleG);
+                    float b = bBitReader.ReadBits(this.bitsPerSampleB);
+                    float a = aBitReader.ReadBits(this.bitsPerSampleA);
+                    block[i] = new Vector4(r, g, b, a);
                 }
-                else
-                {
-                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(vector);
-                }
+
+                this.colorOperator.Convert(block);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), modifiers);
             }
 
             rBitReader.NextRow();

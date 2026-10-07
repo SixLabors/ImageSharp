@@ -72,10 +72,28 @@ internal struct InlineArray26<T>
 }
 
 /// <summary>
+/// Represents a safe, fixed sized buffer of 32 elements.
+/// </summary>
+[InlineArray(32)]
+internal struct InlineArray32<T>
+{
+    private T t;
+}
+
+/// <summary>
 /// Represents a safe, fixed sized buffer of 36 elements.
 /// </summary>
 [InlineArray(36)]
 internal struct InlineArray36<T>
+{
+    private T t;
+}
+
+/// <summary>
+/// Represents a safe, fixed sized buffer of 64 elements.
+/// </summary>
+[InlineArray(64)]
+internal struct InlineArray64<T>
 {
     private T t;
 }

@@ -42,7 +42,11 @@ internal static partial class SimdUtils
     {
         DebugGuard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
         DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
-        DebugGuard.IsTrue(destination.Length > redChannel.Length, nameof(destination), "'destination' span should not be shorter than the source channels!");
+        DebugGuard.IsTrue(destination.Length >= redChannel.Length, nameof(destination), "'destination' span should not be shorter than the source channels!");
+
+        // Unlike Rgb24, Rgba32 stores exactly one pixel per source sample, so caller padding
+        // must never extend the work performed by the scalar fill or remainder.
+        destination = destination[..redChannel.Length];
 
         if (Avx2.IsSupported)
         {
@@ -181,7 +185,8 @@ internal static partial class SimdUtils
         ref byte b = ref MemoryMarshal.GetReference(blueChannel);
         ref Rgb24 rgb = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)destination.Length; i++)
+        // Rgb24 needs writable padding for AVX2, but that padding contains no readable source samples.
+        for (nuint i = 0; i < (uint)redChannel.Length; i++)
         {
             ref Rgb24 d = ref Unsafe.Add(ref rgb, i);
             d.R = Unsafe.Add(ref r, i);
@@ -201,7 +206,8 @@ internal static partial class SimdUtils
         ref byte b = ref MemoryMarshal.GetReference(blueChannel);
         ref Rgba32 rgba = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)destination.Length; i++)
+        // A padded destination does not extend any of the three readable source planes.
+        for (nuint i = 0; i < (uint)redChannel.Length; i++)
         {
             ref Rgba32 d = ref Unsafe.Add(ref rgba, i);
             d.R = Unsafe.Add(ref r, i);

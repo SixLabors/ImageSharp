@@ -171,6 +171,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
         ReadOnlySpan<float> components = MemoryMarshal.Cast<YCbCr, float>(source);
         int i = 0;
 
+        // Subtract the configured Y, Cb, and Cr offsets before applying the RGB matrix.
         if (Vector512.IsHardwareAccelerated)
         {
             Vector512<float> offsetY = Vector512.Create(offset.X);
@@ -180,7 +181,8 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
 
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
             {
-                // Each complete group supplies sixteen packed triples; load all channels before the aliased RGB store.
+                // Load all three channels for sixteen pixels before writing RGB.
+                // This order also permits the source and destination to use the same storage.
                 SimdUtils.Deinterleave3(packed, i, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr);
                 SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
                 SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
@@ -196,7 +198,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
 
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
             {
-                // The remaining complete eight-pixel groups use the same configured offset and matrix.
+                // Process each remaining eight-pixel group with the same offsets and RGB matrix.
                 SimdUtils.Deinterleave3(packed, i, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr);
                 SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
                 SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
@@ -212,7 +214,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
 
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
             {
-                // Four-pixel groups and the scalar tail retain the same configured offset and inverse transform.
+                // Process four-pixel groups here; the scalar tail uses the same transform below.
                 SimdUtils.Deinterleave3(packed, i, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr);
                 SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
                 SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));

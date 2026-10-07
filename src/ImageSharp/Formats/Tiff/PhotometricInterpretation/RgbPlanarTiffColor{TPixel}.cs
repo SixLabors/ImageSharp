@@ -16,11 +16,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private readonly float rFactor;
+    private readonly Configuration configuration;
 
-    private readonly float gFactor;
-
-    private readonly float bFactor;
+    private readonly TiffBitPackedColorOperator colorOperator;
 
     private readonly ushort bitsPerSampleR;
 
@@ -28,15 +26,19 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
     private readonly ushort bitsPerSampleB;
 
-    public RgbPlanarTiffColor(TiffBitsPerSample bitsPerSample)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RgbPlanarTiffColor{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The image configuration.</param>
+    /// <param name="bitsPerSample">The per-channel sample depths.</param>
+    public RgbPlanarTiffColor(Configuration configuration, TiffBitsPerSample bitsPerSample)
     {
+        this.configuration = configuration;
         this.bitsPerSampleR = bitsPerSample.Channel0;
         this.bitsPerSampleG = bitsPerSample.Channel1;
         this.bitsPerSampleB = bitsPerSample.Channel2;
 
-        this.rFactor = (1 << this.bitsPerSampleR) - 1.0f;
-        this.gFactor = (1 << this.bitsPerSampleG) - 1.0f;
-        this.bFactor = (1 << this.bitsPerSampleB) - 1.0f;
+        this.colorOperator = new TiffBitPackedColorOperator(this.bitsPerSampleR, this.bitsPerSampleG, this.bitsPerSampleB, 0);
     }
 
     /// <summary>
@@ -50,20 +52,66 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     /// <param name="height">The height of the image block.</param>
     public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
+        if (this.bitsPerSampleR == 8 && this.bitsPerSampleG == 8 && this.bitsPerSampleB == 8)
+        {
+            ReadOnlySpan<byte> red = data[0].GetSpan();
+            ReadOnlySpan<byte> green = data[1].GetSpan();
+            ReadOnlySpan<byte> blue = data[2].GetSpan();
+            InlineArray32<Rgba32> packedBuffer = default;
+            InlineArray32<Vector4> vectorBuffer = default;
+            Span<Rgba32> packedBlock = packedBuffer;
+            Span<Vector4> vectorBlock = vectorBuffer;
+            int offset = 0;
+
+            for (int y = top; y < top + height; y++)
+            {
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
+                for (int x = 0; x < width; x += vectorBlock.Length)
+                {
+                    int count = Math.Min(width - x, vectorBlock.Length);
+
+                    // Rgba32 packing writes exactly the supplied count, and a full block
+                    // reaches its AVX2 plane interleave path without row padding.
+                    SimdUtils.PackFromRgbPlanes(red.Slice(offset + x, count), green.Slice(offset + x, count), blue.Slice(offset + x, count), packedBlock[..count]);
+                    Span<Vector4> vectors = vectorBlock[..count];
+
+                    // Opaque alpha makes scaling alone equivalent for straight and associated target pixels.
+                    PixelOperations<Rgba32>.Instance.ToVector4(this.configuration, packedBlock[..count], vectors, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count), PixelConversionModifiers.Scale);
+                }
+
+                offset += width;
+            }
+
+            return;
+        }
+
         BitReader rBitReader = new(data[0].GetSpan());
         BitReader gBitReader = new(data[1].GetSpan());
         BitReader bBitReader = new(data[2].GetSpan());
+        InlineArray16<Vector4> rawBuffer = default;
+        Span<Vector4> raw = rawBuffer;
 
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-            for (int x = 0; x < pixelRow.Length; x++)
+            for (int x = 0; x < pixelRow.Length; x += raw.Length)
             {
-                float r = rBitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
-                float g = gBitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
-                float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
+                int count = Math.Min(raw.Length, pixelRow.Length - x);
+                Span<Vector4> block = raw[..count];
 
-                pixelRow[x] = TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f));
+                // Each plane reader owns its row alignment; normalize the extracted codes
+                // in registers before packing the entire destination block.
+                for (int i = 0; i < count; i++)
+                {
+                    float r = rBitReader.ReadBits(this.bitsPerSampleR);
+                    float g = gBitReader.ReadBits(this.bitsPerSampleG);
+                    float b = bBitReader.ReadBits(this.bitsPerSampleB);
+                    block[i] = new Vector4(r, g, b, 1F);
+                }
+
+                this.colorOperator.Convert(block);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), PixelConversionModifiers.Scale);
             }
 
             rBitReader.NextRow();

@@ -25,6 +25,15 @@ internal static class TiffDecoderOptionsParser
     /// <returns>True, if the image uses tiles. Otherwise the images has strip's.</returns>
     public static bool VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
     {
+        // DecodeFrame reuses this core across IFDs. Reset optional coding tags before reading the next frame,
+        // so absent tables, YCbCr settings or alpha cannot inherit the preceding frame's interpretation.
+        options.JpegTables = null;
+        options.ReferenceBlackAndWhite = null;
+        options.YcbcrCoefficients = null;
+        options.YcbcrSubSampling = null;
+        options.OldJpegCompressionStartOfImageMarker = null;
+        options.ExtraSamplesType = null;
+
         if (exifProfile.TryGetValue(ExifTag.ExtraSamples, out IExifValue<ushort[]> samples))
         {
             // We only support a single sample pertaining to alpha data.
@@ -148,6 +157,18 @@ internal static class TiffDecoderOptionsParser
 
         options.ParseCompression(frameMetadata.Compression, exifProfile);
         options.ParseColorType(exifProfile);
+
+        if (options.CompressionType is TiffDecoderCompressionType.Jpeg or TiffDecoderCompressionType.OldJpeg)
+        {
+            // Supported gray, RGB, YCbCr and CMYK JPEG paths all emit interleaved Rgb24 decoded buffers.
+            // Select the RGB byte reader and size its decoded buffers for three eight-bit samples;
+            // options.PhotometricInterpretation and frame metadata retain the encoded samples for nested conversion.
+            // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
+            // so TIFF uses the expanded JPEG RGB buffer without another subsampling pass. See: https://github.com/SixLabors/ImageSharp/issues/2679
+            options.ColorType = TiffColorType.Rgb888;
+            options.BitsPerSample = new TiffBitsPerSample(8, 8, 8);
+            options.BitsPerPixel = 24;
+        }
 
         return VerifyRequiredFieldsArePresent(exifProfile, frameMetadata, options.PlanarConfiguration);
     }
@@ -571,36 +592,21 @@ internal static class TiffDecoderOptionsParser
 
                 if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
                 {
+                    // Nested OldJPEG emits interleaved Rgb24, which per-plane TIFF buffers cannot consume.
                     TiffThrowHelper.ThrowNotSupported("Old Jpeg compression is not supported with planar configuration");
                 }
 
                 options.CompressionType = TiffDecoderCompressionType.OldJpeg;
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
-                }
-
                 break;
 
             case TiffCompression.Jpeg:
+                if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
+                {
+                    // Nested JPEG emits interleaved Rgb24, which per-plane TIFF buffers cannot consume.
+                    TiffThrowHelper.ThrowNotSupported("Jpeg compression is not supported with planar configuration");
+                }
+
                 options.CompressionType = TiffDecoderCompressionType.Jpeg;
-
-                // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
-                // so we set this always to [1, 1], see: https://github.com/SixLabors/ImageSharp/issues/2679
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.YcbcrSubSampling != null)
-                {
-                    options.YcbcrSubSampling[0] = 1;
-                    options.YcbcrSubSampling[1] = 1;
-                }
-
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
-                }
 
                 break;
 

@@ -10,6 +10,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils;
 public class TiffUtilitiesTest
 {
     [Theory]
+    [InlineData(0x12, 0x34, 0x56, 0x123456, 0x563412)]
+    [InlineData(0x00, 0x80, 0xFF, 0x0080FF, 0xFF8000)]
+    public void ConvertToUInt24_ReadsExactlyThreeBytesInEitherOrder(byte first, byte second, byte third, int expectedBigEndian, int expectedLittleEndian)
+    {
+        // The final sample in a strip may have no padding byte after its third component byte.
+        byte[] sample = [first, second, third];
+
+        Assert.Equal((uint)expectedBigEndian, TiffUtilities.ConvertToUInt24BigEndian(sample));
+        Assert.Equal((uint)expectedLittleEndian, TiffUtilities.ConvertToUInt24LittleEndian(sample));
+    }
+
+    [Theory]
     [InlineData(0, 0, 0, 0)]
     [InlineData(42, 84, 128, 0)]
     [InlineData(65535, 65535, 65535, 0)]

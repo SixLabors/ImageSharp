@@ -38,11 +38,14 @@ public class RgbAndCieXyzConversionTest
         CieXyz[] xyzSource = new CieXyz[count];
         CieXyz[] xyzExpected = new CieXyz[count];
         Rgb[] rgbExpected = new Rgb[count];
+        ReadOnlySpan<Rgb> rgbSamples = [new(0F, 0F, 0F), new(1F, 1F, 1F), new(.12F, .78F, .31F), new(.87F, .04F, .62F), new(.34F, .56F, .91F), new(.02F, .45F, .73F), new(.68F, .23F, .15F), new(.41F, .93F, .08F), new(.99F, .38F, .52F), new(.27F, .11F, .84F), new(.75F, .65F, .43F)];
+        ReadOnlySpan<CieXyz> xyzSamples = [new(0F, 0F, 0F), new(.96F, 1F, .82F), new(.03F, .47F, .19F), new(.72F, .08F, .51F), new(.14F, .26F, .91F), new(.88F, .62F, .05F), new(.35F, .13F, .74F), new(.57F, .95F, .28F), new(.21F, .39F, .65F), new(.79F, .54F, .12F), new(.46F, .71F, .83F)];
 
         for (int i = 0; i < count; i++)
         {
-            rgbSource[i] = new Rgb((i * .023F) + .04F, (i * .017F) + .08F, (i * .029F) + .02F);
-            xyzSource[i] = new CieXyz((i * .031F) + .02F, (i * .027F) + .03F, (i * .019F) + .05F);
+            // An eleven-sample period distinguishes lanes across 16-wide and remainder groups.
+            rgbSource[i] = rgbSamples[i % rgbSamples.Length];
+            xyzSource[i] = xyzSamples[i % xyzSamples.Length];
             xyzExpected[i] = rgbSource[i].ToProfileConnectingSpace(options);
             rgbExpected[i] = Rgb.FromProfileConnectingSpace(options, in xyzSource[i]);
         }

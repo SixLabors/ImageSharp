@@ -65,11 +65,17 @@ public class YCbCrTests
         YCbCrTransform baseTransform = KnownYCbCrMatrices.BT601;
         YCbCrTransform transform = new(baseTransform.Forward, baseTransform.Inverse, new Vector3(0F, 128F / 255F, 128F / 255F));
         ColorConversionOptions options = new() { YCbCrTransform = transform };
+        ReadOnlySpan<YCbCr> samples =
+        [
+            new(0F, .5F, .5F), new(1F, .5F, .5F), new(.25F, .75F, .1F), new(.8F, -.2F, .6F),
+            new(.4F, 1.2F, .3F), new(.65F, .15F, 1.1F), new(.05F, .9F, .85F), new(.93F, .31F, -.1F),
+            new(.37F, .68F, .24F), new(.72F, .02F, .97F), new(.14F, .82F, .43F)
+        ];
 
         for (int i = 0; i < count; i++)
         {
-            // FromScaledVector4 preserves fractional and out-of-range components used by decoded JPEG samples.
-            source[i] = YCbCr.FromScaledVector4(new Vector4((i * 7F) / 19F, ((i * 11F) / 19F) - .2F, ((i * 13F) / 19F) - .3F, 1F));
+            // Fractional and out-of-range values repeat every eleven pixels, crossing each SIMD group.
+            source[i] = samples[i % samples.Length];
             expected[i] = source[i].ToProfileConnectingSpace(options);
         }
 

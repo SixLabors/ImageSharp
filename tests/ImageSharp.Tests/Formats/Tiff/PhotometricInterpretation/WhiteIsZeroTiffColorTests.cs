@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -155,7 +154,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height);
+                new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, bitsPerSample, whiteIsZero: true).Decode(inputData, pixels, left, top, width, height);
             });
     }
 
@@ -165,7 +164,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZero1TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
+                new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 1, whiteIsZero: true).Decode(inputData, pixels, left, top, width, height);
             });
     }
 
@@ -175,7 +174,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZero4TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
+                new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 4, whiteIsZero: true).Decode(inputData, pixels, left, top, width, height);
             });
     }
 
@@ -185,7 +184,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZero8TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
+                new WhiteIsZero8TiffColor<Rgba32>(Configuration.Default).Decode(inputData, pixels, left, top, width, height);
             });
     }
 }

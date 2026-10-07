@@ -50,6 +50,15 @@ public partial class SimdUtilsTests
         Vector4[] vectors = new Vector4[count];
         SimdUtils.InterleaveFloatPlanes(components[0], components[1], components[2], components[3], vectors);
 
+        // Check the packed layout before reversing it; paired transpose mistakes could otherwise cancel.
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[0][i]), BitConverter.SingleToInt32Bits(vectors[i].X));
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[1][i]), BitConverter.SingleToInt32Bits(vectors[i].Y));
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[2][i]), BitConverter.SingleToInt32Bits(vectors[i].Z));
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[3][i]), BitConverter.SingleToInt32Bits(vectors[i].W));
+        }
+
         float[][] output = [new float[count], new float[count], new float[count], new float[count]];
         SimdUtils.DeinterleaveFloatPlanes(vectors, output[0], output[1], output[2], output[3]);
 

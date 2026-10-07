@@ -296,6 +296,16 @@ internal static class Numerics
     /// <summary>
     /// Clamps components to the inclusive range of min and max, mapping NaN to min.
     /// </summary>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive lower bounds.</param>
+    /// <param name="max">The inclusive upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector3 Clamp(Vector3 value, Vector3 min, Vector3 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector3();
+
+    /// <summary>
+    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// </summary>
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="value">The components to clamp.</param>
     /// <param name="min">The inclusive lower bounds.</param>

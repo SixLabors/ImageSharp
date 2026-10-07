@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
-using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -19,87 +18,58 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 {
     private readonly ColorProfileConverter colorProfileConverter;
     private readonly Configuration configuration;
-    private const float Inv255 = 1f / 255f;
+    private readonly PixelConversionModifiers modifiers;
 
-    private readonly TiffDecoderCompressionType compression;
-
-    public CmykTiffColor(
-        TiffDecoderCompressionType compression,
-        Configuration configuration,
-        DecoderOptions decoderOptions,
-        ImageFrameMetadata metadata,
-        MemoryAllocator allocator)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CmykTiffColor{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The image configuration.</param>
+    /// <param name="metadata">The frame metadata.</param>
+    /// <param name="allocator">The allocator for color conversion buffers.</param>
+    public CmykTiffColor(Configuration configuration, ImageFrameMetadata metadata, MemoryAllocator allocator)
     {
-        this.compression = compression;
         this.configuration = configuration;
+        bool hasProfile = IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? profile);
+        ColorConversionOptions options = new() { SourceIccProfile = profile, TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null, MemoryAllocator = allocator };
 
-        if (IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
-        {
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = iccProfile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-                MemoryAllocator = allocator
-            };
-
-            this.colorProfileConverter = new ColorProfileConverter(options);
-        }
-        else
-        {
-            ColorConversionOptions options = new()
-            {
-                MemoryAllocator = allocator
-            };
-
-            this.colorProfileConverter = new ColorProfileConverter(options);
-        }
+        this.colorProfileConverter = new ColorProfileConverter(options);
+        this.modifiers = hasProfile ? PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply : PixelConversionModifiers.Scale;
     }
 
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         int offset = 0;
-        if (this.compression == TiffDecoderCompressionType.Jpeg)
-        {
-            for (int y = top; y < top + height; y++)
-            {
-                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-                for (int x = 0; x < pixelRow.Length; x++)
-                {
-                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(new Vector4(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, 1.0f));
 
-                    offset += 3;
-                }
-            }
-
-            return;
-        }
-
-        // Allocate temporary buffers to hold the CMYK -> RGB conversion.
-        // This should be the maximum width of a row.
-        using IMemoryOwner<Rgb> rgbBuffer = this.colorProfileConverter.Options.MemoryAllocator.Allocate<Rgb>(width);
+        // The converter moves the complete CMYK input into its PCS buffers before writing RGB.
+        // The first three floats per pixel can therefore receive RGB after the four-float source is consumed.
         using IMemoryOwner<Vector4> vectorBuffer = this.colorProfileConverter.Options.MemoryAllocator.Allocate<Vector4>(width);
-
-        Span<Rgb> rgbRow = rgbBuffer.Memory.Span;
-        Span<Vector4> vectorRow = vectorBuffer.Memory.Span;
-
-        // Reuse the Vector4 buffer as CMYK storage since both are 4-float structs, avoiding an extra allocation.
+        Span<Vector4> vectorRow = vectorBuffer.Memory.Span[..width];
         Span<Cmyk> cmykRow = MemoryMarshal.Cast<Vector4, Cmyk>(vectorRow);
+        Span<float> floatRow = MemoryMarshal.Cast<Vector4, float>(vectorRow);
+        Span<Rgb> rgbRow = MemoryMarshal.Cast<float, Rgb>(floatRow[..(width * 3)]);
+        InlineArray16<Vector4> blockBuffer = default;
+        Span<Vector4> vectors = blockBuffer;
 
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
 
-            // Collect CMYK pixels.
-            // ByteToNormalizedFloat efficiently converts packed 4-byte component data
-            // to normalized 0-1 floats using SIMD.
-            SimdUtils.ByteToNormalizedFloat(data.Slice(offset, width * 4), MemoryMarshal.Cast<Cmyk, float>(cmykRow));
+            // Normalize packed component bytes into the typed row before the one whole-row profile conversion.
+            SimdUtils.ByteToNormalizedFloat(data.Slice(offset, width * 4), floatRow);
             offset += width * 4;
 
-            // Convert CMYK -> RGB -> Vector4 -> TPixel
             this.colorProfileConverter.Convert<Cmyk, Rgb>(cmykRow, rgbRow);
-            Rgb.ToScaledVector4(rgbRow, vectorRow);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorRow, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+
+            for (int x = 0; x < width; x += vectors.Length)
+            {
+                int count = Math.Min(vectors.Length, width - x);
+                Span<Vector4> block = vectors[..count];
+
+                // Pixel packing may overwrite its input, so convert a bounded RGB block into separate scratch.
+                Rgb.ToScaledVector4(rgbRow.Slice(x, count), block);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), this.modifiers);
+            }
         }
     }
 }

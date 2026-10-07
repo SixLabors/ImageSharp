@@ -15,11 +15,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private readonly float rFactor;
-
-    private readonly float gFactor;
-
-    private readonly float bFactor;
+    private readonly Configuration configuration;
+    private readonly TiffBitPackedColorOperator colorOperator;
 
     private readonly ushort bitsPerSampleR;
 
@@ -27,32 +24,49 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
     private readonly ushort bitsPerSampleB;
 
-    public RgbTiffColor(TiffBitsPerSample bitsPerSample)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RgbTiffColor{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The image configuration.</param>
+    /// <param name="bitsPerSample">The per-channel sample depths.</param>
+    public RgbTiffColor(Configuration configuration, TiffBitsPerSample bitsPerSample)
     {
+        this.configuration = configuration;
         this.bitsPerSampleR = bitsPerSample.Channel0;
         this.bitsPerSampleG = bitsPerSample.Channel1;
         this.bitsPerSampleB = bitsPerSample.Channel2;
 
-        this.rFactor = (1 << this.bitsPerSampleR) - 1.0f;
-        this.gFactor = (1 << this.bitsPerSampleG) - 1.0f;
-        this.bFactor = (1 << this.bitsPerSampleB) - 1.0f;
+        this.colorOperator = new TiffBitPackedColorOperator(this.bitsPerSampleR, this.bitsPerSampleG, this.bitsPerSampleB, 0);
     }
 
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         BitReader bitReader = new(data);
+        InlineArray16<Vector4> vectorBuffer = default;
+        Span<Vector4> vectors = vectorBuffer;
 
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-            for (int x = 0; x < pixelRow.Length; x++)
-            {
-                float r = bitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
-                float g = bitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
-                float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
-                pixelRow[x] = TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f));
+            for (int x = 0; x < pixelRow.Length; x += vectors.Length)
+            {
+                int count = Math.Min(vectors.Length, pixelRow.Length - x);
+                Span<Vector4> block = vectors[..count];
+
+                // The bit reader owns byte and row alignment; only sample extraction is
+                // scalar while destination color packing runs on the complete block.
+                for (int i = 0; i < count; i++)
+                {
+                    float r = bitReader.ReadBits(this.bitsPerSampleR);
+                    float g = bitReader.ReadBits(this.bitsPerSampleG);
+                    float b = bitReader.ReadBits(this.bitsPerSampleB);
+                    block[i] = new Vector4(r, g, b, 1F);
+                }
+
+                this.colorOperator.Convert(block);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, block, pixelRow.Slice(x, count), PixelConversionModifiers.Scale);
             }
 
             bitReader.NextRow();

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -33,22 +33,26 @@ internal class BlackIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        L16 l16 = TiffUtilities.L16Default;
-        TPixel color = TPixel.FromUnassociatedScaledVector4(Vector4.Zero);
-
         int offset = 0;
+        InlineArray16<L16> sourceBuffer = default;
+        Span<L16> sourceBlock = sourceBuffer;
+
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
             if (this.isBigEndian)
             {
-                for (int x = 0; x < pixelRow.Length; x++)
+                for (int x = 0; x < width; x += sourceBlock.Length)
                 {
-                    ushort intensity = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
+                    int count = Math.Min(width - x, sourceBlock.Length);
+                    Span<L16> samples = sourceBlock[..count];
 
-                    pixelRow[x] = TPixel.FromL16(new L16(intensity));
+                    // Swap encoded samples once, then let the pixel operations pack the destination row.
+                    TiffUtilities.CopyUShorts(data.Slice(offset + (x * 2), count * 2), MemoryMarshal.Cast<L16, ushort>(samples), bigEndian: true, invert: false);
+                    PixelOperations<TPixel>.Instance.FromL16(this.configuration, samples, pixelRow.Slice(x, count));
                 }
+
+                offset += width * 2;
             }
             else
             {

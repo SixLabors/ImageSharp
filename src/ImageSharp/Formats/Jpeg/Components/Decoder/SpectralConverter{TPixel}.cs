@@ -144,8 +144,20 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
 
+            // Container formats can prepare their source samples before either eager or deferred JPEG ICC conversion.
+            this.PrepareColorComponents(in values, this.frame.Precision, iccProfile);
+
             if (iccProfile != null)
             {
+                if (this.colorConverter.ColorSpace == JpegColorSpace.Grayscale)
+                {
+                    // Grayscale component spans alias luminance, so consume interleaved ICC RGB in the existing byte row instead of scattering into those aliases.
+                    Span<byte> grayscaleRgbBytes = this.rgbBuffer.GetSpan();
+                    this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, iccProfile, grayscaleRgbBytes);
+                    PixelOperations<TPixel>.Instance.FromRgb24Bytes(this.Configuration, grayscaleRgbBytes, this.pixelBuffer.DangerousGetRowSpan(yy), width);
+                    continue;
+                }
+
                 this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, iccProfile);
             }
             else
@@ -179,6 +191,16 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         }
 
         this.pixelRowCounter += this.pixelRowsPerStep;
+    }
+
+    /// <summary>
+    /// Prepares source color components before JPEG color and ICC conversion.
+    /// </summary>
+    /// <param name="values">The source component planes for the current row.</param>
+    /// <param name="precision">The JPEG sample precision in bits.</param>
+    /// <param name="iccProfile">The selected source ICC profile, if present.</param>
+    protected virtual void PrepareColorComponents(in JpegColorConverterBase.ComponentValues values, int precision, IccProfile iccProfile)
+    {
     }
 
     /// <inheritdoc/>

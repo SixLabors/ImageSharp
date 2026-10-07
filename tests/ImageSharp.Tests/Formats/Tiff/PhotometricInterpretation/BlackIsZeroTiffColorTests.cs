@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -154,19 +153,19 @@ public class BlackIsZeroTiffColorTests : PhotometricInterpretationTestBase
     public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         => AssertDecode(
             expectedResult,
-            pixels => new BlackIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height));
+            pixels => new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, bitsPerSample, whiteIsZero: false).Decode(inputData, pixels, left, top, width, height));
 
     [Theory]
     [MemberData(nameof(BilevelData))]
     public void Decode_WritesPixelData_Bilevel(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        => AssertDecode(expectedResult, pixels => new BlackIsZero1TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height));
+        => AssertDecode(expectedResult, pixels => new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 1, whiteIsZero: false).Decode(inputData, pixels, left, top, width, height));
 
     [Theory]
     [MemberData(nameof(Grayscale4_Data))]
     public void Decode_WritesPixelData_4Bit(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         => AssertDecode(
             expectedResult,
-            pixels => new BlackIsZero4TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height));
+            pixels => new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 4, whiteIsZero: false).Decode(inputData, pixels, left, top, width, height));
 
     [Theory]
     [MemberData(nameof(Grayscale8_Data))]

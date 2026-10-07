@@ -13,7 +13,6 @@ internal static class TiffColorDecoderFactory<TPixel>
 {
     public static TiffBaseColorDecoder<TPixel> Create(
         ImageFrameMetadata metadata,
-        DecoderOptions options,
         Configuration configuration,
         MemoryAllocator memoryAllocator,
         TiffColorType colorType,
@@ -31,57 +30,57 @@ internal static class TiffColorDecoderFactory<TPixel>
             case TiffColorType.WhiteIsZero:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZeroTiffColor<TPixel>(bitsPerSample);
+                return new TiffBitGrayscaleDecoder<TPixel>(configuration, bitsPerSample.Channel0, whiteIsZero: true);
 
             case TiffColorType.WhiteIsZero1:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 1, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero1TiffColor<TPixel>();
+                return new TiffBitGrayscaleDecoder<TPixel>(configuration, 1, whiteIsZero: true);
 
             case TiffColorType.WhiteIsZero4:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 4, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero4TiffColor<TPixel>();
+                return new TiffBitGrayscaleDecoder<TPixel>(configuration, 4, whiteIsZero: true);
 
             case TiffColorType.WhiteIsZero8:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 8, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero8TiffColor<TPixel>();
+                return new WhiteIsZero8TiffColor<TPixel>(configuration);
 
             case TiffColorType.WhiteIsZero16:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 16, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero16TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new WhiteIsZero16TiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian);
 
             case TiffColorType.WhiteIsZero24:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 24, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero24TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffGray24Source, TiffGrayOperator>(configuration, new TiffGray24Source(byteOrder == ByteOrder.BigEndian, whiteIsZero: true), new TiffGrayOperator(1F / 0xFFFFFF));
 
             case TiffColorType.WhiteIsZero32:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 32, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero32TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffGray32Source, TiffGrayOperator>(configuration, new TiffGray32Source(byteOrder == ByteOrder.BigEndian, whiteIsZero: true), new TiffGrayOperator(1F / uint.MaxValue));
 
             case TiffColorType.WhiteIsZero32Float:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 32, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new WhiteIsZero32FloatTiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffGrayFloat32Source, TiffGrayFloatOperator>(configuration, new TiffGrayFloat32Source(byteOrder == ByteOrder.BigEndian), new TiffGrayFloatOperator(whiteIsZero: true));
 
             case TiffColorType.BlackIsZero:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new BlackIsZeroTiffColor<TPixel>(bitsPerSample);
+                return new TiffBitGrayscaleDecoder<TPixel>(configuration, bitsPerSample.Channel0, whiteIsZero: false);
 
             case TiffColorType.BlackIsZero1:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 1, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new BlackIsZero1TiffColor<TPixel>();
+                return new TiffBitGrayscaleDecoder<TPixel>(configuration, 1, whiteIsZero: false);
 
             case TiffColorType.BlackIsZero4:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 4, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new BlackIsZero4TiffColor<TPixel>();
+                return new TiffBitGrayscaleDecoder<TPixel>(configuration, 4, whiteIsZero: false);
 
             case TiffColorType.BlackIsZero8:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 8, "bitsPerSample");
@@ -96,21 +95,21 @@ internal static class TiffColorDecoderFactory<TPixel>
             case TiffColorType.BlackIsZero24:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 24, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new BlackIsZero24TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffGray24Source, TiffGrayOperator>(configuration, new TiffGray24Source(byteOrder == ByteOrder.BigEndian, whiteIsZero: false), new TiffGrayOperator(1F / 0xFFFFFF));
 
             case TiffColorType.BlackIsZero32:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 32, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new BlackIsZero32TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffGray32Source, TiffGrayOperator>(configuration, new TiffGray32Source(byteOrder == ByteOrder.BigEndian, whiteIsZero: false), new TiffGrayOperator(1F / uint.MaxValue));
 
             case TiffColorType.BlackIsZero32Float:
                 DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 32, "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new BlackIsZero32FloatTiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffGrayFloat32Source, TiffGrayFloatOperator>(configuration, new TiffGrayFloat32Source(byteOrder == ByteOrder.BigEndian), new TiffGrayFloatOperator(whiteIsZero: false));
 
             case TiffColorType.Rgb:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgb222:
                 DebugGuard.IsTrue(
@@ -120,7 +119,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 2,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba2222:
                 DebugGuard.IsTrue(
@@ -131,7 +130,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 2,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.Rgb333:
                 DebugGuard.IsTrue(
@@ -141,7 +140,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 3,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba3333:
                 DebugGuard.IsTrue(
@@ -152,7 +151,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 3,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.Rgb444:
                 DebugGuard.IsTrue(
@@ -162,7 +161,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 4,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgb444TiffColor<TPixel>();
+                return new TiffNibbleColorDecoder<TPixel, TiffRgb444Source, TiffNibbleOperator>(configuration, default, new TiffNibbleOperator(hasAlpha: false, associated: false));
 
             case TiffColorType.Rgba4444:
                 DebugGuard.IsTrue(
@@ -173,7 +172,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 4,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new TiffNibbleColorDecoder<TPixel, TiffRgba4444Source, TiffNibbleOperator>(configuration, default, new TiffNibbleOperator(hasAlpha: true, associated: extraSampleType == TiffExtraSampleType.AssociatedAlphaData));
 
             case TiffColorType.Rgb555:
                 DebugGuard.IsTrue(
@@ -183,7 +182,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 5,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba5555:
                 DebugGuard.IsTrue(
@@ -194,7 +193,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 5,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.Rgb666:
                 DebugGuard.IsTrue(
@@ -204,7 +203,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 6,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba6666:
                 DebugGuard.IsTrue(
@@ -215,7 +214,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 6,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.Rgb888:
                 DebugGuard.IsTrue(
@@ -246,7 +245,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 10,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba10101010:
                 DebugGuard.IsTrue(
@@ -257,7 +256,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 10,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.Rgb121212:
                 DebugGuard.IsTrue(
@@ -267,7 +266,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 12,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba12121212:
                 DebugGuard.IsTrue(
@@ -278,7 +277,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 12,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.Rgb141414:
                 DebugGuard.IsTrue(
@@ -288,7 +287,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 14,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbTiffColor<TPixel>(bitsPerSample);
+                return new RgbTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba14141414:
                 DebugGuard.IsTrue(
@@ -299,7 +298,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 14,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.Rgb161616:
                 DebugGuard.IsTrue(
@@ -320,7 +319,12 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 16,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgba16161616TiffColor<TPixel>(configuration, memoryAllocator, extraSampleType, isBigEndian: byteOrder == ByteOrder.BigEndian);
+                if (byteOrder == ByteOrder.BigEndian)
+                {
+                    return new TiffRgba64BigEndianDecoder<TPixel>(configuration, extraSampleType == TiffExtraSampleType.AssociatedAlphaData);
+                }
+
+                return new TiffRgba64LittleEndianDecoder<TPixel>(configuration, extraSampleType == TiffExtraSampleType.AssociatedAlphaData);
 
             case TiffColorType.Rgb242424:
                 DebugGuard.IsTrue(
@@ -330,7 +334,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 24,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgb242424TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffRgb24Source, TiffRgbOperator>(configuration, new TiffRgb24Source(byteOrder == ByteOrder.BigEndian, planar: false), new TiffRgbOperator(1F / 0xFFFFFF));
 
             case TiffColorType.Rgba24242424:
                 DebugGuard.IsTrue(
@@ -341,7 +345,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 24,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgba24242424TiffColor<TPixel>(extraSampleType, isBigEndian: byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffRgba24Source, TiffRgbaOperator>(configuration, new TiffRgba24Source(byteOrder == ByteOrder.BigEndian, planar: false), new TiffRgbaOperator(1F / 0xFFFFFF, extraSampleType.HasValue && extraSampleType == TiffExtraSampleType.AssociatedAlphaData));
 
             case TiffColorType.Rgb323232:
                 DebugGuard.IsTrue(
@@ -351,7 +355,13 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgb323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+                if (typeof(TPixel) == typeof(Rgb96))
+                {
+                    // Native uint pixels keep their low bits; the generic vector route converts to float.
+                    return new Rgb323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+                }
+
+                return new TiffColorDecoder<TPixel, TiffRgb32Source, TiffRgbOperator>(configuration, new TiffRgb32Source(byteOrder == ByteOrder.BigEndian, planar: false), new TiffRgbOperator(1F / uint.MaxValue));
 
             case TiffColorType.Rgba32323232:
                 DebugGuard.IsTrue(
@@ -362,7 +372,13 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgba32323232TiffColor<TPixel>(extraSampleType, isBigEndian: byteOrder == ByteOrder.BigEndian);
+                if (typeof(TPixel) == typeof(Rgba128) && extraSampleType != TiffExtraSampleType.AssociatedAlphaData)
+                {
+                    // Direct uint packing preserves all low bits in native Rgba128 pixels.
+                    return new Rgba32323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+                }
+
+                return new TiffRgba32PackedDecoder<TPixel>(configuration, byteOrder == ByteOrder.BigEndian, extraSampleType == TiffExtraSampleType.AssociatedAlphaData);
 
             case TiffColorType.RgbFloat323232:
                 DebugGuard.IsTrue(
@@ -372,7 +388,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbFloat323232TiffColor<TPixel>(configuration, isBigEndian: byteOrder == ByteOrder.BigEndian);
+                return new TiffColorDecoder<TPixel, TiffFloat32Source, TiffFloatRgbOperator>(configuration, new TiffFloat32Source(byteOrder == ByteOrder.BigEndian, hasAlpha: false), default);
 
             case TiffColorType.RgbaFloat32323232:
                 DebugGuard.IsTrue(
@@ -383,7 +399,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaFloat32323232TiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian, extraSampleType);
+                return new TiffColorDecoder<TPixel, TiffFloat32Source, TiffFloatRgbaOperator>(configuration, new TiffFloat32Source(byteOrder == ByteOrder.BigEndian, hasAlpha: true), new TiffFloatRgbaOperator(extraSampleType == TiffExtraSampleType.AssociatedAlphaData));
 
             case TiffColorType.PaletteColor:
                 DebugGuard.NotNull(colorMap, "colorMap");
@@ -396,7 +412,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel1 == 8
                     && bitsPerSample.Channel0 == 8,
                     "bitsPerSample");
-                return new YCbCrTiffColor<TPixel>(memoryAllocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
+                return new YCbCrTiffColor<TPixel>(configuration, metadata, memoryAllocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
             case TiffColorType.CieLab:
 
@@ -404,15 +420,10 @@ internal static class TiffColorDecoderFactory<TPixel>
 
                 if (bitsPerSample.Channel0 == 8)
                 {
-                    return new CieLab8TiffColor<TPixel>();
+                    return new TiffLabColorDecoder<TPixel, TiffLab8Source>(configuration, new TiffLab8Source(planar: false), metadata, memoryAllocator);
                 }
 
-                return new CieLab16TiffColor<TPixel>(
-                    configuration,
-                    options,
-                    metadata,
-                    memoryAllocator,
-                    byteOrder == ByteOrder.BigEndian);
+                return new TiffLabColorDecoder<TPixel, TiffLab16Source>(configuration, new TiffLab16Source(byteOrder == ByteOrder.BigEndian, planar: false), metadata, memoryAllocator);
 
             case TiffColorType.Cmyk:
                 DebugGuard.IsTrue(
@@ -422,7 +433,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel1 == 8
                     && bitsPerSample.Channel0 == 8,
                     "bitsPerSample");
-                return new CmykTiffColor<TPixel>(compression, configuration, options, metadata, memoryAllocator);
+                return new CmykTiffColor<TPixel>(configuration, metadata, memoryAllocator);
 
             default:
                 throw TiffThrowHelper.InvalidColorType(colorType.ToString());
@@ -431,7 +442,6 @@ internal static class TiffColorDecoderFactory<TPixel>
 
     public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(
         ImageFrameMetadata metadata,
-        DecoderOptions options,
         Configuration configuration,
         MemoryAllocator allocator,
         TiffColorType colorType,
@@ -447,48 +457,55 @@ internal static class TiffColorDecoderFactory<TPixel>
         {
             case TiffColorType.Rgb888Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
+                return new RgbPlanarTiffColor<TPixel>(configuration, bitsPerSample);
 
             case TiffColorType.Rgba8888Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaPlanarTiffColor<TPixel>(extraSampleType, bitsPerSample);
+                return new RgbaPlanarTiffColor<TPixel>(configuration, extraSampleType, bitsPerSample);
 
             case TiffColorType.YCbCrPlanar:
-                return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
+                return new YCbCrPlanarTiffColor<TPixel>(configuration, metadata, allocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
             case TiffColorType.CieLabPlanar:
                 return bitsPerSample.Channel0 == 8
-                    ? new CieLab8PlanarTiffColor<TPixel>()
-                    : new CieLab16PlanarTiffColor<TPixel>(
-                        configuration,
-                        options,
-                        metadata,
-                        allocator,
-                        byteOrder == ByteOrder.BigEndian);
+                    ? new TiffLabPlanarColorDecoder<TPixel, TiffLab8Source>(configuration, new TiffLab8Source(planar: true), metadata, allocator)
+                    : new TiffLabPlanarColorDecoder<TPixel, TiffLab16Source>(configuration, new TiffLab16Source(byteOrder == ByteOrder.BigEndian, planar: true), metadata, allocator);
 
             case TiffColorType.Rgb161616Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new TiffRgb48PlanarDecoder<TPixel>(configuration, byteOrder == ByteOrder.BigEndian);
 
             case TiffColorType.Rgba16161616Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgba16PlanarTiffColor<TPixel>(extraSampleType, byteOrder == ByteOrder.BigEndian);
+                return new TiffRgba64PlanarDecoder<TPixel>(configuration, byteOrder == ByteOrder.BigEndian, extraSampleType == TiffExtraSampleType.AssociatedAlphaData);
 
             case TiffColorType.Rgb242424Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgb24PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                return new TiffPlanarColorDecoder<TPixel, TiffRgb24Source, TiffRgbOperator>(configuration, new TiffRgb24Source(byteOrder == ByteOrder.BigEndian, planar: true), new TiffRgbOperator(1F / 0xFFFFFF));
 
             case TiffColorType.Rgba24242424Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgba24PlanarTiffColor<TPixel>(extraSampleType, byteOrder == ByteOrder.BigEndian);
+                return new TiffPlanarColorDecoder<TPixel, TiffRgba24Source, TiffRgbaOperator>(configuration, new TiffRgba24Source(byteOrder == ByteOrder.BigEndian, planar: true), new TiffRgbaOperator(1F / 0xFFFFFF, extraSampleType.HasValue && extraSampleType == TiffExtraSampleType.AssociatedAlphaData));
 
             case TiffColorType.Rgb323232Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgb32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                if (typeof(TPixel) == typeof(Rgb96))
+                {
+                    // Direct integer packing preserves all 32 bits of each native destination channel.
+                    return new Rgb32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                }
+
+                return new TiffPlanarColorDecoder<TPixel, TiffRgb32Source, TiffRgbOperator>(configuration, new TiffRgb32Source(byteOrder == ByteOrder.BigEndian, planar: true), new TiffRgbOperator(1F / uint.MaxValue));
 
             case TiffColorType.Rgba32323232Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new Rgba32PlanarTiffColor<TPixel>(extraSampleType, byteOrder == ByteOrder.BigEndian);
+                if (typeof(TPixel) == typeof(Rgba128) && extraSampleType != TiffExtraSampleType.AssociatedAlphaData)
+                {
+                    // Direct uint packing preserves all low bits in native Rgba128 pixels.
+                    return new Rgba32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                }
+
+                return new TiffPlanarColorDecoder<TPixel, TiffRgba32Source, TiffRgbaOperator>(configuration, new TiffRgba32Source(byteOrder == ByteOrder.BigEndian, planar: true), new TiffRgbaOperator(1F / uint.MaxValue, extraSampleType == TiffExtraSampleType.AssociatedAlphaData));
 
             default:
                 throw TiffThrowHelper.InvalidColorType(colorType.ToString());

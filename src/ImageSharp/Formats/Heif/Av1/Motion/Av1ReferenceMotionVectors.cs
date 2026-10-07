@@ -284,9 +284,10 @@ internal struct Av1ReferenceMotionVectors
 
         int nearestMatch = (rowMatchCount > 0 ? 1 : 0) + (columnMatchCount > 0 ? 1 : 0);
         int nearestCandidateCount = this.Count;
+        Span<ushort> weights = this.weights;
         for (int index = 0; index < nearestCandidateCount; index++)
         {
-            this.weights[index] += NearestCandidateWeight;
+            weights[index] += NearestCandidateWeight;
         }
 
         if (frameHeader.UseReferenceFrameMotionVectors)
@@ -414,9 +415,11 @@ internal struct Av1ReferenceMotionVectors
             }
         }
 
+        Span<Av1MotionVector> candidates = this.candidates;
+        Span<Av1MotionVector> compoundCandidates = this.compoundCandidates;
         for (int index = 0; index < this.Count; index++)
         {
-            this.candidates[index] = this.candidates[index].ClampReference(
+            candidates[index] = candidates[index].ClampReference(
                 blockSize.GetWidth(),
                 blockSize.GetHeight(),
                 context.ModeBlockToLeftEdge,
@@ -426,7 +429,7 @@ internal struct Av1ReferenceMotionVectors
 
             if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
             {
-                this.compoundCandidates[index] = this.compoundCandidates[index].ClampReference(
+                compoundCandidates[index] = compoundCandidates[index].ClampReference(
                     blockSize.GetWidth(),
                     blockSize.GetHeight(),
                     context.ModeBlockToLeftEdge,
@@ -1085,7 +1088,8 @@ internal struct Av1ReferenceMotionVectors
         Av1ReferenceFrameType referenceFrame)
     {
         bool targetSignBias = context.IsReferenceSignBiased(referenceFrame);
-
+        Span<Av1MotionVector> candidates = this.candidates;
+        Span<ushort> weights = this.weights;
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
             Av1ReferenceFrameType candidateReference = candidate.GetReferenceFrame(referenceIndex);
@@ -1103,7 +1107,7 @@ internal struct Av1ReferenceMotionVectors
             int candidateIndex;
             for (candidateIndex = 0; candidateIndex < this.Count; candidateIndex++)
             {
-                if (this.candidates[candidateIndex] == motionVector)
+                if (candidates[candidateIndex] == motionVector)
                 {
                     break;
                 }
@@ -1113,8 +1117,8 @@ internal struct Av1ReferenceMotionVectors
             {
                 // AV1's outer spatial extension only initializes a new stack entry. Unlike the weighted nearest and
                 // temporal scans, finding an existing vector here must not change its previously accumulated rank.
-                this.candidates[this.Count] = motionVector;
-                this.weights[this.Count] = 2;
+                candidates[this.Count] = motionVector;
+                weights[this.Count] = 2;
                 this.Count++;
             }
         }
@@ -1210,11 +1214,16 @@ internal struct Av1ReferenceMotionVectors
 
         // The fallback list is positional rather than a weighted candidate scan. Preserve both entries even when
         // they are equal so the derived DRL indices retain the same meaning.
+        Span<Av1MotionVector> candidates = this.candidates;
+        Span<Av1MotionVector> compoundCandidates = this.compoundCandidates;
+        Span<ushort> weights = this.weights;
+        ReadOnlySpan<Av1MotionVector> primaryEntries = primaryList;
+        ReadOnlySpan<Av1MotionVector> secondaryEntries = secondaryList;
         for (int index = 0; index < 2; index++)
         {
-            this.candidates[index] = primaryList[index];
-            this.compoundCandidates[index] = secondaryList[index];
-            this.weights[index] = 2;
+            candidates[index] = primaryEntries[index];
+            compoundCandidates[index] = secondaryEntries[index];
+            weights[index] = 2;
         }
 
         this.Count = 2;
@@ -1237,6 +1246,10 @@ internal struct Av1ReferenceMotionVectors
         ref InlineArray2<Av1MotionVector> secondaryDifferent,
         ref int secondaryDifferentCount)
     {
+        Span<Av1MotionVector> primaryExactEntries = primaryExact;
+        Span<Av1MotionVector> secondaryExactEntries = secondaryExact;
+        Span<Av1MotionVector> primaryDifferentEntries = primaryDifferent;
+        Span<Av1MotionVector> secondaryDifferentEntries = secondaryDifferent;
         for (int candidateIndex = 0; candidateIndex < 2; candidateIndex++)
         {
             Av1ReferenceFrameType candidateReference = candidate.GetReferenceFrame(candidateIndex);
@@ -1252,11 +1265,11 @@ internal struct Av1ReferenceMotionVectors
                     {
                         if (targetIndex == 0)
                         {
-                            primaryExact[exactCount] = candidateMotionVector;
+                            primaryExactEntries[exactCount] = candidateMotionVector;
                         }
                         else
                         {
-                            secondaryExact[exactCount] = candidateMotionVector;
+                            secondaryExactEntries[exactCount] = candidateMotionVector;
                         }
 
                         exactCount++;
@@ -1283,11 +1296,11 @@ internal struct Av1ReferenceMotionVectors
 
                 if (targetIndex == 0)
                 {
-                    primaryDifferent[differentCount] = differentMotionVector;
+                    primaryDifferentEntries[differentCount] = differentMotionVector;
                 }
                 else
                 {
-                    secondaryDifferent[differentCount] = differentMotionVector;
+                    secondaryDifferentEntries[differentCount] = differentMotionVector;
                 }
 
                 differentCount++;
@@ -1306,21 +1319,24 @@ internal struct Av1ReferenceMotionVectors
         Av1MotionVector globalMotionVector)
     {
         InlineArray2<Av1MotionVector> result = default;
+        Span<Av1MotionVector> resultEntries = result;
+        ReadOnlySpan<Av1MotionVector> exactEntries = exact;
+        ReadOnlySpan<Av1MotionVector> differentEntries = different;
         int resultCount = 0;
 
         for (int index = 0; index < exactCount && resultCount < 2; index++)
         {
-            result[resultCount++] = exact[index];
+            resultEntries[resultCount++] = exactEntries[index];
         }
 
         for (int index = 0; index < differentCount && resultCount < 2; index++)
         {
-            result[resultCount++] = different[index];
+            resultEntries[resultCount++] = differentEntries[index];
         }
 
         while (resultCount < 2)
         {
-            result[resultCount++] = globalMotionVector;
+            resultEntries[resultCount++] = globalMotionVector;
         }
 
         return result;
@@ -1333,19 +1349,21 @@ internal struct Av1ReferenceMotionVectors
     /// <param name="weight">The spatial or temporal weight contributed by this occurrence.</param>
     private void AddUnique(Av1MotionVector motionVector, int weight)
     {
+        Span<Av1MotionVector> candidates = this.candidates;
+        Span<ushort> weights = this.weights;
         for (int index = 0; index < this.Count; index++)
         {
-            if (this.candidates[index] == motionVector)
+            if (candidates[index] == motionVector)
             {
-                this.weights[index] += (ushort)weight;
+                weights[index] += (ushort)weight;
                 return;
             }
         }
 
         if (this.Count < CandidateCapacity)
         {
-            this.candidates[this.Count] = motionVector;
-            this.weights[this.Count] = (ushort)weight;
+            candidates[this.Count] = motionVector;
+            weights[this.Count] = (ushort)weight;
             this.Count++;
         }
     }
@@ -1355,20 +1373,23 @@ internal struct Av1ReferenceMotionVectors
     /// </summary>
     private void AddUnique(Av1MotionVector motionVector, Av1MotionVector compoundMotionVector, int weight)
     {
+        Span<Av1MotionVector> candidates = this.candidates;
+        Span<Av1MotionVector> compoundCandidates = this.compoundCandidates;
+        Span<ushort> weights = this.weights;
         for (int index = 0; index < this.Count; index++)
         {
-            if (this.candidates[index] == motionVector && this.compoundCandidates[index] == compoundMotionVector)
+            if (candidates[index] == motionVector && compoundCandidates[index] == compoundMotionVector)
             {
-                this.weights[index] += (ushort)weight;
+                weights[index] += (ushort)weight;
                 return;
             }
         }
 
         if (this.Count < CandidateCapacity)
         {
-            this.candidates[this.Count] = motionVector;
-            this.compoundCandidates[this.Count] = compoundMotionVector;
-            this.weights[this.Count] = (ushort)weight;
+            candidates[this.Count] = motionVector;
+            compoundCandidates[this.Count] = compoundMotionVector;
+            weights[this.Count] = (ushort)weight;
             this.Count++;
         }
     }
@@ -1380,25 +1401,28 @@ internal struct Av1ReferenceMotionVectors
     /// <param name="end">The exclusive end candidate index in the region.</param>
     private void SortByWeight(int start, int end)
     {
+        Span<Av1MotionVector> candidates = this.candidates;
+        Span<Av1MotionVector> compoundCandidates = this.compoundCandidates;
+        Span<ushort> weights = this.weights;
         int length = end;
         while (length > start)
         {
             int lastSwap = start;
             for (int index = start + 1; index < length; index++)
             {
-                if (this.weights[index - 1] < this.weights[index])
+                if (weights[index - 1] < weights[index])
                 {
-                    Av1MotionVector candidate = this.candidates[index - 1];
-                    this.candidates[index - 1] = this.candidates[index];
-                    this.candidates[index] = candidate;
+                    Av1MotionVector candidate = candidates[index - 1];
+                    candidates[index - 1] = candidates[index];
+                    candidates[index] = candidate;
 
-                    Av1MotionVector compoundCandidate = this.compoundCandidates[index - 1];
-                    this.compoundCandidates[index - 1] = this.compoundCandidates[index];
-                    this.compoundCandidates[index] = compoundCandidate;
+                    Av1MotionVector compoundCandidate = compoundCandidates[index - 1];
+                    compoundCandidates[index - 1] = compoundCandidates[index];
+                    compoundCandidates[index] = compoundCandidate;
 
-                    ushort weight = this.weights[index - 1];
-                    this.weights[index - 1] = this.weights[index];
-                    this.weights[index] = weight;
+                    ushort weight = weights[index - 1];
+                    weights[index - 1] = weights[index];
+                    weights[index] = weight;
                     lastSwap = index;
                 }
             }

@@ -523,6 +523,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1BlockSize superBlockSize = this.SequenceHeader.SuperblockSize;
         int superBlock4x4Size = this.SequenceHeader.SuperblockSize.Get4x4WideCount();
         int superBlockSizeLog2 = this.SequenceHeader.SuperblockSizeLog2;
+        Span<int> firstTransformOffset = this.firstTransformOffset;
+        Span<int> planeCoefficientIndices = this.coefficientIndex[..Av1Constants.MaxPlanes];
         for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
         {
             int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
@@ -544,9 +546,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 }
 
                 this.FrameInfo.ClearCdef(superblockPosition);
-                this.firstTransformOffset[0] = 0;
-                this.firstTransformOffset[1] = 0;
-                this.coefficientIndex[..Av1Constants.MaxPlanes].Clear();
+                firstTransformOffset[0] = 0;
+                firstTransformOffset[1] = 0;
+                planeCoefficientIndices.Clear();
                 this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
                 this.FrameDecoder?.BeginSuperblock(superblockInfo);
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
@@ -684,6 +686,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="unit">The destination restoration-unit information.</param>
     private void ReadWienerFilter(ref Av1SymbolDecoder reader, int plane, ref Av1LoopRestorationUnit unit)
     {
+        Span<int> referenceLrWiener = this.referenceLrWiener;
         for (int pass = 0; pass < 2; pass++)
         {
             int firstCoefficient = plane == 0 ? 0 : 1;
@@ -703,7 +706,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 int value = reader.ReadReferenceSubexponential(
                     WienerCoefficientValueCount[coefficient],
                     WienerCoefficientSubexponentialK[coefficient],
-                    this.referenceLrWiener[referenceIndex] - minimum);
+                    referenceLrWiener[referenceIndex] - minimum);
 
                 value += minimum;
                 if (pass == 0)
@@ -715,7 +718,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     unit.WienerHorizontal[coefficient] = value;
                 }
 
-                this.referenceLrWiener[referenceIndex] = value;
+                referenceLrWiener[referenceIndex] = value;
             }
         }
     }
@@ -1074,6 +1077,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         // AV1 forces residual traversal into at most 64x64 regions even when the coding block is larger.
         // transformUnitCount preserves the transform geometry generated for each such region and plane.
+        Span<int> planeCoefficientIndices = this.coefficientIndex;
         for (int row = 0; row < maxBlocksHigh; row += modeUnitBlocksHigh)
         {
             for (int column = 0; column < maxBlocksWide; column += modeUnitBlocksWide)
@@ -1127,7 +1131,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetX, maxBlocksWide, nameof(transformInfo));
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetY, maxBlocksHigh, nameof(transformInfo));
 
-                        int coefficientIndex = this.coefficientIndex[plane];
+                        int coefficientIndex = planeCoefficientIndices[plane];
                         int endOfBlock = 0;
                         int blockColumn = transformInfo.OffsetX;
                         int blockRow = transformInfo.OffsetY;
@@ -1165,7 +1169,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
                         // Each transform reserves its nominal area even when its residual is empty. EOB belongs
                         // to the descriptor, so the raster coefficient region contains no packed metadata prefix.
-                        this.coefficientIndex[plane] += transformInfo.Size.GetWidth() * transformInfo.Size.GetHeight();
+                        planeCoefficientIndices[plane] += transformInfo.Size.GetWidth() * transformInfo.Size.GetHeight();
                         transformInfo.EndOfBlock = (ushort)endOfBlock;
 
                         // Intra prediction consumes the previous transform's reconstructed edge. Complete
@@ -3113,14 +3117,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 frameLoopFilterCount = this.SequenceHeader.ColorConfig.PlaneCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
             }
 
+            Span<int> currentDeltaLoopFilter = this.currentDeltaLoopFilter;
             for (int i = 0; i < frameLoopFilterCount; i++)
             {
                 int reducedDeltaLoopFilterLevel = reader.ReadDeltaLoopFilter(this.FrameHeader.DeltaLoopFilterParameters.IsMulti, i);
                 int deltaLoopFilterResolution = this.FrameHeader.DeltaLoopFilterParameters.Resolution;
-                this.currentDeltaLoopFilter[i] = Av1Math.Clip3(
+                currentDeltaLoopFilter[i] = Av1Math.Clip3(
                     -Av1Constants.MaxLoopFilter,
                     Av1Constants.MaxLoopFilter,
-                    this.currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel * deltaLoopFilterResolution));
+                    currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel * deltaLoopFilterResolution));
             }
         }
 

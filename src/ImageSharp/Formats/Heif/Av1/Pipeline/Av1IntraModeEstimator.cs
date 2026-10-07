@@ -106,7 +106,8 @@ internal static class Av1IntraModeEstimator
 
         Span<int> rowCoefficients = workspace.EstimationRowCoefficients;
         Span<int> reconstructed = workspace.SearchDequantizedCoefficients[..sampleCount];
-        Span<int> quantized = workspace.TransformWorkspace[..sampleCount];
+        Span<int> transformWorkspace = workspace.TransformWorkspace;
+        Span<int> quantized = transformWorkspace[..sampleCount];
         int normalizationShift = (bitDepth.GetBitCount() - 8) * 2;
         int blocksPerRow = (extent.Width + width - 1) / width;
         int magnitudeSum = 0;
@@ -125,7 +126,7 @@ internal static class Av1IntraModeEstimator
                     width,
                     blocksPerRow,
                     rowCoefficients,
-                    workspace.TransformWorkspace,
+                    transformWorkspace,
                     highBitDepth);
             }
 

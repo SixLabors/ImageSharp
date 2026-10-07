@@ -810,19 +810,22 @@ internal static partial class Av1MotionSearchBase
 
             if (settings.StartCandidatePruningLevel != 0)
             {
+                Span<Point> searchStarts = state.Starts;
+                Span<byte> startReferenceIndices = state.StartReferenceIndices;
+                Span<ReferenceSearchResult> references = state.References;
                 for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
                 {
                     Point start = starts[candidateIndex].Vector;
                     for (int historyIndex = 0; historyIndex < state.StartCount; historyIndex++)
                     {
-                        int previousIndex = state.StartReferenceIndices[historyIndex];
-                        ref ReferenceSearchResult previous = ref state.References[previousIndex];
+                        int previousIndex = startReferenceIndices[historyIndex];
+                        ref ReferenceSearchResult previous = ref references[previousIndex];
                         if (!previous.IsValid && previousIndex != referenceIndex)
                         {
                             continue;
                         }
 
-                        Point previousStart = state.Starts[historyIndex];
+                        Point previousStart = searchStarts[historyIndex];
                         Av1MotionVector previousReference = previous.ReferenceVector;
                         int previousColumn = (previousReference.Column + 3 + (previousReference.Column >= 0 ? 1 : 0)) >> 3;
                         int previousRow = (previousReference.Row + 3 + (previousReference.Row >= 0 ? 1 : 0)) >> 3;
@@ -843,8 +846,8 @@ internal static partial class Av1MotionSearchBase
 
                     if (!rejected[candidateIndex])
                     {
-                        state.Starts[state.StartCount] = start;
-                        state.StartReferenceIndices[state.StartCount++] = (byte)referenceIndex;
+                        searchStarts[state.StartCount] = start;
+                        startReferenceIndices[state.StartCount++] = (byte)referenceIndex;
                     }
                 }
             }
@@ -938,9 +941,10 @@ internal static partial class Av1MotionSearchBase
             int pruningLevel = settings.ReferenceCandidatePruningLevel;
             if (pruningLevel >= 2)
             {
+                Span<ReferenceSearchResult> references = state.References;
                 for (int previousIndex = 0; previousIndex < referenceIndex; previousIndex++)
                 {
-                    ref ReferenceSearchResult previous = ref state.References[previousIndex];
+                    ref ReferenceSearchResult previous = ref references[previousIndex];
                     if (!previous.HasFullResult)
                     {
                         continue;
@@ -1037,9 +1041,10 @@ internal static partial class Av1MotionSearchBase
                 if (pruningLevel >= 1)
                 {
                     int fractionalRate = ((this.motionCosts.GetCost(result.Vector, referenceVector) * 108) + 64) >> 7;
+                    Span<ReferenceSearchResult> references = state.References;
                     for (int previousIndex = 0; previousIndex < referenceIndex; previousIndex++)
                     {
-                        ref ReferenceSearchResult previous = ref state.References[previousIndex];
+                        ref ReferenceSearchResult previous = ref references[previousIndex];
                         if (!previous.IsValid || previous.Vector != result.Vector)
                         {
                             continue;

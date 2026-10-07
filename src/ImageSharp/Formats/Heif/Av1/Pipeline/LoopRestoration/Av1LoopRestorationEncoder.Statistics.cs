@@ -185,9 +185,12 @@ internal static partial class Av1LoopRestorationEncoder
     /// <returns>A positive value when the fitted filter is worse than identity.</returns>
     private static long GetWienerScore(int window, ReadOnlySpan<long> correlation, ReadOnlySpan<long> covariance, Av1LoopRestorationUnit unit)
     {
-        InlineArray8<int> vertical = default;
-        InlineArray8<int> horizontal = default;
-        InlineArray65<int> product = default;
+        InlineArray8<int> verticalStorage = default;
+        InlineArray8<int> horizontalStorage = default;
+        InlineArray65<int> productStorage = default;
+        Span<int> vertical = verticalStorage;
+        Span<int> horizontal = horizontalStorage;
+        Span<int> product = productStorage;
         vertical[3] = horizontal[3] = 128;
         for (int index = 0; index < 3; index++)
         {

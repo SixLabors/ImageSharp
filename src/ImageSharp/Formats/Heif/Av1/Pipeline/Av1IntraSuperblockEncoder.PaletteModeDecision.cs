@@ -71,7 +71,8 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int maximumPaletteSize = Math.Min(colorCount, Av1Constants.PaletteMaxSize);
-            InlineArray8<short> dominantColors = default;
+            InlineArray8<short> dominantColorStorage = default;
+            Span<short> dominantColors = dominantColorStorage;
             int dominantCount = 0;
 
             // Only eight seeds survive. Insert by decreasing frequency; visiting values in ascending

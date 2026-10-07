@@ -299,6 +299,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         Span<int> scores = stackalloc int[Av1Constants.ReferenceFrameCount - 1];
         Span<int> order = stackalloc int[Av1Constants.ReferenceFrameCount - 1];
+        Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        Span<int> referenceFrameNumbers = blockWorkspace.ReferenceFrameNumbers;
         for (int index = 0; index < scores.Length; index++)
         {
             Av1ReferenceFrameType referenceType = (Av1ReferenceFrameType)(index + (int)Av1ReferenceFrameType.Last);
@@ -309,8 +311,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 continue;
             }
 
-            int slot = (int)frameHeader.GetReferenceFrameIndices()[index];
-            int distance = blockWorkspace.ReferenceFrameNumbers[slot] - blockWorkspace.EncodedFrameCount;
+            int slot = (int)referenceFrameIndices[index];
+            int distance = referenceFrameNumbers[slot] - blockWorkspace.EncodedFrameCount;
             parent.ReferenceDistances[(int)referenceType] = distance;
             scores[index] = Math.Abs(distance) + blockWorkspace.ReferenceBaseQIndices[slot];
         }
@@ -607,10 +609,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
             // Every reference, enabled or not, must precede the frame. Reference: refs_are_one_sided().
             parent.AllOneSidedReferences = true;
+            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            Span<int> referenceFrameNumbers = blockWorkspace.ReferenceFrameNumbers;
             for (int index = 0; index < Av1Constants.ReferenceFrameCount - 1; index++)
             {
-                int slot = (int)frameHeader.GetReferenceFrameIndices()[index];
-                if (blockWorkspace.ReferenceFrameNumbers[slot] > blockWorkspace.EncodedFrameCount)
+                int slot = (int)referenceFrameIndices[index];
+                if (referenceFrameNumbers[slot] > blockWorkspace.EncodedFrameCount)
                 {
                     parent.AllOneSidedReferences = false;
                 }
@@ -621,6 +625,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         {
             int nearestPastDistance = int.MaxValue;
             int nearestFutureDistance = int.MaxValue;
+            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            Span<int> referenceFrameNumbers = blockWorkspace.ReferenceFrameNumbers;
             for (Av1ReferenceFrameType referenceType = Av1ReferenceFrameType.Last; referenceType <= Av1ReferenceFrameType.Alternate; referenceType++)
             {
                 if ((parent.AvailableReferenceMask & (1 << (int)referenceType)) == 0)
@@ -628,8 +634,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                     continue;
                 }
 
-                int slot = (int)frameHeader.GetReferenceFrameIndices()[(int)referenceType - (int)Av1ReferenceFrameType.Last];
-                int distance = blockWorkspace.ReferenceFrameNumbers[slot] - blockWorkspace.EncodedFrameCount;
+                int slot = (int)referenceFrameIndices[(int)referenceType - (int)Av1ReferenceFrameType.Last];
+                int distance = referenceFrameNumbers[slot] - blockWorkspace.EncodedFrameCount;
                 if (distance < 0 && -distance < nearestPastDistance)
                 {
                     nearestPastDistance = -distance;
@@ -1149,11 +1155,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
 
         UpdateFrameProbabilities(picture, blockWorkspace, switchableBeforeFix);
+        Span<int> referenceFrameNumbers = blockWorkspace.ReferenceFrameNumbers;
         for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
         {
             if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
             {
-                blockWorkspace.ReferenceFrameNumbers[slot] = blockWorkspace.EncodedFrameCount;
+                referenceFrameNumbers[slot] = blockWorkspace.EncodedFrameCount;
                 blockWorkspace.ReferenceBaseQIndices[slot] = frameHeader.QuantizationParameters.BaseQIndex;
             }
         }
@@ -1244,6 +1251,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int tileCount = tileLayout.TileColumnCount * tileLayout.TileRowCount;
         int largestTileLength = 0;
         int largestTileIndex = 0;
+
+        // The inter search state exists only for inter frames.
+        Span<Av1InterModeRateDistortionModel> interModeModels = frameHeader.IsIntra ? default : blockWorkspace.InterModeModels;
+        Span<int> modeThresholdFactors = frameHeader.IsIntra ? default : blockWorkspace.ModeThresholdFactors;
         for (int tileRow = 0; tileRow < tileLayout.TileRowCount; tileRow++)
         {
             tile.SetTileRow(tileLayout, frameHeader.ModeInfoRowCount, tileRow);
@@ -1261,7 +1272,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
                 if (!TSymbolOperation.WritesOutput && !frameHeader.IsIntra)
                 {
-                    blockWorkspace.InterModeModels.Clear();
+                    interModeModels.Clear();
                 }
 
                 int motionCostRowInterval = 1;
@@ -1287,7 +1298,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                     {
                         // Evidence is shared across this row's block searches, including partition trials.
                         // Every row starts at unity in Q5; packing does not alter search history.
-                        blockWorkspace.ModeThresholdFactors.Fill(32);
+                        modeThresholdFactors.Fill(32);
                     }
 
                     for (int modeInfoColumn = tile.ModeInfoColumnStart;
@@ -1384,7 +1395,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             {
                                 // Fit only after all partition trials for this superblock have finished.
                                 // Every candidate inside the superblock uses the preceding fit.
-                                foreach (ref Av1InterModeRateDistortionModel model in blockWorkspace.InterModeModels)
+                                foreach (ref Av1InterModeRateDistortionModel model in interModeModels)
                                 {
                                     model.Fit();
                                 }

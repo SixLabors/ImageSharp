@@ -704,19 +704,24 @@ internal static partial class Av1IntraSuperblockEncoder
         int height = transformSize.GetHeight();
         int energyWidth = width <= 8 ? width : width >> 1;
         int energyHeight = height <= 8 ? height : height >> 1;
-        InlineArray16<float> horizontalFeatures = default;
-        InlineArray16<float> verticalFeatures = default;
+        InlineArray16<float> horizontalFeatureStorage = default;
+        InlineArray16<float> verticalFeatureStorage = default;
+        Span<float> horizontalFeatures = horizontalFeatureStorage;
+        Span<float> verticalFeatures = verticalFeatureStorage;
         GetEnergyDistribution(residual, stride, width, height, horizontalFeatures, verticalFeatures);
 
         // The last feature of each axis is the correlation of adjacent residuals; a constant signal gives one.
         Av1ResidualBuilder.GetHorizontalVerticalCorrelation(
             residual, stride, width, height, out horizontalFeatures[energyWidth - 1], out verticalFeatures[energyHeight - 1]);
 
-        InlineArray4<float> horizontalScores = default;
-        InlineArray4<float> verticalScores = default;
+        InlineArray4<float> horizontalScoreStorage = default;
+        InlineArray4<float> verticalScoreStorage = default;
+        Span<float> horizontalScores = horizontalScoreStorage;
+        Span<float> verticalScores = verticalScoreStorage;
         EvaluateTransformAxis(transformSize, false, horizontalFeatures[..energyWidth], horizontalScores);
         EvaluateTransformAxis(transformSize, true, verticalFeatures[..energyHeight], verticalScores);
-        InlineArray16<float> scores = default;
+        InlineArray16<float> scoreStorage = default;
+        Span<float> scores = scoreStorage;
         float maximum = float.MinValue;
         for (int vertical = 0; vertical < 4; vertical++)
         {
@@ -760,8 +765,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformType.HorizontalDct, Av1TransformType.HorizontalAdst, Av1TransformType.HorizontalFlipAdst, Av1TransformType.Identity
         ];
 
-        InlineArray16<float> retainedScores = default;
-        retainedScores[..].Fill(-1);
+        InlineArray16<float> retainedScoreStorage = default;
+        Span<float> retainedScores = retainedScoreStorage;
+        retainedScores.Fill(-1);
         order.Fill(Av1TransformType.Invalid);
         float maximumAllowed = 0;
         int maximumIndex = 0;
@@ -1005,7 +1011,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 break;
         }
 
-        InlineArray16<float> hidden = default;
+        InlineArray16<float> hiddenStorage = default;
+        Span<float> hidden = hiddenStorage;
         for (int node = 0; node < bias.Length; node++)
         {
             float value = bias[node];

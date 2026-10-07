@@ -529,23 +529,25 @@ internal sealed partial class HeifEncoderCore
                 // A lookahead codes frames out of display order, so each sample is one temporal unit that ends with a
                 // shown frame. libavif submits every frame with a duration of one unit of the default 1/30 timebase.
                 // Reference: the aom_codec_encode(encoder, image, 0, 1, flags) call of aomCodecEncodeImage().
-                using IMemoryOwner<long> sampleEnds = this.configuration.MemoryAllocator.Allocate<long>(frameCount);
-                using IMemoryOwner<bool> syncSamples = this.configuration.MemoryAllocator.Allocate<bool>(frameCount);
+                using IMemoryOwner<long> sampleEndsOwner = this.configuration.MemoryAllocator.Allocate<long>(frameCount);
+                using IMemoryOwner<bool> syncSamplesOwner = this.configuration.MemoryAllocator.Allocate<bool>(frameCount);
+                Span<long> sampleEnds = sampleEndsOwner.Memory.Span;
+                Span<bool> syncSamples = syncSamplesOwner.Memory.Span;
                 colorEncoder.EncodeWithLookahead(
                     image,
                     firstFrameIndex,
                     frameCount,
                     LibavifFrameDurationTicks,
                     stream,
-                    sampleEnds.Memory.Span,
-                    syncSamples.Memory.Span,
+                    sampleEnds,
+                    syncSamples,
                     cancellationToken);
 
                 colorHeader = colorEncoder.SequenceHeader;
                 long sampleStart = colorOffset;
                 for (int sampleIndex = 0; sampleIndex < frameCount; sampleIndex++)
                 {
-                    long sampleEnd = sampleEnds.Memory.Span[sampleIndex];
+                    long sampleEnd = sampleEnds[sampleIndex];
                     uint duration = GetSequenceSampleDuration(
                         image.Frames[firstFrameIndex + sampleIndex].Metadata.GetHeifMetadata().FrameDelay,
                         timescale);
@@ -554,7 +556,7 @@ internal sealed partial class HeifEncoderCore
                         sampleStart,
                         checked((int)(sampleEnd - sampleStart)),
                         duration,
-                        syncSamples.Memory.Span[sampleIndex]);
+                        syncSamples[sampleIndex]);
 
                     sampleStart = sampleEnd;
                 }

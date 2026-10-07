@@ -124,7 +124,8 @@ internal static partial class Av1LoopRestorationEncoder
 
         Av1EncoderFrame<TSample> trialFrame = workspace.GetRestorationTrial(source, colorFormat);
         MemoryAllocator allocator = workspace.MemoryAllocator;
-        InlineArray3<int> searchOffsets = default;
+        InlineArray3<int> searchOffsetStorage = default;
+        Span<int> searchOffsets = searchOffsetStorage;
         int searchCapacity = 0;
         for (int plane = 0; plane < planeCount; plane++)
         {
@@ -167,7 +168,9 @@ internal static partial class Av1LoopRestorationEncoder
         int searchedPlanes = settings.EnableChroma ? planeCount : 1;
         int bestUnitSize = settings.MaximumUnitSize;
         double bestCost = double.MaxValue;
-        InlineArray3<int> selectedModes = default;
+        InlineArray3<int> selectedModeStorage = default;
+        Span<int> selectedModes = selectedModeStorage;
+        Span<UnitSearchResult> searchResults = searchOwner.Memory.Span;
 
         for (int unitSize = settings.MaximumUnitSize; unitSize >= settings.MinimumUnitSize; unitSize >>= 1)
         {
@@ -199,7 +202,7 @@ internal static partial class Av1LoopRestorationEncoder
                     tile,
                     rateMultiplier,
                     varianceThreshold,
-                    searchOwner.Memory.Span[searchOffsets[plane]..],
+                    searchResults[searchOffsets[plane]..],
                     correlation,
                     covariance,
                     filtered0,
@@ -241,7 +244,7 @@ internal static partial class Av1LoopRestorationEncoder
                 int count = Math.Max(1, (region.Width + (unitSize >> 1)) / unitSize) *
                     Math.Max(1, (region.Height + (unitSize >> 1)) / unitSize);
 
-                ReadOnlySpan<UnitSearchResult> results = searchOwner.Memory.Span.Slice(searchOffsets[plane], count);
+                ReadOnlySpan<UnitSearchResult> results = searchResults.Slice(searchOffsets[plane], count);
                 Span<Av1LoopRestorationUnit> retained = picture.RestorationUnits[plane].Span;
                 for (int index = 0; index < count; index++)
                 {

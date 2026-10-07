@@ -1128,6 +1128,7 @@ internal static partial class Av1CdefFilter
         InlineArray8<int> costs = default;
         InlineArray16<int> partials = default;
         Span<int> lineSums = partials;
+        Span<int> directionCosts = costs;
 
         // The fallback reuses one 15-line accumulator for each direction. Re-reading the 8x8 block is preferable to
         // reserving and clearing the old 120-element partial table on every block when SIMD is explicitly disabled.
@@ -1143,7 +1144,7 @@ internal static partial class Av1CdefFilter
                 }
             }
 
-            costs[direction] = CalculateDirectionCost(direction, lineSums);
+            directionCosts[direction] = CalculateDirectionCost(direction, lineSums);
         }
 
         return SelectDirection(ref costs, out variance);
@@ -1159,11 +1160,12 @@ internal static partial class Av1CdefFilter
     {
         int bestCost = 0;
         int bestDirection = 0;
+        ReadOnlySpan<int> directionCosts = costs;
         for (int direction = 0; direction < 8; direction++)
         {
-            if (costs[direction] > bestCost)
+            if (directionCosts[direction] > bestCost)
             {
-                bestCost = costs[direction];
+                bestCost = directionCosts[direction];
                 bestDirection = direction;
             }
         }

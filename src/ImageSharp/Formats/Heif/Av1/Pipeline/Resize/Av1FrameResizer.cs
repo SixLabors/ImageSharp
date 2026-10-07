@@ -405,11 +405,13 @@ internal static partial class Av1FrameResizer
         bool inFirst = true;
         int steps = GetDown2Steps(length, targetLength);
         int filteredLength = length;
+        Span<int> rows = rowsOwner.Memory.Span;
+        Span<short> coefficients = coefficientsOwner.Memory.Span;
         for (int step = 0; step < steps; step++)
         {
             // An odd line halves with the odd-length filter, an even line with the even-length one.
             int halvedLength = (filteredLength + 1) >> 1;
-            TapPlan plan = new(rowsOwner.Memory.Span[..(halvedLength * Taps)], coefficientsOwner.Memory.Span[..(halvedLength * Taps)], halvedLength);
+            TapPlan plan = new(rows[..(halvedLength * Taps)], coefficients[..(halvedLength * Taps)], halvedLength);
             PlanDown2(filteredLength, ref plan);
             ApplyPass<TSample, TOperator>(inFirst ? first : second, 0, lineCount, inFirst ? second : first, 0, lineCount, plan, lineCount, maximum);
             inFirst = !inFirst;

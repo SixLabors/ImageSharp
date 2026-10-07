@@ -299,6 +299,7 @@ internal sealed class Av1BlockDecoder
         }
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
+        Span<short> predictionStorage = this.workspace.Span[this.predictionScratchOffset..];
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
             int subX = (plane > 0) && colorConfig.SubSamplingX ? 1 : 0;
@@ -403,7 +404,6 @@ internal sealed class Av1BlockDecoder
                 int maximumBlockLength = 1 << this.sequenceHeader.SuperblockSizeLog2;
                 int maximumBlockArea = maximumBlockLength * maximumBlockLength;
                 int compoundMaskStorageLength = (maximumBlockArea + 1) >> 1;
-                Span<short> predictionStorage = this.workspace.Span[this.predictionScratchOffset..];
                 Span<short> secondPredictionStorage = predictionStorage[..maximumBlockArea];
                 Span<ushort> firstCompoundPrediction = MemoryMarshal.Cast<short, ushort>(
                     predictionStorage.Slice(maximumBlockArea, maximumBlockArea));

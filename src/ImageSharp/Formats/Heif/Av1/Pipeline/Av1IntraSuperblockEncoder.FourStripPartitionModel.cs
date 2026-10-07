@@ -983,7 +983,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            InlineArray4<float> scores = default;
+            InlineArray4<float> scoreStorage = default;
+            Span<float> scores = scoreStorage;
             int outputCount = outputBiases.Length;
             int hiddenCount = biases.Length;
             for (int output = 0; output < outputCount; output++)
@@ -1016,7 +1017,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (!normalized)
             {
-                InlineArray4<int> integerScores = default;
+                InlineArray4<int> integerScoreStorage = default;
+                Span<int> integerScores = integerScoreStorage;
                 int maximum = -1000;
                 for (int output = 0; output < 4; output++)
                 {

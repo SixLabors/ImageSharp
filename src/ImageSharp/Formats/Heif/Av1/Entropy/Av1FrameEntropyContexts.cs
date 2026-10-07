@@ -99,15 +99,16 @@ internal sealed class Av1FrameEntropyContexts
     public Av1FrameEntropyContext RentPublishedSnapshot()
     {
         Av1FrameEntropyContext? snapshot = null;
+        Span<Av1FrameEntropyContext?> returnedSnapshots = this.returnedSnapshots;
         for (int snapshotIndex = 0; snapshotIndex < MaximumSnapshotCount; snapshotIndex++)
         {
-            Av1FrameEntropyContext? returnedSnapshot = this.returnedSnapshots[snapshotIndex];
+            Av1FrameEntropyContext? returnedSnapshot = returnedSnapshots[snapshotIndex];
             if (returnedSnapshot is null)
             {
                 continue;
             }
 
-            this.returnedSnapshots[snapshotIndex] = null;
+            returnedSnapshots[snapshotIndex] = null;
             snapshot = returnedSnapshot;
             break;
         }
@@ -128,11 +129,12 @@ internal sealed class Av1FrameEntropyContexts
     {
         // The fixed capacity covers eight distinct slot owners, one detached presentation owner, and the replacement
         // frame rented before commit. Av1ReferenceFrame returns each graph exactly once, so one slot is always free.
+        Span<Av1FrameEntropyContext?> returnedSnapshots = this.returnedSnapshots;
         for (int snapshotIndex = 0; snapshotIndex < MaximumSnapshotCount; snapshotIndex++)
         {
-            if (this.returnedSnapshots[snapshotIndex] is null)
+            if (returnedSnapshots[snapshotIndex] is null)
             {
-                this.returnedSnapshots[snapshotIndex] = snapshot;
+                returnedSnapshots[snapshotIndex] = snapshot;
                 return;
             }
         }

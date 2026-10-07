@@ -25,8 +25,10 @@ internal static partial class Av1LoopRestorationEncoder
     private static Av1LoopRestorationUnit FitWiener(int window, ReadOnlySpan<long> correlation, ReadOnlySpan<long> covariance)
     {
         ReadOnlySpan<int> initial = [3, -7, 15, 106, 15, -7, 3];
-        InlineArray8<int> vertical = default;
-        InlineArray8<int> horizontal = default;
+        InlineArray8<int> verticalStorage = default;
+        InlineArray8<int> horizontalStorage = default;
+        Span<int> vertical = verticalStorage;
+        Span<int> horizontal = horizontalStorage;
         int inset = (7 - window) >> 1;
         for (int index = 0; index < window; index++)
         {
@@ -65,11 +67,16 @@ internal static partial class Av1LoopRestorationEncoder
         ReadOnlySpan<int> fixedAxis,
         bool vertical)
     {
-        InlineArray8<long> solution = default;
-        InlineArray4<long> rightHandSide = default;
-        InlineArray16<long> matrix = default;
-        InlineArray8<int> integerPart = default;
-        InlineArray8<int> fractionalPart = default;
+        InlineArray8<long> solutionStorage = default;
+        InlineArray4<long> rightHandSideStorage = default;
+        InlineArray16<long> matrixStorage = default;
+        InlineArray8<int> integerPartStorage = default;
+        InlineArray8<int> fractionalPartStorage = default;
+        Span<long> solution = solutionStorage;
+        Span<long> rightHandSide = rightHandSideStorage;
+        Span<long> matrix = matrixStorage;
+        Span<int> integerPart = integerPartStorage;
+        Span<int> fractionalPart = fractionalPartStorage;
         int half = (window >> 1) + 1;
         int square = window * window;
         for (int i = 0; i < window; i++)

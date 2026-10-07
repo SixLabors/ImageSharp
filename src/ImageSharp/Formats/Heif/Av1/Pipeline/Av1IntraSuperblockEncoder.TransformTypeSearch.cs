@@ -150,12 +150,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 ReadOnlySpan<byte> verticalPattern = [0, 0, 1, 1, 0, 2, 1, 2, 2, 0, 3, 1, 3, 2, 3, 3];
                 ReadOnlySpan<byte> horizontalPattern = [0, 1, 0, 1, 2, 0, 2, 1, 2, 3, 0, 3, 1, 3, 2, 3];
 
-                InlineArray4<long> horizontalCosts = default;
-                InlineArray4<long> verticalCosts = default;
-                InlineArray4<int> horizontalOrder = default;
-                InlineArray4<int> verticalOrder = default;
-                InlineArray4<bool> skipHorizontal = default;
-                InlineArray4<bool> skipVertical = default;
+                InlineArray4<long> horizontalCostStorage = default;
+                InlineArray4<long> verticalCostStorage = default;
+                InlineArray4<int> horizontalOrderStorage = default;
+                InlineArray4<int> verticalOrderStorage = default;
+                InlineArray4<bool> skipHorizontalStorage = default;
+                InlineArray4<bool> skipVerticalStorage = default;
+                Span<long> horizontalCosts = horizontalCostStorage;
+                Span<long> verticalCosts = verticalCostStorage;
+                Span<int> horizontalOrder = horizontalOrderStorage;
+                Span<int> verticalOrder = verticalOrderStorage;
+                Span<bool> skipHorizontal = skipHorizontalStorage;
+                Span<bool> skipVertical = skipVerticalStorage;
                 for (int axis = 0; axis < 4; axis++)
                 {
                     horizontalOrder[axis] = verticalOrder[axis] = axis;

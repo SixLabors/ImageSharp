@@ -598,14 +598,16 @@ internal ref struct Av1Transform2dFlipConfiguration
 
         byte columnRange = bitDepth == 12 ? (byte)18 : (byte)16;
 
+        Span<byte> stageRangeColumn = this.stageRangeColumn;
         for (int i = 0; i < this.StageNumberColumn; ++i)
         {
-            this.stageRangeColumn[i] = columnRange;
+            stageRangeColumn[i] = columnRange;
         }
 
+        Span<byte> stageRangeRow = this.stageRangeRow;
         for (int i = 0; i < this.StageNumberRow; ++i)
         {
-            this.stageRangeRow[i] = rowRange;
+            stageRangeRow[i] = rowRange;
         }
     }
 }

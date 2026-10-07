@@ -513,7 +513,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Accumulate each output in hidden-node order. Consuming a node immediately avoids
             // retaining an intermediate activation buffer while preserving each output's addition order.
-            InlineArray3<float> scores = default;
+            InlineArray3<float> scoreStorage = default;
+            Span<float> scores = scoreStorage;
             for (int output = 0; output < 3; output++)
             {
                 scores[output] = outputBiases[output];

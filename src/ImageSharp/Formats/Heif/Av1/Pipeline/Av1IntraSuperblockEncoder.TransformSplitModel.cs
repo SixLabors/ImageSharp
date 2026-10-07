@@ -775,7 +775,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 return -1;
         }
 
-        InlineArray16<float> features = default;
+        InlineArray16<float> featureStorage = default;
+        Span<float> features = featureStorage;
         int featureCount = GetTransformSplitFeatures(residual, transformSize, features);
         float score = EvaluateTransformSplitModel(features[..featureCount], weights, bias, outputWeights, outputBias);
         return Math.Clamp((int)(score * 10000F), -80000, 80000);
@@ -870,7 +871,8 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <returns>Minus one to omit the smaller size, one to omit the largest size, or zero to evaluate both.</returns>
     private static int PredictIntraTransformDepth(ReadOnlySpan<short> residual, int sourceVariance, int dcQuantizer)
     {
-        InlineArray16<float> features = default;
+        InlineArray16<float> featureStorage = default;
+        Span<float> features = featureStorage;
         int featureCount = GetTransformSplitFeatures(residual, Av1TransformSize.Size8x8, features);
         features[featureCount++] = float.LogP1(sourceVariance);
         features[featureCount++] = float.LogP1((float)(dcQuantizer * dcQuantizer) / 256F);

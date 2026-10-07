@@ -62,8 +62,10 @@ internal static partial class Av1LoopRestorationEncoder
         bool superResolution = header.FrameSize.FrameWidth != header.FrameSize.SuperResolutionUpscaledWidth;
         int horizontalScale = superResolution ? header.FrameSize.SuperResolutionDenominator : 1;
         int horizontalDivisor = unitSize * (superResolution ? Av1Constants.ScaleNumerator : 1);
-        InlineArray4<long> totalBits = default;
-        InlineArray4<long> totalErrors = default;
+        InlineArray4<long> totalBitStorage = default;
+        InlineArray4<long> totalErrorStorage = default;
+        Span<long> totalBits = totalBitStorage;
+        Span<long> totalErrors = totalErrorStorage;
         Av1ModeCosts costs = writer.ModeCosts;
 
         for (int tileRow = 0; tileRow < layout.TileRowCount; tileRow++)

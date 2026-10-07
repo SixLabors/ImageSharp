@@ -589,6 +589,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingY);
 
             Span<long> angleCosts = stackalloc long[7];
+            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
             for (int modeIndex = 0; modeIndex < ChromaModeSearchOrder.Length; modeIndex++)
             {
                 // Chroma-from-luma follows DC so its complete cost bounds the remaining spatial modes.
@@ -661,8 +663,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateBlueReconstruction,
                             blueReconstruction,
                             workspace.Residual,
-                            this.blockWorkspace.TransformCoefficients,
-                            this.blockWorkspace.TransformWorkspace);
+                            blockTransformCoefficients,
+                            blockTransformWorkspace);
 
                         int estimatedRedCandidate = speedSettings.ChromaFromLumaSearchRange == Av1ChromaFromLumaMath.AlphaCandidateCount
                             ? Av1ChromaFromLumaMath.AlphaZeroIndex
@@ -678,8 +680,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateRedReconstruction,
                             redReconstruction,
                             workspace.Residual,
-                            this.blockWorkspace.TransformCoefficients,
-                            this.blockWorkspace.TransformWorkspace);
+                            blockTransformCoefficients,
+                            blockTransformWorkspace);
 
                         // Estimate each signed alpha from transform energy, then code only the nearby candidates.
                         // The two planes refine independently before their syntax costs are combined.
@@ -1454,6 +1456,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> typeCandidateReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(0)[..transformSampleCount];
             Span<TSample> typeWinnerReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(1)[..transformSampleCount];
             Span<int> typeWinnerCoefficients = this.blockWorkspace.SearchCoefficients;
+            Span<int> dequantizedStorage = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> searchDequantizedStorage = this.blockWorkspace.SearchDequantizedCoefficients;
 
             // A predicted empty block is priced with the contexts at the block origin, before any transform block
             // of this plane updates them. Reference: av1_get_entropy_contexts() in predict_dc_only_block().
@@ -1552,8 +1556,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             Span<TSample> bestTransformReconstruction = typeWinnerReconstruction;
                             Span<int> candidateTransformCoefficients = candidateCoefficients[..transformSampleCount];
                             Span<int> bestTransformCoefficients = typeWinnerCoefficients;
-                            Span<int> candidateDequantized = this.blockWorkspace.DequantizedCoefficients;
-                            Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
+                            Span<int> candidateDequantized = dequantizedStorage;
+                            Span<int> bestDequantized = searchDequantizedStorage;
 
                             // A later transform block of the plane block predicts from this one unless this one is the last.
                             // Reference: the position test of recon_intra().

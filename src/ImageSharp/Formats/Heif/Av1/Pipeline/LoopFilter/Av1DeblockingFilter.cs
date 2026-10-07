@@ -164,13 +164,14 @@ internal static partial class Av1DeblockingFilter
     {
         int radius = GetFilterRadius(filterLength);
         InlineArray14<Vector128<int>> window = default;
+        Span<Vector128<int>> windowSpan = window;
 
         // AV1 names the samples p6..p0,q0..q6. Loading them into that exact order lets the packed equations below
         // follow the normative scalar formulas without lane shuffles or an intermediate per-edge sample buffer.
         for (int distance = 1; distance <= radius; distance++)
         {
-            window[7 - distance] = TEdgeOperator.LoadVector(ref samples, q0Offset, stride, -distance);
-            window[6 + distance] = TEdgeOperator.LoadVector(ref samples, q0Offset, stride, distance - 1);
+            windowSpan[7 - distance] = TEdgeOperator.LoadVector(ref samples, q0Offset, stride, -distance);
+            windowSpan[6 + distance] = TEdgeOperator.LoadVector(ref samples, q0Offset, stride, distance - 1);
         }
 
         FilterSamples(ref window, filterLength, limit, boundaryLimit, highEdgeVarianceThreshold, bitDepth);
@@ -178,8 +179,8 @@ internal static partial class Av1DeblockingFilter
         int modifiedRadius = GetModifiedRadius(filterLength);
         for (int distance = 1; distance <= modifiedRadius; distance++)
         {
-            TEdgeOperator.StoreVector(ref samples, q0Offset, stride, -distance, window[7 - distance]);
-            TEdgeOperator.StoreVector(ref samples, q0Offset, stride, distance - 1, window[6 + distance]);
+            TEdgeOperator.StoreVector(ref samples, q0Offset, stride, -distance, windowSpan[7 - distance]);
+            TEdgeOperator.StoreVector(ref samples, q0Offset, stride, distance - 1, windowSpan[6 + distance]);
         }
     }
 

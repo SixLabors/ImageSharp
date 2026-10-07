@@ -135,15 +135,17 @@ internal partial class Av1FrameInfo
 
         // Capture the seven logical-role order hints before refreshing physical map slots. Later projection needs
         // each vector's original source-to-reference distance, even after those slots hold different frames.
+        Span<uint> motionFieldReferenceOrderHints = this.motionFieldReferenceOrderHints;
+        Span<sbyte> motionFieldReferenceSides = this.motionFieldReferenceSides;
         for (int referenceIndex = 0; referenceIndex < Av1Constants.ReferencesPerFrame; referenceIndex++)
         {
             Av1ReferenceFrameType referenceFrameType = (Av1ReferenceFrameType)(referenceIndex + 1);
             Av1ReferenceFrame referenceFrame = selectedReferences[referenceFrameType];
             uint referenceOrderHint = referenceFrame.FrameHeader.OrderHint;
-            this.motionFieldReferenceOrderHints[(int)referenceFrameType] = referenceOrderHint;
+            motionFieldReferenceOrderHints[(int)referenceFrameType] = referenceOrderHint;
 
             int relativeDistance = orderHintInfo.GetRelativeDistance(referenceOrderHint, frameHeader.OrderHint);
-            this.motionFieldReferenceSides[(int)referenceFrameType] = relativeDistance > 0
+            motionFieldReferenceSides[(int)referenceFrameType] = relativeDistance > 0
                 ? (sbyte)1
                 : referenceOrderHint == frameHeader.OrderHint ? (sbyte)-1 : (sbyte)0;
         }
@@ -343,13 +345,14 @@ internal partial class Av1FrameInfo
 
         // A compound block can supply two vectors to one retained cell. Visit both in coded order so the last
         // eligible past-reference vector wins; same-order, future, and out-of-range vectors cannot replace it.
+        ReadOnlySpan<sbyte> motionFieldReferenceSides = this.motionFieldReferenceSides;
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
             Av1ReferenceFrameType referenceFrame = referenceFrames[referenceIndex];
             Av1MotionVector motionVector = motionVectors[referenceIndex];
 
             if (referenceFrame > Av1ReferenceFrameType.Intra &&
-                this.motionFieldReferenceSides[(int)referenceFrame] == 0 &&
+                motionFieldReferenceSides[(int)referenceFrame] == 0 &&
                 Math.Abs(motionVector.Row) <= ReferenceMotionVectorLimit &&
                 Math.Abs(motionVector.Column) <= ReferenceMotionVectorLimit)
             {

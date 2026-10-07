@@ -184,7 +184,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             int tileStateLength = cdefPresetLength + (3 * tileCount);
             int tileStateStorageLength = tileStateLength * sizeof(int);
             int restorationStorageOffset = checked(tileStateStorageOffset + tileStateStorageLength);
-            InlineArray3<int> restorationLengths = default;
+            InlineArray3<int> restorationLengthStorage = default;
+            Span<int> restorationLengths = restorationLengthStorage;
             int restorationUnitCount = 0;
             int restorationReferenceCount = 0;
             if (sequenceHeader.EnableRestoration)

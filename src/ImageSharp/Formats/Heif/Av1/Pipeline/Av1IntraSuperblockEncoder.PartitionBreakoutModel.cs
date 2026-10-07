@@ -606,7 +606,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Rates use 1/512-bit units and the distortion term carries seven fractional bits.
             // Convert rate to per-sample distortion units, then pair it with per-sample reconstruction error.
-            InlineArray4<float> features = default;
+            InlineArray4<float> featureStorage = default;
+            Span<float> features = featureStorage;
             features[0] = ((float)this.rateMultiplier / 128F / 512F / (1 << sampleCountLog2)) * statistics.Rate;
             features[1] = Math.Min(statistics.Distortion, int.MaxValue) >> sampleCountLog2;
             features[2] = this.interSourceVariance;

@@ -668,8 +668,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (motionLevel >= 2)
             {
-                InlineArray2<Av1MotionVector> neighbors = default;
-                InlineArray2<uint> errors = default;
+                InlineArray2<Av1MotionVector> neighborStorage = default;
+                InlineArray2<uint> errorStorage = default;
+                Span<Av1MotionVector> neighbors = neighborStorage;
+                Span<uint> errors = errorStorage;
                 errors[0] = uint.MaxValue;
                 errors[1] = uint.MaxValue;
                 Rectangle fractionalBounds = default(Av1MotionVector).GetSubpixelSearchBounds(frameBounds);
@@ -812,6 +814,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Point chromaOrigin = new(origin.X >> subX, origin.Y >> subY);
                 int width = side >> subX;
                 int height = side >> subY;
+                ReadOnlySpan<Av1EncoderFrame<TSample>> searchReferences = this.searchReferences.Span;
                 for (int index = 0; index < 2; index++)
                 {
                     Av1Plane plane = index == 0 ? Av1Plane.U : Av1Plane.V;
@@ -819,7 +822,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     // chroma_check() measures zero motion against LAST, whichever reference the partition chose:
                     // pre[0] when that is LAST, otherwise the LAST buffer through setup_pred_plane().
-                    Av1PlaneRegion<TSample> chromaReference = this.searchReferences.Span[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
+                    Av1PlaneRegion<TSample> chromaReference = searchReferences[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
                         : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;
@@ -852,7 +855,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (alternateSad != uint.MaxValue)
                     {
-                        Av1PlaneRegion<TSample> alternate = this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(plane);
+                        Av1PlaneRegion<TSample> alternate = searchReferences[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(plane);
                         uint sadAlternate = (uint)TOperator.SumAbsoluteDifferences(
                             Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
                             chromaSource.Stride,
@@ -1032,7 +1035,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? Av1QuantizationLookup.GetQIndex(parent.FrameHeader.SegmentationParameters, this.blockSegmentId, this.superblockQIndex)
                     : this.superblockQIndex;
 
-                InlineArray4<long> thresholds = default;
+                InlineArray4<long> thresholdStorage = default;
+                Span<long> thresholds = thresholdStorage;
                 this.GetInterVarianceThresholds(sourceSad, boostedSegment, partitionQIndex, thresholds);
 
                 ReadOnlySpan<TSample> prediction = this.PrepareInterVariancePrediction(

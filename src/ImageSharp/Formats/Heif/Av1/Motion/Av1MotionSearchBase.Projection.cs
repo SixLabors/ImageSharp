@@ -156,7 +156,8 @@ internal static partial class Av1MotionSearchBase
         if (!scrollSuperblock)
         {
             ReadOnlySpan<Point> offsets = [new(0, -1), new(-1, 0), new(1, 0), new(0, 1)];
-            InlineArray4<uint> errors = default;
+            InlineArray4<uint> errorStorage = default;
+            Span<uint> errors = errorStorage;
             for (int index = 0; index < offsets.Length; index++)
             {
                 Point offset = offsets[index];

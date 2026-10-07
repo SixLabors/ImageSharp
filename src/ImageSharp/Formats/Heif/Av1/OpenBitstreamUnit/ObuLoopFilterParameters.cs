@@ -28,9 +28,10 @@ internal sealed class ObuLoopFilterParameters
     /// </summary>
     public ObuLoopFilterParameters()
     {
+        Span<int> referenceDeltas = this.referenceDeltas;
         for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
         {
-            this.referenceDeltas[i] = GetDefaultReferenceDelta(i);
+            referenceDeltas[i] = GetDefaultReferenceDelta(i);
         }
     }
 

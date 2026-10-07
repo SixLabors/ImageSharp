@@ -1436,7 +1436,8 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             rectangleWins = 3;
-            InlineArray4<byte> childRectangleWins = default;
+            InlineArray4<byte> childRectangleWinStorage = default;
+            Span<byte> childRectangleWins = childRectangleWinStorage;
             childRectangleWins[..].Fill(3);
             Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             Av1TileWriter.SetModeInfoRowAndColumn(
@@ -1507,12 +1508,18 @@ internal static partial class Av1IntraSuperblockEncoder
             bool splitInvalid = true;
             noneCost = 0;
             long nonePartitionCost = long.MaxValue;
-            InlineArray4<long> splitNoneCosts = default;
-            InlineArray2<long> horizontalCosts = default;
-            InlineArray2<long> verticalCosts = default;
-            InlineArray4<Av1AsymmetricModeCacheEntry> splitModeCache = default;
-            InlineArray2<Av1AsymmetricModeCacheEntry> horizontalModeCache = default;
-            InlineArray2<Av1AsymmetricModeCacheEntry> verticalModeCache = default;
+            InlineArray4<long> splitNoneCostStorage = default;
+            InlineArray2<long> horizontalCostStorage = default;
+            InlineArray2<long> verticalCostStorage = default;
+            InlineArray4<Av1AsymmetricModeCacheEntry> splitModeCacheStorage = default;
+            InlineArray2<Av1AsymmetricModeCacheEntry> horizontalModeCacheStorage = default;
+            InlineArray2<Av1AsymmetricModeCacheEntry> verticalModeCacheStorage = default;
+            Span<long> splitNoneCosts = splitNoneCostStorage;
+            Span<long> horizontalCosts = horizontalCostStorage;
+            Span<long> verticalCosts = verticalCostStorage;
+            Span<Av1AsymmetricModeCacheEntry> splitModeCache = splitModeCacheStorage;
+            Span<Av1AsymmetricModeCacheEntry> horizontalModeCache = horizontalModeCacheStorage;
+            Span<Av1AsymmetricModeCacheEntry> verticalModeCache = verticalModeCacheStorage;
             int asymmetricMask = 15;
             int fourStripMask = 3;
             int parentSourceVariance = -1;
@@ -1634,6 +1641,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // The simple motion data exists only for inter frames.
+            Span<Av1SimpleMotionData> simpleMotionData = frameHeader.IsIntra ? default : this.blockWorkspace.SimpleMotionData;
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
                 Av1PartitionType partitionType = searchOrder[candidateIndex];
@@ -1655,7 +1664,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (partitionType == Av1PartitionType.Split &&
                     (!allowMotionSplit || pruneSmallSplits || !this.IsPartitionCandidateAllowed(blockOrigin, blockSize, partitionType)))
                 {
-                    InlineArray4<long> unsearchedCosts = default;
+                    InlineArray4<long> unsearchedCostStorage = default;
+                    Span<long> unsearchedCosts = unsearchedCostStorage;
                     bool noneAndSplitInvalid = !this.mustFindValidPartition && ShouldTerminatePartitionSearchAfterNoneAndSplit(
                         partitionSettings.TerminatePartitionSearchAfterInvalidNoneAndSplit,
                         blockSize,
@@ -1791,8 +1801,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             blockOrigin.Y + blockSize.GetHeight() <=
                                 (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2))
                         {
-                            Av1MotionVector start = this.blockWorkspace.SimpleMotionData[nodeIndex].Starts[(int)Av1ReferenceFrameType.Last];
-                            InlineArray2<long> directionCosts = default;
+                            Av1MotionVector start = simpleMotionData[nodeIndex].Starts[(int)Av1ReferenceFrameType.Last];
+                            InlineArray2<long> directionCostStorage = default;
+                            Span<long> directionCosts = directionCostStorage;
                             for (int direction = 0; direction < 2; direction++)
                             {
                                 Av1PartitionType stripPartition = direction == 0 ? Av1PartitionType.Horizontal4 : Av1PartitionType.Vertical4;
@@ -2047,9 +2058,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         partitionType,
                         stoppedAtLeaf,
                         childCosts,
-                        ref splitModeCache,
-                        ref horizontalModeCache,
-                        ref verticalModeCache);
+                        ref splitModeCacheStorage,
+                        ref horizontalModeCacheStorage,
+                        ref verticalModeCacheStorage);
                 }
 
                 if (candidateStatistics.Cost >= bestStatistics.Cost)
@@ -3698,7 +3709,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || modeInfo.Block.UseIntraBlockCopy)
                 {
-                    InlineArray128<Av1EncoderTransformBlockState> states = default;
+                    InlineArray128<Av1EncoderTransformBlockState> stateStorage = default;
+                    Span<Av1EncoderTransformBlockState> states = stateStorage;
                     Av1TransformSize replayRootSize = this.picture.Parent.FrameHeader.CodedLossless
                         ? Av1TransformSize.Size4x4
                         : modeInfo.Block.BlockSize.GetMaximumTransformSize();
@@ -4927,7 +4939,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Size lumaExtent = GetCodedTransformExtent(macroBlock, blockSize, Av1TransformSize.Size4x4, 0, 0);
                 int leafCount = blockSize.GetWidth() * blockSize.GetHeight() / traversalSize.GetSize2d();
                 ReadOnlySpan<Av1EncoderTransformBlockState> retainedLumaStates = context.GetTransformStates(Av1Plane.Y);
-                InlineArray128<Av1EncoderTransformBlockState> states = default;
+                InlineArray128<Av1EncoderTransformBlockState> stateStorage = default;
+                Span<Av1EncoderTransformBlockState> states = stateStorage;
                 int retainedArea = 0;
                 int stateCount = 0;
                 for (int leaf = 0; leaf < leafCount; leaf++)
@@ -7610,6 +7623,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
             Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
             bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y);
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
             long cost = 0;
 
             // Each tile uses the predictions of the tiles before it, with no quantization and no inverse transform.
@@ -7684,8 +7699,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         tileSize,
                         tileSize,
                         this.bitDepth != Av1BitDepth.EightBit,
-                        this.blockWorkspace.TransformCoefficients,
-                        this.blockWorkspace.TransformWorkspace);
+                        transformCoefficients,
+                        transformWorkspace);
 
                     for (int row = 0; row < tileSize; row++)
                     {

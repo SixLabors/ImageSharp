@@ -71,9 +71,10 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     {
         // Physical ownership is intentionally independent from frame-ID validity. Short reference signaling sorts
         // every occupied slot first, then the uncompressed-header parser validates each derived role separately.
+        ReadOnlySpan<Av1ReferenceFrame?> frames = this.frames;
         for (int slot = 0; slot < SlotCount; slot++)
         {
-            destination[slot] = this.frames[slot] is not null;
+            destination[slot] = frames[slot] is not null;
         }
     }
 
@@ -109,12 +110,14 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
         // Capture displaced owners in inline storage, then publish the complete slot and output transition before
         // releasing anything. A shown frame may also occupy reference slots, so both ownership domains must change as
         // one operation.
+        Span<Av1ReferenceFrame?> frames = this.frames;
+        Span<Av1ReferenceFrame?> replaced = replacedFrames;
         for (int slot = 0; slot < SlotCount; slot++)
         {
             if ((refreshFrameFlags & (1U << slot)) != 0)
             {
-                replacedFrames[slot] = this.frames[slot];
-                this.frames[slot] = frame;
+                replaced[slot] = frames[slot];
+                frames[slot] = frame;
             }
         }
 
@@ -125,7 +128,7 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
 
         for (int replacedIndex = 0; replacedIndex < SlotCount; replacedIndex++)
         {
-            Av1ReferenceFrame? replacedFrame = replacedFrames[replacedIndex];
+            Av1ReferenceFrame? replacedFrame = replaced[replacedIndex];
 
             if (replacedFrame is null)
             {
@@ -135,7 +138,7 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
             if (ReferenceEquals(replacedFrame, replacedOutputFrame))
             {
                 // Let the displaced-output path release this shared owner after every slot candidate has been removed.
-                replacedFrames[replacedIndex] = null;
+                replaced[replacedIndex] = null;
                 continue;
             }
 
@@ -143,7 +146,7 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
             // Eight fixed slots make the bounded identity scan cheaper than allocated reference-count state.
             if (this.IsRetained(replacedFrame))
             {
-                replacedFrames[replacedIndex] = null;
+                replaced[replacedIndex] = null;
             }
         }
 
@@ -192,15 +195,17 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
         if (selectedFrame.FrameHeader.FrameType == ObuFrameType.KeyFrame)
         {
             InlineArray8<Av1ReferenceFrame?> replacedFrames = this.frames;
+            Span<Av1ReferenceFrame?> frames = this.frames;
+            Span<Av1ReferenceFrame?> replaced = replacedFrames;
 
             // Showing a hidden key frame starts a new coded-video-sequence state. All eight reference-map slots now
             // identify that same reconstructed owner, so publish every alias before releasing displaced frames.
             for (int mapSlot = 0; mapSlot < SlotCount; mapSlot++)
             {
-                this.frames[mapSlot] = selectedFrame;
-                if (ReferenceEquals(replacedFrames[mapSlot], selectedFrame))
+                frames[mapSlot] = selectedFrame;
+                if (ReferenceEquals(replaced[mapSlot], selectedFrame))
                 {
-                    replacedFrames[mapSlot] = null;
+                    replaced[mapSlot] = null;
                 }
             }
 
@@ -214,9 +219,9 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
                 // been removed from the replacement set.
                 for (int mapSlot = 0; mapSlot < SlotCount; mapSlot++)
                 {
-                    if (ReferenceEquals(replacedFrames[mapSlot], replacedOutputFrame))
+                    if (ReferenceEquals(replaced[mapSlot], replacedOutputFrame))
                     {
-                        replacedFrames[mapSlot] = null;
+                        replaced[mapSlot] = null;
                     }
                 }
             }
@@ -243,11 +248,12 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
 
         // The caller becomes the sole owner of the selected output. Remove all slot aliases before Reset releases the
         // remaining session references so the sample buffer can transfer without copying.
+        Span<Av1ReferenceFrame?> frames = this.frames;
         for (int slot = 0; slot < SlotCount; slot++)
         {
-            if (ReferenceEquals(this.frames[slot], result))
+            if (ReferenceEquals(frames[slot], result))
             {
-                this.frames[slot] = null;
+                frames[slot] = null;
             }
         }
 
@@ -269,11 +275,12 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
         // output aliases a slot, let the output path perform the single release after the duplicate slot is removed.
         if (releasedOutputFrame is not null)
         {
+            Span<Av1ReferenceFrame?> released = releasedFrames;
             for (int slot = 0; slot < SlotCount; slot++)
             {
-                if (ReferenceEquals(releasedFrames[slot], releasedOutputFrame))
+                if (ReferenceEquals(released[slot], releasedOutputFrame))
                 {
-                    releasedFrames[slot] = null;
+                    released[slot] = null;
                 }
             }
         }
@@ -299,9 +306,10 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
             return true;
         }
 
+        ReadOnlySpan<Av1ReferenceFrame?> frames = this.frames;
         for (int slot = 0; slot < SlotCount; slot++)
         {
-            if (ReferenceEquals(this.frames[slot], frame))
+            if (ReferenceEquals(frames[slot], frame))
             {
                 return true;
             }
@@ -313,9 +321,10 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// <summary>
     /// Releases each distinct frame owner in a fixed-size set exactly once.
     /// </summary>
-    /// <param name="frames">The inline set of frame references to release.</param>
-    private static void DisposeUnique(ref InlineArray8<Av1ReferenceFrame?> frames)
+    /// <param name="frameStorage">The inline set of frame references to release.</param>
+    private static void DisposeUnique(ref InlineArray8<Av1ReferenceFrame?> frameStorage)
     {
+        Span<Av1ReferenceFrame?> frames = frameStorage;
         for (int frameIndex = 0; frameIndex < SlotCount; frameIndex++)
         {
             Av1ReferenceFrame? frame = frames[frameIndex];

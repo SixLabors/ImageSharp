@@ -658,7 +658,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 threshold -= 0.3F;
             }
 
-            InlineArray32<float> features = default;
+            InlineArray32<float> featureStorage = default;
+            Span<float> features = featureStorage;
             int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
             int width = blockSize.GetWidth();
             features[0] = float.LogP1(dcStep / 4F);

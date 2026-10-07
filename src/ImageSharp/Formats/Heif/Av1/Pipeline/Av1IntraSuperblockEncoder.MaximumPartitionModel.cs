@@ -216,7 +216,8 @@ internal static partial class Av1IntraSuperblockEncoder
             float meanColumn = columnSum / 64F;
             float meanError = errorSum / 64F;
             int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
-            InlineArray16<float> features = default;
+            InlineArray16<float> featureStorage = default;
+            Span<float> features = featureStorage;
             features[0] = meanError;
             features[1] = meanColumn;
             features[2] = meanRow;
@@ -230,7 +231,8 @@ internal static partial class Av1IntraSuperblockEncoder
             features[10] = (errorSquares / 64F) - (meanError * meanError);
             features[11] = (columnSquares / 64F) - (meanColumn * meanColumn);
             features[12] = (rowSquares / 64F) - (meanRow * meanRow);
-            InlineArray4<float> scores = default;
+            InlineArray4<float> scoreStorage = default;
+            Span<float> scores = scoreStorage;
             EvaluateMotionPartitionModel(
                 features[..13],
                 MaximumPartitionLayer0Kernel,

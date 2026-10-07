@@ -2169,6 +2169,7 @@ internal static partial class Av1TransformBlockEncoder
             Av1RateDistortion.GetCost(rateMultiplier, skipRate, 0));
 
         bool exitEarly = false;
+        Span<int> transformWorkspace = workspace.TransformWorkspace;
         for (int y = 0; y < activeSize.Height; y += height)
         {
             for (int x = 0; x < activeSize.Width; x += width)
@@ -2205,7 +2206,7 @@ internal static partial class Av1TransformBlockEncoder
                         Av1TransformType.DctDct,
                         transformSize,
                         bitDepth.GetBitCount(),
-                        workspace.TransformWorkspace);
+                        transformWorkspace);
 
                     endOfBlock = Av1ForwardQuantizer.QuantizeRegular(
                         transformed,

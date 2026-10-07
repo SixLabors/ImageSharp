@@ -86,7 +86,8 @@ internal static class Av1ReferenceFrameDerivation
 
         int currentFrameSortIndex = 1 << (orderHintBitWidth - 1);
         int orderHintMask = currentFrameSortIndex - 1;
-        InlineArray8<ReferenceFrameInfo> referenceInfo = default;
+        InlineArray8<ReferenceFrameInfo> referenceInfoStorage = default;
+        Span<ReferenceFrameInfo> referenceInfo = referenceInfoStorage;
         int lastFrameSortIndex = UnavailableSortIndex;
         int goldenFrameSortIndex = UnavailableSortIndex;
 
@@ -157,7 +158,8 @@ internal static class Av1ReferenceFrameDerivation
             referenceInfo[insertionIndex] = current;
         }
 
-        InlineArray8<bool> assignedReferences = default;
+        InlineArray8<bool> assignedReferenceStorage = default;
+        Span<bool> assignedReferences = assignedReferenceStorage;
         int lastReferenceIndex = (int)Av1ReferenceFrameType.Last - ReferenceIndexOffset;
         int goldenReferenceIndex = (int)Av1ReferenceFrameType.Golden - ReferenceIndexOffset;
         referenceFrameIndices[lastReferenceIndex] = lastFrameIndex;

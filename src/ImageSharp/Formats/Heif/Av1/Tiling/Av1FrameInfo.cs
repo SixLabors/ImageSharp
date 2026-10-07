@@ -559,6 +559,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
     public void InitializeLoopRestoration(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
+        Span<int> loopRestorationUnitColumns = this.loopRestorationUnitColumns;
+        Span<int> loopRestorationUnitRows = this.loopRestorationUnitRows;
         for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
             ObuLoopRestorationItem item = frameHeader.LoopRestorationParameters.Items[planeIndex];
@@ -577,8 +579,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
             // unit count to nearest instead of unconditionally rounding a partial unit upward.
             int columnCount = Math.Max((planeWidth + (item.Size >> 1)) / item.Size, 1);
             int rowCount = Math.Max((planeHeight + (item.Size >> 1)) / item.Size, 1);
-            this.loopRestorationUnitColumns[planeIndex] = columnCount;
-            this.loopRestorationUnitRows[planeIndex] = rowCount;
+            loopRestorationUnitColumns[planeIndex] = columnCount;
+            loopRestorationUnitRows[planeIndex] = rowCount;
             this.loopRestorationUnits[planeIndex] = this.memoryAllocator.Allocate2D<Av1LoopRestorationUnit>(
                 columnCount,
                 rowCount,

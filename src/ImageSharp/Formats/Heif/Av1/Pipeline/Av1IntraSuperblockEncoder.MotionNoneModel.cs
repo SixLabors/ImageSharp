@@ -198,7 +198,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     return false;
             }
 
-            InlineArray32<float> features = default;
+            InlineArray32<float> featureStorage = default;
+            Span<float> features = featureStorage;
             this.GetSimpleMotionFeatures(macroBlock, blockOrigin, blockSize, nodeIndex, true, features);
             features[25] = float.LogP1(statistics.Rate);
             features[26] = float.LogP1(statistics.Distortion);

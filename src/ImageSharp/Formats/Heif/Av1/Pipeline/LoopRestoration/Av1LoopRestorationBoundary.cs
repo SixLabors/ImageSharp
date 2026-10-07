@@ -97,14 +97,16 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
     {
         this.savedRows?.Dispose();
         this.savedRows = null;
+        Span<int> storageLengths = this.storageLengths;
+        Span<int> stripeCounts = this.stripeCounts;
         for (int plane = 0; plane < Av1Constants.MaxPlanes; plane++)
         {
             this.rowsAbove[plane]?.Dispose();
             this.rowsAbove[plane] = null;
             this.rowsBelow[plane]?.Dispose();
             this.rowsBelow[plane] = null;
-            this.storageLengths[plane] = 0;
-            this.stripeCounts[plane] = 0;
+            storageLengths[plane] = 0;
+            stripeCounts[plane] = 0;
         }
     }
 
@@ -143,9 +145,10 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
 
         int bitDepth = frameBuffer.BitDepth.GetBitCount();
         bool usesSuperResolution = frameSize.FrameWidth != frameSize.SuperResolutionUpscaledWidth;
+        Span<int> stripeCounts = this.stripeCounts;
         for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
-            if (this.stripeCounts[planeIndex] == 0)
+            if (stripeCounts[planeIndex] == 0)
             {
                 continue;
             }
@@ -209,31 +212,35 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
         // share the same indices even when their sample height is halved. Two context rows are kept
         // on each side; four horizontal samples allow the three-tap context to be copied in aligned rows.
         int stripeCount = (ProcessingStripeOffset + (frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) + 63) / ProcessingStripeSize;
+        Span<int> planeWidths = this.planeWidths;
+        Span<int> planeStrides = this.planeStrides;
+        Span<int> stripeCounts = this.stripeCounts;
+        Span<int> storageLengths = this.storageLengths;
         for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
             int subsamplingX = planeIndex != 0 && colorConfig.SubSamplingX ? 1 : 0;
             int planeWidth = Av1Math.DivideLog2Ceiling(frameSize.SuperResolutionUpscaledWidth, subsamplingX);
             int stride = Av1Math.AlignPowerOf2(planeWidth + (2 * HorizontalBorder), 5);
             int storageLength = stripeCount * ContextRowCount * stride * this.bytesPerSample;
-            this.planeWidths[planeIndex] = planeWidth;
-            this.planeStrides[planeIndex] = stride;
-            this.stripeCounts[planeIndex] = (activePlaneMask & (1 << planeIndex)) == 0
+            planeWidths[planeIndex] = planeWidth;
+            planeStrides[planeIndex] = stride;
+            stripeCounts[planeIndex] = (activePlaneMask & (1 << planeIndex)) == 0
                 ? 0
                 : stripeCount;
 
             // Reuse is determined by physical byte size, including changes of sample precision.
             // Owners belong to this boundary storage, so an allocation failure leaves earlier owners available
             // for the normal disposal path; no frame or header is retained by this storage.
-            if (this.storageLengths[planeIndex] != storageLength)
+            if (storageLengths[planeIndex] != storageLength)
             {
                 this.rowsAbove[planeIndex]?.Dispose();
                 this.rowsAbove[planeIndex] = null;
                 this.rowsBelow[planeIndex]?.Dispose();
                 this.rowsBelow[planeIndex] = null;
-                this.storageLengths[planeIndex] = 0;
+                storageLengths[planeIndex] = 0;
                 this.rowsAbove[planeIndex] = this.allocator.Allocate<byte>(storageLength);
                 this.rowsBelow[planeIndex] = this.allocator.Allocate<byte>(storageLength);
-                this.storageLengths[planeIndex] = storageLength;
+                storageLengths[planeIndex] = storageLength;
             }
         }
     }
@@ -356,9 +363,10 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
     {
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
         ObuFrameSize frameSize = frameHeader.FrameSize;
+        Span<int> stripeCounts = this.stripeCounts;
         for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
-            int stripeCount = this.stripeCounts[planeIndex];
+            int stripeCount = stripeCounts[planeIndex];
             if (stripeCount == 0)
             {
                 continue;

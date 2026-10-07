@@ -73,7 +73,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool measureSad = !forceZeroMotion &&
                 (this.estimatedReferencePruning <= 2 || colorSensitivity[0] == 2 || colorSensitivity[1] == 2);
 
-            InlineArray3<Av1ReferenceMotionVectors> referenceVectors = default;
+            InlineArray3<Av1ReferenceMotionVectors> referenceVectorStorage = default;
+            Span<Av1ReferenceMotionVectors> referenceVectors = referenceVectorStorage;
             this.PrepareEstimatedReference(
                 writer,
                 macroBlock,
@@ -209,6 +210,7 @@ internal static partial class Av1IntraSuperblockEncoder
             winner.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
             bool checkGlobalMotion = true;
             uint zeroMotionError = uint.MaxValue;
+            ReadOnlySpan<Av1EncoderFrame<TSample>> searchReferences = this.searchReferences.Span;
             for (int index = 0; index < 3 && !state.EndSearch; index++)
             {
                 Av1ReferenceFrameType reference = index == 0 ? Av1ReferenceFrameType.Last
@@ -221,7 +223,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         macroBlock,
                         origin,
                         reference,
-                        this.searchReferences.Span[(int)reference].CodedView,
+                        searchReferences[(int)reference].CodedView,
                         referenceVectors[index],
                         forceZeroMotion,
                         lowTemporalVariance,
@@ -1135,6 +1137,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int modeMask = speed.GetEstimatedIntraModeMask(blockSize, screenChange);
             Av1PredictionMode chromaMode = Av1PredictionMode.DC;
+            Span<int> modeThresholdFactors = this.blockWorkspace.ModeThresholdFactors;
             foreach (Av1PredictionMode mode in EstimatedIntraModes)
             {
                 // Forced intra keeps DC, vertical, and horizontal available even when the ordinary
@@ -1162,7 +1165,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 if ((useThreshold || mode == Av1PredictionMode.Smooth) && Av1ModeThresholds.ShouldSkip(
-                    this.blockWorkspace.ModeThresholdFactors,
+                    modeThresholdFactors,
                     this.ModeThresholdQuantizerFactor,
                     4096,
                     blockSize,
@@ -1739,6 +1742,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (this.picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128
                     ? Av1BlockSize.Block64x64 : Av1BlockSize.Block32x32);
 
+            Span<int> modeThresholdFactors = this.blockWorkspace.ModeThresholdFactors;
             for (int index = 0; index < 4 && !state.EndSearch; index++)
             {
                 Av1PredictionMode mode = (Av1PredictionMode)((int)Av1PredictionMode.SingleInterModeStart + index);
@@ -1783,7 +1787,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.sourceSadLevel) ||
                     state.SkipByPredictorSad(mode, reference, settings.GetEstimatedReferencePruningLevel(screenContent)) ||
                     Av1ModeThresholds.ShouldSkipEstimated(
-                        this.blockWorkspace.ModeThresholdFactors,
+                        modeThresholdFactors,
                         this.ModeThresholdQuantizerFactor,
                         blockSize,
                         mode,

@@ -1063,7 +1063,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
             }
 
-            InlineArray16<float> scores = default;
+            InlineArray16<float> scoreStorage = default;
+            Span<float> scores = scoreStorage;
             for (int output = 0; output < 16; output++)
             {
                 scores[output] = outputBiases[output];
@@ -1087,7 +1088,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            InlineArray16<int> integerScores = default;
+            InlineArray16<int> integerScoreStorage = default;
+            Span<int> integerScores = integerScoreStorage;
             int maximum = -1000;
             for (int output = 0; output < 16; output++)
             {

@@ -895,11 +895,22 @@ internal static class Av1SymbolContextHelper
             return 0;
         }
 
+        // The sum stops as soon as it passes the mask, which it is then clamped to. Reference: av1_get_txb_entropy_context().
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         int culLevel = 0;
         for (int scanIndex = 0; scanIndex < endOfBlock; scanIndex++)
         {
-            culLevel += Math.Abs(coefficients[scan[scanIndex]]);
+            int value = coefficients[scan[scanIndex]];
+            if (value == 0)
+            {
+                continue;
+            }
+
+            culLevel += Math.Abs(value);
+            if (culLevel > Av1Constants.CoefficientContextMask)
+            {
+                break;
+            }
         }
 
         culLevel = Math.Min(Av1Constants.CoefficientContextMask, culLevel);

@@ -2127,6 +2127,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             long distortion = TOperator.EncodeCandidate(in blue, predictionMode, angleDelta, transformType, ref candidateBlueState, out long blueSse);
             int blueRate = writer.GetCoefficientCost(
+                blue.Buffers.Tables,
                 transformSize,
                 transformType,
                 lumaMode,
@@ -2179,6 +2180,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int redRate = writer.GetCoefficientCost(
+                red.Buffers.Tables,
                 transformSize,
                 transformType,
                 lumaMode,

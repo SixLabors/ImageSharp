@@ -7029,11 +7029,12 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 rate += Av1TileWriter.GetLumaModeCost(
                     writer,
-                    macroBlock,
                     blockSize,
                     mode,
                     angleDelta,
-                    this.picture.Parent.FrameHeader.IsIntra);
+                    this.picture.Parent.FrameHeader.IsIntra,
+                    blockState.TopModeContext,
+                    blockState.LeftModeContext);
 
                 // The block state holds zero for an intra frame, which codes no intra/inter flag.
                 rate += blockState.IntraInterRate;
@@ -7892,11 +7893,25 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <returns>The values that every mode trial of the block shares.</returns>
         private LumaBlockState GetLumaBlockState(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, Point blockOrigin, Av1BlockSize blockSize)
-            => new(
+        {
+            // Only an intra frame codes the luma mode with neighbor contexts. In an inter frame a neighbor can hold an
+            // inter mode, which has no intra context, so the contexts stay zero there.
+            bool intraFrame = this.picture.Parent.FrameHeader.IsIntra;
+            byte topModeContext = 0;
+            byte leftModeContext = 0;
+            if (intraFrame)
+            {
+                Av1TileWriter.GetYModeContext(macroBlock, out topModeContext, out leftModeContext);
+            }
+
+            return new(
                 macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
                 this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
                 writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock)),
-                this.picture.Parent.FrameHeader.IsIntra ? 0 : writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)));
+                intraFrame ? 0 : writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)),
+                topModeContext,
+                leftModeContext);
+        }
 
         /// <summary>
         /// Keeps the lowest model costs seen so far and decides if a mode is too expensive to search further.
@@ -8201,13 +8216,33 @@ internal static partial class Av1IntraSuperblockEncoder
             /// <param name="smoothEdges">Whether a neighbor of the block uses a smooth mode.</param>
             /// <param name="noSkipRate">The rate of the flag that says the block has coefficients.</param>
             /// <param name="intraInterRate">The rate of the flag that says the block is intra, or zero in an intra frame.</param>
-            public LumaBlockState(Av1PartitionType partitionType, bool smoothEdges, int noSkipRate, int intraInterRate)
+            /// <param name="topModeContext">The luma mode context of the block above.</param>
+            /// <param name="leftModeContext">The luma mode context of the block to the left.</param>
+            public LumaBlockState(
+                Av1PartitionType partitionType,
+                bool smoothEdges,
+                int noSkipRate,
+                int intraInterRate,
+                byte topModeContext,
+                byte leftModeContext)
             {
                 this.PartitionType = partitionType;
                 this.SmoothEdges = smoothEdges;
                 this.NoSkipRate = noSkipRate;
                 this.IntraInterRate = intraInterRate;
+                this.TopModeContext = topModeContext;
+                this.LeftModeContext = leftModeContext;
             }
+
+            /// <summary>
+            /// Gets the luma mode context of the block above.
+            /// </summary>
+            public byte TopModeContext { get; }
+
+            /// <summary>
+            /// Gets the luma mode context of the block to the left.
+            /// </summary>
+            public byte LeftModeContext { get; }
 
             /// <summary>
             /// Gets the partition type of the block.

@@ -1980,16 +1980,40 @@ internal partial class Av1TileWriter
         int angleDelta,
         bool isIntraFrame)
     {
-        int cost;
+        byte topContext = 0;
+        byte leftContext = 0;
         if (isIntraFrame)
         {
-            GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
-            cost = writer.GetLumaModeCost(mode, topContext, leftContext);
+            GetYModeContext(macroBlock, out topContext, out leftContext);
         }
-        else
-        {
-            cost = writer.GetInterFrameLumaModeCost(mode, blockSize);
-        }
+
+        return GetLumaModeCost(writer, blockSize, mode, angleDelta, isIntraFrame, topContext, leftContext);
+    }
+
+    /// <summary>
+    /// Gets the luma mode rate from the frame-appropriate distribution, with the neighbor contexts that the caller
+    /// read once for all modes of the block.
+    /// </summary>
+    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="blockSize">The selected block size.</param>
+    /// <param name="mode">The candidate luma mode.</param>
+    /// <param name="angleDelta">The signed directional angle adjustment.</param>
+    /// <param name="isIntraFrame">Whether the frame codes luma modes with neighbor contexts.</param>
+    /// <param name="topContext">The mode context of the block above, used only in an intra frame.</param>
+    /// <param name="leftContext">The mode context of the block to the left, used only in an intra frame.</param>
+    /// <returns>The rate of the luma mode and its angle adjustment.</returns>
+    public static int GetLumaModeCost(
+        Av1SymbolEncoder writer,
+        Av1BlockSize blockSize,
+        Av1PredictionMode mode,
+        int angleDelta,
+        bool isIntraFrame,
+        byte topContext,
+        byte leftContext)
+    {
+        int cost = isIntraFrame
+            ? writer.GetLumaModeCost(mode, topContext, leftContext)
+            : writer.GetInterFrameLumaModeCost(mode, blockSize);
 
         if (blockSize >= Av1BlockSize.Block8x8 && mode.IsDirectional())
         {

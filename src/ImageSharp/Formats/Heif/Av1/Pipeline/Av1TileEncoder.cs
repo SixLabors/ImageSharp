@@ -1281,6 +1281,18 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> firstIntermediate, out Span<ushort> secondIntermediate);
         Span<byte> compoundMask = blockWorkspace.GetCompoundPredictionMask();
 
+        // The mode information and the retained block decisions of the picture serve every block of the frame pass,
+        // so they are read once here.
+        Span<int> modeInfoGrid = picture.ModeInfoGrid.Span;
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation = picture.ModeInfoAllocation.Span;
+        Span<Av1EncoderDisplacementVector> displacementVectors = picture.DisplacementVectors.Span;
+        Span<Av1EncoderReferenceContext> referenceContexts = picture.ReferenceContexts.Span;
+        Span<Av1EncoderBlockStruct> blockEncodings = picture.BlockEncodings.Span;
+        Span<Av1EncoderPaletteInfo> blockPalettes = picture.BlockPalettes.Span;
+        Span<byte> paletteTokens = picture.PaletteTokens.Span;
+        Span<int> cdefPreset = picture.CdefPreset.Span;
+        Span<int> previousQIndex = picture.Parent.PreviousQIndex.Span;
+
         for (int tileRow = 0; tileRow < tileLayout.TileRowCount; tileRow++)
         {
             tile.SetTileRow(tileLayout, frameHeader.ModeInfoRowCount, tileRow);
@@ -1394,6 +1406,15 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 in lumaCoefficientEdges,
                                 in blueCoefficientEdges,
                                 in redCoefficientEdges,
+                                modeInfoGrid,
+                                modeInfoAllocation,
+                                displacementVectors,
+                                referenceContexts,
+                                blockEncodings,
+                                blockPalettes,
+                                paletteTokens,
+                                cdefPreset,
+                                previousQIndex,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1479,6 +1500,15 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 in lumaCoefficientEdges,
                                 in blueCoefficientEdges,
                                 in redCoefficientEdges,
+                                modeInfoGrid,
+                                modeInfoAllocation,
+                                displacementVectors,
+                                referenceContexts,
+                                blockEncodings,
+                                blockPalettes,
+                                paletteTokens,
+                                cdefPreset,
+                                previousQIndex,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

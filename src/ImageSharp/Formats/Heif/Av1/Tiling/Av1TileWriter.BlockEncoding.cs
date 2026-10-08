@@ -53,6 +53,15 @@ internal partial class Av1TileWriter
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="blockEncodings">The final block decisions of the picture, one per allocation entry.</param>
+        /// <param name="blockPalettes">The palettes of the picture, one per allocation entry.</param>
+        /// <param name="paletteTokens">The color map tokens of the picture.</param>
+        /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
+        /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
         /// <param name="macroBlock">The tile-local macroblock state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
         /// <param name="blockSize">The current square partition size.</param>
@@ -86,6 +95,15 @@ internal partial class Av1TileWriter
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            Span<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<Av1EncoderBlockStruct> blockEncodings,
+            Span<Av1EncoderPaletteInfo> blockPalettes,
+            Span<byte> paletteTokens,
+            Span<int> cdefPreset,
+            Span<int> previousQIndex,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -120,6 +138,15 @@ internal partial class Av1TileWriter
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="blockEncodings">The final block decisions of the picture, one per allocation entry.</param>
+        /// <param name="blockPalettes">The palettes of the picture, one per allocation entry.</param>
+        /// <param name="paletteTokens">The color map tokens of the picture.</param>
+        /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
+        /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
         /// <param name="macroBlock">The current block's mapped neighbor state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
         /// <param name="modeInfo">The mode information to publish.</param>
@@ -152,6 +179,15 @@ internal partial class Av1TileWriter
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            Span<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<Av1EncoderBlockStruct> blockEncodings,
+            Span<Av1EncoderPaletteInfo> blockPalettes,
+            Span<byte> paletteTokens,
+            Span<int> cdefPreset,
+            Span<int> previousQIndex,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -207,13 +243,22 @@ internal partial class Av1TileWriter
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            Span<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<Av1EncoderBlockStruct> blockEncodings,
+            Span<Av1EncoderPaletteInfo> blockPalettes,
+            Span<byte> paletteTokens,
+            Span<int> cdefPreset,
+            Span<int> previousQIndex,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition)
         {
             Point position = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
-            Av1BlockSize selectedSize = this.picture.GetFromModeInfoGrid(position).Block.BlockSize;
+            Av1BlockSize selectedSize = this.picture.GetFromModeInfoGrid(modeInfoGrid, modeInfoAllocation, position).Block.BlockSize;
             if (selectedSize == blockSize)
             {
                 return Av1PartitionType.None;
@@ -229,8 +274,8 @@ internal partial class Av1TileWriter
             {
                 // A half-sized top-left block alone cannot distinguish an asymmetric partition from a split.
                 // The mapped blocks at the two half boundaries identify which half remains unsplit.
-                Av1BlockSize below = this.picture.GetFromModeInfoGrid(position + new Size(0, height / 2)).Block.BlockSize;
-                Av1BlockSize right = this.picture.GetFromModeInfoGrid(position + new Size(width / 2, 0)).Block.BlockSize;
+                Av1BlockSize below = this.picture.GetFromModeInfoGrid(modeInfoGrid, modeInfoAllocation, position + new Size(0, height / 2)).Block.BlockSize;
+                Av1BlockSize right = this.picture.GetFromModeInfoGrid(modeInfoGrid, modeInfoAllocation, position + new Size(width / 2, 0)).Block.BlockSize;
                 if (selectedWidth == width)
                 {
                     return selectedHeight * 4 == height
@@ -296,6 +341,15 @@ internal partial class Av1TileWriter
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            Span<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<Av1EncoderBlockStruct> blockEncodings,
+            Span<Av1EncoderPaletteInfo> blockPalettes,
+            Span<byte> paletteTokens,
+            Span<int> cdefPreset,
+            Span<int> previousQIndex,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -304,11 +358,11 @@ internal partial class Av1TileWriter
         {
             int row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
             int column = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
-            int allocationOffset = this.picture.ModeInfoGrid.Span[(row * this.picture.ModeInfoStride) + column];
-            block = this.picture.BlockEncodings.Span[allocationOffset];
+            int allocationOffset = modeInfoGrid[(row * this.picture.ModeInfoStride) + column];
+            block = blockEncodings[allocationOffset];
             if (this.picture.Parent.FrameHeader.AllowScreenContentTools)
             {
-                paletteInfo = this.picture.BlockPalettes.Span[allocationOffset];
+                paletteInfo = blockPalettes[allocationOffset];
             }
         }
     }

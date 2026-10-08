@@ -137,7 +137,10 @@ public class Av1IntraBlockCopyTests
             macroBlock,
             modeInfoPosition,
             modeInfo,
-            useRetainedContext: false);
+            useRetainedContext: false,
+            picture.ModeInfoGrid.Span,
+            picture.DisplacementVectors.Span,
+            picture.ReferenceContexts.Span);
 
         using var encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);

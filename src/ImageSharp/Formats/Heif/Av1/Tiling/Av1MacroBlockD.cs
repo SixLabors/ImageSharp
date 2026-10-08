@@ -82,8 +82,16 @@ internal class Av1MacroBlockD
     /// <param name="offset">The signed linear offset from the current block.</param>
     /// <returns>A reference to the mapped neighboring or current entry.</returns>
     public ref Av1MacroBlockModeInfo GetRelativeModeInfo(int offset)
-    {
-        int allocationIndex = this.modeInfoGrid.Span[this.modeInfoIndex + offset];
-        return ref this.modeInfoAllocation.Span[allocationIndex];
-    }
+        => ref this.GetRelativeModeInfo(this.modeInfoGrid.Span, this.modeInfoAllocation.Span, offset);
+
+    /// <summary>
+    /// Gets a mode-information entry relative to the current block from the frame grid and allocation, which the
+    /// caller read once.
+    /// </summary>
+    /// <param name="modeInfoGrid">The frame-owned mode-information allocation-index grid.</param>
+    /// <param name="modeInfoAllocation">The frame-owned contiguous mode-information values.</param>
+    /// <param name="offset">The signed linear offset from the current block.</param>
+    /// <returns>A reference to the mapped neighboring or current entry.</returns>
+    public ref Av1MacroBlockModeInfo GetRelativeModeInfo(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, int offset)
+        => ref modeInfoAllocation[modeInfoGrid[this.modeInfoIndex + offset]];
 }

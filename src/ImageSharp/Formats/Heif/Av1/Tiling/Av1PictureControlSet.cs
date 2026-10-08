@@ -166,11 +166,18 @@ internal class Av1PictureControlSet
     /// <param name="position">The frame position in 4x4 mode-information units.</param>
     /// <returns>A reference to the mapped mode-information entry.</returns>
     public ref Av1MacroBlockModeInfo GetFromModeInfoGrid(Point position)
-    {
-        int gridOffset = (position.Y * this.ModeInfoStride) + position.X;
-        int allocationOffset = this.ModeInfoGrid.Span[gridOffset];
-        return ref this.ModeInfoAllocation.Span[allocationOffset];
-    }
+        => ref this.GetFromModeInfoGrid(this.ModeInfoGrid.Span, this.ModeInfoAllocation.Span, position);
+
+    /// <summary>
+    /// Gets the mode-information entry mapped to a frame position from the grid and allocation, which the caller
+    /// read once.
+    /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="position">The frame position in 4x4 mode-information units.</param>
+    /// <returns>A reference to the mapped mode-information entry.</returns>
+    public ref Av1MacroBlockModeInfo GetFromModeInfoGrid(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Point position)
+        => ref modeInfoAllocation[modeInfoGrid[(position.Y * this.ModeInfoStride) + position.X]];
 
     /// <summary>
     /// Gets the displacement vector mapped to a frame position.
@@ -178,10 +185,18 @@ internal class Av1PictureControlSet
     /// <param name="position">The frame position in 4x4 mode-information units.</param>
     /// <returns>The displacement vector retained for the covering block.</returns>
     public Av1MotionVector GetDisplacementVector(Point position)
+        => this.GetDisplacementVector(this.ModeInfoGrid.Span, this.DisplacementVectors.Span, position);
+
+    /// <summary>
+    /// Gets the displacement vector mapped to a frame position from the grid and vectors, which the caller read once.
+    /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+    /// <param name="position">The frame position in 4x4 mode-information units.</param>
+    /// <returns>The displacement vector retained for the covering block.</returns>
+    public Av1MotionVector GetDisplacementVector(ReadOnlySpan<int> modeInfoGrid, ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors, Point position)
     {
-        int gridOffset = (position.Y * this.ModeInfoStride) + position.X;
-        int allocationOffset = this.ModeInfoGrid.Span[gridOffset];
-        Av1EncoderDisplacementVector vector = this.DisplacementVectors.Span[allocationOffset];
+        Av1EncoderDisplacementVector vector = displacementVectors[modeInfoGrid[(position.Y * this.ModeInfoStride) + position.X]];
         return new Av1MotionVector(vector.Row, vector.Column);
     }
 
@@ -191,10 +206,22 @@ internal class Av1PictureControlSet
     /// <param name="position">The frame position in 4x4 mode-information units.</param>
     /// <returns>The secondary vector retained for the covering block.</returns>
     public Av1MotionVector GetSecondaryDisplacementVector(Point position)
+        => this.GetSecondaryDisplacementVector(this.ModeInfoGrid.Span, this.ReferenceContexts.Span, position);
+
+    /// <summary>
+    /// Gets the secondary displacement vector mapped to a compound block from the grid and reference contexts, which
+    /// the caller read once.
+    /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+    /// <param name="position">The frame position in 4x4 mode-information units.</param>
+    /// <returns>The secondary vector retained for the covering block.</returns>
+    public Av1MotionVector GetSecondaryDisplacementVector(
+        ReadOnlySpan<int> modeInfoGrid,
+        ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
+        Point position)
     {
-        int gridOffset = (position.Y * this.ModeInfoStride) + position.X;
-        int allocationOffset = this.ModeInfoGrid.Span[gridOffset];
-        Av1EncoderDisplacementVector vector = this.ReferenceContexts.Span[allocationOffset].SecondaryVector;
+        Av1EncoderDisplacementVector vector = referenceContexts[modeInfoGrid[(position.Y * this.ModeInfoStride) + position.X]].SecondaryVector;
         return new Av1MotionVector(vector.Row, vector.Column);
     }
 
@@ -239,11 +266,27 @@ internal class Av1PictureControlSet
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
     /// <returns>A reference to the macroblock mode information at the origin.</returns>
     public ref Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point modeInfoPosition)
+        => ref this.GetMacroBlockModeInfo(this.ModeInfoAllocation.Span, modeInfoPosition);
+
+    /// <summary>
+    /// Gets the macroblock mode information allocated at a block origin from the allocation, which the caller read once.
+    /// </summary>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <returns>A reference to the macroblock mode information at the origin.</returns>
+    public ref Av1MacroBlockModeInfo GetMacroBlockModeInfo(Span<Av1MacroBlockModeInfo> modeInfoAllocation, Point modeInfoPosition)
+        => ref modeInfoAllocation[this.GetAllocationOffset(modeInfoPosition)];
+
+    /// <summary>
+    /// Gets the mode-information allocation offset of a block origin.
+    /// </summary>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <returns>The offset of the block's entry in the mode-information allocation.</returns>
+    public int GetAllocationOffset(Point modeInfoPosition)
     {
-        int modeInfoStride = this.ModeInfoStride;
+        // Without 4x4 blocks each allocation entry covers a 2x2 group of mode-information units.
         int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
-        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
-        return ref this.ModeInfoAllocation.Span[allocationOffset];
+        return ((modeInfoPosition.Y >> disallow4x4) * (this.ModeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
     }
 
     /// <summary>
@@ -252,13 +295,21 @@ internal class Av1PictureControlSet
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
     /// <param name="blockSize">The coded block size.</param>
     public void MapModeInfoBlock(Point modeInfoPosition, Av1BlockSize blockSize)
+        => this.MapModeInfoBlock(this.ModeInfoGrid.Span, modeInfoPosition, blockSize);
+
+    /// <summary>
+    /// Maps every coded 4x4 position covered by a block to the block's mode-information allocation entry, in the grid
+    /// that the caller read once.
+    /// </summary>
+    /// <param name="grid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The coded block size.</param>
+    public void MapModeInfoBlock(Span<int> grid, Point modeInfoPosition, Av1BlockSize blockSize)
     {
         int modeInfoStride = this.ModeInfoStride;
-        int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
-        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
+        int allocationOffset = this.GetAllocationOffset(modeInfoPosition);
         int mappedWidth = Math.Min(this.Parent.Common.ModeInfoColumnCount - modeInfoPosition.X, blockSize.Get4x4WideCount());
         int mappedHeight = Math.Min(this.Parent.Common.ModeInfoRowCount - modeInfoPosition.Y, blockSize.Get4x4HighCount());
-        Span<int> grid = this.ModeInfoGrid.Span;
 
         // Libaom's pointer grid aliases every covered 4x4 entry to one mode-info allocation. Integer indices keep
         // the same aliasing without one managed object and one managed reference per grid position.

@@ -91,6 +91,15 @@ internal partial class Av1TileWriter
     /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
     /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
     /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+    /// <param name="blockEncodings">The final block decisions of the picture, one per allocation entry.</param>
+    /// <param name="blockPalettes">The palettes of the picture, one per allocation entry.</param>
+    /// <param name="paletteTokens">The color map tokens of the picture.</param>
+    /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
+    /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -126,6 +135,15 @@ internal partial class Av1TileWriter
         in Av1NeighborEdges<byte> lumaCoefficientEdges,
         in Av1NeighborEdges<byte> blueCoefficientEdges,
         in Av1NeighborEdges<byte> redCoefficientEdges,
+        Span<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+        Span<Av1EncoderDisplacementVector> displacementVectors,
+        Span<Av1EncoderReferenceContext> referenceContexts,
+        Span<Av1EncoderBlockStruct> blockEncodings,
+        Span<Av1EncoderPaletteInfo> blockPalettes,
+        Span<byte> paletteTokens,
+        Span<int> cdefPreset,
+        Span<int> previousQIndex,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -224,6 +242,15 @@ internal partial class Av1TileWriter
             in lumaCoefficientEdges,
             in blueCoefficientEdges,
             in redCoefficientEdges,
+            modeInfoGrid,
+            modeInfoAllocation,
+            displacementVectors,
+            referenceContexts,
+            blockEncodings,
+            blockPalettes,
+            paletteTokens,
+            cdefPreset,
+            previousQIndex,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -270,6 +297,15 @@ internal partial class Av1TileWriter
     /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
     /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
     /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+    /// <param name="blockEncodings">The final block decisions of the picture, one per allocation entry.</param>
+    /// <param name="blockPalettes">The palettes of the picture, one per allocation entry.</param>
+    /// <param name="paletteTokens">The color map tokens of the picture.</param>
+    /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
+    /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -309,6 +345,15 @@ internal partial class Av1TileWriter
         in Av1NeighborEdges<byte> lumaCoefficientEdges,
         in Av1NeighborEdges<byte> blueCoefficientEdges,
         in Av1NeighborEdges<byte> redCoefficientEdges,
+        Span<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+        Span<Av1EncoderDisplacementVector> displacementVectors,
+        Span<Av1EncoderReferenceContext> referenceContexts,
+        Span<Av1EncoderBlockStruct> blockEncodings,
+        Span<Av1EncoderPaletteInfo> blockPalettes,
+        Span<byte> paletteTokens,
+        Span<int> cdefPreset,
+        Span<int> previousQIndex,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -361,6 +406,15 @@ internal partial class Av1TileWriter
             in lumaCoefficientEdges,
             in blueCoefficientEdges,
             in redCoefficientEdges,
+            modeInfoGrid,
+            modeInfoAllocation,
+            displacementVectors,
+            referenceContexts,
+            blockEncodings,
+            blockPalettes,
+            paletteTokens,
+            cdefPreset,
+            previousQIndex,
             entropyCodingContext.MacroBlock,
             blockOrigin,
             blockSize,
@@ -412,6 +466,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -451,6 +514,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -490,6 +562,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -530,6 +611,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -569,6 +659,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -626,6 +725,15 @@ internal partial class Av1TileWriter
                             in lumaCoefficientEdges,
                             in blueCoefficientEdges,
                             in redCoefficientEdges,
+                            modeInfoGrid,
+                            modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
+                            blockEncodings,
+                            blockPalettes,
+                            paletteTokens,
+                            cdefPreset,
+                            previousQIndex,
                             superblock,
                             coefficientBuffer,
                             tileIndex,
@@ -667,6 +775,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -707,6 +824,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -747,6 +873,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -787,6 +922,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -829,6 +973,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -866,6 +1019,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -903,6 +1065,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -942,6 +1113,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -979,6 +1159,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1016,6 +1205,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1055,6 +1253,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1092,6 +1299,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1129,6 +1345,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1168,6 +1393,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1205,6 +1439,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1242,6 +1485,15 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
+                    blockEncodings,
+                    blockPalettes,
+                    paletteTokens,
+                    cdefPreset,
+                    previousQIndex,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1290,6 +1542,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1339,6 +1600,15 @@ internal partial class Av1TileWriter
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
+                        blockEncodings,
+                        blockPalettes,
+                        paletteTokens,
+                        cdefPreset,
+                        previousQIndex,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1393,6 +1663,15 @@ internal partial class Av1TileWriter
     /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
     /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
     /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+    /// <param name="blockEncodings">The final block decisions of the picture, one per allocation entry.</param>
+    /// <param name="blockPalettes">The palettes of the picture, one per allocation entry.</param>
+    /// <param name="paletteTokens">The color map tokens of the picture.</param>
+    /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
+    /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -1429,6 +1708,15 @@ internal partial class Av1TileWriter
         in Av1NeighborEdges<byte> lumaCoefficientEdges,
         in Av1NeighborEdges<byte> blueCoefficientEdges,
         in Av1NeighborEdges<byte> redCoefficientEdges,
+        Span<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+        Span<Av1EncoderDisplacementVector> displacementVectors,
+        Span<Av1EncoderReferenceContext> referenceContexts,
+        Span<Av1EncoderBlockStruct> blockEncodings,
+        Span<Av1EncoderPaletteInfo> blockPalettes,
+        Span<byte> paletteTokens,
+        Span<int> cdefPreset,
+        Span<int> previousQIndex,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -1470,6 +1758,15 @@ internal partial class Av1TileWriter
             in lumaCoefficientEdges,
             in blueCoefficientEdges,
             in redCoefficientEdges,
+            modeInfoGrid,
+            modeInfoAllocation,
+            displacementVectors,
+            referenceContexts,
+            blockEncodings,
+            blockPalettes,
+            paletteTokens,
+            cdefPreset,
+            previousQIndex,
             superblock,
             ref block,
             tileIndex,
@@ -1723,6 +2020,15 @@ internal partial class Av1TileWriter
     /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
     /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
     /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+    /// <param name="blockEncodings">The final block decisions of the picture, one per allocation entry.</param>
+    /// <param name="blockPalettes">The palettes of the picture, one per allocation entry.</param>
+    /// <param name="paletteTokens">The color map tokens of the picture.</param>
+    /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
+    /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
@@ -1762,6 +2068,15 @@ internal partial class Av1TileWriter
         in Av1NeighborEdges<byte> lumaCoefficientEdges,
         in Av1NeighborEdges<byte> blueCoefficientEdges,
         in Av1NeighborEdges<byte> redCoefficientEdges,
+        Span<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+        Span<Av1EncoderDisplacementVector> displacementVectors,
+        Span<Av1EncoderReferenceContext> referenceContexts,
+        Span<Av1EncoderBlockStruct> blockEncodings,
+        Span<Av1EncoderPaletteInfo> blockPalettes,
+        Span<byte> paletteTokens,
+        Span<int> cdefPreset,
+        Span<int> previousQIndex,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
@@ -1778,9 +2093,9 @@ internal partial class Av1TileWriter
         int mi_col = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_stride = pcs.Parent.Common.ModeInfoStride;
         Point modeInfoPosition = new(mi_col, mi_row);
-        ref Av1MacroBlockModeInfo macroBlockModeInfo = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
+        ref Av1MacroBlockModeInfo macroBlockModeInfo = ref pcs.GetMacroBlockModeInfo(modeInfoAllocation, modeInfoPosition);
         Av1BlockSize blockSize = macroBlockModeInfo.Block.BlockSize;
-        pcs.MapModeInfoBlock(modeInfoPosition, blockSize);
+        pcs.MapModeInfoBlock(modeInfoGrid, modeInfoPosition, blockSize);
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
 
         Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
@@ -1826,19 +2141,28 @@ internal partial class Av1TileWriter
             in lumaCoefficientEdges,
             in blueCoefficientEdges,
             in redCoefficientEdges,
+            modeInfoGrid,
+            modeInfoAllocation,
+            displacementVectors,
+            referenceContexts,
+            blockEncodings,
+            blockPalettes,
+            paletteTokens,
+            cdefPreset,
+            previousQIndex,
             macroBlock,
             blockOrigin,
             ref macroBlockModeInfo,
             ref blk_ptr,
             ref paletteInfo);
 
-        int allocationOffset = pcs.ModeInfoGrid.Span[(mi_row * mi_stride) + mi_col];
+        int allocationOffset = modeInfoGrid[(mi_row * mi_stride) + mi_col];
         if (!TOperation.WritesOutput)
         {
-            pcs.BlockEncodings.Span[allocationOffset] = blk_ptr;
+            blockEncodings[allocationOffset] = blk_ptr;
             if (frm_hdr.AllowScreenContentTools)
             {
-                pcs.BlockPalettes.Span[allocationOffset] = paletteInfo;
+                blockPalettes[allocationOffset] = paletteInfo;
 
                 // Reference: the palette_pixels count of encode_superblock() for an OUTPUT_ENABLED block.
                 if (IsPaletteAllowed(true, blockSize) && paletteInfo.PaletteSizes[0] > 0)
@@ -1907,7 +2231,10 @@ internal partial class Av1TileWriter
                 writer,
                 tile_idx,
                 skipWritingCoefficients,
-                modeInfoPosition);
+                modeInfoPosition,
+                modeInfoGrid,
+                modeInfoAllocation,
+                cdefPreset);
 
             if (pcs.Parent.FrameHeader.DeltaQParameters.IsPresent)
             {
@@ -1918,11 +2245,10 @@ internal partial class Av1TileWriter
                 if ((blockSize != scs.SequenceHeader.SuperblockSize || !skipWritingCoefficients) && super_block_upper_left)
                 {
                     Guard.MustBeGreaterThan(current_q_index, 0, nameof(current_q_index));
-                    int reduced_delta_qindex = (current_q_index - pcs.Parent.PreviousQIndex.Span[tile_idx]) /
-                        frm_hdr.DeltaQParameters.Resolution;
+                    int reduced_delta_qindex = (current_q_index - previousQIndex[tile_idx]) / frm_hdr.DeltaQParameters.Resolution;
 
                     writer.WriteDeltaQuantizerIndex<TOperation>(ref output, reduced_delta_qindex);
-                    pcs.Parent.PreviousQIndex.Span[tile_idx] = current_q_index;
+                    previousQIndex[tile_idx] = current_q_index;
                 }
             }
 
@@ -1984,7 +2310,7 @@ internal partial class Av1TileWriter
                     Av1EncoderReferenceContext referenceContext;
                     if (TBlockEncoder.UsesRetainedDecisions)
                     {
-                        referenceContext = pcs.ReferenceContexts.Span[allocationOffset];
+                        referenceContext = referenceContexts[allocationOffset];
                     }
                     else
                     {
@@ -2005,7 +2331,7 @@ internal partial class Av1TileWriter
                         referenceContext.ModeContext = (ushort)referenceMotionVectors.ModeContext;
                         if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                         {
-                            Av1MotionVector secondaryVector = pcs.GetSecondaryDisplacementVector(modeInfoPosition);
+                            Av1MotionVector secondaryVector = pcs.GetSecondaryDisplacementVector(modeInfoGrid, referenceContexts, modeInfoPosition);
                             referenceContext.SecondaryVector = new Av1EncoderDisplacementVector
                             {
                                 Row = (short)secondaryVector.Row,
@@ -2046,7 +2372,7 @@ internal partial class Av1TileWriter
                         // Save the contexts before later blocks become visible through the completed frame grid.
                         if (!TOperation.WritesOutput)
                         {
-                            pcs.ReferenceContexts.Span[allocationOffset] = referenceContext;
+                            referenceContexts[allocationOffset] = referenceContext;
                         }
                     }
 
@@ -2103,7 +2429,7 @@ internal partial class Av1TileWriter
                         Av1PredictionMode.NewNearMotionVector or
                         Av1PredictionMode.NewNewMotionVector)
                     {
-                        Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoPosition);
+                        Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoGrid, displacementVectors, modeInfoPosition);
                         writer.WriteMotionVector<TOperation>(
                             ref output,
                             vector,
@@ -2125,7 +2451,7 @@ internal partial class Av1TileWriter
                         Av1PredictionMode.NearNewMotionVector or
                         Av1PredictionMode.NewNewMotionVector)
                     {
-                        Av1MotionVector vector = pcs.GetSecondaryDisplacementVector(modeInfoPosition);
+                        Av1MotionVector vector = pcs.GetSecondaryDisplacementVector(modeInfoGrid, referenceContexts, modeInfoPosition);
                         writer.WriteMotionVector<TOperation>(
                             ref output,
                             vector,
@@ -2151,11 +2477,11 @@ internal partial class Av1TileWriter
                             new Av1MotionVector(
                                 referenceContext.References[newReferenceIndex].Row,
                                 referenceContext.References[newReferenceIndex].Column),
-                            pcs.GetDisplacementVector(modeInfoPosition),
+                            pcs.GetDisplacementVector(modeInfoGrid, displacementVectors, modeInfoPosition),
                             new Av1MotionVector(
                                 referenceContext.SecondaryReferences[newReferenceIndex].Row,
                                 referenceContext.SecondaryReferences[newReferenceIndex].Column),
-                            pcs.GetSecondaryDisplacementVector(modeInfoPosition),
+                            pcs.GetSecondaryDisplacementVector(modeInfoGrid, referenceContexts, modeInfoPosition),
                             blockOrigin,
                             blockSize);
                     }
@@ -2175,7 +2501,7 @@ internal partial class Av1TileWriter
 
                 if (TOperation.WritesOutput && macroBlockModeInfo.Block.ReferenceFrame == Av1ReferenceFrameType.Last)
                 {
-                    Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoPosition);
+                    Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoGrid, displacementVectors, modeInfoPosition);
                     if (Math.Abs(vector.Row) < 8 && Math.Abs(vector.Column) < 8)
                     {
                         // Count the retained block once, during packing. Two-row units include a
@@ -2298,7 +2624,10 @@ internal partial class Av1TileWriter
                     macroBlock,
                     modeInfoPosition,
                     macroBlockModeInfo,
-                    TBlockEncoder.UsesRetainedDecisions);
+                    TBlockEncoder.UsesRetainedDecisions,
+                    modeInfoGrid,
+                    displacementVectors,
+                    referenceContexts);
             }
 
             if (TOperation.WritesOutput && !isInterBlock)
@@ -2401,11 +2730,7 @@ internal partial class Av1TileWriter
                     int tokenCount = rows * columns;
                     if (TBlockEncoder.UsesRetainedDecisions)
                     {
-                        writer.WritePaletteTokens(
-                            ref output,
-                            paletteSize,
-                            planeType,
-                            pcs.PaletteTokens.Span.Slice(entropyCodingContext.PaletteTokenOffset, tokenCount));
+                        writer.WritePaletteTokens(ref output, paletteSize, planeType, paletteTokens.Slice(entropyCodingContext.PaletteTokenOffset, tokenCount));
                     }
                     else
                     {
@@ -2425,7 +2750,7 @@ internal partial class Av1TileWriter
                                 rows,
                                 columns,
                                 colorIndexMap,
-                                pcs.PaletteTokens.Span.Slice(entropyCodingContext.PaletteTokenOffset, tokenCount));
+                                paletteTokens.Slice(entropyCodingContext.PaletteTokenOffset, tokenCount));
                         }
                     }
 
@@ -3260,6 +3585,7 @@ internal partial class Av1TileWriter
         return blockSize.GetWidth() <= 32 && blockSize.GetHeight() <= 32;
     }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
     /// Writes the intra-block-copy selection and displacement-vector syntax for a block.
     /// </summary>
@@ -3271,6 +3597,9 @@ internal partial class Av1TileWriter
     /// <param name="modeInfoPosition">The block origin in 4x4 mode-information units.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
     /// <param name="useRetainedContext">Whether the reference vector context comes from completed block analysis.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
     public static void WriteIntraBlockCopyInfo<TOperation>(
         ref Span<byte> output,
         Av1PictureControlSet picture,
@@ -3278,7 +3607,10 @@ internal partial class Av1TileWriter
         Av1MacroBlockD macroBlock,
         Point modeInfoPosition,
         Av1MacroBlockModeInfo macroBlockModeInfo,
-        bool useRetainedContext)
+        bool useRetainedContext,
+        ReadOnlySpan<int> modeInfoGrid,
+        ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+        Span<Av1EncoderReferenceContext> referenceContexts)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         bool useIntraBlockCopy = macroBlockModeInfo.Block.UseIntraBlockCopy;
@@ -3286,11 +3618,11 @@ internal partial class Av1TileWriter
         if (useIntraBlockCopy)
         {
             int gridOffset = (modeInfoPosition.Y * picture.ModeInfoStride) + modeInfoPosition.X;
-            int allocationOffset = picture.ModeInfoGrid.Span[gridOffset];
+            int allocationOffset = modeInfoGrid[gridOffset];
             Av1MotionVector reference;
             if (useRetainedContext)
             {
-                Av1EncoderDisplacementVector retained = picture.ReferenceContexts.Span[allocationOffset].References[0];
+                Av1EncoderDisplacementVector retained = referenceContexts[allocationOffset].References[0];
                 reference = new Av1MotionVector(retained.Row, retained.Column);
             }
             else
@@ -3308,7 +3640,7 @@ internal partial class Av1TileWriter
 
                 if (!TOperation.WritesOutput)
                 {
-                    picture.ReferenceContexts.Span[allocationOffset].References[0] = new Av1EncoderDisplacementVector
+                    referenceContexts[allocationOffset].References[0] = new Av1EncoderDisplacementVector
                     {
                         Row = (short)reference.Row,
                         Column = (short)reference.Column
@@ -3318,10 +3650,11 @@ internal partial class Av1TileWriter
 
             writer.WriteDisplacementVector<TOperation>(
                 ref output,
-                picture.GetDisplacementVector(modeInfoPosition),
+                picture.GetDisplacementVector(modeInfoGrid, displacementVectors, modeInfoPosition),
                 reference);
         }
     }
+#pragma warning restore CA1517
 
     /// <summary>
     /// Determines whether a single-reference encoder block carries switchable interpolation symbols.
@@ -3501,6 +3834,9 @@ internal partial class Av1TileWriter
     /// <param name="tileIndex">The zero-based tile index.</param>
     /// <param name="skip">A value indicating whether the current block omits residual coefficients.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="cdefPreset">The filter strengths already coded in the current superblock of every tile.</param>
     internal static void WriteCdef<TOperation>(
         ref Span<byte> output,
         Av1SequenceControlSet scs,
@@ -3508,7 +3844,10 @@ internal partial class Av1TileWriter
         Av1SymbolEncoder writer,
         int tileIndex,
         bool skip,
-        Point modeInfoPosition)
+        Point modeInfoPosition,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+        Span<int> cdefPreset)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
@@ -3518,15 +3857,13 @@ internal partial class Av1TileWriter
             return;
         }
 
-        Span<int> cdefPreset = pcs.CdefPreset.Span.Slice(
-            tileIndex * Av1Constants.CdefUnitsPerSuperblock,
-            Av1Constants.CdefUnitsPerSuperblock);
+        Span<int> tileCdefPreset = cdefPreset.Slice(tileIndex * Av1Constants.CdefUnitsPerSuperblock, Av1Constants.CdefUnitsPerSuperblock);
 
         // Each superblock begins with all contained 64x64 filter units unassigned.
         if ((modeInfoPosition.Y & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0 &&
             (modeInfoPosition.X & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0)
         {
-            cdefPreset.Fill(-1);
+            tileCdefPreset.Fill(-1);
         }
 
         // The strength is coded once, at the first non-skipped block in each 64x64 CDEF filter unit.
@@ -3535,19 +3872,19 @@ internal partial class Av1TileWriter
         int unitRow = (modeInfoPosition.Y & cdefSize) != 0 ? 1 : 0;
         int index = scs.SequenceHeader.Use128x128Superblock ? unitColumn + (2 * unitRow) : 0;
 
-        if (cdefPreset[index] == -1 && !skip)
+        if (tileCdefPreset[index] == -1 && !skip)
         {
             int firstBlockMask = ~(cdefSize - 1);
             Point firstBlockPosition = new(
                 modeInfoPosition.X & firstBlockMask,
                 modeInfoPosition.Y & firstBlockMask);
 
-            ref Av1MacroBlockModeInfo firstBlock = ref pcs.GetFromModeInfoGrid(firstBlockPosition);
+            ref Av1MacroBlockModeInfo firstBlock = ref pcs.GetFromModeInfoGrid(modeInfoGrid, modeInfoAllocation, firstBlockPosition);
 
             // CDEF strength belongs to the first mode-info block in the 64x64 filter unit even when skipped
             // blocks delay transmission until a later coding block.
             writer.WriteCdefStrength<TOperation>(ref output, firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
-            cdefPreset[index] = firstBlock.CdefStrength;
+            tileCdefPreset[index] = firstBlock.CdefStrength;
         }
     }
 

@@ -7,7 +7,9 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Icon;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Ico;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
@@ -16,6 +18,70 @@ namespace SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
 [ValidateDisposedMemoryAllocations]
 public class IcoDecoderTests
 {
+    /// <summary>
+    /// Checks per-resource profile retention and pixel equality with direct PNG decoding.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The icon containing a profiled PNG and four unprofiled BMP entries.</param>
+    /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
+    /// <param name="profileHandling">The profile retention policy.</param>
+    [Theory]
+    [WithFile(PillowWithIcc, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, false, ColorProfileHandling.Preserve)]
+    [WithFile(PillowWithIcc, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, true, ColorProfileHandling.Preserve)]
+    [WithFile(PillowWithIcc, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, false, ColorProfileHandling.Convert)]
+    [WithFile(PillowWithIcc, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, true, ColorProfileHandling.Convert)]
+    public void DecodeAndIdentify_RetainResourceIccProfiles<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata, ColorProfileHandling profileHandling)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { Configuration = provider.Configuration, SkipMetadata = skipMetadata, ColorProfileHandling = profileHandling };
+
+        // Read the ICO bytes to locate its embedded PNG and identify the complete icon.
+        byte[] iconData = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+        // The first entry is a profiled 256 x 256 PNG. Decoding it directly gives the expected pixels and retained profile.
+        IconDirEntry pngEntry = IconDirEntry.Parse(iconData.AsSpan(IconDir.Size, IconDirEntry.Size));
+        using MemoryStream pngStream = new(iconData, (int)pngEntry.ImageOffset, (int)pngEntry.BytesInRes, false);
+        using Image<TPixel> pngImage = PngDecoder.Instance.Decode<TPixel>(options, pngStream);
+
+        using Image<TPixel> iconImage = provider.GetImage(IcoDecoder.Instance, options);
+        ImageInfo iconInfo = Image.Identify(options, iconData);
+
+        Assert.Equal(5, iconImage.Frames.Count);
+        Assert.Equal(5, iconInfo.FrameCount);
+
+        // Preserve retains the profile even when SkipMetadata is set. Convert removes it after converting the pixels.
+        if (profileHandling is ColorProfileHandling.Preserve)
+        {
+            Assert.NotNull(pngImage.Metadata.IccProfile);
+        }
+        else
+        {
+            Assert.Null(pngImage.Metadata.IccProfile);
+        }
+
+        // The icon image and first frame must follow the same profile retention policy as the directly decoded PNG.
+        byte[] expectedProfileData = pngImage.Metadata.IccProfile?.ToByteArray();
+        Assert.Equal(expectedProfileData, iconImage.Metadata.IccProfile?.ToByteArray());
+        Assert.Equal(expectedProfileData, iconInfo.Metadata.IccProfile?.ToByteArray());
+        Assert.Equal(expectedProfileData, iconImage.Frames.RootFrame.Metadata.IccProfile?.ToByteArray());
+        Assert.Equal(expectedProfileData, iconInfo.FrameMetadataCollection[0].IccProfile?.ToByteArray());
+
+        // Smaller BMP entries have no profiles. They must not inherit the first PNG entry's profile during container assembly.
+        for (int i = 1; i < iconImage.Frames.Count; i++)
+        {
+            Assert.Null(iconImage.Frames[i].Metadata.IccProfile);
+            Assert.Null(iconInfo.FrameMetadataCollection[i].IccProfile);
+        }
+
+        // Compare only the first icon frame with the directly decoded PNG. Both fill the 256 x 256 canvas.
+        ImageComparer.Exact.VerifySimilarity(pngImage, iconImage, (index, _) => index is 0);
+
+        // Dump sRGB pixels without reattaching the source profile to the PNG output.
+        iconImage.Metadata.IccProfile = null;
+        iconImage.Frames.RootFrame.Metadata.IccProfile = null;
+        iconImage.DebugSaveMultiFrame(provider, $"{profileHandling}_{skipMetadata}", encoder: new PngEncoder { BitDepth = PngBitDepth.Bit16 });
+    }
+
     [Fact]
     public void IcoDetector_RejectsCur()
     {

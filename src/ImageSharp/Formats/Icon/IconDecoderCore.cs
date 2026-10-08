@@ -94,7 +94,11 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                     Image<TPixel> decoded = decodedEntries[i].Image;
                     ref IconDirEntry entry = ref this.entries[decodedEntries[i].EntryIndex];
                     ImageFrame<TPixel> source = decoded.Frames.RootFrameUnsafe;
-                    ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions, source.Metadata.DeepClone());
+                    ImageFrameMetadata frameMetadata = source.Metadata.DeepClone();
+
+                    // PNG and BMP store ICC on the child image. Each icon entry needs its own retained profile on its output frame.
+                    frameMetadata.IccProfile ??= decoded.Metadata.IccProfile?.DeepClone();
+                    ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions, frameMetadata);
                     frames[i] = target;
                     initializedFrameCount++;
 
@@ -193,7 +197,12 @@ internal abstract class IconDecoderCore : ImageDecoderCore
 
                 bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
                 ImageInfo frameInfo = this.GetDecoder(isPng).Identify(this.Options.Configuration, frameStream, cancellationToken);
-                ImageFrameMetadata frameMetadata = frameInfo.FrameMetadataCollection.Count is 0 ? new ImageFrameMetadata() : frameInfo.FrameMetadataCollection[0].DeepClone();
+                ImageFrameMetadata frameMetadata = frameInfo.FrameMetadataCollection.Count is 0
+                    ? new ImageFrameMetadata()
+                    : frameInfo.FrameMetadataCollection[0].DeepClone();
+
+                // Identify must retain each resource's image-level profile on its frame, just as Decode does.
+                frameMetadata.IccProfile ??= frameInfo.Metadata.IccProfile?.DeepClone();
 
                 if (frameCount is 0)
                 {

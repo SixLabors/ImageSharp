@@ -104,7 +104,18 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 for (int i = 0; i < resourceImage.Frames.Count && outputFrames.Count < maxFrames; i++)
                 {
                     ImageFrame<TPixel> source = resourceImage.Frames[i];
-                    ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
+
+                    // Clone resource metadata for every playback step so repeated frames retain independent profiles and format metadata.
+                    ImageFrameMetadata frameMetadata = source.Metadata.DeepClone();
+
+                    if (format is AniFrameFormat.Bmp)
+                    {
+                        // Raw BMP stores ICC on the image. ICO/CUR frames already carry their own profiles;
+                        // using their image-level fallback would copy the first entry's profile onto unprofiled siblings.
+                        frameMetadata.IccProfile ??= resourceImage.Metadata.IccProfile?.DeepClone();
+                    }
+
+                    ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions, frameMetadata);
 
                     // ANI flattens differently sized ICO/CUR variants into one ImageSharp frame collection.
                     // The common canvas preserves that invariant, while encoding dimensions retain the source size.
@@ -203,8 +214,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
 
             if (info.FrameMetadataCollection.Count is 0)
             {
-                // Some embedded decoders expose only resource-level dimensions, so synthesize the one required ANI frame entry.
-                ImageFrameMetadata target = new();
+                // Raw BMP Identify supplies image-level metadata without a frame collection. Retain its profile on the ANI frame.
+                ImageFrameMetadata target = new() { IccProfile = info.Metadata.IccProfile?.DeepClone() };
                 target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(null, format, step + 1, frameDelay, info.Size));
                 outputFrames.Add(target);
                 continue;
@@ -213,7 +224,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             for (int i = 0; i < info.FrameMetadataCollection.Count && outputFrames.Count < maxFrames; i++)
             {
                 ImageFrameMetadata source = info.FrameMetadataCollection[i];
-                ImageFrameMetadata target = new();
+                ImageFrameMetadata target = source.DeepClone();
+
                 target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(source, format, step + 1, frameDelay, info.Size));
                 outputFrames.Add(target);
             }

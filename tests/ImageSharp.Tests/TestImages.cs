@@ -1328,6 +1328,7 @@ public static class TestImages
 
     public static class Ico
     {
+        public const string PillowWithIcc = "Icon/pillow.ico";
         public const string Flutter = "Icon/flutter.ico";
         public const string Bpp1Size15x15 = "Icon/1bpp_size_15x15.ico";
         public const string Bpp1Size16x16 = "Icon/1bpp_size_16x16.ico";

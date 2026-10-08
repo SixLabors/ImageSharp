@@ -71,11 +71,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     /// <param name="destination">The destination vectors.</param>
     /// <param name="scratch">Caller-owned RGB scratch storage.</param>
     public static void Convert<TPixel>(
-        this ColorProfileConverter converter,
-        Configuration configuration,
-        ReadOnlySpan<TPixel> source,
-        Span<Vector4> destination,
-        Span<Rgb> scratch)
+        this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination, Span<Rgb> scratch)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Encoded RGB samples are straight, so associated pixel formats are unassociated while extracting into the separate destination.

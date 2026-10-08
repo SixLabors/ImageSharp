@@ -5,8 +5,11 @@ using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Wacton.Unicolour;
 using Wacton.Unicolour.Icc;
+using Xunit.Sdk;
 using Rgb = SixLabors.ImageSharp.ColorProfiles.Rgb;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
@@ -27,6 +30,80 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         [0.776568174f, 0.961630166f, 0.31032759f, 0.895294666f], // requires clipping after target is PCS adjusted for Fogra39 -> sRGBv2
         [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()]
     ];
+
+    /// <summary>
+    /// Checks non-mutating row conversion against whole-image conversion for straight and associated pixel formats.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">A real ICC fixture containing zero, partial and opaque alpha.</param>
+    [Theory]
+    [WithFile(TestImages.Webp.Lossy.WithIccpAndAlpha, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void ConvertPixelRows_MatchesImageConversion<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        HwIntrinsics intrinsics = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPixelRowConversion, intrinsics, provider);
+    }
+
+    /// <summary>
+    /// Restores the concrete provider in the selected hardware configuration.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    private static void RunPixelRowConversion(string providerDump)
+    {
+        // RemoteExecutor requires a non-generic entry point. Restore the pixel type supplied by WithFile before conversion.
+        switch (FeatureTestRunner.DeserializeForXunit<IXunitSerializable>(providerDump))
+        {
+            case TestImageProvider<Rgba32> provider:
+                AssertPixelRowConversion(provider);
+                break;
+            case TestImageProvider<Rgba32P> provider:
+                AssertPixelRowConversion(provider);
+                break;
+            case TestImageProvider<RgbaVector> provider:
+                AssertPixelRowConversion(provider);
+                break;
+            case TestImageProvider<RgbaVectorP> provider:
+                AssertPixelRowConversion(provider);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Compares reusable row-buffer conversion with the established whole-image ICC path.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The real image fixture in the requested pixel format.</param>
+    private static void AssertPixelRowConversion<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> expected = provider.GetImage();
+        using Image<TPixel> actual = provider.GetImage();
+        IccProfile profile = TestIccProfiles.GetProfile(TestIccProfiles.RommRgb);
+        IccProfile.GetIccProfileForEncoding(profile, PixelColorType.RGB, provider.Configuration.MemoryAllocator, out ColorProfileConverter converter);
+
+        Assert.NotNull(converter);
+        converter.Convert(expected);
+
+        // Allocate once, as an encoder does. Every row reuses its output and scratch storage.
+        TPixel[] originalRow = new TPixel[actual.Width];
+        Vector4[] vectors = new Vector4[actual.Width];
+        Rgb[] scratch = new Rgb[actual.Width];
+
+        for (int y = 0; y < actual.Height; y++)
+        {
+            Span<TPixel> row = actual.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            row.CopyTo(originalRow);
+            converter.Convert<TPixel>(provider.Configuration, row, vectors, scratch);
+
+            // Verify the input before explicitly packing the result. ICC output is straight; the pixel API restores target association.
+            Assert.True(row.SequenceEqual(originalRow));
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(provider.Configuration, vectors, row);
+        }
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
 
     [Theory]
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)

@@ -634,7 +634,6 @@ internal static partial class Av1IntraSuperblockEncoder
             best.Cost = long.MaxValue;
             best.Sse = blockError;
             bool bestReconstructed = false;
-            Av1WorkCounters.Count(Av1WorkCounters.SearchTxTypeY);
 
             // A predicted empty block searches no transform type: the prediction stands as the reconstruction, and
             // the block costs the all-zero flag alone, priced with the contexts that av1_get_entropy_contexts()
@@ -706,7 +705,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1EncoderTransformBlockState candidateState = default;
-                Av1WorkCounters.Count(Av1WorkCounters.TxTypeIterY);
                 int candidateRate = Av1TransformBlockEncoder.EncodeTypeSearchCandidate(
                     in trial, transformType, candidateCoefficients, candidateDequantized, ref candidateState, out bool candidateMatricesDropped);
 
@@ -844,8 +842,6 @@ internal static partial class Av1IntraSuperblockEncoder
             bool measureWinner = measureWinnerInPixelDomain && best.State.EndOfBlock != 0;
             if (!bestReconstructed && best.State.EndOfBlock != 0 && (reconstructWinner || measureWinner))
             {
-                Av1WorkCounters.Count(Av1WorkCounters.ReconIntraInv);
-                long workRecon = Av1WorkCounters.Start();
                 long pixelDistortion = TOperator.ReconstructPredictionCandidate(
                     this.blockWorkspace,
                     bestDequantized,
@@ -862,7 +858,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth,
                     best.ReconstructionState);
 
-                Av1WorkCounters.Stop(Av1WorkCounters.ReconIntraInv, workRecon);
                 if (measureWinner)
                 {
                     best.Distortion = pixelDistortion;

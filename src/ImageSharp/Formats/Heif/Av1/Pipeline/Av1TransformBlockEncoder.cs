@@ -115,8 +115,6 @@ internal static partial class Av1TransformBlockEncoder
         ref Av1EncoderTransformBlockState state,
         out long sse)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
-
         // The source block and the candidate reconstruction.
         Av1EncoderBlockWorkspace workspace = candidate.Buffers.Workspace;
         ReadOnlySpan<byte> source = candidate.Source;
@@ -321,9 +319,7 @@ internal static partial class Av1TransformBlockEncoder
         int qIndex,
         Av1Plane plane,
         Av1EncoderTransformBlockState state)
-    {
-        long workStart = Av1WorkCounters.Start();
-        long workResult = ReconstructPredictionLossyCandidateCore(
+        => ReconstructPredictionLossyCandidateCore(
             workspace,
             dequantized,
             source,
@@ -338,12 +334,8 @@ internal static partial class Av1TransformBlockEncoder
             plane,
             state);
 
-        Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
-        return workResult;
-    }
-
     /// <summary>
-    /// Reconstructs the eight-bit candidate and measures its distortion, without the work counter.
+    /// Reconstructs the eight-bit candidate and measures its distortion.
     /// </summary>
     /// <param name="workspace">The workspace supplying transform scratch storage.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
@@ -374,7 +366,6 @@ internal static partial class Av1TransformBlockEncoder
         Av1Plane plane,
         Av1EncoderTransformBlockState state)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
@@ -536,8 +527,6 @@ internal static partial class Av1TransformBlockEncoder
         ref Av1EncoderTransformBlockState state,
         out long sse)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
-
         // The source block and the candidate reconstruction.
         Av1EncoderBlockWorkspace workspace = candidate.Buffers.Workspace;
         ReadOnlySpan<ushort> source = candidate.Source;
@@ -751,9 +740,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1Plane plane,
         Av1BitDepth bitDepth,
         Av1EncoderTransformBlockState state)
-    {
-        long workStart = Av1WorkCounters.Start();
-        long workResult = ReconstructPredictionLossyCandidateCore(
+        => ReconstructPredictionLossyCandidateCore(
             workspace,
             dequantized,
             source,
@@ -769,12 +756,8 @@ internal static partial class Av1TransformBlockEncoder
             bitDepth,
             state);
 
-        Av1WorkCounters.Stop(Av1WorkCounters.DistPxDomain, workStart);
-        return workResult;
-    }
-
     /// <summary>
-    /// Reconstructs the high-bit-depth candidate and measures its distortion, without the work counter.
+    /// Reconstructs the high-bit-depth candidate and measures its distortion.
     /// </summary>
     /// <param name="workspace">The workspace supplying transform scratch storage.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
@@ -807,7 +790,6 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         Av1EncoderTransformBlockState state)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
@@ -885,11 +867,22 @@ internal static partial class Av1TransformBlockEncoder
         bool smoothIntraEdges,
         Span<short> residual,
         Av1TransformSize transformSize)
-    {
-        long workStart = Av1WorkCounters.Start();
-        PrepareIntraPredictionCore(workspace, source, sourceStride, prediction, predictionStride, above, left, hasLeft, hasAbove, mode, angleDelta, enableIntraEdgeFilter, smoothIntraEdges, residual, transformSize);
-        Av1WorkCounters.Stop(Av1WorkCounters.PredictIntra, workStart);
-    }
+        => PrepareIntraPredictionCore(
+            workspace,
+            source,
+            sourceStride,
+            prediction,
+            predictionStride,
+            above,
+            left,
+            hasLeft,
+            hasAbove,
+            mode,
+            angleDelta,
+            enableIntraEdgeFilter,
+            smoothIntraEdges,
+            residual,
+            transformSize);
 
     public static void PrepareIntraPredictionCore(
         Av1EncoderBlockWorkspace workspace,
@@ -908,7 +901,6 @@ internal static partial class Av1TransformBlockEncoder
         Span<short> residual,
         Av1TransformSize transformSize)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.PredictIntra);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
@@ -1032,11 +1024,23 @@ internal static partial class Av1TransformBlockEncoder
         Span<short> residual,
         Av1TransformSize transformSize,
         Av1BitDepth bitDepth)
-    {
-        long workStart = Av1WorkCounters.Start();
-        PrepareIntraPredictionCore(workspace, source, sourceStride, prediction, predictionStride, above, left, hasLeft, hasAbove, mode, angleDelta, enableIntraEdgeFilter, smoothIntraEdges, residual, transformSize, bitDepth);
-        Av1WorkCounters.Stop(Av1WorkCounters.PredictIntra, workStart);
-    }
+        => PrepareIntraPredictionCore(
+            workspace,
+            source,
+            sourceStride,
+            prediction,
+            predictionStride,
+            above,
+            left,
+            hasLeft,
+            hasAbove,
+            mode,
+            angleDelta,
+            enableIntraEdgeFilter,
+            smoothIntraEdges,
+            residual,
+            transformSize,
+            bitDepth);
 
     public static void PrepareIntraPredictionCore(
         Av1EncoderBlockWorkspace workspace,
@@ -1056,7 +1060,6 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1BitDepth bitDepth)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.PredictIntra);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
@@ -1503,8 +1506,6 @@ internal static partial class Av1TransformBlockEncoder
         bool dcOnly = false,
         long perPixelMean = 0)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
-
         // The workspace, the writer and its rate tables, which the caller read once.
         Av1EncoderBlockWorkspace workspace = buffers.Workspace;
         Av1SymbolEncoder writer = buffers.Writer;
@@ -1530,7 +1531,6 @@ internal static partial class Av1TransformBlockEncoder
             return;
         }
 
-        long workXform = Av1WorkCounters.Start();
         if (dcOnly)
         {
             // A DC-only block replaces the forward transform with its scaled mean. Reference: av1_xform_dc_only().
@@ -1549,11 +1549,8 @@ internal static partial class Av1TransformBlockEncoder
                 transformWorkspace);
         }
 
-        Av1WorkCounters.Stop(Av1WorkCounters.FwdXform, workXform);
-
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
         int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
-        long workSatd = Av1WorkCounters.Start();
         Av1EncoderSpeedSettings speedSettings = workspace.SpeedSettings;
         (uint Distortion, uint Satd) thresholds = workspace.EvaluationStage switch
         {
@@ -1573,10 +1570,6 @@ internal static partial class Av1TransformBlockEncoder
             winnerEvaluation,
             out satdMeasured);
 
-        Av1WorkCounters.Stop(Av1WorkCounters.SatdGate, workSatd);
-
-        long workQuant = Av1WorkCounters.Start();
-
         // Fast quantization is paired with trellis refinement. When normalized residual energy or
         // transformed SATD disables refinement, regular quantization supplies the stronger zero-bin and
         // reciprocal correction that the unrefined candidate requires.
@@ -1590,8 +1583,6 @@ internal static partial class Av1TransformBlockEncoder
                 transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights)
             : Av1ForwardQuantizer.QuantizeRegular(
                 transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
-
-        Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
 
         if (optimize && state.EndOfBlock > 0)
         {
@@ -1643,8 +1634,6 @@ internal static partial class Av1TransformBlockEncoder
         ref Av1EncoderTransformBlockState state,
         out bool matricesDropped)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
-
         // The workspace, the writer and its rate tables.
         Av1EncoderBlockWorkspace workspace = trial.Workspace;
         Av1SymbolEncoder writer = trial.Writer;
@@ -1704,7 +1693,6 @@ internal static partial class Av1TransformBlockEncoder
         }
         else
         {
-            long workXform = Av1WorkCounters.Start();
             Av1ForwardTransformer.Transform2d(
                 residual,
                 transformed,
@@ -1713,13 +1701,10 @@ internal static partial class Av1TransformBlockEncoder
                 transformSize,
                 bitDepth.GetBitCount(),
                 transformWorkspace);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.FwdXform, workXform);
         }
 
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);
         int acDequantizer = Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, bitDepth);
-        long workSatd = Av1WorkCounters.Start();
 
         // The SATD gate sets up the quantizer again, which drops the matrices of the candidate for quantization
         // and transform-domain distortion. Coefficient optimization still reads them from the block. Reference:
@@ -1741,12 +1726,8 @@ internal static partial class Av1TransformBlockEncoder
             optimize = (ulong)satd <= satdThreshold * qStep * squareRootPixels[(int)transformSize];
         }
 
-        Av1WorkCounters.Stop(Av1WorkCounters.SatdGate, workSatd);
-        Av1WorkCounters.Count(optimize ? Av1WorkCounters.OptimizeB : Av1WorkCounters.CostCoeffs);
         if (qIndex != 0)
         {
-            long workQuant = Av1WorkCounters.Start();
-
             // Fast quantization is paired with trellis refinement. Without refinement, regular quantization
             // supplies the stronger zero-bin and reciprocal correction that the unrefined candidate requires.
             ReadOnlySpan<byte> matrix = matricesDropped ? default : workspace.GetQuantizationMatrix(componentType, transformSize, transformType);
@@ -1763,7 +1744,6 @@ internal static partial class Av1TransformBlockEncoder
             }
 
             state.TransformType = transformType;
-            Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
         }
 
         if (!optimize || state.EndOfBlock == 0)
@@ -2443,12 +2423,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1BitDepth bitDepth,
         out long sumOfSquares)
-    {
-        long workStart = Av1WorkCounters.Start();
-        long workResult = GetTransformErrorCore(coefficients, dequantized, transformSize, bitDepth, out sumOfSquares);
-        Av1WorkCounters.Stop(Av1WorkCounters.DistTxDomain, workStart);
-        return workResult;
-    }
+        => GetTransformErrorCore(coefficients, dequantized, transformSize, bitDepth, out sumOfSquares);
 
     public static long GetTransformErrorCore(
         ReadOnlySpan<int> coefficients,
@@ -2457,7 +2432,6 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         out long sumOfSquares)
     {
-        Av1WorkCounters.Count(Av1WorkCounters.DistTxDomain);
         TransformError<TransformErrorOperator>.Accumulate(coefficients, dequantized, out long energy, out long error);
 
         // Normalize high-bit-depth squared values first, rounding once at the accumulated-block boundary.

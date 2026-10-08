@@ -183,8 +183,7 @@ internal sealed partial class Av1SymbolEncoder
         in Av1CoefficientOptimizationWeights weights,
         out int coefficientRate)
     {
-        long workStart = Av1WorkCounters.Start();
-        ushort workResult = this.OptimizeCoefficientsCore(
+        return this.OptimizeCoefficientsCore(
             in tables,
             original,
             quantized,
@@ -202,9 +201,6 @@ internal sealed partial class Av1SymbolEncoder
             endOfBlock,
             in weights,
             out coefficientRate);
-
-        Av1WorkCounters.Stop(Av1WorkCounters.OptimizeB, workStart);
-        return workResult;
     }
 
     /// <summary>

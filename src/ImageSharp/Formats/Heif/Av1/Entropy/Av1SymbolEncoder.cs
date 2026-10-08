@@ -1815,8 +1815,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         bool usesInterTransformSet)
     {
-        long workStart = Av1WorkCounters.Start();
-        int workResult = this.GetCoefficientCostCore(
+        return this.GetCoefficientCostCore(
             in tables,
             transformSize,
             transformType,
@@ -1828,9 +1827,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             useReducedTransformSet,
             filterIntraMode,
             usesInterTransformSet);
-
-        Av1WorkCounters.Stop(Av1WorkCounters.CostCoeffs, workStart);
-        return workResult;
     }
 
     /// <summary>

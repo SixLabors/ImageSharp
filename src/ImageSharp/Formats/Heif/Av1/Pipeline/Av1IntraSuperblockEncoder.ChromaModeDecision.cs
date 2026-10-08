@@ -269,10 +269,23 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            long workStart = Av1WorkCounters.Start();
-            Av1ChromaPredictionMode workResult = this.SelectChromaModeCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, blockSize, tileIndex, lumaMode, transformSize, retainedBlueStates, retainedRedStates, ref paletteInfo, out selectedAngleDelta, out selectedChromaFromLumaIndex, out selectedChromaFromLumaSigns, out selectedStatistics);
-            Av1WorkCounters.Stop(Av1WorkCounters.IntraSbuv, workStart);
-            return workResult;
+            return this.SelectChromaModeCore(
+                writer,
+                macroBlock,
+                modeInfo,
+                lumaOrigin,
+                chromaOrigin,
+                blockSize,
+                tileIndex,
+                lumaMode,
+                transformSize,
+                retainedBlueStates,
+                retainedRedStates,
+                ref paletteInfo,
+                out selectedAngleDelta,
+                out selectedChromaFromLumaIndex,
+                out selectedChromaFromLumaSigns,
+                out selectedStatistics);
         }
 
         private Av1ChromaPredictionMode SelectChromaModeCore(
@@ -293,7 +306,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.IntraSbuv);
             Av1ChromaPredictionMode mode = this.SelectChromaPrediction(
                 writer,
                 macroBlock,
@@ -373,10 +385,23 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            long workStart = Av1WorkCounters.Start();
-            Av1ChromaPredictionMode workResult = this.SelectChromaPredictionCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, blockSize, tileIndex, lumaMode, transformSize, retainedBlueStates, retainedRedStates, ref paletteInfo, out selectedAngleDelta, out selectedChromaFromLumaIndex, out selectedChromaFromLumaSigns, out selectedStatistics);
-            Av1WorkCounters.Stop(Av1WorkCounters.ChromaPrediction, workStart);
-            return workResult;
+            return this.SelectChromaPredictionCore(
+                writer,
+                macroBlock,
+                modeInfo,
+                lumaOrigin,
+                chromaOrigin,
+                blockSize,
+                tileIndex,
+                lumaMode,
+                transformSize,
+                retainedBlueStates,
+                retainedRedStates,
+                ref paletteInfo,
+                out selectedAngleDelta,
+                out selectedChromaFromLumaIndex,
+                out selectedChromaFromLumaSigns,
+                out selectedStatistics);
         }
 
         private Av1ChromaPredictionMode SelectChromaPredictionCore(
@@ -1882,8 +1907,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> coefficients,
             Span<int> transformWorkspace)
         {
-            long workStart = Av1WorkCounters.Start();
-            int workResult = FindBestChromaFromLumaEstimateCore(
+            return FindBestChromaFromLumaEstimateCore(
                 blockWorkspace,
                 plane,
                 source,
@@ -1897,9 +1921,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 residual,
                 coefficients,
                 transformWorkspace);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.CflEstimate, workStart);
-            return workResult;
         }
 
         /// <summary>
@@ -2075,8 +2096,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState candidateBlueState,
             ref Av1EncoderTransformBlockState candidateRedState)
         {
-            long workStart = Av1WorkCounters.Start();
-            Av1RateDistortionStatistics workResult = this.GetChromaCandidateCostCore(
+            return this.GetChromaCandidateCostCore(
                 writer,
                 modeInfo,
                 lumaMode,
@@ -2089,13 +2109,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 costLimit,
                 ref candidateBlueState,
                 ref candidateRedState);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.ChromaCandidate, workStart);
-            return workResult;
         }
 
         /// <summary>
-        /// Measures the joint rate and distortion of one chroma mode, without the work counter.
+        /// Measures the joint rate and distortion of one chroma mode.
         /// </summary>
         /// <inheritdoc cref="GetChromaCandidateCost"/>
         private Av1RateDistortionStatistics GetChromaCandidateCostCore(
@@ -2112,7 +2129,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState candidateBlueState,
             ref Av1EncoderTransformBlockState candidateRedState)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.ChromaUvrd);
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
             Av1TransformSize transformSize = blue.TransformSize;
 

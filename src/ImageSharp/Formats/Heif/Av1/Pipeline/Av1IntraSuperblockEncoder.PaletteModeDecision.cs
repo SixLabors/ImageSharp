@@ -32,10 +32,18 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize)
         {
-            long workStart = Av1WorkCounters.Start();
-            bool workResult = this.SelectLumaPaletteCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, colorThreshold, dcModeCost, ref bestStatistics, ref paletteInfo, ref selectedTransformSize);
-            Av1WorkCounters.Stop(Av1WorkCounters.PaletteYSearch, workStart);
-            return workResult;
+            return this.SelectLumaPaletteCore(
+                writer,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                tileIndex,
+                retainedStates,
+                colorThreshold,
+                dcModeCost,
+                ref bestStatistics,
+                ref paletteInfo,
+                ref selectedTransformSize);
         }
 
         private bool SelectLumaPaletteCore(
@@ -51,7 +59,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.PaletteYSearch);
             Av1EncoderPaletteWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int blockWidth = blockSize.GetWidth();
@@ -269,12 +276,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1TransformSize selectedTransformSize,
             out bool headerBreakout)
         {
-            long workStart = Av1WorkCounters.Start();
-            bool workResult = this.EvaluateLumaPaletteCandidateCore(
+            return this.EvaluateLumaPaletteCandidateCore(
                 in search, centroids, headerPruneLevel, ref bestStatistics, ref paletteInfo, ref selectedTransformSize, out headerBreakout);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.PaletteCandidate, workStart);
-            return workResult;
         }
 
         /// <inheritdoc cref="EvaluateLumaPaletteCandidate"/>
@@ -287,7 +290,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1TransformSize selectedTransformSize,
             out bool headerBreakout)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.PaletteYRd);
             headerBreakout = false;
 
             // The block and its neighbor values.

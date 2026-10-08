@@ -764,7 +764,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.PickPartition);
             this.replayNodeIndex = -1;
             this.mustFindValidPartition = false;
 
@@ -3579,7 +3578,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
-            long workStart = Av1WorkCounters.Start();
             this.encodedWithoutCoefficients = false;
             this.EncodeBlockCore(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo, true);
             if (this.encodedWithoutCoefficients)
@@ -3591,8 +3589,6 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 this.UpdateCdefSkip(blockOrigin, modeInfo.Block.Mode);
             }
-
-            Av1WorkCounters.Stop(Av1WorkCounters.PickSbModes, workStart);
         }
 
         /// <summary>
@@ -3630,9 +3626,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
-            long workStart = Av1WorkCounters.Start();
             this.EncodeBlockCore(writer, macroBlock, blockOrigin, tileIndex, ref modeInfo, ref block, ref paletteInfo, false);
-            Av1WorkCounters.Stop(Av1WorkCounters.PickSbModes, workStart);
         }
 
         private void EncodeBlockCore(
@@ -3645,7 +3639,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo,
             bool encodeSelected)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.PickSbModes);
             this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Candidate;
             if (this.replayNodeIndex >= 0)
             {
@@ -5897,10 +5890,19 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1TransformSize selectedTransformSize,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            long workStart = Av1WorkCounters.Start();
-            Av1PredictionMode workResult = this.SelectLumaModeCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, interCostLimit, ref paletteInfo, out selectedAngleDelta, out selectedFilterIntraMode, out selectedTransformSize, out selectedStatistics);
-            Av1WorkCounters.Stop(Av1WorkCounters.IntraSby, workStart);
-            return workResult;
+            return this.SelectLumaModeCore(
+                writer,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                tileIndex,
+                retainedStates,
+                interCostLimit,
+                ref paletteInfo,
+                out selectedAngleDelta,
+                out selectedFilterIntraMode,
+                out selectedTransformSize,
+                out selectedStatistics);
         }
 
         private Av1PredictionMode SelectLumaModeCore(
@@ -5917,7 +5919,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1TransformSize selectedTransformSize,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.IntraSby);
             this.lumaCandidateCount = 0;
             this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Candidate;
             Av1PredictionMode mode = this.SelectLumaPrediction(
@@ -6046,10 +6047,19 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1TransformSize selectedTransformSize,
             ref Av1RateDistortionStatistics selectedStatistics)
         {
-            long workStart = Av1WorkCounters.Start();
-            Av1PredictionMode workResult = this.RefineLumaModeCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, mode, ref paletteInfo, ref selectedAngleDelta, ref selectedFilterIntraMode, ref selectedTransformSize, ref selectedStatistics);
-            Av1WorkCounters.Stop(Av1WorkCounters.RefineLumaMode, workStart);
-            return workResult;
+            return this.RefineLumaModeCore(
+                writer,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                tileIndex,
+                retainedStates,
+                mode,
+                ref paletteInfo,
+                ref selectedAngleDelta,
+                ref selectedFilterIntraMode,
+                ref selectedTransformSize,
+                ref selectedStatistics);
         }
 
         private Av1PredictionMode RefineLumaModeCore(
@@ -6207,10 +6217,19 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1TransformSize selectedTransformSize,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            long workStart = Av1WorkCounters.Start();
-            Av1PredictionMode workResult = this.SelectLumaPredictionCore(writer, macroBlock, blockOrigin, blockSize, tileIndex, retainedStates, interCostLimit, ref paletteInfo, out selectedAngleDelta, out selectedFilterIntraMode, out selectedTransformSize, out selectedStatistics);
-            Av1WorkCounters.Stop(Av1WorkCounters.SelectLumaPrediction, workStart);
-            return workResult;
+            return this.SelectLumaPredictionCore(
+                writer,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                tileIndex,
+                retainedStates,
+                interCostLimit,
+                ref paletteInfo,
+                out selectedAngleDelta,
+                out selectedFilterIntraMode,
+                out selectedTransformSize,
+                out selectedStatistics);
         }
 
         private Av1PredictionMode SelectLumaPredictionCore(
@@ -6881,8 +6900,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> candidateTransformBlocks,
             out bool skipSmallerTransforms)
         {
-            long workStart = Av1WorkCounters.Start();
-            Av1RateDistortionStatistics workResult = this.GetUniformLumaCandidateCostCore(
+            return this.GetUniformLumaCandidateCostCore(
                 writer,
                 macroBlock,
                 sourcePlane,
@@ -6905,9 +6923,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateReconstruction,
                 candidateTransformBlocks,
                 out skipSmallerTransforms);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.UniformLuma, workStart);
-            return workResult;
         }
 
         /// <inheritdoc cref="GetUniformLumaCandidateCost"/>
@@ -6935,7 +6950,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> candidateTransformBlocks,
             out bool skipSmallerTransforms)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.UniformTxYrd);
             skipSmallerTransforms = false;
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
@@ -7389,7 +7403,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool hasLeft,
             out bool hasAbove)
         {
-            long workStart = Av1WorkCounters.Start();
             this.PrepareTransformReferenceSamplesCore(
                 planeBlock,
                 planeStride,
@@ -7408,8 +7421,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 leftStorage,
                 out hasLeft,
                 out hasAbove);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.ReferenceSamples, workStart);
         }
 
         /// <summary>
@@ -7743,12 +7754,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Av1FilterIntraMode filterMode)
         {
-            long workStart = Av1WorkCounters.Start();
-            long workResult = this.GetLumaModelCostCore(
+            return this.GetLumaModelCostCore(
                 macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, in inputs, mode, angleDelta, filterMode);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.LumaModelCost, workStart);
-            return workResult;
         }
 
         /// <summary>
@@ -8016,10 +8023,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int visibleHeight,
             int visibleWidth)
         {
-            long workStart = Av1WorkCounters.Start();
-            byte workResult = this.GetDirectionalModeSkipMaskCore(sourcePlane, blockOrigin, visibleHeight, visibleWidth);
-            Av1WorkCounters.Stop(Av1WorkCounters.HogMask, workStart);
-            return workResult;
+            return this.GetDirectionalModeSkipMaskCore(sourcePlane, blockOrigin, visibleHeight, visibleWidth);
         }
 
         private byte GetDirectionalModeSkipMaskCore(
@@ -8081,7 +8085,6 @@ internal static partial class Av1IntraSuperblockEncoder
             bool skipTransform,
             int coefficientOffset)
         {
-            long workStart = Av1WorkCounters.Start();
             this.ReconstructSelectedTransformCore(
                 in buffers,
                 context,
@@ -8097,8 +8100,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedState,
                 skipTransform,
                 coefficientOffset);
-
-            Av1WorkCounters.Stop(Av1WorkCounters.EncodeBlockIntra, workStart);
         }
 
         /// <summary>
@@ -8135,7 +8136,6 @@ internal static partial class Av1IntraSuperblockEncoder
             bool skipTransform,
             int coefficientOffset)
         {
-            Av1WorkCounters.Count(Av1WorkCounters.EncodeBlockIntra);
             Av1PlaneRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
             Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
             int width = transformSize.GetWidth();

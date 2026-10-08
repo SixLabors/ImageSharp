@@ -33,10 +33,19 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
-            long workStart = Av1WorkCounters.Start();
-            bool workResult = this.SelectChromaPaletteCore(writer, macroBlock, modeInfo, lumaOrigin, chromaOrigin, tileIndex, lumaMode, transformSize, retainedBlueStates, retainedRedStates, ref bestStatistics, ref paletteInfo);
-            Av1WorkCounters.Stop(Av1WorkCounters.ChromaPalette, workStart);
-            return workResult;
+            return this.SelectChromaPaletteCore(
+                writer,
+                macroBlock,
+                modeInfo,
+                lumaOrigin,
+                chromaOrigin,
+                tileIndex,
+                lumaMode,
+                transformSize,
+                retainedBlueStates,
+                retainedRedStates,
+                ref bestStatistics,
+                ref paletteInfo);
         }
 
         private bool SelectChromaPaletteCore(

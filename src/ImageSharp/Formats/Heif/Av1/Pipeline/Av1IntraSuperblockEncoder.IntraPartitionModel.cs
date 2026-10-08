@@ -1657,10 +1657,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref bool allowSplit,
             ref bool allowRectangles)
         {
-            long workStart = Av1WorkCounters.Start();
-            bool workResult = this.PruneIntraPartitionsCore(blockOrigin, blockSize, level, ref allowNone, ref allowSplit, ref allowRectangles);
-            Av1WorkCounters.Stop(Av1WorkCounters.PrunePartitions, workStart);
-            return workResult;
+            return this.PruneIntraPartitionsCore(blockOrigin, blockSize, level, ref allowNone, ref allowSplit, ref allowRectangles);
         }
 
         private bool PruneIntraPartitionsCore(

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -1186,6 +1188,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="modeBlocksToRightEdge">The signed distance from the mode block to the right frame edge.</param>
     /// <param name="modeBlocksToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
     /// <param name="levels">Reusable padded coefficient-context storage owned by the tile reader.</param>
+    /// <param name="levelStorage">All of the storage of <paramref name="levels"/>, which the tile reader read once.</param>
     /// <param name="coefficientBuffer">The zero-initialized destination receiving dequantized raster coefficients.</param>
     /// <param name="inverseQuantizer">The quantizer containing the active segment and superblock delta-Q values.</param>
     /// <returns>The one-based end-of-block position, or zero for an empty transform block.</returns>
@@ -1208,6 +1211,7 @@ internal ref struct Av1SymbolDecoder
         int modeBlocksToRightEdge,
         int modeBlocksToBottomEdge,
         Av1LevelBuffer levels,
+        Span<byte> levelStorage,
         Span<int> coefficientBuffer,
         Av1InverseQuantizer inverseQuantizer)
     {
@@ -1220,7 +1224,7 @@ internal ref struct Av1SymbolDecoder
 
         // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. Reusing
         // tile-owned storage avoids an allocator round trip for every transform block.
-        levels.Reset(new Size(width, height));
+        levels.Reset(new Size(width, height), levelStorage);
 
         bool allZero = this.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
         int endOfBlock;
@@ -1267,22 +1271,21 @@ internal ref struct Av1SymbolDecoder
         ReadOnlySpan<short> scan = scanOrder.Scan;
 
         endOfBlock = this.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
-        if (endOfBlock > 1)
-        {
-            levels.Clear();
-        }
 
-        this.ReadCoefficientsEndOfBlock(transformClass, endOfBlock, scan, levels, transformSizeContext, planeType);
+        // Every level read and write of the block goes through the active plane, read once here. The reset above
+        // cleared the active plane and all of its context padding.
+        Span<byte> activeLevels = levels.GetActiveLevels(levelStorage);
+        this.ReadCoefficientsEndOfBlock(transformClass, endOfBlock, scan, levels, activeLevels, transformSizeContext, planeType);
         if (endOfBlock > 1)
         {
             if (transformClass == Av1TransformClass.Class2D)
             {
-                this.ReadCoefficientsReverse2d(transformSize, 1, endOfBlock - 1 - 1, scan, levels, transformSizeContext, planeType);
-                this.ReadCoefficientsReverse(transformSize, transformClass, 0, 0, scan, levels, transformSizeContext, planeType);
+                this.ReadCoefficientsReverse2d(transformSize, 1, endOfBlock - 1 - 1, scan, levels, activeLevels, transformSizeContext, planeType);
+                this.ReadCoefficientsReverse(transformSize, transformClass, 0, 0, scan, levels, activeLevels, transformSizeContext, planeType);
             }
             else
             {
-                this.ReadCoefficientsReverse(transformSize, transformClass, 0, endOfBlock - 1 - 1, scan, levels, transformSizeContext, planeType);
+                this.ReadCoefficientsReverse(transformSize, transformClass, 0, endOfBlock - 1 - 1, scan, levels, activeLevels, transformSizeContext, planeType);
             }
         }
 
@@ -1295,6 +1298,7 @@ internal ref struct Av1SymbolDecoder
             endOfBlock,
             scan,
             levels,
+            activeLevels,
             transformBlockContext.DcSignContext,
             planeType,
             quantization,
@@ -1350,13 +1354,22 @@ internal ref struct Av1SymbolDecoder
     /// <param name="transformClass">The transform direction class.</param>
     /// <param name="endOfBlock">The one-based end-of-block position.</param>
     /// <param name="scan">The transform's scan-to-raster mapping.</param>
-    /// <param name="levels">The padded absolute-coefficient level plane to update.</param>
+    /// <param name="levels">The padded absolute-coefficient level plane, which gives the active size and stride.</param>
+    /// <param name="activeLevels">The active level plane of <paramref name="levels"/>, which the caller read once.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
-    public void ReadCoefficientsEndOfBlock(Av1TransformClass transformClass, int endOfBlock, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsEndOfBlock(
+        Av1TransformClass transformClass,
+        int endOfBlock,
+        ReadOnlySpan<short> scan,
+        Av1LevelBuffer levels,
+        Span<byte> activeLevels,
+        Av1TransformSize transformSizeContext,
+        Av1PlaneType planeType)
     {
         int i = endOfBlock - 1;
-        Point position = levels.GetPosition(scan[i]);
+        int pos = scan[i];
+        Point position = levels.GetPosition(pos);
         int coefficientContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, i);
         int level = this.ReadBaseEndOfBlock(transformSizeContext, planeType, coefficientContext) + 1;
         if (level > Av1Constants.BaseLevelsCount)
@@ -1365,7 +1378,7 @@ internal ref struct Av1SymbolDecoder
             this.ReadCoefficientsBaseRangeLoop(transformSizeContext, planeType, baseRangeContext, ref level);
         }
 
-        levels.GetRow(position)[position.X] = (byte)level;
+        activeLevels[Av1LevelBuffer.GetPaddedIndex(pos, levels.WidthLog2)] = (byte)level;
     }
 
     /// <summary>
@@ -1375,23 +1388,39 @@ internal ref struct Av1SymbolDecoder
     /// <param name="startScanIndex">The inclusive lowest scan index.</param>
     /// <param name="endScanIndex">The inclusive highest scan index.</param>
     /// <param name="scan">The transform's scan-to-raster mapping.</param>
-    /// <param name="levels">The padded absolute-coefficient level plane to update.</param>
+    /// <param name="levels">The padded absolute-coefficient level plane, which gives the active size and stride.</param>
+    /// <param name="activeLevels">The active level plane of <paramref name="levels"/>, which the caller read once.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
-    public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse2d(
+        Av1TransformSize transformSize,
+        int startScanIndex,
+        int endScanIndex,
+        ReadOnlySpan<short> scan,
+        Av1LevelBuffer levels,
+        Span<byte> activeLevels,
+        Av1TransformSize transformSizeContext,
+        Av1PlaneType planeType)
     {
+        // Every neighbor read is a fixed offset from the coefficient's own entry in the padded plane.
+        int stride = levels.Stride;
+        int widthLog2 = levels.WidthLog2;
+        ref byte levelBase = ref MemoryMarshal.GetReference(activeLevels);
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
-            Point position = levels.GetPosition(scan[c]);
-            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext2d(levels, position, transformSize);
+            int pos = scan[c];
+            ref byte levelEntry = ref Unsafe.Add(ref levelBase, (nuint)(uint)Av1LevelBuffer.GetPaddedIndex(pos, widthLog2));
+            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(
+                ref levelEntry, stride, pos, widthLog2, transformSize, Av1TransformClass.Class2D);
+
             int level = this.ReadCoefficientsBase(transformSizeContext, planeType, coefficientContext);
             if (level > Av1Constants.BaseLevelsCount)
             {
-                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext2d(levels, position);
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(ref levelEntry, stride, pos, widthLog2, Av1TransformClass.Class2D);
                 this.ReadCoefficientsBaseRangeLoop(transformSizeContext, planeType, baseRangeContext, ref level);
             }
 
-            levels.GetRow(position)[position.X] = (byte)level;
+            levelEntry = (byte)level;
         }
     }
 
@@ -1403,24 +1432,38 @@ internal ref struct Av1SymbolDecoder
     /// <param name="startScanIndex">The inclusive lowest scan index.</param>
     /// <param name="endScanIndex">The inclusive highest scan index.</param>
     /// <param name="scan">The transform's scan-to-raster mapping.</param>
-    /// <param name="levels">The padded absolute-coefficient level plane to update.</param>
+    /// <param name="levels">The padded absolute-coefficient level plane, which gives the active size and stride.</param>
+    /// <param name="activeLevels">The active level plane of <paramref name="levels"/>, which the caller read once.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
-    public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse(
+        Av1TransformSize transformSize,
+        Av1TransformClass transformClass,
+        int startScanIndex,
+        int endScanIndex,
+        ReadOnlySpan<short> scan,
+        Av1LevelBuffer levels,
+        Span<byte> activeLevels,
+        Av1TransformSize transformSizeContext,
+        Av1PlaneType planeType)
     {
+        // Every neighbor read is a fixed offset from the coefficient's own entry in the padded plane.
+        int stride = levels.Stride;
+        int widthLog2 = levels.WidthLog2;
+        ref byte levelBase = ref MemoryMarshal.GetReference(activeLevels);
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
             int pos = scan[c];
-            Point position = levels.GetPosition(pos);
-            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(levels, position, transformSize, transformClass);
+            ref byte levelEntry = ref Unsafe.Add(ref levelBase, (nuint)(uint)Av1LevelBuffer.GetPaddedIndex(pos, widthLog2));
+            int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(ref levelEntry, stride, pos, widthLog2, transformSize, transformClass);
             int level = this.ReadCoefficientsBase(transformSizeContext, planeType, coefficientContext);
             if (level > Av1Constants.BaseLevelsCount)
             {
-                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(ref levelEntry, stride, pos, widthLog2, transformClass);
                 this.ReadCoefficientsBaseRangeLoop(transformSizeContext, planeType, baseRangeContext, ref level);
             }
 
-            levels.GetRow(position)[position.X] = (byte)level;
+            levelEntry = (byte)level;
         }
     }
 
@@ -1430,7 +1473,8 @@ internal ref struct Av1SymbolDecoder
     /// <param name="coefficientBuffer">The zero-initialized destination receiving dequantized coefficients.</param>
     /// <param name="endOfBlock">The one-based end-of-block position and coefficient count.</param>
     /// <param name="scan">The transform's scan-to-raster mapping.</param>
-    /// <param name="levels">The decoded absolute-coefficient level plane.</param>
+    /// <param name="levels">The decoded absolute-coefficient level plane, which gives the active width.</param>
+    /// <param name="activeLevels">The active level plane of <paramref name="levels"/>, which the caller read once.</param>
     /// <param name="dcSignContext">The neighboring DC sign context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
     /// <param name="quantization">The segment, plane, matrix, scale, and clipping parameters for this transform.</param>
@@ -1441,6 +1485,7 @@ internal ref struct Av1SymbolDecoder
         int endOfBlock,
         ReadOnlySpan<short> scan,
         Av1LevelBuffer levels,
+        ReadOnlySpan<byte> activeLevels,
         int dcSignContext,
         Av1PlaneType planeType,
         Av1InverseQuantizer.TransformParameters quantization,
@@ -1449,13 +1494,13 @@ internal ref struct Av1SymbolDecoder
         ref Av1SymbolReader r = ref this.reader;
         int culLevel = 0;
         int dcValue = 0;
+        int widthLog2 = levels.WidthLog2;
         maximumCoefficientIndex = 0;
         for (int c = 0; c < endOfBlock; c++)
         {
             int sign = 0;
             int pos = scan[c];
-            Point position = levels.GetPosition(pos);
-            int level = levels[position];
+            int level = activeLevels[Av1LevelBuffer.GetPaddedIndex(pos, widthLog2)];
             if (level != 0)
             {
                 if (c == 0)

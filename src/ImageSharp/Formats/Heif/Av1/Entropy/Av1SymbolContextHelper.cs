@@ -438,30 +438,6 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// Derives a two-dimensional lower-level context from five forward coefficient neighbors.
-    /// </summary>
-    /// <param name="levelBuffer">The padded coefficient-level buffer.</param>
-    /// <param name="position">The coefficient position in raster order.</param>
-    /// <param name="transformSize">The transform size selecting the positional context offset.</param>
-    /// <returns>The lower-level context.</returns>
-    public static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point position, Av1TransformSize transformSize)
-    {
-        DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
-        int mag;
-        Span<byte> row0 = levelBuffer.GetRow(position.Y)[position.X..];
-        Span<byte> row1 = levelBuffer.GetRow(position.Y + 1)[position.X..];
-        Span<byte> row2 = levelBuffer.GetRow(position.Y + 2)[position.X..];
-        mag = Math.Min((int)row0[1], 3); // { 0, 1 }
-        mag += Math.Min((int)row1[0], 3); // { 1, 0 }
-        mag += Math.Min((int)row1[1], 3); // { 1, 1 }
-        mag += Math.Min((int)row0[2], 3); // { 0, 2 }
-        mag += Math.Min((int)row2[0], 3); // { 2, 0 }
-
-        int ctx = Math.Min((mag + 1) >> 1, 4);
-        return ctx + Av1NzMap.GetNzMapContext(transformSize, position);
-    }
-
-    /// <summary>
     /// Section 8.3.2 in the spec, under coeff_br. Optimized for end of block based
     /// on the fact that {0, 1}, {1, 0}, {1, 1}, {0, 2} and {2, 0} will all be 0 in
     /// the end of block case.
@@ -484,25 +460,6 @@ internal static class Av1SymbolContextHelper
         }
 
         return 14;
-    }
-
-    /// <summary>
-    /// Derives a base-range context from the transform-class-specific forward neighbors.
-    /// </summary>
-    /// <remarks>Spec section 8.2.3, under 'coeff_br'.</remarks>
-    /// <param name="levels">The padded coefficient-level buffer.</param>
-    /// <param name="position">The coefficient position in raster order.</param>
-    /// <param name="transformClass">The transform direction class.</param>
-    /// <returns>The base-range context.</returns>
-    public static int GetBaseRangeContext(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
-    {
-        Span<byte> active = levels.GetActiveLevels();
-        return GetBaseRangeContext(
-            ref active[(position.Y * levels.Stride) + position.X],
-            levels.Stride,
-            (position.Y << levels.WidthLog2) + position.X,
-            levels.WidthLog2,
-            transformClass);
     }
 
     /// <summary>
@@ -608,47 +565,6 @@ internal static class Av1SymbolContextHelper
         }
 
         return 14;
-    }
-
-    /// <summary>
-    /// Derives the two-dimensional base-range context from right, below, and below-right levels.
-    /// </summary>
-    /// <param name="levels">The padded coefficient-level buffer.</param>
-    /// <param name="position">The coefficient position in raster order.</param>
-    /// <returns>The two-dimensional base-range context.</returns>
-    public static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)
-    {
-        DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
-        Span<byte> row0 = levels.GetRow(position.Y);
-        Span<byte> row1 = levels.GetRow(position.Y + 1);
-
-        // The final magnitude context is clipped to six, so clipping every source level to the AV1 base-range limit
-        // first cannot change the result.
-        int mag =
-            row0[position.X + 1] + // {0, 1}
-            row1[position.X] + //     {1, 0}
-            row1[position.X + 1];  // {1, 1}
-        mag = Math.Min((mag + 1) >> 1, 6);
-        if ((position.Y | position.X) < 2)
-        {
-            return mag + 7;
-        }
-
-        return mag + 14;
-    }
-
-    /// <summary>
-    /// Derives a lower-level context from the transform-class-specific nonzero-map magnitude.
-    /// </summary>
-    /// <param name="levels">The padded coefficient-level buffer.</param>
-    /// <param name="position">The coefficient position in raster order.</param>
-    /// <param name="transformSize">The coded transform size.</param>
-    /// <param name="transformClass">The transform direction class.</param>
-    /// <returns>The lower-level coefficient context.</returns>
-    public static int GetLowerLevelsContext(Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
-    {
-        int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
-        return Av1NzMap.GetNzMapContextFromStats(stats, position, transformSize, transformClass);
     }
 
     /// <summary>
@@ -760,24 +676,6 @@ internal static class Av1SymbolContextHelper
 
         // A mode-derived transform falls back to DCT-DCT when its transform set omits that type.
         return transformType.IsExtendedSetUsed(transformSetType) ? transformType : Av1TransformType.DctDct;
-    }
-
-    /// <summary>
-    /// Derives the nonzero-map context for one coefficient preceding the final nonzero coefficient.
-    /// </summary>
-    /// <param name="levels">The padded coefficient-level buffer.</param>
-    /// <param name="position">The coefficient position in raster order.</param>
-    /// <param name="transformSize">The coded transform size.</param>
-    /// <param name="transformClass">The transform direction class.</param>
-    /// <returns>The nonzero-map context.</returns>
-    public static sbyte GetNzMapContext(
-        Av1LevelBuffer levels,
-        Point position,
-        Av1TransformSize transformSize,
-        Av1TransformClass transformClass)
-    {
-        int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
-        return (sbyte)Av1NzMap.GetNzMapContextFromStats(stats, position, transformSize, transformClass);
     }
 
     /// <summary>

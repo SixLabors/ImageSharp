@@ -338,6 +338,7 @@ public class Av1CoefficientsEntropyTests
             0,
             0,
             levels,
+            levels.GetStorage(),
             actuals,
             CreateInverseQuantizer());
 

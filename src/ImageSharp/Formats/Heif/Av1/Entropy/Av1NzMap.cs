@@ -433,19 +433,6 @@ internal static partial class Av1NzMap
     /// <summary>
     /// Sums the clipped magnitudes of the transform-class-specific forward coefficient neighbors.
     /// </summary>
-    /// <param name="levels">The padded absolute-coefficient level plane.</param>
-    /// <param name="position">The coefficient position.</param>
-    /// <param name="transformClass">The transform direction class selecting the neighbor pattern.</param>
-    /// <returns>The summed neighbor magnitude used to select a nonzero-map context.</returns>
-    public static int GetNzMagnitude(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
-    {
-        Span<byte> active = levels.GetActiveLevels();
-        return GetNzMagnitude(ref active[(position.Y * levels.Stride) + position.X], levels.Stride, transformClass);
-    }
-
-    /// <summary>
-    /// Sums the clipped magnitudes of the transform-class-specific forward coefficient neighbors.
-    /// </summary>
     /// <remarks>
     /// The level plane pads every row with four bytes and adds four rows below the transform, so each neighbor
     /// offset stays inside the active plane for every coefficient. One reference plus fixed offsets replaces

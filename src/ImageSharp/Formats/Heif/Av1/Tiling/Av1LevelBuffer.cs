@@ -66,12 +66,6 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     public int WidthLog2 { get; private set; }
 
     /// <summary>
-    /// Gets the coefficient level at the specified unpadded position.
-    /// </summary>
-    /// <param name="position">The coefficient position.</param>
-    public int this[Point position] => this.GetRow(position.Y)[position.X];
-
-    /// <summary>
     /// Initializes the level plane, its right padding, and its bottom padding from raster-ordered coefficients.
     /// </summary>
     /// <remarks>
@@ -174,14 +168,6 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     }
 
     /// <summary>
-    /// Gets a padded coefficient row for the specified position.
-    /// </summary>
-    /// <param name="pos">A position whose vertical coordinate selects the row.</param>
-    /// <returns>The selected row, including its horizontal context padding.</returns>
-    public Span<byte> GetRow(Point pos)
-        => this.GetRow(pos.Y);
-
-    /// <summary>
     /// Gets a padded coefficient row by its unpadded vertical coordinate.
     /// </summary>
     /// <param name="y">The row coordinate, which may address the top context padding.</param>
@@ -205,7 +191,23 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     /// Selects new active coefficient dimensions and clears their padded context storage.
     /// </summary>
     /// <param name="size">The unpadded coefficient dimensions.</param>
-    public void Reset(Size size) => this.Reset(size, clear: true);
+    public void Reset(Size size) => this.Reset(size, this.GetStorage());
+
+    /// <summary>
+    /// Selects new active coefficient dimensions and clears their padded context storage, in storage that the caller
+    /// read once with <see cref="GetStorage"/>.
+    /// </summary>
+    /// <param name="size">The unpadded coefficient dimensions.</param>
+    /// <param name="storage">All of the level storage, from <see cref="GetStorage"/>.</param>
+    public void Reset(Size size, Span<byte> storage)
+    {
+        this.Reset(size, clear: false);
+
+        // Clear only the active layout because stale neighboring levels would otherwise select the wrong coefficient
+        // distributions.
+        int totalHeight = Av1Constants.TransformPadTop + size.Height + Av1Constants.TransformPadBottom;
+        storage[..(this.Stride * totalHeight)].Clear();
+    }
 
     /// <summary>
     /// Selects new active coefficient dimensions and optionally clears their padded context storage.
@@ -214,18 +216,17 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     /// <param name="clear">Indicates whether to clear the active level plane and its context padding.</param>
     public void Reset(Size size, bool clear)
     {
+        if (clear)
+        {
+            this.Reset(size, this.GetStorage());
+            return;
+        }
+
+        // Tile parsing is sequential, so one maximum-sized rent serves every transform; only the active layout changes.
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         this.Size = size;
         this.WidthLog2 = BitOperations.Log2((uint)size.Width);
         this.Stride = Av1Constants.TransformPadHorizontal + size.Width;
-
-        if (clear)
-        {
-            // Tile parsing is sequential, so one maximum-sized rent can serve every transform. Clear only the active
-            // layout because stale neighboring levels would otherwise select the wrong coefficient distributions.
-            int totalHeight = Av1Constants.TransformPadTop + size.Height + Av1Constants.TransformPadBottom;
-            this.memory.Memory.Span[..(this.Stride * totalHeight)].Clear();
-        }
     }
 
     /// <summary>

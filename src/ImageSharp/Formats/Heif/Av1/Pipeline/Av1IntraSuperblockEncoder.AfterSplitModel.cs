@@ -598,6 +598,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Combines completed child costs, selected geometry, and motion residuals into a stopping decision.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -610,6 +611,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="childCosts">The costs of the four split children.</param>
         /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
         private bool ShouldTerminateAfterSplit(
+            Span<int> workspaceStorage,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -693,6 +695,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int minimumWidth = Av1Constants.MaxSuperBlockSizeLog2;
                     int minimumHeight = Av1Constants.MaxSuperBlockSizeLog2;
                     this.GetMinimumSimpleMotionBlockSize(
+                        workspaceStorage,
                         Av1PartitionType.Split.GetBlockSubSize(blockSize),
                         (nodeIndex * 4) + candidate - 1,
                         ref minimumWidth,
@@ -703,8 +706,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            this.CollectSimpleMotionFeatures(motionSearchPrediction, filterRows, in motionVectorCosts, blockOrigin, blockSize, nodeIndex, true);
-            Span<Av1SimpleMotionData> nodes = this.blockWorkspace.SimpleMotionData;
+            this.CollectSimpleMotionFeatures(
+                workspaceStorage, motionSearchPrediction, filterRows, in motionVectorCosts, blockOrigin, blockSize, nodeIndex, true);
+
+            Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
             features[featureIndex++] = float.LogP1(nodes[nodeIndex].Variance);
             for (int child = 0; child < 4; child++)
             {
@@ -736,7 +741,17 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Finds the smallest selected width and height beneath a square, measured in log2 mode-information units.
         /// </summary>
-        private void GetMinimumSimpleMotionBlockSize(Av1BlockSize blockSize, int nodeIndex, ref int minimumWidth, ref int minimumHeight)
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="blockSize">The square block size of the partition node.</param>
+        /// <param name="nodeIndex">The partition tree node of the block.</param>
+        /// <param name="minimumWidth">The smallest width found so far, which the search lowers.</param>
+        /// <param name="minimumHeight">The smallest height found so far, which the search lowers.</param>
+        private void GetMinimumSimpleMotionBlockSize(
+            Span<int> workspaceStorage,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            ref int minimumWidth,
+            ref int minimumHeight)
         {
             if (blockSize == Av1BlockSize.Block4x4)
             {
@@ -745,13 +760,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            Av1PartitionType partition = this.blockWorkspace.SimpleMotionData[nodeIndex].Partition;
+            Av1PartitionType partition = this.blockWorkspace.GetSimpleMotionData(workspaceStorage)[nodeIndex].Partition;
             if (partition == Av1PartitionType.Split)
             {
                 Av1BlockSize childSize = partition.GetBlockSubSize(blockSize);
                 for (int child = 0; child < 4; child++)
                 {
-                    this.GetMinimumSimpleMotionBlockSize(childSize, (nodeIndex * 4) + child + 1, ref minimumWidth, ref minimumHeight);
+                    this.GetMinimumSimpleMotionBlockSize(workspaceStorage, childSize, (nodeIndex * 4) + child + 1, ref minimumWidth, ref minimumHeight);
                 }
             }
             else if (partition != Av1PartitionType.Invalid)

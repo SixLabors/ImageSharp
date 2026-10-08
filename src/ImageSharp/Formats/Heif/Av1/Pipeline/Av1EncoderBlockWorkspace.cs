@@ -303,22 +303,25 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     }
 
     /// <summary>
+    /// Gets the storage that holds every search buffer of the workspace. A caller reads it once per frame pass and
+    /// passes it to the overloads that slice one buffer from it.
+    /// </summary>
+    public Span<int> Storage => this.owner.Memory.Span;
+
+    /// <summary>
     /// Gets the four convolution outputs retained throughout a 64x64 partition search.
     /// </summary>
-    public Span<float> IntraPartitionFeatures => MemoryMarshal.Cast<int, float>(
-        this.owner.Memory.Span.Slice(this.intraPartitionStorageOffset, 20 + (4 * 2 * 2) + (20 * 4 * 4) + (20 * 8 * 8)));
+    public Span<float> IntraPartitionFeatures => this.GetIntraPartitionFeatures(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the source log variances for the current superblock's 4x4 cells.
     /// </summary>
-    public Span<double> SourceLogVariances => MemoryMarshal.Cast<int, double>(
-        this.owner.Memory.Span[this.sourceLogVarianceStorageOffset..]);
+    public Span<double> SourceLogVariances => this.GetSourceLogVariances(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets temporary storage for the 65x65 normalized input and the first 20-channel 16x16 layer.
     /// </summary>
-    public Span<float> IntraPartitionScratch => MemoryMarshal.Cast<int, float>(
-        this.owner.Memory.Span.Slice(InterPredictionSampleStorageOffset, (65 * 65) + (20 * 16 * 16)));
+    public Span<float> IntraPartitionScratch => GetIntraPartitionScratch(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets frame-role probabilities retained for the sequence's lifetime.
@@ -335,44 +338,37 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Gets the prediction records retained until the block's transform search finishes.
     /// </summary>
-    public Span<Av1InterModeCandidate> InterModeCandidates => MemoryMarshal.Cast<int, Av1InterModeCandidate>(
-        this.owner.Memory.Span[this.interModeStorageOffset..this.interModeModelStorageOffset])[..Av1InterModeCandidate.Capacity];
+    public Span<Av1InterModeCandidate> InterModeCandidates => this.GetInterModeCandidates(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the residual estimates for each block geometry in the current tile.
     /// </summary>
-    public Span<Av1InterModeRateDistortionModel> InterModeModels => MemoryMarshal.Cast<int, Av1InterModeRateDistortionModel>(
-        this.owner.Memory.Span.Slice(this.interModeModelStorageOffset, this.compoundSearchStorageOffset - this.interModeModelStorageOffset));
+    public Span<Av1InterModeRateDistortionModel> InterModeModels => this.GetInterModeModels(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the predictor-pair estimates retained until the current block search ends.
     /// </summary>
-    public Span<Av1CompoundSearchRecord> CompoundSearchRecords => MemoryMarshal.Cast<int, Av1CompoundSearchRecord>(
-        this.owner.Memory.Span[this.compoundSearchStorageOffset..this.interpolationSearchStorageOffset]);
+    public Span<Av1CompoundSearchRecord> CompoundSearchRecords => this.GetCompoundSearchRecords(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the interpolation decisions retained for the current block.
     /// </summary>
-    public Span<Av1InterpolationSearchRecord> InterpolationSearchRecords => MemoryMarshal.Cast<int, Av1InterpolationSearchRecord>(
-        this.owner.Memory.Span[this.interpolationSearchStorageOffset..this.singleReferenceFilterCostStorageOffset]);
+    public Span<Av1InterpolationSearchRecord> InterpolationSearchRecords => this.GetInterpolationSearchRecords(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets modeled interpolation costs in single-reference mode, dynamic-reference index, and reference order.
     /// </summary>
-    public Span<long> SingleReferenceFilterCosts => MemoryMarshal.Cast<int, long>(
-        this.owner.Memory.Span[this.singleReferenceFilterCostStorageOffset..this.singleReferenceSimpleCostStorageOffset]);
+    public Span<long> SingleReferenceFilterCosts => this.GetSingleReferenceFilterCosts(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets translation costs in single-reference mode, dynamic-reference index, and reference order.
     /// </summary>
-    public Span<long> SingleReferenceSimpleCosts => MemoryMarshal.Cast<int, long>(
-        this.owner.Memory.Span[this.singleReferenceSimpleCostStorageOffset..this.simpleMotionStorageOffset]);
+    public Span<long> SingleReferenceSimpleCosts => this.GetSingleReferenceSimpleCosts(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets interpolation probabilities by frame role and entropy context.
     /// </summary>
-    public Span<int> InterpolationProbabilities => this.owner.Memory.Span.Slice(
-        this.interpolationProbabilityStorageOffset, Av1InterpolationProbabilities.ProbabilityLength);
+    public Span<int> InterpolationProbabilities => this.GetInterpolationProbabilities(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the current frame's interpolation context counts.
@@ -391,8 +387,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the unwrapped display order of the frame retained in each decoded reference slot.
     /// Reference: the display_order_hint of each RefCntBuffer.
     /// </summary>
-    public Span<int> ReferenceFrameNumbers => this.owner.Memory.Span.Slice(
-        this.referenceFrameNumberStorageOffset, Av1Constants.ReferenceFrameCount);
+    public Span<int> ReferenceFrameNumbers => this.GetReferenceFrameNumbers(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the base quantizer index of the frame retained in each decoded reference slot.
@@ -505,8 +500,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Gets the per-size mode history retained throughout one superblock row.
     /// </summary>
-    public Span<int> ModeThresholdFactors => this.owner.Memory.Span.Slice(
-        this.modeThresholdStorageOffset, (int)Av1BlockSize.AllSizes * Av1ModeThresholds.ModeCount);
+    public Span<int> ModeThresholdFactors => this.GetModeThresholdFactors(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the quantizer-dependent base scale of the frame's mode thresholds, one per segment. Reference: the
@@ -543,8 +537,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Gets the worker's motion-feature nodes in breadth-first quadtree order.
     /// </summary>
-    public Span<Av1SimpleMotionData> SimpleMotionData => MemoryMarshal.Cast<int, Av1SimpleMotionData>(
-        this.owner.Memory.Span.Slice(this.simpleMotionStorageOffset, this.simpleMotionStorageLength));
+    public Span<Av1SimpleMotionData> SimpleMotionData => this.GetSimpleMotionData(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the allocator used by frame-scoped encoder stages.
@@ -632,8 +625,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// It spans the forward and dequantized coefficient workspaces, enough for the moment tree of a 128x128
     /// superblock down to 8x8.
     /// </summary>
-    public Span<int> PartitionAnalysisScratch
-        => this.owner.Memory.Span.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
+    public Span<int> PartitionAnalysisScratch => GetPartitionAnalysisScratch(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the coefficients of one row of mode-estimation transforms across the widest block, eight 16x16
@@ -851,8 +843,15 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Borrows the integer rates retained by a worker with intra-block-copy capacity.
     /// </summary>
     /// <returns>The worker's displacement-rate view.</returns>
-    public Av1MotionVectorCosts GetDisplacementVectorCosts()
-        => new(this.owner.Memory.Span.Slice(this.displacementCostStorageOffset, Av1MotionVectorCosts.IntegerStorageLength), Av1MotionVectorPrecision.Integer);
+    public Av1MotionVectorCosts GetDisplacementVectorCosts() => this.GetDisplacementVectorCosts(this.owner.Memory.Span);
+
+    /// <summary>
+    /// Borrows the integer rates retained by a worker with intra-block-copy capacity from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The worker's displacement-rate view.</returns>
+    public Av1MotionVectorCosts GetDisplacementVectorCosts(Span<int> storage)
+        => new(storage.Slice(this.displacementCostStorageOffset, Av1MotionVectorCosts.IntegerStorageLength), Av1MotionVectorPrecision.Integer);
 
     /// <summary>
     /// Borrows prediction samples for motion search while retaining the selected inter reconstruction.
@@ -924,6 +923,16 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <param name="stride">The reference row stride in samples.</param>
     /// <returns>The configured non-owning search-site view.</returns>
     public Av1MotionSearchSites GetMotionSearchSites(Av1MotionSearchSettings.FullPixelSearchMethod method, int stride)
+        => this.GetMotionSearchSites(this.owner.Memory.Span, method, stride);
+
+    /// <summary>
+    /// Gets the retained full-pixel search geometry for the reference plane's current stride from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <param name="method">The block-selected search method.</param>
+    /// <param name="stride">The reference row stride in samples.</param>
+    /// <returns>The configured non-owning search-site view.</returns>
+    public Av1MotionSearchSites GetMotionSearchSites(Span<int> storage, Av1MotionSearchSettings.FullPixelSearchMethod method, int stride)
     {
         // Fast diamond variants differ in stage selection, so they share the big-diamond geometry slot.
         Av1MotionSearchSettings.FullPixelSearchMethod shape = method > Av1MotionSearchSettings.FullPixelSearchMethod.BigDiamond
@@ -931,7 +940,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
             : method;
 
         int offset = this.motionSearchSiteStorageOffset + ((int)shape * Av1MotionSearchSites.StorageLength);
-        Av1MotionSearchSites sites = new(this.owner.Memory.Span.Slice(offset, Av1MotionSearchSites.StorageLength));
+        Av1MotionSearchSites sites = new(storage.Slice(offset, Av1MotionSearchSites.StorageLength));
         sites.Configure(shape, stride);
         return sites;
     }
@@ -941,15 +950,20 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     /// <param name="blockSize">The square partition node being evaluated.</param>
     /// <returns>The maximum-size byte view reserved for that node depth.</returns>
-    public Span<byte> GetPartitionContextStorage(Av1BlockSize blockSize)
+    public Span<byte> GetPartitionContextStorage(Av1BlockSize blockSize) => GetPartitionContextStorage(this.owner.Memory.Span, blockSize);
+
+    /// <summary>
+    /// Gets the disjoint edge snapshot used to restore one square partition-search level from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <param name="blockSize">The square partition node being evaluated.</param>
+    /// <returns>The maximum-size byte view reserved for that node depth.</returns>
+    public static Span<byte> GetPartitionContextStorage(Span<int> storage, Av1BlockSize blockSize)
     {
+        // Each square depth has its own slot, so a deeper level never overwrites the snapshot of its parent.
         int blockSizeLog2 = Av1Math.Log2(blockSize.GetWidth());
         int slotIndex = Av1Constants.MaxSuperBlockSizeLog2 - blockSizeLog2;
-        Span<int> storage = this.owner.Memory.Span.Slice(
-            PartitionContextStorageOffset + (slotIndex * PartitionContextSlotLength),
-            PartitionContextSlotLength);
-
-        return MemoryMarshal.AsBytes(storage);
+        return MemoryMarshal.AsBytes(storage.Slice(PartitionContextStorageOffset + (slotIndex * PartitionContextSlotLength), PartitionContextSlotLength));
     }
 
     /// <summary>
@@ -1007,16 +1021,136 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     /// <param name="planeCount">The number of component planes in this block.</param>
     /// <returns>The block-local syntax, transform-state, and palette storage.</returns>
-    public Av1EncoderPartitionTree.ModeContext GetIntraWinnerContext(int planeCount)
+    public Av1EncoderPartitionTree.ModeContext GetIntraWinnerContext(int planeCount) => GetIntraWinnerContext(this.owner.Memory.Span, planeCount);
+
+    /// <summary>
+    /// Gets the intra winner retained while a later palette candidate reuses prediction scratch, from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <param name="planeCount">The number of component planes in this block.</param>
+    /// <returns>The block-local syntax, transform-state, and palette storage.</returns>
+    public static Av1EncoderPartitionTree.ModeContext GetIntraWinnerContext(Span<int> storage, int planeCount)
     {
         // Inter search has finished before this context becomes live. Its larger shared allocation
         // leaves room beyond intra scratch for the retained winner, without another owner or allocation.
-        Span<byte> storage = MemoryMarshal.AsBytes(this.owner.Memory.Span.Slice(
+        Span<byte> winnerStorage = MemoryMarshal.AsBytes(storage.Slice(
             InterPredictionSampleStorageOffset + ModeDecisionStorageLength,
             SharedModeDecisionStorageLength - ModeDecisionStorageLength));
 
-        return new(storage, planeCount);
+        return new(winnerStorage, planeCount);
     }
+
+    /// <summary>
+    /// Gets the four convolution outputs retained throughout a 64x64 partition search from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The retained convolution outputs.</returns>
+    public Span<float> GetIntraPartitionFeatures(Span<int> storage)
+        => MemoryMarshal.Cast<int, float>(storage.Slice(this.intraPartitionStorageOffset, 20 + (4 * 2 * 2) + (20 * 4 * 4) + (20 * 8 * 8)));
+
+    /// <summary>
+    /// Gets the source log variances for the current superblock's 4x4 cells from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The source log variances, negative for a cell that is not measured yet.</returns>
+    public Span<double> GetSourceLogVariances(Span<int> storage) => MemoryMarshal.Cast<int, double>(storage[this.sourceLogVarianceStorageOffset..]);
+
+    /// <summary>
+    /// Gets temporary storage for the 65x65 normalized input and the first 20-channel 16x16 layer from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The temporary convolution storage.</returns>
+    public static Span<float> GetIntraPartitionScratch(Span<int> storage)
+        => MemoryMarshal.Cast<int, float>(storage.Slice(InterPredictionSampleStorageOffset, (65 * 65) + (20 * 16 * 16)));
+
+    /// <summary>
+    /// Gets the prediction records retained until the block's transform search finishes, from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The prediction records.</returns>
+    public Span<Av1InterModeCandidate> GetInterModeCandidates(Span<int> storage)
+        => MemoryMarshal.Cast<int, Av1InterModeCandidate>(
+            storage[this.interModeStorageOffset..this.interModeModelStorageOffset])[..Av1InterModeCandidate.Capacity];
+
+    /// <summary>
+    /// Gets the residual estimates for each block geometry in the current tile from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The residual estimates, one per block size.</returns>
+    public Span<Av1InterModeRateDistortionModel> GetInterModeModels(Span<int> storage)
+        => MemoryMarshal.Cast<int, Av1InterModeRateDistortionModel>(
+            storage.Slice(this.interModeModelStorageOffset, this.compoundSearchStorageOffset - this.interModeModelStorageOffset));
+
+    /// <summary>
+    /// Gets the predictor-pair estimates retained until the current block search ends, from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The predictor-pair estimates.</returns>
+    public Span<Av1CompoundSearchRecord> GetCompoundSearchRecords(Span<int> storage)
+        => MemoryMarshal.Cast<int, Av1CompoundSearchRecord>(storage[this.compoundSearchStorageOffset..this.interpolationSearchStorageOffset]);
+
+    /// <summary>
+    /// Gets the interpolation decisions retained for the current block from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The interpolation decisions.</returns>
+    public Span<Av1InterpolationSearchRecord> GetInterpolationSearchRecords(Span<int> storage)
+        => MemoryMarshal.Cast<int, Av1InterpolationSearchRecord>(storage[this.interpolationSearchStorageOffset..this.singleReferenceFilterCostStorageOffset]);
+
+    /// <summary>
+    /// Gets modeled interpolation costs in single-reference mode, dynamic-reference index, and reference order from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The modeled interpolation costs.</returns>
+    public Span<long> GetSingleReferenceFilterCosts(Span<int> storage)
+        => MemoryMarshal.Cast<int, long>(storage[this.singleReferenceFilterCostStorageOffset..this.singleReferenceSimpleCostStorageOffset]);
+
+    /// <summary>
+    /// Gets translation costs in single-reference mode, dynamic-reference index, and reference order from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The translation costs.</returns>
+    public Span<long> GetSingleReferenceSimpleCosts(Span<int> storage)
+        => MemoryMarshal.Cast<int, long>(storage[this.singleReferenceSimpleCostStorageOffset..this.simpleMotionStorageOffset]);
+
+    /// <summary>
+    /// Gets interpolation probabilities by frame role and entropy context from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The interpolation probabilities.</returns>
+    public Span<int> GetInterpolationProbabilities(Span<int> storage)
+        => storage.Slice(this.interpolationProbabilityStorageOffset, Av1InterpolationProbabilities.ProbabilityLength);
+
+    /// <summary>
+    /// Gets the unwrapped display order of the frame retained in each decoded reference slot from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The display order of each reference slot.</returns>
+    public Span<int> GetReferenceFrameNumbers(Span<int> storage) => storage.Slice(this.referenceFrameNumberStorageOffset, Av1Constants.ReferenceFrameCount);
+
+    /// <summary>
+    /// Gets the per-size mode history retained throughout one superblock row from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The mode threshold factors, one per mode of each block size.</returns>
+    public Span<int> GetModeThresholdFactors(Span<int> storage)
+        => storage.Slice(this.modeThresholdStorageOffset, (int)Av1BlockSize.AllSizes * Av1ModeThresholds.ModeCount);
+
+    /// <summary>
+    /// Gets the worker's motion-feature nodes in breadth-first quadtree order from the workspace storage.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The motion-feature nodes.</returns>
+    public Span<Av1SimpleMotionData> GetSimpleMotionData(Span<int> storage)
+        => MemoryMarshal.Cast<int, Av1SimpleMotionData>(storage.Slice(this.simpleMotionStorageOffset, this.simpleMotionStorageLength));
+
+    /// <summary>
+    /// Gets the scratch storage of partition analysis from the workspace storage. Partition analysis completes before
+    /// any transform of the superblock, so it spans the forward and dequantized coefficient workspaces.
+    /// </summary>
+    /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
+    /// <returns>The partition analysis storage.</returns>
+    public static Span<int> GetPartitionAnalysisScratch(Span<int> storage) => storage.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
 
     /// <summary>
     /// Releases the reusable block workspace.

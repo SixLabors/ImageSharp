@@ -57,6 +57,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The coding-block neighbors and frame edges.</param>
         /// <param name="origin">The luma block origin.</param>
         /// <param name="modeInfo">The selected block syntax.</param>
@@ -92,6 +93,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point origin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -307,6 +309,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        workspaceStorage,
                         macroBlock,
                         origin,
                         reference,
@@ -377,6 +380,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in interWorkspace,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    workspaceStorage,
                     macroBlock,
                     origin,
                     evaluateBlue,
@@ -645,7 +649,11 @@ internal static partial class Av1IntraSuperblockEncoder
             if (winner.SecondaryReferenceFrame == Av1ReferenceFrameType.None && settings.AdaptiveModeThresholdLevel != 0)
             {
                 Av1ModeThresholds.UpdateEstimated(
-                    this.blockWorkspace.ModeThresholdFactors, blockSize, winner.ReferenceFrame, winner.Mode, settings.AdaptiveModeThresholdLevel);
+                    this.blockWorkspace.GetModeThresholdFactors(workspaceStorage),
+                    blockSize,
+                    winner.ReferenceFrame,
+                    winner.Mode,
+                    settings.AdaptiveModeThresholdLevel);
             }
 
             Size lumaExtent = GetCodedTransformExtent(macroBlock, blockSize, modeInfo.Block.TransformSize, 0, 0);
@@ -1340,6 +1348,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The reconstructed block neighbors.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="evaluateBlue">Whether blue-difference distortion participates in selection.</param>
@@ -1359,6 +1368,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             bool evaluateBlue,
@@ -1452,7 +1462,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int modeMask = speed.GetEstimatedIntraModeMask(blockSize, screenChange);
             Av1PredictionMode chromaMode = Av1PredictionMode.DC;
-            Span<int> modeThresholdFactors = this.blockWorkspace.ModeThresholdFactors;
+            Span<int> modeThresholdFactors = this.blockWorkspace.GetModeThresholdFactors(workspaceStorage);
 
             // Every intra mode of the block reads the same mode rates.
             Av1ModeCosts modeCosts = tables.ModeCosts;
@@ -2115,6 +2125,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The current block's neighbors and edges.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="reference">The admitted reference label.</param>
@@ -2151,6 +2162,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1ReferenceFrameType reference,
@@ -2181,7 +2193,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (this.picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128
                     ? Av1BlockSize.Block64x64 : Av1BlockSize.Block32x32);
 
-            Span<int> modeThresholdFactors = this.blockWorkspace.ModeThresholdFactors;
+            Span<int> modeThresholdFactors = this.blockWorkspace.GetModeThresholdFactors(workspaceStorage);
             for (int index = 0; index < 4 && !state.EndSearch; index++)
             {
                 Av1PredictionMode mode = (Av1PredictionMode)((int)Av1PredictionMode.SingleInterModeStart + index);

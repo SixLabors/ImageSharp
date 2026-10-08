@@ -1281,6 +1281,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> firstIntermediate, out Span<ushort> secondIntermediate);
         Span<byte> compoundMask = blockWorkspace.GetCompoundPredictionMask();
 
+        // The search buffers that each block reads from the workspace are sliced from this storage.
+        Span<int> workspaceStorage = blockWorkspace.Storage;
+
         // The mode information and the retained block decisions of the picture serve every block of the frame pass,
         // so they are read once here.
         Span<int> modeInfoGrid = picture.ModeInfoGrid.Span;
@@ -1435,6 +1438,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 searchSegmentMap,
                                 previousSegmentMap,
                                 superblockCoefficients,
+                                workspaceStorage,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1471,7 +1475,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             {
                                 // Still images retain their initial displacement rates. Sequence intra frames
                                 // refresh at superblock boundaries while entropy coding continues to adapt.
-                                writer.FillDisplacementVectorCosts(blockWorkspace.GetDisplacementVectorCosts());
+                                writer.FillDisplacementVectorCosts(blockWorkspace.GetDisplacementVectorCosts(workspaceStorage));
                             }
 
                             Av1IntraSuperblockEncoder.Prepare(picture, modeInfoAllocation, superblock, entropyContext.SuperblockOrigin);
@@ -1534,6 +1538,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 searchSegmentMap,
                                 previousSegmentMap,
                                 superblockCoefficients,
+                                workspaceStorage,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

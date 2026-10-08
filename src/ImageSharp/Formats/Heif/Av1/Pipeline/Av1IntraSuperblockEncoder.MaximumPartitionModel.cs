@@ -174,6 +174,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Aggregates the 64 full-sample block searches needed to choose a 128-sample superblock's size limit.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -181,6 +182,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The luma superblock origin.</param>
         /// <returns>The largest partition size of the superblock.</returns>
         private Av1BlockSize PredictMaximumPartition(
+            Span<int> workspaceStorage,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -205,6 +207,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Point origin = new(blockOrigin.X + (column * 16), blockOrigin.Y + (row * 16));
                     Av1MotionVector vector = this.SearchSimpleMotion(
+                        workspaceStorage,
                         motionSearchPrediction,
                         filterRows,
                         in motionVectorCosts,

@@ -1649,7 +1649,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Computes convolution features once per 64x64 parent and applies the selected block-size classifier.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="blockOrigin">The luma block origin, in samples.</param>
+        /// <param name="blockSize">The square block size of the partition node.</param>
+        /// <param name="level">The pruning level. Level 1 keeps the unsplit candidate when only square partitions remain.</param>
+        /// <param name="allowNone">Whether the unsplit candidate is searched, which the classifier can change.</param>
+        /// <param name="allowSplit">Whether the split candidate is searched, which the classifier can change.</param>
+        /// <param name="allowRectangles">Whether the rectangular candidates are searched, which the classifier can change.</param>
+        /// <returns><see langword="true"/> when the classifier keeps only the square partitions.</returns>
         private bool PruneIntraPartitions(
+            Span<int> workspaceStorage,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int level,
@@ -1657,10 +1666,22 @@ internal static partial class Av1IntraSuperblockEncoder
             ref bool allowSplit,
             ref bool allowRectangles)
         {
-            return this.PruneIntraPartitionsCore(blockOrigin, blockSize, level, ref allowNone, ref allowSplit, ref allowRectangles);
+            return this.PruneIntraPartitionsCore(workspaceStorage, blockOrigin, blockSize, level, ref allowNone, ref allowSplit, ref allowRectangles);
         }
 
+        /// <summary>
+        /// Computes convolution features once per 64x64 parent and applies the selected block-size classifier.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="blockOrigin">The luma block origin, in samples.</param>
+        /// <param name="blockSize">The square block size of the partition node.</param>
+        /// <param name="level">The pruning level. Level 1 keeps the unsplit candidate when only square partitions remain.</param>
+        /// <param name="allowNone">Whether the unsplit candidate is searched, which the classifier can change.</param>
+        /// <param name="allowSplit">Whether the split candidate is searched, which the classifier can change.</param>
+        /// <param name="allowRectangles">Whether the rectangular candidates are searched, which the classifier can change.</param>
+        /// <returns><see langword="true"/> when the classifier keeps only the square partitions.</returns>
         private bool PruneIntraPartitionsCore(
+            Span<int> workspaceStorage,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int level,
@@ -1668,12 +1689,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ref bool allowSplit,
             ref bool allowRectangles)
         {
-            Span<float> retained = this.blockWorkspace.IntraPartitionFeatures;
+            Span<float> retained = this.blockWorkspace.GetIntraPartitionFeatures(workspaceStorage);
             if (blockSize == Av1BlockSize.Block64x64)
             {
-                Span<float> scratch = this.blockWorkspace.IntraPartitionScratch;
-                Span<float> input = scratch[..(65 * 65)];
-                Span<float> firstLayer = scratch[(65 * 65)..];
+                Span<float> convolutionStorage = Av1EncoderBlockWorkspace.GetIntraPartitionScratch(workspaceStorage);
+                Span<float> input = convolutionStorage[..(65 * 65)];
+                Span<float> firstLayer = convolutionStorage[(65 * 65)..];
                 Av1PlaneRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
                 float maximum = (1 << this.bitDepth.GetBitCount()) - 1;
 

@@ -603,6 +603,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int right = Math.Min(originX + superblockSize, picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2);
                 int bottom = Math.Min(originY + superblockSize, picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
                 (double minimumLogVariance, double maximumLogVariance) = this.GetLogSubBlockVariance(
+                    blockWorkspace.Storage,
                     new Rectangle(originX, originY, right - originX, bottom - originY));
 
                 int modifier = 128;
@@ -801,6 +802,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -862,6 +864,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             displacementVectors,
                             encoderSegmentMap,
                             previousSegmentMap,
+                            workspaceStorage,
                             macroBlock,
                             blockOrigin);
                     }
@@ -906,6 +909,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             searchSegmentMap,
                             previousSegmentMap,
                             superblockCoefficients,
+                            workspaceStorage,
                             macroBlock,
                             blockOrigin,
                             blockSize,
@@ -954,6 +958,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -1021,6 +1026,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -1079,6 +1085,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1120,6 +1127,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1151,6 +1159,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int savedLumaArea = this.codedAreaLuma;
             int savedChromaArea = this.codedAreaChroma;
             this.SavePartitionTrialContexts(
+                workspaceStorage,
                 in partitionEdges,
                 in transformEdges,
                 in paletteEdges,
@@ -1203,6 +1212,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1219,6 +1229,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics noneSyntax = new(mergeMultiplier, noneRate, 0);
             none.Add(mergeMultiplier, noneSyntax);
             this.ResetPartitionTrial(
+                workspaceStorage,
                 in partitionEdges,
                 in transformEdges,
                 in paletteEdges,
@@ -1299,6 +1310,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         macroBlock,
                         childOrigin,
                         childSize,
@@ -1323,6 +1335,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 this.ResetPartitionTrial(
+                    workspaceStorage,
                     in partitionEdges,
                     in transformEdges,
                     in paletteEdges,
@@ -1460,6 +1473,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1505,6 +1519,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1535,7 +1550,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // take. Reference: the x->mb_energy update of av1_rd_pick_partition().
             if (costLimit.Cost >= 0 && blockSize == Av1BlockSize.Block16x16 && this.picture.Parent.VarianceSegmentRefresh)
             {
-                this.blockWorkspace.MacroblockEnergy = (int)this.GetLogBlockVariance(blockOrigin, blockSize);
+                this.blockWorkspace.MacroblockEnergy = (int)this.GetLogBlockVariance(workspaceStorage, blockOrigin, blockSize);
             }
 
             Av1PartitionType result = this.SelectBestPartitionCore(
@@ -1574,6 +1589,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1796,22 +1812,24 @@ internal static partial class Av1IntraSuperblockEncoder
         /// mode-information grid, at most 7. A block of 16x16 or smaller takes the value its 16x16 partition node
         /// measured. Reference: the VARIANCE_AQ branch of setup_block_rdmult() with av1_log_block_var().
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <returns>The segment identifier.</returns>
-        private int GetVarianceSegmentId(Point blockOrigin, Av1BlockSize blockSize)
+        private int GetVarianceSegmentId(Span<int> workspaceStorage, Point blockOrigin, Av1BlockSize blockSize)
             => blockSize <= Av1BlockSize.Block16x16
                 ? this.blockWorkspace.MacroblockEnergy
-                : (int)this.GetLogBlockVariance(blockOrigin, blockSize);
+                : (int)this.GetLogBlockVariance(workspaceStorage, blockOrigin, blockSize);
 
         /// <summary>
         /// Returns the mean log variance of the 4x4 luma blocks of a block inside the mode-information grid, at most 7.
         /// Reference: av1_log_block_var().
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <returns>The mean log variance.</returns>
-        private double GetLogBlockVariance(Point blockOrigin, Av1BlockSize blockSize)
+        private double GetLogBlockVariance(Span<int> workspaceStorage, Point blockOrigin, Av1BlockSize blockSize)
         {
             Av1EncoderCommon common = this.picture.Parent.Common;
             int width = Math.Min(blockSize.GetWidth(), (common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) - blockOrigin.X);
@@ -1821,7 +1839,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int x = 0; x < width; x += 4)
                 {
-                    sum += this.GetSourceLogVariance(new Point(blockOrigin.X + x, blockOrigin.Y + y));
+                    sum += this.GetSourceLogVariance(workspaceStorage, new Point(blockOrigin.X + x, blockOrigin.Y + y));
                 }
             }
 
@@ -1941,6 +1959,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1986,6 +2005,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -2048,7 +2068,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ((nearest.Row + 3 + (nearest.Row >= 0 ? 1 : 0)) >> 3) * 8,
                     ((nearest.Column + 3 + (nearest.Column >= 0 ? 1 : 0)) >> 3) * 8);
 
-                Span<Av1SimpleMotionData> nodes = this.blockWorkspace.SimpleMotionData;
+                Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
                 nodes.Clear();
                 foreach (ref Av1SimpleMotionData node in nodes)
                 {
@@ -2068,6 +2088,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     this.maximumPartitionSize = (Av1BlockSize)Math.Clamp(
                         (int)this.PredictMaximumPartition(
+                            workspaceStorage,
                             motionSearchPrediction,
                             interWorkspace.FilterRows,
                             in motionVectorCosts,
@@ -2081,6 +2102,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int savedLumaArea = this.codedAreaLuma;
             int savedChromaArea = this.codedAreaChroma;
             this.SavePartitionTrialContexts(
+                workspaceStorage,
                 in partitionEdges,
                 in transformEdges,
                 in paletteEdges,
@@ -2166,7 +2188,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin.Y + blockSize.GetHeight() <= (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2))
             {
                 squarePartitionsOnly = this.PruneIntraPartitions(
-                    blockOrigin, blockSize, intraPruningLevel, ref allowMotionNone, ref allowMotionSplit, ref allowRectangularSplit);
+                    workspaceStorage, blockOrigin, blockSize, intraPruningLevel, ref allowMotionNone, ref allowMotionSplit, ref allowRectangularSplit);
             }
 
             if (!this.mustFindValidPartition && !frameHeader.IsIntra && motionAggressiveness >= 0 &&
@@ -2178,6 +2200,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in motionVectorCosts,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -2222,6 +2245,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
                 (double minimum, double maximum) = this.GetLogSubBlockVariance(
+                    workspaceStorage,
                     new Rectangle(blockOrigin.X, blockOrigin.Y, right - blockOrigin.X, bottom - blockOrigin.Y));
 
                 // Separate sharp detail from an almost-flat quarter before ringing spreads across the larger block.
@@ -2238,7 +2262,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             // The simple motion data exists only for inter frames.
-            Span<Av1SimpleMotionData> simpleMotionData = frameHeader.IsIntra ? default : this.blockWorkspace.SimpleMotionData;
+            Span<Av1SimpleMotionData> simpleMotionData = frameHeader.IsIntra ? default : this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
                 Av1PartitionType partitionType = searchOrder[candidateIndex];
@@ -2270,6 +2294,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         true);
 
                     if (this.PrunePartitionsAfterSplit(
+                        workspaceStorage,
                         in modeWorkspace,
                         motionSearchPrediction,
                         interWorkspace.FilterRows,
@@ -2413,6 +2438,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 {
                                     GetPartitionLeafGeometry(blockOrigin, blockSize, stripPartition, strip, out Point origin, out Av1BlockSize size);
                                     this.SearchSimpleMotion(
+                                        workspaceStorage,
                                         motionSearchPrediction,
                                         interWorkspace.FilterRows,
                                         in motionVectorCosts,
@@ -2681,6 +2707,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -2826,6 +2853,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in motionVectorCosts,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -2865,6 +2893,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (partitionType == Av1PartitionType.Split)
                 {
                     terminateAfterSplit = this.PrunePartitionsAfterSplit(
+                        workspaceStorage,
                         in modeWorkspace,
                         motionSearchPrediction,
                         interWorkspace.FilterRows,
@@ -2892,6 +2921,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (partitionType != Av1PartitionType.Split || !keepsSplitContexts)
                 {
                     this.ResetPartitionTrial(
+                        workspaceStorage,
                         in partitionEdges,
                         in transformEdges,
                         in paletteEdges,
@@ -2928,7 +2958,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (!this.picture.Parent.FrameHeader.IsIntra)
             {
-                this.blockWorkspace.SimpleMotionData[nodeIndex].Partition = selectedPartition;
+                this.blockWorkspace.GetSimpleMotionData(workspaceStorage)[nodeIndex].Partition = selectedPartition;
             }
 
             return selectedPartition;
@@ -2937,7 +2967,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Measures the minimum and maximum log variance of visible 4x4 source blocks.
         /// </summary>
-        private (double Minimum, double Maximum) GetLogSubBlockVariance(Rectangle bounds)
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="bounds">The visible luma area to measure, in samples.</param>
+        /// <returns>The smallest and the largest log variance of the 4x4 source blocks in the area.</returns>
+        private (double Minimum, double Maximum) GetLogSubBlockVariance(Span<int> workspaceStorage, Rectangle bounds)
         {
             double minimum = double.MaxValue;
             double maximum = 0;
@@ -2945,7 +2978,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int x = bounds.Left; x < bounds.Right; x += 4)
                 {
-                    double variance = this.GetSourceLogVariance(new Point(x, y));
+                    double variance = this.GetSourceLogVariance(workspaceStorage, new Point(x, y));
                     minimum = Math.Min(minimum, variance);
                     maximum = Math.Max(maximum, variance);
                 }
@@ -2954,11 +2987,18 @@ internal static partial class Av1IntraSuperblockEncoder
             return (minimum, maximum);
         }
 
-        private double GetSourceLogVariance(Point origin)
+        /// <summary>
+        /// Gets the log variance of one 4x4 source block. The superblock keeps each value after the first measure, and a
+        /// negative entry marks a value that is not measured yet.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="origin">The luma origin of the 4x4 block, in samples.</param>
+        /// <returns>The log of one plus the variance of the 4x4 source block.</returns>
+        private double GetSourceLogVariance(Span<int> workspaceStorage, Point origin)
         {
             int side = 1 << this.picture.Sequence.SequenceHeader.SuperblockSizeLog2;
             int index = (((origin.Y & (side - 1)) >> 2) * (side >> 2)) + ((origin.X & (side - 1)) >> 2);
-            ref double variance = ref this.blockWorkspace.SourceLogVariances[index];
+            ref double variance = ref this.blockWorkspace.GetSourceLogVariances(workspaceStorage)[index];
             if (variance < 0)
             {
                 variance = this.GetLogVariance(this.source.GetPlane(Av1Plane.Y), origin);
@@ -2994,8 +3034,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Scales a predictor's cost by how far its reconstruction drifts from the source in log variance,
         /// reading the reconstruction from the candidate the last transform grid produced.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="origin">The luma block origin, in samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="reconstruction">The reconstruction of the candidate, starting at the block origin.</param>
+        /// <param name="reconstructionStride">The distance between rows of the reconstruction.</param>
+        /// <returns>The cost factor, from one to three.</returns>
         private double GetIntraVarianceFactor(
-            Point origin, Av1BlockSize blockSize, ReadOnlySpan<TSample> reconstruction, int reconstructionStride)
+            Span<int> workspaceStorage, Point origin, Av1BlockSize blockSize, ReadOnlySpan<TSample> reconstruction, int reconstructionStride)
         {
             double threshold = 1D - (0.25D * (int)this.picture.Parent.EncodingSpeed);
             if (threshold <= 0)
@@ -3011,7 +3057,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int x = origin.X; x < right; x += 4)
                 {
-                    sourceVariance += this.GetSourceLogVariance(new Point(x, y));
+                    sourceVariance += this.GetSourceLogVariance(workspaceStorage, new Point(x, y));
                     reconstructionVariance += GetLogVariance(
                         reconstruction[(((y - origin.Y) * reconstructionStride) + (x - origin.X))..],
                         reconstructionStride,
@@ -3052,7 +3098,14 @@ internal static partial class Av1IntraSuperblockEncoder
             return double.LogP1(variance / 16D);
         }
 
-        private double GetIntraVarianceFactor(Point origin, Av1BlockSize blockSize)
+        /// <summary>
+        /// Scales a predictor's cost by how far the reconstruction of the frame drifts from the source in log variance.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="origin">The luma block origin, in samples.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The cost factor, from one to three.</returns>
+        private double GetIntraVarianceFactor(Span<int> workspaceStorage, Point origin, Av1BlockSize blockSize)
         {
             double threshold = 1D - (0.25D * (int)this.picture.Parent.EncodingSpeed);
             if (threshold <= 0)
@@ -3070,7 +3123,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int x = origin.X; x < right; x += 4)
                 {
                     Point cell = new(x, y);
-                    sourceVariance += this.GetSourceLogVariance(cell);
+                    sourceVariance += this.GetSourceLogVariance(workspaceStorage, cell);
                     reconstructionVariance += this.GetLogVariance(plane, cell);
                 }
             }
@@ -3105,6 +3158,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Reference: the skip_non_sq_part_based_on_none test and prune_partitions_after_split() in
         /// av1_rd_pick_partition().
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="modeWorkspace">The mode decision buffers, whose first candidate row holds the variance midpoint.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the simple motion searches.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
@@ -3126,6 +3180,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="parentSourceVariance">The cached source variance of the block, or a negative value.</param>
         /// <returns><see langword="true"/> when the partition search ends here.</returns>
         private bool PrunePartitionsAfterSplit(
+            Span<int> workspaceStorage,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
@@ -3182,6 +3237,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 allowRectangularSplit && rectangleAllowed)
             {
                 terminated = this.ShouldTerminateAfterSplit(
+                    workspaceStorage,
                     motionSearchPrediction,
                     filterRows,
                     in motionVectorCosts,
@@ -3298,6 +3354,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3340,6 +3397,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3389,6 +3447,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -3440,6 +3499,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3482,6 +3542,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3497,6 +3558,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int savedLumaArea = this.codedAreaLuma;
             int savedChromaArea = this.codedAreaChroma;
             this.SavePartitionTrialContexts(
+                workspaceStorage,
                 in partitionEdges,
                 in transformEdges,
                 in paletteEdges,
@@ -3545,6 +3607,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -3595,6 +3658,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         subSize,
@@ -3722,6 +3786,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             searchSegmentMap,
                             previousSegmentMap,
                             superblockCoefficients,
+                            workspaceStorage,
                             macroBlock,
                             secondOrigin,
                             subSize,
@@ -3776,6 +3841,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             searchSegmentMap,
                             previousSegmentMap,
                             superblockCoefficients,
+                            workspaceStorage,
                             macroBlock,
                             childOrigin,
                             childSize,
@@ -3787,6 +3853,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.ResetPartitionTrial(
+                workspaceStorage,
                 in partitionEdges,
                 in transformEdges,
                 in paletteEdges,
@@ -3837,6 +3904,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -3895,6 +3963,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3941,6 +4010,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3992,6 +4062,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -4048,6 +4119,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -4147,6 +4219,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -4196,6 +4269,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -4321,6 +4395,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         macroBlock,
                         leafOrigin,
                         leafSize,
@@ -4367,6 +4442,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             searchSegmentMap,
                             previousSegmentMap,
                             superblockCoefficients,
+                            workspaceStorage,
                             macroBlock,
                             leafOrigin,
                             leafSize,
@@ -4658,6 +4734,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Returns the coefficient positions and the tile context edges to their state before a partition trial.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="partitionEdges">The partition context edges of the tile.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
@@ -4669,6 +4746,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="savedLumaArea">The luma coefficient position before the trial.</param>
         /// <param name="savedChromaArea">The chroma coefficient position before the trial.</param>
         private void ResetPartitionTrial(
+            Span<int> workspaceStorage,
             in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
@@ -4683,6 +4761,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.codedAreaLuma = savedLumaArea;
             this.codedAreaChroma = savedChromaArea;
             this.RestorePartitionTrialContexts(
+                workspaceStorage,
                 in partitionEdges,
                 in transformEdges,
                 in paletteEdges,
@@ -5098,6 +5177,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5160,6 +5240,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5206,6 +5287,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5246,6 +5328,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5288,6 +5371,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5367,6 +5451,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5407,6 +5492,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5448,6 +5534,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5493,6 +5580,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5534,6 +5622,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5839,6 +5928,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         superblockCoefficients,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -5884,6 +5974,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -5929,6 +6020,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -6058,6 +6150,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     encoderSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -6261,6 +6354,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         ref modeInfo,
@@ -6306,6 +6400,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         encoderSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         regularStatistics,
@@ -6322,7 +6417,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Winner refinement and palette search follow the family comparison. Retain syntax and
                 // transform states in idle inter storage while these trials reuse intra scratch.
                 this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
-                Av1EncoderPartitionTree.ModeContext winner = this.blockWorkspace.GetIntraWinnerContext(block.HasChroma ? 3 : 1);
+                Av1EncoderPartitionTree.ModeContext winner = Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, block.HasChroma ? 3 : 1);
                 winner.Snapshot = new Av1EncoderPartitionTree.ModeSnapshot
                 {
                     ModeInfo = modeInfo,
@@ -6382,6 +6477,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in lumaCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -6605,7 +6701,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // winner is encoded again before the syntax is written and the next block predicts from it.
                 // Reference: the encode_superblock() that encode_sb() makes after pick_sb_modes(), which
                 // runs encode_block_intra() over every transform block.
-                Av1EncoderPartitionTree.ModeContext winner = this.blockWorkspace.GetIntraWinnerContext(block.HasChroma ? 3 : 1);
+                Av1EncoderPartitionTree.ModeContext winner = Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, block.HasChroma ? 3 : 1);
                 winner.Snapshot = new Av1EncoderPartitionTree.ModeSnapshot
                 {
                     ModeInfo = modeInfo,
@@ -6676,7 +6772,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // The non-skip-mode symbol is priced only once the reference lists of the pair exist. Reference:
                     // the ref_mv_count return of rd_pick_skip_mode() before it adds skip_mode_cost[ctx][0].
                     bool skipModeListsReady = this.HasSkipModeReferenceLists(
-                        skipModeParameters.FirstReferenceFrame, skipModeParameters.SecondReferenceFrame);
+                        workspaceStorage, skipModeParameters.FirstReferenceFrame, skipModeParameters.SecondReferenceFrame);
 
                     byte availableReferences = this.picture.Parent.AvailableReferenceMask;
                     bool searchesSkipMode = (availableReferences & (1 << (int)skipModeParameters.FirstReferenceFrame)) != 0 &&
@@ -6797,7 +6893,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Update only after residual refinement, palette, and skip-mode selection have all finished.
                 // Partition replay returns earlier and must not count the retained winner a second time.
                 Av1ModeThresholds.Update(
-                    this.blockWorkspace.ModeThresholdFactors,
+                    this.blockWorkspace.GetModeThresholdFactors(workspaceStorage),
                     blockSize,
                     this.picture.Sequence.SequenceHeader.SuperblockSizeLog2 == 7 ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64,
                     Av1ModeThresholds.GetIndex(modeInfo.Block.Mode, modeInfo.Block.ReferenceFrame, modeInfo.Block.SecondaryReferenceFrame),
@@ -6851,6 +6947,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6896,6 +6993,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6924,7 +7022,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if (this.picture.Parent.VarianceSegmentRefresh)
                 {
-                    this.blockSegmentId = this.GetVarianceSegmentId(blockOrigin, blockSize);
+                    this.blockSegmentId = this.GetVarianceSegmentId(workspaceStorage, blockOrigin, blockSize);
                 }
 
                 rateSegmentId = this.blockSegmentId;
@@ -6974,6 +7072,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -6992,7 +7091,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (result.Rate != int.MaxValue && blockSize >= Av1BlockSize.Block16x16 &&
                 adaptiveQuantization == Av1AdaptiveQuantizationMode.Complexity && this.picture.Parent.ComplexitySegmentRefresh)
             {
-                this.SelectComplexitySegment(encoderSegmentMap, blockOrigin, blockSize, result.Rate);
+                this.SelectComplexitySegment(encoderSegmentMap, workspaceStorage, blockOrigin, blockSize, result.Rate);
             }
 
             return result;
@@ -7003,10 +7102,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// av1_caq_select_segment().
         /// </summary>
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="projectedRate">The block's searched rate.</param>
-        private void SelectComplexitySegment(Span<byte> encoderSegmentMap, Point blockOrigin, Av1BlockSize blockSize, int projectedRate)
+        private void SelectComplexitySegment(
+            Span<byte> encoderSegmentMap,
+            Span<int> workspaceStorage,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int projectedRate)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             Av1EncoderCommon common = parent.Common;
@@ -7019,7 +7124,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 parent.SuperblockTargetRate,
                 visibleColumns * visibleRows,
                 this.picture.Sequence.SequenceHeader.SuperblockModeInfoSize,
-                this.GetLogBlockVariance(blockOrigin, blockSize),
+                this.GetLogBlockVariance(workspaceStorage, blockOrigin, blockSize),
                 this.quantization.BaseQIndex,
                 this.bitDepth);
 
@@ -7068,6 +7173,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -7113,6 +7219,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -7178,6 +7285,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -7226,7 +7334,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // Only a luma search that ran for this block left its grid here. A winner that names
                 // another size belongs to a different block, so this leaf keeps what it retained.
-                Av1EncoderPartitionTree.ModeContext lumaWinner = this.blockWorkspace.GetIntraWinnerContext(1);
+                Av1EncoderPartitionTree.ModeContext lumaWinner = Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, 1);
                 if (lumaWinner.Snapshot.ModeInfo.Block.BlockSize == blockSize)
                 {
                     CopyWinnerTransformStates(
@@ -8283,6 +8391,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Saves the tile context edges that a partition trial of one block can change, so that a later trial starts
         /// from the same edges.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="partitionEdges">The partition context edges of the tile.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
@@ -8292,6 +8401,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size of the partition node.</param>
         private void SavePartitionTrialContexts(
+            Span<int> workspaceStorage,
             in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
@@ -8301,7 +8411,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize)
         {
-            Span<byte> storage = this.blockWorkspace.GetPartitionContextStorage(blockSize);
+            Span<byte> storage = Av1EncoderBlockWorkspace.GetPartitionContextStorage(workspaceStorage, blockSize);
             int offset = 0;
             SaveNeighborEdges(in partitionEdges, blockOrigin, blockSize.Get4x4WideCount(), blockSize.Get4x4HighCount(), storage, ref offset);
             SaveNeighborEdges(in lumaCoefficientEdges, blockOrigin, blockSize.Get4x4WideCount(), blockSize.Get4x4HighCount(), storage, ref offset);
@@ -8338,6 +8448,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Restores the tile context edges that <see cref="SavePartitionTrialContexts"/> saved before a partition
         /// trial of one block.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="partitionEdges">The partition context edges of the tile.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
@@ -8347,6 +8458,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size of the partition node.</param>
         private void RestorePartitionTrialContexts(
+            Span<int> workspaceStorage,
             in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
@@ -8356,7 +8468,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize)
         {
-            ReadOnlySpan<byte> storage = this.blockWorkspace.GetPartitionContextStorage(blockSize);
+            ReadOnlySpan<byte> storage = Av1EncoderBlockWorkspace.GetPartitionContextStorage(workspaceStorage, blockSize);
             int offset = 0;
             RestoreNeighborEdges(in partitionEdges, blockOrigin, blockSize.Get4x4WideCount(), blockSize.Get4x4HighCount(), storage, ref offset);
             RestoreNeighborEdges(in lumaCoefficientEdges, blockOrigin, blockSize.Get4x4WideCount(), blockSize.Get4x4HighCount(), storage, ref offset);
@@ -8539,6 +8651,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8568,6 +8681,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8597,6 +8711,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 encoderSegmentMap,
                 previousSegmentMap,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -8630,6 +8745,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8659,6 +8775,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8686,6 +8803,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -8702,7 +8820,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Every mode writes its best depth into the shared states, so they end with the last mode tried.
                 // The winner's grid was kept when it won; hand it back so the caller retains the winner's types.
                 // Reference: the ctx->tx_type_map that av1_rd_pick_intra_sby_mode() copies on each improvement.
-                CopyWinnerTransformStates(this.blockWorkspace.GetIntraWinnerContext(1).GetTransformStates(Av1Plane.Y), retainedStates);
+                CopyWinnerTransformStates(Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, 1).GetTransformStates(Av1Plane.Y), retainedStates);
             }
 
             if (selectedStatistics.Cost == long.MaxValue)
@@ -8728,6 +8846,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8757,7 +8876,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (selectedStatistics.Cost != long.MaxValue && storeLumaForChromaFromLuma)
             {
-                Av1EncoderPartitionTree.ModeContext refinedWinner = this.blockWorkspace.GetIntraWinnerContext(1);
+                Av1EncoderPartitionTree.ModeContext refinedWinner = Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, 1);
                 Av1MacroBlockModeInfo refinedModeInfo = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0);
                 refinedModeInfo.Block.Mode = refinedMode;
                 refinedModeInfo.Block.TransformSize = selectedTransformSize;
@@ -8839,6 +8958,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8863,6 +8983,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8887,6 +9008,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -8915,6 +9037,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8939,6 +9062,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -9005,7 +9129,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 LumaBlockState blockState = this.GetLumaBlockState(in tables, modeInfoGrid, modeInfoAllocation, macroBlock, blockOrigin, blockSize);
 
                 // The winner keeps its transform grid in the retained winner context, which is read once.
-                Span<Av1EncoderTransformBlockState> winnerStates = this.blockWorkspace.GetIntraWinnerContext(1).GetTransformStates(Av1Plane.Y);
+                Span<Av1EncoderTransformBlockState> winnerStates =
+                    Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, 1).GetTransformStates(Av1Plane.Y);
 
                 // Repeat transform search for every retained predictor with winner-stage settings.
                 // Each trial starts from the same external block edges and its own palette map.
@@ -9106,6 +9231,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -9131,6 +9257,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -9156,6 +9283,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 superblockCoefficients,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -9185,6 +9313,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -9210,6 +9339,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -9224,7 +9354,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool intraFrame = this.picture.Parent.FrameHeader.IsIntra;
             bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-            Av1EncoderPartitionTree.ModeContext winner = this.blockWorkspace.GetIntraWinnerContext(1);
+            Av1EncoderPartitionTree.ModeContext winner = Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, 1);
 
             // The winner's storage is laid out from the size it records, so it names this block before
             // anything reads or writes its transform grid.
@@ -9581,7 +9711,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // The frame holds the samples of the last grid trial, not of the winning grid. The choice of a grid restores only the transform type map.
                     // Reference: the tail of choose_tx_size_type_from_rd(). It copies best_txk_type_map into xd->tx_type_map.
                     // Then pd->dst keeps the last uniform_txfm_yrd() trial.
-                    double varianceFactor = this.GetIntraVarianceFactor(blockOrigin, blockSize, frameBlock, reconstructionPlane.Stride);
+                    double varianceFactor = this.GetIntraVarianceFactor(workspaceStorage, blockOrigin, blockSize, frameBlock, reconstructionPlane.Stride);
                     modeStatistics.Cost = (long)(modeStatistics.Cost * varianceFactor);
                 }
 

@@ -114,6 +114,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -144,6 +145,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -446,7 +448,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     macroBlock.Tile,
                     this.picture.Sequence.SequenceHeader,
-                    this.blockWorkspace.GetDisplacementVectorCosts(),
+                    this.blockWorkspace.GetDisplacementVectorCosts(workspaceStorage),
                     reference,
                     this.blockQIndex,
                     this.rateMultiplier,

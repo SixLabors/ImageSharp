@@ -108,6 +108,7 @@ internal partial class Av1TileWriter
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+    /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -160,6 +161,7 @@ internal partial class Av1TileWriter
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
         Span<int> superblockCoefficients,
+        Span<int> workspaceStorage,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -275,6 +277,7 @@ internal partial class Av1TileWriter
             searchSegmentMap,
             previousSegmentMap,
             superblockCoefficients,
+            workspaceStorage,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -338,6 +341,7 @@ internal partial class Av1TileWriter
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+    /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -394,6 +398,7 @@ internal partial class Av1TileWriter
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
         Span<int> superblockCoefficients,
+        Span<int> workspaceStorage,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -459,6 +464,7 @@ internal partial class Av1TileWriter
             searchSegmentMap,
             previousSegmentMap,
             superblockCoefficients,
+            workspaceStorage,
             entropyCodingContext.MacroBlock,
             blockOrigin,
             blockSize,
@@ -527,6 +533,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -583,6 +590,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -639,6 +647,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -696,6 +705,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -752,6 +762,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -826,6 +837,7 @@ internal partial class Av1TileWriter
                             searchSegmentMap,
                             previousSegmentMap,
                             superblockCoefficients,
+                            workspaceStorage,
                             superblock,
                             coefficientBuffer,
                             tileIndex,
@@ -884,6 +896,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -941,6 +954,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -998,6 +1012,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1055,6 +1070,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1114,6 +1130,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1168,6 +1185,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1222,6 +1240,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1278,6 +1297,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1332,6 +1352,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1386,6 +1407,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1442,6 +1464,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1496,6 +1519,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1550,6 +1574,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1606,6 +1631,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1660,6 +1686,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1714,6 +1741,7 @@ internal partial class Av1TileWriter
                     searchSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
+                    workspaceStorage,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1779,6 +1807,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1845,6 +1874,7 @@ internal partial class Av1TileWriter
                         searchSegmentMap,
                         previousSegmentMap,
                         superblockCoefficients,
+                        workspaceStorage,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1916,6 +1946,7 @@ internal partial class Av1TileWriter
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+    /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -1969,6 +2000,7 @@ internal partial class Av1TileWriter
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
         Span<int> superblockCoefficients,
+        Span<int> workspaceStorage,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -2027,6 +2059,7 @@ internal partial class Av1TileWriter
             searchSegmentMap,
             previousSegmentMap,
             superblockCoefficients,
+            workspaceStorage,
             superblock,
             ref block,
             tileIndex,
@@ -2297,6 +2330,7 @@ internal partial class Av1TileWriter
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+    /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
@@ -2353,6 +2387,7 @@ internal partial class Av1TileWriter
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
         Span<int> superblockCoefficients,
+        Span<int> workspaceStorage,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
@@ -2429,6 +2464,7 @@ internal partial class Av1TileWriter
             searchSegmentMap,
             previousSegmentMap,
             superblockCoefficients,
+            workspaceStorage,
             macroBlock,
             blockOrigin,
             ref macroBlockModeInfo,

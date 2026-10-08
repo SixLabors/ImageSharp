@@ -1065,6 +1065,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the superblock.</param>
         /// <param name="superblockOrigin">The luma superblock origin.</param>
         private void PrepareVariancePartitions(
@@ -1079,6 +1080,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point superblockOrigin)
         {
@@ -1155,7 +1157,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Span<VariancePartitionNode> temporalNodes = MemoryMarshal.Cast<int, VariancePartitionNode>(
-                    this.blockWorkspace.PartitionAnalysisScratch);
+                    Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
 
                 this.BuildInterVariancePartitions(
                     macroBlock,
@@ -1198,7 +1200,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Partition analysis precedes residual coding. Its compact moment tree borrows coefficient scratch
             // only for this pass; the selected partition bytes survive after transform trials reuse that storage.
-            Span<VariancePartitionNode> nodes = MemoryMarshal.Cast<int, VariancePartitionNode>(this.blockWorkspace.PartitionAnalysisScratch);
+            Span<VariancePartitionNode> nodes =
+                MemoryMarshal.Cast<int, VariancePartitionNode>(Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
+
             this.BuildVariancePartitions(
                 this.source.GetPlane(Av1Plane.Y),
                 macroBlock.Tile,

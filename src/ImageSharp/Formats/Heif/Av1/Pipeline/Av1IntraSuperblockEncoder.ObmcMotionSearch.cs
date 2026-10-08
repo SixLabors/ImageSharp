@@ -32,6 +32,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="referenceFrame">The reference of the block.</param>
@@ -46,6 +47,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1ReferenceFrameType referenceFrame,
@@ -103,7 +105,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1MotionSearchSettings.FullPixelSearchMethod method = motionSettings.GetFullPixelMethod(blockSize);
-                Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(method, referencePlane.Stride);
+                Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(workspaceStorage, method, referencePlane.Stride);
                 best = this.SearchObmcDiamond(
                     reference,
                     referencePlane.Stride,

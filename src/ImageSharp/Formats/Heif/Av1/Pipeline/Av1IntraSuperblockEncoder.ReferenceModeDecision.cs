@@ -130,6 +130,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="regularStatistics">The rate and distortion of the intra winner.</param>
@@ -163,6 +164,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1RateDistortionStatistics regularStatistics,
@@ -189,7 +191,7 @@ internal static partial class Av1IntraSuperblockEncoder
             InlineArray2<Av1MotionVector> candidatesStorage = default;
             Span<Av1MotionVector> candidates = candidatesStorage;
             Av1MotionSearchSettings settings = this.picture.Parent.MotionSearchSettings;
-            Av1MotionVectorCosts costs = this.blockWorkspace.GetDisplacementVectorCosts();
+            Av1MotionVectorCosts costs = this.blockWorkspace.GetDisplacementVectorCosts(workspaceStorage);
 
             // The displacement search reads the source frame, and only the rate-distortion trial below
             // predicts from the reconstruction. Reference: the xd->cur_buf, which is cpi->source, that
@@ -207,7 +209,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.rateMultiplier,
                 this.picture.Parent.MotionSearchStepParameter,
                 settings,
-                this.blockWorkspace.GetMotionSearchSites(settings.GetFullPixelMethod(blockSize), this.reconstruction.GetPlane(Av1Plane.Y).Stride),
+                this.blockWorkspace.GetMotionSearchSites(
+                    workspaceStorage, settings.GetFullPixelMethod(blockSize), this.reconstruction.GetPlane(Av1Plane.Y).Stride),
                 candidates);
 
             Av1RateDistortionStatistics selectedStatistics = regularStatistics;
@@ -247,6 +250,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -449,6 +453,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -483,6 +488,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -495,14 +501,14 @@ internal static partial class Av1IntraSuperblockEncoder
             int estimation = this.picture.Parent.SpeedSettings.InterModeEstimation;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             this.estimateInterCandidates =
-                (estimation == 1 && this.blockWorkspace.InterModeModels[(int)blockSize].IsReady) ||
+                (estimation == 1 && this.blockWorkspace.GetInterModeModels(workspaceStorage)[(int)blockSize].IsReady) ||
                 (estimation == 2 && blockSize.GetWidth() * blockSize.GetHeight() > 256);
 
             this.interCandidateCount = 0;
             this.compoundSearchRecordCount = 0;
             this.interpolationSearchRecordCount = 0;
-            this.blockWorkspace.SingleReferenceFilterCosts.Fill(long.MaxValue);
-            this.blockWorkspace.SingleReferenceSimpleCosts.Fill(long.MaxValue);
+            this.blockWorkspace.GetSingleReferenceFilterCosts(workspaceStorage).Fill(long.MaxValue);
+            this.blockWorkspace.GetSingleReferenceSimpleCosts(workspaceStorage).Fill(long.MaxValue);
             this.bestInterEstimate = long.MaxValue;
             this.bestInterPredictionCost = long.MaxValue;
             this.bestInterLumaPredictionCost = long.MaxValue;
@@ -582,7 +588,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             this.skipReferenceFrameMask = this.GetSkipReferenceFrameMask(blockOrigin, blockSize, initialModeInfo.Block.PartitionType);
             this.SetInterModeSkipMasks(blockOrigin, blockSize, singleReferenceVectors[..]);
-            this.PrepareTplInterModePruning(blockOrigin, blockSize);
+            this.PrepareTplInterModePruning(workspaceStorage, blockOrigin, blockSize);
 
             // Search the same syntax mode across the available references before advancing to the
             // next mode. NEWMV's complete DRL search is retained for the later compound candidates.
@@ -592,8 +598,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PredictionMode.NearMotionVector, Av1PredictionMode.GlobalMotionVector
             ];
 
-            Span<int> modeThresholdFactors = this.blockWorkspace.ModeThresholdFactors;
-            Span<long> singleReferenceFilterCosts = this.blockWorkspace.SingleReferenceFilterCosts;
+            Span<int> modeThresholdFactors = this.blockWorkspace.GetModeThresholdFactors(workspaceStorage);
+            Span<long> singleReferenceFilterCosts = this.blockWorkspace.GetSingleReferenceFilterCosts(workspaceStorage);
             foreach (Av1PredictionMode mode in modeOrder)
             {
                 foreach (Av1ReferenceFrameType reference in referenceOrder)
@@ -613,7 +619,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if ((availableReferences & (1 << index)) == 0 ||
                         (this.interModeSkipMasks[index] & (1u << (int)mode)) != 0 ||
                         (cacheDecision == 0 && this.IsSingleReferenceSkipped(index)) ||
-                        this.PrunesReferenceBySelectiveReferenceFrame(reference, Av1ReferenceFrameType.None))
+                        this.PrunesReferenceBySelectiveReferenceFrame(workspaceStorage, reference, Av1ReferenceFrameType.None))
                     {
                         continue;
                     }
@@ -770,6 +776,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         Math.Min(this.blockCostLimit, selectedStatistics.Cost),
@@ -901,6 +908,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         referenceContexts,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         compoundReferences[pairIndex * 2],
@@ -946,6 +954,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 displacementVectors,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 singleReferenceVectors[..],
@@ -983,6 +992,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -1148,6 +1158,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="motionMode">The motion mode to evaluate.</param>
@@ -1193,6 +1204,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MotionMode motionMode,
@@ -1263,6 +1275,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        workspaceStorage,
                         blockOrigin,
                         blockSize,
                         candidate.ReferenceFrame,
@@ -1352,6 +1365,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 displacementVectors,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1453,6 +1467,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="singleReferenceVectors">The reference vector lists of the single references.</param>
@@ -1484,6 +1499,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ReadOnlySpan<Av1ReferenceMotionVectors> singleReferenceVectors,
@@ -1576,6 +1592,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         motionMode,
@@ -1841,6 +1858,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor context of the block.</param>
         /// <param name="blockOrigin">The luma origin of the block.</param>
         /// <param name="modeInfo">The block decisions, which receive the winner.</param>
@@ -1875,6 +1893,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -1889,7 +1908,7 @@ internal static partial class Av1IntraSuperblockEncoder
             long bestPartitionCost = long.MaxValue;
             this.estimateInterCandidates = false;
             this.searchingRetainedCandidates = true;
-            Span<Av1InterModeCandidate> candidates = this.blockWorkspace.InterModeCandidates[..this.interCandidateCount];
+            Span<Av1InterModeCandidate> candidates = this.blockWorkspace.GetInterModeCandidates(workspaceStorage)[..this.interCandidateCount];
             candidates.Sort();
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             int candidateCount = Math.Min(candidates.Length, settings.MaximumInterTransformCandidates);
@@ -2036,6 +2055,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     Math.Min(this.blockCostLimit, selected.Cost),
@@ -2135,6 +2155,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -2165,6 +2186,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -2213,6 +2235,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
@@ -3958,16 +3981,17 @@ internal static partial class Av1IntraSuperblockEncoder
         /// single references have theirs. Reference: the ref_mv_count UINT8_MAX return of rd_pick_skip_mode(), with
         /// the lists that set_params_rd_pick_inter_mode() builds under prune_ref_frame().
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="first">The first skip-mode reference.</param>
         /// <param name="second">The second skip-mode reference.</param>
         /// <returns><see langword="true"/> when skip mode is searched.</returns>
-        private bool HasSkipModeReferenceLists(Av1ReferenceFrameType first, Av1ReferenceFrameType second)
+        private bool HasSkipModeReferenceLists(Span<int> workspaceStorage, Av1ReferenceFrameType first, Av1ReferenceFrameType second)
         {
             bool pairListBuilt = ((this.skipReferenceFrameMask & (1 << GetReferenceFrameType(first, second))) == 0 ||
                     this.IsCachedCompoundPair(first, second)) &&
                 !this.picture.Parent.PrunesAllCompoundReferences &&
                 !this.PrunesCompoundReferencePair(first, second) &&
-                !this.PrunesReferenceBySelectiveReferenceFrame(first, second);
+                !this.PrunesReferenceBySelectiveReferenceFrame(workspaceStorage, first, second);
 
             return pairListBuilt || (!this.IsSingleReferenceSkipped((int)first) && !this.IsSingleReferenceSkipped((int)second));
         }
@@ -4219,6 +4243,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="bestCost">The cost of the best block result so far.</param>
@@ -4259,6 +4284,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             long bestCost,
@@ -4674,8 +4700,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Rank interpolation families with prediction-error modeling before running a full transform search.
             // The selected inter reconstruction remains untouched while two existing prediction views alternate.
-            Span<long> singleReferenceFilterCosts = this.blockWorkspace.SingleReferenceFilterCosts;
-            Span<long> singleReferenceSimpleCosts = this.blockWorkspace.SingleReferenceSimpleCosts;
+            Span<long> singleReferenceFilterCosts = this.blockWorkspace.GetSingleReferenceFilterCosts(workspaceStorage);
+            Span<long> singleReferenceSimpleCosts = this.blockWorkspace.GetSingleReferenceSimpleCosts(workspaceStorage);
             for (int candidateIndex = 0; candidateIndex <= candidateCount; candidateIndex++)
             {
                 if (entryPending)
@@ -4925,6 +4951,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -5049,6 +5076,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        workspaceStorage,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -5209,6 +5237,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoGrid,
                             modeInfoAllocation,
                             displacementVectors,
+                            workspaceStorage,
                             macroBlock,
                             blockOrigin,
                             motionMode,
@@ -5347,6 +5376,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5421,6 +5451,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5608,6 +5639,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -5641,6 +5673,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -5950,7 +5983,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         (vector.Row + 3 + (vector.Row >= 0 ? 1 : 0)) >> 3),
                     5,
                     method,
-                    this.blockWorkspace.GetMotionSearchSites(method, referencePlane.Stride),
+                    this.blockWorkspace.GetMotionSearchSites(workspaceStorage, method, referencePlane.Stride),
                     motionSettings,
                     false,
                     false,
@@ -6602,10 +6635,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Reference: prune_ref_by_selective_ref_frame() with prune_ref(), has_closest_ref_frames() and
         /// has_best_pred_mv_sad().
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none for a single reference.</param>
         /// <returns><see langword="true"/> when the reference or pair is dropped.</returns>
-        private readonly bool PrunesReferenceBySelectiveReferenceFrame(Av1ReferenceFrameType first, Av1ReferenceFrameType second)
+        private readonly bool PrunesReferenceBySelectiveReferenceFrame(Span<int> workspaceStorage, Av1ReferenceFrameType first, Av1ReferenceFrameType second)
         {
             int level = this.picture.Parent.SpeedSettings.SelectiveReferenceFrameLevel;
             if (level == 0)
@@ -6616,16 +6650,16 @@ internal static partial class Av1IntraSuperblockEncoder
             bool compound = second > Av1ReferenceFrameType.Intra;
             if (level >= 2 || (level == 1 && compound))
             {
-                if (this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Last3, Av1ReferenceFrameType.Golden) ||
-                    this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Last2, Av1ReferenceFrameType.Golden))
+                if (this.PrunesOlderReference(workspaceStorage, first, second, Av1ReferenceFrameType.Last3, Av1ReferenceFrameType.Golden) ||
+                    this.PrunesOlderReference(workspaceStorage, first, second, Av1ReferenceFrameType.Last2, Av1ReferenceFrameType.Golden))
                 {
                     return true;
                 }
             }
 
             if (level >= 3 &&
-                (this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Alternate2, Av1ReferenceFrameType.Last) ||
-                this.PrunesOlderReference(first, second, Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Last)))
+                (this.PrunesOlderReference(workspaceStorage, first, second, Av1ReferenceFrameType.Alternate2, Av1ReferenceFrameType.Last) ||
+                this.PrunesOlderReference(workspaceStorage, first, second, Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Last)))
             {
                 return true;
             }
@@ -6672,9 +6706,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Reference: the prune_inter_modes_based_on_tpl setup of av1_rd_pick_inter_mode() with
         /// get_block_level_tpl_stats(), and prune_modes_based_on_tpl of handle_inter_mode().
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        private void PrepareTplInterModePruning(Point blockOrigin, Av1BlockSize blockSize)
+        private void PrepareTplInterModePruning(Span<int> workspaceStorage, Point blockOrigin, Av1BlockSize blockSize)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             if (parent.SpeedSettings.TplInterModePruningLevel == 0 || !parent.TplStatisticsReady ||
@@ -6689,7 +6724,7 @@ internal static partial class Av1IntraSuperblockEncoder
             for (Av1ReferenceFrameType reference = Av1ReferenceFrameType.Last; reference <= Av1ReferenceFrameType.Alternate; reference++)
             {
                 validReferences[(int)reference - (int)Av1ReferenceFrameType.Last] = this.tplKeepReferenceFrames[(int)reference] ||
-                    !this.PrunesReferenceBySelectiveReferenceFrame(reference, Av1ReferenceFrameType.None);
+                    !this.PrunesReferenceBySelectiveReferenceFrame(workspaceStorage, reference, Av1ReferenceFrameType.None);
             }
 
             this.tplInterModePruning = true;
@@ -6824,12 +6859,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// predicted-vector SAD. Reference: prune_ref(), with the tpl_keep_ref_frame and pred_mv_sad tests of
         /// prune_ref_by_selective_ref_frame().
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none.</param>
         /// <param name="candidate">The reference that may be dropped.</param>
         /// <param name="anchor">The reference it is compared with.</param>
         /// <returns><see langword="true"/> when the candidate is used and precedes the anchor.</returns>
         private readonly bool PrunesOlderReference(
+            Span<int> workspaceStorage,
             Av1ReferenceFrameType first,
             Av1ReferenceFrameType second,
             Av1ReferenceFrameType candidate,
@@ -6843,7 +6880,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             ReadOnlySpan<uint> slots = this.picture.Parent.FrameHeader.GetReferenceFrameIndices();
-            Span<int> numbers = this.blockWorkspace.ReferenceFrameNumbers;
+            Span<int> numbers = this.blockWorkspace.GetReferenceFrameNumbers(workspaceStorage);
             return numbers[(int)slots[(int)candidate - (int)Av1ReferenceFrameType.Last]] <
                 numbers[(int)slots[(int)anchor - (int)Av1ReferenceFrameType.Last]];
         }
@@ -7254,7 +7291,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Ranks compound references from complete translation costs followed by modeled filter costs.
         /// </summary>
-        private InlineArray4<byte> GetCompoundReferenceMasks(uint searchedModes)
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="searchedModes">One bit for each searched pair of single-reference mode and reference, at the mode offset times the
+        /// reference count plus the reference.</param>
+        /// <returns>For each of the four single-reference modes, a bit mask of the references that the compound search keeps.</returns>
+        private InlineArray4<byte> GetCompoundReferenceMasks(Span<int> workspaceStorage, uint searchedModes)
         {
             InlineArray4<byte> masksStorage = default;
             Span<byte> masks = masksStorage;
@@ -7265,8 +7306,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 return masksStorage;
             }
 
-            ReadOnlySpan<long> simple = this.blockWorkspace.SingleReferenceSimpleCosts;
-            ReadOnlySpan<long> modeled = this.blockWorkspace.SingleReferenceFilterCosts;
+            ReadOnlySpan<long> simple = this.blockWorkspace.GetSingleReferenceSimpleCosts(workspaceStorage);
+            ReadOnlySpan<long> modeled = this.blockWorkspace.GetSingleReferenceFilterCosts(workspaceStorage);
             InlineArray4<long> simpleCostsStorage = default;
             InlineArray4<long> modelCostsStorage = default;
             InlineArray4<byte> simpleReferencesStorage = default;
@@ -7454,6 +7495,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="primaryReference">The first reference of the pair.</param>
@@ -7496,6 +7538,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1ReferenceFrameType primaryReference,
@@ -7527,7 +7570,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ((this.skipReferenceFrameMask & (1 << GetReferenceFrameType(primaryReference, secondaryReference))) != 0 &&
                     !this.IsCachedCompoundPair(primaryReference, secondaryReference)) ||
                 this.PrunesCompoundReferencePair(primaryReference, secondaryReference) ||
-                this.PrunesReferenceBySelectiveReferenceFrame(primaryReference, secondaryReference) ||
+                this.PrunesReferenceBySelectiveReferenceFrame(workspaceStorage, primaryReference, secondaryReference) ||
                 outsideSingleReferenceCutoff)
             {
                 return;
@@ -7712,7 +7755,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ];
 
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-            InlineArray4<byte> referenceMasksStorage = this.GetCompoundReferenceMasks(searchedSingleModes);
+            InlineArray4<byte> referenceMasksStorage = this.GetCompoundReferenceMasks(workspaceStorage, searchedSingleModes);
             Span<byte> referenceMasks = referenceMasksStorage;
             bool primaryNeighborMatch = false;
             bool secondaryNeighborMatch = false;
@@ -7752,8 +7795,8 @@ internal static partial class Av1IntraSuperblockEncoder
             InlineArray4<Av1RateDistortionStatistics> planeStatisticsStorage = default;
             Span<long> translationCosts = translationCostsStorage;
             Span<Av1RateDistortionStatistics> planeStatistics = planeStatisticsStorage;
-            Span<int> modeThresholdFactors = this.blockWorkspace.ModeThresholdFactors;
-            Span<long> singleReferenceFilterCosts = this.blockWorkspace.SingleReferenceFilterCosts;
+            Span<int> modeThresholdFactors = this.blockWorkspace.GetModeThresholdFactors(workspaceStorage);
+            Span<long> singleReferenceFilterCosts = this.blockWorkspace.GetSingleReferenceFilterCosts(workspaceStorage);
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
                 Av1MotionVector candidatePrimary = primaryVectors[candidateIndex];
@@ -8070,6 +8113,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8143,6 +8187,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8198,6 +8243,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    workspaceStorage,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8626,6 +8672,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8664,6 +8711,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8727,7 +8775,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool secondaryGlobal = mode == Av1PredictionMode.GlobalGlobalMotionVector &&
                 frameHeader.GetGlobalMotionParameters()[(int)secondaryReference - 1].Type > Av1GlobalMotionType.Translation;
 
-            Span<Av1CompoundSearchRecord> records = this.blockWorkspace.CompoundSearchRecords;
+            Span<Av1CompoundSearchRecord> records = this.blockWorkspace.GetCompoundSearchRecords(workspaceStorage);
             Av1CompoundSearchRecord record = new()
             {
                 Primary = primary,
@@ -9080,6 +9128,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
 
                         this.RefineCompoundVectors(
+                            workspaceStorage,
                             in interWorkspace,
                             in motionVectorCosts,
                             blockOrigin,
@@ -9620,6 +9669,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Refines the searched components of a compound predictor while holding its blend mask fixed.
         /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -9634,6 +9684,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="primary">The first vector, which the search may change.</param>
         /// <param name="secondary">The second vector, which the search may change.</param>
         private void RefineCompoundVectors(
+            Span<int> workspaceStorage,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
@@ -9750,7 +9801,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         start,
                         5,
                         method,
-                        this.blockWorkspace.GetMotionSearchSites(method, movingPlane.Stride),
+                        this.blockWorkspace.GetMotionSearchSites(workspaceStorage, method, movingPlane.Stride),
                         motionSettings,
                         false,
                         false,
@@ -10248,6 +10299,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -10269,6 +10321,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -10291,7 +10344,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool writesFilters = Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo);
             int verticalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo, modeInfoGrid, modeInfoAllocation, macroBlock, 0);
             int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo, modeInfoGrid, modeInfoAllocation, macroBlock, 1);
-            Span<Av1InterpolationSearchRecord> records = this.blockWorkspace.InterpolationSearchRecords;
+            Span<Av1InterpolationSearchRecord> records = this.blockWorkspace.GetInterpolationSearchRecords(workspaceStorage);
             int reuseLevel = winnerSearch ? 0 : settings.InterpolationReuseLevel;
             int match = -1;
             int bestDifference = int.MaxValue;
@@ -10359,7 +10412,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ReadOnlySpan<byte> thresholds = [0, 8, 8, 8, 8, 0, 8];
                 int threshold = thresholds[(int)this.picture.Parent.FrameUpdateType];
                 int offset = (int)this.picture.Parent.FrameUpdateType * Av1InterpolationProbabilities.FrameLength;
-                ReadOnlySpan<int> probabilities = this.blockWorkspace.InterpolationProbabilities[offset..];
+                ReadOnlySpan<int> probabilities = this.blockWorkspace.GetInterpolationProbabilities(workspaceStorage)[offset..];
                 for (int filter = 0; filter < filterCount; filter++)
                 {
                     if (probabilities[(verticalContext * filterCount) + filter] < threshold &&
@@ -10969,6 +11022,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -11027,6 +11081,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -11283,7 +11338,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if (this.picture.Parent.SpeedSettings.InterModeEstimation == 1)
                 {
-                    this.blockWorkspace.InterModeModels[(int)blockSize].Estimate(
+                    this.blockWorkspace.GetInterModeModels(workspaceStorage)[(int)blockSize].Estimate(
                         predictionError, out estimatedRate, out estimatedDistortion);
                 }
 
@@ -11311,7 +11366,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 candidate.EstimatedCost = estimate.Cost;
-                this.blockWorkspace.InterModeCandidates[this.interCandidateCount++] = candidate;
+                this.blockWorkspace.GetInterModeCandidates(workspaceStorage)[this.interCandidateCount++] = candidate;
 
                 // The bias follows the estimate's records. Reference: adjust_rdcost() after the !do_tx_search branch of
                 // motion_mode_rd().
@@ -11368,6 +11423,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 displacementVectors,
+                workspaceStorage,
                 macroBlock,
                 blockOrigin,
                 bestCost,
@@ -11476,6 +11532,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="bestCost">The cost above which the evaluation stops.</param>
@@ -11513,6 +11570,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> workspaceStorage,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             long bestCost,
@@ -11858,7 +11916,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.SpeedSettings.InterModeEstimation == 1 &&
                 blockSize.GetWidth() >= 8 && blockSize.GetHeight() >= 8)
             {
-                this.blockWorkspace.InterModeModels[(int)blockSize].Add(
+                this.blockWorkspace.GetInterModeModels(workspaceStorage)[(int)blockSize].Add(
                     skipDistortion, selectedStatistics.Distortion, selectedStatistics.ResidualRate);
             }
 

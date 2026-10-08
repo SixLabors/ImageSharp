@@ -145,6 +145,7 @@ internal static partial class Av1IntraSuperblockEncoder
             uint bestSad = uint.MaxValue;
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
             Av1TileWriter.GetYModeContext(macroBlock, out byte aboveContext, out byte leftContext);
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
 
             foreach (Av1PredictionMode mode in EstimatedIntraModes)
             {
@@ -198,7 +199,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         Point origin = blockOrigin + new Size(x, y);
                         TOperator.PrepareIntra(
-                            this.blockWorkspace,
+                            transformWorkspace,
                             sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                             source.Stride,
                             predictedBlock[((y * destination.Stride) + x)..],
@@ -705,7 +706,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             else
                             {
                                 TOperator.PrepareIntra(
-                                    this.blockWorkspace,
+                                    transformBuffers.TransformWorkspace,
                                     sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                                     source.Stride,
                                     transform,

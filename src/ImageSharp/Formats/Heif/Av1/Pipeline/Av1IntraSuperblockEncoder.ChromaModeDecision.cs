@@ -1553,6 +1553,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> typeWinnerCoefficients = this.blockWorkspace.SearchCoefficients;
             Span<int> dequantizedStorage = this.blockWorkspace.DequantizedCoefficients;
             Span<int> searchDequantizedStorage = this.blockWorkspace.SearchDequantizedCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
 
             // A predicted empty block is priced with the contexts at the block origin, before any transform block
             // of this plane updates them. Reference: av1_get_entropy_contexts() in predict_dc_only_block().
@@ -1606,7 +1607,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     out bool hasAbove);
 
                                 TOperator.PrepareIntra(
-                                    this.blockWorkspace,
+                                    transformWorkspace,
                                     sourceSamples[source.GetOffset(transformOrigin.X, transformOrigin.Y)..],
                                     source.Stride,
                                     prediction,

@@ -5261,7 +5261,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     else if (planeIndex == 0 && snapshot.Block.FilterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
                                     {
                                         TOperator.PrepareFilterIntra(
-                                            this.blockWorkspace,
+                                            transformBuffers.TransformWorkspace,
                                             sourceTransform,
                                             sourcePlane.Stride,
                                             prediction,
@@ -5279,7 +5279,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             : snapshot.ModeInfo.Block.UvMode.ToLumaMode();
 
                                         TOperator.PrepareIntra(
-                                            this.blockWorkspace,
+                                            transformBuffers.TransformWorkspace,
                                             sourceTransform,
                                             sourcePlane.Stride,
                                             prediction,
@@ -7125,6 +7125,13 @@ internal static partial class Av1IntraSuperblockEncoder
             // consume the reconstructed edges and coefficient contexts produced earlier in that region.
             Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
             int transformIndex = 0;
+
+            // The prediction scratch and the reference edge slots serve every transform block, so they are read
+            // once. The parent mode search retains reference slots 0 and 1. Use the other pair here because these
+            // transform edges also include earlier reconstructions in this candidate.
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+            Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
+            Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
             for (int regionY = 0; regionY < codedExtent.Height; regionY += Av1Constants.MaxTransformSize)
             {
                 int bottom = Math.Min(regionY + Av1Constants.MaxTransformSize, codedExtent.Height);
@@ -7164,10 +7171,6 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
                             else
                             {
-                                // The parent mode search retains reference slots 0 and 1. Use the other pair here
-                                // because these transform edges also include earlier reconstructions in this candidate.
-                                Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
-                                Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
                                 this.PrepareTransformReferenceSamples(
                                     frameBlock,
                                     reconstructionPlane.Stride,
@@ -7190,7 +7193,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 if (filterIntraMode == Av1FilterIntraMode.AllFilterIntraModes)
                                 {
                                     TOperator.PrepareIntra(
-                                        this.blockWorkspace,
+                                        transformWorkspace,
                                         sourceTransform,
                                         sourcePlane.Stride,
                                         prediction,
@@ -7212,7 +7215,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     // Filter-intra prediction is recursive within each transform unit, so rebuild it from
                                     // the reconstructed edges established by preceding transforms.
                                     TOperator.PrepareFilterIntra(
-                                        this.blockWorkspace,
+                                        transformWorkspace,
                                         sourceTransform,
                                         sourcePlane.Stride,
                                         prediction,
@@ -7871,7 +7874,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (filterMode == Av1FilterIntraMode.AllFilterIntraModes)
                     {
                         TOperator.PrepareIntra(
-                            this.blockWorkspace,
+                            transformWorkspace,
                             sourceTransform,
                             sourceStride,
                             prediction,
@@ -7891,7 +7894,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     else
                     {
                         TOperator.PrepareFilterIntra(
-                            this.blockWorkspace,
+                            transformWorkspace,
                             sourceTransform,
                             sourceStride,
                             prediction,

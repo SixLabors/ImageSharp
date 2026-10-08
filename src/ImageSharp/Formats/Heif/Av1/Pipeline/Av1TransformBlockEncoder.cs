@@ -140,7 +140,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<int> transformWorkspace = candidate.Buffers.TransformWorkspace;
 
         PrepareIntraPrediction(
-            workspace,
+            transformWorkspace,
             source,
             sourceStride,
             reconstruction,
@@ -553,7 +553,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<int> transformWorkspace = candidate.Buffers.TransformWorkspace;
 
         PrepareIntraPrediction(
-            workspace,
+            transformWorkspace,
             source,
             sourceStride,
             reconstruction,
@@ -836,7 +836,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Builds an eight-bit intra prediction and its compact source residual.
     /// </summary>
-    /// <param name="workspace">The reusable prediction scratch.</param>
+    /// <param name="transformWorkspace">The transform workspace of the block, which serves as edge and prediction scratch.</param>
     /// <param name="source">The source samples.</param>
     /// <param name="sourceStride">The number of source samples between rows.</param>
     /// <param name="prediction">The prediction destination.</param>
@@ -852,40 +852,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="residual">The compact source-minus-prediction destination.</param>
     /// <param name="transformSize">The prediction dimensions.</param>
     public static void PrepareIntraPrediction(
-        Av1EncoderBlockWorkspace workspace,
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Span<byte> prediction,
-        int predictionStride,
-        ReadOnlySpan<byte> above,
-        ReadOnlySpan<byte> left,
-        bool hasLeft,
-        bool hasAbove,
-        Av1PredictionMode mode,
-        int angleDelta,
-        bool enableIntraEdgeFilter,
-        bool smoothIntraEdges,
-        Span<short> residual,
-        Av1TransformSize transformSize)
-        => PrepareIntraPredictionCore(
-            workspace,
-            source,
-            sourceStride,
-            prediction,
-            predictionStride,
-            above,
-            left,
-            hasLeft,
-            hasAbove,
-            mode,
-            angleDelta,
-            enableIntraEdgeFilter,
-            smoothIntraEdges,
-            residual,
-            transformSize);
-
-    public static void PrepareIntraPredictionCore(
-        Av1EncoderBlockWorkspace workspace,
+        Span<int> transformWorkspace,
         ReadOnlySpan<byte> source,
         int sourceStride,
         Span<byte> prediction,
@@ -913,7 +880,7 @@ internal static partial class Av1TransformBlockEncoder
         else if (mode.IsDirectional())
         {
             int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
-            Span<byte> scratch = MemoryMarshal.AsBytes(workspace.TransformWorkspace);
+            Span<byte> scratch = MemoryMarshal.AsBytes(transformWorkspace);
             int predictionLength = width * height;
             Span<byte> directionalScratch = scratch[..predictionLength];
             bool upsampleAbove = false;
@@ -991,7 +958,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Builds a high-bit-depth intra prediction and its compact source residual.
     /// </summary>
-    /// <param name="workspace">The reusable prediction scratch.</param>
+    /// <param name="transformWorkspace">The transform workspace of the block, which serves as edge and prediction scratch.</param>
     /// <param name="source">The source samples.</param>
     /// <param name="sourceStride">The number of source samples between rows.</param>
     /// <param name="prediction">The prediction destination.</param>
@@ -1008,42 +975,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The prediction dimensions.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     public static void PrepareIntraPrediction(
-        Av1EncoderBlockWorkspace workspace,
-        ReadOnlySpan<ushort> source,
-        int sourceStride,
-        Span<ushort> prediction,
-        int predictionStride,
-        ReadOnlySpan<ushort> above,
-        ReadOnlySpan<ushort> left,
-        bool hasLeft,
-        bool hasAbove,
-        Av1PredictionMode mode,
-        int angleDelta,
-        bool enableIntraEdgeFilter,
-        bool smoothIntraEdges,
-        Span<short> residual,
-        Av1TransformSize transformSize,
-        Av1BitDepth bitDepth)
-        => PrepareIntraPredictionCore(
-            workspace,
-            source,
-            sourceStride,
-            prediction,
-            predictionStride,
-            above,
-            left,
-            hasLeft,
-            hasAbove,
-            mode,
-            angleDelta,
-            enableIntraEdgeFilter,
-            smoothIntraEdges,
-            residual,
-            transformSize,
-            bitDepth);
-
-    public static void PrepareIntraPredictionCore(
-        Av1EncoderBlockWorkspace workspace,
+        Span<int> transformWorkspace,
         ReadOnlySpan<ushort> source,
         int sourceStride,
         Span<ushort> prediction,
@@ -1084,7 +1016,7 @@ internal static partial class Av1TransformBlockEncoder
         else if (mode.IsDirectional())
         {
             int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
-            Span<short> scratch = MemoryMarshal.Cast<int, short>(workspace.TransformWorkspace);
+            Span<short> scratch = MemoryMarshal.Cast<int, short>(transformWorkspace);
             int predictionLength = width * height;
             Span<short> directionalScratch = scratch[..predictionLength];
             bool upsampleAbove = false;
@@ -1207,8 +1139,10 @@ internal static partial class Av1TransformBlockEncoder
         Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
     {
+        // The prediction scratch and the inverse transform share the transform workspace, read once.
+        Span<int> transformWorkspace = workspace.TransformWorkspace;
         PrepareIntraPrediction(
-            workspace,
+            transformWorkspace,
             source,
             sourceStride,
             reconstruction,
@@ -1248,7 +1182,7 @@ internal static partial class Av1TransformBlockEncoder
                 (int)plane,
                 state.EndOfBlock,
                 qIndex == 0,
-                workspace.TransformWorkspace);
+                transformWorkspace);
         }
     }
 
@@ -1301,8 +1235,10 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         ref Av1EncoderTransformBlockState state)
     {
+        // The prediction scratch and the inverse transform share the transform workspace, read once.
+        Span<int> transformWorkspace = workspace.TransformWorkspace;
         PrepareIntraPrediction(
-            workspace,
+            transformWorkspace,
             source,
             sourceStride,
             reconstruction,
@@ -1344,7 +1280,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.EndOfBlock,
                 qIndex == 0,
                 bitDepth,
-                workspace.TransformWorkspace);
+                transformWorkspace);
         }
     }
 

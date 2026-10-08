@@ -1307,6 +1307,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // smaller luma estimation tiles. Interior edges contain prediction, never residuals.
                 int unitWidth = 64 >> subX;
                 int unitHeight = 64 >> subY;
+                Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
                 for (int unitY = 0; unitY < extent.Height; unitY += unitHeight)
                 {
                     for (int unitX = 0; unitX < extent.Width; unitX += unitWidth)
@@ -1340,7 +1341,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 Span<TSample> predictedTransform = prediction[((y * width) + x)..];
                                 ReadOnlySpan<TSample> sourceTransform = sourceSamples[sourcePlane.GetOffset(transformOrigin.X, transformOrigin.Y)..];
                                 TOperator.PrepareIntra(
-                                    this.blockWorkspace,
+                                    transformWorkspace,
                                     sourceTransform,
                                     sourcePlane.Stride,
                                     predictedTransform,

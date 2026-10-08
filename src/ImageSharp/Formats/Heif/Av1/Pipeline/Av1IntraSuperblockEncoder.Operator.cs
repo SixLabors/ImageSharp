@@ -320,7 +320,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Builds one spatial intra prediction and its source residual for reuse across transform candidates.
         /// </summary>
-        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="transformWorkspace">The transform workspace of the block, which serves as edge and prediction scratch.</param>
         /// <param name="source">The source transform block, from its top-left sample.</param>
         /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
         /// <param name="prediction">The prediction destination.</param>
@@ -337,7 +337,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareIntra(
-            Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<TSample> source,
             int sourceStride,
             Span<TSample> prediction,
@@ -357,7 +357,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Builds one filter-intra prediction for reuse across transform candidates.
         /// </summary>
-        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="transformWorkspace">The transform workspace of the block, which serves as filter row scratch.</param>
         /// <param name="source">The source transform block, from its top-left sample.</param>
         /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
         /// <param name="prediction">The contiguous prediction destination.</param>
@@ -368,7 +368,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareFilterIntra(
-            Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<TSample> source,
             int sourceStride,
             Span<TSample> prediction,
@@ -1210,7 +1210,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareIntra(
-            Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<byte> source,
             int sourceStride,
             Span<byte> prediction,
@@ -1227,7 +1227,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth)
             => Av1TransformBlockEncoder.PrepareIntraPrediction(
-                workspace,
+                transformWorkspace,
                 source,
                 sourceStride,
                 prediction,
@@ -1245,7 +1245,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareFilterIntra(
-            Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<byte> source,
             int sourceStride,
             Span<byte> prediction,
@@ -1260,7 +1260,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = transformSize.GetHeight();
 
             // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
-            Span<byte> filterScratch = MemoryMarshal.AsBytes(workspace.TransformWorkspace).Slice(
+            Span<byte> filterScratch = MemoryMarshal.AsBytes(transformWorkspace).Slice(
                 0,
                 Av1FilterIntraPredictorBase.ScratchLength);
 
@@ -2296,7 +2296,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareIntra(
-            Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<ushort> source,
             int sourceStride,
             Span<ushort> prediction,
@@ -2313,7 +2313,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth)
             => Av1TransformBlockEncoder.PrepareIntraPrediction(
-                workspace,
+                transformWorkspace,
                 source,
                 sourceStride,
                 prediction,
@@ -2332,7 +2332,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void PrepareFilterIntra(
-            Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<ushort> source,
             int sourceStride,
             Span<ushort> prediction,
@@ -2347,7 +2347,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = transformSize.GetHeight();
 
             // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
-            Span<short> filterScratch = MemoryMarshal.Cast<int, short>(workspace.TransformWorkspace).Slice(
+            Span<short> filterScratch = MemoryMarshal.Cast<int, short>(transformWorkspace).Slice(
                 0,
                 Av1FilterIntraPredictorBase.ScratchLength);
 

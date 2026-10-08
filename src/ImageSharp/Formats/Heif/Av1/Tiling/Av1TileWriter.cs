@@ -105,6 +105,8 @@ internal partial class Av1TileWriter
     /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
     /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
+    /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+    /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -154,6 +156,8 @@ internal partial class Av1TileWriter
         Span<int> selectedInterpolationCounts,
         Span<byte> encoderSegmentMap,
         Span<byte> segmentationNeighborMap,
+        Span<byte> searchSegmentMap,
+        ReadOnlySpan<byte> previousSegmentMap,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -266,6 +270,8 @@ internal partial class Av1TileWriter
             selectedInterpolationCounts,
             encoderSegmentMap,
             segmentationNeighborMap,
+            searchSegmentMap,
+            previousSegmentMap,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -326,6 +332,8 @@ internal partial class Av1TileWriter
     /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
     /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
+    /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+    /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -379,6 +387,8 @@ internal partial class Av1TileWriter
         Span<int> selectedInterpolationCounts,
         Span<byte> encoderSegmentMap,
         Span<byte> segmentationNeighborMap,
+        Span<byte> searchSegmentMap,
+        ReadOnlySpan<byte> previousSegmentMap,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -440,6 +450,9 @@ internal partial class Av1TileWriter
             paletteTokens,
             cdefPreset,
             previousQIndex,
+            encoderSegmentMap,
+            searchSegmentMap,
+            previousSegmentMap,
             entropyCodingContext.MacroBlock,
             blockOrigin,
             blockSize,
@@ -505,6 +518,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -558,6 +573,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -611,6 +628,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -665,6 +684,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -718,6 +739,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -789,6 +812,8 @@ internal partial class Av1TileWriter
                             selectedInterpolationCounts,
                             encoderSegmentMap,
                             segmentationNeighborMap,
+                            searchSegmentMap,
+                            previousSegmentMap,
                             superblock,
                             coefficientBuffer,
                             tileIndex,
@@ -844,6 +869,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -898,6 +925,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -952,6 +981,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1006,6 +1037,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1062,6 +1095,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1113,6 +1148,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1164,6 +1201,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1217,6 +1256,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1268,6 +1309,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1319,6 +1362,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1372,6 +1417,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1423,6 +1470,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1474,6 +1523,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1527,6 +1578,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1578,6 +1631,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1629,6 +1684,8 @@ internal partial class Av1TileWriter
                     selectedInterpolationCounts,
                     encoderSegmentMap,
                     segmentationNeighborMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1691,6 +1748,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1754,6 +1813,8 @@ internal partial class Av1TileWriter
                         selectedInterpolationCounts,
                         encoderSegmentMap,
                         segmentationNeighborMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1822,6 +1883,8 @@ internal partial class Av1TileWriter
     /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
     /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
+    /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+    /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -1872,6 +1935,8 @@ internal partial class Av1TileWriter
         Span<int> selectedInterpolationCounts,
         Span<byte> encoderSegmentMap,
         Span<byte> segmentationNeighborMap,
+        Span<byte> searchSegmentMap,
+        ReadOnlySpan<byte> previousSegmentMap,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -1927,6 +1992,8 @@ internal partial class Av1TileWriter
             selectedInterpolationCounts,
             encoderSegmentMap,
             segmentationNeighborMap,
+            searchSegmentMap,
+            previousSegmentMap,
             superblock,
             ref block,
             tileIndex,
@@ -2194,6 +2261,8 @@ internal partial class Av1TileWriter
     /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
     /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
+    /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+    /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
@@ -2247,6 +2316,8 @@ internal partial class Av1TileWriter
         Span<int> selectedInterpolationCounts,
         Span<byte> encoderSegmentMap,
         Span<byte> segmentationNeighborMap,
+        Span<byte> searchSegmentMap,
+        ReadOnlySpan<byte> previousSegmentMap,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
@@ -2319,6 +2390,9 @@ internal partial class Av1TileWriter
             paletteTokens,
             cdefPreset,
             previousQIndex,
+            encoderSegmentMap,
+            searchSegmentMap,
+            previousSegmentMap,
             macroBlock,
             blockOrigin,
             ref macroBlockModeInfo,

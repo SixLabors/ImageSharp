@@ -1299,6 +1299,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Span<int> selectedInterpolationCounts = picture.Parent.SelectedInterpolationCounts.Span;
         Span<byte> encoderSegmentMap = picture.Parent.EncoderSegmentMap.Span;
         Span<byte> segmentationNeighborMap = picture.SegmentationNeighborMap.Span;
+        Span<byte> searchSegmentMap = picture.Parent.SearchSegmentMap.Span;
+        ReadOnlySpan<byte> previousSegmentMap = picture.Parent.PreviousSegmentMap.Span;
 
         for (int tileRow = 0; tileRow < tileLayout.TileRowCount; tileRow++)
         {
@@ -1427,6 +1429,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 selectedInterpolationCounts,
                                 encoderSegmentMap,
                                 segmentationNeighborMap,
+                                searchSegmentMap,
+                                previousSegmentMap,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1523,6 +1527,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 selectedInterpolationCounts,
                                 encoderSegmentMap,
                                 segmentationNeighborMap,
+                                searchSegmentMap,
+                                previousSegmentMap,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

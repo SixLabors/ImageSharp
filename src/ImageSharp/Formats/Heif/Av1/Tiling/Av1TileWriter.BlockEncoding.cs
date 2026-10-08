@@ -62,6 +62,9 @@ internal partial class Av1TileWriter
         /// <param name="paletteTokens">The color map tokens of the picture.</param>
         /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
         /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The tile-local macroblock state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
         /// <param name="blockSize">The current square partition size.</param>
@@ -104,6 +107,9 @@ internal partial class Av1TileWriter
             Span<byte> paletteTokens,
             Span<int> cdefPreset,
             Span<int> previousQIndex,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -147,6 +153,9 @@ internal partial class Av1TileWriter
         /// <param name="paletteTokens">The color map tokens of the picture.</param>
         /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
         /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The current block's mapped neighbor state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
         /// <param name="modeInfo">The mode information to publish.</param>
@@ -188,6 +197,9 @@ internal partial class Av1TileWriter
             Span<byte> paletteTokens,
             Span<int> cdefPreset,
             Span<int> previousQIndex,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -252,6 +264,9 @@ internal partial class Av1TileWriter
             Span<byte> paletteTokens,
             Span<int> cdefPreset,
             Span<int> previousQIndex,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -350,6 +365,9 @@ internal partial class Av1TileWriter
             Span<byte> paletteTokens,
             Span<int> cdefPreset,
             Span<int> previousQIndex,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,

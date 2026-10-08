@@ -127,6 +127,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="regularStatistics">The rate and distortion of the intra winner.</param>
@@ -157,6 +159,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1RateDistortionStatistics regularStatistics,
@@ -334,6 +338,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    encoderSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     modeInfo,
@@ -9859,6 +9865,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The block geometry and neighboring transform contexts.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>
@@ -9889,6 +9897,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -9898,7 +9908,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1EncoderTransformBlockState> states)
         {
             Span<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y).Samples;
-            this.SetCodedBlockSegment(blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
+            this.SetCodedBlockSegment(encoderSegmentMap, previousSegmentMap, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
             bool isInterIntra = modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
             if (isInterIntra)
             {

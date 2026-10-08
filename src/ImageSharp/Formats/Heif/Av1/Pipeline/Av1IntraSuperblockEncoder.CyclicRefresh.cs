@@ -87,6 +87,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Updates the cyclic refresh segment of a selected block and sets the quantizer it is coded with. Reference:
         /// the av1_cyclic_refresh_update_segment() and av1_init_plane_quantizers() calls of av1_update_state().
         /// </summary>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="modeInfo">The block's selected syntax, whose segment is updated.</param>
         /// <param name="block">The block's coding state, whose segment is updated.</param>
@@ -96,6 +98,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </param>
         /// <param name="countBlocks">Whether the frame counts the block's segment units.</param>
         private void UpdateCyclicRefreshSegment(
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
@@ -106,8 +110,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PictureParentControlSet parent = this.picture.Parent;
             int segmentId = modeInfo.SegmentId;
             parent.CyclicRefresh!.UpdateSegment(
-                parent.EncoderSegmentMap.Span,
-                parent.SearchSegmentMap.Span,
+                encoderSegmentMap,
+                searchSegmentMap,
                 new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2),
                 modeInfo.BlockSize,
                 ref segmentId,
@@ -127,6 +131,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Gives a coded skipped block the predicted segment. Reference: the av1_cyclic_reset_segment_skip() call of
         /// encode_b_nonrd().
         /// </summary>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="macroBlock">The block's neighbor availability.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="modeInfo">The block's coded syntax, whose segment is updated.</param>
@@ -134,6 +140,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="codedSkip">Whether the coded block has no coefficients. Reference: mbmi->skip_txfm.</param>
         /// <param name="countBlocks">Whether the frame counts the block's segment units.</param>
         private void ResetCyclicRefreshSkip(
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -147,13 +155,11 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1PictureParentControlSet parent = this.picture.Parent;
-            int predictedSegmentId = Av1TileWriter.GetSpatialSegmentationPrediction(
-                parent.Common, parent.SearchSegmentMap.Span, macroBlock, blockOrigin, out _);
-
+            int predictedSegmentId = Av1TileWriter.GetSpatialSegmentationPrediction(parent.Common, searchSegmentMap, macroBlock, blockOrigin, out _);
             int segmentId = modeInfo.SegmentId;
             parent.CyclicRefresh!.ResetSegmentSkip(
-                parent.EncoderSegmentMap.Span,
-                parent.SearchSegmentMap.Span,
+                encoderSegmentMap,
+                searchSegmentMap,
                 new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2),
                 modeInfo.BlockSize,
                 ref segmentId,

@@ -1063,6 +1063,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the superblock.</param>
         /// <param name="superblockOrigin">The luma superblock origin.</param>
         private void PrepareVariancePartitions(
@@ -1075,6 +1077,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point superblockOrigin)
         {
@@ -1098,7 +1102,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The superblock takes its segment from the map. A boosted cyclic refresh superblock splits at the
                 // thresholds of its segment quantizer. Reference: the av1_set_offsets() call of encode_nonrd_sb(), and
                 // is_segment_id_boosted with the qindex of av1_choose_var_based_partitioning().
-                this.SetBlockSegment(superblockOrigin, this.picture.Sequence.SequenceHeader.SuperblockSize);
+                this.SetBlockSegment(encoderSegmentMap, previousSegmentMap, superblockOrigin, this.picture.Sequence.SequenceHeader.SuperblockSize);
                 bool boostedSegment = this.IsCyclicRefreshBoosted;
                 int partitionQIndex = boostedSegment
                     ? Av1QuantizationLookup.GetQIndex(parent.FrameHeader.SegmentationParameters, this.blockSegmentId, this.superblockQIndex)

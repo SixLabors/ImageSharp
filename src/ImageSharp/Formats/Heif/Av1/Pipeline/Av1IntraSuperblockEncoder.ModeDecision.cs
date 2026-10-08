@@ -797,6 +797,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> paletteTokens,
             Span<int> cdefPreset,
             Span<int> previousQIndex,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -856,6 +859,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoGrid,
                             modeInfoAllocation,
                             displacementVectors,
+                            encoderSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             blockOrigin);
                     }
@@ -896,6 +901,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoAllocation,
                             displacementVectors,
                             referenceContexts,
+                            encoderSegmentMap,
+                            searchSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             blockOrigin,
                             blockSize,
@@ -940,6 +948,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         referenceContexts,
+                        encoderSegmentMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -1003,6 +1014,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    encoderSegmentMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -1057,6 +1071,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1094,6 +1111,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1173,6 +1193,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1265,6 +1288,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         referenceContexts,
+                        encoderSegmentMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         childOrigin,
                         childSize,
@@ -1422,6 +1448,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1463,6 +1492,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1478,7 +1510,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (costLimit.Cost >= 0)
             {
                 // Reference: the av1_set_offsets() call of av1_rd_pick_partition().
-                this.SetBlockSegment(blockOrigin, blockSize);
+                this.SetBlockSegment(encoderSegmentMap, previousSegmentMap, blockOrigin, blockSize);
             }
 
             this.rateMultiplier = costLimit.Cost < 0
@@ -1528,6 +1560,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1605,9 +1640,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// segment the previous map holds under the block. Reference: the segment setup of av1_set_offsets(), with
         /// av1_init_plane_quantizers().
         /// </summary>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
-        private void SetBlockSegment(Point blockOrigin, Av1BlockSize blockSize)
+        private void SetBlockSegment(ReadOnlySpan<byte> encoderSegmentMap, ReadOnlySpan<byte> previousSegmentMap, Point blockOrigin, Av1BlockSize blockSize)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             ObuSegmentationParameters segmentation = parent.FrameHeader.SegmentationParameters;
@@ -1618,9 +1655,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             // Reference: the seg->update_map choice between cpi->enc_seg.map and cm->last_frame_seg_map.
-            ReadOnlySpan<byte> map = segmentation.SegmentationUpdateMap == 1
-                ? parent.EncoderSegmentMap.Span
-                : parent.PreviousSegmentMap.Span;
+            ReadOnlySpan<byte> map = segmentation.SegmentationUpdateMap == 1 ? encoderSegmentMap : previousSegmentMap;
 
             if (!parent.VarianceSegmentRefresh && !map.IsEmpty)
             {
@@ -1641,12 +1676,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// update of av1_update_state().
         /// </summary>
         /// <param name="tables">The rate tables that price the syntax.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The block's neighbor availability.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="segmentId">The block's segment.</param>
         private readonly void AddSegmentPredictionCosts(
             in Av1CoefficientTables tables,
+            ReadOnlySpan<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1659,18 +1698,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            int prediction = Av1TileWriter.GetSpatialSegmentationPrediction(
-                parent.Common, parent.SearchSegmentMap.Span, macroBlock, blockOrigin, out int context);
-
+            int prediction = Av1TileWriter.GetSpatialSegmentationPrediction(parent.Common, searchSegmentMap, macroBlock, blockOrigin, out int context);
             int codedId = Av1SymbolContextHelper.NegativeInterleave(segmentId, prediction, segmentation.LastActiveSegmentId + 1);
             int spatialCost = tables.ModeCosts.GetSegmentId(context, codedId);
             parent.SpatialSegmentCost += spatialCost;
 
-            int previousSegmentId = parent.PreviousSegmentMap.IsEmpty
+            int previousSegmentId = previousSegmentMap.IsEmpty
                 ? 0
                 : Av1SymbolContextHelper.GetSegmentId(
                     parent.Common,
-                    parent.PreviousSegmentMap.Span,
+                    previousSegmentMap,
                     blockSize,
                     new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2));
 
@@ -1686,15 +1723,22 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Sets the quantizer of a selected block from its coded segment before the block is coded. Reference: the
         /// av1_init_plane_quantizers() call of av1_update_state().
         /// </summary>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="segmentId">The segment the search gave the selected block.</param>
-        private void SetCodedBlockSegment(Point blockOrigin, Av1BlockSize blockSize, int segmentId)
+        private void SetCodedBlockSegment(
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int segmentId)
         {
             ObuSegmentationParameters segmentation = this.picture.Parent.FrameHeader.SegmentationParameters;
             if (this.picture.Parent.EncoderOptions.AdaptiveQuantizationMode != Av1AdaptiveQuantizationMode.None)
             {
-                this.blockSegmentId = this.GetCodedBlockSegment(blockOrigin, blockSize, segmentId);
+                this.blockSegmentId = this.GetCodedBlockSegment(encoderSegmentMap, previousSegmentMap, blockOrigin, blockSize, segmentId);
                 this.blockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, this.blockSegmentId, this.superblockQIndex);
             }
         }
@@ -1704,11 +1748,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// segment map, which the search of the block and its neighbors wrote after the block's own setup. Any other
         /// mode keeps the searched segment. Reference: the COMPLEXITY_AQ segment copy of av1_update_state().
         /// </summary>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="segmentId">The segment the search gave the selected block.</param>
         /// <returns>The coded segment.</returns>
-        private readonly int GetCodedBlockSegment(Point blockOrigin, Av1BlockSize blockSize, int segmentId)
+        private readonly int GetCodedBlockSegment(
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int segmentId)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             ObuSegmentationParameters segmentation = parent.FrameHeader.SegmentationParameters;
@@ -1718,9 +1769,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             // Reference: the seg->update_map choice between cpi->enc_seg.map and cm->last_frame_seg_map.
-            ReadOnlySpan<byte> map = segmentation.SegmentationUpdateMap == 1
-                ? parent.EncoderSegmentMap.Span
-                : parent.PreviousSegmentMap.Span;
+            ReadOnlySpan<byte> map = segmentation.SegmentationUpdateMap == 1 ? encoderSegmentMap : previousSegmentMap;
 
             return map.IsEmpty
                 ? 0
@@ -1877,6 +1926,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1918,6 +1970,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -2609,6 +2664,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    encoderSegmentMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -3222,6 +3280,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3260,6 +3321,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3305,6 +3369,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -3352,6 +3419,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3390,6 +3460,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3449,6 +3522,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         referenceContexts,
+                        encoderSegmentMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -3495,6 +3571,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         referenceContexts,
+                        encoderSegmentMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         subSize,
@@ -3537,6 +3616,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 modeInfoAllocation,
                                 displacementVectors,
                                 referenceContexts,
+                                encoderSegmentMap,
+                                previousSegmentMap,
                                 macroBlock,
                                 blockOrigin,
                                 first,
@@ -3558,6 +3639,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 in redCoefficientEdges,
                                 modeInfoGrid,
                                 modeInfoAllocation,
+                                encoderSegmentMap,
+                                previousSegmentMap,
                                 macroBlock,
                                 blockOrigin,
                                 first);
@@ -3611,6 +3694,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoAllocation,
                             displacementVectors,
                             referenceContexts,
+                            encoderSegmentMap,
+                            searchSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             secondOrigin,
                             subSize,
@@ -3661,6 +3747,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoAllocation,
                             displacementVectors,
                             referenceContexts,
+                            encoderSegmentMap,
+                            searchSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             childOrigin,
                             childSize,
@@ -3718,6 +3807,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    encoderSegmentMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -3772,6 +3864,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3814,6 +3909,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3861,6 +3959,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    encoderSegmentMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -3913,6 +4014,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -4008,6 +4112,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -4053,6 +4160,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -4174,6 +4284,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         referenceContexts,
+                        encoderSegmentMap,
+                        searchSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         leafOrigin,
                         leafSize,
@@ -4216,6 +4329,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoAllocation,
                             displacementVectors,
                             referenceContexts,
+                            encoderSegmentMap,
+                            searchSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             leafOrigin,
                             leafSize,
@@ -4248,6 +4364,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoAllocation,
                             displacementVectors,
                             referenceContexts,
+                            encoderSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             leafOrigin,
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
@@ -4392,6 +4510,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoAllocation,
                             displacementVectors,
                             referenceContexts,
+                            encoderSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             leafOrigin,
                             sibling,
@@ -4413,6 +4533,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in redCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            encoderSegmentMap,
+                            previousSegmentMap,
                             macroBlock,
                             leafOrigin,
                             sibling);
@@ -4933,6 +5055,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> paletteTokens,
             Span<int> cdefPreset,
             Span<int> previousQIndex,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -4947,7 +5072,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int segmentId = -1;
             if (this.replayNodeIndex < 0 && this.UsesEstimatedInterSearch)
             {
-                this.SetBlockSegment(blockOrigin, modeInfo.Block.BlockSize);
+                this.SetBlockSegment(encoderSegmentMap, previousSegmentMap, blockOrigin, modeInfo.Block.BlockSize);
                 if (this.picture.Parent.CyclicRefresh is not null)
                 {
                     segmentId = this.blockSegmentId;
@@ -4991,6 +5116,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5033,6 +5161,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5069,6 +5200,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5107,6 +5241,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5182,6 +5319,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5218,6 +5358,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5255,6 +5398,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5296,6 +5442,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5333,6 +5482,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5370,7 +5522,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 paletteInfo = context.Snapshot.Palette;
 
                 // Reference: the COMPLEXITY_AQ segment copy of av1_update_state(), before its segment costs.
-                int codedSegmentId = this.GetCodedBlockSegment(blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
+                int codedSegmentId = this.GetCodedBlockSegment(
+                    encoderSegmentMap, previousSegmentMap, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
+
                 modeInfo.Block.SegmentId = codedSegmentId;
                 block.SegmentId = codedSegmentId;
 
@@ -5389,7 +5543,14 @@ internal static partial class Av1IntraSuperblockEncoder
                         : default;
 
                     this.UpdateCyclicRefreshSegment(
-                        blockOrigin, ref modeInfo.Block, ref block, firstVector, context.Snapshot.Statistics, countSegments);
+                        encoderSegmentMap,
+                        searchSegmentMap,
+                        blockOrigin,
+                        ref modeInfo.Block,
+                        ref block,
+                        firstVector,
+                        context.Snapshot.Statistics,
+                        countSegments);
 
                     // The intra reconstruction reads its segment from the retained decision.
                     context.Snapshot.ModeInfo.Block.SegmentId = modeInfo.Block.SegmentId;
@@ -5399,7 +5560,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool searchSkip = !cyclicRefreshEncode && modeInfo.Block.Skip;
                 if (encodeSelected && !searchSkip)
                 {
-                    this.AddSegmentPredictionCosts(in tables, macroBlock, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
+                    this.AddSegmentPredictionCosts(
+                        in tables, searchSegmentMap, previousSegmentMap, macroBlock, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
                 }
 
                 if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || modeInfo.Block.UseIntraBlockCopy)
@@ -5479,6 +5641,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        encoderSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         modeInfo,
@@ -5531,6 +5695,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        encoderSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         context);
@@ -5547,7 +5713,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (cyclicRefreshEncode)
                 {
                     this.ResetCyclicRefreshSkip(
-                        macroBlock, blockOrigin, ref modeInfo.Block, ref block, modeInfo.Block.Skip || this.encodedWithoutCoefficients, countSegments);
+                        encoderSegmentMap,
+                        searchSegmentMap,
+                        macroBlock,
+                        blockOrigin,
+                        ref modeInfo.Block,
+                        ref block,
+                        modeInfo.Block.Skip || this.encodedWithoutCoefficients,
+                        countSegments);
                 }
 
                 this.SelectedBlockStatistics = context.Snapshot.Statistics;
@@ -5655,6 +5828,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    encoderSegmentMap,
+                    searchSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -5827,6 +6003,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    encoderSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -6074,6 +6252,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        encoderSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         regularStatistics,
@@ -6256,6 +6436,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    encoderSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     winner);
@@ -6345,6 +6527,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        encoderSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         winner);
@@ -6389,6 +6573,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    encoderSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     winner);
@@ -6515,6 +6701,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        encoderSegmentMap,
+                        previousSegmentMap,
                         macroBlock,
                         blockOrigin,
                         modeInfo,
@@ -6597,6 +6785,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6638,6 +6829,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6659,7 +6853,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // frame that refreshes its variance segments places the block by its source variance, but still searches
             // it with the quantizer of segment 0. Reference: av1_set_offsets() and the aq branches of
             // setup_block_rdmult() in pick_sb_modes().
-            this.SetBlockSegment(blockOrigin, blockSize);
+            this.SetBlockSegment(encoderSegmentMap, previousSegmentMap, blockOrigin, blockSize);
             int rateSegmentId = -1;
             Av1AdaptiveQuantizationMode adaptiveQuantization = this.picture.Parent.EncoderOptions.AdaptiveQuantizationMode;
             if (adaptiveQuantization == Av1AdaptiveQuantizationMode.Variance)
@@ -6712,6 +6906,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -6730,7 +6927,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (result.Rate != int.MaxValue && blockSize >= Av1BlockSize.Block16x16 &&
                 adaptiveQuantization == Av1AdaptiveQuantizationMode.Complexity && this.picture.Parent.ComplexitySegmentRefresh)
             {
-                this.SelectComplexitySegment(blockOrigin, blockSize, result.Rate);
+                this.SelectComplexitySegment(encoderSegmentMap, blockOrigin, blockSize, result.Rate);
             }
 
             return result;
@@ -6740,10 +6937,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Writes the complexity segment of a searched block into the encoder segment map. Reference:
         /// av1_caq_select_segment().
         /// </summary>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="projectedRate">The block's searched rate.</param>
-        private void SelectComplexitySegment(Point blockOrigin, Av1BlockSize blockSize, int projectedRate)
+        private void SelectComplexitySegment(Span<byte> encoderSegmentMap, Point blockOrigin, Av1BlockSize blockSize, int projectedRate)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             Av1EncoderCommon common = parent.Common;
@@ -6761,10 +6959,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.bitDepth);
 
             // Reference: set_segment_id().
-            Span<byte> map = parent.EncoderSegmentMap.Span;
             for (int row = 0; row < visibleRows; row++)
             {
-                map.Slice(((modeInfoRow + row) * common.ModeInfoColumnCount) + modeInfoColumn, visibleColumns).Fill(segment);
+                encoderSegmentMap.Slice(((modeInfoRow + row) * common.ModeInfoColumnCount) + modeInfoColumn, visibleColumns).Fill(segment);
             }
         }
 
@@ -6802,6 +6999,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6843,6 +7043,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6904,6 +7107,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                encoderSegmentMap,
+                searchSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -7111,6 +7317,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="context">The context that keeps the decisions of the leaf.</param>
@@ -7141,6 +7349,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1EncoderPartitionTree.ModeContext context,
@@ -7244,6 +7454,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    encoderSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     snapshot.ModeInfo,
@@ -7323,6 +7535,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    encoderSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     context);
@@ -7387,6 +7601,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="context">The context that keeps the intra winner.</param>
@@ -7402,12 +7618,14 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1EncoderPartitionTree.ModeContext context)
         {
             Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
-            this.SetCodedBlockSegment(blockOrigin, snapshot.ModeInfo.Block.BlockSize, snapshot.ModeInfo.Block.SegmentId);
+            this.SetCodedBlockSegment(encoderSegmentMap, previousSegmentMap, blockOrigin, snapshot.ModeInfo.Block.BlockSize, snapshot.ModeInfo.Block.SegmentId);
             Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
             bool usesChromaFromLuma = snapshot.Block.HasChroma && snapshot.ModeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
             Span<short> lumaQ3 = modeWorkspace.ChromaFromLumaSamples;
@@ -8231,6 +8449,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8257,6 +8477,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8283,6 +8505,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                encoderSegmentMap,
+                previousSegmentMap,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -8313,6 +8537,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8339,6 +8565,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<byte> encoderSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8471,6 +8699,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    encoderSegmentMap,
+                    previousSegmentMap,
                     macroBlock,
                     blockOrigin,
                     refinedWinner);

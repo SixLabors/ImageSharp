@@ -53,6 +53,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+        /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
+        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="macroBlock">The coding-block neighbors and frame edges.</param>
         /// <param name="origin">The luma block origin.</param>
         /// <param name="modeInfo">The selected block syntax.</param>
@@ -84,6 +87,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<Av1EncoderReferenceContext> referenceContexts,
+            Span<byte> encoderSegmentMap,
+            Span<byte> searchSegmentMap,
+            ReadOnlySpan<byte> previousSegmentMap,
             Av1MacroBlockD macroBlock,
             Point origin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -470,10 +476,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? state.WinningMotionVectors[(int)winner.Mode][(int)winner.ReferenceFrame]
                     : default;
 
-                this.UpdateCyclicRefreshSegment(origin, ref modeInfo.Block, ref block, firstVector, selectedStatistics, countSegments);
+                this.UpdateCyclicRefreshSegment(
+                    encoderSegmentMap, searchSegmentMap, origin, ref modeInfo.Block, ref block, firstVector, selectedStatistics, countSegments);
+
                 if (countSegments)
                 {
-                    this.AddSegmentPredictionCosts(in tables, macroBlock, origin, blockSize, modeInfo.Block.SegmentId);
+                    this.AddSegmentPredictionCosts(in tables, searchSegmentMap, previousSegmentMap, macroBlock, origin, blockSize, modeInfo.Block.SegmentId);
                 }
             }
 
@@ -617,7 +625,14 @@ internal static partial class Av1IntraSuperblockEncoder
             if (cyclicRefreshEncode)
             {
                 this.ResetCyclicRefreshSkip(
-                    macroBlock, origin, ref modeInfo.Block, ref block, modeInfo.Block.Skip || this.encodedWithoutCoefficients, countSegments);
+                    encoderSegmentMap,
+                    searchSegmentMap,
+                    macroBlock,
+                    origin,
+                    ref modeInfo.Block,
+                    ref block,
+                    modeInfo.Block.Skip || this.encodedWithoutCoefficients,
+                    countSegments);
             }
 
             if (winner.SecondaryReferenceFrame == Av1ReferenceFrameType.None && settings.AdaptiveModeThresholdLevel != 0)

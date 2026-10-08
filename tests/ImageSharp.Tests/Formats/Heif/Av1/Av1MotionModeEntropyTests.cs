@@ -30,9 +30,11 @@ public class Av1MotionModeEntropyTests
             ? Av1DefaultDistributions.MotionMode[(int)blockSize]
             : Av1DefaultDistributions.Obmc[(int)blockSize];
 
-        using Av1SymbolWriter writer = new(Configuration.Default, 2, updateCdf: true);
-        writer.WriteSymbol((int)Av1MotionMode.SimpleTranslation, motionModeDistribution);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, (int)Av1MotionMode.SimpleTranslation, motionModeDistribution);
         writer.WriteSymbol(
+            ref output,
             (int)Av1InterpolationFilter.Sharp,
             Av1DefaultDistributions.SwitchableInterpolation[interpolationContext]);
 

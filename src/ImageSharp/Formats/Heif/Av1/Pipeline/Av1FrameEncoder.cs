@@ -28,32 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1FrameEncoder
 {
     /// <summary>
-    /// The base-two exponent used to align each frame dimension for output sizing. Rounding to 32 samples accounts
-    /// for partial edge storage before the raw-plane size and all-intra expansion factor are calculated.
-    /// </summary>
-    private const int OutputAlignmentLog2 = 5;
-
-    /// <summary>
     /// The length of the empty temporal delimiter OBU that opens each sample: its header and a zero size.
     /// </summary>
     private const int TemporalDelimiterLength = 2;
-
-    /// <summary>
-    /// The lower bound, in bytes, for the bounded compressed-frame buffer. The raw-size ratio is too small for tiny
-    /// images to provide useful coder headroom, so the reference allocation retains an 8 KiB floor.
-    /// </summary>
-    private const int MinimumCompressedFrameBufferLength = 8 * 1024;
-
-    /// <summary>
-    /// The numerator of the all-intra output-capacity ratio. Together with the denominator, this reserves 2.5 times
-    /// the aligned uncompressed plane size because incompressible input can produce more output than its raw size.
-    /// </summary>
-    private const int AllIntraBufferScaleNumerator = 5;
-
-    /// <summary>
-    /// The denominator of the all-intra output-capacity ratio, completing the reference encoder's 5:2 sizing rule.
-    /// </summary>
-    private const int AllIntraBufferScaleDenominator = 2;
 
     /// <summary>
     /// The sequence-level value that leaves the operating point unconstrained for decoder capability signaling.
@@ -612,7 +589,6 @@ internal static partial class Av1FrameEncoder
             options,
             ObuFrameType.KeyFrame);
 
-        int tileBufferLength = GetTileBufferLength(width, height, colorConfig);
         return colorConfig.BitDepth == Av1BitDepth.EightBit
             ? EncodeByte(
                 configuration,
@@ -623,7 +599,6 @@ internal static partial class Av1FrameEncoder
                 sequenceHeader,
                 frameHeader,
                 colorFormat,
-                tileBufferLength,
                 options,
                 encodingKind)
             : EncodeHighBitDepth(
@@ -635,7 +610,6 @@ internal static partial class Av1FrameEncoder
                 sequenceHeader,
                 frameHeader,
                 colorFormat,
-                tileBufferLength,
                 options,
                 encodingKind);
     }
@@ -993,28 +967,6 @@ internal static partial class Av1FrameEncoder
         Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
     }
 
-    private static int GetTileBufferLength(int width, int height, ObuColorConfig colorConfig)
-    {
-        // Reserve 2.5 times the 32-sample-aligned component storage for an all-intra output packet.
-        // Counting the active planes directly retains that headroom without charging monochrome for unused chroma.
-        // This is an initial estimate: the range writer grows if encoded syntax exceeds its remaining capacity.
-        int alignedWidth = Av1Math.AlignPowerOf2(width, OutputAlignmentLog2);
-        int alignedHeight = Av1Math.AlignPowerOf2(height, OutputAlignmentLog2);
-        int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
-        int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-        long sampleCount = (long)alignedWidth * alignedHeight;
-        if (!colorConfig.IsMonochrome)
-        {
-            sampleCount += 2L * (alignedWidth >> subsamplingX) * (alignedHeight >> subsamplingY);
-        }
-
-        int sampleSize = colorConfig.BitDepth == Av1BitDepth.EightBit ? 1 : 2;
-        long scaledInputLength = (sampleCount * sampleSize * AllIntraBufferScaleNumerator)
-            / AllIntraBufferScaleDenominator;
-
-        return checked((int)Math.Max(MinimumCompressedFrameBufferLength, scaledInputLength));
-    }
-
     /// <summary>
     /// Converts packed pixels directly into an eight-bit bordered AV1 source frame.
     /// </summary>
@@ -1065,7 +1017,6 @@ internal static partial class Av1FrameEncoder
     /// <param name="sequenceHeader">The sequence header.</param>
     /// <param name="frameHeader">The frame header.</param>
     /// <param name="colorFormat">The coded color format.</param>
-    /// <param name="tileBufferLength">The length of the tile symbol buffer.</param>
     /// <param name="options">The encoding options.</param>
     /// <param name="encodingKind">Whether the frame codes color, alpha, or the alpha of a single image.</param>
     /// <returns><see langword="false"/> when the alpha of a single image is opaque and nothing was written.</returns>
@@ -1078,7 +1029,6 @@ internal static partial class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
-        int tileBufferLength,
         Av1EncoderOptions options,
         FrameEncodingKind encodingKind)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -1139,7 +1089,6 @@ internal static partial class Av1FrameEncoder
         // The coefficient contexts start from the final quantizer.
         using Av1SymbolEncoder symbolEncoder = new(
             configuration,
-            tileBufferLength,
             frameHeader.QuantizationParameters.BaseQIndex,
             updateCdf: !frameHeader.DisableCdfUpdate);
 
@@ -1216,7 +1165,6 @@ internal static partial class Av1FrameEncoder
     /// <param name="sequenceHeader">The sequence header.</param>
     /// <param name="frameHeader">The frame header.</param>
     /// <param name="colorFormat">The coded color format.</param>
-    /// <param name="tileBufferLength">The length of the tile symbol buffer.</param>
     /// <param name="options">The encoding options.</param>
     /// <param name="encodingKind">Whether the frame codes color, alpha, or the alpha of a single image.</param>
     /// <returns><see langword="false"/> when the alpha of a single image is opaque and nothing was written.</returns>
@@ -1229,7 +1177,6 @@ internal static partial class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
-        int tileBufferLength,
         Av1EncoderOptions options,
         FrameEncodingKind encodingKind)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -1291,7 +1238,6 @@ internal static partial class Av1FrameEncoder
         // The coefficient contexts start from the final quantizer.
         using Av1SymbolEncoder symbolEncoder = new(
             configuration,
-            tileBufferLength,
             frameHeader.QuantizationParameters.BaseQIndex,
             updateCdf: !frameHeader.DisableCdfUpdate);
 
@@ -2421,7 +2367,6 @@ internal static partial class Av1FrameEncoder
                 Av1QuantizationLookup.GetQIndex(options.MinimumQuantizer)) / 2;
 
             this.Options = options;
-            this.TileBufferLength = GetTileBufferLength(width, height, colorConfig);
             this.EncodeAlpha = encodeAlpha;
             this.FrameHeader = CreateFrameHeader(
                 this.SequenceHeader,
@@ -2570,7 +2515,6 @@ internal static partial class Av1FrameEncoder
                 // adapted context is saved with the coded frame. BeginFrame selects the start for each frame.
                 this.SymbolEncoder = new Av1SymbolEncoder(
                     configuration,
-                    this.TileBufferLength,
                     qIndex,
                     updateCdf: true);
 
@@ -2638,8 +2582,6 @@ internal static partial class Av1FrameEncoder
         /// </summary>
         protected Av1EncoderOptions Options { get; }
 
-        protected int TileBufferLength { get; }
-
         protected bool EncodeAlpha { get; }
 
         /// <summary>
@@ -2678,7 +2620,7 @@ internal static partial class Av1FrameEncoder
         protected Av1EncoderBlockWorkspace BlockWorkspace { get; }
 
         /// <summary>
-        /// Gets the tile probability graph and bounded output buffer reused by every sample in the track.
+        /// Gets the tile probability graph and the tile buffers reused by every sample in the track.
         /// </summary>
         protected Av1SymbolEncoder SymbolEncoder { get; }
 

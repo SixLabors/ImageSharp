@@ -128,13 +128,16 @@ public class Av1IntraBlockCopyTests
             picture.Parent.Common.ModeInfoRowCount,
             picture.Parent.Common.ModeInfoColumnCount);
 
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, 0, updateCdf: true);
-        Av1TileWriter.WriteIntraBlockCopyInfo(
+        using Av1SymbolEncoder writer = new(Configuration.Default, 0, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        Av1TileWriter.WriteIntraBlockCopyInfo<Av1SymbolEncoder.SymbolWriteOperation>(
+            ref output,
             picture,
             writer,
             macroBlock,
             modeInfoPosition,
-            modeInfo);
+            modeInfo,
+            useRetainedContext: false);
 
         using var encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);

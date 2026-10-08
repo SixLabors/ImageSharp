@@ -18,9 +18,6 @@ public class Av1EntropyTests
 {
     private const int BaseQIndex = 23;
 
-    // Short syntax round trips encode only their small in-method symbol vectors.
-    private const int ShortSyntaxBufferLength = 64;
-
     [Theory]
     [InlineData(4, true)]
     [InlineData(1, true)]
@@ -34,23 +31,24 @@ public class Av1EntropyTests
             channels[channel] = new(28160, 32120, 32677);
         }
 
-        using Av1SymbolWriter writer = new(Configuration.Default, 512, updateCdf);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf);
+        Span<byte> output = writer.GetTileBuffer();
         for (int index = 0; index < 96; index++)
         {
             int delta = deltas[index % deltas.Length];
             int magnitude = Math.Abs(delta);
-            writer.WriteSymbol(Math.Min(magnitude, 3), channels[index % channelCount]);
+            writer.WriteSymbol(ref output, Math.Min(magnitude, 3), channels[index % channelCount]);
             if (magnitude >= 3)
             {
                 // The escape magnitude is 2^bits + 1 plus the transmitted remainder, followed by its sign.
                 int bits = BitOperations.Log2((uint)(magnitude - 1));
-                writer.WriteLiteral((uint)(bits - 1), 3);
-                writer.WriteLiteral((uint)(magnitude - (1 << bits) - 1), bits);
+                writer.WriteLiteral(ref output, (uint)(bits - 1), 3);
+                writer.WriteLiteral(ref output, (uint)(magnitude - (1 << bits) - 1), bits);
             }
 
             if (magnitude != 0)
             {
-                writer.WriteLiteral(delta < 0 ? 1U : 0U, 1);
+                writer.WriteLiteral(ref output, delta < 0 ? 1U : 0U, 1);
             }
         }
 
@@ -131,11 +129,12 @@ public class Av1EntropyTests
     [Fact]
     public void SymbolWriterMatchesCurrentLibaomCarryRegression()
     {
-        using Av1SymbolWriter writer = new(Configuration.Default, ShortSyntaxBufferLength, updateCdf: false);
-        writer.WriteBoolean(false, 16_384);
-        writer.WriteBoolean(false, 16_384);
-        writer.WriteBoolean(true, 512);
-        writer.WriteBoolean(false, 8_192);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: false);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteBoolean(ref output, false, 16_384);
+        writer.WriteBoolean(ref output, false, 16_384);
+        writer.WriteBoolean(ref output, true, 512);
+        writer.WriteBoolean(ref output, false, 8_192);
         using IMemoryOwner<byte> encoded = writer.Exit();
 
         Assert.Equal(2, encoded.Memory.Length);
@@ -143,26 +142,93 @@ public class Av1EntropyTests
     }
 
     [Fact]
-    public void SymbolWriterRentsFixedOutputBuffer()
+    public void SymbolWriterRentsOneTileBuffer()
     {
-        const int bufferLength = 257;
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
         TestMemoryAllocator.AllocationRequest allocation;
 
-        using (Av1SymbolWriter writer = new(configuration, bufferLength, updateCdf: false))
+        using (Av1SymbolWriter writer = new(configuration, updateCdf: false))
         {
-            writer.WriteLiteral(false);
+            Span<byte> output = writer.GetTileBuffer();
+            writer.WriteLiteral(ref output, false);
             allocation = Assert.Single(allocator.AllocationLog);
 
             Assert.Equal(typeof(byte), allocation.ElementType);
-            Assert.Equal(bufferLength, allocation.Length);
+            Assert.Equal(Av1SymbolWriter.InitialTileBufferLength, allocation.Length);
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
         Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
+    }
+
+    [Fact]
+    public void SymbolWriterGrowsTileBufferAndKeepsTheOtherTiles()
+    {
+        // The second tile writes more bytes than a new tile buffer holds, so its buffer grows during the writes.
+        const int largeTileByteCount = Av1SymbolWriter.InitialTileBufferLength + 4096;
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: false);
+
+        writer.Reset(0);
+        Span<byte> output = writer.GetTileBuffer();
+        for (int index = 0; index < 64; index++)
+        {
+            writer.WriteLiteral(ref output, (uint)(index * 7) & 0xFF, 8);
+        }
+
+        int firstLength = writer.ExitTile();
+
+        writer.Reset(1);
+        output = writer.GetTileBuffer();
+        for (int index = 0; index < largeTileByteCount; index++)
+        {
+            writer.WriteLiteral(ref output, (uint)(index * 13) & 0xFF, 8);
+        }
+
+        int secondLength = writer.ExitTile();
+        Assert.True(secondLength > Av1SymbolWriter.InitialTileBufferLength);
+
+        // Each tile decodes from its own buffer. The growth of the second buffer does not change the first tile.
+        Av1SymbolReader first = new(writer.GetTileOutput(0, firstLength).ToArray(), updateCdf: false);
+        for (int index = 0; index < 64; index++)
+        {
+            Assert.Equal((index * 7) & 0xFF, first.ReadLiteral(8));
+        }
+
+        Av1SymbolReader second = new(writer.GetTileOutput(1, secondLength).ToArray(), updateCdf: false);
+        for (int index = 0; index < largeTileByteCount; index++)
+        {
+            Assert.Equal((index * 13) & 0xFF, second.ReadLiteral(8));
+        }
+    }
+
+    [Theory]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength - 16)]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength - 9)]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength - 8)]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength - 5)]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength - 2)]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength - 1)]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength)]
+    [InlineData(Av1SymbolWriter.InitialTileBufferLength + 16)]
+    public void SymbolWriterRoundTripsTilesAtTheTileBufferLimit(int byteCount)
+    {
+        // Near the limit, the buffer grows either in a word flush or only for the terminating bytes of the tile.
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: false);
+        Span<byte> output = writer.GetTileBuffer();
+        for (int index = 0; index < byteCount; index++)
+        {
+            writer.WriteLiteral(ref output, (uint)((index * 29) + (index >> 8)) & 0xFF, 8);
+        }
+
+        int length = writer.ExitTile();
+        Av1SymbolReader reader = new(writer.GetTileOutput(0, length).ToArray(), updateCdf: false);
+        for (int index = 0; index < byteCount; index++)
+        {
+            Assert.Equal(((index * 29) + (index >> 8)) & 0xFF, reader.ReadLiteral(8));
+        }
     }
 
     [Fact]
@@ -199,12 +265,13 @@ public class Av1EntropyTests
         uint[] values = new uint[writeCount];
         Array.Fill(values, value);
         Configuration configuration = Configuration.Default;
-        using Av1SymbolWriter writer = new(configuration, ShortSyntaxBufferLength, updateCdf: true);
+        using Av1SymbolWriter writer = new(configuration, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
 
         // Act
         for (int i = 0; i < writeCount; i++)
         {
-            writer.WriteLiteral(value, bitCount);
+            writer.WriteLiteral(ref output, value, bitCount);
         }
 
         using IMemoryOwner<byte> actual = writer.Exit();
@@ -227,7 +294,8 @@ public class Av1EntropyTests
         Av1PlaneRegion<byte> decoded = new(decodedOwner.Memory, Width, new Rectangle(0, 0, Width, Height));
         Av1PlaneRegion<byte> sourceRegion = source;
         Av1PlaneRegion<byte> decodedRegion = decoded;
-        using Av1SymbolEncoder encoder = new(configuration, 512, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
         {
             for (int plane = 0; plane < 2; plane++)
@@ -241,7 +309,8 @@ public class Av1EntropyTests
                     }
                 }
 
-                encoder.WritePaletteColorMap(
+                encoder.WritePaletteColorMap<Av1SymbolEncoder.SymbolWriteOperation>(
+                    ref output,
                     paletteSize,
                     (Av1PlaneType)plane,
                     Rows,
@@ -319,7 +388,8 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None];
@@ -329,7 +399,7 @@ public class Av1EntropyTests
         // Act
         foreach (Av1PartitionType value in values)
         {
-            encoder.WritePartitionType(value, context);
+            encoder.WritePartitionType<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -349,7 +419,8 @@ public class Av1EntropyTests
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal, Av1PartitionType.Horizontal];
@@ -359,7 +430,7 @@ public class Av1EntropyTests
         // Act
         foreach (Av1PartitionType value in values)
         {
-            encoder.WriteSplitOrHorizontal(value, blockSize, context);
+            encoder.WriteSplitOrHorizontal<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value, blockSize, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -379,7 +450,8 @@ public class Av1EntropyTests
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical, Av1PartitionType.Vertical];
@@ -389,7 +461,7 @@ public class Av1EntropyTests
         // Act
         foreach (Av1PartitionType value in values)
         {
-            encoder.WriteSplitOrVertical(value, blockSize, context);
+            encoder.WriteSplitOrVertical<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value, blockSize, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -423,14 +495,15 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         bool[] values = [true, true, false, false, false, false, false, false, true];
         bool[] actuals = new bool[values.Length];
 
         // Act
         foreach (bool value in values)
         {
-            encoder.WriteSkip(value, context);
+            encoder.WriteSkip<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -450,14 +523,15 @@ public class Av1EntropyTests
         // Assign
         Av1TransformSize transformSizeContext = (Av1TransformSize)transformContext;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         bool[] values = [true, true, false, false, false, false, false, false, true];
         bool[] actuals = new bool[values.Length];
 
         // Act
         foreach (bool value in values)
         {
-            encoder.WriteTransformBlockSkip(value, transformSizeContext, skipContext);
+            encoder.WriteTransformBlockSkip<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value, transformSizeContext, skipContext);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -495,7 +569,8 @@ public class Av1EntropyTests
         Av1FilterIntraMode filterIntraMode = (Av1FilterIntraMode)intraMode;
         Av1PredictionMode intraDirection = (Av1PredictionMode)intraDir;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
 
         // TODO: Include AdstFlipAdst, which is currently mapped to Identity.
         Av1TransformType[] values = [
@@ -508,7 +583,8 @@ public class Av1EntropyTests
         // Act
         foreach (Av1TransformType value in values)
         {
-            encoder.WriteTransformType(value, transformSizeContext, true, BaseQIndex, filterIntraMode, intraDirection, usesInterTransformSet: false);
+            encoder.WriteTransformType<Av1SymbolEncoder.SymbolWriteOperation>(
+                ref output, value, transformSizeContext, true, BaseQIndex, filterIntraMode, intraDirection, usesInterTransformSet: false);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -537,8 +613,9 @@ public class Av1EntropyTests
             Av1DefaultDistributions.InterExtendedTransform[extendedSet][(int)squareTransformSize];
 
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder costEncoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: false);
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder costEncoder = new(configuration, BaseQIndex, updateCdf: false);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         int transformTypeCount = Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType);
 
         for (int symbol = 0; symbol < transformTypeCount; symbol++)
@@ -555,7 +632,8 @@ public class Av1EntropyTests
                 usesInterTransformSet: true);
 
             Assert.Equal(expectedCost, actualCost);
-            encoder.WriteTransformType(
+            encoder.WriteTransformType<Av1SymbolEncoder.SymbolWriteOperation>(
+                ref output,
                 transformType,
                 transformSize,
                 useReducedTransformSet,
@@ -591,15 +669,13 @@ public class Av1EntropyTests
         int[] values = Enumerable.Range(0, 16384).ToArray();
         int[] actuals = new int[values.Length];
 
-        // Reserve the longest code for every value so this broad corpus cannot exhaust the fixed entropy output.
-        int maximumCodeBitCount = (BitOperations.Log2((uint)values.Length) * 2) + 1;
-        int bufferLength = (int)Numerics.DivideCeil((uint)(values.Length * maximumCodeBitCount), 8);
-        using Av1SymbolEncoder encoder = new(configuration, bufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
 
         // Act
         foreach (int value in values)
         {
-            encoder.WriteGolomb(value);
+            encoder.WriteGolomb<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -628,13 +704,14 @@ public class Av1EntropyTests
         // Assign
         int[] values = [3, 6, 7, 0, 2, 0, 2, 1, 1];
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         int[] actuals = new int[values.Length];
 
         // Act
         foreach (int value in values)
         {
-            encoder.WriteSegmentId(value, context);
+            encoder.WriteSegmentId<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -655,13 +732,14 @@ public class Av1EntropyTests
         // Assign
         int[] values = [3, 6, -7, -8, -2, 0, 2, 1, -1];
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         int[] actuals = new int[values.Length];
 
         // Act
         foreach (int value in values)
         {
-            encoder.WriteDeltaQuantizerIndex(value);
+            encoder.WriteDeltaQuantizerIndex<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -695,13 +773,14 @@ public class Av1EntropyTests
             Av1FilterIntraMode.AllFilterIntraModes, Av1FilterIntraMode.Directional157, Av1FilterIntraMode.DC, Av1FilterIntraMode.Directional157];
 
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(configuration, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         Av1FilterIntraMode[] actuals = new Av1FilterIntraMode[values.Length];
 
         // Act
         foreach (Av1FilterIntraMode value in values)
         {
-            encoder.WriteFilterIntraMode(value, blockSize);
+            encoder.WriteFilterIntraMode<Av1SymbolEncoder.SymbolWriteOperation>(ref output, value, blockSize);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();

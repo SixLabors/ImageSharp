@@ -181,7 +181,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
 
             int tileStateStorageOffset = Av1Math.AlignPowerOf2(intraBlockCopySearchStorageEnd, 2);
             int cdefPresetLength = tileCount * Av1Constants.CdefUnitsPerSuperblock;
-            int tileStateLength = cdefPresetLength + (3 * tileCount);
+            int tileStateLength = cdefPresetLength + (2 * tileCount);
             int tileStateStorageLength = tileStateLength * sizeof(int);
             int restorationStorageOffset = checked(tileStateStorageOffset + tileStateStorageLength);
             InlineArray3<int> restorationLengthStorage = default;
@@ -288,8 +288,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             Memory<int> tileState = tileStateMemory.Memory;
             Memory<int> cdefPreset = tileState[..cdefPresetLength];
             Memory<int> previousQIndex = tileState.Slice(cdefPresetLength, tileCount);
-            Memory<int> tileDataOffsets = tileState.Slice(cdefPresetLength + tileCount, tileCount);
-            Memory<int> tileDataLengths = tileState.Slice(cdefPresetLength + (2 * tileCount), tileCount);
+            Memory<int> tileDataLengths = tileState.Slice(cdefPresetLength + tileCount, tileCount);
             Memory<Av1LoopRestorationUnit> restorationUnits = default;
             InlineArray3<int> restorationUnitOffsets = default;
             Memory<Av1LoopRestorationUnit> restorationReferences = default;
@@ -413,7 +412,6 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 ModeInfoStride = this.modeInfo.ModeInfoStride,
                 Disallow4x4AllFrames = this.modeInfo.Disallow4x4AllFrames,
                 CdefPreset = cdefPreset,
-                TileDataOffsets = tileDataOffsets,
                 TileDataLengths = tileDataLengths,
                 RestorationUnits = restorationUnits,
                 RestorationUnitOffsets = restorationUnitOffsets,

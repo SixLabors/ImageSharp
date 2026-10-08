@@ -38,10 +38,11 @@ internal sealed class Av1MotionVectorContext
         /// Processes one entropy-coded symbol.
         /// </summary>
         /// <param name="writer">The tile range encoder.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="symbol">The zero-based symbol.</param>
         /// <param name="distribution">The live symbol distribution.</param>
         /// <returns>The symbol cost in 1/512-bit units, or zero when writing.</returns>
-        public static abstract int ProcessSymbol(Av1SymbolWriter writer, int symbol, Av1Distribution distribution);
+        public static abstract int ProcessSymbol(Av1SymbolWriter writer, ref Span<byte> output, int symbol, Av1Distribution distribution);
     }
 
     /// <summary>
@@ -103,21 +104,23 @@ internal sealed class Av1MotionVectorContext
     /// Writes a motion vector relative to a spatially derived reference.
     /// </summary>
     /// <param name="writer">The tile range encoder.</param>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="value">The displacement vector to encode.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
     /// <param name="precision">The fractional precision selected by the frame header.</param>
-    public void Write(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
-        => this.Write<Av1SymbolEncoder.SymbolWriteOperation>(writer, value, reference, precision);
+    public void Write(Av1SymbolWriter writer, ref Span<byte> output, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
+        => this.Write<Av1SymbolEncoder.SymbolWriteOperation>(writer, ref output, value, reference, precision);
 
-    /// <inheritdoc cref="Write(Av1SymbolWriter, Av1MotionVector, Av1MotionVector, Av1MotionVectorPrecision)"/>
+    /// <inheritdoc cref="Write(Av1SymbolWriter, ref Span{byte}, Av1MotionVector, Av1MotionVector, Av1MotionVectorPrecision)"/>
     /// <typeparam name="TOperation">The operation applied to each motion-vector symbol.</typeparam>
     public void Write<TOperation>(
         Av1SymbolWriter writer,
+        ref Span<byte> output,
         Av1MotionVector value,
         Av1MotionVector reference,
         Av1MotionVectorPrecision precision)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
-        => _ = this.Process<MotionVectorWriteOperation<TOperation>>(writer, value, reference, precision);
+        => _ = this.Process<MotionVectorWriteOperation<TOperation>>(writer, ref output, value, reference, precision);
 
     /// <summary>
     /// Measures a motion-vector delta against the live distributions without changing them.
@@ -128,12 +131,28 @@ internal sealed class Av1MotionVectorContext
     /// <param name="precision">The fractional precision selected by the frame header.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
     public int GetCost(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
-        => this.Process<MotionVectorCostOperation>(writer, value, reference, precision);
+    {
+        // A cost writes nothing, so it needs no tile buffer.
+        Span<byte> output = default;
+        return this.Process<MotionVectorCostOperation>(writer, ref output, value, reference, precision);
+    }
 
     /// <summary>
     /// Processes one complete motion-vector delta through a closed symbol operation.
     /// </summary>
-    private int Process<TOperation>(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
+    /// <typeparam name="TOperation">The operation applied to each motion-vector symbol.</typeparam>
+    /// <param name="writer">The tile range encoder.</param>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="value">The motion vector.</param>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    /// <param name="precision">The fractional precision selected by the frame header.</param>
+    /// <returns>The syntax cost in 1/512-bit units, or zero when writing.</returns>
+    private int Process<TOperation>(
+        Av1SymbolWriter writer,
+        ref Span<byte> output,
+        Av1MotionVector value,
+        Av1MotionVector reference,
+        Av1MotionVectorPrecision precision)
         where TOperation : struct, IMotionVectorSymbolOperation
     {
         int row = value.Row - reference.Row;
@@ -143,15 +162,15 @@ internal sealed class Av1MotionVectorContext
         // zero/horizontal/vertical/both joint symbols without a lookup.
         int jointType = (row != 0 ? 2 : 0) | (column != 0 ? 1 : 0);
 
-        int rate = TOperation.ProcessSymbol(writer, jointType, this.Joint);
+        int rate = TOperation.ProcessSymbol(writer, ref output, jointType, this.Joint);
         if (row != 0)
         {
-            rate += this.Vertical.Process<TOperation>(writer, row, precision);
+            rate += this.Vertical.Process<TOperation>(writer, ref output, row, precision);
         }
 
         if (column != 0)
         {
-            rate += this.Horizontal.Process<TOperation>(writer, column, precision);
+            rate += this.Horizontal.Process<TOperation>(writer, ref output, column, precision);
         }
 
         return rate;
@@ -164,8 +183,8 @@ internal sealed class Av1MotionVectorContext
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         /// <inheritdoc/>
-        public static int ProcessSymbol(Av1SymbolWriter writer, int symbol, Av1Distribution distribution)
-            => TOperation.ProcessSymbol(ref writer, symbol, distribution);
+        public static int ProcessSymbol(Av1SymbolWriter writer, ref Span<byte> output, int symbol, Av1Distribution distribution)
+            => TOperation.ProcessSymbol(ref writer, ref output, symbol, distribution);
     }
 
     /// <summary>
@@ -174,7 +193,7 @@ internal sealed class Av1MotionVectorContext
     private readonly struct MotionVectorCostOperation : IMotionVectorSymbolOperation
     {
         /// <inheritdoc/>
-        public static int ProcessSymbol(Av1SymbolWriter writer, int symbol, Av1Distribution distribution)
+        public static int ProcessSymbol(Av1SymbolWriter writer, ref Span<byte> output, int symbol, Av1Distribution distribution)
             => Av1ProbabilityCost.GetSymbolCost(distribution, symbol);
     }
 
@@ -351,15 +370,22 @@ internal sealed class Av1MotionVectorContext
         /// Writes one signed motion-vector component.
         /// </summary>
         /// <param name="writer">The tile range encoder.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="value">The nonzero component in one-eighth-sample units.</param>
         /// <param name="precision">The fractional precision selected by the frame header.</param>
-        public void Write(Av1SymbolWriter writer, int value, Av1MotionVectorPrecision precision)
-            => _ = this.Process<MotionVectorWriteOperation<Av1SymbolEncoder.SymbolWriteOperation>>(writer, value, precision);
+        public void Write(Av1SymbolWriter writer, ref Span<byte> output, int value, Av1MotionVectorPrecision precision)
+            => _ = this.Process<MotionVectorWriteOperation<Av1SymbolEncoder.SymbolWriteOperation>>(writer, ref output, value, precision);
 
         /// <summary>
         /// Processes one nonzero signed component through the shared motion-vector symbol operation.
         /// </summary>
-        public int Process<TOperation>(Av1SymbolWriter writer, int value, Av1MotionVectorPrecision precision)
+        /// <typeparam name="TOperation">The operation applied to each motion-vector symbol.</typeparam>
+        /// <param name="writer">The tile range encoder.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+        /// <param name="value">The nonzero component in one-eighth-sample units.</param>
+        /// <param name="precision">The fractional precision selected by the frame header.</param>
+        /// <returns>The syntax cost in 1/512-bit units, or zero when writing.</returns>
+        public int Process<TOperation>(Av1SymbolWriter writer, ref Span<byte> output, int value, Av1MotionVectorPrecision precision)
             where TOperation : struct, IMotionVectorSymbolOperation
         {
             int magnitude = Math.Abs(value);
@@ -382,19 +408,19 @@ internal sealed class Av1MotionVectorContext
             int integerOffset = offset >> 3;
             int fractional = (offset >> 1) & 3;
             int highPrecision = offset & 1;
-            int rate = TOperation.ProcessSymbol(writer, value < 0 ? 1 : 0, this.Sign);
-            rate += TOperation.ProcessSymbol(writer, magnitudeClass, this.MagnitudeClass);
+            int rate = TOperation.ProcessSymbol(writer, ref output, value < 0 ? 1 : 0, this.Sign);
+            rate += TOperation.ProcessSymbol(writer, ref output, magnitudeClass, this.MagnitudeClass);
 
             if (magnitudeClass == 0)
             {
-                rate += TOperation.ProcessSymbol(writer, integerOffset, this.ClassZero);
+                rate += TOperation.ProcessSymbol(writer, ref output, integerOffset, this.ClassZero);
             }
             else
             {
                 for (int bit = 0; bit < magnitudeClass; bit++)
                 {
                     // Integer offsets are transmitted least-significant bit first through independent models.
-                    rate += TOperation.ProcessSymbol(writer, (integerOffset >> bit) & 1, this.OffsetBits[bit]);
+                    rate += TOperation.ProcessSymbol(writer, ref output, (integerOffset >> bit) & 1, this.OffsetBits[bit]);
                 }
             }
 
@@ -404,7 +430,7 @@ internal sealed class Av1MotionVectorContext
                     ? this.ClassZeroFractional[integerOffset]
                     : this.Fractional;
 
-                rate += TOperation.ProcessSymbol(writer, fractional, fractionalDistribution);
+                rate += TOperation.ProcessSymbol(writer, ref output, fractional, fractionalDistribution);
             }
 
             if (precision == Av1MotionVectorPrecision.EighthSample)
@@ -413,7 +439,7 @@ internal sealed class Av1MotionVectorContext
                     ? this.ClassZeroHighPrecision
                     : this.HighPrecision;
 
-                rate += TOperation.ProcessSymbol(writer, highPrecision, highPrecisionDistribution);
+                rate += TOperation.ProcessSymbol(writer, ref output, highPrecision, highPrecisionDistribution);
             }
 
             return rate;

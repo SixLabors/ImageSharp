@@ -56,37 +56,11 @@ internal partial class Av1TileWriter
     private static readonly byte[] IntraModeContextLookup = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
 
     /// <summary>
-    /// Writes the partition tree and each final coding block for a superblock.
-    /// </summary>
-    /// <param name="pcs">The picture coding state.</param>
-    /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
-    /// <param name="writer">The tile symbol encoder.</param>
-    /// <param name="superblock">The encoder decisions for the superblock.</param>
-    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
-    /// <param name="tileIndex">The zero-based tile index.</param>
-    public static void WriteSuperblock(
-        Av1PictureControlSet pcs,
-        Av1EntropyCodingContext ec_ctx,
-        Av1SymbolEncoder writer,
-        Av1Superblock superblock,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        ushort tileIndex)
-    {
-        PrecomputedBlockEncodingHandler blockEncoder = default;
-        WriteSuperblock(
-            pcs,
-            ec_ctx,
-            writer,
-            superblock,
-            coefficientBuffer,
-            tileIndex,
-            ref blockEncoder);
-    }
-
-    /// <summary>
     /// Writes a partition tree while producing each final block against the immediately preceding tile state.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
@@ -94,28 +68,8 @@ internal partial class Av1TileWriter
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
     /// <param name="blockEncoder">The handler invoked for each final block.</param>
-    public static void WriteSuperblock<TBlockEncoder>(
-        Av1PictureControlSet pcs,
-        Av1EntropyCodingContext ec_ctx,
-        Av1SymbolEncoder writer,
-        Av1Superblock superblock,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        ushort tileIndex,
-        ref TBlockEncoder blockEncoder)
-        where TBlockEncoder : struct, IBlockEncodingHandler
-        => WriteSuperblock<Av1SymbolEncoder.SymbolWriteOperation, TBlockEncoder>(
-            pcs,
-            ec_ctx,
-            writer,
-            superblock,
-            coefficientBuffer,
-            tileIndex,
-            ref blockEncoder);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
     public static void WriteSuperblock<TOperation, TBlockEncoder>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
         Av1SymbolEncoder writer,
@@ -178,7 +132,7 @@ internal partial class Av1TileWriter
             {
                 for (int column = firstColumn; column < lastColumn; column++)
                 {
-                    writer.WriteRestorationUnit<TOperation>(item.Type, units[(row * columns) + column], plane != 0, ref reference);
+                    writer.WriteRestorationUnit<TOperation>(ref output, item.Type, units[(row * columns) + column], plane != 0, ref reference);
                 }
             }
         }
@@ -186,6 +140,7 @@ internal partial class Av1TileWriter
         // Partition decisions are stored in preorder, so recursive traversal keeps the current geometry
         // on the stack and visits each selected child after its parent.
         WritePartitionTree<TOperation, TBlockEncoder>(
+            ref output,
             pcs,
             ec_ctx,
             writer,
@@ -202,7 +157,22 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes one selected partition node and recursively visits its split children.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="superblock">The encoder decisions for the superblock.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
+    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <param name="blockSize">The size of the partition node.</param>
+    /// <param name="blockOrigin">The absolute luma-sample origin of the partition node.</param>
+    /// <param name="partitionIndex">The index of the next partition decision of the superblock, advanced for each node.</param>
+    /// <param name="finalBlockIndex">The index of the next final block of the superblock, advanced for each final block.</param>
+    /// <param name="blockEncoder">The handler invoked for each final block.</param>
     private static void WritePartitionTree<TOperation, TBlockEncoder>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -248,6 +218,7 @@ internal partial class Av1TileWriter
         if (TOperation.WritesOutput || !pcs.Parent.SpeedSettings.IsRealtime)
         {
             EncodePartition<TOperation>(
+                ref output,
                 pcs,
                 writer,
                 blockSize,
@@ -260,6 +231,7 @@ internal partial class Av1TileWriter
         {
             case Av1PartitionType.None:
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -273,6 +245,7 @@ internal partial class Av1TileWriter
                 break;
             case Av1PartitionType.Horizontal:
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -286,6 +259,7 @@ internal partial class Av1TileWriter
                 if (modeInfoRow + (blockSize.Get4x4HighCount() >> 1) < common.ModeInfoRowCount)
                 {
                     WriteFinalBlock<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -300,6 +274,7 @@ internal partial class Av1TileWriter
                 break;
             case Av1PartitionType.Vertical:
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -313,6 +288,7 @@ internal partial class Av1TileWriter
                 if (modeInfoColumn + (blockSize.Get4x4WideCount() >> 1) < common.ModeInfoColumnCount)
                 {
                     WriteFinalBlock<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -344,6 +320,7 @@ internal partial class Av1TileWriter
                         }
 
                         WriteFinalBlock<TOperation, TBlockEncoder>(
+                            ref output,
                             pcs,
                             entropyCodingContext,
                             writer,
@@ -358,6 +335,7 @@ internal partial class Av1TileWriter
                 else
                 {
                     WritePartitionTree<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -371,6 +349,7 @@ internal partial class Av1TileWriter
                         ref blockEncoder);
 
                     WritePartitionTree<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -384,6 +363,7 @@ internal partial class Av1TileWriter
                         ref blockEncoder);
 
                     WritePartitionTree<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -397,6 +377,7 @@ internal partial class Av1TileWriter
                         ref blockEncoder);
 
                     WritePartitionTree<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -413,6 +394,7 @@ internal partial class Av1TileWriter
                 break;
             case Av1PartitionType.HorizontalA:
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -424,6 +406,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -435,6 +418,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -448,6 +432,7 @@ internal partial class Av1TileWriter
                 break;
             case Av1PartitionType.HorizontalB:
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -459,6 +444,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -470,6 +456,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -483,6 +470,7 @@ internal partial class Av1TileWriter
                 break;
             case Av1PartitionType.VerticalA:
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -494,6 +482,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -505,6 +494,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -518,6 +508,7 @@ internal partial class Av1TileWriter
                 break;
             case Av1PartitionType.VerticalB:
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -529,6 +520,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -540,6 +532,7 @@ internal partial class Av1TileWriter
                     ref blockEncoder);
 
                 WriteFinalBlock<TOperation, TBlockEncoder>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -562,6 +555,7 @@ internal partial class Av1TileWriter
                     }
 
                     WriteFinalBlock<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -585,6 +579,7 @@ internal partial class Av1TileWriter
                     }
 
                     WriteFinalBlock<TOperation, TBlockEncoder>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -615,7 +610,20 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the next final block selected by partition traversal.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="superblock">The encoder decisions for the superblock.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
+    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <param name="blockOrigin">The absolute luma-sample origin of the block.</param>
+    /// <param name="finalBlockIndex">The index of the next final block of the superblock, advanced for this block.</param>
+    /// <param name="blockEncoder">The handler invoked for each final block.</param>
     private static void WriteFinalBlock<TOperation, TBlockEncoder>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -630,6 +638,7 @@ internal partial class Av1TileWriter
     {
         ref Av1EncoderBlockStruct block = ref superblock.FinalBlocks[finalBlockIndex++];
         WriteModesBlock<TOperation, TBlockEncoder>(
+            ref output,
             pcs,
             entropyCodingContext,
             writer,
@@ -779,31 +788,16 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes a partition symbol using the above and left partition contexts available at a block origin.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="blockSize">The square parent block size.</param>
     /// <param name="partitionType">The selected partition type.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
-    /// <param name="partition_context_na">The partition neighbor arrays for the tile.</param>
-    public static void EncodePartition(
-        Av1PictureControlSet pcs,
-        Av1SymbolEncoder writer,
-        Av1BlockSize blockSize,
-        Av1PartitionType partitionType,
-        Point blockOrigin,
-        in Av1NeighborEdges<Av1PartitionContext> partition_context_na)
-        => EncodePartition<Av1SymbolEncoder.SymbolWriteOperation>(
-            pcs,
-            writer,
-            blockSize,
-            partitionType,
-            blockOrigin,
-            in partition_context_na);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
+    /// <param name="partition_context_na">The partition edges of the tile, read once by the caller.</param>
     public static void EncodePartition<TOperation>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
         Av1BlockSize blockSize,
@@ -835,15 +829,15 @@ internal partial class Av1TileWriter
 
         if (has_rows && has_cols)
         {
-            writer.WritePartitionType<TOperation>(partitionType, context_index);
+            writer.WritePartitionType<TOperation>(ref output, partitionType, context_index);
         }
         else if (!has_rows && has_cols)
         {
-            writer.WriteSplitOrHorizontal<TOperation>(partitionType, blockSize, context_index);
+            writer.WriteSplitOrHorizontal<TOperation>(ref output, partitionType, blockSize, context_index);
         }
         else
         {
-            writer.WriteSplitOrVertical<TOperation>(partitionType, blockSize, context_index);
+            writer.WriteSplitOrVertical<TOperation>(ref output, partitionType, blockSize, context_index);
         }
 
         return;
@@ -885,6 +879,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the segmentation, prediction, transform, coefficient, and filter syntax for one final coding block.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
@@ -894,7 +889,10 @@ internal partial class Av1TileWriter
     /// <param name="blockOrigin">The absolute luma-sample origin of the block.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="blockEncoder">The final-block decision producer.</param>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
     private static void WriteModesBlock<TOperation, TBlockEncoder>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -967,6 +965,7 @@ internal partial class Av1TileWriter
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
                 WriteSegmentId<TOperation>(
+                    ref output,
                     pcs,
                     writer,
                     blockSize,
@@ -988,17 +987,18 @@ internal partial class Av1TileWriter
 
             if (writesSkipMode)
             {
-                writer.WriteSkipMode<TOperation>(macroBlockModeInfo.Block.SkipMode, GetSkipModeContext(macroBlock));
+                writer.WriteSkipMode<TOperation>(ref output, macroBlockModeInfo.Block.SkipMode, GetSkipModeContext(macroBlock));
             }
 
             if (!macroBlockModeInfo.Block.SkipMode)
             {
-                EncodeSkipCoefficients<TOperation>(writer, macroBlock, skipWritingCoefficients);
+                EncodeSkipCoefficients<TOperation>(ref output, writer, macroBlock, skipWritingCoefficients);
             }
 
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && !pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
                 WriteSegmentId<TOperation>(
+                    ref output,
                     pcs,
                     writer,
                     blockSize,
@@ -1010,6 +1010,7 @@ internal partial class Av1TileWriter
             }
 
             WriteCdef<TOperation>(
+                ref output,
                 scs,
                 pcs,
                 writer,
@@ -1029,7 +1030,7 @@ internal partial class Av1TileWriter
                     int reduced_delta_qindex = (current_q_index - pcs.Parent.PreviousQIndex.Span[tile_idx]) /
                         frm_hdr.DeltaQParameters.Resolution;
 
-                    writer.WriteDeltaQuantizerIndex<TOperation>(reduced_delta_qindex);
+                    writer.WriteDeltaQuantizerIndex<TOperation>(ref output, reduced_delta_qindex);
                     pcs.Parent.PreviousQIndex.Span[tile_idx] = current_q_index;
                 }
             }
@@ -1050,7 +1051,7 @@ internal partial class Av1TileWriter
                 if (!macroBlockModeInfo.Block.SkipMode && !isReferenceForced && !isGlobalMotionForced)
                 {
                     int intraInterContext = GetIntraInterContext(macroBlock);
-                    writer.WriteIsInter<TOperation>(isInterBlock, intraInterContext);
+                    writer.WriteIsInter<TOperation>(ref output, isInterBlock, intraInterContext);
                 }
             }
 
@@ -1065,6 +1066,7 @@ internal partial class Av1TileWriter
                     if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
                         writer.WriteCompoundReference<TOperation>(
+                            ref output,
                             macroBlockModeInfo.Block.ReferenceFrame,
                             macroBlockModeInfo.Block.SecondaryReferenceFrame,
                             Av1SymbolContextHelper.GetReferenceModeContext(macroBlock),
@@ -1076,10 +1078,11 @@ internal partial class Av1TileWriter
                         if (frm_hdr.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
                             Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
                         {
-                            writer.WriteIsCompoundReference<TOperation>(false, Av1SymbolContextHelper.GetReferenceModeContext(macroBlock));
+                            writer.WriteIsCompoundReference<TOperation>(ref output, false, Av1SymbolContextHelper.GetReferenceModeContext(macroBlock));
                         }
 
                         writer.WriteSingleReference<TOperation>(
+                            ref output,
                             macroBlockModeInfo.Block.ReferenceFrame,
                             referenceCounts);
                     }
@@ -1158,11 +1161,11 @@ internal partial class Av1TileWriter
 
                     if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
-                        writer.WriteInterCompoundMode<TOperation>(lumaMode, referenceContext.ModeContext);
+                        writer.WriteInterCompoundMode<TOperation>(ref output, lumaMode, referenceContext.ModeContext);
                     }
                     else
                     {
-                        writer.WriteInterMode<TOperation>(lumaMode, referenceContext.ModeContext);
+                        writer.WriteInterMode<TOperation>(ref output, lumaMode, referenceContext.ModeContext);
                     }
 
                     int referenceMotionVectorIndex = blk_ptr.ReferenceMotionVectorIndex;
@@ -1178,7 +1181,7 @@ internal partial class Av1TileWriter
                         {
                             bool advance = referenceMotionVectorIndex >= index;
                             int context = Av1SymbolContextHelper.GetDrlContext(referenceContext.Weights, index);
-                            writer.WriteDynamicReferenceList<TOperation>(advance, context);
+                            writer.WriteDynamicReferenceList<TOperation>(ref output, advance, context);
                             if (!advance)
                             {
                                 break;
@@ -1192,7 +1195,7 @@ internal partial class Av1TileWriter
                         {
                             bool advance = referenceMotionVectorIndex > index;
                             int context = Av1SymbolContextHelper.GetDrlContext(referenceContext.Weights, index);
-                            writer.WriteDynamicReferenceList<TOperation>(advance, context);
+                            writer.WriteDynamicReferenceList<TOperation>(ref output, advance, context);
                             if (!advance)
                             {
                                 break;
@@ -1211,6 +1214,7 @@ internal partial class Av1TileWriter
                     {
                         Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoPosition);
                         writer.WriteMotionVector<TOperation>(
+                            ref output,
                             vector,
                             new Av1MotionVector(
                                 referenceContext.References[newReferenceIndex].Row,
@@ -1232,6 +1236,7 @@ internal partial class Av1TileWriter
                     {
                         Av1MotionVector vector = pcs.GetSecondaryDisplacementVector(modeInfoPosition);
                         writer.WriteMotionVector<TOperation>(
+                            ref output,
                             vector,
                             new Av1MotionVector(
                                 referenceContext.SecondaryReferences[newReferenceIndex].Row,
@@ -1304,6 +1309,7 @@ internal partial class Av1TileWriter
                         macroBlock);
 
                     writer.WriteCompoundBlend<TOperation>(
+                        ref output,
                         blockSize,
                         macroBlockModeInfo.Block.CompoundType,
                         GetCompoundGroupIndexContext(macroBlock),
@@ -1320,6 +1326,7 @@ internal partial class Av1TileWriter
                 {
                     bool interIntra = macroBlockModeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
                     writer.WriteInterIntra<TOperation>(
+                        ref output,
                         blockSize,
                         interIntra,
                         macroBlockModeInfo.Block.InterIntraMode,
@@ -1337,7 +1344,7 @@ internal partial class Av1TileWriter
                         modeInfoPosition,
                         macroBlockModeInfo.Block);
 
-                    writer.WriteMotionMode<TOperation>(blockSize, lastAllowedMode, macroBlockModeInfo.Block.MotionMode);
+                    writer.WriteMotionMode<TOperation>(ref output, blockSize, lastAllowedMode, macroBlockModeInfo.Block.MotionMode);
                     if (TOperation.WritesOutput && lastAllowedMode == Av1MotionMode.Warped)
                     {
                         pcs.Parent.WarpedUsage[macroBlockModeInfo.Block.MotionMode == Av1MotionMode.Warped ? 1 : 0]++;
@@ -1358,7 +1365,7 @@ internal partial class Av1TileWriter
                         macroBlock,
                         direction: 0);
 
-                    writer.WriteSwitchableInterpolationFilter<TOperation>(macroBlockModeInfo.Block.VerticalInterpolationFilter, verticalContext);
+                    writer.WriteSwitchableInterpolationFilter<TOperation>(ref output, macroBlockModeInfo.Block.VerticalInterpolationFilter, verticalContext);
                     if (TOperation.WritesOutput)
                     {
                         pcs.Parent.SelectedInterpolationCounts.Span[(int)macroBlockModeInfo.Block.VerticalInterpolationFilter]++;
@@ -1376,7 +1383,9 @@ internal partial class Av1TileWriter
                             macroBlock,
                             direction: 1);
 
-                        writer.WriteSwitchableInterpolationFilter<TOperation>(macroBlockModeInfo.Block.HorizontalInterpolationFilter, horizontalContext);
+                        writer.WriteSwitchableInterpolationFilter<TOperation>(
+                            ref output, macroBlockModeInfo.Block.HorizontalInterpolationFilter, horizontalContext);
+
                         if (TOperation.WritesOutput)
                         {
                             pcs.Parent.SelectedInterpolationCounts.Span[(int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
@@ -1392,6 +1401,7 @@ internal partial class Av1TileWriter
             else if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
             {
                 WriteIntraBlockCopyInfo<TOperation>(
+                    ref output,
                     pcs,
                     writer,
                     macroBlock,
@@ -1408,6 +1418,7 @@ internal partial class Av1TileWriter
             if (!isInterBlock && !macroBlockModeInfo.Block.UseIntraBlockCopy)
             {
                 EncodeIntraLumaMode<TOperation>(
+                    ref output,
                     writer,
                     frm_hdr,
                     macroBlockModeInfo,
@@ -1422,6 +1433,7 @@ internal partial class Av1TileWriter
                 if (blk_ptr.HasChroma)
                 {
                     EncodeIntraChromaMode<TOperation>(
+                        ref output,
                         writer,
                         frm_hdr,
                         scs.SequenceHeader.ColorConfig,
@@ -1440,6 +1452,7 @@ internal partial class Av1TileWriter
             if (paletteAllowed)
             {
                 WritePaletteModeInfo<TOperation>(
+                    ref output,
                     scs,
                     pcs,
                     writer,
@@ -1460,7 +1473,7 @@ internal partial class Av1TileWriter
                     paletteInfo.PaletteSizes[0],
                     lumaMode))
             {
-                writer.WriteFilterIntraMode<TOperation>(blk_ptr.FilterIntraMode, blockSize);
+                writer.WriteFilterIntraMode<TOperation>(ref output, blk_ptr.FilterIntraMode, blockSize);
             }
 
             if (paletteAllowed)
@@ -1499,6 +1512,7 @@ internal partial class Av1TileWriter
                     if (TBlockEncoder.UsesRetainedDecisions)
                     {
                         writer.WritePaletteTokens(
+                            ref output,
                             paletteSize,
                             planeType,
                             pcs.PaletteTokens.Span.Slice(entropyCodingContext.PaletteTokenOffset, tokenCount));
@@ -1511,7 +1525,7 @@ internal partial class Av1TileWriter
 
                         if (TOperation.WritesOutput)
                         {
-                            writer.WritePaletteColorMap<TOperation>(paletteSize, planeType, rows, columns, colorIndexMap);
+                            writer.WritePaletteColorMap<TOperation>(ref output, paletteSize, planeType, rows, columns, colorIndexMap);
                         }
                         else
                         {
@@ -1530,6 +1544,7 @@ internal partial class Av1TileWriter
             }
 
             WriteTransformSize<TOperation>(
+                ref output,
                 pcs,
                 writer,
                 ref macroBlockModeInfo,
@@ -1544,6 +1559,7 @@ internal partial class Av1TileWriter
                 // The coefficient edges of the three planes are read once and serve every transform block.
                 Av1CoefficientNeighborEdges coefficientEdges = new(pcs, tile_idx);
                 EncodeTransformCoefficientRegions<TOperation>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -1625,6 +1641,8 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes or derives the block transform size and publishes its edge contexts.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
@@ -1632,27 +1650,8 @@ internal partial class Av1TileWriter
     /// <param name="blockSize">The block size.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
-    internal static void WriteTransformSize(
-        Av1PictureControlSet pcs,
-        Av1SymbolEncoder writer,
-        ref Av1MacroBlockModeInfo macroBlockModeInfo,
-        Av1MacroBlockD macroBlock,
-        Av1BlockSize blockSize,
-        Point blockOrigin,
-        int tileIndex)
-        => WriteTransformSize<Av1SymbolEncoder.SymbolWriteOperation>(
-            pcs,
-            writer,
-            ref macroBlockModeInfo,
-            macroBlock,
-            blockSize,
-            blockOrigin,
-            tileIndex);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
     internal static void WriteTransformSize<TOperation>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
         ref Av1MacroBlockModeInfo macroBlockModeInfo,
@@ -1694,7 +1693,7 @@ internal partial class Av1TileWriter
         {
             Av1NeighborEdges<byte> transformEdges = transformContexts.GetEdges();
             int context = GetTransformSizeContext(in transformEdges, macroBlock, blockOrigin, blockSize);
-            writer.WriteTransformSize<TOperation>(blockSize, transformSize, context);
+            writer.WriteTransformSize<TOperation>(ref output, blockSize, transformSize, context);
         }
         else if (writesVariableTransformSize)
         {
@@ -1707,6 +1706,7 @@ internal partial class Av1TileWriter
                 for (int column = 0; column < maximumBlocksWide; column += rootSize.Get4x4WideCount())
                 {
                     WriteVariableTransformTree<TOperation>(
+                        ref output,
                         writer,
                         in transformEdges,
                         blockOrigin,
@@ -1747,6 +1747,7 @@ internal partial class Av1TileWriter
     /// size of each coded leaf on the transform-size edges.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="transformContexts">The transform-size edges of the tile, read once by the caller.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
@@ -1759,6 +1760,7 @@ internal partial class Av1TileWriter
     /// <param name="maximumBlocksWide">The visible block width in four-sample units.</param>
     /// <param name="maximumBlocksHigh">The visible block height in four-sample units.</param>
     private static void WriteVariableTransformTree<TOperation>(
+        ref Span<byte> output,
         Av1SymbolEncoder writer,
         in Av1NeighborEdges<byte> transformContexts,
         Point blockOrigin,
@@ -1802,7 +1804,7 @@ internal partial class Av1TileWriter
 
             int above = transformContexts.Top[topIndex] < transformSize.GetWidth() ? 1 : 0;
             int left = transformContexts.Left[leftIndex] < transformSize.GetHeight() ? 1 : 0;
-            writer.WriteTransformPartition<TOperation>(split, (category * 3) + above + left);
+            writer.WriteTransformPartition<TOperation>(ref output, split, (category * 3) + above + left);
         }
 
         if (split)
@@ -1815,6 +1817,7 @@ internal partial class Av1TileWriter
                 for (int column = 0; column < transformSize.Get4x4WideCount(); column += subWidth)
                 {
                     WriteVariableTransformTree<TOperation>(
+                        ref output,
                         writer,
                         in transformContexts,
                         blockOrigin,
@@ -1878,6 +1881,8 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the chroma intra mode, chroma-from-luma alpha values, and directional angle adjustment for a block.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="frameHeader">The current frame syntax and segment lossless state.</param>
     /// <param name="colorConfig">The sequence chroma subsampling configuration.</param>
@@ -1886,29 +1891,8 @@ internal partial class Av1TileWriter
     /// <param name="blockSize">The luma block size.</param>
     /// <param name="lumaMode">The selected luma prediction mode.</param>
     /// <param name="chromaMode">The selected chroma prediction mode.</param>
-    public static void EncodeIntraChromaMode(
-        Av1SymbolEncoder writer,
-        ObuFrameHeader frameHeader,
-        ObuColorConfig colorConfig,
-        Av1MacroBlockModeInfo macroBlockModeInfo,
-        ref Av1EncoderBlockStruct blk_ptr,
-        Av1BlockSize blockSize,
-        Av1PredictionMode lumaMode,
-        Av1ChromaPredictionMode chromaMode)
-        => EncodeIntraChromaMode<Av1SymbolEncoder.SymbolWriteOperation>(
-            writer,
-            frameHeader,
-            colorConfig,
-            macroBlockModeInfo,
-            ref blk_ptr,
-            blockSize,
-            lumaMode,
-            chromaMode);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
     public static void EncodeIntraChromaMode<TOperation>(
+        ref Span<byte> output,
         Av1SymbolEncoder writer,
         ObuFrameHeader frameHeader,
         ObuColorConfig colorConfig,
@@ -1925,11 +1909,12 @@ internal partial class Av1TileWriter
             macroBlockModeInfo,
             blockSize);
 
-        writer.WriteChromaMode<TOperation>(chromaMode, isChromaFromLumaAllowed, lumaMode);
+        writer.WriteChromaMode<TOperation>(ref output, chromaMode, isChromaFromLumaAllowed, lumaMode);
 
         if (chromaMode == Av1ChromaPredictionMode.ChromaFromLuma)
         {
             writer.WriteChromaFromLumaAlphas<TOperation>(
+                ref output,
                 blk_ptr.PredictionUnit.ChromaFromLumaIndex,
                 blk_ptr.PredictionUnit.ChromaFromLumaSigns);
         }
@@ -1937,6 +1922,7 @@ internal partial class Av1TileWriter
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.UvMode.IsDirectional())
         {
             writer.WriteAngleDelta<TOperation>(
+                ref output,
                 blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] + Av1Constants.MaxAngleDelta,
                 chromaMode.ToLumaMode());
         }
@@ -2041,6 +2027,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the frame-appropriate luma prediction mode and any directional angle adjustment.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="frameHeader">The frame header that selects the luma-mode probability model.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
@@ -2048,7 +2035,9 @@ internal partial class Av1TileWriter
     /// <param name="blk_ptr">The encoder prediction-unit state.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="lumaMode">The selected luma prediction mode.</param>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     private static void EncodeIntraLumaMode<TOperation>(
+        ref Span<byte> output,
         Av1SymbolEncoder writer,
         ObuFrameHeader frameHeader,
         Av1MacroBlockModeInfo macroBlockModeInfo,
@@ -2061,16 +2050,16 @@ internal partial class Av1TileWriter
         if (frameHeader.IsIntra)
         {
             GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
-            writer.WriteLumaMode<TOperation>(lumaMode, topContext, leftContext);
+            writer.WriteLumaMode<TOperation>(ref output, lumaMode, topContext, leftContext);
         }
         else
         {
-            writer.WriteInterFrameLumaMode<TOperation>(lumaMode, blockSize);
+            writer.WriteInterFrameLumaMode<TOperation>(ref output, lumaMode, blockSize);
         }
 
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.Mode.IsDirectional())
         {
-            writer.WriteAngleDelta<TOperation>(blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
+            writer.WriteAngleDelta<TOperation>(ref output, blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
         }
     }
 
@@ -2206,6 +2195,8 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes luma and chroma palette-mode syntax for a block.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="scs">The sequence coding state.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
@@ -2216,33 +2207,8 @@ internal partial class Av1TileWriter
     /// <param name="blockOrigin">The absolute luma-sample origin.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
     /// <param name="hasChroma">Whether the block owns chroma syntax.</param>
-    internal static void WritePaletteModeInfo(
-        Av1SequenceControlSet scs,
-        Av1PictureControlSet pcs,
-        Av1SymbolEncoder writer,
-        Av1MacroBlockD macroBlock,
-        Av1MacroBlockModeInfo macroBlockModeInfo,
-        ref Av1EncoderPaletteInfo paletteInfo,
-        Av1BlockSize blockSize,
-        Point blockOrigin,
-        int tileIndex,
-        bool hasChroma)
-        => WritePaletteModeInfo<Av1SymbolEncoder.SymbolWriteOperation>(
-            scs,
-            pcs,
-            writer,
-            macroBlock,
-            macroBlockModeInfo,
-            ref paletteInfo,
-            blockSize,
-            blockOrigin,
-            tileIndex,
-            hasChroma);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
     internal static void WritePaletteModeInfo<TOperation>(
+        ref Span<byte> output,
         Av1SequenceControlSet scs,
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
@@ -2272,14 +2238,14 @@ internal partial class Av1TileWriter
             int neighborContext = GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
             if (updatesLumaPalette)
             {
-                writer.WritePaletteYMode<TOperation>(yPaletteSize != 0, blockSizeContext, neighborContext);
+                writer.WritePaletteYMode<TOperation>(ref output, yPaletteSize != 0, blockSizeContext, neighborContext);
             }
 
             if (yPaletteSize != 0)
             {
                 if (updatesLumaPalette)
                 {
-                    writer.WritePaletteSize<TOperation>(yPaletteSize, blockSizeContext, Av1PlaneType.Y);
+                    writer.WritePaletteSize<TOperation>(ref output, yPaletteSize, blockSizeContext, Av1PlaneType.Y);
                 }
 
                 Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
@@ -2291,6 +2257,7 @@ internal partial class Av1TileWriter
                     colorCache);
 
                 writer.WritePaletteYColors<TOperation>(
+                    ref output,
                     colorCache[..cacheSize],
                     paletteInfo.GetColors(Av1Plane.Y),
                     scs.SequenceHeader.ColorConfig.BitDepth.GetBitCount());
@@ -2302,10 +2269,10 @@ internal partial class Av1TileWriter
             macroBlockModeInfo.Block.UvMode == Av1ChromaPredictionMode.DC &&
             hasChroma)
         {
-            writer.WritePaletteUvMode<TOperation>(uvPaletteSize != 0, yPaletteSize != 0);
+            writer.WritePaletteUvMode<TOperation>(ref output, uvPaletteSize != 0, yPaletteSize != 0);
             if (uvPaletteSize != 0)
             {
-                writer.WritePaletteSize<TOperation>(uvPaletteSize, blockSizeContext, Av1PlaneType.Uv);
+                writer.WritePaletteSize<TOperation>(ref output, uvPaletteSize, blockSizeContext, Av1PlaneType.Uv);
                 Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
                 int cacheSize = GetPaletteCache(
                     paletteContexts,
@@ -2315,6 +2282,7 @@ internal partial class Av1TileWriter
                     colorCache);
 
                 writer.WritePaletteUvColors<TOperation>(
+                    ref output,
                     colorCache[..cacheSize],
                     paletteInfo.GetColors(Av1Plane.U),
                     paletteInfo.GetColors(Av1Plane.V),
@@ -2433,29 +2401,16 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the intra-block-copy selection and displacement-vector syntax for a block.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="picture">The frame-owned mode and displacement state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="macroBlock">The current block's frame edges and tile availability.</param>
     /// <param name="modeInfoPosition">The block origin in 4x4 mode-information units.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
-    public static void WriteIntraBlockCopyInfo(
-        Av1PictureControlSet picture,
-        Av1SymbolEncoder writer,
-        Av1MacroBlockD macroBlock,
-        Point modeInfoPosition,
-        Av1MacroBlockModeInfo macroBlockModeInfo)
-        => WriteIntraBlockCopyInfo<Av1SymbolEncoder.SymbolWriteOperation>(
-            picture,
-            writer,
-            macroBlock,
-            modeInfoPosition,
-            macroBlockModeInfo,
-            false);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
+    /// <param name="useRetainedContext">Whether the reference vector context comes from completed block analysis.</param>
     public static void WriteIntraBlockCopyInfo<TOperation>(
+        ref Span<byte> output,
         Av1PictureControlSet picture,
         Av1SymbolEncoder writer,
         Av1MacroBlockD macroBlock,
@@ -2465,7 +2420,7 @@ internal partial class Av1TileWriter
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         bool useIntraBlockCopy = macroBlockModeInfo.Block.UseIntraBlockCopy;
-        writer.WriteUseIntraBlockCopy<TOperation>(useIntraBlockCopy);
+        writer.WriteUseIntraBlockCopy<TOperation>(ref output, useIntraBlockCopy);
         if (useIntraBlockCopy)
         {
             int gridOffset = (modeInfoPosition.Y * picture.ModeInfoStride) + modeInfoPosition.X;
@@ -2500,6 +2455,7 @@ internal partial class Av1TileWriter
             }
 
             writer.WriteDisplacementVector<TOperation>(
+                ref output,
                 picture.GetDisplacementVector(modeInfoPosition),
                 reference);
         }
@@ -2686,31 +2642,16 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the constrained directional enhancement filter strength at its first coded block in a filter unit.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="scs">The sequence coding state.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
     /// <param name="skip">A value indicating whether the current block omits residual coefficients.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
-    internal static void WriteCdef(
-        Av1SequenceControlSet scs,
-        Av1PictureControlSet pcs,
-        Av1SymbolEncoder writer,
-        int tileIndex,
-        bool skip,
-        Point modeInfoPosition)
-        => WriteCdef<Av1SymbolEncoder.SymbolWriteOperation>(
-            scs,
-            pcs,
-            writer,
-            tileIndex,
-            skip,
-            modeInfoPosition);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
     internal static void WriteCdef<TOperation>(
+        ref Span<byte> output,
         Av1SequenceControlSet scs,
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
@@ -2754,7 +2695,7 @@ internal partial class Av1TileWriter
 
             // CDEF strength belongs to the first mode-info block in the 64x64 filter unit even when skipped
             // blocks delay transmission until a later coding block.
-            writer.WriteCdefStrength<TOperation>(firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
+            writer.WriteCdefStrength<TOperation>(ref output, firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
             cdefPreset[index] = firstBlock.CdefStrength;
         }
     }
@@ -2801,6 +2742,7 @@ internal partial class Av1TileWriter
     /// the residual syntax.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
@@ -2813,6 +2755,7 @@ internal partial class Av1TileWriter
     /// <param name="coefficientEdges">The coefficient context edges of the three planes, read once by the caller.</param>
     /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
     private static void EncodeTransformCoefficientRegions<TOperation>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -2882,6 +2825,7 @@ internal partial class Av1TileWriter
                         int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
                         bool isLuma = plane == Av1Plane.Y;
                         EncodeTransformCoefficientRegion<TOperation>(
+                            ref output,
                             pcs,
                             entropyCodingContext,
                             writer,
@@ -2915,6 +2859,7 @@ internal partial class Av1TileWriter
             {
                 int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
                 EncodeTransformCoefficientRegion<TOperation>(
+                    ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -2942,6 +2887,7 @@ internal partial class Av1TileWriter
                     int chromaUnitBottom = Av1Math.RoundPowerOf2(unitBottom, subsamplingY);
                     int chromaUnitRight = Av1Math.RoundPowerOf2(unitRight, subsamplingX);
                     EncodeTransformCoefficientRegion<TOperation>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -2960,6 +2906,7 @@ internal partial class Av1TileWriter
                         useRetainedContexts);
 
                     EncodeTransformCoefficientRegion<TOperation>(
+                        ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -2986,6 +2933,7 @@ internal partial class Av1TileWriter
     /// the coefficient contexts of each transform block on the plane edges.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
@@ -3004,6 +2952,7 @@ internal partial class Av1TileWriter
     /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
     /// <param name="advanceBlueArea">Whether the blue plane advances the shared chroma coefficient position.</param>
     private static void EncodeTransformCoefficientRegion<TOperation>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -3145,6 +3094,7 @@ internal partial class Av1TileWriter
                     }
 
                     int culLevel = writer.WriteCoefficients<TOperation>(
+                        ref output,
                         transformSize,
                         transformType,
                         intraLumaMode,
@@ -3327,6 +3277,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes or predicts a block segment identifier and updates the frame segmentation map.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="blockSize">The block size.</param>
@@ -3335,7 +3286,9 @@ internal partial class Av1TileWriter
     /// <param name="block">The encoder block state.</param>
     /// <param name="skip">A value indicating whether residual coefficients are omitted.</param>
     /// <param name="beforeSkip">Whether the segment identifier is written before the skip flag.</param>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     private static void WriteSegmentId<TOperation>(
+        ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
         Av1BlockSize blockSize,
@@ -3377,11 +3330,11 @@ internal partial class Av1TileWriter
             // seg_id_predicted of write_inter_segment_id(), which only the skip path writes.
             if (!pcs.Parent.FrameHeader.IsIntra && segmentation_params.SegmentationTemporalUpdate == 1)
             {
-                writer.WriteSegmentIdPredicted<TOperation>(false, 0);
+                writer.WriteSegmentIdPredicted<TOperation>(ref output, false, 0);
             }
 
             int coded_id = Av1SymbolContextHelper.NegativeInterleave(block.SegmentId, spatial_pred, segmentation_params.LastActiveSegmentId + 1);
-            writer.WriteSegmentId<TOperation>(coded_id, cdf_num);
+            writer.WriteSegmentId<TOperation>(ref output, coded_id, cdf_num);
         }
 
         pcs.UpdateSegmentation(blockSize, blockOrigin, block.SegmentId);
@@ -3528,19 +3481,12 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the block skip flag using the sum of available above and left skip states as its context.
     /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="skip">The skip value to write.</param>
-    public static void EncodeSkipCoefficients(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
-        => EncodeSkipCoefficients<Av1SymbolEncoder.SymbolWriteOperation>(
-            writer,
-            macroBlock,
-            skip);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
-    public static void EncodeSkipCoefficients<TOperation>(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
+    public static void EncodeSkipCoefficients<TOperation>(ref Span<byte> output, Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
-        => writer.WriteSkip<TOperation>(skip, GetSkipContext(macroBlock));
+        => writer.WriteSkip<TOperation>(ref output, skip, GetSkipContext(macroBlock));
 }

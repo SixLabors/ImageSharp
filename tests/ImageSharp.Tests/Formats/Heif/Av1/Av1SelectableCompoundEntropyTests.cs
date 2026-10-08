@@ -24,13 +24,14 @@ public class Av1SelectableCompoundEntropyTests
         const int groupContext = 4;
         const int compoundIndexContext = 2;
         Av1BlockSize blockSize = Av1BlockSize.Block8x8;
-        using Av1SymbolWriter writer = new(Configuration.Default, 32, updateCdf: true);
-        writer.WriteSymbol((int)Av1InterIntraMode.Horizontal, Av1DefaultDistributions.InterIntraMode[blockSize.GetSizeGroup()]);
-        writer.WriteSymbol(true, Av1DefaultDistributions.WedgeInterIntra[(int)blockSize]);
-        writer.WriteSymbol(13, Av1DefaultDistributions.WedgeIndex[(int)blockSize]);
-        writer.WriteSymbol(true, Av1DefaultDistributions.CompoundGroupIndex[groupContext]);
-        writer.WriteSymbol(false, Av1DefaultDistributions.CompoundIndex[compoundIndexContext]);
-        writer.WriteSymbol(1, Av1DefaultDistributions.CompoundType[(int)blockSize]);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, (int)Av1InterIntraMode.Horizontal, Av1DefaultDistributions.InterIntraMode[blockSize.GetSizeGroup()]);
+        writer.WriteSymbol(ref output, true, Av1DefaultDistributions.WedgeInterIntra[(int)blockSize]);
+        writer.WriteSymbol(ref output, 13, Av1DefaultDistributions.WedgeIndex[(int)blockSize]);
+        writer.WriteSymbol(ref output, true, Av1DefaultDistributions.CompoundGroupIndex[groupContext]);
+        writer.WriteSymbol(ref output, false, Av1DefaultDistributions.CompoundIndex[compoundIndexContext]);
+        writer.WriteSymbol(ref output, 1, Av1DefaultDistributions.CompoundType[(int)blockSize]);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);

@@ -51,8 +51,9 @@ public class Av1InterFrameModeInfoTests
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
 
         Av1Distribution skipMode = Av1DefaultDistributions.SkipMode[1];
-        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: true);
-        writer.WriteSymbol(true, skipMode);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, true, skipMode);
         using IMemoryOwner<byte> encoded = writer.Exit();
         Memory<byte> encodedMemory = encoded.Memory;
 
@@ -93,12 +94,13 @@ public class Av1InterFrameModeInfoTests
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
         Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
-        using Av1SymbolWriter writer = new(Configuration.Default, 2, updateCdf: true);
-        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
-        writer.WriteSymbol((int)Av1InterpolationFilter.Smooth, Av1DefaultDistributions.SwitchableInterpolation[3]);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol(ref output, (int)Av1InterpolationFilter.Smooth, Av1DefaultDistributions.SwitchableInterpolation[3]);
         if (enableDualFilter)
         {
-            writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[11]);
+            writer.WriteSymbol(ref output, (int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[11]);
         }
 
         using IMemoryOwner<byte> encoded = writer.Exit();
@@ -140,12 +142,13 @@ public class Av1InterFrameModeInfoTests
         frameHeader.ReferenceMode = ObuReferenceMode.ReferenceModeSelect;
         using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
-        using Av1SymbolWriter writer = new(Configuration.Default, 8, updateCdf: true);
-        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
-        writer.WriteSymbol(true, Av1DefaultDistributions.IntraInter[0]);
-        writer.WriteSymbol(true, Av1DefaultDistributions.CompInter[1]);
-        WriteCompoundReferencePair(writer, pairIndex);
-        writer.WriteSymbol(0, Av1DefaultDistributions.InterCompoundMode[0]);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol(ref output, true, Av1DefaultDistributions.IntraInter[0]);
+        writer.WriteSymbol(ref output, true, Av1DefaultDistributions.CompInter[1]);
+        WriteCompoundReferencePair(writer, ref output, pairIndex);
+        writer.WriteSymbol(ref output, 0, Av1DefaultDistributions.InterCompoundMode[0]);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         Memory<byte> encodedMemory = encoded.Memory;
@@ -205,21 +208,21 @@ public class Av1InterFrameModeInfoTests
     /// <summary>
     /// Writes one complete compound-reference tree leaf using the neutral no-neighbor contexts.
     /// </summary>
-    private static void WriteCompoundReferencePair(Av1SymbolWriter writer, int pairIndex)
+    private static void WriteCompoundReferencePair(Av1SymbolWriter writer, ref Span<byte> output, int pairIndex)
     {
         bool bidirectional = pairIndex >= 4;
-        writer.WriteSymbol(bidirectional, Av1DefaultDistributions.CompoundReferenceType[2]);
+        writer.WriteSymbol(ref output, bidirectional, Av1DefaultDistributions.CompoundReferenceType[2]);
         if (!bidirectional)
         {
             bool backwardPair = pairIndex == 0;
-            writer.WriteSymbol(backwardPair, Av1DefaultDistributions.UnidirectionalCompoundReference[1][0]);
+            writer.WriteSymbol(ref output, backwardPair, Av1DefaultDistributions.UnidirectionalCompoundReference[1][0]);
             if (!backwardPair)
             {
                 bool last3OrGolden = pairIndex >= 2;
-                writer.WriteSymbol(last3OrGolden, Av1DefaultDistributions.UnidirectionalCompoundReference[1][1]);
+                writer.WriteSymbol(ref output, last3OrGolden, Av1DefaultDistributions.UnidirectionalCompoundReference[1][1]);
                 if (last3OrGolden)
                 {
-                    writer.WriteSymbol(pairIndex == 3, Av1DefaultDistributions.UnidirectionalCompoundReference[1][2]);
+                    writer.WriteSymbol(ref output, pairIndex == 3, Av1DefaultDistributions.UnidirectionalCompoundReference[1][2]);
                 }
             }
 
@@ -227,21 +230,21 @@ public class Av1InterFrameModeInfoTests
         }
 
         bool last3OrGoldenForward = pairIndex >= 6;
-        writer.WriteSymbol(last3OrGoldenForward, Av1DefaultDistributions.CompoundReference[1][0]);
+        writer.WriteSymbol(ref output, last3OrGoldenForward, Av1DefaultDistributions.CompoundReference[1][0]);
         if (last3OrGoldenForward)
         {
-            writer.WriteSymbol(pairIndex == 7, Av1DefaultDistributions.CompoundReference[1][2]);
+            writer.WriteSymbol(ref output, pairIndex == 7, Av1DefaultDistributions.CompoundReference[1][2]);
         }
         else
         {
-            writer.WriteSymbol(pairIndex == 5, Av1DefaultDistributions.CompoundReference[1][1]);
+            writer.WriteSymbol(ref output, pairIndex == 5, Av1DefaultDistributions.CompoundReference[1][1]);
         }
 
         bool alternateBackward = pairIndex >= 6;
-        writer.WriteSymbol(alternateBackward, Av1DefaultDistributions.CompoundBackwardReference[1][0]);
+        writer.WriteSymbol(ref output, alternateBackward, Av1DefaultDistributions.CompoundBackwardReference[1][0]);
         if (!alternateBackward)
         {
-            writer.WriteSymbol(pairIndex == 5, Av1DefaultDistributions.CompoundBackwardReference[1][1]);
+            writer.WriteSymbol(ref output, pairIndex == 5, Av1DefaultDistributions.CompoundBackwardReference[1][1]);
         }
     }
 

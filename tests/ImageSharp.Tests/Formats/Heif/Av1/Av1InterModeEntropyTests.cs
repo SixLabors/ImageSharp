@@ -32,21 +32,22 @@ public class Av1InterModeEntropyTests
         Av1Distribution zeroMv = Av1DefaultDistributions.ZeroMv[1];
         Av1Distribution refMv = Av1DefaultDistributions.RefMv[4];
         Av1Distribution drl = Av1DefaultDistributions.Drl[2];
-        using Av1SymbolWriter writer = new(Configuration.Default, 8, updateCdf: true);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
 
-        writer.WriteSymbol(newMvSymbol, newMv);
+        writer.WriteSymbol(ref output, newMvSymbol, newMv);
         if (zeroMvSymbol >= 0)
         {
-            writer.WriteSymbol(zeroMvSymbol, zeroMv);
+            writer.WriteSymbol(ref output, zeroMvSymbol, zeroMv);
         }
 
         if (refMvSymbol >= 0)
         {
-            writer.WriteSymbol(refMvSymbol, refMv);
+            writer.WriteSymbol(ref output, refMvSymbol, refMv);
         }
 
         // A symbol after the selected leaf proves that the decoder consumed exactly the decisions on that branch.
-        writer.WriteSymbol(true, drl);
+        writer.WriteSymbol(ref output, true, drl);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);

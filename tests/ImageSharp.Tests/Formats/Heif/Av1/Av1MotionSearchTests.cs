@@ -49,7 +49,7 @@ public class Av1MotionSearchTests
         const int ReferenceOrigin = (64 * ReferenceStride) + 64;
         int maximum = (1 << bits) - 1;
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true, allocateDisplacementCosts: false, Av1BlockSize.Block64x64);
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
+        using Av1SymbolEncoder writer = new(Configuration.Default, QIndex, updateCdf: true);
         Av1MotionVectorCosts costs = workspace.GetMotionVectorCosts(Av1MotionVectorPrecision.EighthSample);
         writer.FillMotionVectorCosts(costs);
         int multiplier = Av1RateDistortion.GetRateMultiplier(QIndex, bitDepth, Av1FrameUpdateType.Key);

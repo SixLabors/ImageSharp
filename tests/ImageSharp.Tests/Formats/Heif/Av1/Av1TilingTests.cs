@@ -102,6 +102,7 @@ public class Av1TilingTests
             TileColumnCount = 1,
             TileRowCount = 1
         };
+
         tileInfo.TileColumnStartModeInfo[1] = sequenceHeader.SuperblockModeInfoSize;
         tileInfo.TileRowStartModeInfo[1] = sequenceHeader.SuperblockModeInfoSize;
         ObuFrameHeader frameHeader = new()
@@ -122,18 +123,19 @@ public class Av1TilingTests
             DisableFrameEndUpdateCdf = true
         };
 
-        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: false);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: false);
+        Span<byte> output = writer.GetTileBuffer();
         Av1Distribution[] partitionTypes = Av1DefaultDistributions.PartitionTypes;
         Av1BlockSize blockSize = sequenceHeader.SuperblockSize;
         while (blockSize > Av1BlockSize.Block8x8)
         {
             int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
             int context = blockSizeLog * Av1Constants.PartitionProbabilitySet;
-            writer.WriteSymbol((int)Av1PartitionType.Split, partitionTypes[context]);
+            writer.WriteSymbol(ref output, (int)Av1PartitionType.Split, partitionTypes[context]);
             blockSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
         }
 
-        writer.WriteSymbol((int)Av1PartitionType.Horizontal, partitionTypes[0]);
+        writer.WriteSymbol(ref output, (int)Av1PartitionType.Horizontal, partitionTypes[0]);
         using IMemoryOwner<byte> encoded = writer.Exit();
         using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
 

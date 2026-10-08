@@ -34,10 +34,11 @@ public class Av1MotionVectorEntropyTests
         Av1MotionVector value = reference + new Av1MotionVector(rowDelta, columnDelta);
         Av1MotionVectorContext writerContext = new();
         Av1Distribution trailingDistribution = Av1DefaultDistributions.Drl[1];
-        using Av1SymbolWriter writer = new(Configuration.Default, 32, updateCdf: true);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
 
-        writerContext.Write(writer, value, reference, precision);
-        writer.WriteSymbol(true, trailingDistribution);
+        writerContext.Write(writer, ref output, value, reference, precision);
+        writer.WriteSymbol(ref output, true, trailingDistribution);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         Av1FrameEntropyContext decoderContext = new(0);

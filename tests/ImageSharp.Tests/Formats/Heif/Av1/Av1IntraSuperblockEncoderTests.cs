@@ -169,7 +169,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, width, Height);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture, 8192);
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture);
 
         // Reserve the final pass's restoration decisions, but measure the baseline before any in-loop filtering.
         template.Sequence.SequenceHeader.EnableRestoration = false;
@@ -360,23 +360,20 @@ public class Av1IntraSuperblockEncoderTests
             ModeInfoStride = modeInfo.ModeInfoStride,
             Disallow4x4AllFrames = modeInfo.Disallow4x4AllFrames,
             CdefPreset = new int[] { -1, -1, -1, -1 },
-            TileDataOffsets = Memory<int>.Empty,
             TileDataLengths = Memory<int>.Empty
         };
     }
 
     /// <summary>
-    /// Creates the operation owner for a production tile's entropy state and bounded output memory.
+    /// Creates the operation owner for a production tile's entropy state and tile buffers.
     /// </summary>
     /// <param name="picture">The picture supplying quantization and CDF-update settings.</param>
-    /// <param name="bufferLength">The bounded output allocation length in bytes.</param>
     /// <returns>The symbol encoder that must remain alive while the tile output is consumed.</returns>
-    private static Av1SymbolEncoder CreateTileSymbolEncoder(Av1PictureControlSet picture, int bufferLength)
+    private static Av1SymbolEncoder CreateTileSymbolEncoder(Av1PictureControlSet picture)
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         return new Av1SymbolEncoder(
             Configuration.Default,
-            bufferLength,
             frameHeader.QuantizationParameters.BaseQIndex,
             updateCdf: !frameHeader.DisableCdfUpdate);
     }

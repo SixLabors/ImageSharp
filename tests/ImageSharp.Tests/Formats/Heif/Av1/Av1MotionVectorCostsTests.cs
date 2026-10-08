@@ -20,7 +20,8 @@ public class Av1MotionVectorCostsTests
     public void EveryLegalComponentMatchesIndependentSymbolTraversal(int precisionValue, int step, bool adapt)
     {
         Av1MotionVectorPrecision precision = (Av1MotionVectorPrecision)precisionValue;
-        using Av1SymbolEncoder writer = new(Configuration.Default, 65536, 128, updateCdf: true);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 128, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
         if (adapt)
         {
             // Exercise asymmetric axes and signs, class-zero offsets, fractional symbols, and larger classes.
@@ -29,7 +30,7 @@ public class Av1MotionVectorCostsTests
             {
                 int row = ((i * 37) % 1024) * step;
                 int column = -((i * 71) % 2048) * step;
-                writer.WriteMotionVector(new(row, column), default, precision);
+                writer.WriteMotionVector<Av1SymbolEncoder.SymbolWriteOperation>(ref output, new(row, column), default, precision);
             }
         }
 

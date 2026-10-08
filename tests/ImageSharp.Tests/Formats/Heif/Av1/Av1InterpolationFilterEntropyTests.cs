@@ -73,8 +73,10 @@ public class Av1InterpolationFilterEntropyTests
             ForwardThresholds[context * 2],
             ForwardThresholds[(context * 2) + 1]);
 
-        using Av1SymbolWriter expectedWriter = new(Configuration.Default, 64, updateCdf: true);
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex: 0, updateCdf: true);
+        using Av1SymbolWriter expectedWriter = new(Configuration.Default, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, qIndex: 0, updateCdf: true);
+        Span<byte> expectedOutput = expectedWriter.GetTileBuffer();
+        Span<byte> output = encoder.GetTileBuffer();
         foreach (Av1InterpolationFilter filter in filters)
         {
             // Costs are a snapshot of the tile distributions. The encoder publishes adapted probabilities when
@@ -83,8 +85,8 @@ public class Av1InterpolationFilterEntropyTests
             int expectedCost = Av1ProbabilityCost.GetSymbolCost(distribution, (int)filter);
             Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));
             Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));
-            expectedWriter.WriteSymbol((int)filter, distribution);
-            encoder.WriteSwitchableInterpolationFilter(filter, context);
+            expectedWriter.WriteSymbol(ref expectedOutput, (int)filter, distribution);
+            encoder.WriteSwitchableInterpolationFilter<Av1SymbolEncoder.SymbolWriteOperation>(ref output, filter, context);
         }
 
         using IMemoryOwner<byte> expected = expectedWriter.Exit();

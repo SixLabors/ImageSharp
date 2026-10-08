@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -1654,11 +1655,13 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void EncodeReturnsEveryOperationAllocationAndUsesOneLibaomSizedTileReservation()
+    public void EncodeReturnsEveryOperationAllocationAndUsesOneTileBuffer()
     {
         const int Width = 64;
         const int Height = 64;
-        const int ExpectedTileOutputLength = 60 * 1024;
+
+        // A single-tile frame whose output fits a new tile buffer allocates that buffer once and no frame output.
+        const int ExpectedTileOutputLength = Av1SymbolWriter.InitialTileBufferLength;
 
         using Image<Rgba32> source = new(Width, Height);
         for (int y = 0; y < Height; y++)
@@ -1695,6 +1698,12 @@ public class Av1EncoderFrameTests
             allocation => allocation.ElementType == typeof(byte) && allocation.Length == ExpectedTileOutputLength);
 
         Assert.Equal(ExpectedTileOutputLength, tileOutput.Length);
+
+        // The tile buffer did not grow: no allocation has the length of a grown tile buffer.
+        Assert.DoesNotContain(
+            allocator.AllocationLog,
+            allocation => allocation.ElementType == typeof(byte) && allocation.Length == (2 * ExpectedTileOutputLength) + sizeof(ulong));
+
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         Assert.Equal(
             allocator.AllocationLog.Select(allocation => allocation.HashCodeOfBuffer).Order(),

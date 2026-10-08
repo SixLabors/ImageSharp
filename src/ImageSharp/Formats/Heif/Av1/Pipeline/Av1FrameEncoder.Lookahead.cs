@@ -213,10 +213,10 @@ internal static partial class Av1FrameEncoder
                 // Each measuring pack finalizes the frame, which steps the film grain seed. Reference: the
                 // av1_finalize_encoded_frame() call of the dummy pack.
                 this.PrepareFilmGrain();
-                ReadOnlyMemory<byte> packedTiles = Av1TileEncoder.PackFrame<TSample, TOperator>(
+                Av1TileEncoder.PackFrame<TSample, TOperator>(
                     this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
 
-                long packedBits = this.MeasureLaggedFrame(Av1TileEncoder.FromPackedTiles(picture, packedTiles), writeSequenceHeader);
+                long packedBits = this.MeasureLaggedFrame(Av1TileEncoder.FromPackedTiles(picture, this.SymbolEncoder), writeSequenceHeader);
 
                 // av1_collect_mv_stats() gathers the statistics of each coding, which the next coding reads.
                 this.CompleteLaggedMotionVectorStatistics<TSample, TTextureOperator>(parent, source);
@@ -1012,7 +1012,7 @@ internal static partial class Av1FrameEncoder
                 out bool switchableBeforeFix);
 
             this.PrepareFilmGrain();
-            ReadOnlyMemory<byte> encodedTiles = Av1TileEncoder.CompleteFrame<byte, Av1IntraSuperblockEncoder.ByteOperator,
+            Av1TileEncoder.CompleteFrame<byte, Av1IntraSuperblockEncoder.ByteOperator,
                 Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
                 this.SymbolEncoder,
                 source.Frame,
@@ -1026,7 +1026,7 @@ internal static partial class Av1FrameEncoder
                 switchableBeforeFix);
 
             long start = stream.Length;
-            this.WriteLaggedFrame(stream, Av1TileEncoder.FromPackedTiles(picture, encodedTiles), writeSequenceHeader, writeTemporalDelimiter);
+            this.WriteLaggedFrame(stream, Av1TileEncoder.FromPackedTiles(picture, this.SymbolEncoder), writeSequenceHeader, writeTemporalDelimiter);
             this.RecordCodedLoopFilterLevels();
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
             this.CompleteSegmentation(current, picture);
@@ -1196,7 +1196,7 @@ internal static partial class Av1FrameEncoder
                 out bool switchableBeforeFix);
 
             this.PrepareFilmGrain();
-            ReadOnlyMemory<byte> encodedTiles = Av1TileEncoder.CompleteFrame<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+            Av1TileEncoder.CompleteFrame<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
                 Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
                 this.SymbolEncoder,
                 source.Frame,
@@ -1210,7 +1210,7 @@ internal static partial class Av1FrameEncoder
                 switchableBeforeFix);
 
             long start = stream.Length;
-            this.WriteLaggedFrame(stream, Av1TileEncoder.FromPackedTiles(picture, encodedTiles), writeSequenceHeader, writeTemporalDelimiter);
+            this.WriteLaggedFrame(stream, Av1TileEncoder.FromPackedTiles(picture, this.SymbolEncoder), writeSequenceHeader, writeTemporalDelimiter);
             this.RecordCodedLoopFilterLevels();
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
             this.CompleteSegmentation(current, picture);

@@ -10,6 +10,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// <summary>
 /// Writes AV1 literals and adaptively coded symbols to a range-coded byte sequence.
 /// </summary>
+/// <remarks>
+/// Each tile of a frame has its own tile buffer, which grows when it is full. The bytes of a tile stay in its buffer
+/// until the same tile is written again, so the frame writer reads them from there and no frame buffer is necessary.
+/// </remarks>
 internal sealed class Av1SymbolWriter : IDisposable
 {
     /// <summary>
@@ -21,6 +25,28 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// The initial bit count that crosses the first byte-and-carry flush boundary after one output byte.
     /// </summary>
     private const int InitialCount = -9;
+
+    /// <summary>
+    /// The size of a new tile buffer in bytes. A tile that writes more bytes grows its buffer, so this size only sets
+    /// how often a large tile grows; it never limits the output. It is the start size that the reference encoder
+    /// gives each tile.
+    /// </summary>
+    internal const int InitialTileBufferLength = 62025;
+
+    /// <summary>
+    /// The configuration that supplies output allocation.
+    /// </summary>
+    private readonly Configuration configuration;
+
+    /// <summary>
+    /// Indicates whether encoded symbols adapt their distributions.
+    /// </summary>
+    private readonly bool updateCdf;
+
+    /// <summary>
+    /// The owners of the tile buffers, by tile index. A tile that was not written yet has no buffer.
+    /// </summary>
+    private IMemoryOwner<byte>?[] tileOwners;
 
     /// <summary>
     /// The lower endpoint of the current coding interval.
@@ -41,32 +67,17 @@ internal sealed class Av1SymbolWriter : IDisposable
     private int cnt = InitialCount;
 
     /// <summary>
-    /// The configuration that supplies output allocation.
+    /// The index of the tile that the range coder writes.
     /// </summary>
-    private readonly Configuration configuration;
+    private int tileIndex;
 
     /// <summary>
-    /// The owner of the output buffer shared by consecutively encoded tiles.
+    /// The tile buffer of the current tile, with its current length.
     /// </summary>
-    private IMemoryOwner<byte> bufferOwner;
+    private Memory<byte> tileBuffer;
 
     /// <summary>
-    /// The complete requested output allocation, including every consecutively encoded tile.
-    /// </summary>
-    private Memory<byte> outputBuffer;
-
-    /// <summary>
-    /// The requested output range, excluding any excess capacity returned by a pooling allocator.
-    /// </summary>
-    private Memory<byte> buffer;
-
-    /// <summary>
-    /// Indicates whether encoded symbols adapt their distributions.
-    /// </summary>
-    private readonly bool updateCdf;
-
-    /// <summary>
-    /// The next output byte position.
+    /// The number of bytes of the current tile in the tile buffer.
     /// </summary>
     private int position;
 
@@ -74,29 +85,37 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// Initializes a new instance of the <see cref="Av1SymbolWriter"/> class.
     /// </summary>
     /// <param name="configuration">The configuration that supplies output allocation.</param>
-    /// <param name="bufferLength">The initial output capacity in bytes.</param>
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their distributions.</param>
-    public Av1SymbolWriter(Configuration configuration, int bufferLength, bool updateCdf)
+    public Av1SymbolWriter(Configuration configuration, bool updateCdf)
     {
         this.configuration = configuration;
-        this.bufferOwner = configuration.MemoryAllocator.Allocate<byte>(bufferLength);
-        this.outputBuffer = this.bufferOwner.Memory[..bufferLength];
-        this.buffer = this.outputBuffer;
         this.updateCdf = updateCdf;
+        IMemoryOwner<byte> owner = configuration.MemoryAllocator.Allocate<byte>(InitialTileBufferLength);
+        this.tileOwners = [owner];
+        this.tileBuffer = owner.Memory;
     }
 
     /// <summary>
-    /// Restores the initial range-coder state and begins a new output sequence.
+    /// Restores the initial range-coder state and begins a new output sequence in the buffer of the first tile.
     /// </summary>
     public void Reset() => this.Reset(0);
 
     /// <summary>
-    /// Restores the initial range-coder state and begins writing at an offset in the retained output allocation.
+    /// Restores the initial range-coder state for a tile, which the range coder then writes into the buffer of that tile.
     /// </summary>
-    /// <param name="outputOffset">The first byte available to the next range-coded tile.</param>
-    public void Reset(int outputOffset)
+    /// <param name="tileIndex">The index of the tile in the frame.</param>
+    public void Reset(int tileIndex)
     {
-        this.buffer = this.outputBuffer[outputOffset..];
+        // A tile gets a buffer when it is written for the first time. The buffer then stays with the tile, at the
+        // length it grew to, so later frames do not allocate it again.
+        if (tileIndex >= this.tileOwners.Length)
+        {
+            Array.Resize(ref this.tileOwners, tileIndex + 1);
+        }
+
+        IMemoryOwner<byte> owner = this.tileOwners[tileIndex] ??= this.configuration.MemoryAllocator.Allocate<byte>(InitialTileBufferLength);
+        this.tileIndex = tileIndex;
+        this.tileBuffer = owner.Memory;
         this.low = 0;
         this.rng = InitialRange;
         this.cnt = InitialCount;
@@ -104,30 +123,44 @@ internal sealed class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
-    /// Releases the tile output buffer.
+    /// Releases the tile buffers.
     /// </summary>
-    public void Dispose() => this.bufferOwner.Dispose();
+    public void Dispose()
+    {
+        foreach (IMemoryOwner<byte>? owner in this.tileOwners)
+        {
+            owner?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Gets the tile buffer. The caller reads it once per tile and passes it to every write.
+    /// </summary>
+    /// <returns>The tile buffer.</returns>
+    public Span<byte> GetTileBuffer() => this.tileBuffer.Span;
 
     /// <summary>
     /// Writes one binary symbol and adapts its distribution when CDF updates are enabled.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="symbol">The binary symbol.</param>
     /// <param name="distribution">The inverse cumulative distribution for the binary alphabet.</param>
-    public void WriteSymbol(bool symbol, Av1Distribution distribution)
-        => this.WriteSymbol(symbol ? 1 : 0, distribution);
+    public void WriteSymbol(ref Span<byte> output, bool symbol, Av1Distribution distribution)
+        => this.WriteSymbol(ref output, symbol ? 1 : 0, distribution);
 
     /// <summary>
     /// Writes one symbol and adapts its distribution when CDF updates are enabled.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="symbol">The zero-based symbol.</param>
     /// <param name="distribution">The inverse cumulative distribution for the symbol alphabet.</param>
-    public void WriteSymbol(int symbol, Av1Distribution distribution)
+    public void WriteSymbol(ref Span<byte> output, int symbol, Av1Distribution distribution)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(symbol, 0, nameof(symbol));
         DebugGuard.MustBeLessThan(symbol, distribution.NumberOfSymbols, nameof(symbol));
         DebugGuard.IsTrue(distribution[distribution.NumberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
 
-        this.EncodeIntegerQ15(symbol, distribution);
+        this.EncodeIntegerQ15(ref output, symbol, distribution);
         this.UpdateSymbol(symbol, distribution);
     }
 
@@ -147,66 +180,65 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// <summary>
     /// Writes one non-adaptive binary symbol using the supplied Q15 probability for <see langword="true"/>.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="value">The binary symbol.</param>
     /// <param name="frequency">The probability that the symbol is <see langword="true"/>, scaled by 32768.</param>
-    public void WriteBoolean(bool value, uint frequency) => this.EncodeBoolQ15(value, frequency);
+    public void WriteBoolean(ref Span<byte> output, bool value, uint frequency) => this.EncodeBoolQ15(ref output, value, frequency);
 
     /// <summary>
     /// Writes one equiprobable literal bit.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="value">The literal bit.</param>
-    public void WriteLiteral(bool value) => this.WriteLiteral(value ? 1u : 0u, 1);
+    public void WriteLiteral(ref Span<byte> output, bool value) => this.WriteLiteral(ref output, value ? 1u : 0u, 1);
 
     /// <summary>
     /// Writes the requested low-order bits in most-significant-bit-first order.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="value">The unsigned literal value.</param>
     /// <param name="bitCount">The number of low-order bits to write.</param>
-    public void WriteLiteral(uint value, int bitCount)
+    public void WriteLiteral(ref Span<byte> output, uint value, int bitCount)
     {
         const uint p = 0x4000U; // (0x7FFFFFU - (128 << 15) + 128) >> 8;
         for (int bit = bitCount - 1; bit >= 0; bit--)
         {
             bool bitValue = ((value >> bit) & 0x1) > 0;
-            this.EncodeBoolQ15(bitValue, p);
+            this.EncodeBoolQ15(ref output, bitValue, p);
         }
     }
 
     /// <summary>
-    /// Terminates the range-coded sequence and propagates pending carries into an owned byte buffer.
+    /// Terminates the range-coded sequence and copies it into a new owned byte buffer.
     /// </summary>
     /// <returns>An owner containing the shortest byte sequence that preserves every encoded symbol.</returns>
     public IMemoryOwner<byte> Exit()
     {
         int length = this.FinalizeRange();
         IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(length);
-        this.buffer.Span[..length].CopyTo(output.Memory.Span);
+        this.tileBuffer.Span[..length].CopyTo(output.Memory.Span);
 
         return output;
     }
 
     /// <summary>
-    /// Finalizes the range-coded sequence and exposes its encoded prefix without copying.
+    /// Terminates the range-coded sequence of the tile. Its bytes stay in the buffer of the tile.
     /// </summary>
-    /// <param name="length">The number of encoded bytes in the returned memory.</param>
-    /// <returns>The encoded prefix, valid until this writer is reset or disposed.</returns>
-    public ReadOnlyMemory<byte> Exit(out int length)
-    {
-        length = this.FinalizeRange();
-        return this.buffer[..length];
-    }
+    /// <returns>The number of encoded bytes of the tile.</returns>
+    public int ExitTile() => this.FinalizeRange();
 
     /// <summary>
-    /// Exposes a prefix containing consecutively encoded tiles without copying their bytes.
+    /// Gets the encoded bytes of a tile from its tile buffer, without a copy.
     /// </summary>
-    /// <param name="length">The number of bytes in the prefix.</param>
-    /// <returns>The encoded prefix, valid until this writer is reset or disposed.</returns>
-    public ReadOnlyMemory<byte> GetOutput(int length) => this.outputBuffer[..length];
+    /// <param name="tileIndex">The index of the tile in the frame.</param>
+    /// <param name="length">The number of encoded bytes that <see cref="ExitTile"/> returned for the tile.</param>
+    /// <returns>The bytes of the tile, valid until the tile is written again or this writer is disposed.</returns>
+    public ReadOnlySpan<byte> GetTileOutput(int tileIndex, int length) => this.tileOwners[tileIndex]!.Memory.Span[..length];
 
     /// <summary>
-    /// Terminates the range-coded sequence in the current output allocation.
+    /// Terminates the range-coded sequence in the tile buffer.
     /// </summary>
-    /// <returns>The number of encoded bytes in the allocation.</returns>
+    /// <returns>The number of encoded bytes in the tile buffer.</returns>
     private int FinalizeRange()
     {
         // Round the low endpoint into the current interval so the emitted prefix selects every symbol encoded so far,
@@ -218,14 +250,15 @@ internal sealed class Av1SymbolWriter : IDisposable
         ulong m = 0x3FFFU;
         ulong e = ((l + m) & ~m) | (m + 1);
         s += c;
+
+        // The terminating bytes can exceed the tile buffer. It then grows to the exact length that they need.
         int pendingByteCount = Math.Max((s + 7) >> 3, 0);
-        if (pos + pendingByteCount > this.buffer.Length)
+        Span<byte> buffer = this.tileBuffer.Span;
+        if (pos + pendingByteCount > buffer.Length)
         {
-            // Finalization needs only the terminating bytes; ordinary word flushes reserve their own headroom.
-            this.ResizeBuffer(pos + pendingByteCount);
+            buffer = this.GrowTileBuffer(pos + pendingByteCount);
         }
 
-        Span<byte> buffer = this.buffer.Span[..(pos + pendingByteCount)];
         if (s > 0)
         {
             ulong n = (1UL << (c + 16)) - 1;
@@ -253,15 +286,16 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// <summary>
     /// Encode a single binary value.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="val">The value to encode.</param>
     /// <param name="frequency">The probability that the value is true, scaled by 32768.</param>
-    private void EncodeBoolQ15(bool val, uint frequency)
+    private void EncodeBoolQ15(ref Span<byte> output, bool val, uint frequency)
     {
         ulong l;
         uint r;
         uint v;
         DebugGuard.MustBeGreaterThan(frequency, 0U, nameof(frequency));
-        DebugGuard.MustBeLessThanOrEqualTo(frequency, 32768U, nameof(frequency));
+        DebugGuard.MustBeLessThan(frequency, 32768U, nameof(frequency));
         l = this.low;
         r = this.rng;
         DebugGuard.MustBeGreaterThanOrEqualTo(r, 32768U, nameof(r));
@@ -280,29 +314,36 @@ internal sealed class Av1SymbolWriter : IDisposable
             r -= v;
         }
 
-        this.Normalize(l, r);
+        this.Normalize(ref output, l, r);
     }
 
     /// <summary>
     /// Encodes a symbol given an inverse cumulative distribution function(CDF) table in Q15.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="symbol">The value to encode.</param>
     /// <param name="distribution">
     /// CDF_PROB_TOP minus the CDF, such that symbol s falls in the range
     /// [s > 0 ? (CDF_PROB_TOP - icdf[s - 1]) : 0, CDF_PROB_TOP - icdf[s]).
     /// The values must be monotonically non - increasing, and icdf[nsyms - 1] must be 0.
     /// </param>
-    private void EncodeIntegerQ15(int symbol, Av1Distribution distribution)
-        => this.EncodeIntegerQ15(symbol > 0 ? distribution[symbol - 1] : Av1Distribution.ProbabilityTop, distribution[symbol], symbol, distribution.NumberOfSymbols);
+    private void EncodeIntegerQ15(ref Span<byte> output, int symbol, Av1Distribution distribution)
+        => this.EncodeIntegerQ15(
+            ref output,
+            symbol > 0 ? distribution[symbol - 1] : Av1Distribution.ProbabilityTop,
+            distribution[symbol],
+            symbol,
+            distribution.NumberOfSymbols);
 
     /// <summary>
     /// Narrows the coding interval to one symbol's inverse-cumulative bounds.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="lowFrequency">The inverse cumulative threshold preceding the symbol.</param>
     /// <param name="highFrequency">The inverse cumulative threshold following the symbol.</param>
     /// <param name="symbol">The zero-based symbol.</param>
     /// <param name="numberOfSymbols">The size of the symbol alphabet.</param>
-    private void EncodeIntegerQ15(uint lowFrequency, uint highFrequency, int symbol, int numberOfSymbols)
+    private void EncodeIntegerQ15(ref Span<byte> output, uint lowFrequency, uint highFrequency, int symbol, int numberOfSymbols)
     {
         const int totalShift = 7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift;
         ulong l = this.low;
@@ -331,18 +372,21 @@ internal sealed class Av1SymbolWriter : IDisposable
                 (Av1Distribution.ProbabilityMinimum * (n - symbol)));
         }
 
-        this.Normalize(l, r);
+        this.Normalize(ref output, l, r);
     }
 
     /// <summary>
     /// Takes updated low and range values, renormalizes them so that <paramref name="rng"/>
-    /// lies between 32768 and 65536 (flushing bytes from low to the pre-carry buffer if necessary),
+    /// lies between 32768 and 65536 (flushing bytes from low to the tile buffer if necessary),
     /// and stores them back in the encoder context.
     /// </summary>
+    /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A flush that grows the buffer replaces it.</param>
     /// <param name="low">The new value of <see cref="low"/>.</param>
     /// <param name="rng">The new value of <see cref="rng"/>.</param>
-    private void Normalize(ulong low, uint rng)
+    private void Normalize(ref Span<byte> output, ulong low, uint rng)
     {
+        // A write must use the current tile buffer. An old span from before a growth points to released memory.
+        DebugGuard.IsTrue(output.Length == this.tileBuffer.Length, nameof(output), "The output must be the current tile buffer.");
         int c = this.cnt;
         DebugGuard.MustBeLessThanOrEqualTo(rng, 65535U, nameof(rng));
         int d = 15 - Av1Math.MostSignificantBit(rng);
@@ -352,31 +396,30 @@ internal sealed class Av1SymbolWriter : IDisposable
         // bytes together while preserving one carry bit.
         if (s >= 40)
         {
-            if (this.position + sizeof(ulong) > this.buffer.Length)
+            // A word store touches eight bytes even when fewer become logical output. When the tile buffer has no
+            // room for it, the buffer grows to twice its length plus one word, and the caller gets the new buffer.
+            if (this.position + sizeof(ulong) > output.Length)
             {
-                // A word store touches eight bytes even when fewer become logical output. Double the current
-                // tile capacity and add one word, matching the range coder's amortized growth from an empty buffer.
-                this.ResizeBuffer(checked((2 * this.buffer.Length) + sizeof(ulong)));
+                output = this.GrowTileBuffer(checked((2 * this.tileBuffer.Length) + sizeof(ulong)));
             }
 
-            Span<byte> buffer = this.buffer.Span[..(this.position + sizeof(ulong))];
             int readyByteCount = (s >> 3) + 1;
             c += 24 - (readyByteCount << 3);
-            ulong output = low >> c;
+            ulong bytes = low >> c;
             low &= (1UL << c) - 1;
             ulong carryMask = 1UL << (readyByteCount << 3);
-            bool hasCarry = (output & carryMask) != 0;
-            output &= carryMask - 1;
+            bool hasCarry = (bytes & carryMask) != 0;
+            bytes &= carryMask - 1;
 
             // Writing one big-endian word avoids a byte-at-a-time hot loop. Only readyByteCount bytes become part
             // of the logical output; the following bytes are overwritten by the next flush.
             BinaryPrimitives.WriteUInt64BigEndian(
-                buffer.Slice(this.position, sizeof(ulong)),
-                output << ((sizeof(ulong) - readyByteCount) << 3));
+                output.Slice(this.position, sizeof(ulong)),
+                bytes << ((sizeof(ulong) - readyByteCount) << 3));
 
             if (hasCarry)
             {
-                PropagateCarryBackward(buffer, this.position - 1);
+                PropagateCarryBackward(output, this.position - 1);
             }
 
             this.position += readyByteCount;
@@ -389,24 +432,22 @@ internal sealed class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
-    /// Replaces the output owner while retaining finalized tiles and the current tile's completed bytes.
+    /// Replaces the tile buffer with a larger one and keeps the bytes of the current tile.
     /// </summary>
-    /// <param name="tileCapacity">The required capacity starting at the current tile's output offset.</param>
-    private void ResizeBuffer(int tileCapacity)
+    /// <param name="length">The length of the new tile buffer in bytes.</param>
+    /// <returns>The new tile buffer.</returns>
+    private Span<byte> GrowTileBuffer(int length)
     {
-        int outputOffset = this.outputBuffer.Length - this.buffer.Length;
-        int capacity = checked(outputOffset + tileCapacity);
-        IMemoryOwner<byte> replacement = this.configuration.MemoryAllocator.Allocate<byte>(capacity);
-        Memory<byte> replacementBuffer = replacement.Memory[..capacity];
+        IMemoryOwner<byte> replacement = this.configuration.MemoryAllocator.Allocate<byte>(length);
+        Memory<byte> replacementBuffer = replacement.Memory;
 
-        // Previous tile bytes remain part of the frame payload. The current tile's completed prefix also carries
-        // backward into earlier bytes, so preserve that prefix before returning the old owner. Pending bits stay
-        // in low/cnt and need no copy. If allocation fails, the original owner remains available for disposal.
-        this.outputBuffer.Span[..(outputOffset + this.position)].CopyTo(replacementBuffer.Span);
-        this.bufferOwner.Dispose();
-        this.bufferOwner = replacement;
-        this.outputBuffer = replacementBuffer;
-        this.buffer = replacementBuffer[outputOffset..];
+        // Only the completed bytes of the current tile move. Pending bits stay in low and cnt.
+        this.tileBuffer.Span[..this.position].CopyTo(replacementBuffer.Span);
+        IMemoryOwner<byte> previous = this.tileOwners[this.tileIndex]!;
+        this.tileOwners[this.tileIndex] = replacement;
+        previous.Dispose();
+        this.tileBuffer = replacementBuffer;
+        return replacementBuffer.Span;
     }
 
     /// <summary>

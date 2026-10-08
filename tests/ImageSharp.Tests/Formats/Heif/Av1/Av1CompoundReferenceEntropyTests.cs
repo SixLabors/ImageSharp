@@ -29,14 +29,18 @@ public class Av1CompoundReferenceEntropyTests
         referenceCounts[(int)Av1ReferenceFrameType.Last] = 4;
         referenceCounts[(int)Av1ReferenceFrameType.Golden] = 2;
 
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex: 0, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, qIndex: 0, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
         Assert.True(encoder.GetLastGoldenCompoundReferenceCost(
             ReferenceModeContext,
             CompoundTypeContext,
             referenceCounts) > 0);
+
         Assert.True(encoder.GetInterCompoundModeCost(Mode, ModeContext) > 0);
-        encoder.WriteLastGoldenCompoundReference(ReferenceModeContext, CompoundTypeContext, referenceCounts);
-        encoder.WriteInterCompoundMode(Mode, ModeContext);
+        encoder.WriteLastGoldenCompoundReference<Av1SymbolEncoder.SymbolWriteOperation>(
+            ref output, ReferenceModeContext, CompoundTypeContext, referenceCounts);
+
+        encoder.WriteInterCompoundMode<Av1SymbolEncoder.SymbolWriteOperation>(ref output, Mode, ModeContext);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
@@ -45,12 +49,15 @@ public class Av1CompoundReferenceEntropyTests
         Assert.False(decoder.ReadUnidirectionalCompoundReference(
             Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts),
             decision: 0));
+
         Assert.True(decoder.ReadUnidirectionalCompoundReference(
             Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts),
             decision: 1));
+
         Assert.True(decoder.ReadUnidirectionalCompoundReference(
             Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts),
             decision: 2));
+
         Assert.Equal(Mode, decoder.ReadInterCompoundMode(ModeContext));
     }
 }

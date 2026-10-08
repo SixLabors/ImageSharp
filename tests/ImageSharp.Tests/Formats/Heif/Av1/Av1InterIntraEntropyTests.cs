@@ -30,11 +30,12 @@ public class Av1InterIntraEntropyTests
     {
         bool[] expected = [false, true, true, false, true, false, false, true];
         Av1Distribution writerDistribution = Av1DefaultDistributions.InterIntra[sizeGroup];
-        using Av1SymbolWriter writer = new(Configuration.Default, expected.Length, updateCdf: true);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
 
         foreach (bool value in expected)
         {
-            writer.WriteSymbol(value, writerDistribution);
+            writer.WriteSymbol(ref output, value, writerDistribution);
         }
 
         using IMemoryOwner<byte> encoded = writer.Exit();

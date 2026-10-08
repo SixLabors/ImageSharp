@@ -42,11 +42,12 @@ public class Av1InterFrameIntraEntropyTests
         ];
 
         Av1Distribution writerDistribution = Av1DefaultDistributions.FrameYMode[sizeGroup];
-        using Av1SymbolWriter writer = new(Configuration.Default, 8, updateCdf: true);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
 
         foreach (Av1PredictionMode mode in expected)
         {
-            writer.WriteSymbol((int)mode, writerDistribution);
+            writer.WriteSymbol(ref output, (int)mode, writerDistribution);
         }
 
         using IMemoryOwner<byte> encoded = writer.Exit();

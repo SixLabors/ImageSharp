@@ -119,7 +119,6 @@ public class Av1EncoderModeInfoBufferTests
         picture.ReferenceContexts.Span[0].ModeContext = 37;
         picture.CdefPreset.Span[0] = 2;
         picture.Parent.PreviousQIndex.Span[0] = InitialQIndex + 1;
-        picture.TileDataOffsets.Span[0] = 11;
         picture.TileDataLengths.Span[0] = 13;
         ObuTileGroupHeader nextTiles = new()
         {
@@ -155,7 +154,6 @@ public class Av1EncoderModeInfoBufferTests
         Assert.Equal(-1, MemoryMarshal.AsBytes(picture.ReferenceContexts.Span).IndexOfAnyExcept((byte)0));
         Assert.Equal(-1, picture.CdefPreset.Span[0]);
         Assert.Equal(NextQIndex, picture.Parent.PreviousQIndex.Span[0]);
-        Assert.Equal(0, picture.TileDataOffsets.Span[0]);
         Assert.Equal(0, picture.TileDataLengths.Span[0]);
         Assert.Same(nextFrameHeader, picture.Parent.FrameHeader);
         Assert.Same(nextTiles, picture.Parent.Common.TilesInfo);

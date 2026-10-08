@@ -21,7 +21,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </summary>
 internal readonly struct Av1TileEncoder : IAv1TileWriter
 {
-    private readonly ReadOnlyMemory<byte> tileData;
+    /// <summary>
+    /// The symbol encoder whose tile buffers hold the packed tiles.
+    /// </summary>
+    private readonly Av1SymbolEncoder writer;
+
+    /// <summary>
+    /// The frame coding state that holds the tile lengths.
+    /// </summary>
     private readonly Av1PictureControlSet picture;
 
     /// <summary>
@@ -44,7 +51,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
-        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
+        this.writer = writer;
+        Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
             Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
@@ -79,7 +87,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
-        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
+        this.writer = writer;
+        Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
             Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
@@ -119,7 +128,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
-        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
+        this.writer = writer;
+        Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
             Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
@@ -152,7 +162,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
-        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+        this.writer = writer;
+        Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
             Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
@@ -187,7 +198,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
-        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+        this.writer = writer;
+        Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
             Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
@@ -227,7 +239,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderBlockWorkspace blockWorkspace)
     {
         this.picture = picture;
-        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+        this.writer = writer;
+        Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
             Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
@@ -244,21 +257,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for tile data that a packing pass already
     /// wrote.
     /// </summary>
-    /// <param name="picture">The frame coding state that holds the tile offsets and lengths.</param>
-    /// <param name="tileData">The packed tile data.</param>
-    private Av1TileEncoder(Av1PictureControlSet picture, ReadOnlyMemory<byte> tileData)
+    /// <param name="picture">The frame coding state that holds the tile lengths.</param>
+    /// <param name="writer">The symbol encoder that holds the tile buffers of the packing pass.</param>
+    private Av1TileEncoder(Av1PictureControlSet picture, Av1SymbolEncoder writer)
     {
         this.picture = picture;
-        this.tileData = tileData;
+        this.writer = writer;
     }
 
     /// <inheritdoc/>
     public ReadOnlySpan<byte> GetTileData(int tileNum)
-    {
-        int offset = this.picture.TileDataOffsets.Span[tileNum];
-        int length = this.picture.TileDataLengths.Span[tileNum];
-        return this.tileData.Span.Slice(offset, length);
-    }
+        => this.writer.GetTileOutput(tileNum, this.picture.TileDataLengths.Span[tileNum]);
 
     /// <summary>
     /// Determines whether any coded block copies from the current frame.
@@ -795,7 +804,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             }
         }
 
-        _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
+        ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
             writer, source, default, default, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         // Reference: the tx_type_probs update at the end of encode_frame_internal().
@@ -829,8 +838,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <returns>The packed tile data.</returns>
-    private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
+    private static void Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
@@ -849,7 +857,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         bool switchableBeforeFix = AnalyzeFrame<TSample, TOperator>(
             writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
-        return CompleteFrame<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
+        CompleteFrame<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
             writer,
             source,
             references,
@@ -865,11 +873,11 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <summary>
     /// Returns a tile source for tile data that a packing pass already wrote.
     /// </summary>
-    /// <param name="picture">The frame coding state that holds the tile offsets and lengths.</param>
-    /// <param name="tileData">The packed tile data.</param>
+    /// <param name="picture">The frame coding state that holds the tile lengths.</param>
+    /// <param name="writer">The symbol encoder that holds the tile buffers of the packing pass.</param>
     /// <returns>The tile source.</returns>
-    internal static Av1TileEncoder FromPackedTiles(Av1PictureControlSet picture, ReadOnlyMemory<byte> tileData)
-        => new(picture, tileData);
+    internal static Av1TileEncoder FromPackedTiles(Av1PictureControlSet picture, Av1SymbolEncoder writer)
+        => new(picture, writer);
 
     /// <summary>
     /// Decides and reconstructs every block of a frame, then settles the frame-level syntax the decisions allow:
@@ -920,7 +928,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             }
         }
 
-        _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
+        ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
             writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         // A frame whose superblocks all kept the frame quantizer codes no delta quantizers. Reference: the deltaq_used
@@ -1014,8 +1022,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <returns>The packed tile data.</returns>
-    internal static ReadOnlyMemory<byte> PackFrame<TSample, TOperator>(
+    internal static void PackFrame<TSample, TOperator>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
@@ -1038,7 +1045,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         parent.SelectedInterpolationCounts.Span.Clear();
         Array.Clear(parent.WarpedUsage);
         Array.Clear(parent.ObmcUsage);
-        return ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
+        ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
             writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
     }
 
@@ -1096,8 +1103,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
     /// <param name="switchableBeforeFix">Whether the frame filter was switchable before the filter fix.</param>
-    /// <returns>The packed tile data.</returns>
-    internal static ReadOnlyMemory<byte> CompleteFrame<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
+    internal static void CompleteFrame<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
@@ -1141,7 +1147,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 tileWorkspace.Tile);
         }
 
-        ReadOnlyMemory<byte> encodedTiles = PackFrame<TSample, TOperator>(
+        PackFrame<TSample, TOperator>(
             writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
         if (!frameHeader.IsIntra)
@@ -1170,8 +1176,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         blockWorkspace.PreviousFrameRateMultiplier = parent.GetRateMultiplier(
             frameHeader.QuantizationParameters.BaseQIndex + frameHeader.QuantizationParameters.DeltaQDc[0],
             picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
-
-        return encodedTiles;
     }
 
     /// <summary>
@@ -1193,8 +1197,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
     /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <returns>The tile data the pass wrote, or empty for a pass that writes nothing.</returns>
-    private static ReadOnlyMemory<byte> ProcessTiles<TSample, TOperator, TSymbolOperation>(
+    private static void ProcessTiles<TSample, TOperator, TSymbolOperation>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
@@ -1217,7 +1220,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int superblockModeInfoSize = sequenceHeader.SuperblockModeInfoSize;
         int superblockShift = sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
         ObuTileGroupHeader tileLayout = frameHeader.TilesInfo;
-        Span<int> tileDataOffsets = picture.TileDataOffsets.Span;
         Span<int> tileDataLengths = picture.TileDataLengths.Span;
         Av1MotionSearchSettings.CostUpdateFrequency motionCostUpdate = picture.Parent.MotionSearchSettings.MotionCostUpdate;
         Av1MotionSearchSettings.CostUpdateFrequency modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.Superblock;
@@ -1247,7 +1249,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
 
         int tileIndex = 0;
-        int tileDataEnd = 0;
         int tileCount = tileLayout.TileColumnCount * tileLayout.TileRowCount;
         int largestTileLength = 0;
         int largestTileIndex = 0;
@@ -1262,9 +1263,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             {
                 tile.SetTileColumn(tileLayout, frameHeader.ModeInfoColumnCount, tileColumn);
 
-                // Each pass begins every tile from the same frame probabilities. Only the packing pass
-                // advances the output offset; the analysis operation does not touch range-coder state.
-                writer.Reset(tileDataEnd);
+                // Each pass begins every tile from the same frame probabilities. Only the packing pass writes into
+                // the buffer of the tile; the analysis operation does not touch range-coder state.
+                writer.Reset(tileIndex);
+
+                // The range coder of the tile writes into the tile buffer, which is read once here. A write that grows
+                // the buffer replaces this span.
+                Span<byte> output = writer.GetTileBuffer();
                 if (TSymbolOperation.WritesOutput)
                 {
                     picture.Parent.MotionVectorStatistics?.BeginTile(writer.FrameMotionVectorContext);
@@ -1322,6 +1327,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         {
                             Av1TileWriter.RetainedBlockEncodingHandler blockEncoder = new(picture);
                             Av1TileWriter.WriteSuperblock<TSymbolOperation, Av1TileWriter.RetainedBlockEncodingHandler>(
+                                ref output,
                                 picture,
                                 entropyContext,
                                 writer,
@@ -1382,6 +1388,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             Av1TileWriter.WriteSuperblock<
                                 TSymbolOperation,
                                 Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>>(
+                                ref output,
                                 picture,
                                 entropyContext,
                                 writer,
@@ -1406,10 +1413,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
                 if (TSymbolOperation.WritesOutput)
                 {
-                    _ = writer.Exit(out int tileDataLength);
-                    tileDataOffsets[tileIndex] = tileDataEnd;
+                    // The bytes of the tile stay in its tile buffer, where the frame writer reads them.
+                    int tileDataLength = writer.ExitTile();
                     tileDataLengths[tileIndex] = tileDataLength;
-                    tileDataEnd += tileDataLength;
 
                     // The largest tile, the first of equal sizes, updates the frame context. Reference: the
                     // largest_tile_id and max_tile_size of write_tiles_in_tg_obus().
@@ -1435,8 +1441,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 : (uint)largestTileLength >> 8 != 0 ? 2
                 : 1;
         }
-
-        return writer.GetOutput(tileDataEnd);
     }
 }
 

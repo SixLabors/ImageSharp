@@ -46,8 +46,9 @@ public class Av1SingleReferenceEntropyTests
         referenceCounts[(int)Av1ReferenceFrameType.Alternate2] = 3;
         referenceCounts[(int)Av1ReferenceFrameType.Alternate] = 6;
 
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 8, BaseQIndex, updateCdf: true);
-        encoder.WriteSingleReference(referenceFrame, referenceCounts);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, BaseQIndex, updateCdf: true);
+        Span<byte> output = encoder.GetTileBuffer();
+        encoder.WriteSingleReference<Av1SymbolEncoder.SymbolWriteOperation>(ref output, referenceFrame, referenceCounts);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, BaseQIndex, updateCdf: true);

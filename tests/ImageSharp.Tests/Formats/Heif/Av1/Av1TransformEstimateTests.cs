@@ -83,7 +83,7 @@ public class Av1TransformEstimateTests
                             continue;
                         }
 
-                        using Av1SymbolEncoder writer = new(Configuration.Default, 65536, qIndex, updateCdf: true);
+                        using Av1SymbolEncoder writer = new(Configuration.Default, qIndex, updateCdf: true);
                         for (int pattern = 0; pattern < 4; pattern++)
                         {
                             int bits = bitDepth.GetBitCount();

@@ -27,8 +27,9 @@ public class Av1TemporalSegmentationTests
         ObuFrameHeader frameHeader = CreateFrameHeader(16, 16, segmentationUpdateMap: 1, segmentationTemporalUpdate: 0);
         frameHeader.SegmentationParameters.LastActiveSegmentId = 0;
         using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
-        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: true);
-        writer.WriteSymbol(Av1Constants.MaxSegmentCount - 1, Av1DefaultDistributions.SegmentId[0]);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, Av1Constants.MaxSegmentCount - 1, Av1DefaultDistributions.SegmentId[0]);
         using IMemoryOwner<byte> encoded = writer.Exit();
 
         Assert.Throws<InvalidImageContentException>(
@@ -92,8 +93,9 @@ public class Av1TemporalSegmentationTests
         };
 
         const int predictionContext = 1;
-        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: true);
-        writer.WriteSymbol(true, Av1DefaultDistributions.SegmentIdPredicted[predictionContext]);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, true, Av1DefaultDistributions.SegmentIdPredicted[predictionContext]);
         using IMemoryOwner<byte> encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
 
@@ -142,7 +144,7 @@ public class Av1TemporalSegmentationTests
             AvailableLeft = true
         };
 
-        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: true);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
         using IMemoryOwner<byte> encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
 

@@ -77,9 +77,10 @@ public class Av1MotionModeInfoTests
             AboveModeInfo = aboveModeInfo,
         };
 
-        using Av1SymbolWriter writer = new(Configuration.Default, 4, updateCdf: true);
-        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
-        writer.WriteSymbol(false, Av1DefaultDistributions.InterIntra[Av1BlockSize.Block8x8.GetSizeGroup()]);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol(ref output, false, Av1DefaultDistributions.InterIntra[Av1BlockSize.Block8x8.GetSizeGroup()]);
 
         if (isMotionModeSwitchable)
         {
@@ -87,12 +88,12 @@ public class Av1MotionModeInfoTests
                 ? Av1DefaultDistributions.MotionMode[(int)Av1BlockSize.Block8x8]
                 : Av1DefaultDistributions.Obmc[(int)Av1BlockSize.Block8x8];
 
-            writer.WriteSymbol(selectedMotionModeValue, motionModeDistribution);
+            writer.WriteSymbol(ref output, selectedMotionModeValue, motionModeDistribution);
         }
 
         // The matching regular above neighbor selects vertical context zero. Sharp is deliberately non-default so the
         // assertion proves that every preceding conditional symbol consumed exactly its own range-coded interval.
-        writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[0]);
+        writer.WriteSymbol(ref output, (int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[0]);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
@@ -129,20 +130,22 @@ public class Av1MotionModeInfoTests
         Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
 
-        using Av1SymbolWriter writer = new(Configuration.Default, 6, updateCdf: true);
-        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
-        writer.WriteSymbol(true, Av1DefaultDistributions.InterIntra[Av1BlockSize.Block8x8.GetSizeGroup()]);
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol(ref output, true, Av1DefaultDistributions.InterIntra[Av1BlockSize.Block8x8.GetSizeGroup()]);
         writer.WriteSymbol(
+            ref output,
             (int)Av1InterIntraMode.Smooth,
             Av1DefaultDistributions.InterIntraMode[Av1BlockSize.Block8x8.GetSizeGroup()]);
 
-        writer.WriteSymbol(useWedge, Av1DefaultDistributions.WedgeInterIntra[(int)Av1BlockSize.Block8x8]);
+        writer.WriteSymbol(ref output, useWedge, Av1DefaultDistributions.WedgeInterIntra[(int)Av1BlockSize.Block8x8]);
         if (useWedge)
         {
-            writer.WriteSymbol(13, Av1DefaultDistributions.WedgeIndex[(int)Av1BlockSize.Block8x8]);
+            writer.WriteSymbol(ref output, 13, Av1DefaultDistributions.WedgeIndex[(int)Av1BlockSize.Block8x8]);
         }
 
-        writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[3]);
+        writer.WriteSymbol(ref output, (int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[3]);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);

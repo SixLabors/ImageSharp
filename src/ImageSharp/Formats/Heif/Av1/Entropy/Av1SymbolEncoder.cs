@@ -332,10 +332,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class with reusable tile state.
     /// </summary>
     /// <param name="configuration">The configuration providing output and temporary memory.</param>
-    /// <param name="bufferLength">The initial output capacity in bytes.</param>
     /// <param name="qIndex">The frame base quantizer index.</param>
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
-    public Av1SymbolEncoder(Configuration configuration, int bufferLength, int qIndex, bool updateCdf)
+    public Av1SymbolEncoder(Configuration configuration, int qIndex, bool updateCdf)
     {
         this.entropyContext = new Av1FrameEntropyContext(qIndex);
 
@@ -402,7 +401,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength + (MaximumCoefficientContextCount / sizeof(int)));
 
             this.RefreshCosts();
-            this.writer = new(configuration, bufferLength, updateCdf);
+            this.writer = new(configuration, updateCdf);
             this.baseQIndex = qIndex;
             this.modelQIndex = qIndex;
         }
@@ -429,11 +428,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// Handles one symbol from an adaptive distribution.
         /// </summary>
         /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="symbol">The zero-based symbol.</param>
         /// <param name="distribution">The symbol distribution.</param>
         /// <returns>The symbol's rate contribution.</returns>
         public static abstract int ProcessSymbol(
             ref Av1SymbolWriter writer,
+            ref Span<byte> output,
             int symbol,
             Av1Distribution distribution);
 
@@ -441,29 +442,33 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// Handles one binary symbol from an adaptive distribution.
         /// </summary>
         /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="symbol">The binary symbol.</param>
         /// <param name="distribution">The symbol distribution.</param>
         /// <returns>The symbol's rate contribution.</returns>
-        public static abstract int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution);
+        public static abstract int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution);
 
         /// <summary>
         /// Handles one binary symbol with a fixed probability.
         /// </summary>
         /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="value">The binary value.</param>
         /// <param name="frequency">The probability of true, scaled by 32768.</param>
         /// <returns>The symbol's rate contribution.</returns>
-        public static abstract int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency);
+        public static abstract int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency);
 
         /// <summary>
         /// Handles one most-significant-bit-first literal field.
         /// </summary>
         /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="value">The low-order literal bits.</param>
         /// <param name="bitCount">The number of bits.</param>
         /// <returns>The literal's rate contribution.</returns>
         public static abstract int ProcessLiteral(
             ref Av1SymbolWriter writer,
+            ref Span<byte> output,
             uint value,
             int bitCount);
     }
@@ -482,11 +487,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// Handles the first uniformly coded palette index.
         /// </summary>
         /// <param name="encoder">The tile symbol encoder.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="paletteSize">The number of colors in the palette.</param>
         /// <param name="colorIndex">The first palette index.</param>
         /// <returns>The index's rate contribution.</returns>
         public static abstract int ProcessFirstIndex(
             Av1SymbolEncoder encoder,
+            ref Span<byte> output,
             int paletteSize,
             int colorIndex);
 
@@ -494,6 +501,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// Handles one context-adaptive palette color-order index.
         /// </summary>
         /// <param name="encoder">The tile symbol encoder.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
         /// <param name="modeCosts">The mode rates, which the traversal reads once for the whole map.</param>
         /// <param name="paletteSize">The number of colors in the palette.</param>
         /// <param name="planeType">The luma or chroma plane class.</param>
@@ -502,6 +510,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// <returns>The index's rate contribution.</returns>
         public static abstract int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            ref Span<byte> output,
             scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,
@@ -605,15 +614,21 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Restores the initial tile distributions and begins the next tile at an offset in the retained output buffer.
+    /// Restores the initial tile distributions and begins a tile, which the range coder writes into the buffer of that tile.
     /// </summary>
-    /// <param name="outputOffset">The first output byte available to the next tile.</param>
-    public void Reset(int outputOffset)
+    /// <param name="tileIndex">The index of the tile in the frame.</param>
+    public void Reset(int tileIndex)
     {
         this.ResetDistributions();
         this.RefreshCosts();
-        this.writer.Reset(outputOffset);
+        this.writer.Reset(tileIndex);
     }
+
+    /// <summary>
+    /// Gets the tile buffer of the range coder. The caller reads it once per tile and passes it to every write.
+    /// </summary>
+    /// <returns>The tile buffer.</returns>
+    public Span<byte> GetTileBuffer() => this.writer.GetTileBuffer();
 
     /// <summary>
     /// Restores the tile distributions to the frame context: the primary reference's retained context, or the
@@ -634,34 +649,28 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes an unsigned fixed-width literal to the tile entropy stream.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="value">The low-order literal bits.</param>
     /// <param name="bitCount">The number of bits to write.</param>
-    public void WriteLiteral(uint value, int bitCount)
-        => this.WriteLiteral<SymbolWriteOperation>(value, bitCount);
-
-    /// <inheritdoc cref="WriteLiteral(uint, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteLiteral<TOperation>(uint value, int bitCount)
+    public void WriteLiteral<TOperation>(ref Span<byte> output, uint value, int bitCount)
         where TOperation : struct, ISymbolOperation
     {
         if (TOperation.WritesOutput)
         {
             ref Av1SymbolWriter w = ref this.writer;
-            _ = TOperation.ProcessLiteral(ref w, value, bitCount);
+            _ = TOperation.ProcessLiteral(ref w, ref output, value, bitCount);
         }
     }
 
     /// <summary>
     /// Writes a uniformly coded value from a non-power-of-two alphabet.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="valueCount">The number of possible values.</param>
     /// <param name="value">The value in the range from zero through <paramref name="valueCount"/> minus one.</param>
-    public void WriteUniform(int valueCount, int value)
-        => this.WriteUniform<SymbolWriteOperation>(valueCount, value);
-
-    /// <inheritdoc cref="WriteUniform(int, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteUniform<TOperation>(int valueCount, int value)
+    public void WriteUniform<TOperation>(ref Span<byte> output, int valueCount, int value)
         where TOperation : struct, ISymbolOperation
     {
         if (TOperation.WritesOutput)
@@ -672,13 +681,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             if (value < threshold)
             {
                 // The lower values use the short prefix; every remaining value carries one final disambiguating bit.
-                _ = TOperation.ProcessLiteral(ref w, (uint)value, bitCount - 1);
+                _ = TOperation.ProcessLiteral(ref w, ref output, (uint)value, bitCount - 1);
                 return;
             }
 
             int offset = value - threshold;
-            _ = TOperation.ProcessLiteral(ref w, (uint)(threshold + (offset >> 1)), bitCount - 1);
-            _ = TOperation.ProcessLiteral(ref w, (uint)(offset & 1), 1);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(threshold + (offset >> 1)), bitCount - 1);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(offset & 1), 1);
         }
     }
 
@@ -710,19 +719,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the luma palette-mode flag.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="usePalette">Indicates whether the block uses luma palette prediction.</param>
     /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
     /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
-    public void WritePaletteYMode(bool usePalette, int blockSizeContext, int neighborContext)
-        => this.WritePaletteYMode<SymbolWriteOperation>(usePalette, blockSizeContext, neighborContext);
-
-    /// <inheritdoc cref="WritePaletteYMode(bool, int, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WritePaletteYMode<TOperation>(bool usePalette, int blockSizeContext, int neighborContext)
+    public void WritePaletteYMode<TOperation>(ref Span<byte> output, bool usePalette, int blockSizeContext, int neighborContext)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, usePalette, this.entropyContext.PaletteYMode[blockSizeContext][neighborContext]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, usePalette, this.entropyContext.PaletteYMode[blockSizeContext][neighborContext]);
     }
 
     /// <summary>
@@ -739,18 +745,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the chroma palette-mode flag.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="usePalette">Indicates whether the block uses chroma palette prediction.</param>
     /// <param name="hasLumaPalette">Indicates whether the current block uses a luma palette.</param>
-    public void WritePaletteUvMode(bool usePalette, bool hasLumaPalette)
-        => this.WritePaletteUvMode<SymbolWriteOperation>(usePalette, hasLumaPalette);
-
-    /// <inheritdoc cref="WritePaletteUvMode(bool, bool)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WritePaletteUvMode<TOperation>(bool usePalette, bool hasLumaPalette)
+    public void WritePaletteUvMode<TOperation>(ref Span<byte> output, bool usePalette, bool hasLumaPalette)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, usePalette, this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, usePalette, this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0]);
     }
 
     /// <summary>
@@ -770,15 +773,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a palette-size symbol.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="paletteSize">The palette size in the range from two through eight.</param>
     /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
-    public void WritePaletteSize(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
-        => this.WritePaletteSize<SymbolWriteOperation>(paletteSize, blockSizeContext, planeType);
-
-    /// <inheritdoc cref="WritePaletteSize(int, int, Av1PlaneType)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WritePaletteSize<TOperation>(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+    public void WritePaletteSize<TOperation>(ref Span<byte> output, int paletteSize, int blockSizeContext, Av1PlaneType planeType)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
@@ -786,7 +786,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             ? this.entropyContext.PaletteYSize[blockSizeContext]
             : this.entropyContext.PaletteUvSize[blockSizeContext];
 
-        _ = TOperation.ProcessSymbol(ref w, paletteSize - 2, distribution);
+        _ = TOperation.ProcessSymbol(ref w, ref output, paletteSize - 2, distribution);
     }
 
     /// <summary>
@@ -811,20 +811,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a palette color-order index.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="colorOrderIndex">The index in the context-specific palette color order.</param>
     /// <param name="paletteSize">The number of colors in the palette.</param>
     /// <param name="colorContext">The color-index context derived from preceding spatial indices.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
-    public void WritePaletteColorIndex(
-        int colorOrderIndex,
-        int paletteSize,
-        int colorContext,
-        Av1PlaneType planeType)
-        => this.WritePaletteColorIndex<SymbolWriteOperation>(colorOrderIndex, paletteSize, colorContext, planeType);
-
-    /// <inheritdoc cref="WritePaletteColorIndex(int, int, int, Av1PlaneType)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WritePaletteColorIndex<TOperation>(
+        ref Span<byte> output,
         int colorOrderIndex,
         int paletteSize,
         int colorContext,
@@ -836,7 +830,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             ? this.entropyContext.PaletteYColorIndex[paletteSize - 2][colorContext]
             : this.entropyContext.PaletteUvColorIndex[paletteSize - 2][colorContext];
 
-        _ = TOperation.ProcessSymbol(ref w, colorOrderIndex, distribution);
+        _ = TOperation.ProcessSymbol(ref w, ref output, colorOrderIndex, distribution);
     }
 
     /// <summary>
@@ -869,20 +863,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the luma palette colors using neighboring cache selections followed by sorted deltas.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="colorCache">The sorted unique colors inherited from eligible neighbors.</param>
     /// <param name="colors">The sorted luma palette colors.</param>
     /// <param name="bitDepth">The number of bits in each color sample.</param>
-    public void WritePaletteYColors(
-        ReadOnlySpan<ushort> colorCache,
-        ReadOnlySpan<ushort> colors,
-        int bitDepth)
-        => this.WritePaletteYColors<SymbolWriteOperation>(colorCache, colors, bitDepth);
-
-    /// <inheritdoc cref="WritePaletteYColors(ReadOnlySpan{ushort}, ReadOnlySpan{ushort}, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WritePaletteYColors<TOperation>(
-        ReadOnlySpan<ushort> colorCache,
-        ReadOnlySpan<ushort> colors,
+        ref Span<byte> output,
+        scoped ReadOnlySpan<ushort> colorCache,
+        scoped ReadOnlySpan<ushort> colors,
         int bitDepth)
         where TOperation : struct, ISymbolOperation
     {
@@ -900,11 +889,11 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             for (int i = 0; i < colorCache.Length && cachedColorCount < colors.Length; i++)
             {
                 byte found = cacheColorFound[i];
-                this.WriteLiteral<TOperation>(found, 1);
+                this.WriteLiteral<TOperation>(ref output, found, 1);
                 cachedColorCount += found;
             }
 
-            this.WriteDeltaEncodedColors<TOperation>(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
+            this.WriteDeltaEncodedColors<TOperation>(ref output, uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
         }
     }
 
@@ -944,23 +933,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the shared chroma palette colors using cached U values and the cheaper V representation.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="colorCache">The sorted unique U colors inherited from eligible neighbors.</param>
     /// <param name="uColors">The sorted U palette colors.</param>
     /// <param name="vColors">The V palette colors paired with <paramref name="uColors"/>.</param>
     /// <param name="bitDepth">The number of bits in each color sample.</param>
-    public void WritePaletteUvColors(
-        ReadOnlySpan<ushort> colorCache,
-        ReadOnlySpan<ushort> uColors,
-        ReadOnlySpan<ushort> vColors,
-        int bitDepth)
-        => this.WritePaletteUvColors<SymbolWriteOperation>(colorCache, uColors, vColors, bitDepth);
-
-    /// <inheritdoc cref="WritePaletteUvColors(ReadOnlySpan{ushort}, ReadOnlySpan{ushort}, ReadOnlySpan{ushort}, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WritePaletteUvColors<TOperation>(
-        ReadOnlySpan<ushort> colorCache,
-        ReadOnlySpan<ushort> uColors,
-        ReadOnlySpan<ushort> vColors,
+        ref Span<byte> output,
+        scoped ReadOnlySpan<ushort> colorCache,
+        scoped ReadOnlySpan<ushort> uColors,
+        scoped ReadOnlySpan<ushort> vColors,
         int bitDepth)
         where TOperation : struct, ISymbolOperation
     {
@@ -978,29 +961,29 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             for (int i = 0; i < colorCache.Length && cachedColorCount < uColors.Length; i++)
             {
                 byte found = cacheColorFound[i];
-                this.WriteLiteral<TOperation>(found, 1);
+                this.WriteLiteral<TOperation>(ref output, found, 1);
                 cachedColorCount += found;
             }
 
-            this.WriteDeltaEncodedColors<TOperation>(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
+            this.WriteDeltaEncodedColors<TOperation>(ref output, uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
 
             int deltaBits = GetPaletteVDeltaBitCount(vColors, bitDepth, out int zeroCount, out int minimumBits);
             int deltaBitCount = 2 + bitDepth + ((deltaBits + 1) * (vColors.Length - 1)) - zeroCount;
             int rawBitCount = bitDepth * vColors.Length;
             bool useDelta = deltaBitCount < rawBitCount;
-            this.WriteLiteral<TOperation>(useDelta ? 1u : 0u, 1);
+            this.WriteLiteral<TOperation>(ref output, useDelta ? 1u : 0u, 1);
             if (!useDelta)
             {
                 for (int i = 0; i < vColors.Length; i++)
                 {
-                    this.WriteLiteral<TOperation>(vColors[i], bitDepth);
+                    this.WriteLiteral<TOperation>(ref output, vColors[i], bitDepth);
                 }
 
                 return;
             }
 
-            this.WriteLiteral<TOperation>((uint)(deltaBits - minimumBits), 2);
-            this.WriteLiteral<TOperation>(vColors[0], bitDepth);
+            this.WriteLiteral<TOperation>(ref output, (uint)(deltaBits - minimumBits), 2);
+            this.WriteLiteral<TOperation>(ref output, vColors[0], bitDepth);
             int sampleRange = 1 << bitDepth;
             for (int i = 1; i < vColors.Length; i++)
             {
@@ -1010,16 +993,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 // Chroma wraps in its unsigned sample domain, so signal whichever circular direction has less magnitude.
                 if (delta <= sampleRange - delta)
                 {
-                    this.WriteLiteral<TOperation>((uint)delta, deltaBits);
+                    this.WriteLiteral<TOperation>(ref output, (uint)delta, deltaBits);
                     if (delta != 0)
                     {
-                        this.WriteLiteral<TOperation>(signedDelta < 0 ? 1u : 0u, 1);
+                        this.WriteLiteral<TOperation>(ref output, signedDelta < 0 ? 1u : 0u, 1);
                     }
                 }
                 else
                 {
-                    this.WriteLiteral<TOperation>((uint)(sampleRange - delta), deltaBits);
-                    this.WriteLiteral<TOperation>(signedDelta < 0 ? 0u : 1u, 1);
+                    this.WriteLiteral<TOperation>(ref output, (uint)(sampleRange - delta), deltaBits);
+                    this.WriteLiteral<TOperation>(ref output, signedDelta < 0 ? 0u : 1u, 1);
                 }
             }
         }
@@ -1040,33 +1023,31 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int rows,
         int columns,
         Av1PlaneRegion<byte> colorIndexMap)
-        => this.ProcessPaletteColorMap<PaletteColorMapCostOperation>(
+    {
+        // A cost writes nothing, so it needs no tile buffer.
+        Span<byte> output = default;
+        return this.ProcessPaletteColorMap<PaletteColorMapCostOperation>(
+            ref output,
             paletteSize,
             planeType,
             rows,
             columns,
             colorIndexMap,
             Span<byte>.Empty);
+    }
 
     /// <summary>
     /// Writes a complete palette color-index map in AV1 diagonal wavefront order.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="paletteSize">The number of colors in the palette.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
     /// <param name="rows">The number of coded map rows.</param>
     /// <param name="columns">The number of coded map columns.</param>
     /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
-    public void WritePaletteColorMap(
-        int paletteSize,
-        Av1PlaneType planeType,
-        int rows,
-        int columns,
-        Av1PlaneRegion<byte> colorIndexMap)
-        => this.WritePaletteColorMap<SymbolWriteOperation>(paletteSize, planeType, rows, columns, colorIndexMap);
-
-    /// <inheritdoc cref="WritePaletteColorMap(int, Av1PlaneType, int, int, Av1PlaneRegion{byte})"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WritePaletteColorMap<TOperation>(
+        ref Span<byte> output,
         int paletteSize,
         Av1PlaneType planeType,
         int rows,
@@ -1075,6 +1056,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         where TOperation : struct, ISymbolOperation
     {
         _ = this.ProcessPaletteColorMap<PaletteColorMapWriteOperation<TOperation>>(
+            ref output,
             paletteSize,
             planeType,
             rows,
@@ -1100,7 +1082,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1PlaneRegion<byte> colorIndexMap,
         Span<byte> tokens)
     {
+        // Tokens update the probabilities and write no bytes, so no tile buffer is needed.
+        Span<byte> output = default;
         _ = this.ProcessPaletteColorMap<PaletteColorMapTokenOperation>(
+            ref output,
             paletteSize,
             planeType,
             rows,
@@ -1112,33 +1097,31 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes retained palette tokens in their previously selected order.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="paletteSize">The number of colors in the palette.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
     /// <param name="tokens">The raw first index followed by packed context and color-rank tokens.</param>
-    public void WritePaletteTokens(int paletteSize, Av1PlaneType planeType, ReadOnlySpan<byte> tokens)
+    public void WritePaletteTokens(ref Span<byte> output, int paletteSize, Av1PlaneType planeType, ReadOnlySpan<byte> tokens)
     {
-        this.WriteUniform(paletteSize, tokens[0]);
+        this.WriteUniform<SymbolWriteOperation>(ref output, paletteSize, tokens[0]);
         for (int i = 1; i < tokens.Length; i++)
         {
             byte token = tokens[i];
-            this.WritePaletteColorIndex(token & 7, paletteSize, token >> 4, planeType);
+            this.WritePaletteColorIndex<SymbolWriteOperation>(ref output, token & 7, paletteSize, token >> 4, planeType);
         }
     }
 
     /// <summary>
     /// Writes the frame-local intra-block-copy flag.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="value">Indicates whether intra-block copy is selected.</param>
-    public void WriteUseIntraBlockCopy(bool value)
-        => this.WriteUseIntraBlockCopy<SymbolWriteOperation>(value);
-
-    /// <inheritdoc cref="WriteUseIntraBlockCopy(bool)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteUseIntraBlockCopy<TOperation>(bool value)
+    public void WriteUseIntraBlockCopy<TOperation>(ref Span<byte> output, bool value)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, value, this.tileIntraBlockCopy);
+        _ = TOperation.ProcessSymbol(ref w, ref output, value, this.tileIntraBlockCopy);
     }
 
     /// <summary>
@@ -1152,16 +1135,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes an integer intra-block-copy displacement vector relative to a spatial reference.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="value">The displacement vector to encode.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
-    public void WriteDisplacementVector(Av1MotionVector value, Av1MotionVector reference)
-        => this.WriteDisplacementVector<SymbolWriteOperation>(value, reference);
-
-    /// <inheritdoc cref="WriteDisplacementVector(Av1MotionVector, Av1MotionVector)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteDisplacementVector<TOperation>(Av1MotionVector value, Av1MotionVector reference)
+    public void WriteDisplacementVector<TOperation>(ref Span<byte> output, Av1MotionVector value, Av1MotionVector reference)
         where TOperation : struct, ISymbolOperation
-        => this.displacementVector.Write<TOperation>(this.writer, value, reference, Av1MotionVectorPrecision.Integer);
+        => this.displacementVector.Write<TOperation>(this.writer, ref output, value, reference, Av1MotionVectorPrecision.Integer);
 
     /// <summary>
     /// Captures integer displacement rates without adapting the coding distributions.
@@ -1181,16 +1161,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes one switchable interpolation filter and updates its live tile distribution.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="filter">The regular, smooth, or sharp filter.</param>
     /// <param name="context">The spatial filter context for the selected direction.</param>
-    public void WriteSwitchableInterpolationFilter(Av1InterpolationFilter filter, int context)
-        => this.WriteSwitchableInterpolationFilter<SymbolWriteOperation>(filter, context);
-
-    /// <inheritdoc cref="WriteSwitchableInterpolationFilter(Av1InterpolationFilter, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteSwitchableInterpolationFilter<TOperation>(Av1InterpolationFilter filter, int context)
+    public void WriteSwitchableInterpolationFilter<TOperation>(ref Span<byte> output, Av1InterpolationFilter filter, int context)
         where TOperation : struct, ISymbolOperation
-        => TOperation.ProcessSymbol(ref this.writer, (int)filter, this.entropyContext.SwitchableInterpolation[context]);
+        => TOperation.ProcessSymbol(ref this.writer, ref output, (int)filter, this.entropyContext.SwitchableInterpolation[context]);
 
     /// <summary>
     /// Measures a single-reference inter mode against the live branch distributions.
@@ -1222,26 +1199,23 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a single-reference inter mode through the NEWMV, GLOBALMV, and NEARESTMV branch tree.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="mode">The new, global, nearest, or near motion-vector mode.</param>
     /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
-    public void WriteInterMode(Av1PredictionMode mode, int modeContext)
-        => this.WriteInterMode<SymbolWriteOperation>(mode, modeContext);
-
-    /// <inheritdoc cref="WriteInterMode(Av1PredictionMode, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteInterMode<TOperation>(Av1PredictionMode mode, int modeContext)
+    public void WriteInterMode<TOperation>(ref Span<byte> output, Av1PredictionMode mode, int modeContext)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
-        _ = TOperation.ProcessSymbol(ref w, isNotNew, this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isNotNew, this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)]);
         if (!isNotNew)
         {
             return;
         }
 
         bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
-        _ = TOperation.ProcessSymbol(ref w, isNotGlobal, this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isNotGlobal, this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)]);
         if (!isNotGlobal)
         {
             return;
@@ -1249,6 +1223,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         _ = TOperation.ProcessSymbol(
             ref w,
+            ref output,
             mode == Av1PredictionMode.NearMotionVector,
             this.referenceMotionVector[Av1SymbolContextHelper.GetRefMvContext(modeContext)]);
     }
@@ -1265,18 +1240,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes one dynamic-reference-list advance decision.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="advance">Whether selection advances to the next candidate.</param>
     /// <param name="context">The candidate-weight context.</param>
-    public void WriteDynamicReferenceList(bool advance, int context)
-        => this.WriteDynamicReferenceList<SymbolWriteOperation>(advance, context);
-
-    /// <inheritdoc cref="WriteDynamicReferenceList(bool, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteDynamicReferenceList<TOperation>(bool advance, int context)
+    public void WriteDynamicReferenceList<TOperation>(ref Span<byte> output, bool advance, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, advance, this.dynamicReferenceList[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, advance, this.dynamicReferenceList[context]);
     }
 
     /// <summary>
@@ -1301,23 +1273,18 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes an inter motion vector relative to its selected stack reference.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="value">The selected motion vector.</param>
     /// <param name="reference">The differential reference from the candidate stack.</param>
     /// <param name="precision">The fractional precision selected by the frame header.</param>
-    public void WriteMotionVector(
-        Av1MotionVector value,
-        Av1MotionVector reference,
-        Av1MotionVectorPrecision precision)
-        => this.WriteMotionVector<SymbolWriteOperation>(value, reference, precision);
-
-    /// <inheritdoc cref="WriteMotionVector(Av1MotionVector, Av1MotionVector, Av1MotionVectorPrecision)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WriteMotionVector<TOperation>(
+        ref Span<byte> output,
         Av1MotionVector value,
         Av1MotionVector reference,
         Av1MotionVectorPrecision precision)
         where TOperation : struct, ISymbolOperation
-        => this.motionVector.Write<TOperation>(this.writer, value, reference, precision);
+        => this.motionVector.Write<TOperation>(this.writer, ref output, value, reference, precision);
 
     /// <summary>
     /// Gets the current fixed-point cost of a complete block partition symbol.
@@ -1331,32 +1298,26 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a complete block partition type using the selected partition context.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="partitionType">The partition type to encode.</param>
     /// <param name="context">The partition probability context.</param>
-    public void WritePartitionType(Av1PartitionType partitionType, int context)
-        => this.WritePartitionType<SymbolWriteOperation>(partitionType, context);
-
-    /// <inheritdoc cref="WritePartitionType(Av1PartitionType, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WritePartitionType<TOperation>(Av1PartitionType partitionType, int context)
+    public void WritePartitionType<TOperation>(ref Span<byte> output, Av1PartitionType partitionType, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, (int)partitionType, this.tilePartitionTypes[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)partitionType, this.tilePartitionTypes[context]);
     }
 
     /// <summary>
     /// Writes the split-versus-horizontal boundary decision for a block clipped at the bottom tile edge.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="partitionType">The split or horizontal partition outcome.</param>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
-    public void WriteSplitOrHorizontal(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
-        => this.WriteSplitOrHorizontal<SymbolWriteOperation>(partitionType, blockSize, context);
-
-    /// <inheritdoc cref="WriteSplitOrHorizontal(Av1PartitionType, Av1BlockSize, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteSplitOrHorizontal<TOperation>(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    public void WriteSplitOrHorizontal<TOperation>(ref Span<byte> output, Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
         where TOperation : struct, ISymbolOperation
     {
         if (TOperation.WritesOutput)
@@ -1364,7 +1325,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             uint frequency = Av1SymbolDecoder.GetSplitOrHorizontalFrequency(this.tilePartitionTypes, blockSize, context);
             bool value = partitionType == Av1PartitionType.Split;
             ref Av1SymbolWriter w = ref this.writer;
-            _ = TOperation.ProcessBoolean(ref w, value, frequency);
+            _ = TOperation.ProcessBoolean(ref w, ref output, value, frequency);
         }
     }
 
@@ -1393,15 +1354,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the split-versus-vertical boundary decision for a block clipped at the right tile edge.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="partitionType">The split or vertical partition outcome.</param>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
-    public void WriteSplitOrVertical(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
-        => this.WriteSplitOrVertical<SymbolWriteOperation>(partitionType, blockSize, context);
-
-    /// <inheritdoc cref="WriteSplitOrVertical(Av1PartitionType, Av1BlockSize, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteSplitOrVertical<TOperation>(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    public void WriteSplitOrVertical<TOperation>(ref Span<byte> output, Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
         where TOperation : struct, ISymbolOperation
     {
         if (TOperation.WritesOutput)
@@ -1409,7 +1367,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             uint frequency = Av1SymbolDecoder.GetSplitOrVerticalFrequency(this.tilePartitionTypes, blockSize, context);
             bool value = partitionType == Av1PartitionType.Split;
             ref Av1SymbolWriter w = ref this.writer;
-            _ = TOperation.ProcessBoolean(ref w, value, frequency);
+            _ = TOperation.ProcessBoolean(ref w, ref output, value, frequency);
         }
     }
 
@@ -1436,46 +1394,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Encodes one transform block's coefficient syntax using scan-order probability contexts.
-    /// </summary>
-    /// <param name="transformSize">The signaled transform size.</param>
-    /// <param name="transformType">The transform type selecting the scan and context class.</param>
-    /// <param name="intraDirection">The block's intra prediction mode.</param>
-    /// <param name="coefficientBuffer">The raster-ordered signed coefficient levels.</param>
-    /// <param name="componentType">The luma or chroma component category.</param>
-    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
-    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
-    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
-    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
-    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
-    /// <returns>The packed coefficient context used by adjacent transform blocks.</returns>
-    public int WriteCoefficients(
-        Av1TransformSize transformSize,
-        Av1TransformType transformType,
-        Av1PredictionMode intraDirection,
-        ReadOnlySpan<int> coefficientBuffer,
-        Av1ComponentType componentType,
-        Av1TransformBlockContext transformBlockContext,
-        ushort endOfBlock,
-        bool useReducedTransformSet,
-        Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet)
-        => this.WriteCoefficients<SymbolWriteOperation>(
-            transformSize,
-            transformType,
-            intraDirection,
-            coefficientBuffer,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            useReducedTransformSet,
-            filterIntraMode,
-            usesInterTransformSet);
-
-    /// <summary>
     /// Processes finalized coefficient symbols and returns the neighboring coefficient context.
     /// </summary>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="transformSize">The transform dimensions.</param>
     /// <param name="transformType">The selected transform type.</param>
     /// <param name="intraDirection">The luma prediction mode.</param>
@@ -1488,6 +1410,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="usesInterTransformSet">Whether inter transform syntax applies.</param>
     /// <returns>The coefficient context consumed by adjacent transforms.</returns>
     public int WriteCoefficients<TOperation>(
+        ref Span<byte> output,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         Av1PredictionMode intraDirection,
@@ -1505,6 +1428,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
         _ = this.ProcessTransformBlockSkip<TOperation>(
+            ref output,
             endOfBlock == 0,
             transformSizeContext,
             transformBlockContext.SkipContext);
@@ -1534,6 +1458,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         if (componentType == Av1ComponentType.Luminance)
         {
             _ = this.ProcessTransformType<TOperation>(
+                ref output,
                 transformType,
                 transformSize,
                 usesInterTransformSet,
@@ -1544,6 +1469,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         _ = this.ProcessEndOfBlockPosition<TOperation>(
+            ref output,
             endOfBlock,
             componentType,
             transformClass,
@@ -1567,6 +1493,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             {
                 _ = TOperation.ProcessSymbol(
                     ref w,
+                    ref output,
                     Math.Min(level, 3) - 1,
                     this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coefficientContext]);
             }
@@ -1574,6 +1501,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             {
                 _ = TOperation.ProcessSymbol(
                     ref w,
+                    ref output,
                     Math.Min(level, 3),
                     this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext]);
             }
@@ -1594,6 +1522,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                     int symbol = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
                     _ = TOperation.ProcessSymbol(
                         ref w,
+                        ref output,
                         symbol,
                         this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
 
@@ -1621,17 +1550,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 {
                     _ = TOperation.ProcessSymbol(
                         ref w,
+                        ref output,
                         (int)sign,
                         this.dcSign[(int)componentType][transformBlockContext.DcSignContext]);
                 }
                 else
                 {
-                    _ = TOperation.ProcessLiteral(ref w, sign, 1);
+                    _ = TOperation.ProcessLiteral(ref w, ref output, sign, 1);
                 }
 
                 if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
                 {
                     this.WriteGolomb<TOperation>(
+                        ref output,
                         level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount);
                 }
             }
@@ -2076,17 +2007,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes an end-of-block token and its context-coded and literal suffix bits.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="endOfBlock">The one-based final nonzero scan position.</param>
     /// <param name="componentType">The luma or chroma component category.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <param name="transformSize">The signaled transform size selecting the token alphabet.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
-    public void WriteEndOfBlockPosition(ushort endOfBlock, Av1ComponentType componentType, Av1TransformClass transformClass, Av1TransformSize transformSize, Av1TransformSize transformSizeContext)
-        => this.WriteEndOfBlockPosition<SymbolWriteOperation>(endOfBlock, componentType, transformClass, transformSize, transformSizeContext);
-
-    /// <inheritdoc cref="WriteEndOfBlockPosition(ushort, Av1ComponentType, Av1TransformClass, Av1TransformSize, Av1TransformSize)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WriteEndOfBlockPosition<TOperation>(
+        ref Span<byte> output,
         ushort endOfBlock,
         Av1ComponentType componentType,
         Av1TransformClass transformClass,
@@ -2095,6 +2024,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         where TOperation : struct, ISymbolOperation
     {
         _ = this.ProcessEndOfBlockPosition<TOperation>(
+            ref output,
             endOfBlock,
             componentType,
             transformClass,
@@ -2102,7 +2032,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             transformSizeContext);
     }
 
+    /// <summary>
+    /// Processes an end-of-block token and its context-coded and literal suffix bits.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="transformSize">The signaled transform size selecting the token alphabet.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <returns>The rate of the processed syntax, or zero for an operation that does not measure rate.</returns>
     private int ProcessEndOfBlockPosition<TOperation>(
+        ref Span<byte> output,
         ushort endOfBlock,
         Av1ComponentType componentType,
         Av1TransformClass transformClass,
@@ -2112,6 +2054,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     {
         short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int eobExtra);
         int rate = this.ProcessEndOfBlockFlag<TOperation>(
+            ref output,
             componentType,
             transformClass,
             transformSize,
@@ -2129,12 +2072,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             int endOfBlockContext = endOfBlockPosition;
             rate += TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 bit,
                 this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockContext]);
 
             // The context-coded high bit has already been consumed. The literal writer emits the remaining
             // low-order suffix most-significant-bit first, preserving the AV1 syntax with one traversal call.
-            rate += TOperation.ProcessLiteral(ref w, (uint)eobExtra, eobOffsetBitCount - 1);
+            rate += TOperation.ProcessLiteral(ref w, ref output, (uint)eobExtra, eobOffsetBitCount - 1);
         }
 
         return rate;
@@ -2164,21 +2108,28 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes whether a transform block has no coded coefficients.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="skip">Indicates whether the transform block is empty.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
-    public void WriteTransformBlockSkip(bool skip, Av1TransformSize transformSizeContext, int skipContext)
-        => this.WriteTransformBlockSkip<SymbolWriteOperation>(skip, transformSizeContext, skipContext);
-
-    /// <inheritdoc cref="WriteTransformBlockSkip(bool, Av1TransformSize, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteTransformBlockSkip<TOperation>(bool skip, Av1TransformSize transformSizeContext, int skipContext)
+    public void WriteTransformBlockSkip<TOperation>(ref Span<byte> output, bool skip, Av1TransformSize transformSizeContext, int skipContext)
         where TOperation : struct, ISymbolOperation
     {
-        _ = this.ProcessTransformBlockSkip<TOperation>(skip, transformSizeContext, skipContext);
+        _ = this.ProcessTransformBlockSkip<TOperation>(ref output, skip, transformSizeContext, skipContext);
     }
 
+    /// <summary>
+    /// Processes whether a transform block has no coded coefficients.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="skip">Indicates whether the transform block is empty.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <returns>The rate of the processed symbol, or zero for an operation that does not measure rate.</returns>
     private int ProcessTransformBlockSkip<TOperation>(
+        ref Span<byte> output,
         bool skip,
         Av1TransformSize transformSizeContext,
         int skipContext)
@@ -2187,6 +2138,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ref Av1SymbolWriter w = ref this.writer;
         return TOperation.ProcessSymbol(
             ref w,
+            ref output,
             skip ? 1 : 0,
             this.transformBlockSkip[(int)transformSizeContext][skipContext]);
     }
@@ -2207,20 +2159,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the selected transform size as its subdivision depth from the block maximum.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="blockSize">The block size defining the maximum transform.</param>
     /// <param name="transformSize">The selected transform size.</param>
     /// <param name="context">The neighboring transform-size context.</param>
-    public void WriteTransformSize(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
-        => this.WriteTransformSize<SymbolWriteOperation>(blockSize, transformSize, context);
-
-    /// <inheritdoc cref="WriteTransformSize(Av1BlockSize, Av1TransformSize, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteTransformSize<TOperation>(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+    public void WriteTransformSize<TOperation>(ref Span<byte> output, Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
         where TOperation : struct, ISymbolOperation
     {
         int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, selectedDepth, this.transformSize[categoryDepth - 1][context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, selectedDepth, this.transformSize[categoryDepth - 1][context]);
     }
 
     /// <summary>
@@ -2235,18 +2184,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes one variable-transform partition decision.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="split">Indicates whether the current transform node is split.</param>
     /// <param name="context">The neighboring variable-transform context.</param>
-    public void WriteTransformPartition(bool split, int context)
-        => this.WriteTransformPartition<SymbolWriteOperation>(split, context);
-
-    /// <inheritdoc cref="WriteTransformPartition(bool, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteTransformPartition<TOperation>(bool split, int context)
+    public void WriteTransformPartition<TOperation>(ref Span<byte> output, bool split, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, split ? 1 : 0, this.transformPartition[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, split ? 1 : 0, this.transformPartition[context]);
     }
 
     private static int GetTransformSizeDepth(
@@ -2283,23 +2229,23 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         => this.writer.Exit();
 
     /// <summary>
-    /// Finalizes the range-coded tile payload and exposes its encoded prefix without copying.
+    /// Finalizes the range-coded payload of the tile. Its bytes stay in the buffer of the tile.
     /// </summary>
-    /// <param name="length">The number of encoded bytes in the returned memory.</param>
-    /// <returns>The encoded prefix, valid until this encoder is reset or disposed.</returns>
-    public ReadOnlyMemory<byte> Exit(out int length)
-        => this.writer.Exit(out length);
+    /// <returns>The number of encoded bytes of the tile.</returns>
+    public int ExitTile()
+        => this.writer.ExitTile();
 
     /// <summary>
-    /// Exposes a prefix containing every consecutively encoded tile without copying their bytes.
+    /// Gets the encoded bytes of a tile from its tile buffer, without a copy.
     /// </summary>
-    /// <param name="length">The number of bytes in the prefix.</param>
-    /// <returns>The encoded prefix, valid until this encoder is reset or disposed.</returns>
-    public ReadOnlyMemory<byte> GetOutput(int length)
-        => this.writer.GetOutput(length);
+    /// <param name="tileIndex">The index of the tile in the frame.</param>
+    /// <param name="length">The number of encoded bytes that <see cref="ExitTile"/> returned for the tile.</param>
+    /// <returns>The bytes of the tile, valid until the tile is written again or this encoder is disposed.</returns>
+    public ReadOnlySpan<byte> GetTileOutput(int tileIndex, int length)
+        => this.writer.GetTileOutput(tileIndex, length);
 
     /// <summary>
-    /// Releases the range-coder output buffer and coefficient scratch memory.
+    /// Releases the tile buffers of the range coder and coefficient scratch memory.
     /// </summary>
     public void Dispose()
     {
@@ -2315,17 +2261,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the unsigned exponential-Golomb suffix used for coefficient levels beyond the base range.
     /// </summary>
+    /// <typeparam name="TOperation">The tile symbol operation.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="level">The nonnegative suffix value.</param>
-    public void WriteGolomb(int level)
-        => this.WriteGolomb<SymbolWriteOperation>(level);
-
-    private void WriteGolomb<TOperation>(int level)
+    public void WriteGolomb<TOperation>(ref Span<byte> output, int level)
         where TOperation : struct, ISymbolOperation
     {
         uint x = (uint)level + 1u;
         int length = GetGolombBitLength(level);
-        _ = TOperation.ProcessLiteral(ref this.writer, 0u, length - 1);
-        _ = TOperation.ProcessLiteral(ref this.writer, x, length);
+        _ = TOperation.ProcessLiteral(ref this.writer, ref output, 0u, length - 1);
+        _ = TOperation.ProcessLiteral(ref this.writer, ref output, x, length);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2353,11 +2298,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the end-of-block token for a transform coefficient-count category.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="componentType">The luma or chroma component category.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="endOfBlockPosition">The one-based end-of-block token.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <returns>The rate of the processed symbol, or zero for an operation that does not measure rate.</returns>
     private int ProcessEndOfBlockFlag<TOperation>(
+        ref Span<byte> output,
         Av1ComponentType componentType,
         Av1TransformClass transformClass,
         Av1TransformSize transformSize,
@@ -2369,6 +2318,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ref Av1SymbolWriter w = ref this.writer;
         return TOperation.ProcessSymbol(
             ref w,
+            ref output,
             endOfBlockPosition - 1,
             this.endOfBlockFlag[endOfBlockMultiSize][(int)componentType][endOfBlockContext]);
     }
@@ -2452,6 +2402,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a transform type when the permitted transform set contains multiple choices.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="transformType">The transform type to encode.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
@@ -2459,26 +2410,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
     /// <param name="intraDirection">The ordinary intra prediction mode.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
-    public void WriteTransformType(
-        Av1TransformType transformType,
-        Av1TransformSize transformSize,
-        bool useReducedTransformSet,
-        int baseQIndex,
-        Av1FilterIntraMode filterIntraMode,
-        Av1PredictionMode intraDirection,
-        bool usesInterTransformSet)
-        => this.WriteTransformType<SymbolWriteOperation>(
-            transformType,
-            transformSize,
-            useReducedTransformSet,
-            baseQIndex,
-            filterIntraMode,
-            intraDirection,
-            usesInterTransformSet);
-
-    /// <inheritdoc cref="WriteTransformType(Av1TransformType, Av1TransformSize, bool, int, Av1FilterIntraMode, Av1PredictionMode, bool)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WriteTransformType<TOperation>(
+        ref Span<byte> output,
         Av1TransformType transformType,
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
@@ -2489,6 +2423,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         where TOperation : struct, ISymbolOperation
     {
         _ = this.ProcessTransformType<TOperation>(
+            ref output,
             transformType,
             transformSize,
             usesInterTransformSet,
@@ -2498,7 +2433,21 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             intraDirection);
     }
 
+    /// <summary>
+    /// Processes a transform type when the permitted transform set contains multiple choices.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="transformType">The transform type to encode.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <returns>The rate of the processed symbol, or zero for an operation that does not measure rate.</returns>
     private int ProcessTransformType<TOperation>(
+        ref Span<byte> output,
         Av1TransformType transformType,
         Av1TransformSize transformSize,
         bool usesInterTransformSet,
@@ -2530,6 +2479,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 // Inter transforms are conditioned only by the transform set and square size.
                 return TOperation.ProcessSymbol(
                     ref w,
+                    ref output,
                     transformIndex,
                     this.interExtendedTransform[extendedSet][(int)squareTransformSize]);
             }
@@ -2548,6 +2498,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             DebugGuard.MustBeLessThan((int)squareTransformSize, 4, nameof(squareTransformSize));
             return TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 transformIndex,
                 this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraDirectionContext]);
         }
@@ -2558,31 +2509,29 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a spatially predicted segment identifier.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="segmentId">The segment identifier.</param>
     /// <param name="context">The context derived from neighboring segment identifiers.</param>
-    public void WriteSegmentId(int segmentId, int context)
-        => this.WriteSegmentId<SymbolWriteOperation>(segmentId, context);
-
-    /// <inheritdoc cref="WriteSegmentId(int, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteSegmentId<TOperation>(int segmentId, int context)
+    public void WriteSegmentId<TOperation>(ref Span<byte> output, int segmentId, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, segmentId, this.segmentId[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, segmentId, this.segmentId[context]);
     }
 
     /// <summary>
     /// Writes whether a segment identifier is taken from the primary reference frame's map.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="predicted">Whether the identifier is predicted.</param>
     /// <param name="context">The context derived from the neighbors' prediction flags.</param>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteSegmentIdPredicted<TOperation>(bool predicted, int context)
+    public void WriteSegmentIdPredicted<TOperation>(ref Span<byte> output, bool predicted, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, predicted ? 1 : 0, this.segmentIdPredicted[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, predicted ? 1 : 0, this.segmentIdPredicted[context]);
     }
 
     /// <summary>
@@ -2597,27 +2546,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the transform-skip flag from a neighboring skip context.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
     /// <param name="context">The neighboring skip context.</param>
-    public void WriteSkip(bool skip, int context)
-        => this.WriteSkip<SymbolWriteOperation>(skip, context);
-
-    /// <inheritdoc cref="WriteSkip(bool, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteSkip<TOperation>(bool skip, int context)
+    public void WriteSkip<TOperation>(ref Span<byte> output, bool skip, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, skip, this.skip[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, skip, this.skip[context]);
     }
-
-    /// <summary>
-    /// Writes the compound-reference skip-mode flag.
-    /// </summary>
-    /// <param name="skip">Indicates whether skip mode is selected.</param>
-    /// <param name="context">The neighboring skip-mode context.</param>
-    public void WriteSkipMode(bool skip, int context)
-        => this.WriteSkipMode<SymbolWriteOperation>(skip, context);
 
     /// <summary>
     /// Gets the compound skip-mode flag cost.
@@ -2625,13 +2563,18 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     public int GetSkipModeCost(bool skip, int context)
         => this.ModeCosts.GetSkipMode(context, skip ? 1 : 0);
 
-    /// <inheritdoc cref="WriteSkipMode(bool, int)"/>
+    /// <summary>
+    /// Writes the compound-reference skip-mode flag.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="skip">Indicates whether skip mode is selected.</param>
+    /// <param name="context">The neighboring skip-mode context.</param>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteSkipMode<TOperation>(bool skip, int context)
+    public void WriteSkipMode<TOperation>(ref Span<byte> output, bool skip, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, skip, this.skipMode[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, skip, this.skipMode[context]);
     }
 
     /// <summary>
@@ -2655,35 +2598,29 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the filter-intra enable flag and, when enabled, its prediction mode.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="blockSize">The block size selecting the enable distribution.</param>
-    public void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
-        => this.WriteFilterIntraMode<SymbolWriteOperation>(filterIntraMode, blockSize);
-
-    /// <inheritdoc cref="WriteFilterIntraMode(Av1FilterIntraMode, Av1BlockSize)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteFilterIntraMode<TOperation>(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+    public void WriteFilterIntraMode<TOperation>(ref Span<byte> output, Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
-        _ = TOperation.ProcessSymbol(ref w, useFilter, this.filterIntra[(int)blockSize]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, useFilter, this.filterIntra[(int)blockSize]);
         if (useFilter)
         {
-            _ = TOperation.ProcessSymbol(ref w, (int)filterIntraMode, this.filterIntraMode);
+            _ = TOperation.ProcessSymbol(ref w, ref output, (int)filterIntraMode, this.filterIntraMode);
         }
     }
 
     /// <summary>
     /// Writes a signed quantizer-index delta value.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="deltaQindex">The signed quantizer-index delta.</param>
-    public void WriteDeltaQuantizerIndex(int deltaQindex)
-        => this.WriteDeltaQuantizerIndex<SymbolWriteOperation>(deltaQindex);
-
-    /// <inheritdoc cref="WriteDeltaQuantizerIndex(int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteDeltaQuantizerIndex<TOperation>(int deltaQindex)
+    public void WriteDeltaQuantizerIndex<TOperation>(ref Span<byte> output, int deltaQindex)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
@@ -2691,20 +2628,20 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int abs = Math.Abs(deltaQindex);
         bool isSmallValue = abs < Av1Constants.DeltaQuantizerSmall;
 
-        _ = TOperation.ProcessSymbol(ref w, Math.Min(abs, Av1Constants.DeltaQuantizerSmall), this.deltaQuantizerAbsolute);
+        _ = TOperation.ProcessSymbol(ref w, ref output, Math.Min(abs, Av1Constants.DeltaQuantizerSmall), this.deltaQuantizerAbsolute);
 
         if (!isSmallValue)
         {
             // Escape magnitudes encode their bit width first, followed by the offset within that width's range.
             int remainingBitCount = Av1Math.MostSignificantBit((uint)(abs - 1));
             int threshold = (1 << remainingBitCount) + 1;
-            _ = TOperation.ProcessLiteral(ref w, (uint)(remainingBitCount - 1), 3);
-            _ = TOperation.ProcessLiteral(ref w, (uint)(abs - threshold), remainingBitCount);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(remainingBitCount - 1), 3);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(abs - threshold), remainingBitCount);
         }
 
         if (abs > 0)
         {
-            _ = TOperation.ProcessLiteral(ref w, sign ? 1u : 0u, 1);
+            _ = TOperation.ProcessLiteral(ref w, ref output, sign ? 1u : 0u, 1);
         }
     }
 
@@ -2721,19 +2658,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a key-frame luma prediction mode using the above and left mode contexts.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="lumaMode">The luma prediction mode.</param>
     /// <param name="topContext">The reduced above-mode context.</param>
     /// <param name="leftContext">The reduced left-mode context.</param>
-    public void WriteLumaMode(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
-        => this.WriteLumaMode<SymbolWriteOperation>(lumaMode, topContext, leftContext);
-
-    /// <inheritdoc cref="WriteLumaMode(Av1PredictionMode, byte, byte)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteLumaMode<TOperation>(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+    public void WriteLumaMode<TOperation>(ref Span<byte> output, Av1PredictionMode lumaMode, byte topContext, byte leftContext)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, (int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
     }
 
     /// <summary>
@@ -2748,18 +2682,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes an intra luma mode coded inside an inter frame.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="lumaMode">The intra luma mode.</param>
     /// <param name="blockSize">The coding block size selecting the size group.</param>
-    public void WriteInterFrameLumaMode(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
-        => this.WriteInterFrameLumaMode<SymbolWriteOperation>(lumaMode, blockSize);
-
-    /// <inheritdoc cref="WriteInterFrameLumaMode(Av1PredictionMode, Av1BlockSize)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteInterFrameLumaMode<TOperation>(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+    public void WriteInterFrameLumaMode<TOperation>(ref Span<byte> output, Av1PredictionMode lumaMode, Av1BlockSize blockSize)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, (int)lumaMode, this.frameYMode[blockSize.GetSizeGroup()]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)lumaMode, this.frameYMode[blockSize.GetSizeGroup()]);
     }
 
     /// <summary>
@@ -2774,18 +2705,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the prediction-domain decision for an inter-frame block.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="isInter">Whether the block uses a retained reference frame.</param>
     /// <param name="context">The neighboring prediction-domain context.</param>
-    public void WriteIsInter(bool isInter, int context)
-        => this.WriteIsInter<SymbolWriteOperation>(isInter, context);
-
-    /// <inheritdoc cref="WriteIsInter(bool, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteIsInter<TOperation>(bool isInter, int context)
+    public void WriteIsInter<TOperation>(ref Span<byte> output, bool isInter, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, isInter, this.intraInter[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isInter, this.intraInter[context]);
     }
 
     /// <summary>
@@ -2831,29 +2759,25 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes one reference through the single-reference branch tree.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="referenceFrame">The selected reference-frame label.</param>
     /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
-    public void WriteSingleReference(
-        Av1ReferenceFrameType referenceFrame,
-        ReadOnlySpan<byte> referenceCounts)
-        => this.WriteSingleReference<SymbolWriteOperation>(referenceFrame, referenceCounts);
-
-    /// <inheritdoc cref="WriteSingleReference(Av1ReferenceFrameType, ReadOnlySpan{byte})"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WriteSingleReference<TOperation>(
+        ref Span<byte> output,
         Av1ReferenceFrameType referenceFrame,
-        ReadOnlySpan<byte> referenceCounts)
+        scoped ReadOnlySpan<byte> referenceCounts)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
         int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
-        _ = TOperation.ProcessSymbol(ref w, isBackward, this.singleReference[context][0]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isBackward, this.singleReference[context][0]);
         if (isBackward)
         {
             bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
             context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
-            _ = TOperation.ProcessSymbol(ref w, isAlternate, this.singleReference[context][1]);
+            _ = TOperation.ProcessSymbol(ref w, ref output, isAlternate, this.singleReference[context][1]);
             if (isAlternate)
             {
                 return;
@@ -2862,6 +2786,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
             _ = TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 referenceFrame == Av1ReferenceFrameType.Alternate2,
                 this.singleReference[context][5]);
 
@@ -2870,12 +2795,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
         context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
-        _ = TOperation.ProcessSymbol(ref w, isLast3OrGolden, this.singleReference[context][2]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isLast3OrGolden, this.singleReference[context][2]);
         if (isLast3OrGolden)
         {
             context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
             _ = TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 referenceFrame == Av1ReferenceFrameType.Golden,
                 this.singleReference[context][4]);
 
@@ -2885,6 +2811,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
         _ = TOperation.ProcessSymbol(
             ref w,
+            ref output,
             referenceFrame == Av1ReferenceFrameType.Last2,
             this.singleReference[context][3]);
     }
@@ -2986,30 +2913,33 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes whether an eligible inter block uses compound-reference prediction.
     /// </summary>
-    public void WriteIsCompoundReference<TOperation>(bool isCompound, int context)
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="isCompound">Whether the block uses two references.</param>
+    /// <param name="context">The compound-reference selection context.</param>
+    public void WriteIsCompoundReference<TOperation>(ref Span<byte> output, bool isCompound, int context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, isCompound, this.compoundInter[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isCompound, this.compoundInter[context]);
     }
 
     /// <summary>
     /// Writes the bounded LAST+GOLDEN compound-reference path.
     /// </summary>
-    public void WriteLastGoldenCompoundReference(
-        int referenceModeContext,
-        int compoundTypeContext,
-        ReadOnlySpan<byte> referenceCounts)
-        => this.WriteLastGoldenCompoundReference<SymbolWriteOperation>(referenceModeContext, compoundTypeContext, referenceCounts);
-
-    /// <inheritdoc cref="WriteLastGoldenCompoundReference(int, int, ReadOnlySpan{byte})"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="referenceModeContext">The compound-reference selection context.</param>
+    /// <param name="compoundTypeContext">The compound-reference type context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
     public void WriteLastGoldenCompoundReference<TOperation>(
+        ref Span<byte> output,
         int referenceModeContext,
         int compoundTypeContext,
-        ReadOnlySpan<byte> referenceCounts)
+        scoped ReadOnlySpan<byte> referenceCounts)
         where TOperation : struct, ISymbolOperation
         => this.WriteCompoundReference<TOperation>(
+            ref output,
             Av1ReferenceFrameType.Last,
             Av1ReferenceFrameType.Golden,
             referenceModeContext,
@@ -3019,25 +2949,33 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes one legal AV1 compound-reference pair through its unidirectional or bidirectional tree.
     /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="primaryReference">The first reference frame of the pair.</param>
+    /// <param name="secondaryReference">The second reference frame of the pair.</param>
+    /// <param name="referenceModeContext">The compound-reference selection context.</param>
+    /// <param name="compoundTypeContext">The compound-reference type context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
     public void WriteCompoundReference<TOperation>(
+        ref Span<byte> output,
         Av1ReferenceFrameType primaryReference,
         Av1ReferenceFrameType secondaryReference,
         int referenceModeContext,
         int compoundTypeContext,
-        ReadOnlySpan<byte> referenceCounts)
+        scoped ReadOnlySpan<byte> referenceCounts)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, true, this.compoundInter[referenceModeContext]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, true, this.compoundInter[referenceModeContext]);
         bool isUnidirectional = (primaryReference < Av1ReferenceFrameType.Backward) ==
             (secondaryReference < Av1ReferenceFrameType.Backward);
 
-        _ = TOperation.ProcessSymbol(ref w, !isUnidirectional, this.compoundReferenceType[compoundTypeContext]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, !isUnidirectional, this.compoundReferenceType[compoundTypeContext]);
         if (isUnidirectional)
         {
             bool isBackwardPair = primaryReference == Av1ReferenceFrameType.Backward;
             int context = Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts);
-            _ = TOperation.ProcessSymbol(ref w, isBackwardPair, this.unidirectionalCompoundReference[context][0]);
+            _ = TOperation.ProcessSymbol(ref w, ref output, isBackwardPair, this.unidirectionalCompoundReference[context][0]);
             if (isBackwardPair)
             {
                 return;
@@ -3045,7 +2983,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
             bool isLast3OrGolden = secondaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
             context = Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts);
-            _ = TOperation.ProcessSymbol(ref w, isLast3OrGolden, this.unidirectionalCompoundReference[context][1]);
+            _ = TOperation.ProcessSymbol(ref w, ref output, isLast3OrGolden, this.unidirectionalCompoundReference[context][1]);
             if (!isLast3OrGolden)
             {
                 return;
@@ -3054,6 +2992,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             context = Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts);
             _ = TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 secondaryReference == Av1ReferenceFrameType.Golden,
                 this.unidirectionalCompoundReference[context][2]);
 
@@ -3062,12 +3001,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         bool isLast3OrGoldenPrimary = primaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
         int forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast3OrGoldenContext(referenceCounts);
-        _ = TOperation.ProcessSymbol(ref w, isLast3OrGoldenPrimary, this.compoundReference[forwardContext][0]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isLast3OrGoldenPrimary, this.compoundReference[forwardContext][0]);
         if (isLast3OrGoldenPrimary)
         {
             forwardContext = Av1SymbolContextHelper.GetCompoundForwardGoldenContext(referenceCounts);
             _ = TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 primaryReference == Av1ReferenceFrameType.Golden,
                 this.compoundReference[forwardContext][2]);
         }
@@ -3076,18 +3016,20 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast2Context(referenceCounts);
             _ = TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 primaryReference == Av1ReferenceFrameType.Last2,
                 this.compoundReference[forwardContext][1]);
         }
 
         bool isAlternate = secondaryReference == Av1ReferenceFrameType.Alternate;
         int backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternateContext(referenceCounts);
-        _ = TOperation.ProcessSymbol(ref w, isAlternate, this.compoundBackwardReference[backwardContext][0]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isAlternate, this.compoundBackwardReference[backwardContext][0]);
         if (!isAlternate)
         {
             backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternate2Context(referenceCounts);
             _ = TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 secondaryReference == Av1ReferenceFrameType.Alternate2,
                 this.compoundBackwardReference[backwardContext][1]);
         }
@@ -3104,18 +3046,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes one compound motion-vector mode.
     /// </summary>
-    public void WriteInterCompoundMode(Av1PredictionMode mode, int modeContext)
-        => this.WriteInterCompoundMode<SymbolWriteOperation>(mode, modeContext);
-
-    /// <inheritdoc cref="WriteInterCompoundMode(Av1PredictionMode, int)"/>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="mode">The compound motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteInterCompoundMode<TOperation>(Av1PredictionMode mode, int modeContext)
+    public void WriteInterCompoundMode<TOperation>(ref Span<byte> output, Av1PredictionMode mode, int modeContext)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         int context = Av1SymbolContextHelper.GetCompoundModeContext(modeContext);
         int symbol = (int)mode - (int)Av1PredictionMode.NearestNearestMotionVector;
-        _ = TOperation.ProcessSymbol(ref w, symbol, this.interCompoundMode[context]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, symbol, this.interCompoundMode[context]);
     }
 
     /// <summary>
@@ -3144,10 +3085,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// nothing when only simple translation is allowed, the OBMC flag when OBMC is the last allowed mode, and
     /// the three-way mode otherwise.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="lastAllowedMode">The last motion mode the block may signal.</param>
     /// <param name="motionMode">The selected motion mode.</param>
-    public void WriteMotionMode<TOperation>(Av1BlockSize blockSize, Av1MotionMode lastAllowedMode, Av1MotionMode motionMode)
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteMotionMode<TOperation>(ref Span<byte> output, Av1BlockSize blockSize, Av1MotionMode lastAllowedMode, Av1MotionMode motionMode)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
@@ -3156,10 +3099,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             case Av1MotionMode.SimpleTranslation:
                 break;
             case Av1MotionMode.Obmc:
-                _ = TOperation.ProcessSymbol(ref w, motionMode == Av1MotionMode.Obmc, this.obmc[(int)blockSize]);
+                _ = TOperation.ProcessSymbol(ref w, ref output, motionMode == Av1MotionMode.Obmc, this.obmc[(int)blockSize]);
                 break;
             default:
-                _ = TOperation.ProcessSymbol(ref w, (int)motionMode, this.motionMode[(int)blockSize]);
+                _ = TOperation.ProcessSymbol(ref w, ref output, (int)motionMode, this.motionMode[(int)blockSize]);
                 break;
         }
     }
@@ -3167,7 +3110,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the inter-intra flag and its dependent mode and wedge syntax.
     /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="enabled">Whether the block uses inter-intra prediction.</param>
+    /// <param name="mode">The inter-intra prediction mode.</param>
+    /// <param name="useWedge">Whether the inter-intra prediction uses a wedge mask.</param>
+    /// <param name="wedgeIndex">The wedge mask index.</param>
     public void WriteInterIntra<TOperation>(
+        ref Span<byte> output,
         Av1BlockSize blockSize,
         bool enabled,
         Av1InterIntraMode mode,
@@ -3177,17 +3128,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     {
         ref Av1SymbolWriter w = ref this.writer;
         int sizeGroup = blockSize.GetSizeGroup();
-        _ = TOperation.ProcessSymbol(ref w, enabled, this.interIntra[sizeGroup]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, enabled, this.interIntra[sizeGroup]);
         if (!enabled)
         {
             return;
         }
 
-        _ = TOperation.ProcessSymbol(ref w, (int)mode, this.interIntraMode[sizeGroup]);
-        _ = TOperation.ProcessSymbol(ref w, useWedge, this.wedgeInterIntra[(int)blockSize]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)mode, this.interIntraMode[sizeGroup]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, useWedge, this.wedgeInterIntra[(int)blockSize]);
         if (useWedge)
         {
-            _ = TOperation.ProcessSymbol(ref w, wedgeIndex, this.wedgeIndex[(int)blockSize]);
+            _ = TOperation.ProcessSymbol(ref w, ref output, wedgeIndex, this.wedgeIndex[(int)blockSize]);
         }
     }
 
@@ -3233,7 +3184,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes the retained compound blend syntax.
     /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="compoundType">The compound prediction type.</param>
+    /// <param name="compoundGroupContext">The context of the masked compound flag.</param>
+    /// <param name="compoundIndexContext">The context of the distance-weighted compound flag.</param>
+    /// <param name="wedgeIndex">The wedge mask index of a wedge compound.</param>
+    /// <param name="wedgeSign">The wedge sign of a wedge compound.</param>
+    /// <param name="differenceWeightedMaskType">The mask type of a difference-weighted compound.</param>
+    /// <param name="maskedCompoundEnabled">Whether the sequence enables masked compound prediction.</param>
+    /// <param name="jointCompoundEnabled">Whether the sequence enables distance-weighted compound prediction.</param>
     public void WriteCompoundBlend<TOperation>(
+        ref Span<byte> output,
         Av1BlockSize blockSize,
         Av1CompoundType compoundType,
         int compoundGroupContext,
@@ -3249,7 +3212,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
         if (maskedCompoundEnabled)
         {
-            _ = TOperation.ProcessSymbol(ref w, masked, this.compoundGroupIndex[compoundGroupContext]);
+            _ = TOperation.ProcessSymbol(ref w, ref output, masked, this.compoundGroupIndex[compoundGroupContext]);
         }
 
         if (!masked)
@@ -3261,6 +3224,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             {
                 _ = TOperation.ProcessSymbol(
                     ref w,
+                    ref output,
                     compoundType == Av1CompoundType.Average,
                     this.compoundIndex[compoundIndexContext]);
             }
@@ -3278,18 +3242,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         {
             _ = TOperation.ProcessSymbol(
                 ref w,
+                ref output,
                 compoundType == Av1CompoundType.DifferenceWeighted,
                 this.compoundType[(int)blockSize]);
         }
 
         if (compoundType == Av1CompoundType.Wedge)
         {
-            _ = TOperation.ProcessSymbol(ref w, wedgeIndex, this.wedgeIndex[(int)blockSize]);
-            _ = TOperation.ProcessLiteral(ref w, wedgeSign ? 1u : 0u, 1);
+            _ = TOperation.ProcessSymbol(ref w, ref output, wedgeIndex, this.wedgeIndex[(int)blockSize]);
+            _ = TOperation.ProcessLiteral(ref w, ref output, wedgeSign ? 1u : 0u, 1);
         }
         else
         {
-            _ = TOperation.ProcessLiteral(ref w, (uint)differenceWeightedMaskType, 1);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)differenceWeightedMaskType, 1);
         }
     }
 
@@ -3305,37 +3270,31 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes an unsigned directional angle-delta symbol.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
     /// <param name="context">The directional prediction mode selecting the distribution.</param>
-    public void WriteAngleDelta(int angleDelta, Av1PredictionMode context)
-        => this.WriteAngleDelta<SymbolWriteOperation>(angleDelta, context);
-
-    /// <inheritdoc cref="WriteAngleDelta(int, Av1PredictionMode)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteAngleDelta<TOperation>(int angleDelta, Av1PredictionMode context)
+    public void WriteAngleDelta<TOperation>(ref Span<byte> output, int angleDelta, Av1PredictionMode context)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, angleDelta, this.angleDelta[context - Av1PredictionMode.Vertical]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, angleDelta, this.angleDelta[context - Av1PredictionMode.Vertical]);
     }
 
     /// <summary>
     /// Writes a fixed-width CDEF strength index.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="cdefStrength">The CDEF strength index.</param>
     /// <param name="bitCount">The number of signaled bits.</param>
-    public void WriteCdefStrength(int cdefStrength, int bitCount)
-        => this.WriteCdefStrength<SymbolWriteOperation>(cdefStrength, bitCount);
-
-    /// <inheritdoc cref="WriteCdefStrength(int, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteCdefStrength<TOperation>(int cdefStrength, int bitCount)
+    public void WriteCdefStrength<TOperation>(ref Span<byte> output, int cdefStrength, int bitCount)
         where TOperation : struct, ISymbolOperation
     {
         if (TOperation.WritesOutput)
         {
             ref Av1SymbolWriter w = ref this.writer;
-            _ = TOperation.ProcessLiteral(ref w, (uint)cdefStrength, bitCount);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)cdefStrength, bitCount);
         }
     }
 
@@ -3364,37 +3323,31 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes a chroma intra prediction mode conditioned on the luma mode and chroma-from-luma availability.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="chromaMode">The chroma prediction mode.</param>
     /// <param name="isChromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
     /// <param name="lumaMode">The block's luma prediction mode.</param>
-    public void WriteChromaMode(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
-        => this.WriteChromaMode<SymbolWriteOperation>(chromaMode, isChromaFromLumaAllowed, lumaMode);
-
-    /// <inheritdoc cref="WriteChromaMode(Av1ChromaPredictionMode, bool, Av1PredictionMode)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteChromaMode<TOperation>(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+    public void WriteChromaMode<TOperation>(ref Span<byte> output, Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
-        _ = TOperation.ProcessSymbol(ref w, (int)chromaMode, this.uvMode[cflAllowed][(int)lumaMode]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)chromaMode, this.uvMode[cflAllowed][(int)lumaMode]);
     }
 
     /// <summary>
     /// Writes the joint chroma-from-luma signs and the magnitude index for each nonzero plane.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>
     /// <param name="joinedSign">The joint U/V sign symbol.</param>
-    public void WriteChromaFromLumaAlphas(int chromaFromLumaIndex, int joinedSign)
-        => this.WriteChromaFromLumaAlphas<SymbolWriteOperation>(chromaFromLumaIndex, joinedSign);
-
-    /// <inheritdoc cref="WriteChromaFromLumaAlphas(int, int)"/>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteChromaFromLumaAlphas<TOperation>(int chromaFromLumaIndex, int joinedSign)
+    public void WriteChromaFromLumaAlphas<TOperation>(ref Span<byte> output, int chromaFromLumaIndex, int joinedSign)
         where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        _ = TOperation.ProcessSymbol(ref w, joinedSign, this.chromaFromLumaSign);
+        _ = TOperation.ProcessSymbol(ref w, ref output, joinedSign, this.chromaFromLumaSign);
 
         // Magnitudes are only signaled for nonzero signs; the shared helper keeps encoder and decoder mappings exact.
         int signU = Av1ChromaFromLumaMath.SignU(joinedSign);
@@ -3402,7 +3355,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         {
             int contextU = Av1ChromaFromLumaMath.ContextU(joinedSign);
             int indexU = Av1ChromaFromLumaMath.IndexU(chromaFromLumaIndex);
-            _ = TOperation.ProcessSymbol(ref w, indexU, this.chromaFromLumaAlpha[contextU]);
+            _ = TOperation.ProcessSymbol(ref w, ref output, indexU, this.chromaFromLumaAlpha[contextU]);
         }
 
         int signV = Av1ChromaFromLumaMath.SignV(joinedSign);
@@ -3410,7 +3363,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         {
             int contextV = Av1ChromaFromLumaMath.ContextV(joinedSign);
             int indexV = Av1ChromaFromLumaMath.IndexV(chromaFromLumaIndex);
-            _ = TOperation.ProcessSymbol(ref w, indexV, this.chromaFromLumaAlpha[contextV]);
+            _ = TOperation.ProcessSymbol(ref w, ref output, indexV, this.chromaFromLumaAlpha[contextV]);
         }
     }
 
@@ -3418,14 +3371,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// Traverses a palette color-index map once for either live rate costing or entropy emission.
     /// </summary>
     /// <typeparam name="TOperation">The closed map-symbol operation.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="paletteSize">The number of colors in the palette.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
     /// <param name="rows">The number of coded map rows.</param>
     /// <param name="columns">The number of coded map columns.</param>
     /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
-    /// <returns>The rate cost in 1/512-bit units, or zero while writing.</returns>
     /// <param name="tokens">The token destination for retaining operations; otherwise an empty span.</param>
+    /// <returns>The rate cost in 1/512-bit units, or zero while writing.</returns>
     private int ProcessPaletteColorMap<TOperation>(
+        ref Span<byte> output,
         int paletteSize,
         Av1PlaneType planeType,
         int rows,
@@ -3435,7 +3390,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         where TOperation : struct, IPaletteColorMapOperation
     {
         int colorIndex = colorIndexMap.GetRowSpan(0)[0];
-        int cost = TOperation.ProcessFirstIndex(this, paletteSize, colorIndex);
+        int cost = TOperation.ProcessFirstIndex(this, ref output, paletteSize, colorIndex);
         if (TOperation.RetainsTokens)
         {
             tokens[0] = (byte)colorIndex;
@@ -3475,6 +3430,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
                 cost += TOperation.ProcessColorIndex(
                     this,
+                    ref output,
                     modeCosts,
                     paletteSize,
                     planeType,
@@ -3582,11 +3538,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Writes an ascending palette-color sequence as one literal followed by bounded deltas.
     /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="colors">The sorted colors.</param>
     /// <param name="bitDepth">The number of bits in each color sample.</param>
     /// <param name="minimumDelta">The minimum representable difference between adjacent colors.</param>
     private void WriteDeltaEncodedColors<TOperation>(
-        ReadOnlySpan<ushort> colors,
+        ref Span<byte> output,
+        scoped ReadOnlySpan<ushort> colors,
         int bitDepth,
         int minimumDelta)
         where TOperation : struct, ISymbolOperation
@@ -3596,7 +3554,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             return;
         }
 
-        this.WriteLiteral<TOperation>(colors[0], bitDepth);
+        this.WriteLiteral<TOperation>(ref output, colors[0], bitDepth);
         if (colors.Length == 1)
         {
             return;
@@ -3613,12 +3571,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             (int)Av1Math.CeilLog2((uint)(maximumDelta + 1 - minimumDelta)),
             minimumBits);
 
-        this.WriteLiteral<TOperation>((uint)(bits - minimumBits), 2);
+        this.WriteLiteral<TOperation>(ref output, (uint)(bits - minimumBits), 2);
         int range = (1 << bitDepth) - colors[0] - minimumDelta;
         for (int i = 1; i < colors.Length; i++)
         {
             int delta = colors[i] - colors[i - 1];
-            this.WriteLiteral<TOperation>((uint)(delta - minimumDelta), bits);
+            this.WriteLiteral<TOperation>(ref output, (uint)(delta - minimumDelta), bits);
             range -= delta;
             bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
         }
@@ -3667,31 +3625,33 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// <inheritdoc/>
         public static int ProcessSymbol(
             ref Av1SymbolWriter writer,
+            ref Span<byte> output,
             int symbol,
             Av1Distribution distribution)
         {
-            writer.WriteSymbol(symbol, distribution);
+            writer.WriteSymbol(ref output, symbol, distribution);
             return 0;
         }
 
         /// <inheritdoc/>
-        public static int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution)
-            => ProcessSymbol(ref writer, symbol ? 1 : 0, distribution);
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, ref output, symbol ? 1 : 0, distribution);
 
         /// <inheritdoc/>
-        public static int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency)
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency)
         {
-            writer.WriteBoolean(value, frequency);
+            writer.WriteBoolean(ref output, value, frequency);
             return 0;
         }
 
         /// <inheritdoc/>
         public static int ProcessLiteral(
             ref Av1SymbolWriter writer,
+            ref Span<byte> output,
             uint value,
             int bitCount)
         {
-            writer.WriteLiteral(value, bitCount);
+            writer.WriteLiteral(ref output, value, bitCount);
             return 0;
         }
     }
@@ -3707,6 +3667,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         /// <inheritdoc/>
         public static int ProcessSymbol(
             ref Av1SymbolWriter writer,
+            ref Span<byte> output,
             int symbol,
             Av1Distribution distribution)
         {
@@ -3715,15 +3676,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         /// <inheritdoc/>
-        public static int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution)
-            => ProcessSymbol(ref writer, symbol ? 1 : 0, distribution);
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, ref output, symbol ? 1 : 0, distribution);
 
         /// <inheritdoc/>
-        public static int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency)
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency)
             => 0;
 
         /// <inheritdoc/>
-        public static int ProcessLiteral(ref Av1SymbolWriter writer, uint value, int bitCount)
+        public static int ProcessLiteral(ref Av1SymbolWriter writer, ref Span<byte> output, uint value, int bitCount)
             => 0;
     }
 
@@ -3734,20 +3695,26 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     {
         public static bool WritesOutput => false;
 
+        /// <inheritdoc/>
         public static int ProcessSymbol(
             ref Av1SymbolWriter writer,
+            ref Span<byte> output,
             int symbol,
             Av1Distribution distribution)
             => Av1ProbabilityCost.GetSymbolCost(distribution, symbol);
 
-        public static int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution)
-            => ProcessSymbol(ref writer, symbol ? 1 : 0, distribution);
+        /// <inheritdoc/>
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, ref output, symbol ? 1 : 0, distribution);
 
-        public static int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency)
+        /// <inheritdoc/>
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency)
             => Av1ProbabilityCost.GetSymbolCost((int)(value ? frequency : Av1Distribution.ProbabilityTop - frequency));
 
+        /// <inheritdoc/>
         public static int ProcessLiteral(
             ref Av1SymbolWriter writer,
+            ref Span<byte> output,
             uint value,
             int bitCount)
             => Av1ProbabilityCost.GetLiteralCost(bitCount);
@@ -3759,19 +3726,24 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private readonly struct PaletteColorMapWriteOperation<TOperation> : IPaletteColorMapOperation
         where TOperation : struct, ISymbolOperation
     {
+        /// <inheritdoc/>
         public static bool RetainsTokens => false;
 
+        /// <inheritdoc/>
         public static int ProcessFirstIndex(
             Av1SymbolEncoder encoder,
+            ref Span<byte> output,
             int paletteSize,
             int colorIndex)
         {
-            encoder.WriteUniform<TOperation>(paletteSize, colorIndex);
+            encoder.WriteUniform<TOperation>(ref output, paletteSize, colorIndex);
             return 0;
         }
 
+        /// <inheritdoc/>
         public static int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            ref Span<byte> output,
             scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,
@@ -3779,6 +3751,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             int colorOrderIndex)
         {
             encoder.WritePaletteColorIndex<TOperation>(
+                ref output,
                 colorOrderIndex,
                 paletteSize,
                 colorContext,
@@ -3793,20 +3766,24 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// </summary>
     private readonly struct PaletteColorMapTokenOperation : IPaletteColorMapOperation
     {
+        /// <inheritdoc/>
         public static bool RetainsTokens => true;
 
-        public static int ProcessFirstIndex(Av1SymbolEncoder encoder, int paletteSize, int colorIndex)
+        /// <inheritdoc/>
+        public static int ProcessFirstIndex(Av1SymbolEncoder encoder, ref Span<byte> output, int paletteSize, int colorIndex)
             => 0;
 
+        /// <inheritdoc/>
         public static int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            ref Span<byte> output,
             scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,
             int colorContext,
             int colorOrderIndex)
         {
-            encoder.WritePaletteColorIndex<SymbolUpdateOperation>(colorOrderIndex, paletteSize, colorContext, planeType);
+            encoder.WritePaletteColorIndex<SymbolUpdateOperation>(ref output, colorOrderIndex, paletteSize, colorContext, planeType);
             return 0;
         }
     }
@@ -3816,16 +3793,21 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// </summary>
     private readonly struct PaletteColorMapCostOperation : IPaletteColorMapOperation
     {
+        /// <inheritdoc/>
         public static bool RetainsTokens => false;
 
+        /// <inheritdoc/>
         public static int ProcessFirstIndex(
             Av1SymbolEncoder encoder,
+            ref Span<byte> output,
             int paletteSize,
             int colorIndex)
             => GetUniformCost(paletteSize, colorIndex);
 
+        /// <inheritdoc/>
         public static int ProcessColorIndex(
             Av1SymbolEncoder encoder,
+            ref Span<byte> output,
             scoped Av1ModeCosts modeCosts,
             int paletteSize,
             Av1PlaneType planeType,

@@ -1177,7 +1177,7 @@ public static class TestImages
         public const string CieLabPlanar = "Tiff/CieLabPlanar.tiff";
         public const string CieLabLzwPredictor = "Tiff/CieLab_lzwcompressed_predictor.tiff";
 
-        // Libtiff-generated color conversion fixtures: 17 pixels cross a SIMD group and leave a tail.
+        // Libtiff-generated color conversion fixtures: 65-pixel rows fill SIMD groups and leave one pixel for the remainder.
         public const string Lab8Contiguous65X3 = "Tiff/ColorConversion/lab8-contig-65x3.tiff";
         public const string Lab8Planar65X3 = "Tiff/ColorConversion/lab8-planar-65x3.tiff";
         public const string Lab16LittleEndianContiguous65X3 = "Tiff/ColorConversion/lab16-le-contig-65x3.tiff";

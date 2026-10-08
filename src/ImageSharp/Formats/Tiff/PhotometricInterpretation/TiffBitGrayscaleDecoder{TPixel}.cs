@@ -59,7 +59,12 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
 
             if (Vector128.IsHardwareAccelerated && (this.bitsPerSample == 1 || this.bitsPerSample == 4 || this.bitsPerSample == 8))
             {
-                for (; x <= width - 16; x += 16)
+                // Each expansion produces sixteen pixels, regardless of the stored bit depth.
+                // Count groups from the destination so padding bits cannot create an extra group.
+                ReadOnlySpan<byte> pixelBytes = MemoryMarshal.AsBytes(pixelRow);
+                nuint groups = pixelBytes.Vector128Count<byte>() / (uint)Unsafe.SizeOf<TPixel>();
+
+                for (nuint group = 0; group < groups; group++, x += Vector128<byte>.Count)
                 {
                     Vector128<byte> rawCodes;
 
@@ -118,9 +123,12 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
 
                 if (Vector128.IsHardwareAccelerated)
                 {
+                    // Each float lane holds one extracted code. Only complete four-code groups enter SIMD.
+                    ReadOnlySpan<float> blockCodes = codes[..count];
+                    nuint groups = blockCodes.Vector128Count<float>();
                     ref float firstCode = ref MemoryMarshal.GetReference(codes);
 
-                    for (; i <= count - 4; i += 4)
+                    for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
                     {
                         ConvertFour(Vector128.LoadUnsafe(ref firstCode, (nuint)i), this.colorOperator, ref block[i]);
                     }

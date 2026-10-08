@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -27,13 +28,16 @@ internal static class TiffYCbCr8ColorConverter
     /// <param name="colorOperator">The TIFF reference-range and luma matrix.</param>
     public static void Convert(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, Span<Rgba32> destination, TiffYCbCr8Source source, in TiffYCbCrOperator colorOperator)
     {
+        ReadOnlySpan<byte> outputBytes = MemoryMarshal.AsBytes(destination);
         int i = 0;
 
+        // Each float lane converts one pixel into four RGBA bytes. Divide the output byte-register count by four
+        // to count complete pixel groups: sixteen pixels at 512 bits, eight at 256 bits, and four at 128 bits.
         if (Vector512.IsHardwareAccelerated)
         {
-            int lastVector = destination.Length - Vector512<float>.Count;
+            nuint groups = outputBytes.Vector512Count<byte>() / (uint)Unsafe.SizeOf<Rgba32>();
 
-            for (; i <= lastVector; i += Vector512<float>.Count)
+            for (nuint group = 0; group < groups; group++, i += Vector512<float>.Count)
             {
                 source.Read(source0, source1, source2, [], i, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr, out _);
                 colorOperator.ConvertByte(y, cb, cr, out Vector512<int> r, out Vector512<int> g, out Vector512<int> b);
@@ -46,9 +50,9 @@ internal static class TiffYCbCr8ColorConverter
 
         if (Vector256.IsHardwareAccelerated)
         {
-            int lastVector = destination.Length - Vector256<float>.Count;
+            nuint groups = outputBytes[(i * Unsafe.SizeOf<Rgba32>())..].Vector256Count<byte>() / (uint)Unsafe.SizeOf<Rgba32>();
 
-            for (; i <= lastVector; i += Vector256<float>.Count)
+            for (nuint group = 0; group < groups; group++, i += Vector256<float>.Count)
             {
                 source.Read(source0, source1, source2, [], i, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr, out _);
                 colorOperator.ConvertByte(y, cb, cr, out Vector256<int> r, out Vector256<int> g, out Vector256<int> b);
@@ -59,9 +63,9 @@ internal static class TiffYCbCr8ColorConverter
 
         if (Vector128.IsHardwareAccelerated)
         {
-            int lastVector = destination.Length - Vector128<float>.Count;
+            nuint groups = outputBytes[(i * Unsafe.SizeOf<Rgba32>())..].Vector128Count<byte>() / (uint)Unsafe.SizeOf<Rgba32>();
 
-            for (; i <= lastVector; i += Vector128<float>.Count)
+            for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
             {
                 source.Read(source0, source1, source2, [], i, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr, out _);
                 colorOperator.ConvertByte(y, cb, cr, out Vector128<int> r, out Vector128<int> g, out Vector128<int> b);
@@ -69,6 +73,7 @@ internal static class TiffYCbCr8ColorConverter
             }
         }
 
+        // Convert the remaining zero to three pixels individually. With SIMD disabled, this handles the whole row.
         for (; i < destination.Length; i++)
         {
             source.Read(source0, source1, source2, [], i, out float y, out float cb, out float cr, out _);

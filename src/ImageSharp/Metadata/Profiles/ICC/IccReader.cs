@@ -87,8 +87,8 @@ internal sealed class IccReader
             throw new InvalidIccProfileException("Invalid ICC profile.");
         }
 
-        // Copy only after validation to give the profile an exact-length, independently owned payload.
-        IccProfile profile = new(data.ToArray());
+        // Retain only the declared profile bytes so lazy tag parsing uses the same boundary as validation.
+        IccProfile profile = new(data[..(int)declaredSize].ToArray());
         if (!profile.CheckIsValid())
         {
             throw new InvalidIccProfileException("Invalid ICC profile.");

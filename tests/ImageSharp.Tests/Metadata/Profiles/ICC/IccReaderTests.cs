@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc;
@@ -30,6 +31,54 @@ public class IccReaderTests
         Assert.Equal(expectedDataColorSpace, profile.Header.DataColorSpace);
         Assert.Equal(expectedConnectionSpace, profile.Header.ProfileConnectionSpace);
         Assert.Equal(expectedDataSize, profile.Header.Size);
+    }
+
+    /// <summary>
+    /// Checks that bytes beyond a real profile's declared size are excluded from the retained payload.
+    /// </summary>
+    [Fact]
+    public void ToProfile_WithTrailingData_RetainsDeclaredProfileOnly()
+    {
+        IccProfile source = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2);
+        byte[] profileData = source.ToByteArray();
+
+        // Append another real profile as trailing data without changing the first profile's declared size.
+        byte[] data = ArrayHelper.Concat(profileData, profileData);
+        using MemoryStream stream = new(data);
+        IccReader reader = new();
+
+        Assert.Equal(data.Length, reader.Read(stream, data.Length));
+        IccProfile profile = reader.ToProfile();
+
+        Assert.Equal(profileData, profile.ToByteArray());
+        Assert.Equal(source.Entries.Length, profile.Entries.Length);
+    }
+
+    /// <summary>
+    /// Checks that readable tag data outside the declared profile is skipped during lazy parsing.
+    /// </summary>
+    [Fact]
+    public void ToProfile_WithTagOutsideDeclaredSize_IgnoresTag()
+    {
+        IccProfile source = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2);
+        byte[] profileData = source.ToByteArray();
+        byte[] data = ArrayHelper.Concat(profileData, profileData);
+
+        // The first tag's offset follows the 128-byte header, four-byte tag count and four-byte tag signature.
+        // Point it at the same valid tag in the appended profile: readable bytes exist, but outside the declared boundary.
+        const int firstTagOffset = 128 + sizeof(uint) + sizeof(uint);
+        uint originalOffset = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(firstTagOffset));
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(firstTagOffset), (uint)profileData.Length + originalOffset);
+
+        using MemoryStream stream = new(data);
+        IccReader reader = new();
+
+        Assert.Equal(data.Length, reader.Read(stream, data.Length));
+        IccProfile profile = reader.ToProfile();
+
+        // Malformed tags are skipped by the existing parser; trailing data must not make this tag acceptable.
+        Assert.DoesNotContain(profile.Entries, entry => entry.TagSignature == source.Entries[0].TagSignature);
+        Assert.Equal(source.Entries.Length - 1, profile.Entries.Length);
     }
 
     [Fact]

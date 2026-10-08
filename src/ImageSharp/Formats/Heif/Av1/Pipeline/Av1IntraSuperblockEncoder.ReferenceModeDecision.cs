@@ -2361,6 +2361,9 @@ internal static partial class Av1IntraSuperblockEncoder
             // A coding block can contain several maximum-size transforms. Each root consumes the
             // contexts left by its predecessor, while the bound retains both coded and skipped costs.
             int rootCount = width4 * height4 / (rootWidth4 * rootHeight4);
+
+            // Every node of every root transform tree uses the same workspace buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
             for (int root = 0; root < rootCount; root++)
             {
                 Point offset = rootSize.GetBlockPartitionOrigin(modeInfo.BlockSize, rootSize, root, 0, 0);
@@ -2386,7 +2389,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         : costLimit - (uniformSearch ? uniformCurrentCost : Math.Min(skipCost, codedCost));
 
                     Av1RateDistortionStatistics rootStatistics = this.SelectInterTransformNode(
-                        writer,
+                        in transformBuffers,
                         macroBlock,
                         blockOrigin,
                         coefficientNeighbors,
@@ -2663,8 +2666,27 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Selects a transform node and its children while keeping trial entropy contexts local.
         /// </summary>
+        /// <param name="buffers">The writer and its rate tables, which the root of the tree reads once.</param>
+        /// <param name="macroBlock">The block and its neighbor availability.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="coefficientNeighbors">The coefficient contexts of the tile.</param>
+        /// <param name="modeInfo">The mode information of the block, which records the selected transform sizes.</param>
+        /// <param name="transformSize">The transform size of this node.</param>
+        /// <param name="row">The node row in four-sample units.</param>
+        /// <param name="column">The node column in four-sample units.</param>
+        /// <param name="depth">The split depth of this node.</param>
+        /// <param name="coefficientAbove">The trial top coefficient contexts.</param>
+        /// <param name="coefficientLeft">The trial left coefficient contexts.</param>
+        /// <param name="transformAbove">The trial top transform-size contexts.</param>
+        /// <param name="transformLeft">The trial left transform-size contexts.</param>
+        /// <param name="states">The transform block states of the tree.</param>
+        /// <param name="stateCount">The number of states that the tree holds.</param>
+        /// <param name="parentCost">The cost of the parent node, which bounds the split.</param>
+        /// <param name="costLimit">The cost at which the search of this node stops.</param>
+        /// <param name="rootIndex">The index of the root transform that holds this node.</param>
+        /// <returns>The statistics of the best choice for this node, or invalid statistics when the limit stopped it.</returns>
         private Av1RateDistortionStatistics SelectInterTransformNode(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1NeighborArrayUnit<byte> coefficientNeighbors,
@@ -2688,6 +2710,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return Av1RateDistortionStatistics.Invalid;
             }
 
+            Av1SymbolEncoder writer = buffers.Writer;
             Av1BlockSize blockSize = modeInfo.BlockSize;
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
@@ -2839,6 +2862,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out long predictionDistortion);
 
                 int zeroRate = writer.GetCoefficientCost(
+                    buffers.Tables,
                     transformSize,
                     Av1TransformType.DctDct,
                     modeInfo.Mode,
@@ -2974,7 +2998,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     for (int x = 0; x < width4 && column + x < visibleWidth4; x += childWidth4)
                     {
                         Av1RateDistortionStatistics child = this.SelectInterTransformNode(
-                            writer,
+                            in buffers,
                             macroBlock,
                             blockOrigin,
                             coefficientNeighbors,

@@ -2246,6 +2246,9 @@ internal static partial class Av1TransformBlockEncoder
 
         bool exitEarly = false;
         Span<int> transformWorkspace = workspace.TransformWorkspace;
+
+        // Every transform block of the estimate is priced with the same rate tables, so they are read once.
+        Av1CoefficientTables tables = writer.GetCoefficientTables();
         for (int y = 0; y < activeSize.Height; y += height)
         {
             for (int x = 0; x < activeSize.Width; x += width)
@@ -2298,6 +2301,7 @@ internal static partial class Av1TransformBlockEncoder
                 }
 
                 int transformRate = writer.GetCoefficientCost(
+                    in tables,
                     transformSize,
                     Av1TransformType.DctDct,
                     Av1PredictionMode.DC,

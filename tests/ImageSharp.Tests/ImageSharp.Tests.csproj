@@ -43,7 +43,8 @@
         https://github.com/dotnet/arcade/issues/8483
       -->
     <PackageReference Include="BenchmarkDotNet" Version="0.13.0" />
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" />
+    <!-- HDRI retains floating ICC output, including values outside the unsigned sixteen-bit range. -->
+    <PackageReference Include="Magick.NET-Q16-HDRI-AnyCPU" Version="14.16.0" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Moq" />
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />

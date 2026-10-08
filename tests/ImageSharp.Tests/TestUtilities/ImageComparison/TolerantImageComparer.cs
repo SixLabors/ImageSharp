@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -48,14 +50,17 @@ public class TolerantImageComparer : ImageComparer
 
     /// <summary>
     /// Gets the threshold of the individual pixels before they accumulate towards the overall difference.
-    /// For an individual <see cref="Rgba64"/> pixel pair the value is the Manhattan distance of pixels:
+    /// Floating-point component differences are expressed in sixteen-bit units to retain existing threshold values.
+    /// The value is the sum of the absolute component differences:
     /// <see>
     ///     <cref>https://en.wikipedia.org/wiki/Taxicab_geometry</cref>
     /// </see>
     /// </summary>
     public int PerPixelManhattanThreshold { get; }
 
-    public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(int index, ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
+    /// <inheritdoc />
+    public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
+        int index, ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
     {
         if (expected.Size != actual.Size)
         {
@@ -64,9 +69,11 @@ public class TolerantImageComparer : ImageComparer
 
         int width = actual.Width;
 
-        // TODO: Comparing through Rgba64 may not robust enough because of the existence of super high precision pixel types.
-        Rgba64[] aBuffer = new Rgba64[width];
-        Rgba64[] bBuffer = new Rgba64[width];
+        // Reuse floating-point rows so comparison does not quantize or clip the decoded components.
+        RgbaVector[] aBuffer = new RgbaVector[width];
+        RgbaVector[] bBuffer = new RgbaVector[width];
+        Span<Vector4> aVectors = MemoryMarshal.Cast<RgbaVector, Vector4>(aBuffer.AsSpan());
+        Span<Vector4> bVectors = MemoryMarshal.Cast<RgbaVector, Vector4>(bBuffer.AsSpan());
 
         float totalDifference = 0F;
 
@@ -74,20 +81,38 @@ public class TolerantImageComparer : ImageComparer
         Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;
+        bool associated = TPixelA.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated
+            && TPixelB.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
 
         for (int y = 0; y < actual.Height; y++)
         {
             Span<TPixelA> aSpan = expectedBuffer.DangerousGetRowSpan(y);
             Span<TPixelB> bSpan = actualBuffer.DangerousGetRowSpan(y);
 
-            PixelOperations<TPixelA>.Instance.ToRgba64(configuration, aSpan, aBuffer);
-            PixelOperations<TPixelB>.Instance.ToRgba64(configuration, bSpan, bBuffer);
+            if (associated)
+            {
+                // Compare stored RGB when both formats are associated. Unassociation would amplify differences at low alpha.
+                PixelOperations<TPixelA>.Instance.ToAssociatedScaledVector4(configuration, aSpan, aVectors);
+                PixelOperations<TPixelB>.Instance.ToAssociatedScaledVector4(configuration, bSpan, bVectors);
+            }
+            else
+            {
+                // Mixed alpha representations need straight RGB on both sides before their components can be compared.
+                PixelOperations<TPixelA>.Instance.ToUnassociatedScaledVector4(configuration, aSpan, aVectors);
+                PixelOperations<TPixelB>.Instance.ToUnassociatedScaledVector4(configuration, bSpan, bVectors);
+            }
 
             for (int x = 0; x < width; x++)
             {
-                int d = GetManhattanDistanceInRgbaSpace(ref aBuffer[x], ref bBuffer[x]);
+                // Equal infinities and matching NaNs have no difference; subtracting them would instead produce NaN.
+                if (aBuffer[x] == bBuffer[x])
+                {
+                    continue;
+                }
 
-                if (d > this.PerPixelManhattanThreshold)
+                float d = GetManhattanDistanceInRgbaSpace(ref aBuffer[x], ref bBuffer[x]);
+
+                if (!(d <= this.PerPixelManhattanThreshold))
                 {
                     PixelDifference diff = new(new Point(x, y), aBuffer[x], bBuffer[x]);
                     differences.Add(diff);
@@ -100,7 +125,8 @@ public class TolerantImageComparer : ImageComparer
         float normalizedDifference = totalDifference / (actual.Width * (float)actual.Height);
         normalizedDifference /= 4F * 65535F;
 
-        if (normalizedDifference > this.ImageThreshold)
+        // A non-finite difference must also fail; comparing only with '>' would silently accept NaN.
+        if (!(normalizedDifference <= this.ImageThreshold))
         {
             return new ImageSimilarityReport<TPixelA, TPixelB>(index, expected, actual, differences, normalizedDifference);
         }
@@ -110,12 +136,17 @@ public class TolerantImageComparer : ImageComparer
         }
     }
 
+    /// <summary>
+    /// Calculates the sum of absolute RGBA differences in sixteen-bit component units.
+    /// </summary>
+    /// <param name="a">The first floating-point pixel.</param>
+    /// <param name="b">The second floating-point pixel.</param>
+    /// <returns>The component distance, including fractional sixteen-bit codes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetManhattanDistanceInRgbaSpace(ref Rgba64 a, ref Rgba64 b)
+    private static float GetManhattanDistanceInRgbaSpace(ref RgbaVector a, ref RgbaVector b)
     {
-        return Diff(a.R, b.R) + Diff(a.G, b.G) + Diff(a.B, b.B) + Diff(a.A, b.A);
+        // Keep the existing threshold units: one eight-bit code equals 257 sixteen-bit units.
+        Vector4 delta = Vector4.Abs(a.ToScaledVector4() - b.ToScaledVector4()) * ushort.MaxValue;
+        return delta.X + delta.Y + delta.Z + delta.W;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int Diff(ushort a, ushort b) => Math.Abs(a - b);
 }

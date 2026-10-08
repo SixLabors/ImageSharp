@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+using Xunit.Sdk;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
@@ -233,6 +234,75 @@ public partial class PngDecoderTests
         ImageComparer.Exact.VerifySimilarity(image, preserved);
         Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
         Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), skippedMetadataInfo.Metadata.IccProfile.ToByteArray());
+    }
+
+    /// <summary>
+    /// Checks whole-image ICC conversion with straight and associated floating-point destinations.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The real Adobe RGB PNG fixture.</param>
+    [Theory]
+    [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void Decode_IccWithAlpha_UsesStraightColorChannels<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunIccAlphaDecode,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512v2 | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Restores the destination pixel type for each hardware configuration.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void RunIccAlphaDecode(string providerDump, string intrinsics)
+    {
+        // RemoteExecutor requires a non-generic callback; WithFile restricts the provider to these two pixel types.
+        switch (FeatureTestRunner.DeserializeForXunit<IXunitSerializable>(providerDump))
+        {
+            case TestImageProvider<RgbaVector> provider:
+                AssertIccAlphaDecode(provider, intrinsics);
+                break;
+            case TestImageProvider<RgbaVectorP> provider:
+                AssertIccAlphaDecode(provider, intrinsics);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Compares converted pixels with an independent ICC decoder and checks profile handling.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The real Adobe RGB PNG fixture.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void AssertIccAlphaDecode<TPixel>(TestImageProvider<TPixel> provider, string intrinsics)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        using Image<TPixel> preserved = provider.GetImage(PngDecoder.Instance, preserveOptions);
+
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> converted = provider.GetImage(PngDecoder.Instance, convertOptions);
+
+        TestFile file = TestFile.Create(provider.SourceFileOrDescription);
+        ImageInfo sourceInfo = Image.Identify(file.Bytes);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Null(converted.Metadata.IccProfile);
+        ImageComparer.Exact.VerifySimilarity(preserved, converted);
+
+        using MemoryStream stream = new(file.Bytes);
+        DecoderOptions referenceOptions = new() { Configuration = provider.Configuration };
+        using Image<TPixel> expected = MagickReferenceDecoder.Png.Decode<TPixel>(referenceOptions, stream);
+
+        // Converted pixels are sRGB; retaining the Adobe RGB profile on the dump would make its displayed colors wrong.
+        preserved.Metadata.IccProfile = null;
+        preserved.DebugSave(provider, intrinsics, extension: "png", encoder: new PngEncoder { BitDepth = PngBitDepth.Bit16 });
+
+        // This eight-bit fixture includes partial and zero alpha. The allowance covers three one-code RGB differences (771 sixteen-bit units).
+        // A zero image threshold rejects every pixel above that allowance, so opaque pixels cannot hide errors at partial alpha.
+        ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)).VerifySimilarity(expected, preserved);
     }
 
     [Theory]

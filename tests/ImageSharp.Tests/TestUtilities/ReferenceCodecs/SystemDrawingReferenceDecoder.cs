@@ -34,7 +34,10 @@ public class SystemDrawingReferenceDecoder : ImageDecoder
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
-        using SDBitmap sourceBitmap = new(stream);
+        // Bitmap(Stream) leaves embedded ICC color correction disabled. Its RGB values then belong to the source profile.
+        // ImageSharp and Magick convert profiled images to sRGB, so the reference must apply the profile too.
+        // Enable GDI+ color correction here to compare converted colors rather than RGB values from different color spaces.
+        using SDBitmap sourceBitmap = new(stream, useIcm: true);
         if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
         {
             return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sourceBitmap);

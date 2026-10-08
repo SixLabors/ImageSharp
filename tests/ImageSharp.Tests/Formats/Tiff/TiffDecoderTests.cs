@@ -964,10 +964,12 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
 
         // libtiff recompressed Perceptual_RGB8 losslessly, retaining its source RGB samples and IFD profile.
-        // Magick applies that profile independently; this comparison catches omitted and repeated ICC transforms.
-        image.DebugSave(provider);
+        // Compare with the uncompressed source in TPixel to check the nested decoder's full output, including out-of-range float RGB.
+        using Image<TPixel> uncompressed = Image.Load<TPixel>(options, TestFile.Create(Icc.PerceptualRgb8).Bytes);
+        ImageComparer.Tolerant(0.001F).VerifySimilarity(uncompressed, image);
 
-        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.001F), ReferenceDecoder);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.001F), ReferenceDecoder, options);
 
         Assert.Null(image.Metadata.IccProfile);
         Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);

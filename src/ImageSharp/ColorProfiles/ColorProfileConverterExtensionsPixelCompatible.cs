@@ -50,6 +50,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         }
 
         // Process the rows in parallel chunks, the converter itself is thread safe.
+        // Request straight scaled vectors on both sides of ICC. The processor uses the destination pixel's rules to restore association.
         source.Mutate(o => o.ProcessPixelRowsAsVector4(
             row =>
             {
@@ -57,7 +58,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
 
                 converter.Convert(row, rgbBuffer.Memory.Span);
             },
-            PixelConversionModifiers.Scale));
+            PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
     }
 
     /// <summary>

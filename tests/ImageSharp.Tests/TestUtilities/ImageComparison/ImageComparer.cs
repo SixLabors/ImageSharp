@@ -5,6 +5,10 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
+/// <summary>
+/// Compares scaled RGBA components. Two associated formats are compared using their stored associated components;
+/// other pairs are compared using unassociated components.
+/// </summary>
 public abstract class ImageComparer
 {
     public static ImageComparer Exact { get; } = Tolerant(0, 0);

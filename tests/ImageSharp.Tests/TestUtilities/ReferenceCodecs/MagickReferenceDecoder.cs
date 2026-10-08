@@ -1,9 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using ImageMagick;
 using ImageMagick.Formats;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -81,7 +85,7 @@ public class MagickReferenceDecoder : ImageDecoder
         int imageHeight = (int)magickImageCollection.Max(x => x.Height);
 
         List<ImageFrame<TPixel>> framesList = [];
-        foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
+        foreach (IMagickImage<float> magicFrame in magickImageCollection)
         {
             uint sourceDepth = magicFrame.Depth;
             bool transformed = false;
@@ -115,25 +119,53 @@ public class MagickReferenceDecoder : ImageDecoder
                 (int)magicFrame.Width,
                 (int)magicFrame.Height);
 
-            using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
+            using IUnsafePixelCollection<float> pixels = magicFrame.GetPixelsUnsafe();
 
             bool isLowDepth = sourceDepth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1;
             bool isHighDepth = sourceDepth is 14 or 16 or 32;
 
-            // ICC conversion generates Q16 samples even from 8-bit sources; retain that precision for the reference.
-            if (isLowDepth && !transformed)
+            // ICC conversion changes the samples, not the PNG's declared bit depth.
+            if (isHighDepth && this.imageFormat is PngFormat)
+            {
+                metadata.GetPngMetadata().BitDepth = PngBitDepth.Bit16;
+            }
+
+            if (transformed)
+            {
+                // Magick's Q16-HDRI samples use 65535 for full intensity and opaque alpha, but ICC output can exceed that range.
+                // Read the float samples directly. Exporting bytes or ushorts would clip RGB and hide differences from our decoder.
+                // Dividing by Quantum.Max maps full intensity to 1 while retaining negative RGB and RGB above 1.
+                float[] data = pixels.GetValues();
+                TensorPrimitives.Multiply(data, 1F / Quantum.Max, data);
+                ReadOnlySpan<float> samples = data;
+                int rowLength = buffer.Width * (int)magicFrame.ChannelCount;
+                using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(buffer.Width);
+
+                for (int y = 0; y < buffer.Height; y++)
+                {
+                    Span<Vector4> row = vectors.Memory.Span;
+                    if (magicFrame.HasAlpha)
+                    {
+                        MemoryMarshal.Cast<float, Vector4>(samples[..rowLength]).CopyTo(row);
+                    }
+                    else
+                    {
+                        Rgb.ToScaledVector4(MemoryMarshal.Cast<float, Rgb>(samples[..rowLength]), row);
+                    }
+
+                    // Magick supplies straight RGB. This packer applies TPixel's alpha representation, numeric range and precision.
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, row, buffer.DangerousGetRowSpan(y));
+                    samples = samples[rowLength..];
+                }
+            }
+            else if (isLowDepth)
             {
                 byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 
                 FromRgba32Bytes(configuration, data, buffer);
             }
-            else if (isHighDepth || (isLowDepth && transformed))
+            else if (isHighDepth)
             {
-                if (isHighDepth && this.imageFormat is PngFormat png)
-                {
-                    metadata.GetPngMetadata().BitDepth = PngBitDepth.Bit16;
-                }
-
                 ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
                 Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());
                 FromRgba64Bytes(configuration, bytes, buffer);

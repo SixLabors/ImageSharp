@@ -56,21 +56,36 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
     }
 
     /// <summary>
-    /// Gets a buffer holding the partition context of the previous 4x4 block row.
+    /// Gets all of the above-neighbor storage. The tile reader reads it once per tile and passes it to every accessor.
     /// </summary>
-    public Span<byte> AbovePartitionWidth => this.GetRegion(PartitionWidthRegionIndex);
+    /// <returns>The whole above-neighbor storage.</returns>
+    public Span<byte> GetStorage()
+    {
+        ObjectDisposedException.ThrowIf(this.memory is null, this);
+        return this.memory.Memory.Span;
+    }
 
     /// <summary>
-    /// Gets a buffer holding the transform sizes of the previous 4x4 block row.
+    /// Gets the partition context of the previous 4x4 block row.
     /// </summary>
-    public Span<byte> AboveTransformWidth => this.GetRegion(TransformWidthRegionIndex);
+    /// <param name="storage">All of the above-neighbor storage, from <see cref="GetStorage"/>.</param>
+    /// <returns>The partition contexts.</returns>
+    public Span<byte> GetPartitionWidths(Span<byte> storage) => this.GetRegion(storage, PartitionWidthRegionIndex);
+
+    /// <summary>
+    /// Gets the transform sizes of the previous 4x4 block row.
+    /// </summary>
+    /// <param name="storage">All of the above-neighbor storage, from <see cref="GetStorage"/>.</param>
+    /// <returns>The transform widths.</returns>
+    public Span<byte> GetTransformWidths(Span<byte> storage) => this.GetRegion(storage, TransformWidthRegionIndex);
 
     /// <summary>
     /// Gets the coefficient context row for the specified plane.
     /// </summary>
+    /// <param name="storage">All of the above-neighbor storage, from <see cref="GetStorage"/>.</param>
     /// <param name="plane">The zero-based plane index.</param>
     /// <returns>The coefficient contexts for the plane.</returns>
-    public Span<byte> GetContext(int plane) => this.GetRegion(PlaneContextRegionStart + plane);
+    public Span<byte> GetContext(Span<byte> storage, int plane) => this.GetRegion(storage, PlaneContextRegionStart + plane);
 
     /// <summary>
     /// Returns the above-neighbor storage to the configured memory allocator.
@@ -96,42 +111,51 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
 
         // Edge transforms inspect their nominal extent even when the visible tile ends sooner. Reset the
         // superblock padding as well, and scale coefficient-context extents to each plane's sampling grid.
-        this.AboveTransformWidth[..width].Fill((byte)Av1TransformSize.Size64x64.GetWidth());
-        this.AbovePartitionWidth[..width].Clear();
+        Span<byte> storage = this.GetStorage();
+        this.GetTransformWidths(storage)[..width].Fill((byte)Av1TransformSize.Size64x64.GetWidth());
+        this.GetPartitionWidths(storage)[..width].Clear();
         for (int i = 0; i < planeCount; i++)
         {
             int planeWidth = i > 0 && sequenceHeader.ColorConfig.SubSamplingX ? width >> 1 : width;
-            this.GetContext(i)[..planeWidth].Clear();
+            this.GetContext(storage, i)[..planeWidth].Clear();
         }
     }
 
     /// <summary>
     /// Updates the above partition context for every 4x4 column covered by a block.
     /// </summary>
+    /// <param name="storage">All of the above-neighbor storage, from <see cref="GetStorage"/>.</param>
     /// <param name="modeInfoLocation">The block origin in frame mode-information units.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="subSize">The size produced by the decoded partition.</param>
     /// <param name="blockSize">The parent block size.</param>
-    public void UpdatePartition(Point modeInfoLocation, Av1TileInfo tileInfo, Av1BlockSize subSize, Av1BlockSize blockSize)
+    public void UpdatePartition(Span<byte> storage, Point modeInfoLocation, Av1TileInfo tileInfo, Av1BlockSize subSize, Av1BlockSize blockSize)
     {
         // Above contexts are tile-local even though block positions are frame-relative.
         int startIndex = modeInfoLocation.X - tileInfo.ModeInfoColumnStart;
         int bw = blockSize.Get4x4WideCount();
         byte value = (byte)Av1PartitionContext.GetAboveContext(subSize);
 
-        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - bw, nameof(startIndex));
-        this.AbovePartitionWidth.Slice(startIndex, bw).Fill(value);
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.contextLength - bw, nameof(startIndex));
+        this.GetPartitionWidths(storage).Slice(startIndex, bw).Fill(value);
     }
 
     /// <summary>
     /// Updates the above transform-size context for every 4x4 column covered by a block.
     /// </summary>
+    /// <param name="storage">All of the above-neighbor storage, from <see cref="GetStorage"/>.</param>
     /// <param name="modeInfoLocation">The block origin in frame mode-information units.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="transformSize">The selected transform size.</param>
     /// <param name="blockSize">The decoded block size.</param>
     /// <param name="skip">A value indicating whether the block omits residual coefficients.</param>
-    public void UpdateTransformation(Point modeInfoLocation, Av1TileInfo tileInfo, Av1TransformSize transformSize, Av1BlockSize blockSize, bool skip)
+    public void UpdateTransformation(
+        Span<byte> storage,
+        Point modeInfoLocation,
+        Av1TileInfo tileInfo,
+        Av1TransformSize transformSize,
+        Av1BlockSize blockSize,
+        bool skip)
     {
         int startIndex = modeInfoLocation.X - tileInfo.ModeInfoColumnStart;
         byte transformWidth = (byte)transformSize.GetWidth();
@@ -142,27 +166,26 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
             transformWidth = (byte)(n4w << Av1Constants.ModeInfoSizeLog2);
         }
 
-        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - n4w, nameof(startIndex));
-        this.AboveTransformWidth.Slice(startIndex, n4w).Fill(transformWidth);
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.contextLength - n4w, nameof(startIndex));
+        this.GetTransformWidths(storage).Slice(startIndex, n4w).Fill(transformWidth);
     }
 
     /// <summary>
     /// Clears a range of above coefficient contexts for one plane.
     /// </summary>
+    /// <param name="storage">All of the above-neighbor storage, from <see cref="GetStorage"/>.</param>
     /// <param name="plane">The zero-based plane index.</param>
     /// <param name="offset">The first context index to clear.</param>
     /// <param name="length">The number of context entries to clear.</param>
-    public void ClearContext(int plane, int offset, int length)
-        => this.GetContext(plane).Slice(offset, length).Clear();
+    public void ClearContext(Span<byte> storage, int plane, int offset, int length)
+        => this.GetContext(storage, plane).Slice(offset, length).Clear();
 
     /// <summary>
-    /// Gets one logical row from the contiguous above-neighbor allocation.
+    /// Gets one logical row from the above-neighbor storage.
     /// </summary>
+    /// <param name="storage">All of the above-neighbor storage, from <see cref="GetStorage"/>.</param>
     /// <param name="regionIndex">The zero-based logical region index.</param>
     /// <returns>The requested context row.</returns>
-    private Span<byte> GetRegion(int regionIndex)
-    {
-        ObjectDisposedException.ThrowIf(this.memory is null, this);
-        return this.memory.Memory.Span.Slice(regionIndex * this.contextLength, this.contextLength);
-    }
+    private Span<byte> GetRegion(Span<byte> storage, int regionIndex)
+        => storage.Slice(regionIndex * this.contextLength, this.contextLength);
 }

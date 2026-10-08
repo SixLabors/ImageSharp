@@ -526,8 +526,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<int> firstTransformOffset = this.firstTransformOffset;
         Span<int> planeCoefficientIndices = this.coefficientIndex[..Av1Constants.MaxPlanes];
 
-        // Every transform block of the tile reads and writes its coefficient levels in this storage.
+        // Every block of the tile reads and writes its coefficient levels and neighbor contexts in these storages.
         Span<byte> levelStorage = this.coefficientLevels.GetStorage();
+        Span<byte> aboveContextStorage = this.aboveNeighborContext.GetStorage();
+        Span<byte> leftContextStorage = this.leftNeighborContext.GetStorage();
         for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
         {
             int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
@@ -554,7 +556,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 planeCoefficientIndices.Clear();
                 this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
                 this.FrameDecoder?.BeginSuperblock(superblockInfo);
-                this.ParsePartition(ref reader, levelStorage, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
+                this.ParsePartition(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoPosition,
+                    superBlockSize,
+                    superblockInfo,
+                    tileInfo);
             }
         }
 
@@ -791,6 +801,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The parent block origin in 4x4 mode-information units.</param>
     /// <param name="blockSize">The parent block size.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -799,6 +811,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private void ParsePartition(
         ref Av1SymbolDecoder reader,
         Span<byte> levelStorage,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         Point modeInfoLocation,
         Av1BlockSize blockSize,
         Av1SuperblockInfo superblockInfo,
@@ -819,7 +833,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1PartitionType partitionType = Av1PartitionType.None;
         if (blockSize >= Av1BlockSize.Block8x8)
         {
-            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
+            int ctx = this.GetPartitionPlaneContext(aboveContextStorage, leftContextStorage, modeInfoLocation, blockSize, tileInfo, superblockInfo);
             partitionType = Av1PartitionType.Split;
             if (hasRows && hasColumns)
             {
@@ -859,59 +873,219 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 Point loc1 = new(modeInfoLocation.X + halfBlock4x4Size, modeInfoLocation.Y);
                 Point loc2 = new(modeInfoLocation.X, modeInfoLocation.Y + halfBlock4x4Size);
                 Point loc3 = new(modeInfoLocation.X + halfBlock4x4Size, modeInfoLocation.Y + halfBlock4x4Size);
-                this.ParsePartition(ref reader, levelStorage, modeInfoLocation, subSize, superblockInfo, tileInfo);
-                this.ParsePartition(ref reader, levelStorage, loc1, subSize, superblockInfo, tileInfo);
-                this.ParsePartition(ref reader, levelStorage, loc2, subSize, superblockInfo, tileInfo);
-                this.ParsePartition(ref reader, levelStorage, loc3, subSize, superblockInfo, tileInfo);
+                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, modeInfoLocation, subSize, superblockInfo, tileInfo);
+                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, loc1, subSize, superblockInfo, tileInfo);
+                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, loc2, subSize, superblockInfo, tileInfo);
+                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, loc3, subSize, superblockInfo, tileInfo);
                 break;
             case Av1PartitionType.None:
-                this.ParseBlock(ref reader, levelStorage, modeInfoLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.None);
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoLocation,
+                    subSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.None);
+
                 break;
             case Av1PartitionType.Horizontal:
-                this.ParseBlock(ref reader, levelStorage, modeInfoLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.Horizontal);
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoLocation,
+                    subSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.Horizontal);
+
                 if (hasRows)
                 {
                     Point halfLocation = new(columnIndex, rowIndex + halfBlock4x4Size);
-                    this.ParseBlock(ref reader, levelStorage, halfLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.Horizontal);
+                    this.ParseBlock(
+                        ref reader,
+                        levelStorage,
+                        aboveContextStorage,
+                        leftContextStorage,
+                        halfLocation,
+                        subSize,
+                        superblockInfo,
+                        tileInfo,
+                        Av1PartitionType.Horizontal);
                 }
 
                 break;
             case Av1PartitionType.Vertical:
-                this.ParseBlock(ref reader, levelStorage, modeInfoLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.Vertical);
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoLocation,
+                    subSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.Vertical);
+
                 if (hasColumns)
                 {
                     Point halfLocation = new(columnIndex + halfBlock4x4Size, rowIndex);
-                    this.ParseBlock(ref reader, levelStorage, halfLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.Vertical);
+                    this.ParseBlock(
+                        ref reader,
+                        levelStorage,
+                        aboveContextStorage,
+                        leftContextStorage,
+                        halfLocation,
+                        subSize,
+                        superblockInfo,
+                        tileInfo,
+                        Av1PartitionType.Vertical);
                 }
 
                 break;
             case Av1PartitionType.HorizontalA:
-                this.ParseBlock(ref reader, levelStorage, modeInfoLocation, splitSize, superblockInfo, tileInfo, Av1PartitionType.HorizontalA);
-                Point locHorA1 = new(columnIndex + halfBlock4x4Size, rowIndex);
-                this.ParseBlock(ref reader, levelStorage, locHorA1, splitSize, superblockInfo, tileInfo, Av1PartitionType.HorizontalA);
-                Point locHorA2 = new(columnIndex, rowIndex + halfBlock4x4Size);
-                this.ParseBlock(ref reader, levelStorage, locHorA2, subSize, superblockInfo, tileInfo, Av1PartitionType.HorizontalA);
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoLocation,
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.HorizontalA);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex + halfBlock4x4Size, rowIndex),
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.HorizontalA);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex, rowIndex + halfBlock4x4Size),
+                    subSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.HorizontalA);
+
                 break;
             case Av1PartitionType.HorizontalB:
-                this.ParseBlock(ref reader, levelStorage, modeInfoLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.HorizontalB);
-                Point locHorB1 = new(columnIndex, rowIndex + halfBlock4x4Size);
-                this.ParseBlock(ref reader, levelStorage, locHorB1, splitSize, superblockInfo, tileInfo, Av1PartitionType.HorizontalB);
-                Point locHorB2 = new(columnIndex + halfBlock4x4Size, rowIndex + halfBlock4x4Size);
-                this.ParseBlock(ref reader, levelStorage, locHorB2, splitSize, superblockInfo, tileInfo, Av1PartitionType.HorizontalB);
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoLocation,
+                    subSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.HorizontalB);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex, rowIndex + halfBlock4x4Size),
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.HorizontalB);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex + halfBlock4x4Size, rowIndex + halfBlock4x4Size),
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.HorizontalB);
+
                 break;
             case Av1PartitionType.VerticalA:
-                this.ParseBlock(ref reader, levelStorage, modeInfoLocation, splitSize, superblockInfo, tileInfo, Av1PartitionType.VerticalA);
-                Point locVertA1 = new(columnIndex, rowIndex + halfBlock4x4Size);
-                this.ParseBlock(ref reader, levelStorage, locVertA1, splitSize, superblockInfo, tileInfo, Av1PartitionType.VerticalA);
-                Point locVertA2 = new(columnIndex + halfBlock4x4Size, rowIndex);
-                this.ParseBlock(ref reader, levelStorage, locVertA2, subSize, superblockInfo, tileInfo, Av1PartitionType.VerticalA);
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoLocation,
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.VerticalA);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex, rowIndex + halfBlock4x4Size),
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.VerticalA);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex + halfBlock4x4Size, rowIndex),
+                    subSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.VerticalA);
+
                 break;
             case Av1PartitionType.VerticalB:
-                this.ParseBlock(ref reader, levelStorage, modeInfoLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.VerticalB);
-                Point locVertB1 = new(columnIndex + halfBlock4x4Size, rowIndex);
-                this.ParseBlock(ref reader, levelStorage, locVertB1, splitSize, superblockInfo, tileInfo, Av1PartitionType.VerticalB);
-                Point locVertB2 = new(columnIndex + halfBlock4x4Size, rowIndex + halfBlock4x4Size);
-                this.ParseBlock(ref reader, levelStorage, locVertB2, splitSize, superblockInfo, tileInfo, Av1PartitionType.VerticalB);
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    modeInfoLocation,
+                    subSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.VerticalB);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex + halfBlock4x4Size, rowIndex),
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.VerticalB);
+
+                this.ParseBlock(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    new Point(columnIndex + halfBlock4x4Size, rowIndex + halfBlock4x4Size),
+                    splitSize,
+                    superblockInfo,
+                    tileInfo,
+                    Av1PartitionType.VerticalB);
+
                 break;
             case Av1PartitionType.Horizontal4:
                 for (int i = 0; i < 4; i++)
@@ -922,8 +1096,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         break;
                     }
 
-                    Point currentLocation = new(modeInfoLocation.X, currentBlockRow);
-                    this.ParseBlock(ref reader, levelStorage, currentLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.Horizontal4);
+                    this.ParseBlock(
+                        ref reader,
+                        levelStorage,
+                        aboveContextStorage,
+                        leftContextStorage,
+                        new Point(modeInfoLocation.X, currentBlockRow),
+                        subSize,
+                        superblockInfo,
+                        tileInfo,
+                        Av1PartitionType.Horizontal4);
                 }
 
                 break;
@@ -936,8 +1118,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         break;
                     }
 
-                    Point currentLocation = new(currentBlockColumn, modeInfoLocation.Y);
-                    this.ParseBlock(ref reader, levelStorage, currentLocation, subSize, superblockInfo, tileInfo, Av1PartitionType.Vertical4);
+                    this.ParseBlock(
+                        ref reader,
+                        levelStorage,
+                        aboveContextStorage,
+                        leftContextStorage,
+                        new Point(currentBlockColumn, modeInfoLocation.Y),
+                        subSize,
+                        superblockInfo,
+                        tileInfo,
+                        Av1PartitionType.Vertical4);
                 }
 
                 break;
@@ -945,7 +1135,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 throw new InvalidImageContentException($"The decoded AV1 partition type {partitionType} is invalid.");
         }
 
-        this.UpdatePartitionContext(new Point(columnIndex, rowIndex), tileInfo, superblockInfo, subSize, blockSize, partitionType);
+        this.UpdatePartitionContext(
+            aboveContextStorage, leftContextStorage, new Point(columnIndex, rowIndex), tileInfo, superblockInfo, subSize, blockSize, partitionType);
     }
 
     /// <summary>
@@ -953,6 +1144,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
     /// <param name="blockSize">The final block size.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -961,6 +1154,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private void ParseBlock(
         ref Av1SymbolDecoder reader,
         Span<byte> levelStorage,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         Point modeInfoLocation,
         Av1BlockSize blockSize,
         Av1SuperblockInfo superblockInfo,
@@ -1000,11 +1195,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.ReadModeInfo(ref reader, ref partitionInfo, tileInfo);
 
         this.ReadPaletteTokens(ref reader, ref partitionInfo);
-        this.ReadBlockTransformSize(ref reader, modeInfoLocation, ref partitionInfo, superblockInfo, tileInfo);
+        this.ReadBlockTransformSize(ref reader, aboveContextStorage, leftContextStorage, modeInfoLocation, ref partitionInfo, superblockInfo, tileInfo);
 
         if (partitionInfo.ModeInfo.Skip)
         {
-            this.ResetSkipContext(ref partitionInfo, tileInfo);
+            this.ResetSkipContext(aboveContextStorage, leftContextStorage, ref partitionInfo, tileInfo);
         }
 
         // Record compact frame evidence before later frames release this frame's full mode-information graph.
@@ -1016,7 +1211,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         partitionInfo.ModeInfo.ModeInfoIndex = publishedModeInfo.ModeInfoIndex;
         this.FrameDecoder?.BeginBlock(ref partitionInfo, tileInfo);
 
-        this.Residual(ref reader, levelStorage, ref partitionInfo, superblockInfo, tileInfo, blockSize);
+        this.Residual(ref reader, levelStorage, aboveContextStorage, leftContextStorage, ref partitionInfo, superblockInfo, tileInfo, blockSize);
         this.FrameDecoder?.EndBlock(ref partitionInfo);
 
         if (this.FrameDecoder is not null)
@@ -1031,10 +1226,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Clears coefficient neighbor contexts across every plane of a skipped block.
     /// </summary>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="partitionInfo">The skipped block and its frame position.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <remarks>Implements AV1 section 5.11.37.</remarks>
-    private void ResetSkipContext(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    private void ResetSkipContext(Span<byte> aboveContextStorage, Span<byte> leftContextStorage, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         // Subsampled 4x4 luma blocks can share chroma ownership with an adjacent luma block. A skipped block that is
         // not the chroma reference must preserve those shared coefficient contexts for the owning block.
@@ -1049,8 +1246,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int txsHigh = planeBlockSize.GetHeight() >> 2;
             int aboveOffset = (partitionInfo.ColumnIndex - tileInfo.ModeInfoColumnStart) >> subX;
             int leftOffset = (partitionInfo.RowIndex - partitionInfo.SuperblockInfo.ModeInfoPosition.Y) >> subY;
-            this.aboveNeighborContext.ClearContext(i, aboveOffset, txsWide);
-            this.leftNeighborContext.ClearContext(i, leftOffset, txsHigh);
+            this.aboveNeighborContext.ClearContext(aboveContextStorage, i, aboveOffset, txsWide);
+            this.leftNeighborContext.ClearContext(leftContextStorage, i, leftOffset, txsHigh);
         }
     }
 
@@ -1059,6 +1256,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock and coefficient storage.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
@@ -1067,6 +1266,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private void Residual(
         ref Av1SymbolDecoder reader,
         Span<byte> levelStorage,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
         Av1TileInfo tileInfo,
@@ -1170,6 +1371,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                             endOfBlock = this.ParseTransformBlock(
                                 ref reader,
                                 levelStorage,
+                                aboveContextStorage,
+                                leftContextStorage,
                                 ref partitionInfo,
                                 tileInfo,
                                 coefficientBuffer,
@@ -1245,6 +1448,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="partitionInfo">The containing coding block.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="coefficientBuffer">The destination beginning at this transform's coefficient slot.</param>
@@ -1264,6 +1469,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private int ParseTransformBlock(
         ref Av1SymbolDecoder reader,
         Span<byte> levelStorage,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         ref Av1PartitionInfo partitionInfo,
         Av1TileInfo tileInfo,
         Span<int> coefficientBuffer,
@@ -1301,6 +1508,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         // Above contexts are tile-column relative, while left contexts are reused from the start of each
         // superblock row. Slicing both arrays here gives the entropy derivation the same pointer bases as the reference decoder.
         Av1TransformBlockContext transformBlockContext = this.GetTransformBlockContext(
+            aboveContextStorage,
+            leftContextStorage,
             transformSize,
             plane,
             planeBlockSize,
@@ -1312,6 +1521,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         endOfBlock = this.ParseCoefficients(
             ref reader,
             levelStorage,
+            aboveContextStorage,
+            leftContextStorage,
             ref partitionInfo,
             blockRow,
             blockColumn,
@@ -1336,6 +1547,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="partitionInfo">The containing coding block.</param>
     /// <param name="blockRow">The transform row within the coding block in 4x4 units of the target plane.</param>
     /// <param name="blockColumn">The transform column within the coding block in 4x4 units of the target plane.</param>
@@ -1353,6 +1566,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private int ParseCoefficients(
         ref Av1SymbolDecoder reader,
         Span<byte> levelStorage,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         ref Av1PartitionInfo partitionInfo,
         int blockRow,
         int blockColumn,
@@ -1383,8 +1598,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         return reader.ReadCoefficients(
             partitionInfo.ModeInfo,
             blockPosition,
-            this.aboveNeighborContext.GetContext(plane),
-            this.leftNeighborContext.GetContext(plane),
+            this.aboveNeighborContext.GetContext(aboveContextStorage, plane),
+            this.leftNeighborContext.GetContext(leftContextStorage, plane),
             aboveOffset,
             leftOffset,
             plane,
@@ -1407,6 +1622,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Derives coefficient skip and DC-sign contexts from the transform block's above and left neighbors.
     /// </summary>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="transformSize">The transform size.</param>
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <param name="planeBlockSize">The containing block size on the target plane.</param>
@@ -1416,6 +1633,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="leftOffset">The first superblock-row-relative left context covered by the transform.</param>
     /// <returns>The derived transform-block entropy contexts.</returns>
     private Av1TransformBlockContext GetTransformBlockContext(
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         Av1TransformSize transformSize,
         int plane,
         Av1BlockSize planeBlockSize,
@@ -1425,8 +1644,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int leftOffset)
     {
         Av1TransformBlockContext transformBlockContext = default;
-        ReadOnlySpan<byte> aboveContext = this.aboveNeighborContext.GetContext(plane)[aboveOffset..];
-        ReadOnlySpan<byte> leftContext = this.leftNeighborContext.GetContext(plane)[leftOffset..];
+        ReadOnlySpan<byte> aboveContext = this.aboveNeighborContext.GetContext(aboveContextStorage, plane)[aboveOffset..];
+        ReadOnlySpan<byte> leftContext = this.leftNeighborContext.GetContext(leftContextStorage, plane)[leftOffset..];
         int dcSign = 0;
         int k = 0;
         int mask = (1 << Av1Constants.CoefficientContextBitCount) - 1;
@@ -1536,6 +1755,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Selects the transform size for a coding block from lossless, explicit-selection, or maximum-size rules.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
@@ -1544,6 +1765,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <remarks>Implements AV1 section 5.11.15.</remarks>
     private Av1TransformSize ReadTransformSize(
         ref Av1SymbolDecoder reader,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
         Av1TileInfo tileInfo,
@@ -1557,7 +1780,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (modeInfo.BlockSize > Av1BlockSize.Block4x4 && allowSelect && this.FrameHeader.TransformMode == Av1TransformMode.Select)
         {
-            return this.ReadSelectedTransformSize(ref reader, ref partitionInfo, superblockInfo, tileInfo);
+            return this.ReadSelectedTransformSize(ref reader, aboveContextStorage, leftContextStorage, ref partitionInfo, superblockInfo, tileInfo);
         }
 
         return modeInfo.BlockSize.GetMaximumTransformSize();
@@ -1567,21 +1790,25 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Reads a transform size using the available above and left transform-size contexts.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <returns>The decoded transform size.</returns>
     private Av1TransformSize ReadSelectedTransformSize(
         ref Av1SymbolDecoder reader,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
         Av1TileInfo tileInfo)
     {
         int context = 0;
         Av1TransformSize maxTransformSize = partitionInfo.ModeInfo.BlockSize.GetMaximumTransformSize();
-        int aboveWidth = this.aboveNeighborContext.AboveTransformWidth[partitionInfo.ColumnIndex - tileInfo.ModeInfoColumnStart];
+        int aboveWidth = this.aboveNeighborContext.GetTransformWidths(aboveContextStorage)[partitionInfo.ColumnIndex - tileInfo.ModeInfoColumnStart];
         int above = (aboveWidth >= maxTransformSize.GetWidth()) ? 1 : 0;
-        int leftHeight = this.leftNeighborContext.LeftTransformHeight[partitionInfo.RowIndex - superblockInfo.ModeInfoPosition.Y];
+        int leftHeight = this.leftNeighborContext.GetTransformHeights(leftContextStorage)[partitionInfo.RowIndex - superblockInfo.ModeInfoPosition.Y];
         int left = (leftHeight >= maxTransformSize.GetHeight()) ? 1 : 0;
         bool hasAbove = partitionInfo.AvailableAbove;
         bool hasLeft = partitionInfo.AvailableLeft;
@@ -1634,12 +1861,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Reads a coding block's transform size, updates neighbor contexts, and creates its transform geometry records.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     private void ReadBlockTransformSize(
         ref Av1SymbolDecoder reader,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         Point modeInfoLocation,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
@@ -1662,12 +1893,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             blockSize > Av1BlockSize.Block4x4 &&
             !this.FrameHeader.LosslessArray[modeInfo.SegmentId])
         {
-            this.ReadVariableTransformInfo(
-                ref reader,
-                modeInfoLocation,
-                ref partitionInfo,
-                superblockInfo,
-                tileInfo);
+            this.ReadVariableTransformInfo(ref reader, aboveContextStorage, leftContextStorage, modeInfoLocation, ref partitionInfo, superblockInfo, tileInfo);
 
             return;
         }
@@ -1677,6 +1903,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         bool allowSelect = !usesInterTransformSyntax || !modeInfo.Skip;
         Av1TransformSize transformSize = this.ReadTransformSize(
             ref reader,
+            aboveContextStorage,
+            leftContextStorage,
             ref partitionInfo,
             superblockInfo,
             tileInfo,
@@ -1689,8 +1917,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
 
         bool skippedInterBlock = usesInterTransformSyntax && modeInfo.Skip;
-        this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, skippedInterBlock);
-        this.leftNeighborContext.UpdateTransformation(modeInfoLocation, superblockInfo, transformSize, blockSize, skippedInterBlock);
+        this.aboveNeighborContext.UpdateTransformation(aboveContextStorage, modeInfoLocation, tileInfo, transformSize, blockSize, skippedInterBlock);
+        this.leftNeighborContext.UpdateTransformation(leftContextStorage, modeInfoLocation, superblockInfo, transformSize, blockSize, skippedInterBlock);
         this.UpdateTransformInfo(ref partitionInfo, superblockInfo, blockSize, transformSize);
     }
 
@@ -1698,12 +1926,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Reads the recursive luma transform partition used by a non-skipped inter block.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The coding-block origin in frame mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     private void ReadVariableTransformInfo(
         ref Av1SymbolDecoder reader,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         Point modeInfoLocation,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
@@ -1728,6 +1960,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 int firstRegionTransform = totalTransformUnitCount;
                 this.ReadVariableTransformNode(
                     ref reader,
+                    aboveContextStorage,
+                    leftContextStorage,
                     modeInfoLocation,
                     ref partitionInfo,
                     superblockInfo,
@@ -1756,8 +1990,23 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Reads one node of the inter variable-transform tree and appends its leaf transform descriptors.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="modeInfoLocation">The coding-block origin in frame mode-information units.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="transformSize">The transform size of the node.</param>
+    /// <param name="depth">The split depth of the node.</param>
+    /// <param name="blockRow">The node row within the coding block in 4x4 units.</param>
+    /// <param name="blockColumn">The node column within the coding block in 4x4 units.</param>
+    /// <param name="transformInfoIndex">The index of the next luma transform descriptor, advanced for each leaf.</param>
+    /// <param name="transformUnitCount">The number of leaves read so far, advanced for each leaf.</param>
     private void ReadVariableTransformNode(
         ref Av1SymbolDecoder reader,
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
         Point modeInfoLocation,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
@@ -1784,8 +2033,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int leftOffset = modeInfoLocation.Y - superblockInfo.ModeInfoPosition.Y + blockRow;
             int transformWidth = transformSize.GetWidth();
             int transformHeight = transformSize.GetHeight();
-            int above = this.aboveNeighborContext.AboveTransformWidth[aboveOffset] < transformWidth ? 1 : 0;
-            int left = this.leftNeighborContext.LeftTransformHeight[leftOffset] < transformHeight ? 1 : 0;
+            int above = this.aboveNeighborContext.GetTransformWidths(aboveContextStorage)[aboveOffset] < transformWidth ? 1 : 0;
+            int left = this.leftNeighborContext.GetTransformHeights(leftContextStorage)[leftOffset] < transformHeight ? 1 : 0;
             int maximumDimension = Math.Max(blockSize.GetWidth(), blockSize.GetHeight());
             Av1TransformSize maximumSquareTransform = maximumDimension switch
             {
@@ -1815,6 +2064,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 {
                     this.ReadVariableTransformNode(
                         ref reader,
+                        aboveContextStorage,
+                        leftContextStorage,
                         modeInfoLocation,
                         ref partitionInfo,
                         superblockInfo,
@@ -1850,8 +2101,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         Point transformLocation = new(modeInfoLocation.X + blockColumn, modeInfoLocation.Y + blockRow);
         Av1BlockSize transformBlockSize = transformSize.ToBlockSize();
-        this.aboveNeighborContext.UpdateTransformation(transformLocation, tileInfo, transformSize, transformBlockSize, false);
-        this.leftNeighborContext.UpdateTransformation(transformLocation, superblockInfo, transformSize, transformBlockSize, false);
+        this.aboveNeighborContext.UpdateTransformation(aboveContextStorage, transformLocation, tileInfo, transformSize, transformBlockSize, false);
+        this.leftNeighborContext.UpdateTransformation(leftContextStorage, transformLocation, superblockInfo, transformSize, transformBlockSize, false);
     }
 
     /// <summary>
@@ -3433,16 +3684,26 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Derives the partition entropy context from the current split bit of the above and left neighbors.
     /// </summary>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="location">The partition origin in 4x4 mode-information units.</param>
     /// <param name="blockSize">The square parent block size.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <returns>The partition entropy context.</returns>
-    private int GetPartitionPlaneContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileInfo, Av1SuperblockInfo superblockInfo)
+    private int GetPartitionPlaneContext(
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
+        Point location,
+        Av1BlockSize blockSize,
+        Av1TileInfo tileInfo,
+        Av1SuperblockInfo superblockInfo)
     {
         // The five stored split bits begin at the 8x8 partition point, so normalize the block-size log to that bit index.
-        int aboveCtx = this.aboveNeighborContext.AbovePartitionWidth[location.X - tileInfo.ModeInfoColumnStart];
-        int leftCtx = this.leftNeighborContext.LeftPartitionHeight[(location.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask];
+        int aboveCtx = this.aboveNeighborContext.GetPartitionWidths(aboveContextStorage)[location.X - tileInfo.ModeInfoColumnStart];
+        int leftCtx = this.leftNeighborContext.GetPartitionHeights(leftContextStorage)[
+            (location.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask];
+
         int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
         int above = (aboveCtx >> blockSizeLog) & 0x1;
         int left = (leftCtx >> blockSizeLog) & 0x1;
@@ -3454,13 +3715,23 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Publishes the decoded partition sizes to the above and left neighbor contexts.
     /// </summary>
+    /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The parent block origin in 4x4 mode-information units.</param>
     /// <param name="tileLoc">The active tile boundaries.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="subSize">The primary size produced by the partition.</param>
     /// <param name="blockSize">The parent block size.</param>
     /// <param name="partition">The decoded partition type.</param>
-    private void UpdatePartitionContext(Point modeInfoLocation, Av1TileInfo tileLoc, Av1SuperblockInfo superblockInfo, Av1BlockSize subSize, Av1BlockSize blockSize, Av1PartitionType partition)
+    private void UpdatePartitionContext(
+        Span<byte> aboveContextStorage,
+        Span<byte> leftContextStorage,
+        Point modeInfoLocation,
+        Av1TileInfo tileLoc,
+        Av1SuperblockInfo superblockInfo,
+        Av1BlockSize subSize,
+        Av1BlockSize blockSize,
+        Av1PartitionType partition)
     {
         if (blockSize >= Av1BlockSize.Block8x8)
         {
@@ -3481,36 +3752,36 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 case Av1PartitionType.Horizontal4:
                 case Av1PartitionType.Vertical4:
                     PARTITIONS:
-                    this.aboveNeighborContext.UpdatePartition(modeInfoLocation, tileLoc, subSize, blockSize);
-                    this.leftNeighborContext.UpdatePartition(modeInfoLocation, superblockInfo, subSize, blockSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, modeInfoLocation, tileLoc, subSize, blockSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, modeInfoLocation, superblockInfo, subSize, blockSize);
                     break;
                 case Av1PartitionType.HorizontalA:
-                    this.aboveNeighborContext.UpdatePartition(modeInfoLocation, tileLoc, blockSize2, subSize);
-                    this.leftNeighborContext.UpdatePartition(modeInfoLocation, superblockInfo, blockSize2, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, modeInfoLocation, tileLoc, blockSize2, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, modeInfoLocation, superblockInfo, blockSize2, subSize);
                     Point locHorizontalA = new(modeInfoLocation.X, modeInfoLocation.Y + hbs);
-                    this.aboveNeighborContext.UpdatePartition(locHorizontalA, tileLoc, subSize, subSize);
-                    this.leftNeighborContext.UpdatePartition(locHorizontalA, superblockInfo, subSize, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, locHorizontalA, tileLoc, subSize, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, locHorizontalA, superblockInfo, subSize, subSize);
                     break;
                 case Av1PartitionType.HorizontalB:
-                    this.aboveNeighborContext.UpdatePartition(modeInfoLocation, tileLoc, subSize, subSize);
-                    this.leftNeighborContext.UpdatePartition(modeInfoLocation, superblockInfo, subSize, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, modeInfoLocation, tileLoc, subSize, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, modeInfoLocation, superblockInfo, subSize, subSize);
                     Point locHorizontalB = new(modeInfoLocation.X, modeInfoLocation.Y + hbs);
-                    this.aboveNeighborContext.UpdatePartition(locHorizontalB, tileLoc, blockSize2, subSize);
-                    this.leftNeighborContext.UpdatePartition(locHorizontalB, superblockInfo, blockSize2, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, locHorizontalB, tileLoc, blockSize2, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, locHorizontalB, superblockInfo, blockSize2, subSize);
                     break;
                 case Av1PartitionType.VerticalA:
-                    this.aboveNeighborContext.UpdatePartition(modeInfoLocation, tileLoc, blockSize2, subSize);
-                    this.leftNeighborContext.UpdatePartition(modeInfoLocation, superblockInfo, blockSize2, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, modeInfoLocation, tileLoc, blockSize2, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, modeInfoLocation, superblockInfo, blockSize2, subSize);
                     Point locVerticalA = new(modeInfoLocation.X + hbs, modeInfoLocation.Y);
-                    this.aboveNeighborContext.UpdatePartition(locVerticalA, tileLoc, subSize, subSize);
-                    this.leftNeighborContext.UpdatePartition(locVerticalA, superblockInfo, subSize, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, locVerticalA, tileLoc, subSize, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, locVerticalA, superblockInfo, subSize, subSize);
                     break;
                 case Av1PartitionType.VerticalB:
-                    this.aboveNeighborContext.UpdatePartition(modeInfoLocation, tileLoc, subSize, subSize);
-                    this.leftNeighborContext.UpdatePartition(modeInfoLocation, superblockInfo, subSize, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, modeInfoLocation, tileLoc, subSize, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, modeInfoLocation, superblockInfo, subSize, subSize);
                     Point locVerticalB = new(modeInfoLocation.X + hbs, modeInfoLocation.Y);
-                    this.aboveNeighborContext.UpdatePartition(locVerticalB, tileLoc, blockSize2, subSize);
-                    this.leftNeighborContext.UpdatePartition(locVerticalB, superblockInfo, blockSize2, subSize);
+                    this.aboveNeighborContext.UpdatePartition(aboveContextStorage, locVerticalB, tileLoc, blockSize2, subSize);
+                    this.leftNeighborContext.UpdatePartition(leftContextStorage, locVerticalB, superblockInfo, blockSize2, subSize);
                     break;
                 default:
                     throw new InvalidImageContentException($"Unknown partition type: {partition}");

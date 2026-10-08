@@ -58,7 +58,7 @@ internal static partial class Av1ForwardQuantizer
     }
 
     /// <summary>
-    /// Traverses regular quantization with one DC coefficient followed by contiguous AC vectors and a scalar tail.
+    /// Traverses regular quantization in full vectors, with the DC constants in lane zero of the first vector.
     /// </summary>
     private static ushort QuantizeRegular<TOperator>(
         ReadOnlySpan<int> coefficients,
@@ -93,87 +93,99 @@ internal static partial class Av1ForwardQuantizer
         ref int quantizedBase = ref MemoryMarshal.GetReference(quantizedCoefficients);
         ref int dequantizedBase = ref MemoryMarshal.GetReference(dequantizedCoefficients);
 
-        // DC has different constants. Processing it once leaves a uniform AC traversal with no lane masks
-        // for DC and no scratch coefficient copy; every output position is overwritten on each candidate.
-        quantizedBase = TOperator.Quantize(
-            sourceBase, dcZeroBin, dcRounding, dcQuantizer, dcShift, dcDequantizer, logScale, out dequantizedBase);
-
-        int index = 1;
-
+        // Every coded transform has a multiple of 16 coefficients, so the widest vector covers the whole block with
+        // no remainder. Raster coefficient zero is the only DC coefficient. The first vector carries the DC
+        // constants in lane zero and the AC constants in every other lane, so the DC coefficient needs no separate
+        // scalar step. Every later vector uses the AC constants alone.
+        DebugGuard.IsTrue((count & 15) == 0, "Every coded transform has a multiple of 16 coefficients.");
+        nuint length = (nuint)count;
         if (Vector512.IsHardwareAccelerated)
         {
-            Vector512<int> zeroBin = Vector512.Create(acZeroBin);
-            Vector512<int> rounding = Vector512.Create(acRounding);
-            Vector512<int> quantizer = Vector512.Create(acQuantizer);
-            Vector512<int> shift = Vector512.Create(acShift);
-            Vector512<int> dequantizer = Vector512.Create(acDequantizer);
-
-            // Each lane owns one contiguous coefficient. Narrower tiers resume at the first unread
-            // coefficient so unaligned starts and vector tails need neither padding nor overlapping stores.
-            for (; index <= count - Vector512<int>.Count; index += Vector512<int>.Count)
+            Vector512<int> zeroBin = Vector512.Create(acZeroBin).WithElement(0, dcZeroBin);
+            Vector512<int> rounding = Vector512.Create(acRounding).WithElement(0, dcRounding);
+            Vector512<int> quantizer = Vector512.Create(acQuantizer).WithElement(0, dcQuantizer);
+            Vector512<int> shift = Vector512.Create(acShift).WithElement(0, dcShift);
+            Vector512<int> dequantizer = Vector512.Create(acDequantizer).WithElement(0, dcDequantizer);
+            for (nuint index = 0; index < length; index += (nuint)Vector512<int>.Count)
             {
-                Vector512<int> values = Vector512.LoadUnsafe(ref sourceBase, (nuint)index);
                 Vector512<int> quantized = TOperator.Quantize(
-                    values, zeroBin, rounding, quantizer, shift, dequantizer, logScale, out Vector512<int> dequantized);
+                    Vector512.LoadUnsafe(ref sourceBase, index), zeroBin, rounding, quantizer, shift, dequantizer, logScale, out Vector512<int> dequantized);
 
-                quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
-                dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
+                quantized.StoreUnsafe(ref quantizedBase, index);
+                dequantized.StoreUnsafe(ref dequantizedBase, index);
+
+                // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
+                zeroBin = Vector512.Create(acZeroBin);
+                rounding = Vector512.Create(acRounding);
+                quantizer = Vector512.Create(acQuantizer);
+                shift = Vector512.Create(acShift);
+                dequantizer = Vector512.Create(acDequantizer);
             }
         }
-
-        if (Vector256.IsHardwareAccelerated)
+        else if (Vector256.IsHardwareAccelerated)
         {
-            Vector256<int> zeroBin = Vector256.Create(acZeroBin);
-            Vector256<int> rounding = Vector256.Create(acRounding);
-            Vector256<int> quantizer = Vector256.Create(acQuantizer);
-            Vector256<int> shift = Vector256.Create(acShift);
-            Vector256<int> dequantizer = Vector256.Create(acDequantizer);
-
-            // Each lane owns one contiguous coefficient. Narrower tiers resume at the first unread
-            // coefficient so unaligned starts and vector tails need neither padding nor overlapping stores.
-            for (; index <= count - Vector256<int>.Count; index += Vector256<int>.Count)
+            Vector256<int> zeroBin = Vector256.Create(acZeroBin).WithElement(0, dcZeroBin);
+            Vector256<int> rounding = Vector256.Create(acRounding).WithElement(0, dcRounding);
+            Vector256<int> quantizer = Vector256.Create(acQuantizer).WithElement(0, dcQuantizer);
+            Vector256<int> shift = Vector256.Create(acShift).WithElement(0, dcShift);
+            Vector256<int> dequantizer = Vector256.Create(acDequantizer).WithElement(0, dcDequantizer);
+            for (nuint index = 0; index < length; index += (nuint)Vector256<int>.Count)
             {
-                Vector256<int> values = Vector256.LoadUnsafe(ref sourceBase, (nuint)index);
                 Vector256<int> quantized = TOperator.Quantize(
-                    values, zeroBin, rounding, quantizer, shift, dequantizer, logScale, out Vector256<int> dequantized);
+                    Vector256.LoadUnsafe(ref sourceBase, index), zeroBin, rounding, quantizer, shift, dequantizer, logScale, out Vector256<int> dequantized);
 
-                quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
-                dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
+                quantized.StoreUnsafe(ref quantizedBase, index);
+                dequantized.StoreUnsafe(ref dequantizedBase, index);
+
+                // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
+                zeroBin = Vector256.Create(acZeroBin);
+                rounding = Vector256.Create(acRounding);
+                quantizer = Vector256.Create(acQuantizer);
+                shift = Vector256.Create(acShift);
+                dequantizer = Vector256.Create(acDequantizer);
             }
         }
-
-        if (Vector128.IsHardwareAccelerated)
+        else if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<int> zeroBin = Vector128.Create(acZeroBin);
-            Vector128<int> rounding = Vector128.Create(acRounding);
-            Vector128<int> quantizer = Vector128.Create(acQuantizer);
-            Vector128<int> shift = Vector128.Create(acShift);
-            Vector128<int> dequantizer = Vector128.Create(acDequantizer);
-
-            // Each lane owns one contiguous coefficient. Narrower tiers resume at the first unread
-            // coefficient so unaligned starts and vector tails need neither padding nor overlapping stores.
-            for (; index <= count - Vector128<int>.Count; index += Vector128<int>.Count)
+            Vector128<int> zeroBin = Vector128.Create(acZeroBin).WithElement(0, dcZeroBin);
+            Vector128<int> rounding = Vector128.Create(acRounding).WithElement(0, dcRounding);
+            Vector128<int> quantizer = Vector128.Create(acQuantizer).WithElement(0, dcQuantizer);
+            Vector128<int> shift = Vector128.Create(acShift).WithElement(0, dcShift);
+            Vector128<int> dequantizer = Vector128.Create(acDequantizer).WithElement(0, dcDequantizer);
+            for (nuint index = 0; index < length; index += (nuint)Vector128<int>.Count)
             {
-                Vector128<int> values = Vector128.LoadUnsafe(ref sourceBase, (nuint)index);
                 Vector128<int> quantized = TOperator.Quantize(
-                    values, zeroBin, rounding, quantizer, shift, dequantizer, logScale, out Vector128<int> dequantized);
+                    Vector128.LoadUnsafe(ref sourceBase, index), zeroBin, rounding, quantizer, shift, dequantizer, logScale, out Vector128<int> dequantized);
 
-                quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
-                dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
+                quantized.StoreUnsafe(ref quantizedBase, index);
+                dequantized.StoreUnsafe(ref dequantizedBase, index);
+
+                // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
+                zeroBin = Vector128.Create(acZeroBin);
+                rounding = Vector128.Create(acRounding);
+                quantizer = Vector128.Create(acQuantizer);
+                shift = Vector128.Create(acShift);
+                dequantizer = Vector128.Create(acDequantizer);
             }
         }
-
-        for (; index < count; index++)
+        else
         {
-            Unsafe.Add(ref quantizedBase, index) = TOperator.Quantize(
-                Unsafe.Add(ref sourceBase, index),
-                acZeroBin,
-                acRounding,
-                acQuantizer,
-                acShift,
-                acDequantizer,
-                logScale,
-                out Unsafe.Add(ref dequantizedBase, index));
+            // Without vector hardware, the DC coefficient uses its own constants and every other coefficient the AC ones.
+            quantizedBase = TOperator.Quantize(
+                sourceBase, dcZeroBin, dcRounding, dcQuantizer, dcShift, dcDequantizer, logScale, out dequantizedBase);
+
+            for (nuint index = 1; index < length; index++)
+            {
+                Unsafe.Add(ref quantizedBase, index) = TOperator.Quantize(
+                    Unsafe.Add(ref sourceBase, index),
+                    acZeroBin,
+                    acRounding,
+                    acQuantizer,
+                    acShift,
+                    acDequantizer,
+                    logScale,
+                    out Unsafe.Add(ref dequantizedBase, index));
+            }
         }
 
         // Coding and reconstruction retain raster order. Only the end position is reduced in scan order.

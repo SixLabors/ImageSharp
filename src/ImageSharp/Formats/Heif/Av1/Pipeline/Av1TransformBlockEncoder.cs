@@ -1723,13 +1723,18 @@ internal static partial class Av1TransformBlockEncoder
 
             // Fast quantization is paired with trellis refinement. Without refinement, regular quantization
             // supplies the stronger zero-bin and reciprocal correction that the unrefined candidate requires.
-            ReadOnlySpan<byte> weights = matricesDropped ? default : workspace.GetQuantizationMatrix(componentType, transformSize, transformType);
-            ReadOnlySpan<byte> inverseWeights = matricesDropped ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
-            state.EndOfBlock = optimize
-                ? Av1ForwardQuantizer.QuantizeLossy(
-                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights)
-                : Av1ForwardQuantizer.QuantizeRegular(
-                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights);
+            ReadOnlySpan<byte> matrix = matricesDropped ? default : workspace.GetQuantizationMatrix(componentType, transformSize, transformType);
+            ReadOnlySpan<byte> inverseMatrix = matricesDropped ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
+            if (optimize)
+            {
+                state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossy(
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, matrix, inverseMatrix);
+            }
+            else
+            {
+                state.EndOfBlock = Av1ForwardQuantizer.QuantizeRegular(
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, matrix, inverseMatrix);
+            }
 
             state.TransformType = transformType;
             Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);

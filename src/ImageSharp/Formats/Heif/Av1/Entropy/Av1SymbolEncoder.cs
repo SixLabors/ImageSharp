@@ -1645,8 +1645,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Completes the rate of a refined transform block from the coefficient rate that
-    /// <see cref="OptimizeCoefficients(in Av1CoefficientTables, ReadOnlySpan{int}, Span{int}, Span{int}, Av1TransformSize, Av1TransformType, Av1ComponentType, Av1TransformBlockContext, int, int, int, Av1BitDepth, bool, bool, ushort, in Av1CoefficientOptimizationWeights, out int)"/> accumulated.
+    /// Completes the rate of a refined transform block from the coefficient rate that the trellis accumulated.
     /// </summary>
     /// <remarks>
     /// This is the tail of <c>av1_optimize_txb</c>: the skip flag, and for a coded luma block the transform
@@ -1834,7 +1833,21 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         return workResult;
     }
 
-    /// <inheritdoc cref="GetCoefficientCost(in Av1CoefficientTables, Av1TransformSize, Av1TransformType, Av1PredictionMode, ReadOnlySpan{int}, Av1ComponentType, Av1TransformBlockContext, ushort, bool, Av1FilterIntraMode, bool)"/>
+    /// <summary>
+    /// Gets the current fixed-point rate cost of one transform block's complete coefficient syntax, without the work counter.
+    /// </summary>
+    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformType">The transform type selecting the scan and context class.</param>
+    /// <param name="intraDirection">The block's intra prediction mode.</param>
+    /// <param name="coefficientBuffer">The raster-ordered signed coefficient levels.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetCoefficientCostCore(
         in Av1CoefficientTables tables,
         Av1TransformSize transformSize,

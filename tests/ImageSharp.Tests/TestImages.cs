@@ -755,6 +755,7 @@ public static class TestImages
             public const string Alpha = "Webp/lossless_alpha_small.webp";
             public const string WithExif = "Webp/exif_lossless.webp";
             public const string WithIccp = "Webp/lossless_with_iccp.webp";
+            public const string WithIccpAndAlpha = "Webp/webp-color-profile-lossless.webp";
             public const string NoTransform1 = "Webp/lossless_vec_1_0.webp";
             public const string NoTransform2 = "Webp/lossless_vec_2_0.webp";
             public const string GreenTransform1 = "Webp/lossless1.webp";

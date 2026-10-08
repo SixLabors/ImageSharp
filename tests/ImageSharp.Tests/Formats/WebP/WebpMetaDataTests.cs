@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Webp;
@@ -108,14 +109,35 @@ public class WebpMetaDataTests
         Assert.Equal(image.Metadata.IccProfile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
     }
 
+    /// <summary>
+    /// Checks ICC retention and identical working pixels when animation decoding stops at the requested frame count.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The animated source image.</param>
+    /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
+    /// <param name="maxFrames">The number of frames to decode or identify.</param>
     [Theory]
-    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32, false)]
-    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32, true)]
-    public void AnimatedIccp_PreservedThroughDecodeAndIdentify<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, false, 13)]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, true, 13)]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, false, 1)]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, true, 1)]
+    public void AnimatedIccp_PreservedThroughDecodeAndIdentify<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata, int maxFrames)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = skipMetadata };
+        DecoderOptions preserveOptions = new()
+        {
+            ColorProfileHandling = ColorProfileHandling.Preserve,
+            SkipMetadata = skipMetadata,
+            MaxFrames = (uint)maxFrames
+        };
+
+        DecoderOptions convertOptions = new()
+        {
+            ColorProfileHandling = ColorProfileHandling.Convert,
+            SkipMetadata = skipMetadata,
+            MaxFrames = (uint)maxFrames
+        };
+
         byte[] source = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
         using Image<TPixel> preserved = provider.GetImage(WebpDecoder.Instance, preserveOptions);
@@ -127,16 +149,43 @@ public class WebpMetaDataTests
         // + 8 ICCP header bytes place the 474-byte profile at offset 38.
         byte[] sourceProfile = source.AsSpan(38, 474).ToArray();
 
-        Assert.Equal(13, preserved.Frames.Count);
-        Assert.Equal(13, converted.Frames.Count);
-        Assert.Equal(13, preservedInfo.FrameCount);
-        Assert.Equal(13, convertedInfo.FrameCount);
+        Assert.Equal(maxFrames, preserved.Frames.Count);
+        Assert.Equal(maxFrames, converted.Frames.Count);
+        Assert.Equal(maxFrames, preservedInfo.FrameCount);
+        Assert.Equal(maxFrames, convertedInfo.FrameCount);
         Assert.NotNull(preserved.Metadata.IccProfile);
         Assert.NotNull(preservedInfo.Metadata.IccProfile);
         Assert.Equal(sourceProfile, preserved.Metadata.IccProfile.ToByteArray());
         Assert.Equal(sourceProfile, preservedInfo.Metadata.IccProfile.ToByteArray());
         Assert.Null(converted.Metadata.IccProfile);
         Assert.Null(convertedInfo.Metadata.IccProfile);
+
+        // Preserve and Convert differ only in profile retention; both must produce the same sRGB animation frames.
+        ImageComparer.Exact.VerifySimilarity(converted, preserved);
+    }
+
+    /// <summary>
+    /// Checks that an embedded ICC profile does not change the requested transparent animation background.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The animated source image.</param>
+    [Theory]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void AnimatedIccp_IgnoreBackgroundColor<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpDecoderOptions options = new()
+        {
+            BackgroundColorHandling = BackgroundColorHandling.Ignore,
+            GeneralOptions = new DecoderOptions { MaxFrames = 1 }
+        };
+
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
+
+        // Ignore replaces the file's white background with transparent black before ICC conversion.
+        Assert.Equal(Color.Transparent, image.Metadata.GetWebpMetadata().BackgroundColor);
+        Assert.Single(image.Frames);
+        Assert.NotNull(image.Metadata.IccProfile);
     }
 
     [Theory]

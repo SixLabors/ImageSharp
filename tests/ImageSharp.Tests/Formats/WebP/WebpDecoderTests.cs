@@ -658,10 +658,11 @@ public class WebpDecoderTests
     /// <param name="provider">The source image provider.</param>
     [Theory]
     [WithFile(Lossy.WithIccpAndAlpha, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
-    public void Decode_LossyIccWithAlpha_UsesDestinationAlphaRepresentation<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(Lossless.WithIccpAndAlpha, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void Decode_IccWithAlpha_UsesDestinationAlphaRepresentation<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunLossyIccAlphaDecode,
+            RunIccAlphaDecode,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512v2 | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
             provider);
 
@@ -670,22 +671,22 @@ public class WebpDecoderTests
     /// </summary>
     /// <param name="providerDump">The serialized image provider.</param>
     /// <param name="intrinsics">The hardware configuration used for output naming.</param>
-    private static void RunLossyIccAlphaDecode(string providerDump, string intrinsics)
+    private static void RunIccAlphaDecode(string providerDump, string intrinsics)
     {
         // RemoteExecutor calls a non-generic method. Restore the concrete provider selected by WithFile before decoding.
         switch (FeatureTestRunner.DeserializeForXunit<IXunitSerializable>(providerDump))
         {
             case TestImageProvider<Rgba32> provider:
-                AssertLossyIccAlphaDecode(provider, intrinsics);
+                AssertIccAlphaDecode(provider, intrinsics);
                 break;
             case TestImageProvider<Rgba32P> provider:
-                AssertLossyIccAlphaDecode(provider, intrinsics);
+                AssertIccAlphaDecode(provider, intrinsics);
                 break;
             case TestImageProvider<RgbaVector> provider:
-                AssertLossyIccAlphaDecode(provider, intrinsics);
+                AssertIccAlphaDecode(provider, intrinsics);
                 break;
             case TestImageProvider<RgbaVectorP> provider:
-                AssertLossyIccAlphaDecode(provider, intrinsics);
+                AssertIccAlphaDecode(provider, intrinsics);
                 break;
         }
     }
@@ -696,23 +697,18 @@ public class WebpDecoderTests
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
     /// <param name="provider">The source image provider.</param>
     /// <param name="intrinsics">The hardware configuration used for output naming.</param>
-    private static void AssertLossyIccAlphaDecode<TPixel>(TestImageProvider<TPixel> provider, string intrinsics)
+    private static void AssertIccAlphaDecode<TPixel>(TestImageProvider<TPixel> provider, string intrinsics)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> actual = provider.GetImage(WebpDecoder.Instance);
-
-        TestFile file = TestFile.Create(provider.SourceFileOrDescription);
-        DecoderOptions options = new() { Configuration = provider.Configuration };
-        using MemoryStream stream = new(file.Bytes);
-        using Image<TPixel> expected = ReferenceDecoder.Decode<TPixel>(options, stream);
 
         // These pixels are now sRGB. Do not attach the retained source profile to the saved comparison image.
         actual.Metadata.IccProfile = null;
         PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit16 };
         actual.DebugSave(provider, intrinsics, extension: "png", encoder: encoder);
 
-        // This eight-bit fixture includes partial and zero alpha. The measured ICC difference is below one source code per RGB channel.
-        // Allow three codes in total (771 sixteen-bit units), rejecting every pixel above the bound rather than averaging errors away.
-        ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)).VerifySimilarity(expected, actual);
+        // These eight-bit fixtures include partial and zero alpha. Allow three codes in total (771 sixteen-bit units) per pixel.
+        // Any pixel whose total component difference exceeds this limit fails the comparison.
+        actual.CompareToOriginal(provider, ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)), ReferenceDecoder);
     }
 }

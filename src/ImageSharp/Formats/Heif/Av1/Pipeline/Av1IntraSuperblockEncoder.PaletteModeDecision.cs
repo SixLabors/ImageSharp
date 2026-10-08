@@ -29,10 +29,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="transformEdges">The transform size context edges of the tile.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="retainedStates">The transform states of the luma winner.</param>
         /// <param name="colorThreshold">The largest number of distinct colors that a palette search accepts.</param>
         /// <param name="dcModeCost">The rate of the DC luma mode, which a palette block signals.</param>
@@ -48,10 +50,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
-            ushort tileIndex,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int colorThreshold,
             int dcModeCost,
@@ -67,10 +71,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 dequantizedCoefficients,
                 transformWorkspace,
                 transformTypeProbabilities,
+                in transformEdges,
+                in paletteEdges,
+                in lumaCoefficientEdges,
                 macroBlock,
                 blockOrigin,
                 blockSize,
-                tileIndex,
                 retainedStates,
                 colorThreshold,
                 dcModeCost,
@@ -90,10 +96,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="transformEdges">The transform size context edges of the tile.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="retainedStates">The transform states of the luma winner.</param>
         /// <param name="colorThreshold">The largest number of distinct colors that a palette search accepts.</param>
         /// <param name="dcModeCost">The rate of the DC luma mode, which a palette block signals.</param>
@@ -109,10 +117,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
-            ushort tileIndex,
             Span<Av1EncoderTransformBlockState> retainedStates,
             int colorThreshold,
             int dcModeCost,
@@ -170,17 +180,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 dominantCount = Math.Min(dominantCount + 1, maximumPaletteSize);
             }
 
-            Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex].GetEdges();
             int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(blockSize);
-            int neighborContext = Av1TileWriter.GetPaletteYModeContext(in paletteContexts, macroBlock, blockOrigin);
+            int neighborContext = Av1TileWriter.GetPaletteYModeContext(in paletteEdges, macroBlock, blockOrigin);
             Span<ushort> colorCache = workspace.ColorCache;
-            int colorCacheSize = Av1TileWriter.GetPaletteCache(in paletteContexts, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
+            int colorCacheSize = Av1TileWriter.GetPaletteCache(in paletteEdges, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
             Av1PlaneRegion<byte> colorIndexMap = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
-            int transformSizeContext = Av1TileWriter.GetTransformSizeContext(
-                this.picture.TransformFunctionContexts[tileIndex].GetEdges(),
-                macroBlock,
-                blockOrigin,
-                blockSize);
+            int transformSizeContext = Av1TileWriter.GetTransformSizeContext(in transformEdges, macroBlock, blockOrigin, blockSize);
 
             Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
             int speed = (int)speedSettings.Speed;
@@ -203,7 +208,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 BlockOrigin = blockOrigin,
                 BlockSize = blockSize,
                 BlockState = this.GetLumaBlockState(in tables, macroBlock, blockOrigin, blockSize),
-                TileIndex = tileIndex,
                 TransformSizeContext = transformSizeContext,
                 SourceVariance = sourceVariance,
                 Samples = samples,
@@ -257,6 +261,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             dequantizedCoefficients,
                             transformWorkspace,
                             transformTypeProbabilities,
+                            in lumaCoefficientEdges,
                             in search,
                             centroids,
                             candidatePruneLevel,
@@ -338,6 +343,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="search">The block values that every candidate of the palette search shares.</param>
         /// <param name="centroids">The palette colors of the candidate, which this method sorts and compacts.</param>
         /// <param name="headerPruneLevel">How strongly the palette syntax cost alone can reject the candidate.</param>
@@ -353,6 +359,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in LumaPaletteSearch search,
             Span<short> centroids,
             int headerPruneLevel,
@@ -368,6 +375,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 dequantizedCoefficients,
                 transformWorkspace,
                 transformTypeProbabilities,
+                in lumaCoefficientEdges,
                 in search,
                 centroids,
                 headerPruneLevel,
@@ -385,6 +393,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in LumaPaletteSearch search,
             Span<short> centroids,
             int headerPruneLevel,
@@ -401,7 +410,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin = search.BlockOrigin;
             Av1BlockSize blockSize = search.BlockSize;
             LumaBlockState blockState = search.BlockState;
-            ushort tileIndex = search.TileIndex;
             int sourceVariance = search.SourceVariance;
 
             // The visible source samples and the color map.
@@ -538,6 +546,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 dequantizedCoefficients,
                 transformWorkspace,
                 transformTypeProbabilities,
+                in lumaCoefficientEdges,
                 macroBlock,
                 sourcePlane,
                 reconstructionPlane,
@@ -546,7 +555,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 in blockState,
                 lossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize(),
                 maximumDepth,
-                tileIndex,
                 sourceVariance,
                 Av1PredictionMode.DC,
                 0,
@@ -627,11 +635,6 @@ internal static partial class Av1IntraSuperblockEncoder
             /// Gets the values of the block that depend only on the block and its neighbors.
             /// </summary>
             public LumaBlockState BlockState { get; init; }
-
-            /// <summary>
-            /// Gets the tile index.
-            /// </summary>
-            public ushort TileIndex { get; init; }
 
             /// <summary>
             /// Gets the transform size context.

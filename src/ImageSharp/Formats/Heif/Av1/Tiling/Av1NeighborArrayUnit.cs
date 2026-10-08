@@ -145,18 +145,4 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
         this.memory = Memory<T>.Empty;
         this.isDisposed = true;
     }
-
-    /// <summary>
-    /// Writes one context unit across the selected block edges.
-    /// </summary>
-    /// <param name="value">The context value to publish.</param>
-    /// <param name="origin">The block origin in samples.</param>
-    /// <param name="blockSize">The block dimensions in samples.</param>
-    /// <param name="mask">The neighbor arrays to update.</param>
-    /// <remarks>
-    /// This reads the storage on each call. A caller that writes inside a loop takes <see cref="GetEdges"/> once and
-    /// writes through <see cref="Av1NeighborEdges{T}.Write"/>.
-    /// </remarks>
-    public void UnitModeWrite(T value, Point origin, Size blockSize, UnitMask mask)
-        => this.GetEdges().Write(value, origin, blockSize, mask);
 }

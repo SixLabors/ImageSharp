@@ -47,9 +47,14 @@ internal partial class Av1TileWriter
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="partitionEdges">The partition context edges of the tile.</param>
+        /// <param name="transformEdges">The transform size context edges of the tile.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The tile-local macroblock state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
-        /// <param name="tileIndex">The zero-based tile index.</param>
         /// <param name="blockSize">The current square partition size.</param>
         /// <param name="preparedPartition">The partition retained before live analysis.</param>
         /// <returns>The partition to encode.</returns>
@@ -75,9 +80,14 @@ internal partial class Av1TileWriter
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
-            ushort tileIndex,
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition);
 
@@ -105,9 +115,13 @@ internal partial class Av1TileWriter
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="transformEdges">The transform size context edges of the tile.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The current block's mapped neighbor state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
-        /// <param name="tileIndex">The zero-based tile index.</param>
         /// <param name="modeInfo">The mode information to publish.</param>
         /// <param name="block">The encoder block state to publish.</param>
         /// <param name="paletteInfo">The current block's palette sizes and colors.</param>
@@ -133,9 +147,13 @@ internal partial class Av1TileWriter
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
-            ushort tileIndex,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo);
@@ -183,9 +201,14 @@ internal partial class Av1TileWriter
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
-            ushort tileIndex,
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition)
         {
@@ -268,9 +291,13 @@ internal partial class Av1TileWriter
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
-            ushort tileIndex,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
@@ -283,79 +310,6 @@ internal partial class Av1TileWriter
             {
                 paletteInfo = this.picture.BlockPalettes.Span[allocationOffset];
             }
-        }
-    }
-
-    /// <summary>
-    /// Supplies the partition decisions that the superblock already holds and changes no final block.
-    /// </summary>
-    /// <typeparam name="TSample">The frame's unsigned sample storage type.</typeparam>
-    private readonly struct PrecomputedBlockEncodingHandler<TSample> : IBlockEncodingHandler<TSample>
-        where TSample : unmanaged
-    {
-        /// <inheritdoc/>
-        public static bool UsesRetainedDecisions => false;
-
-        /// <inheritdoc/>
-        public Av1PartitionType SelectPartition(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> searchDequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            Span<short> blockResidual,
-            Span<int> searchCoefficients,
-            Span<int> searchReconstructions,
-            Span<int> estimationRowCoefficients,
-            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
-            Span<TSample> motionSearchPrediction,
-            in Av1MotionVectorCosts motionVectorCosts,
-            Span<TSample> transformPrediction,
-            Span<TSample> interIntraAbove,
-            Span<TSample> interIntraLeft,
-            Span<ushort> firstIntermediate,
-            Span<ushort> secondIntermediate,
-            Span<byte> compoundMask,
-            Av1MacroBlockD macroBlock,
-            Point blockOrigin,
-            ushort tileIndex,
-            Av1BlockSize blockSize,
-            Av1PartitionType preparedPartition)
-            => preparedPartition;
-
-        /// <inheritdoc/>
-        public void EncodeBlock(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> searchDequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            Span<short> blockResidual,
-            Span<int> searchCoefficients,
-            Span<int> searchReconstructions,
-            Span<int> estimationRowCoefficients,
-            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
-            Span<TSample> motionSearchPrediction,
-            in Av1MotionVectorCosts motionVectorCosts,
-            Span<TSample> transformPrediction,
-            Span<TSample> interIntraAbove,
-            Span<TSample> interIntraLeft,
-            Span<ushort> firstIntermediate,
-            Span<ushort> secondIntermediate,
-            Span<byte> compoundMask,
-            Av1MacroBlockD macroBlock,
-            Point blockOrigin,
-            ushort tileIndex,
-            ref Av1MacroBlockModeInfo modeInfo,
-            ref Av1EncoderBlockStruct block,
-            ref Av1EncoderPaletteInfo paletteInfo)
-        {
         }
     }
 }

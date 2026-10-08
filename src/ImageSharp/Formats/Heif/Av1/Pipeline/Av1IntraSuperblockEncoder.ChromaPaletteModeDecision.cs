@@ -32,11 +32,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="lumaMode">The selected luma mode.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
@@ -55,11 +57,13 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> transformTypeProbabilities,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
-            ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
@@ -78,11 +82,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformTypeProbabilities,
                 searchCoefficients,
                 searchReconstructions,
+                in paletteEdges,
+                in blueCoefficientEdges,
+                in redCoefficientEdges,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
                 chromaOrigin,
-                tileIndex,
                 lumaMode,
                 transformSize,
                 retainedBlueStates,
@@ -105,11 +111,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="lumaMode">The selected luma mode.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
@@ -128,11 +136,13 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> transformTypeProbabilities,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
-            ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
@@ -170,13 +180,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> redTopContexts = contexts.Slice(contextWidth + contextHeight, contextWidth);
             Span<byte> redLeftContexts = contexts.Slice((2 * contextWidth) + contextHeight, contextHeight);
 
-            // Every palette candidate starts from the same tile edges, so they are read once.
-            Av1NeighborEdges<byte> blueNeighbors = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
-            Av1NeighborEdges<byte> redNeighbors = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
-            int blueTopIndex = blueNeighbors.GetTopIndex(chromaOrigin);
-            int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
-            int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);
-            int redLeftIndex = redNeighbors.GetLeftIndex(chromaOrigin);
+            // Every palette candidate starts from the same tile edges.
+            int blueTopIndex = blueCoefficientEdges.GetTopIndex(chromaOrigin);
+            int blueLeftIndex = blueCoefficientEdges.GetLeftIndex(chromaOrigin);
+            int redTopIndex = redCoefficientEdges.GetTopIndex(chromaOrigin);
+            int redLeftIndex = redCoefficientEdges.GetLeftIndex(chromaOrigin);
             Av1PlaneRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
             Av1PlaneRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
 
@@ -223,14 +231,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int maximumColorCount = Math.Max(uniqueBlueColorCount, uniqueRedColorCount);
             int maximumPaletteSize = Math.Min(maximumColorCount, Av1Constants.PaletteMaxSize);
-            Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex].GetEdges();
             Span<ushort> colorCache = workspace.ColorCache;
-            int colorCacheSize = Av1TileWriter.GetPaletteCache(
-                in paletteContexts,
-                macroBlock,
-                lumaOrigin,
-                Av1Plane.U,
-                colorCache);
+            int colorCacheSize = Av1TileWriter.GetPaletteCache(in paletteEdges, macroBlock, lumaOrigin, Av1Plane.U, colorCache);
 
             colorCache = colorCache[..colorCacheSize];
             int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(blockSize);
@@ -386,10 +388,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Every palette candidate starts from the same external coefficient contexts. Transform
                 // traversal updates only these scratch edges, including all transforms of a lossless block.
-                blueNeighbors.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
-                blueNeighbors.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
-                redNeighbors.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
-                redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
+                blueCoefficientEdges.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
+                blueCoefficientEdges.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
+                redCoefficientEdges.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
+                redCoefficientEdges.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
                 long distortion = this.GetTiledPlaneCost(
                     writer,
                     in tables,

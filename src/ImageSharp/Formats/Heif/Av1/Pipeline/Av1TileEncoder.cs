@@ -1295,6 +1295,18 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 // The range coder of the tile writes into the tile buffer, which is read once here. A write that grows
                 // the buffer replaces this span.
                 Span<byte> output = writer.GetTileBuffer();
+
+                // The neighbor context edges of the tile serve every block of the tile, so they are read once here. Only
+                // a frame with screen content tools has palette contexts.
+                Av1NeighborEdges<Av1PartitionContext> partitionEdges = picture.PartitionContexts[tileIndex].GetEdges();
+                Av1NeighborEdges<byte> transformEdges = picture.TransformFunctionContexts[tileIndex].GetEdges();
+                Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges = frameHeader.AllowScreenContentTools
+                    ? picture.PaletteContexts[tileIndex].GetEdges()
+                    : default;
+
+                Av1NeighborEdges<byte> lumaCoefficientEdges = picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+                Av1NeighborEdges<byte> blueCoefficientEdges = picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+                Av1NeighborEdges<byte> redCoefficientEdges = picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
                 if (TSymbolOperation.WritesOutput)
                 {
                     picture.Parent.MotionVectorStatistics?.BeginTile(writer.FrameMotionVectorContext);
@@ -1376,6 +1388,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 firstIntermediate,
                                 secondIntermediate,
                                 compoundMask,
+                                in partitionEdges,
+                                in transformEdges,
+                                in paletteEdges,
+                                in lumaCoefficientEdges,
+                                in blueCoefficientEdges,
+                                in redCoefficientEdges,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1404,7 +1422,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 // Initialize from each tile's starting CDF even when adaptation is disabled.
                                 // Later updates consume only preceding selected blocks at the configured boundary;
                                 // all candidate trials between boundaries share the same cost snapshot.
-                                writer.FillMotionVectorCosts(blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
+                                writer.FillMotionVectorCosts(motionVectorCosts);
                             }
 
                             if (frameHeader.AllowIntraBlockCopy &&
@@ -1455,6 +1473,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 firstIntermediate,
                                 secondIntermediate,
                                 compoundMask,
+                                in partitionEdges,
+                                in transformEdges,
+                                in paletteEdges,
+                                in lumaCoefficientEdges,
+                                in blueCoefficientEdges,
+                                in redCoefficientEdges,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

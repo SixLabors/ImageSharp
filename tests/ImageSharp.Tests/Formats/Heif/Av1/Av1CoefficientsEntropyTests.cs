@@ -102,14 +102,13 @@ public class Av1CoefficientsEntropyTests
         Av1TileWriter.WritePaletteModeInfo<Av1SymbolEncoder.SymbolWriteOperation>(
             ref output,
             picture.Sequence,
-            picture,
             encoder,
             macroBlock,
             modeInfo,
             ref current,
             Av1BlockSize.Block8x8,
             blockOrigin,
-            tileIndex: 0,
+            in paletteContexts,
             hasChroma: true);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -179,7 +178,7 @@ public class Av1CoefficientsEntropyTests
             macroBlock,
             modeInfo.Block.BlockSize,
             blockOrigin,
-            tileIndex: 0);
+            in edges);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         writer.Dispose();

@@ -66,9 +66,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockResidual">The residual buffer of the block.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="modeInfo">The block decisions of the winner.</param>
         /// <param name="block">The block state of the winner.</param>
         /// <param name="paletteInfo">The palette of the winner.</param>
@@ -86,9 +87,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> blockResidual,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
-            ushort tileIndex,
             Av1MacroBlockModeInfo modeInfo,
             Av1EncoderBlockStruct block,
             Av1EncoderPaletteInfo paletteInfo,
@@ -139,9 +141,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<byte> topContexts = modeWorkspace.TransformContexts[..contextWidth];
                 Span<byte> leftContexts = modeWorkspace.TransformContexts.Slice(contextWidth, contextHeight);
 
-                Av1NeighborEdges<byte> neighbors = plane == Av1Plane.U
-                    ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges()
-                    : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+                Av1NeighborEdges<byte> neighbors = plane == Av1Plane.U ? blueCoefficientEdges : redCoefficientEdges;
 
                 neighbors.Top.Slice(neighbors.GetTopIndex(origin), contextWidth).CopyTo(topContexts);
                 neighbors.Left.Slice(neighbors.GetLeftIndex(origin), contextHeight).CopyTo(leftContexts);
@@ -310,12 +310,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockResidual">The residual buffer of the block.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
         /// <param name="blockSize">The luma block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="lumaMode">The selected luma mode.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
@@ -338,12 +340,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> blockResidual,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
             Av1BlockSize blockSize,
-            ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
@@ -366,12 +370,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockResidual,
                 searchCoefficients,
                 searchReconstructions,
+                in paletteEdges,
+                in blueCoefficientEdges,
+                in redCoefficientEdges,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
                 chromaOrigin,
                 blockSize,
-                tileIndex,
                 lumaMode,
                 transformSize,
                 retainedBlueStates,
@@ -397,12 +403,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockResidual">The residual buffer of the block.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
         /// <param name="blockSize">The luma block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="lumaMode">The selected luma mode.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
@@ -425,12 +433,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> blockResidual,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
             Av1BlockSize blockSize,
-            ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
@@ -453,12 +463,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockResidual,
                 searchCoefficients,
                 searchReconstructions,
+                in blueCoefficientEdges,
+                in redCoefficientEdges,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
                 chromaOrigin,
                 blockSize,
-                tileIndex,
                 lumaMode,
                 transformSize,
                 retainedBlueStates,
@@ -483,11 +494,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformTypeProbabilities,
                     searchCoefficients,
                     searchReconstructions,
+                    in paletteEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
                     chromaOrigin,
-                    tileIndex,
                     lumaMode,
                     transformSize,
                     retainedBlueStates,
@@ -535,12 +548,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockResidual">The residual buffer of the block.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
         /// <param name="blockSize">The luma block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="lumaMode">The selected luma mode.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
@@ -563,12 +577,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> blockResidual,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
             Av1BlockSize blockSize,
-            ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
@@ -591,12 +606,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockResidual,
                 searchCoefficients,
                 searchReconstructions,
+                in blueCoefficientEdges,
+                in redCoefficientEdges,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
                 chromaOrigin,
                 blockSize,
-                tileIndex,
                 lumaMode,
                 transformSize,
                 retainedBlueStates,
@@ -623,12 +639,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockResidual">The residual buffer of the block.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
         /// <param name="blockSize">The luma block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="lumaMode">The selected luma mode.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
@@ -651,12 +668,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> blockResidual,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
             Av1BlockSize blockSize,
-            ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
@@ -690,13 +708,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformTypeProbabilities,
                     searchCoefficients,
                     searchReconstructions,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
                     chromaOrigin,
                     blockSize,
                     chromaBlockSize,
-                    tileIndex,
                     lumaMode,
                     transformSize,
                     retainedBlueStates,
@@ -812,21 +831,11 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> blueLeft = blueLeftStorage.Slice(1, width + height);
             ReadOnlySpan<TSample> redAbove = redAboveStorage.Slice(1, width + height);
             ReadOnlySpan<TSample> redLeft = redLeftStorage.Slice(1, width + height);
-            Av1NeighborEdges<byte> blueEdges = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
-            Av1NeighborEdges<byte> redEdges = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             Av1TransformBlockContext blueContext = Av1TileWriter.GetTransformBlockContexts(
-                Av1ComponentType.Chroma,
-                in blueEdges,
-                chromaOrigin,
-                chromaBlockSize,
-                transformSize);
+                Av1ComponentType.Chroma, in blueCoefficientEdges, chromaOrigin, chromaBlockSize, transformSize);
 
             Av1TransformBlockContext redContext = Av1TileWriter.GetTransformBlockContexts(
-                Av1ComponentType.Chroma,
-                in redEdges,
-                chromaOrigin,
-                chromaBlockSize,
-                transformSize);
+                Av1ComponentType.Chroma, in redCoefficientEdges, chromaOrigin, chromaBlockSize, transformSize);
 
             Span<TSample> candidateBlueReconstruction = modeWorkspace.GetCandidateReconstruction(0);
             Span<TSample> candidateRedReconstruction = modeWorkspace.GetCandidateReconstruction(1);
@@ -1400,13 +1409,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
         /// <param name="blockSize">The luma block size.</param>
         /// <param name="chromaBlockSize">The chroma block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="lumaMode">The selected luma mode.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
@@ -1428,13 +1438,14 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> transformTypeProbabilities,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
             Av1BlockSize blockSize,
             Av1BlockSize chromaBlockSize,
-            ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
             Span<Av1EncoderTransformBlockState> retainedBlueStates,
@@ -1488,13 +1499,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 (2 * contextWidth) + contextHeight,
                 contextHeight);
 
-            // Every candidate starts from the same tile edges, so they are read once.
-            Av1NeighborEdges<byte> blueNeighbors = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
-            Av1NeighborEdges<byte> redNeighbors = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
-            int blueTopIndex = blueNeighbors.GetTopIndex(chromaOrigin);
-            int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
-            int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);
-            int redLeftIndex = redNeighbors.GetLeftIndex(chromaOrigin);
+            // Every candidate starts from the same tile edges.
+            int blueTopIndex = blueCoefficientEdges.GetTopIndex(chromaOrigin);
+            int blueLeftIndex = blueCoefficientEdges.GetLeftIndex(chromaOrigin);
+            int redTopIndex = redCoefficientEdges.GetTopIndex(chromaOrigin);
+            int redLeftIndex = redCoefficientEdges.GetLeftIndex(chromaOrigin);
             Av1PlaneRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
             Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
             Av1PlaneRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
@@ -1592,10 +1601,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         costLimit += costLimit >> (angleDelta == 0 ? 3 : 5);
                     }
 
-                    blueNeighbors.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
-                    blueNeighbors.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
-                    redNeighbors.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
-                    redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
+                    blueCoefficientEdges.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
+                    blueCoefficientEdges.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
+                    redCoefficientEdges.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
+                    redCoefficientEdges.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
                     Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
                     long distortion = this.GetTiledPlaneCost(
                         writer,

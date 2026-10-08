@@ -105,10 +105,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="transformEdges">The transform size context edges of the tile.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
-        /// <param name="tileIndex">The tile index.</param>
         /// <param name="sourceVariance">The source variance of the block.</param>
         /// <param name="modeInfo">The selected block syntax.</param>
         /// <param name="block">The selected prediction-unit state.</param>
@@ -127,10 +131,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            in Av1NeighborEdges<byte> blueCoefficientEdges,
+            in Av1NeighborEdges<byte> redCoefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
-            ushort tileIndex,
             int sourceVariance,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
@@ -358,10 +366,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     dequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
                     macroBlock,
                     blockOrigin,
                     blockSize,
-                    tileIndex,
                     states,
                     normalizedSad < 500 ? 32 : 64,
                     Av1SymbolEncoder.GetInterFrameLumaModeCost(modeCosts, Av1PredictionMode.DC, blockSize),
@@ -561,8 +571,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     macroBlock,
-                    tileIndex,
                     blockOrigin,
                     ref modeInfo.Block,
                     block,
@@ -588,7 +600,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
-                    tileIndex,
+                    in lumaCoefficientEdges,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -619,7 +631,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
-                        tileIndex,
+                        in blueCoefficientEdges,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -636,7 +648,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
-                        tileIndex,
+                        in redCoefficientEdges,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -664,7 +676,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="coefficientEdges">The coefficient context edges of the plane in the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -681,7 +693,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
-            ushort tileIndex,
+            in Av1NeighborEdges<byte> coefficientEdges,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -718,16 +730,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> transformContexts = modeWorkspace.TransformContexts;
             Span<byte> topContexts = transformContexts[..contextWidth];
             Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
-            Av1NeighborArrayUnit<byte> neighborArray = plane switch
-            {
-                Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
-                Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
-                _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
-            };
-
-            Av1NeighborEdges<byte> neighbors = neighborArray.GetEdges();
-            neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
-            neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
+            coefficientEdges.Top.Slice(coefficientEdges.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
+            coefficientEdges.Left.Slice(coefficientEdges.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
             Av1ComponentType component = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
             Av1TransformType transformType = plane == Av1Plane.Y || this.picture.Parent.FrameHeader.CodedLossless
                 ? Av1TransformType.DctDct

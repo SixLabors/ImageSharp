@@ -85,6 +85,12 @@ internal partial class Av1TileWriter
     /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
     /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
     /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+    /// <param name="partitionEdges">The partition context edges of the tile.</param>
+    /// <param name="transformEdges">The transform size context edges of the tile.</param>
+    /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+    /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+    /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+    /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -114,6 +120,12 @@ internal partial class Av1TileWriter
         Span<ushort> firstIntermediate,
         Span<ushort> secondIntermediate,
         Span<byte> compoundMask,
+        in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
+        in Av1NeighborEdges<byte> transformEdges,
+        in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+        in Av1NeighborEdges<byte> lumaCoefficientEdges,
+        in Av1NeighborEdges<byte> blueCoefficientEdges,
+        in Av1NeighborEdges<byte> redCoefficientEdges,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -206,6 +218,12 @@ internal partial class Av1TileWriter
             firstIntermediate,
             secondIntermediate,
             compoundMask,
+            in partitionEdges,
+            in transformEdges,
+            in paletteEdges,
+            in lumaCoefficientEdges,
+            in blueCoefficientEdges,
+            in redCoefficientEdges,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -246,6 +264,12 @@ internal partial class Av1TileWriter
     /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
     /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
     /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+    /// <param name="partitionEdges">The partition context edges of the tile.</param>
+    /// <param name="transformEdges">The transform size context edges of the tile.</param>
+    /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+    /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+    /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+    /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -279,6 +303,12 @@ internal partial class Av1TileWriter
         Span<ushort> firstIntermediate,
         Span<ushort> secondIntermediate,
         Span<byte> compoundMask,
+        in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
+        in Av1NeighborEdges<byte> transformEdges,
+        in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+        in Av1NeighborEdges<byte> lumaCoefficientEdges,
+        in Av1NeighborEdges<byte> blueCoefficientEdges,
+        in Av1NeighborEdges<byte> redCoefficientEdges,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -325,9 +355,14 @@ internal partial class Av1TileWriter
             firstIntermediate,
             secondIntermediate,
             compoundMask,
+            in partitionEdges,
+            in transformEdges,
+            in paletteEdges,
+            in lumaCoefficientEdges,
+            in blueCoefficientEdges,
+            in redCoefficientEdges,
             entropyCodingContext.MacroBlock,
             blockOrigin,
-            tileIndex,
             blockSize,
             preparedPartition);
 
@@ -341,14 +376,7 @@ internal partial class Av1TileWriter
         // Reference: the partition update_cdf() of encode_sb(), which the non-RD path does not call.
         if (TOperation.WritesOutput || !pcs.Parent.SpeedSettings.IsRealtime)
         {
-            EncodePartition<TOperation>(
-                ref output,
-                pcs,
-                writer,
-                blockSize,
-                partition,
-                blockOrigin,
-                pcs.PartitionContexts[tileIndex].GetEdges());
+            EncodePartition<TOperation>(ref output, pcs, writer, blockSize, partition, blockOrigin, in partitionEdges);
         }
 
         switch (partition)
@@ -379,6 +407,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -413,6 +446,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -447,6 +485,11 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -482,6 +525,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -516,6 +564,11 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -568,6 +621,11 @@ internal partial class Av1TileWriter
                             firstIntermediate,
                             secondIntermediate,
                             compoundMask,
+                            in transformEdges,
+                            in paletteEdges,
+                            in lumaCoefficientEdges,
+                            in blueCoefficientEdges,
+                            in redCoefficientEdges,
                             superblock,
                             coefficientBuffer,
                             tileIndex,
@@ -603,6 +661,12 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in partitionEdges,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -637,6 +701,12 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in partitionEdges,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -671,6 +741,12 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in partitionEdges,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -705,6 +781,12 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in partitionEdges,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -742,6 +824,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -774,6 +861,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -806,6 +898,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -840,6 +937,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -872,6 +974,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -904,6 +1011,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -938,6 +1050,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -970,6 +1087,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1002,6 +1124,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1036,6 +1163,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1068,6 +1200,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1100,6 +1237,11 @@ internal partial class Av1TileWriter
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    in transformEdges,
+                    in paletteEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1143,6 +1285,11 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1187,6 +1334,11 @@ internal partial class Av1TileWriter
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        in transformEdges,
+                        in paletteEdges,
+                        in lumaCoefficientEdges,
+                        in blueCoefficientEdges,
+                        in redCoefficientEdges,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1202,12 +1354,7 @@ internal partial class Av1TileWriter
         // costs read zero neighbor contexts. Only the packed partitions update them.
         if (TOperation.WritesOutput || !pcs.Parent.SpeedSettings.IsRealtime)
         {
-            UpdatePartitionContexts(
-                pcs.PartitionContexts[tileIndex],
-                blockOrigin,
-                subSize,
-                blockSize,
-                partition);
+            UpdatePartitionContexts(in partitionEdges, blockOrigin, subSize, blockSize, partition);
         }
     }
 
@@ -1241,6 +1388,11 @@ internal partial class Av1TileWriter
     /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
     /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
     /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+    /// <param name="transformEdges">The transform size context edges of the tile.</param>
+    /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+    /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+    /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+    /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -1272,6 +1424,11 @@ internal partial class Av1TileWriter
         Span<ushort> firstIntermediate,
         Span<ushort> secondIntermediate,
         Span<byte> compoundMask,
+        in Av1NeighborEdges<byte> transformEdges,
+        in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+        in Av1NeighborEdges<byte> lumaCoefficientEdges,
+        in Av1NeighborEdges<byte> blueCoefficientEdges,
+        in Av1NeighborEdges<byte> redCoefficientEdges,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -1308,6 +1465,11 @@ internal partial class Av1TileWriter
             firstIntermediate,
             secondIntermediate,
             compoundMask,
+            in transformEdges,
+            in paletteEdges,
+            in lumaCoefficientEdges,
+            in blueCoefficientEdges,
+            in redCoefficientEdges,
             superblock,
             ref block,
             tileIndex,
@@ -1319,8 +1481,13 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Publishes the partition contexts produced by one completed partition node.
     /// </summary>
+    /// <param name="partitionEdges">The partition context edges of the tile.</param>
+    /// <param name="blockOrigin">The origin of the partition node in luma samples.</param>
+    /// <param name="subSize">The block size of the partition children.</param>
+    /// <param name="blockSize">The block size of the partition node.</param>
+    /// <param name="partition">The partition type of the node.</param>
     internal static void UpdatePartitionContexts(
-        Av1NeighborArrayUnit<Av1PartitionContext> neighbors,
+        in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
         Point blockOrigin,
         Av1BlockSize subSize,
         Av1BlockSize blockSize,
@@ -1341,50 +1508,30 @@ internal partial class Av1TileWriter
                     return;
                 }
 
-                UpdatePartitionContext(neighbors, blockOrigin, subSize, blockSize);
+                UpdatePartitionContext(in partitionEdges, blockOrigin, subSize, blockSize);
                 break;
             case Av1PartitionType.None:
             case Av1PartitionType.Horizontal:
             case Av1PartitionType.Vertical:
             case Av1PartitionType.Horizontal4:
             case Av1PartitionType.Vertical4:
-                UpdatePartitionContext(neighbors, blockOrigin, subSize, blockSize);
+                UpdatePartitionContext(in partitionEdges, blockOrigin, subSize, blockSize);
                 break;
             case Av1PartitionType.HorizontalA:
-                UpdatePartitionContext(neighbors, blockOrigin, splitSize, subSize);
-                UpdatePartitionContext(
-                    neighbors,
-                    blockOrigin + new Size(0, halfBlockSize),
-                    subSize,
-                    subSize);
-
+                UpdatePartitionContext(in partitionEdges, blockOrigin, splitSize, subSize);
+                UpdatePartitionContext(in partitionEdges, blockOrigin + new Size(0, halfBlockSize), subSize, subSize);
                 break;
             case Av1PartitionType.HorizontalB:
-                UpdatePartitionContext(neighbors, blockOrigin, subSize, subSize);
-                UpdatePartitionContext(
-                    neighbors,
-                    blockOrigin + new Size(0, halfBlockSize),
-                    splitSize,
-                    subSize);
-
+                UpdatePartitionContext(in partitionEdges, blockOrigin, subSize, subSize);
+                UpdatePartitionContext(in partitionEdges, blockOrigin + new Size(0, halfBlockSize), splitSize, subSize);
                 break;
             case Av1PartitionType.VerticalA:
-                UpdatePartitionContext(neighbors, blockOrigin, splitSize, subSize);
-                UpdatePartitionContext(
-                    neighbors,
-                    blockOrigin + new Size(halfBlockSize, 0),
-                    subSize,
-                    subSize);
-
+                UpdatePartitionContext(in partitionEdges, blockOrigin, splitSize, subSize);
+                UpdatePartitionContext(in partitionEdges, blockOrigin + new Size(halfBlockSize, 0), subSize, subSize);
                 break;
             case Av1PartitionType.VerticalB:
-                UpdatePartitionContext(neighbors, blockOrigin, subSize, subSize);
-                UpdatePartitionContext(
-                    neighbors,
-                    blockOrigin + new Size(halfBlockSize, 0),
-                    splitSize,
-                    subSize);
-
+                UpdatePartitionContext(in partitionEdges, blockOrigin, subSize, subSize);
+                UpdatePartitionContext(in partitionEdges, blockOrigin + new Size(halfBlockSize, 0), splitSize, subSize);
                 break;
         }
     }
@@ -1392,8 +1539,12 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes one partition-context value across the complete parent edges.
     /// </summary>
+    /// <param name="partitionEdges">The partition context edges of the tile.</param>
+    /// <param name="blockOrigin">The origin of the covered area in luma samples.</param>
+    /// <param name="contextBlockSize">The block size whose context value is written.</param>
+    /// <param name="coveredBlockSize">The block size of the area that the value covers.</param>
     private static void UpdatePartitionContext(
-        Av1NeighborArrayUnit<Av1PartitionContext> neighbors,
+        in Av1NeighborEdges<Av1PartitionContext> partitionEdges,
         Point blockOrigin,
         Av1BlockSize contextBlockSize,
         Av1BlockSize coveredBlockSize)
@@ -1403,11 +1554,7 @@ internal partial class Av1TileWriter
             Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left |
             Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top;
 
-        neighbors.UnitModeWrite(
-            context,
-            blockOrigin,
-            new Size(coveredBlockSize.GetWidth(), coveredBlockSize.GetHeight()),
-            edgeMask);
+        partitionEdges.Write(context, blockOrigin, new Size(coveredBlockSize.GetWidth(), coveredBlockSize.GetHeight()), edgeMask);
     }
 
     /// <summary>
@@ -1571,6 +1718,11 @@ internal partial class Av1TileWriter
     /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
     /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
     /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+    /// <param name="transformEdges">The transform size context edges of the tile.</param>
+    /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+    /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+    /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+    /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
@@ -1605,6 +1757,11 @@ internal partial class Av1TileWriter
         Span<ushort> firstIntermediate,
         Span<ushort> secondIntermediate,
         Span<byte> compoundMask,
+        in Av1NeighborEdges<byte> transformEdges,
+        in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+        in Av1NeighborEdges<byte> lumaCoefficientEdges,
+        in Av1NeighborEdges<byte> blueCoefficientEdges,
+        in Av1NeighborEdges<byte> redCoefficientEdges,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
@@ -1664,9 +1821,13 @@ internal partial class Av1TileWriter
             firstIntermediate,
             secondIntermediate,
             compoundMask,
+            in transformEdges,
+            in paletteEdges,
+            in lumaCoefficientEdges,
+            in blueCoefficientEdges,
+            in redCoefficientEdges,
             macroBlock,
             blockOrigin,
-            tile_idx,
             ref macroBlockModeInfo,
             ref blk_ptr,
             ref paletteInfo);
@@ -2184,14 +2345,13 @@ internal partial class Av1TileWriter
                 WritePaletteModeInfo<TOperation>(
                     ref output,
                     scs,
-                    pcs,
                     writer,
                     macroBlock,
                     macroBlockModeInfo,
                     ref paletteInfo,
                     blockSize,
                     blockOrigin,
-                    tile_idx,
+                    in paletteEdges,
                     blk_ptr.HasChroma);
             }
 
@@ -2273,21 +2433,11 @@ internal partial class Av1TileWriter
                 }
             }
 
-            WriteTransformSize<TOperation>(
-                ref output,
-                pcs,
-                writer,
-                ref macroBlockModeInfo,
-                macroBlock,
-                blockSize,
-                blockOrigin,
-                tile_idx);
+            WriteTransformSize<TOperation>(ref output, pcs, writer, ref macroBlockModeInfo, macroBlock, blockSize, blockOrigin, in transformEdges);
 
             entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
             if (!skipWritingCoefficients)
             {
-                // The coefficient edges of the three planes are read once and serve every transform block.
-                Av1CoefficientNeighborEdges coefficientEdges = new(pcs, tile_idx);
                 EncodeTransformCoefficientRegions<TOperation>(
                     ref output,
                     pcs,
@@ -2299,7 +2449,9 @@ internal partial class Av1TileWriter
                     blockSize,
                     coefficientBuffer,
                     tb_ptr.Index,
-                    in coefficientEdges,
+                    in lumaCoefficientEdges,
+                    in blueCoefficientEdges,
+                    in redCoefficientEdges,
                     TBlockEncoder.UsesRetainedDecisions);
             }
         }
@@ -2311,15 +2463,20 @@ internal partial class Av1TileWriter
                 Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask.Left |
                 Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask.Top;
 
-            pcs.PaletteContexts[tile_idx].UnitModeWrite(
-                paletteInfo,
-                blockOrigin,
-                new Size(blockSize.GetWidth(), blockSize.GetHeight()),
-                PaletteContextMask);
+            paletteEdges.Write(paletteInfo, blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight()), PaletteContextMask);
         }
 
         // Coefficient neighbor state follows the same post-symbol ownership boundary.
-        UpdateNeighbors(pcs, entropyCodingContext, blockOrigin, ref blk_ptr, tile_idx, blockSize);
+        UpdateNeighbors(
+            pcs,
+            entropyCodingContext,
+            blockOrigin,
+            ref blk_ptr,
+            ref macroBlockModeInfo,
+            in lumaCoefficientEdges,
+            in blueCoefficientEdges,
+            in redCoefficientEdges,
+            blockSize);
     }
 
     /// <summary>
@@ -2379,7 +2536,7 @@ internal partial class Av1TileWriter
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
-    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <param name="transformEdges">The transform size context edges of the tile.</param>
     internal static void WriteTransformSize<TOperation>(
         ref Span<byte> output,
         Av1PictureControlSet pcs,
@@ -2388,7 +2545,7 @@ internal partial class Av1TileWriter
         Av1MacroBlockD macroBlock,
         Av1BlockSize blockSize,
         Point blockOrigin,
-        int tileIndex)
+        in Av1NeighborEdges<byte> transformEdges)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
@@ -2418,10 +2575,8 @@ internal partial class Av1TileWriter
             macroBlockModeInfo.Block.TransformSize = transformSize;
         }
 
-        Av1NeighborArrayUnit<byte> transformContexts = pcs.TransformFunctionContexts[tileIndex];
         if (writesUniformTransformSize)
         {
-            Av1NeighborEdges<byte> transformEdges = transformContexts.GetEdges();
             int context = GetTransformSizeContext(in transformEdges, macroBlock, blockOrigin, blockSize);
             writer.WriteTransformSize<TOperation>(ref output, blockSize, transformSize, context);
         }
@@ -2430,7 +2585,6 @@ internal partial class Av1TileWriter
             int maximumBlocksWide = blockSize.Get4x4WideCount() + (Math.Min(0, macroBlock.ToRightEdge) >> 5);
             int maximumBlocksHigh = blockSize.Get4x4HighCount() + (Math.Min(0, macroBlock.ToBottomEdge) >> 5);
             Av1TransformSize rootSize = blockSize.GetMaximumTransformSize();
-            Av1NeighborEdges<byte> transformEdges = transformContexts.GetEdges();
             for (int row = 0; row < maximumBlocksHigh; row += rootSize.Get4x4HighCount())
             {
                 for (int column = 0; column < maximumBlocksWide; column += rootSize.Get4x4WideCount())
@@ -2459,17 +2613,8 @@ internal partial class Av1TileWriter
         Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
 
         // Above entries retain transform widths and left entries retain heights, including rectangular selections.
-        transformContexts.UnitModeWrite(
-            (byte)transformSize.GetWidth(),
-            blockOrigin,
-            blockDimensions,
-            Av1NeighborArrayUnit<byte>.UnitMask.Top);
-
-        transformContexts.UnitModeWrite(
-            (byte)transformSize.GetHeight(),
-            blockOrigin,
-            blockDimensions,
-            Av1NeighborArrayUnit<byte>.UnitMask.Left);
+        transformEdges.Write((byte)transformSize.GetWidth(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
+        transformEdges.Write((byte)transformSize.GetHeight(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
     }
 
     /// <summary>
@@ -2928,31 +3073,28 @@ internal partial class Av1TileWriter
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="scs">The sequence coding state.</param>
-    /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
     /// <param name="paletteInfo">The selected palette sizes and colors.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="blockOrigin">The absolute luma-sample origin.</param>
-    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <param name="paletteEdges">The palette color context edges of the tile.</param>
     /// <param name="hasChroma">Whether the block owns chroma syntax.</param>
     internal static void WritePaletteModeInfo<TOperation>(
         ref Span<byte> output,
         Av1SequenceControlSet scs,
-        Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
         Av1MacroBlockD macroBlock,
         Av1MacroBlockModeInfo macroBlockModeInfo,
         ref Av1EncoderPaletteInfo paletteInfo,
         Av1BlockSize blockSize,
         Point blockOrigin,
-        int tileIndex,
+        in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
         bool hasChroma)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         int blockSizeContext = GetPaletteBlockSizeContext(blockSize);
-        Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts = pcs.PaletteContexts[tileIndex].GetEdges();
         int yPaletteSize = paletteInfo.PaletteSizes[0];
 
         // The encoder's own probability pass leaves the luma palette flag and size alone for a block that
@@ -2965,7 +3107,7 @@ internal partial class Av1TileWriter
 
         if (macroBlockModeInfo.Block.Mode == Av1PredictionMode.DC)
         {
-            int neighborContext = GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
+            int neighborContext = GetPaletteYModeContext(in paletteEdges, macroBlock, blockOrigin);
             if (updatesLumaPalette)
             {
                 writer.WritePaletteYMode<TOperation>(ref output, yPaletteSize != 0, blockSizeContext, neighborContext);
@@ -2979,12 +3121,7 @@ internal partial class Av1TileWriter
                 }
 
                 Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
-                int cacheSize = GetPaletteCache(
-                    paletteContexts,
-                    macroBlock,
-                    blockOrigin,
-                    Av1Plane.Y,
-                    colorCache);
+                int cacheSize = GetPaletteCache(in paletteEdges, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
 
                 writer.WritePaletteYColors<TOperation>(
                     ref output,
@@ -3004,12 +3141,7 @@ internal partial class Av1TileWriter
             {
                 writer.WritePaletteSize<TOperation>(ref output, uvPaletteSize, blockSizeContext, Av1PlaneType.Uv);
                 Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
-                int cacheSize = GetPaletteCache(
-                    paletteContexts,
-                    macroBlock,
-                    blockOrigin,
-                    Av1Plane.U,
-                    colorCache);
+                int cacheSize = GetPaletteCache(in paletteEdges, macroBlock, blockOrigin, Av1Plane.U, colorCache);
 
                 writer.WritePaletteUvColors<TOperation>(
                     ref output,
@@ -3240,21 +3372,22 @@ internal partial class Av1TileWriter
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="blk_ptr">The encoder block state.</param>
-    /// <param name="tile_idx">The zero-based tile index.</param>
+    /// <param name="mbmi">The selected modes of the block.</param>
+    /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+    /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+    /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
     /// <param name="blockSize">The block size.</param>
     private static void UpdateNeighbors(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Point blockOrigin,
         ref Av1EncoderBlockStruct blk_ptr,
-        ushort tile_idx,
+        ref Av1MacroBlockModeInfo mbmi,
+        in Av1NeighborEdges<byte> lumaCoefficientEdges,
+        in Av1NeighborEdges<byte> blueCoefficientEdges,
+        in Av1NeighborEdges<byte> redCoefficientEdges,
         Av1BlockSize blockSize)
     {
-        Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na = pcs.LuminanceDcSignLevelCoefficientNeighbors[tile_idx];
-        Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na = pcs.CrDcSignLevelCoefficientNeighbors[tile_idx];
-        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na = pcs.CbDcSignLevelCoefficientNeighbors[tile_idx];
-        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
-        ref Av1MacroBlockModeInfo mbmi = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
         bool skip_coeff = mbmi.Block.Skip;
 
         Size size = new(blockSize.GetWidth(), blockSize.GetHeight());
@@ -3285,11 +3418,8 @@ internal partial class Av1TileWriter
 
             // A skipped block has an all-zero residual, so publish a zero sign/level context over its edges
             // and advance coefficient positions without reading transform units.
-            luma_dc_sign_level_coeff_na.UnitModeWrite(
-                0,
-                blockOrigin,
-                size,
-                Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
+            const Av1NeighborArrayUnit<byte>.UnitMask BothEdges = Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top;
+            lumaCoefficientEdges.Write(0, blockOrigin, size, BothEdges);
 
             ObuColorConfig colorConfig = pcs.Sequence.SequenceHeader.ColorConfig;
             if (blk_ptr.HasChroma && !colorConfig.IsMonochrome)
@@ -3300,17 +3430,8 @@ internal partial class Av1TileWriter
                 Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
                 Size chromaSize = new(chromaBlockSize.GetWidth(), chromaBlockSize.GetHeight());
 
-                cb_dc_sign_level_coeff_na.UnitModeWrite(
-                    0,
-                    chromaOrigin,
-                    chromaSize,
-                    Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
-
-                cr_dc_sign_level_coeff_na.UnitModeWrite(
-                    0,
-                    chromaOrigin,
-                    chromaSize,
-                    Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
+                blueCoefficientEdges.Write(0, chromaOrigin, chromaSize, BothEdges);
+                redCoefficientEdges.Write(0, chromaOrigin, chromaSize, BothEdges);
 
                 Av1TransformSize chromaTransformSize = lossless
                     ? Av1TransformSize.Size4x4
@@ -3482,7 +3603,9 @@ internal partial class Av1TileWriter
     /// <param name="blockSize">The luma block size.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
-    /// <param name="coefficientEdges">The coefficient context edges of the three planes, read once by the caller.</param>
+    /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+    /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
+    /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
     /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
     private static void EncodeTransformCoefficientRegions<TOperation>(
         ref Span<byte> output,
@@ -3495,7 +3618,9 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         int superblockIndex,
-        in Av1CoefficientNeighborEdges coefficientEdges,
+        in Av1NeighborEdges<byte> lumaCoefficientEdges,
+        in Av1NeighborEdges<byte> blueCoefficientEdges,
+        in Av1NeighborEdges<byte> redCoefficientEdges,
         bool useRetainedContexts)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
@@ -3547,6 +3672,13 @@ internal partial class Av1TileWriter
                     chromaAreaStart = entropyCodingContext.CodedAreaSuperblockUv;
                 }
 
+                Av1NeighborEdges<byte> planeCoefficientEdges = plane switch
+                {
+                    Av1Plane.Y => lumaCoefficientEdges,
+                    Av1Plane.U => blueCoefficientEdges,
+                    _ => redCoefficientEdges
+                };
+
                 for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
                 {
                     int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
@@ -3566,7 +3698,7 @@ internal partial class Av1TileWriter
                             plane,
                             coefficientBuffer,
                             superblockIndex,
-                            coefficientEdges.Get(plane),
+                            planeCoefficientEdges,
                             isLuma ? regionRow : regionRow >> subsamplingY,
                             isLuma ? regionColumn : regionColumn >> subsamplingX,
                             isLuma ? unitBottom : Av1Math.RoundPowerOf2(unitBottom, subsamplingY),
@@ -3600,7 +3732,7 @@ internal partial class Av1TileWriter
                     Av1Plane.Y,
                     coefficientBuffer,
                     superblockIndex,
-                    coefficientEdges.Luma,
+                    lumaCoefficientEdges,
                     regionRow,
                     regionColumn,
                     unitBottom,
@@ -3628,7 +3760,7 @@ internal partial class Av1TileWriter
                         Av1Plane.U,
                         coefficientBuffer,
                         superblockIndex,
-                        coefficientEdges.Blue,
+                        blueCoefficientEdges,
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,
@@ -3647,7 +3779,7 @@ internal partial class Av1TileWriter
                         Av1Plane.V,
                         coefficientBuffer,
                         superblockIndex,
-                        coefficientEdges.Red,
+                        redCoefficientEdges,
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,

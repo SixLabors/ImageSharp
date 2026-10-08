@@ -79,14 +79,22 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     /// Writing those regions here makes a preceding clear of the active layout unnecessary.
     /// </remarks>
     /// <param name="coefficientBuffer">The coefficient levels to copy.</param>
-    public void Initialize(ReadOnlySpan<int> coefficientBuffer)
+    public void Initialize(ReadOnlySpan<int> coefficientBuffer) => this.Initialize(this.GetStorage(), coefficientBuffer);
+
+    /// <summary>
+    /// Initializes the level plane, its right padding, and its bottom padding from raster-ordered coefficients, in
+    /// storage that the caller read once with <see cref="GetStorage"/>.
+    /// </summary>
+    /// <param name="storage">All of the level storage, from <see cref="GetStorage"/>.</param>
+    /// <param name="coefficientBuffer">The coefficient levels to copy.</param>
+    public void Initialize(Span<byte> storage, ReadOnlySpan<int> coefficientBuffer)
     {
         int width = this.Size.Width;
         int height = this.Size.Height;
         ArgumentOutOfRangeException.ThrowIfLessThan(coefficientBuffer.Length, width * height, nameof(coefficientBuffer));
 
         int stride = this.Stride;
-        Span<byte> levels = this.GetActiveLevels();
+        Span<byte> levels = this.GetActiveLevels(storage);
         ref byte destinationBase = ref MemoryMarshal.GetReference(levels);
         ref int sourceBase = ref MemoryMarshal.GetReference(coefficientBuffer);
 
@@ -111,16 +119,29 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     /// Resolving the owned memory for every neighbor read costs more than the context arithmetic itself.
     /// </remarks>
     /// <returns>The padded rows of the active layout.</returns>
-    public Span<byte> GetActiveLevels()
+    public Span<byte> GetActiveLevels() => this.GetActiveLevels(this.GetStorage());
+
+    /// <summary>
+    /// Gets the active level plane from storage that the caller read once with <see cref="GetStorage"/>.
+    /// </summary>
+    /// <param name="storage">All of the level storage, from <see cref="GetStorage"/>.</param>
+    /// <returns>The padded rows of the active layout.</returns>
+    public Span<byte> GetActiveLevels(Span<byte> storage)
+        => storage.Slice(Av1Constants.TransformPadTop * this.Stride, (this.Size.Height + Av1Constants.TransformPadBottom) * this.Stride);
+
+    /// <summary>
+    /// Gets all of the level storage. A caller that codes many transform blocks reads it once and passes it to
+    /// <see cref="Initialize(Span{byte}, ReadOnlySpan{int})"/> and <see cref="GetActiveLevels(Span{byte})"/>.
+    /// </summary>
+    /// <returns>The whole level storage.</returns>
+    public Span<byte> GetStorage()
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);
-        return this.memory.Memory.Span.Slice(
-            Av1Constants.TransformPadTop * this.Stride,
-            (this.Size.Height + Av1Constants.TransformPadBottom) * this.Stride);
+        return this.memory.Memory.Span;
     }
 
     /// <summary>
-    /// Converts a raster-order coefficient index to its offset in the span from <see cref="GetActiveLevels"/>.
+    /// Converts a raster-order coefficient index to its offset in the span from <see cref="GetActiveLevels(Span{byte})"/>.
     /// </summary>
     /// <param name="index">The raster-order coefficient index.</param>
     /// <param name="widthLog2">The base-two logarithm of the unpadded width.</param>

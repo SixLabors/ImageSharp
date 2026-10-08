@@ -658,6 +658,38 @@ internal static partial class Av1IntraSuperblockEncoder
                 bestReconstructed = true;
             }
 
+            // Every type of this transform block uses the same residual, buffers, rate tables and settings, so they
+            // are described once here. Only the type and the swapped coefficient buffers change in the loop.
+            Av1TransformTypeTrial trial = new()
+            {
+                Workspace = this.blockWorkspace,
+                Writer = writer,
+                Tables = writer.GetCoefficientTables(),
+                Context = blockContext,
+                Residual = residual,
+                ResidualStride = inputStride,
+                TransformCoefficients = transformCoefficients,
+                TransformWorkspace = transformWorkspace,
+                TransformSize = transformSize,
+                IntraDirection = mode,
+                FilterIntraMode = filterIntraMode,
+                UseReducedTransformSet = useReducedTransformSet,
+                UsesInterTransformSet = isInter,
+                QIndex = this.blockQIndex,
+                DcDeltaQ = this.quantization.DeltaQDc[planeIndex],
+                AcDeltaQ = this.quantization.DeltaQAc[planeIndex],
+                Sharpness = this.blockWorkspace.EncoderOptions.Sharpness,
+                BitDepth = this.bitDepth,
+                ComponentType = componentType,
+                RateMultiplier = this.rateMultiplier,
+                IsInter = isInter,
+                UseChromaWeights = this.picture.Sequence.SequenceHeader.IsStillPicture,
+                SkipTrellis = skipTrellis,
+                SatdThreshold = refinementThresholds.Satd,
+                DcOnly = dcOnlyBlock,
+                PerPixelMean = perPixelMean
+            };
+
             for (int typeIndex = 0; typeIndex < Av1TransformTypeProbabilities.TypeCount; typeIndex++)
             {
                 Av1TransformType transformType = transformOrder[typeIndex];
@@ -676,35 +708,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1EncoderTransformBlockState candidateState = default;
                 Av1WorkCounters.Count(Av1WorkCounters.TxTypeIterY);
                 int candidateRate = Av1TransformBlockEncoder.EncodeTypeSearchCandidate(
-                    this.blockWorkspace,
-                    writer,
-                    blockContext,
-                    residual,
-                    inputStride,
-                    transformCoefficients,
-                    transformWorkspace,
-                    candidateCoefficients,
-                    candidateDequantized,
-                    transformSize,
-                    transformType,
-                    mode,
-                    filterIntraMode,
-                    useReducedTransformSet,
-                    isInter,
-                    this.blockQIndex,
-                    this.quantization.DeltaQDc[planeIndex],
-                    this.quantization.DeltaQAc[planeIndex],
-                    this.bitDepth,
-                    componentType,
-                    this.rateMultiplier,
-                    isInter,
-                    this.picture.Sequence.SequenceHeader.IsStillPicture,
-                    skipTrellis,
-                    refinementThresholds.Satd,
-                    dcOnlyBlock,
-                    perPixelMean,
-                    ref candidateState,
-                    out bool candidateMatricesDropped);
+                    in trial, transformType, candidateCoefficients, candidateDequantized, ref candidateState, out bool candidateMatricesDropped);
 
                 // Distortion is never negative. A candidate whose rate alone already costs more than the current
                 // winner cannot replace it, so it needs no distortion measurement.

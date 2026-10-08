@@ -1519,12 +1519,18 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int height = adjustedTransformSize.GetHeight();
         Av1TransformClass transformClass = transformType.ToClass();
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+
+        // The tables and the level storage are read once for this block.
+        Av1CoefficientTables tables = this.GetCoefficientTables();
         Av1LevelBuffer levels = this.PrepareCoefficientScratch(
+            tables,
             width,
             height,
             out Span<sbyte> coefficientContexts);
 
-        levels.Initialize(coefficientBuffer);
+        Span<byte> levelStorage = tables.LevelStorage;
+        levels.Initialize(levelStorage, coefficientBuffer);
+        Span<byte> activeLevels = levels.GetActiveLevels(levelStorage);
         if (componentType == Av1ComponentType.Luminance)
         {
             _ = this.ProcessTransformType<TOperation>(
@@ -1544,10 +1550,10 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             transformSize,
             transformSizeContext);
 
-        Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        Av1SymbolContextHelper.GetNzMapContexts(levels, activeLevels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
         int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         ref Av1SymbolWriter w = ref this.writer;
-        ref byte levelBase = ref MemoryMarshal.GetReference(levels.GetActiveLevels());
+        ref byte levelBase = ref MemoryMarshal.GetReference(activeLevels);
         int levelStride = levels.Stride;
         int widthLog2 = levels.WidthLog2;
         for (int c = endOfBlock - 1; c >= 0; --c)
@@ -1640,7 +1646,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
     /// <summary>
     /// Completes the rate of a refined transform block from the coefficient rate that
-    /// <see cref="OptimizeCoefficients"/> accumulated.
+    /// <see cref="OptimizeCoefficients(in Av1CoefficientTables, ReadOnlySpan{int}, Span{int}, Span{int}, Av1TransformSize, Av1TransformType, Av1ComponentType, Av1TransformBlockContext, int, int, int, Av1BitDepth, bool, bool, ushort, in Av1CoefficientOptimizationWeights, out int)"/> accumulated.
     /// </summary>
     /// <remarks>
     /// This is the tail of <c>av1_optimize_txb</c>: the skip flag, and for a coded luma block the transform
@@ -1669,8 +1675,56 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         bool usesInterTransformSet)
     {
+        Av1CoefficientTables tables = this.GetCoefficientTables();
+        return this.GetOptimizedCoefficientCost(
+            in tables,
+            transformSize,
+            transformType,
+            intraDirection,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            coefficientRate,
+            useReducedTransformSet,
+            filterIntraMode,
+            usesInterTransformSet);
+    }
+
+    /// <summary>
+    /// Gets the complete rate of a transform block whose coefficient rate the trellis already measured, with the
+    /// rate tables that the caller read once for its search loop.
+    /// </summary>
+    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformType">The transform type.</param>
+    /// <param name="intraDirection">The block's intra prediction mode.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
+    /// <param name="coefficientRate">The coefficient and end-of-block rate that the trellis measured.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetOptimizedCoefficientCost(
+        in Av1CoefficientTables tables,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        int coefficientRate,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet)
+    {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
-        int rate = this.GetTransformBlockSkipCost(endOfBlock == 0, transformSizeContext, transformBlockContext.SkipContext);
+        int rate = Av1CoefficientCosts.GetSkip(
+            tables.CoefficientCosts.GetPlane((int)transformSizeContext, (int)Av1ComponentType.Luminance),
+            transformBlockContext.SkipContext,
+            endOfBlock == 0 ? 1 : 0);
+
         if (endOfBlock == 0)
         {
             return rate;
@@ -1678,7 +1732,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         if (componentType == Av1ComponentType.Luminance)
         {
-            rate += this.GetTransformTypeCost(
+            rate += GetTransformTypeCost(
+                tables.ModeCosts,
                 transformType,
                 transformSize,
                 useReducedTransformSet,
@@ -1717,13 +1772,71 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         bool usesInterTransformSet)
     {
+        Av1CoefficientTables tables = this.GetCoefficientTables();
+        return this.GetCoefficientCost(
+            in tables,
+            transformSize,
+            transformType,
+            intraDirection,
+            coefficientBuffer,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            useReducedTransformSet,
+            filterIntraMode,
+            usesInterTransformSet);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point rate cost of one transform block's complete coefficient syntax, with the rate
+    /// tables that the caller read once for its search loop.
+    /// </summary>
+    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformType">The transform type selecting the scan and context class.</param>
+    /// <param name="intraDirection">The block's intra prediction mode.</param>
+    /// <param name="coefficientBuffer">The raster-ordered signed coefficient levels.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetCoefficientCost(
+        in Av1CoefficientTables tables,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        ReadOnlySpan<int> coefficientBuffer,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet)
+    {
         long workStart = Av1WorkCounters.Start();
-        int workResult = this.GetCoefficientCostCore(transformSize, transformType, intraDirection, coefficientBuffer, componentType, transformBlockContext, endOfBlock, useReducedTransformSet, filterIntraMode, usesInterTransformSet);
+        int workResult = this.GetCoefficientCostCore(
+            in tables,
+            transformSize,
+            transformType,
+            intraDirection,
+            coefficientBuffer,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            useReducedTransformSet,
+            filterIntraMode,
+            usesInterTransformSet);
+
         Av1WorkCounters.Stop(Av1WorkCounters.CostCoeffs, workStart);
         return workResult;
     }
 
+    /// <inheritdoc cref="GetCoefficientCost(in Av1CoefficientTables, Av1TransformSize, Av1TransformType, Av1PredictionMode, ReadOnlySpan{int}, Av1ComponentType, Av1TransformBlockContext, ushort, bool, Av1FilterIntraMode, bool)"/>
     public int GetCoefficientCostCore(
+        in Av1CoefficientTables tables,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         Av1PredictionMode intraDirection,
@@ -1739,7 +1852,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
-        Av1CoefficientCosts allCosts = this.CoefficientCosts;
+        Av1CoefficientCosts allCosts = tables.CoefficientCosts;
         ReadOnlySpan<int> costs = allCosts.GetPlane((int)transformSizeContext, (int)componentType);
         int rate = Av1CoefficientCosts.GetSkip(
             allCosts.GetPlane((int)transformSizeContext, 0),
@@ -1758,20 +1871,23 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         bool needsLevelMap = endOfBlock > 1;
         Av1LevelBuffer levels = this.PrepareCoefficientScratch(
+            tables,
             width,
             height,
             out Span<sbyte> coefficientContexts);
 
         // The final coefficient uses scan-position contexts only. Earlier coefficients need the complete
         // forward-neighbor level map, so a one-coefficient candidate avoids initializing that plane.
+        Span<byte> levelStorage = tables.LevelStorage;
         if (needsLevelMap)
         {
-            levels.Initialize(coefficientBuffer);
+            levels.Initialize(levelStorage, coefficientBuffer);
         }
 
         if (componentType == Av1ComponentType.Luminance)
         {
-            rate += this.GetTransformTypeCost(
+            rate += GetTransformTypeCost(
+                tables.ModeCosts,
                 transformType,
                 transformSize,
                 useReducedTransformSet,
@@ -1795,8 +1911,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             rate += Av1ProbabilityCost.GetLiteralCost(suffixBits - 1);
         }
 
-        Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
-        ref byte levelBase = ref MemoryMarshal.GetReference(levels.GetActiveLevels());
+        Span<byte> activeLevels = levels.GetActiveLevels(levelStorage);
+        Av1SymbolContextHelper.GetNzMapContexts(levels, activeLevels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        ref byte levelBase = ref MemoryMarshal.GetReference(activeLevels);
         int levelStride = levels.Stride;
         int widthLog2 = levels.WidthLog2;
         int c = endOfBlock - 1;
@@ -1900,7 +2017,40 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         return rate;
     }
 
+    /// <summary>
+    /// Gets the rate tables and the scratch storage of the coefficient search. A search loop reads them once and
+    /// passes them to every trial, so no trial reads the encoder buffers again.
+    /// </summary>
+    /// <returns>The rate tables and scratch storage.</returns>
+    public Av1CoefficientTables GetCoefficientTables() => new(this.entropyWorkspace.Memory.Span, this.levels.GetStorage());
+
+    /// <summary>
+    /// Selects the active size of the level plane and gets the context scratch of one transform block.
+    /// </summary>
+    /// <param name="width">The coded transform width.</param>
+    /// <param name="height">The coded transform height.</param>
+    /// <param name="coefficientContexts">The context scratch of the block.</param>
+    /// <returns>The level buffer with its new active size.</returns>
     private Av1LevelBuffer PrepareCoefficientScratch(
+        int width,
+        int height,
+        out Span<sbyte> coefficientContexts)
+    {
+        Av1CoefficientTables tables = this.GetCoefficientTables();
+        return this.PrepareCoefficientScratch(tables, width, height, out coefficientContexts);
+    }
+
+    /// <summary>
+    /// Selects the active size of the level plane and gets the context scratch of one transform block from tables
+    /// that the caller read once.
+    /// </summary>
+    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="width">The coded transform width.</param>
+    /// <param name="height">The coded transform height.</param>
+    /// <param name="coefficientContexts">The context scratch of the block.</param>
+    /// <returns>The level buffer with its new active size.</returns>
+    private Av1LevelBuffer PrepareCoefficientScratch(
+        Av1CoefficientTables tables,
         int width,
         int height,
         out Span<sbyte> coefficientContexts)
@@ -1910,9 +2060,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         // Level initialization writes the plane and all of its forward-neighbor padding, so the active
         // layout needs no clear between transform blocks.
         this.levels.Reset(new Size(width, height), clear: false);
-        coefficientContexts = MemoryMarshal.Cast<int, sbyte>(
-            this.entropyWorkspace.Memory.Span[(Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength)..])[..(width * height)];
-
+        coefficientContexts = tables.Contexts[..(width * height)];
         return this.levels;
     }
 
@@ -2235,6 +2383,37 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection,
         bool usesInterTransformSet)
+        => GetTransformTypeCost(
+            this.ModeCosts,
+            transformType,
+            transformSize,
+            useReducedTransformSet,
+            baseQIndex,
+            filterIntraMode,
+            intraDirection,
+            usesInterTransformSet);
+
+    /// <summary>
+    /// Gets the current fixed-point rate cost of a transform type from mode rates that the caller read once.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates.</param>
+    /// <param name="transformType">The transform type to cost.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    private static int GetTransformTypeCost(
+        Av1ModeCosts modeCosts,
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        int baseQIndex,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection,
+        bool usesInterTransformSet)
     {
         Av1TransformSetType setType = Av1SymbolContextHelper.GetExtendedTransformSetType(
             transformSize,
@@ -2251,14 +2430,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int symbol = Av1SymbolContextHelper.GetExtendedTransformIndex(setType, transformType);
         if (usesInterTransformSet)
         {
-            return this.ModeCosts.GetInterExtendedTransform(set, size, symbol);
+            return modeCosts.GetInterExtendedTransform(set, size, symbol);
         }
 
         Av1PredictionMode direction = filterIntraMode == Av1FilterIntraMode.AllFilterIntraModes
             ? intraDirection
             : filterIntraMode.ToIntraDirection();
 
-        return this.ModeCosts.GetIntraExtendedTransform(set, size, (int)direction, symbol);
+        return modeCosts.GetIntraExtendedTransform(set, size, (int)direction, symbol);
     }
 
     /// <summary>

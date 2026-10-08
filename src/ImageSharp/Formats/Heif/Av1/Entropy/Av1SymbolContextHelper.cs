@@ -780,7 +780,8 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Populates nonzero-map contexts for every coefficient preceding the end-of-block position.
     /// </summary>
-    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="levels">The padded coefficient-level buffer, which gives the active size and stride.</param>
+    /// <param name="active">The active level plane, which the caller read once for the block.</param>
     /// <param name="scan">The coefficient scan order.</param>
     /// <param name="eob">The one-based end-of-block position.</param>
     /// <param name="transformSize">The coded transform size.</param>
@@ -788,14 +789,14 @@ internal static class Av1SymbolContextHelper
     /// <param name="coefficientContexts">The raster-indexed destination contexts.</param>
     public static void GetNzMapContexts(
         Av1LevelBuffer levels,
+        Span<byte> active,
         ReadOnlySpan<short> scan,
         ushort eob,
         Av1TransformSize transformSize,
         Av1TransformClass transformClass,
         Span<sbyte> coefficientContexts)
     {
-        // Resolve the level plane once. Every neighbor read below is then a fixed offset from one reference.
-        Span<byte> active = levels.GetActiveLevels();
+        // Every neighbor read below is a fixed offset from one reference into the active plane.
         ref byte levelBase = ref MemoryMarshal.GetReference(active);
         int last = eob - 1;
         if (last > 0)

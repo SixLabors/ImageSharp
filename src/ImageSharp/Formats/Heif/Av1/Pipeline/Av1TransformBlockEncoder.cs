@@ -1602,68 +1602,57 @@ internal static partial class Av1TransformBlockEncoder
     /// residual energy; this method applies the per-type SATD gate of <c>skip_trellis_opt_based_on_satd</c>. The
     /// trellis pass returns the coefficient rate, so no second cost pass follows it.
     /// </remarks>
-    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
-    /// <param name="writer">The coefficient entropy costs.</param>
-    /// <param name="context">The neighboring coefficient contexts.</param>
-    /// <param name="residual">The source-minus-prediction block.</param>
-    /// <param name="residualStride">The number of residual samples between rows.</param>
-    /// <param name="transformCoefficients">The forward transform output, which the caller reads once for its type loop.</param>
-    /// <param name="transformWorkspace">The forward transform workspace, which the caller reads once for its type loop.</param>
-    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
-    /// <param name="dequantizedCoefficients">The candidate reconstruction coefficients.</param>
-    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="trial">The values and buffers that every transform type of the block shares.</param>
     /// <param name="transformType">The transform type.</param>
-    /// <param name="intraDirection">The spatial prediction mode selecting the transform-type context.</param>
-    /// <param name="filterIntraMode">The filter-intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
-    /// <param name="useReducedTransformSet">Whether the frame restricts transform types.</param>
-    /// <param name="usesInterTransformSet">Whether inter transform syntax applies.</param>
-    /// <param name="qIndex">The segment quantizer index.</param>
-    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
-    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
-    /// <param name="bitDepth">The coded sample precision.</param>
-    /// <param name="componentType">The luminance or chroma component.</param>
-    /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
-    /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
-    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-    /// <param name="skipTrellis">Whether the block-level energy gate disabled coefficient refinement.</param>
-    /// <param name="satdThreshold">The transform-scaled SATD gate, or <see cref="uint.MaxValue"/> for none.</param>
-    /// <param name="dcOnly">Whether the block codes its residual mean as the DC coefficient alone.</param>
-    /// <param name="perPixelMean">The signed transform-domain residual mean of a DC-only block.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients. The search swaps this buffer with its best one.</param>
+    /// <param name="dequantizedCoefficients">The candidate reconstruction coefficients. The search swaps this buffer with its best one.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
     /// <param name="matricesDropped">Whether the candidate was quantized without its quantization matrices.</param>
     /// <returns>The coefficient rate including the skip flag and the transform type.</returns>
     public static int EncodeTypeSearchCandidate(
-        Av1EncoderBlockWorkspace workspace,
-        Av1SymbolEncoder writer,
-        Av1TransformBlockContext context,
-        ReadOnlySpan<short> residual,
-        int residualStride,
-        Span<int> transformCoefficients,
-        Span<int> transformWorkspace,
+        in Av1TransformTypeTrial trial,
+        Av1TransformType transformType,
         Span<int> quantizedCoefficients,
         Span<int> dequantizedCoefficients,
-        Av1TransformSize transformSize,
-        Av1TransformType transformType,
-        Av1PredictionMode intraDirection,
-        Av1FilterIntraMode filterIntraMode,
-        bool useReducedTransformSet,
-        bool usesInterTransformSet,
-        int qIndex,
-        int dcDeltaQ,
-        int acDeltaQ,
-        Av1BitDepth bitDepth,
-        Av1ComponentType componentType,
-        int rateMultiplier,
-        bool isInter,
-        bool useChromaWeights,
-        bool skipTrellis,
-        uint satdThreshold,
-        bool dcOnly,
-        long perPixelMean,
         ref Av1EncoderTransformBlockState state,
         out bool matricesDropped)
     {
         Av1WorkCounters.Count(Av1WorkCounters.FwdXform);
+
+        // The workspace, the writer and its rate tables.
+        Av1EncoderBlockWorkspace workspace = trial.Workspace;
+        Av1SymbolEncoder writer = trial.Writer;
+        Av1CoefficientTables tables = trial.Tables;
+        Av1TransformBlockContext context = trial.Context;
+
+        // The residual and the transform buffers.
+        ReadOnlySpan<short> residual = trial.Residual;
+        int residualStride = trial.ResidualStride;
+        Span<int> transformCoefficients = trial.TransformCoefficients;
+        Span<int> transformWorkspace = trial.TransformWorkspace;
+
+        // The transform, its syntax contexts and the quantizer.
+        Av1TransformSize transformSize = trial.TransformSize;
+        Av1PredictionMode intraDirection = trial.IntraDirection;
+        Av1FilterIntraMode filterIntraMode = trial.FilterIntraMode;
+        bool useReducedTransformSet = trial.UseReducedTransformSet;
+        bool usesInterTransformSet = trial.UsesInterTransformSet;
+        int qIndex = trial.QIndex;
+        int dcDeltaQ = trial.DcDeltaQ;
+        int acDeltaQ = trial.AcDeltaQ;
+        int sharpness = trial.Sharpness;
+        Av1BitDepth bitDepth = trial.BitDepth;
+        Av1ComponentType componentType = trial.ComponentType;
+
+        // The trellis policy of the block.
+        int rateMultiplier = trial.RateMultiplier;
+        bool isInter = trial.IsInter;
+        bool useChromaWeights = trial.UseChromaWeights;
+        bool skipTrellis = trial.SkipTrellis;
+        uint satdThreshold = trial.SatdThreshold;
+        bool dcOnly = trial.DcOnly;
+        long perPixelMean = trial.PerPixelMean;
+
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
         Span<int> transformed = transformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
@@ -1738,9 +1727,9 @@ internal static partial class Av1TransformBlockEncoder
             ReadOnlySpan<byte> inverseWeights = matricesDropped ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
             state.EndOfBlock = optimize
                 ? Av1ForwardQuantizer.QuantizeLossy(
-                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights)
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights)
                 : Av1ForwardQuantizer.QuantizeRegular(
-                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
+                    transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights);
 
             state.TransformType = transformType;
             Av1WorkCounters.Stop(Av1WorkCounters.Quant, workQuant);
@@ -1752,6 +1741,7 @@ internal static partial class Av1TransformBlockEncoder
                 quantized, transformSize, state.TransformType, state.EndOfBlock);
 
             return writer.GetCoefficientCost(
+                in tables,
                 transformSize,
                 state.TransformType,
                 intraDirection,
@@ -1765,6 +1755,7 @@ internal static partial class Av1TransformBlockEncoder
         }
 
         state.EndOfBlock = writer.OptimizeCoefficients(
+            in tables,
             transformed,
             quantized,
             dequantized,
@@ -1786,6 +1777,7 @@ internal static partial class Av1TransformBlockEncoder
             quantized, transformSize, transformType, state.EndOfBlock);
 
         return writer.GetOptimizedCoefficientCost(
+            in tables,
             transformSize,
             transformType,
             intraDirection,

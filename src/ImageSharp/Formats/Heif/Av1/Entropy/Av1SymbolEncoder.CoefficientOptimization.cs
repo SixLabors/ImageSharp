@@ -121,13 +121,95 @@ internal sealed partial class Av1SymbolEncoder
         in Av1CoefficientOptimizationWeights weights,
         out int coefficientRate)
     {
+        Av1CoefficientTables tables = this.GetCoefficientTables();
+        return this.OptimizeCoefficients(
+            in tables,
+            original,
+            quantized,
+            dequantized,
+            transformSize,
+            transformType,
+            componentType,
+            context,
+            dcDequantizer,
+            acDequantizer,
+            rateMultiplier,
+            bitDepth,
+            isInter,
+            useChromaWeights,
+            endOfBlock,
+            in weights,
+            out coefficientRate);
+    }
+
+    /// <summary>
+    /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease, with
+    /// the rate tables that the caller read once for its search loop.
+    /// </summary>
+    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="original">The forward-transform coefficients.</param>
+    /// <param name="quantized">The quantized coefficients to refine.</param>
+    /// <param name="dequantized">The corresponding reconstruction coefficients to refine.</param>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="transformType">The coded transform type.</param>
+    /// <param name="componentType">The luminance or chroma component.</param>
+    /// <param name="context">The coefficient-neighbor contexts.</param>
+    /// <param name="dcDequantizer">The DC reconstruction step.</param>
+    /// <param name="acDequantizer">The AC reconstruction step.</param>
+    /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
+    /// <param name="useChromaWeights">Whether to use the chroma-specific optimization weights.</param>
+    /// <param name="endOfBlock">The nonzero input end position.</param>
+    /// <param name="weights">The sharpness, rate shift and quantization matrices of the trellis.</param>
+    /// <param name="coefficientRate">The rate of the refined coefficients and end position.</param>
+    /// <returns>The refined end position.</returns>
+    public ushort OptimizeCoefficients(
+        in Av1CoefficientTables tables,
+        ReadOnlySpan<int> original,
+        Span<int> quantized,
+        Span<int> dequantized,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext context,
+        int dcDequantizer,
+        int acDequantizer,
+        int rateMultiplier,
+        Av1BitDepth bitDepth,
+        bool isInter,
+        bool useChromaWeights,
+        ushort endOfBlock,
+        in Av1CoefficientOptimizationWeights weights,
+        out int coefficientRate)
+    {
         long workStart = Av1WorkCounters.Start();
-        ushort workResult = this.OptimizeCoefficientsCore(original, quantized, dequantized, transformSize, transformType, componentType, context, dcDequantizer, acDequantizer, rateMultiplier, bitDepth, isInter, useChromaWeights, endOfBlock, in weights, out coefficientRate);
+        ushort workResult = this.OptimizeCoefficientsCore(
+            in tables,
+            original,
+            quantized,
+            dequantized,
+            transformSize,
+            transformType,
+            componentType,
+            context,
+            dcDequantizer,
+            acDequantizer,
+            rateMultiplier,
+            bitDepth,
+            isInter,
+            useChromaWeights,
+            endOfBlock,
+            in weights,
+            out coefficientRate);
+
         Av1WorkCounters.Stop(Av1WorkCounters.OptimizeB, workStart);
         return workResult;
     }
 
+    /// <inheritdoc cref="OptimizeCoefficients(in Av1CoefficientTables, ReadOnlySpan{int}, Span{int}, Span{int}, Av1TransformSize, Av1TransformType, Av1ComponentType, Av1TransformBlockContext, int, int, int, Av1BitDepth, bool, bool, ushort, in Av1CoefficientOptimizationWeights, out int)"/>
     public ushort OptimizeCoefficientsCore(
+        in Av1CoefficientTables tables,
         ReadOnlySpan<int> original,
         Span<int> quantized,
         Span<int> dequantized,
@@ -148,15 +230,16 @@ internal sealed partial class Av1SymbolEncoder
         Av1TransformSize adjusted = transformSize.GetAdjusted();
         int width = adjusted.GetWidth();
         int height = adjusted.GetHeight();
-        Av1LevelBuffer levels = this.PrepareCoefficientScratch(width, height, out _);
+        Av1LevelBuffer levels = this.PrepareCoefficientScratch(tables, width, height, out _);
+        Span<byte> levelStorage = tables.LevelStorage;
         if (endOfBlock > 1)
         {
-            levels.Initialize(quantized);
+            levels.Initialize(levelStorage, quantized);
         }
 
-        // Resolve the level plane once. Each context below reads fixed offsets from one padded index,
-        // and each accepted reduction writes its new level back through the same index.
-        Span<byte> levelPlane = levels.GetActiveLevels();
+        // Each context below reads fixed offsets from one padded index into the level plane, and each accepted
+        // reduction writes its new level back through the same index.
+        Span<byte> levelPlane = levels.GetActiveLevels(levelStorage);
         int widthLog2 = levels.WidthLog2;
         int levelStride = levels.Stride;
         int coefficientCount = width * height;
@@ -164,8 +247,8 @@ internal sealed partial class Av1SymbolEncoder
         Av1TransformClass transformClass = transformType.ToClass();
         Av1TransformSize sizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
-        // The cost workspace resolves its memory once for the block; the loops below read it many times.
-        Av1CoefficientCosts allCosts = this.CoefficientCosts;
+        // The loops below read the cost tables many times, so they come from the caller.
+        Av1CoefficientCosts allCosts = tables.CoefficientCosts;
         ReadOnlySpan<int> costs = allCosts.GetPlane((int)sizeContext, (int)componentType);
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         int shift = transformSize.GetScale();

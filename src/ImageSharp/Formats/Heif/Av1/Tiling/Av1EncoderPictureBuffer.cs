@@ -363,8 +363,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
 
                 // Variable-transform contexts consult both edges without separate availability flags. The largest
                 // transform makes an unavailable edge compare as unsplit until a coded neighbor publishes its size.
-                this.transformContexts[tileIndex].Left.Fill((byte)Av1Constants.MaxTransformSize);
-                this.transformContexts[tileIndex].Top.Fill((byte)Av1Constants.MaxTransformSize);
+                this.transformContexts[tileIndex].Fill((byte)Av1Constants.MaxTransformSize);
 
                 if (allocateScreenContentState)
                 {
@@ -450,8 +449,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         // selected size. This sentinel must be restored after the packed state owner is cleared.
         foreach (Av1NeighborArrayUnit<byte> context in this.transformContexts)
         {
-            context.Left.Fill((byte)Av1Constants.MaxTransformSize);
-            context.Top.Fill((byte)Av1Constants.MaxTransformSize);
+            context.Fill((byte)Av1Constants.MaxTransformSize);
         }
 
         this.Picture.CdefPreset.Span.Fill(-1);

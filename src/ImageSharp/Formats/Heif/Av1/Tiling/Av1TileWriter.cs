@@ -253,7 +253,7 @@ internal partial class Av1TileWriter
                 blockSize,
                 partition,
                 blockOrigin,
-                pcs.PartitionContexts[tileIndex]);
+                pcs.PartitionContexts[tileIndex].GetEdges());
         }
 
         switch (partition)
@@ -751,13 +751,13 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Av1PartitionType partitionType,
         Point blockOrigin,
-        Av1NeighborArrayUnit<Av1PartitionContext> partitionContexts)
+        in Av1NeighborEdges<Av1PartitionContext> partitionContexts)
     {
         int context = GetPartitionContext(
             pcs,
             blockSize,
             blockOrigin,
-            partitionContexts,
+            in partitionContexts,
             out bool hasRows,
             out bool hasColumns);
 
@@ -791,14 +791,14 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Av1PartitionType partitionType,
         Point blockOrigin,
-        Av1NeighborArrayUnit<Av1PartitionContext> partition_context_na)
+        in Av1NeighborEdges<Av1PartitionContext> partition_context_na)
         => EncodePartition<Av1SymbolEncoder.SymbolWriteOperation>(
             pcs,
             writer,
             blockSize,
             partitionType,
             blockOrigin,
-            partition_context_na);
+            in partition_context_na);
 
     /// <summary>
     /// Processes the selected syntax and its adaptive probability state.
@@ -809,7 +809,7 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Av1PartitionType partitionType,
         Point blockOrigin,
-        Av1NeighborArrayUnit<Av1PartitionContext> partition_context_na)
+        in Av1NeighborEdges<Av1PartitionContext> partition_context_na)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         bool is_partition_point = blockSize >= Av1BlockSize.Block8x8;
@@ -823,7 +823,7 @@ internal partial class Av1TileWriter
             pcs,
             blockSize,
             blockOrigin,
-            partition_context_na,
+            in partition_context_na,
             out bool has_rows,
             out bool has_cols);
 
@@ -853,7 +853,7 @@ internal partial class Av1TileWriter
         Av1PictureControlSet pcs,
         Av1BlockSize blockSize,
         Point blockOrigin,
-        Av1NeighborArrayUnit<Av1PartitionContext> partitionContexts,
+        in Av1NeighborEdges<Av1PartitionContext> partitionContexts,
         out bool hasRows,
         out bool hasColumns)
     {
@@ -909,9 +909,6 @@ internal partial class Av1TileWriter
     {
         Av1SequenceControlSet scs = pcs.Sequence;
         ObuFrameHeader frm_hdr = pcs.Parent.FrameHeader;
-        Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na = pcs.LuminanceDcSignLevelCoefficientNeighbors[tile_idx];
-        Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na = pcs.CrDcSignLevelCoefficientNeighbors[tile_idx];
-        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na = pcs.CbDcSignLevelCoefficientNeighbors[tile_idx];
         int mi_row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
         int mi_col = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_stride = pcs.Parent.Common.ModeInfoStride;
@@ -1544,7 +1541,9 @@ internal partial class Av1TileWriter
             entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
             if (!skipWritingCoefficients)
             {
-                EncodeCoefficients1d<TOperation>(
+                // The coefficient edges of the three planes are read once and serve every transform block.
+                Av1CoefficientNeighborEdges coefficientEdges = new(pcs, tile_idx);
+                EncodeTransformCoefficientRegions<TOperation>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -1554,9 +1553,7 @@ internal partial class Av1TileWriter
                     blockSize,
                     coefficientBuffer,
                     tb_ptr.Index,
-                    luma_dc_sign_level_coeff_na,
-                    cr_dc_sign_level_coeff_na,
-                    cb_dc_sign_level_coeff_na,
+                    in coefficientEdges,
                     TBlockEncoder.UsesRetainedDecisions);
             }
         }
@@ -1582,13 +1579,13 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Derives the uniform intra transform-size context from the current above and left edges.
     /// </summary>
-    /// <param name="transformContexts">The retained transform widths and heights.</param>
+    /// <param name="transformContexts">The retained transform widths and heights, read once by the caller.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="blockSize">The block size defining the maximum transform.</param>
     /// <returns>The uniform transform-size context.</returns>
     public static int GetTransformSizeContext(
-        Av1NeighborArrayUnit<byte> transformContexts,
+        in Av1NeighborEdges<byte> transformContexts,
         Av1MacroBlockD macroBlock,
         Point blockOrigin,
         Av1BlockSize blockSize)
@@ -1695,7 +1692,8 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> transformContexts = pcs.TransformFunctionContexts[tileIndex];
         if (writesUniformTransformSize)
         {
-            int context = GetTransformSizeContext(transformContexts, macroBlock, blockOrigin, blockSize);
+            Av1NeighborEdges<byte> transformEdges = transformContexts.GetEdges();
+            int context = GetTransformSizeContext(in transformEdges, macroBlock, blockOrigin, blockSize);
             writer.WriteTransformSize<TOperation>(blockSize, transformSize, context);
         }
         else if (writesVariableTransformSize)
@@ -1703,13 +1701,14 @@ internal partial class Av1TileWriter
             int maximumBlocksWide = blockSize.Get4x4WideCount() + (Math.Min(0, macroBlock.ToRightEdge) >> 5);
             int maximumBlocksHigh = blockSize.Get4x4HighCount() + (Math.Min(0, macroBlock.ToBottomEdge) >> 5);
             Av1TransformSize rootSize = blockSize.GetMaximumTransformSize();
+            Av1NeighborEdges<byte> transformEdges = transformContexts.GetEdges();
             for (int row = 0; row < maximumBlocksHigh; row += rootSize.Get4x4HighCount())
             {
                 for (int column = 0; column < maximumBlocksWide; column += rootSize.Get4x4WideCount())
                 {
                     WriteVariableTransformTree<TOperation>(
                         writer,
-                        transformContexts,
+                        in transformEdges,
                         blockOrigin,
                         blockSize,
                         rootSize,
@@ -1743,9 +1742,25 @@ internal partial class Av1TileWriter
             Av1NeighborArrayUnit<byte>.UnitMask.Left);
     }
 
+    /// <summary>
+    /// Writes the split flags of one node of a variable inter transform tree, then its children, and publishes the
+    /// size of each coded leaf on the transform-size edges.
+    /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="transformContexts">The transform-size edges of the tile, read once by the caller.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="transformSize">The transform size of this node.</param>
+    /// <param name="modeInfo">The mode information of the block, which holds the selected transform sizes.</param>
+    /// <param name="depth">The split depth of this node.</param>
+    /// <param name="blockRow">The node row in four-sample units inside the block.</param>
+    /// <param name="blockColumn">The node column in four-sample units inside the block.</param>
+    /// <param name="maximumBlocksWide">The visible block width in four-sample units.</param>
+    /// <param name="maximumBlocksHigh">The visible block height in four-sample units.</param>
     private static void WriteVariableTransformTree<TOperation>(
         Av1SymbolEncoder writer,
-        Av1NeighborArrayUnit<byte> transformContexts,
+        in Av1NeighborEdges<byte> transformContexts,
         Point blockOrigin,
         Av1BlockSize blockSize,
         Av1TransformSize transformSize,
@@ -1801,7 +1816,7 @@ internal partial class Av1TileWriter
                 {
                     WriteVariableTransformTree<TOperation>(
                         writer,
-                        transformContexts,
+                        in transformContexts,
                         blockOrigin,
                         blockSize,
                         subTransformSize,
@@ -2241,7 +2256,7 @@ internal partial class Av1TileWriter
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         int blockSizeContext = GetPaletteBlockSizeContext(blockSize);
-        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = pcs.PaletteContexts[tileIndex];
+        Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts = pcs.PaletteContexts[tileIndex].GetEdges();
         int yPaletteSize = paletteInfo.PaletteSizes[0];
 
         // The encoder's own probability pass leaves the luma palette flag and size alone for a block that
@@ -2331,7 +2346,7 @@ internal partial class Av1TileWriter
     /// Builds the sorted palette-color cache from the available above and left encoder edges.
     /// </summary>
     internal static int GetPaletteCache(
-        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts,
+        in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts,
         Av1MacroBlockD macroBlock,
         Point blockOrigin,
         Av1Plane plane,
@@ -2364,7 +2379,7 @@ internal partial class Av1TileWriter
     /// Counts the available above and left luma neighbors that selected palette mode.
     /// </summary>
     internal static int GetPaletteYModeContext(
-        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts,
+        in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts,
         Av1MacroBlockD macroBlock,
         Point blockOrigin)
     {
@@ -2782,263 +2797,21 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Writes luma and chroma transform coefficients for a block in plane order.
+    /// Writes or adapts to the luma and chroma transform coefficients of one block, in the 64x64 region order of
+    /// the residual syntax.
     /// </summary>
-    /// <param name="pcs">The picture coding state.</param>
-    /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
-    /// <param name="writer">The tile symbol encoder.</param>
-    /// <param name="blk_ptr">The encoder block state.</param>
-    /// <param name="blockOrigin">The block origin in samples.</param>
-    /// <param name="intraLumaDir">The luma prediction direction.</param>
-    /// <param name="planeBlockSize">The luma block size.</param>
-    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
-    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
-    /// <param name="luma_dc_sign_level_coeff_na">The luma coefficient neighbor contexts.</param>
-    /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
-    /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
-    /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
-    private static void EncodeCoefficients1d<TOperation>(
-        Av1PictureControlSet pcs,
-        Av1EntropyCodingContext ec_ctx,
-        Av1SymbolEncoder writer,
-        ref Av1EncoderBlockStruct blk_ptr,
-        Point blockOrigin,
-        Av1PredictionMode intraLumaDir,
-        Av1BlockSize planeBlockSize,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        int superblockIndex,
-        Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na,
-        Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
-        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na,
-        bool useRetainedContexts)
-        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
-    {
-        EncodeTransformCoefficientRegions<TOperation>(
-            pcs,
-            ec_ctx,
-            writer,
-            ref blk_ptr,
-            blockOrigin,
-            intraLumaDir,
-            planeBlockSize,
-            coefficientBuffer,
-            superblockIndex,
-            luma_dc_sign_level_coeff_na,
-            cr_dc_sign_level_coeff_na,
-            cb_dc_sign_level_coeff_na,
-            useRetainedContexts);
-    }
-
-    /// <summary>
-    /// Writes each luma transform block and updates its DC-sign and coefficient-level neighbor contexts.
-    /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
-    /// <param name="blk_ptr">The encoder block state.</param>
-    /// <param name="blockOrigin">The block origin in samples.</param>
-    /// <param name="intraLumaDir">The luma prediction direction.</param>
-    /// <param name="plane_bsize">The luma block size.</param>
-    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
-    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
-    /// <param name="luma_dc_sign_level_coeff_na">The luma coefficient neighbor contexts.</param>
-    public static void EncodeTransformCoefficientsY(
-        Av1PictureControlSet pcs,
-        Av1EntropyCodingContext entropyCodingContext,
-        Av1SymbolEncoder writer,
-        ref Av1EncoderBlockStruct blk_ptr,
-        Point blockOrigin,
-        Av1PredictionMode intraLumaDir,
-        Av1BlockSize plane_bsize,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        int superblockIndex,
-        Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na)
-        => EncodeTransformCoefficientsY<Av1SymbolEncoder.SymbolWriteOperation>(
-            pcs,
-            entropyCodingContext,
-            writer,
-            ref blk_ptr,
-            blockOrigin,
-            intraLumaDir,
-            plane_bsize,
-            coefficientBuffer,
-            superblockIndex,
-            luma_dc_sign_level_coeff_na,
-            false);
-
-    /// <summary>
-    /// Processes the selected syntax and its adaptive probability state.
-    /// </summary>
-    public static void EncodeTransformCoefficientsY<TOperation>(
-        Av1PictureControlSet pcs,
-        Av1EntropyCodingContext entropyCodingContext,
-        Av1SymbolEncoder writer,
-        ref Av1EncoderBlockStruct blk_ptr,
-        Point blockOrigin,
-        Av1PredictionMode intraLumaDir,
-        Av1BlockSize plane_bsize,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        int superblockIndex,
-        Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na,
-        bool useRetainedContexts)
-        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
-    {
-        Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
-        int maximumBlocksWide = plane_bsize.GetWidth();
-        int maximumBlocksHigh = plane_bsize.GetHeight();
-        if (macroBlock.ToRightEdge < 0)
-        {
-            maximumBlocksWide += macroBlock.ToRightEdge >> 3;
-        }
-
-        if (macroBlock.ToBottomEdge < 0)
-        {
-            maximumBlocksHigh += macroBlock.ToBottomEdge >> 3;
-        }
-
-        maximumBlocksWide >>= Av1Constants.ModeInfoSizeLog2;
-        maximumBlocksHigh >>= Av1Constants.ModeInfoSizeLog2;
-        int maximumUnitBlocksWide = Math.Min(
-            Av1BlockSize.Block64x64.Get4x4WideCount(),
-            maximumBlocksWide);
-
-        int maximumUnitBlocksHigh = Math.Min(
-            Av1BlockSize.Block64x64.Get4x4HighCount(),
-            maximumBlocksHigh);
-
-        for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
-        {
-            int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
-            for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
-            {
-                int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
-                EncodeTransformCoefficientRegion<TOperation>(
-                    pcs,
-                    entropyCodingContext,
-                    writer,
-                    ref blk_ptr,
-                    blockOrigin,
-                    intraLumaDir,
-                    plane_bsize,
-                    Av1Plane.Y,
-                    coefficientBuffer,
-                    superblockIndex,
-                    luma_dc_sign_level_coeff_na,
-                    regionRow,
-                    regionColumn,
-                    unitBottom,
-                    unitRight,
-                    useRetainedContexts);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Writes both chroma transform blocks and updates their DC-sign and coefficient-level neighbor contexts.
-    /// </summary>
-    /// <param name="pcs">The picture coding state.</param>
-    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
-    /// <param name="writer">The tile symbol encoder.</param>
-    /// <param name="blk_ptr">The encoder block state.</param>
+    /// <param name="block">The encoder block state.</param>
     /// <param name="blockOrigin">The luma block origin in samples.</param>
-    /// <param name="intraLumaDir">The luma prediction direction used by coefficient contexts.</param>
-    /// <param name="plane_bsize">The luma block size.</param>
+    /// <param name="intraLumaMode">The luma prediction direction used by coefficient contexts.</param>
+    /// <param name="blockSize">The luma block size.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
-    /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
-    /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
+    /// <param name="coefficientEdges">The coefficient context edges of the three planes, read once by the caller.</param>
     /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
-    private static void EncodeTransformCoefficientsUv<TOperation>(
-        Av1PictureControlSet pcs,
-        Av1EntropyCodingContext entropyCodingContext,
-        Av1SymbolEncoder writer,
-        ref Av1EncoderBlockStruct blk_ptr,
-        Point blockOrigin,
-        Av1PredictionMode intraLumaDir,
-        Av1BlockSize plane_bsize,
-        Av1EncoderCoefficientBuffer coefficientBuffer,
-        int superblockIndex,
-        Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
-        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na,
-        bool useRetainedContexts)
-        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
-    {
-        ObuColorConfig colorConfig = pcs.Sequence.SequenceHeader.ColorConfig;
-        if (!blk_ptr.HasChroma || colorConfig.IsMonochrome)
-        {
-            return;
-        }
-
-        int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
-        int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-        Av1BlockSize chromaBlockSize = plane_bsize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
-        Point chromaBlockOrigin = GetChromaBlockOrigin(blockOrigin, subsamplingX, subsamplingY);
-        Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
-        int maximumBlocksWide = chromaBlockSize.GetWidth();
-        int maximumBlocksHigh = chromaBlockSize.GetHeight();
-        if (macroBlock.ToRightEdge < 0)
-        {
-            maximumBlocksWide += macroBlock.ToRightEdge >> (3 + subsamplingX);
-        }
-
-        if (macroBlock.ToBottomEdge < 0)
-        {
-            maximumBlocksHigh += macroBlock.ToBottomEdge >> (3 + subsamplingY);
-        }
-
-        maximumBlocksWide >>= Av1Constants.ModeInfoSizeLog2;
-        maximumBlocksHigh >>= Av1Constants.ModeInfoSizeLog2;
-        Av1BlockSize maximumUnitBlockSize =
-            Av1BlockSize.Block64x64.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
-
-        int maximumUnitBlocksWide = Math.Min(maximumUnitBlockSize.Get4x4WideCount(), maximumBlocksWide);
-        int maximumUnitBlocksHigh = Math.Min(maximumUnitBlockSize.Get4x4HighCount(), maximumBlocksHigh);
-
-        for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
-        {
-            int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
-            for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
-            {
-                int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
-                EncodeTransformCoefficientRegion<TOperation>(
-                    pcs,
-                    entropyCodingContext,
-                    writer,
-                    ref blk_ptr,
-                    chromaBlockOrigin,
-                    intraLumaDir,
-                    plane_bsize,
-                    Av1Plane.U,
-                    coefficientBuffer,
-                    superblockIndex,
-                    cb_dc_sign_level_coeff_na,
-                    regionRow,
-                    regionColumn,
-                    unitBottom,
-                    unitRight,
-                    useRetainedContexts);
-
-                EncodeTransformCoefficientRegion<TOperation>(
-                    pcs,
-                    entropyCodingContext,
-                    writer,
-                    ref blk_ptr,
-                    chromaBlockOrigin,
-                    intraLumaDir,
-                    plane_bsize,
-                    Av1Plane.V,
-                    coefficientBuffer,
-                    superblockIndex,
-                    cr_dc_sign_level_coeff_na,
-                    regionRow,
-                    regionColumn,
-                    unitBottom,
-                    unitRight,
-                    useRetainedContexts);
-            }
-        }
-    }
-
     private static void EncodeTransformCoefficientRegions<TOperation>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
@@ -3049,9 +2822,7 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         int superblockIndex,
-        Av1NeighborArrayUnit<byte> lumaCoefficientNeighbors,
-        Av1NeighborArrayUnit<byte> redCoefficientNeighbors,
-        Av1NeighborArrayUnit<byte> blueCoefficientNeighbors,
+        in Av1CoefficientNeighborEdges coefficientEdges,
         bool useRetainedContexts)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
@@ -3121,7 +2892,7 @@ internal partial class Av1TileWriter
                             plane,
                             coefficientBuffer,
                             superblockIndex,
-                            isLuma ? lumaCoefficientNeighbors : plane == Av1Plane.U ? blueCoefficientNeighbors : redCoefficientNeighbors,
+                            coefficientEdges.Get(plane),
                             isLuma ? regionRow : regionRow >> subsamplingY,
                             isLuma ? regionColumn : regionColumn >> subsamplingX,
                             isLuma ? unitBottom : Av1Math.RoundPowerOf2(unitBottom, subsamplingY),
@@ -3154,7 +2925,7 @@ internal partial class Av1TileWriter
                     Av1Plane.Y,
                     coefficientBuffer,
                     superblockIndex,
-                    lumaCoefficientNeighbors,
+                    coefficientEdges.Luma,
                     regionRow,
                     regionColumn,
                     unitBottom,
@@ -3181,7 +2952,7 @@ internal partial class Av1TileWriter
                         Av1Plane.U,
                         coefficientBuffer,
                         superblockIndex,
-                        blueCoefficientNeighbors,
+                        coefficientEdges.Blue,
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,
@@ -3199,7 +2970,7 @@ internal partial class Av1TileWriter
                         Av1Plane.V,
                         coefficientBuffer,
                         superblockIndex,
-                        redCoefficientNeighbors,
+                        coefficientEdges.Red,
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,
@@ -3210,6 +2981,28 @@ internal partial class Av1TileWriter
         }
     }
 
+    /// <summary>
+    /// Writes or adapts to the transform coefficients of one plane inside one 64x64 region of a block, and publishes
+    /// the coefficient contexts of each transform block on the plane edges.
+    /// </summary>
+    /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="block">The encoder block state.</param>
+    /// <param name="planeBlockOrigin">The block origin in samples of the plane.</param>
+    /// <param name="intraLumaMode">The luma prediction direction used by coefficient contexts.</param>
+    /// <param name="lumaBlockSize">The luma block size.</param>
+    /// <param name="plane">The plane to write.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
+    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
+    /// <param name="coefficientEdges">The coefficient context edges of the plane, read once by the caller.</param>
+    /// <param name="regionRow">The first row of the region, in 4x4 units of the plane.</param>
+    /// <param name="regionColumn">The first column of the region, in 4x4 units of the plane.</param>
+    /// <param name="unitBottom">The row after the region, in 4x4 units of the plane.</param>
+    /// <param name="unitRight">The column after the region, in 4x4 units of the plane.</param>
+    /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
+    /// <param name="advanceBlueArea">Whether the blue plane advances the shared chroma coefficient position.</param>
     private static void EncodeTransformCoefficientRegion<TOperation>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
@@ -3221,7 +3014,7 @@ internal partial class Av1TileWriter
         Av1Plane plane,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         int superblockIndex,
-        Av1NeighborArrayUnit<byte> coefficientNeighbors,
+        in Av1NeighborEdges<byte> coefficientEdges,
         int regionRow,
         int regionColumn,
         int unitBottom,
@@ -3325,7 +3118,7 @@ internal partial class Av1TileWriter
                     {
                         blockContext = GetTransformBlockContexts(
                             componentType,
-                            coefficientNeighbors,
+                            in coefficientEdges,
                             transformOrigin,
                             planeBlockSize,
                             transformSize);
@@ -3364,8 +3157,8 @@ internal partial class Av1TileWriter
                         usesInterTransformSet);
 
                     UpdateCoefficientContexts(
-                        coefficientNeighbors.Top.Slice(coefficientNeighbors.GetTopIndex(transformOrigin), transformSize.Get4x4WideCount()),
-                        coefficientNeighbors.Left.Slice(coefficientNeighbors.GetLeftIndex(transformOrigin), transformSize.Get4x4HighCount()),
+                        coefficientEdges.Top.Slice(coefficientEdges.GetTopIndex(transformOrigin), transformSize.Get4x4WideCount()),
+                        coefficientEdges.Left.Slice(coefficientEdges.GetLeftIndex(transformOrigin), transformSize.Get4x4HighCount()),
                         (byte)culLevel,
                         transformOrigin,
                         frameContextSize);
@@ -3428,24 +3221,24 @@ internal partial class Av1TileWriter
     /// Derives coefficient skip and DC-sign contexts from the transform block's above and left neighbors.
     /// </summary>
     /// <param name="plane">The luma or chroma component class.</param>
-    /// <param name="dcSignLevelCoefficientNeighborArray">The packed DC-sign and coefficient-level neighbor contexts.</param>
+    /// <param name="coefficientEdges">The packed DC-sign and coefficient-level edges of the plane, read once by the caller.</param>
     /// <param name="blockOrigin">The transform-block origin in samples of the target plane.</param>
     /// <param name="planeBlockSize">The containing block size on the target plane.</param>
     /// <param name="transformSize">The transform size.</param>
     /// <returns>The coefficient skip and DC-sign contexts selected by both transform edges.</returns>
     public static Av1TransformBlockContext GetTransformBlockContexts(
         Av1ComponentType plane,
-        Av1NeighborArrayUnit<byte> dcSignLevelCoefficientNeighborArray,
+        in Av1NeighborEdges<byte> coefficientEdges,
         Point blockOrigin,
         Av1BlockSize planeBlockSize,
         Av1TransformSize transformSize)
     {
-        int leftIndex = dcSignLevelCoefficientNeighborArray.GetLeftIndex(blockOrigin);
-        int topIndex = dcSignLevelCoefficientNeighborArray.GetTopIndex(blockOrigin);
+        int leftIndex = coefficientEdges.GetLeftIndex(blockOrigin);
+        int topIndex = coefficientEdges.GetTopIndex(blockOrigin);
         int transformBlockWidth = transformSize.Get4x4WideCount();
         int transformBlockHeight = transformSize.Get4x4HighCount();
-        ReadOnlySpan<byte> topContexts = dcSignLevelCoefficientNeighborArray.Top.Slice(topIndex, transformBlockWidth);
-        ReadOnlySpan<byte> leftContexts = dcSignLevelCoefficientNeighborArray.Left.Slice(leftIndex, transformBlockHeight);
+        ReadOnlySpan<byte> topContexts = coefficientEdges.Top.Slice(topIndex, transformBlockWidth);
+        ReadOnlySpan<byte> leftContexts = coefficientEdges.Left.Slice(leftIndex, transformBlockHeight);
 
         return GetTransformBlockContexts(plane, topContexts, leftContexts, planeBlockSize, transformSize);
     }

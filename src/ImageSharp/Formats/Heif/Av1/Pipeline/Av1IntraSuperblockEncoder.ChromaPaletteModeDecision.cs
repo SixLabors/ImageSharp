@@ -92,8 +92,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> blueLeftContexts = contexts.Slice(contextWidth, contextHeight);
             Span<byte> redTopContexts = contexts.Slice(contextWidth + contextHeight, contextWidth);
             Span<byte> redLeftContexts = contexts.Slice((2 * contextWidth) + contextHeight, contextHeight);
-            Av1NeighborArrayUnit<byte> blueNeighbors = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex];
-            Av1NeighborArrayUnit<byte> redNeighbors = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
+
+            // Every palette candidate starts from the same tile edges, so they are read once.
+            Av1NeighborEdges<byte> blueNeighbors = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+            Av1NeighborEdges<byte> redNeighbors = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             int blueTopIndex = blueNeighbors.GetTopIndex(chromaOrigin);
             int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
             int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);
@@ -144,10 +146,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int maximumColorCount = Math.Max(uniqueBlueColorCount, uniqueRedColorCount);
             int maximumPaletteSize = Math.Min(maximumColorCount, Av1Constants.PaletteMaxSize);
-            Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex];
+            Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex].GetEdges();
             Span<ushort> colorCache = workspace.ColorCache;
             int colorCacheSize = Av1TileWriter.GetPaletteCache(
-                paletteContexts,
+                in paletteContexts,
                 macroBlock,
                 lumaOrigin,
                 Av1Plane.U,

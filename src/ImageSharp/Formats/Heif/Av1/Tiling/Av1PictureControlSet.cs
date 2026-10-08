@@ -146,24 +146,18 @@ internal class Av1PictureControlSet
         this.SegmentationNeighborMap.Span.Clear();
         for (int tileIndex = 0; tileIndex < this.PartitionContexts.Length; tileIndex++)
         {
-            this.PartitionContexts[tileIndex].Left.Clear();
-            this.PartitionContexts[tileIndex].Top.Clear();
-            this.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].Left.Clear();
-            this.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].Top.Clear();
-            this.CbDcSignLevelCoefficientNeighbors[tileIndex].Left.Clear();
-            this.CbDcSignLevelCoefficientNeighbors[tileIndex].Top.Clear();
-            this.CrDcSignLevelCoefficientNeighbors[tileIndex].Left.Clear();
-            this.CrDcSignLevelCoefficientNeighbors[tileIndex].Top.Clear();
+            this.PartitionContexts[tileIndex].Clear();
+            this.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].Clear();
+            this.CbDcSignLevelCoefficientNeighbors[tileIndex].Clear();
+            this.CrDcSignLevelCoefficientNeighbors[tileIndex].Clear();
 
             // Transform contexts use the maximum-size sentinel until a preceding block supplies a size.
-            this.TransformFunctionContexts[tileIndex].Left.Fill((byte)Av1Constants.MaxTransformSize);
-            this.TransformFunctionContexts[tileIndex].Top.Fill((byte)Av1Constants.MaxTransformSize);
+            this.TransformFunctionContexts[tileIndex].Fill((byte)Av1Constants.MaxTransformSize);
         }
 
         foreach (Av1NeighborArrayUnit<Av1EncoderPaletteInfo> context in this.PaletteContexts)
         {
-            context.Left.Clear();
-            context.Top.Clear();
+            context.Clear();
         }
 
         this.CdefPreset.Span.Fill(-1);

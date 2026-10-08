@@ -109,14 +109,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 dominantCount = Math.Min(dominantCount + 1, maximumPaletteSize);
             }
 
-            Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex];
+            Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex].GetEdges();
             int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(blockSize);
-            int neighborContext = Av1TileWriter.GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
+            int neighborContext = Av1TileWriter.GetPaletteYModeContext(in paletteContexts, macroBlock, blockOrigin);
             Span<ushort> colorCache = workspace.ColorCache;
-            int colorCacheSize = Av1TileWriter.GetPaletteCache(paletteContexts, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
+            int colorCacheSize = Av1TileWriter.GetPaletteCache(in paletteContexts, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
             Av1PlaneRegion<byte> colorIndexMap = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
             int transformSizeContext = Av1TileWriter.GetTransformSizeContext(
-                this.picture.TransformFunctionContexts[tileIndex],
+                this.picture.TransformFunctionContexts[tileIndex].GetEdges(),
                 macroBlock,
                 blockOrigin,
                 blockSize);

@@ -2230,12 +2230,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> coefficientLeft = workspace.TransformContexts.Slice(width4, height4);
             Span<byte> transformAbove = workspace.TransformContexts.Slice(width4 + height4, width4);
             Span<byte> transformLeft = workspace.TransformContexts.Slice((2 * width4) + height4, height4);
-            Av1NeighborArrayUnit<byte> coefficientNeighbors = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
-            Av1NeighborArrayUnit<byte> transformNeighbors = this.picture.TransformFunctionContexts[tileIndex];
-            coefficientNeighbors.Top.Slice(coefficientNeighbors.GetTopIndex(blockOrigin), width4).CopyTo(coefficientAbove);
-            coefficientNeighbors.Left.Slice(coefficientNeighbors.GetLeftIndex(blockOrigin), height4).CopyTo(coefficientLeft);
-            transformNeighbors.Top.Slice(transformNeighbors.GetTopIndex(blockOrigin), width4).CopyTo(transformAbove);
-            transformNeighbors.Left.Slice(transformNeighbors.GetLeftIndex(blockOrigin), height4).CopyTo(transformLeft);
+            Av1NeighborEdges<byte> coefficientEdges = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+            Av1NeighborEdges<byte> transformEdges = this.picture.TransformFunctionContexts[tileIndex].GetEdges();
+            coefficientEdges.Top.Slice(coefficientEdges.GetTopIndex(blockOrigin), width4).CopyTo(coefficientAbove);
+            coefficientEdges.Left.Slice(coefficientEdges.GetLeftIndex(blockOrigin), height4).CopyTo(coefficientLeft);
+            transformEdges.Top.Slice(transformEdges.GetTopIndex(blockOrigin), width4).CopyTo(transformAbove);
+            transformEdges.Left.Slice(transformEdges.GetLeftIndex(blockOrigin), height4).CopyTo(transformLeft);
 
             stateCount = 0;
             int initialDepth = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
@@ -2392,7 +2392,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in transformBuffers,
                         macroBlock,
                         blockOrigin,
-                        coefficientNeighbors,
+                        in coefficientEdges,
                         ref modeInfo,
                         rootSize,
                         row,
@@ -2669,7 +2669,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="buffers">The writer and its rate tables, which the root of the tree reads once.</param>
         /// <param name="macroBlock">The block and its neighbor availability.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="coefficientNeighbors">The coefficient contexts of the tile.</param>
+        /// <param name="coefficientEdges">The coefficient context edges of the tile, read once at the root.</param>
         /// <param name="modeInfo">The mode information of the block, which records the selected transform sizes.</param>
         /// <param name="transformSize">The transform size of this node.</param>
         /// <param name="row">The node row in four-sample units.</param>
@@ -2689,7 +2689,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1TransformBlockBuffers buffers,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
-            Av1NeighborArrayUnit<byte> coefficientNeighbors,
+            in Av1NeighborEdges<byte> coefficientEdges,
             ref Av1EncoderBlockModeInfo modeInfo,
             Av1TransformSize transformSize,
             int row,
@@ -2847,7 +2847,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     Av1TransformType.AllTransformTypes,
                     context,
-                    Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Luminance, coefficientNeighbors, blockOrigin, blockSize, transformSize),
+                    Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Luminance, in coefficientEdges, blockOrigin, blockSize, transformSize),
                     prediction,
                     workspace.Residual,
                     width,
@@ -3001,7 +3001,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             in buffers,
                             macroBlock,
                             blockOrigin,
-                            coefficientNeighbors,
+                            in coefficientEdges,
                             ref modeInfo,
                             childSize,
                             row + y,
@@ -3476,7 +3476,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
                     this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate))
             {
-                Av1NeighborArrayUnit<byte> transformContexts = this.picture.TransformFunctionContexts[tileIndex];
+                Av1NeighborEdges<byte> transformContexts = this.picture.TransformFunctionContexts[tileIndex].GetEdges();
                 int topIndex = transformContexts.GetTopIndex(blockOrigin);
                 int leftIndex = transformContexts.GetLeftIndex(blockOrigin);
                 int transformPartitionContext = Av1SymbolContextHelper.GetTransformPartitionContext(
@@ -3528,7 +3528,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 frameSize,
                 Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y));
 
-            Av1NeighborArrayUnit<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
+            Av1NeighborEdges<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             ReadOnlySpan<byte> aboveContexts = coefficientContexts.Top.Slice(
                 coefficientContexts.GetTopIndex(blockOrigin),
                 blockSize.Get4x4WideCount());
@@ -5004,7 +5004,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace, Av1Plane.Y, blockOrigin, workspace.Residual, width, width, height, Av1TransformType.DctDct);
 
             Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
-            Av1NeighborArrayUnit<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
+            Av1NeighborEdges<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             ReadOnlySpan<byte> above = coefficientContexts.Top.Slice(coefficientContexts.GetTopIndex(blockOrigin), blockSize.Get4x4WideCount());
             ReadOnlySpan<byte> left = coefficientContexts.Left.Slice(coefficientContexts.GetLeftIndex(blockOrigin), blockSize.Get4x4HighCount());
 
@@ -5015,7 +5015,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
                     this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate))
             {
-                Av1NeighborArrayUnit<byte> contexts = this.picture.TransformFunctionContexts[tileIndex];
+                Av1NeighborEdges<byte> contexts = this.picture.TransformFunctionContexts[tileIndex].GetEdges();
                 int context = Av1SymbolContextHelper.GetTransformPartitionContext(
                     contexts.Top[contexts.GetTopIndex(blockOrigin)], contexts.Left[contexts.GetLeftIndex(blockOrigin)], blockSize, transformSize);
 
@@ -8485,17 +8485,19 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, modeInfo.Block.BlockSize, prediction);
                 }
 
-                Av1NeighborArrayUnit<byte> neighbors = plane switch
+                Av1NeighborArrayUnit<byte> neighborArray = plane switch
                 {
                     Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                     Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
                     _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
                 };
 
+                Av1NeighborEdges<byte> neighbors = neighborArray.GetEdges();
                 int contextWidth = planeBlockSize.Get4x4WideCount();
                 int contextHeight = planeBlockSize.Get4x4HighCount();
-                Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
-                Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
+                Span<byte> transformContexts = workspace.TransformContexts;
+                Span<byte> topContexts = transformContexts[..contextWidth];
+                Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
                 neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
                 neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
                 int codedArea = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
@@ -10351,14 +10353,15 @@ internal static partial class Av1IntraSuperblockEncoder
             // Coefficient coding reads the neighboring contexts of this plane, and the search
             // changes them as it prices each transform. Taking a copy leaves the tile contexts
             // untouched, so a candidate that loses leaves nothing behind.
-            Av1NeighborArrayUnit<byte> neighbors = plane == Av1Plane.U
-                ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex]
-                : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
+            Av1NeighborEdges<byte> neighbors = plane == Av1Plane.U
+                ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges()
+                : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
 
             int contextWidth = planeBlockSize.Get4x4WideCount();
             int contextHeight = planeBlockSize.Get4x4HighCount();
-            Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
-            Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
+            Span<byte> transformContexts = workspace.TransformContexts;
+            Span<byte> topContexts = transformContexts[..contextWidth];
+            Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
             neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
             neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
             Av1TransformSetType transformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
@@ -10447,7 +10450,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformSize,
                         transformType,
                         context,
-                        Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Chroma, neighbors, planeOrigin, planeBlockSize, transformSize),
+                        Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Chroma, in neighbors, planeOrigin, planeBlockSize, transformSize),
                         prediction[inputOffset..],
                         workspace.Residual[inputOffset..],
                         width,

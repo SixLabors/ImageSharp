@@ -1576,17 +1576,19 @@ internal static partial class Av1IntraSuperblockEncoder
                 int offset = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
                 Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
                 Span<Av1EncoderTransformBlockState> states = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
-                Av1NeighborArrayUnit<byte> neighbors = plane switch
+                Av1NeighborArrayUnit<byte> neighborArray = plane switch
                 {
                     Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                     Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
                     _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
                 };
 
+                Av1NeighborEdges<byte> neighbors = neighborArray.GetEdges();
                 int contextWidth = planeBlock.Get4x4WideCount();
                 int contextHeight = planeBlock.Get4x4HighCount();
-                Span<byte> top = workspace.TransformContexts[..contextWidth];
-                Span<byte> left = workspace.TransformContexts.Slice(contextWidth, contextHeight);
+                Span<byte> transformContexts = workspace.TransformContexts;
+                Span<byte> top = transformContexts[..contextWidth];
+                Span<byte> left = transformContexts.Slice(contextWidth, contextHeight);
                 neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(top);
                 neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(left);
                 Size contextSize = new(

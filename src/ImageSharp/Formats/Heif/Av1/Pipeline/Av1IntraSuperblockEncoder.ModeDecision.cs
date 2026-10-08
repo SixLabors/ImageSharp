@@ -912,11 +912,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int savedLumaArea = this.codedAreaLuma;
             int savedChromaArea = this.codedAreaChroma;
             this.SavePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
-            int noneRate = Av1TileWriter.GetPartitionCost(
-                this.picture, writer, blockSize, Av1PartitionType.None, blockOrigin, this.picture.PartitionContexts[tileIndex]);
-
-            int splitRate = Av1TileWriter.GetPartitionCost(
-                this.picture, writer, blockSize, Av1PartitionType.Split, blockOrigin, this.picture.PartitionContexts[tileIndex]);
+            Av1NeighborEdges<Av1PartitionContext> partitionEdges = this.picture.PartitionContexts[tileIndex].GetEdges();
+            int noneRate = Av1TileWriter.GetPartitionCost(this.picture, writer, blockSize, Av1PartitionType.None, blockOrigin, in partitionEdges);
+            int splitRate = Av1TileWriter.GetPartitionCost(this.picture, writer, blockSize, Av1PartitionType.Split, blockOrigin, in partitionEdges);
 
             Av1EncoderPartitionTree.ModeContext noneContext = this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0);
             this.estimatedLeafEncode = EstimatedLeafEncode.Search;
@@ -1804,6 +1802,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             Av1MotionVector start = simpleMotionData[nodeIndex].Starts[(int)Av1ReferenceFrameType.Last];
                             InlineArray2<long> directionCostStorage = default;
                             Span<long> directionCosts = directionCostStorage;
+                            Av1NeighborEdges<Av1PartitionContext> partitionEdges = this.picture.PartitionContexts[tileIndex].GetEdges();
                             for (int direction = 0; direction < 2; direction++)
                             {
                                 Av1PartitionType stripPartition = direction == 0 ? Av1PartitionType.Horizontal4 : Av1PartitionType.Vertical4;
@@ -1816,7 +1815,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 }
 
                                 int rate = Av1TileWriter.GetPartitionCost(
-                                    this.picture, writer, blockSize, stripPartition, blockOrigin, this.picture.PartitionContexts[tileIndex]);
+                                    this.picture, writer, blockSize, stripPartition, blockOrigin, in partitionEdges);
 
                                 directionCosts[direction] = new Av1RateDistortionStatistics(this.rateMultiplier, rate, squaredError).Cost;
                             }
@@ -2865,7 +2864,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockSize,
                 partitionType,
                 blockOrigin,
-                this.picture.PartitionContexts[tileIndex]);
+                this.picture.PartitionContexts[tileIndex].GetEdges());
 
             Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, 0);
             int leafCount = GetPartitionLeafCount(partitionType);
@@ -5141,15 +5140,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneType planeType = planeIndex == 0 ? Av1PlaneType.Y : Av1PlaneType.Uv;
                 int contextWidth = planeBlockSize.Get4x4WideCount();
                 int contextHeight = planeBlockSize.Get4x4HighCount();
-                Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
-                Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
-                Av1NeighborArrayUnit<byte> neighbors = plane switch
+                Span<byte> transformContexts = workspace.TransformContexts;
+                Span<byte> topContexts = transformContexts[..contextWidth];
+                Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
+                Av1NeighborArrayUnit<byte> neighborArray = plane switch
                 {
                     Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                     Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
                     _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
                 };
 
+                Av1NeighborEdges<byte> neighbors = neighborArray.GetEdges();
                 neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
                 neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
                 Av1ComponentType component = planeIndex == 0 ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
@@ -5393,8 +5394,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1TransformSize transformSize = modeInfo.Block.TransformSize;
             Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
-            Av1NeighborArrayUnit<byte> transformContexts = this.picture.TransformFunctionContexts[tileIndex];
-            Av1NeighborArrayUnit<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
+
+            // The tile edges serve every leaf, so they are read once.
+            Av1NeighborEdges<byte> transformContexts = this.picture.TransformFunctionContexts[tileIndex].GetEdges();
+            Av1NeighborEdges<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             Span<Av1EncoderTransformBlockState> lumaStates =
                 this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y);
 
@@ -5430,11 +5433,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Point origin = blockOrigin + new Size(offset.X, offset.Y);
                     Size leafDimensions = new(width, height);
-                    transformContexts.UnitModeWrite(
-                        (byte)width, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
-
-                    transformContexts.UnitModeWrite(
-                        (byte)height, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
+                    transformContexts.Write((byte)width, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
+                    transformContexts.Write((byte)height, origin, leafDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
                     if (publishCoefficientContexts)
                     {
@@ -5455,20 +5455,16 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                transformContexts.UnitModeWrite(
-                    (byte)transformSize.GetWidth(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
-
-                transformContexts.UnitModeWrite(
-                    (byte)transformSize.GetHeight(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
+                transformContexts.Write((byte)transformSize.GetWidth(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
+                transformContexts.Write((byte)transformSize.GetHeight(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
             }
 
             // A reused decision codes nothing here, so its coefficients are not in the shared buffer yet. The
-            // encode that follows it publishes their contexts. Reference: the rd_mode_is_ready branch of
-            // pick_sb_modes(), which leaves the entropy contexts to encode_superblock().
+            // encode that follows it publishes their contexts.
             if (publishCoefficientContexts && (!interTransform || this.picture.Parent.FrameHeader.CodedLossless))
             {
                 PublishCoefficientContexts(
-                    coefficientContexts,
+                    in coefficientContexts,
                     blockOrigin,
                     GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0),
                     transformSize,
@@ -5529,8 +5525,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Span<int> blueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
             Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
+            Av1NeighborEdges<byte> blueEdges = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+            Av1NeighborEdges<byte> redEdges = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             PublishCoefficientContexts(
-                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                in blueEdges,
                 chromaOrigin,
                 GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subsamplingX, subsamplingY),
                 chromaTransformSize,
@@ -5543,7 +5541,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blueStates[chromaStateIndex..]);
 
             PublishCoefficientContexts(
-                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                in redEdges,
                 chromaOrigin,
                 GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subsamplingX, subsamplingY),
                 chromaTransformSize,
@@ -5556,8 +5554,21 @@ internal static partial class Av1IntraSuperblockEncoder
                 redStates[chromaStateIndex..]);
         }
 
+        /// <summary>
+        /// Publishes the coefficient context of each coded transform block of one plane on the tile edges, in the
+        /// 64x64 region order that the coefficients were stored in.
+        /// </summary>
+        /// <param name="neighbors">The coefficient context edges of the plane, read once by the caller.</param>
+        /// <param name="blockOrigin">The block origin in samples of the plane.</param>
+        /// <param name="codedExtent">The visible coded extent of the block in samples of the plane.</param>
+        /// <param name="transformSize">The size of each transform block.</param>
+        /// <param name="maximumUnitBlockSize">The largest region that the coefficients are grouped in.</param>
+        /// <param name="rootTransformSize">The size of each transform root.</param>
+        /// <param name="frameContextSize">The coded plane extent in four-sample units.</param>
+        /// <param name="coefficients">The coefficients of the block.</param>
+        /// <param name="states">The transform block states of the block, which hold each stored context.</param>
         private static void PublishCoefficientContexts(
-            Av1NeighborArrayUnit<byte> neighbors,
+            in Av1NeighborEdges<byte> neighbors,
             Point blockOrigin,
             Size codedExtent,
             Av1TransformSize transformSize,
@@ -5603,7 +5614,6 @@ internal static partial class Av1IntraSuperblockEncoder
                                 // The context a transform block hands on is the one stored beside it when it
                                 // was coded, not a fresh reading of whatever coefficients the shared buffer
                                 // now holds. A search that ended on a losing candidate leaves those behind.
-                                // Reference: the txb_entropy_ctx read of av1_set_txb_context().
                                 byte context = states[transformStateOffset].CoefficientContext;
 
                                 Point transformOrigin = blockOrigin + new Size(column, row);
@@ -5631,7 +5641,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> storage = this.blockWorkspace.GetPartitionContextStorage(blockSize);
             int offset = 0;
             SaveNeighborEdges(
-                this.picture.PartitionContexts[tileIndex],
+                this.picture.PartitionContexts[tileIndex].GetEdges(),
                 blockOrigin,
                 blockSize.Get4x4WideCount(),
                 blockSize.Get4x4HighCount(),
@@ -5639,7 +5649,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref offset);
 
             SaveNeighborEdges(
-                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges(),
                 blockOrigin,
                 blockSize.Get4x4WideCount(),
                 blockSize.Get4x4HighCount(),
@@ -5647,7 +5657,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref offset);
 
             SaveNeighborEdges(
-                this.picture.TransformFunctionContexts[tileIndex],
+                this.picture.TransformFunctionContexts[tileIndex].GetEdges(),
                 blockOrigin,
                 blockSize.Get4x4WideCount(),
                 blockSize.Get4x4HighCount(),
@@ -5657,7 +5667,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.picture.Parent.FrameHeader.AllowScreenContentTools)
             {
                 SaveNeighborEdges(
-                    this.picture.PaletteContexts[tileIndex],
+                    this.picture.PaletteContexts[tileIndex].GetEdges(),
                     blockOrigin,
                     blockSize.Get4x4WideCount(),
                     blockSize.Get4x4HighCount(),
@@ -5683,7 +5693,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingY);
 
             SaveNeighborEdges(
-                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges(),
                 chromaOrigin,
                 chromaBlockSize.Get4x4WideCount(),
                 chromaBlockSize.Get4x4HighCount(),
@@ -5691,7 +5701,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref offset);
 
             SaveNeighborEdges(
-                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges(),
                 chromaOrigin,
                 chromaBlockSize.Get4x4WideCount(),
                 chromaBlockSize.Get4x4HighCount(),
@@ -5707,7 +5717,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> storage = this.blockWorkspace.GetPartitionContextStorage(blockSize);
             int offset = 0;
             RestoreNeighborEdges(
-                this.picture.PartitionContexts[tileIndex],
+                this.picture.PartitionContexts[tileIndex].GetEdges(),
                 blockOrigin,
                 blockSize.Get4x4WideCount(),
                 blockSize.Get4x4HighCount(),
@@ -5715,7 +5725,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref offset);
 
             RestoreNeighborEdges(
-                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges(),
                 blockOrigin,
                 blockSize.Get4x4WideCount(),
                 blockSize.Get4x4HighCount(),
@@ -5723,7 +5733,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref offset);
 
             RestoreNeighborEdges(
-                this.picture.TransformFunctionContexts[tileIndex],
+                this.picture.TransformFunctionContexts[tileIndex].GetEdges(),
                 blockOrigin,
                 blockSize.Get4x4WideCount(),
                 blockSize.Get4x4HighCount(),
@@ -5733,7 +5743,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.picture.Parent.FrameHeader.AllowScreenContentTools)
             {
                 RestoreNeighborEdges(
-                    this.picture.PaletteContexts[tileIndex],
+                    this.picture.PaletteContexts[tileIndex].GetEdges(),
                     blockOrigin,
                     blockSize.Get4x4WideCount(),
                     blockSize.Get4x4HighCount(),
@@ -5759,7 +5769,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingY);
 
             RestoreNeighborEdges(
-                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges(),
                 chromaOrigin,
                 chromaBlockSize.Get4x4WideCount(),
                 chromaBlockSize.Get4x4HighCount(),
@@ -5767,7 +5777,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref offset);
 
             RestoreNeighborEdges(
-                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges(),
                 chromaOrigin,
                 chromaBlockSize.Get4x4WideCount(),
                 chromaBlockSize.Get4x4HighCount(),
@@ -5775,8 +5785,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref offset);
         }
 
+        /// <summary>
+        /// Copies the part of the top and left edges that a block covers into the trial storage.
+        /// </summary>
+        /// <typeparam name="T">The context value type.</typeparam>
+        /// <param name="neighbors">The edges of one neighbor array.</param>
+        /// <param name="blockOrigin">The block origin in samples.</param>
+        /// <param name="width">The number of top units that the block covers.</param>
+        /// <param name="height">The number of left units that the block covers.</param>
+        /// <param name="storage">The trial storage.</param>
+        /// <param name="offset">The byte position in the storage, advanced past the copied edges.</param>
         private static void SaveNeighborEdges<T>(
-            Av1NeighborArrayUnit<T> neighbors,
+            in Av1NeighborEdges<T> neighbors,
             Point blockOrigin,
             int width,
             int height,
@@ -5784,20 +5804,27 @@ internal static partial class Av1IntraSuperblockEncoder
             ref int offset)
             where T : struct
         {
-            Span<byte> top = MemoryMarshal.AsBytes(
-                neighbors.Top.Slice(neighbors.GetTopIndex(blockOrigin), width));
-
+            Span<byte> top = MemoryMarshal.AsBytes(neighbors.Top.Slice(neighbors.GetTopIndex(blockOrigin), width));
             top.CopyTo(storage[offset..]);
             offset += top.Length;
-            Span<byte> left = MemoryMarshal.AsBytes(
-                neighbors.Left.Slice(neighbors.GetLeftIndex(blockOrigin), height));
 
+            Span<byte> left = MemoryMarshal.AsBytes(neighbors.Left.Slice(neighbors.GetLeftIndex(blockOrigin), height));
             left.CopyTo(storage[offset..]);
             offset += left.Length;
         }
 
+        /// <summary>
+        /// Copies the saved part of the top and left edges of a block back from the trial storage.
+        /// </summary>
+        /// <typeparam name="T">The context value type.</typeparam>
+        /// <param name="neighbors">The edges of one neighbor array.</param>
+        /// <param name="blockOrigin">The block origin in samples.</param>
+        /// <param name="width">The number of top units that the block covers.</param>
+        /// <param name="height">The number of left units that the block covers.</param>
+        /// <param name="storage">The trial storage.</param>
+        /// <param name="offset">The byte position in the storage, advanced past the copied edges.</param>
         private static void RestoreNeighborEdges<T>(
-            Av1NeighborArrayUnit<T> neighbors,
+            in Av1NeighborEdges<T> neighbors,
             Point blockOrigin,
             int width,
             int height,
@@ -6103,13 +6130,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
                 Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
                 int sizeContext = Av1TileWriter.GetTransformSizeContext(
-                    this.picture.TransformFunctionContexts[tileIndex], macroBlock, blockOrigin, blockSize);
+                    this.picture.TransformFunctionContexts[tileIndex].GetEdges(), macroBlock, blockOrigin, blockSize);
 
                 int paletteDisabledCost = paletteAllowed
                     ? writer.GetPaletteYModeCost(
                         false,
                         Av1TileWriter.GetPaletteBlockSizeContext(blockSize),
-                        Av1TileWriter.GetPaletteYModeContext(this.picture.PaletteContexts[tileIndex], macroBlock, blockOrigin))
+                        Av1TileWriter.GetPaletteYModeContext(this.picture.PaletteContexts[tileIndex].GetEdges(), macroBlock, blockOrigin))
                     : 0;
 
                 int maximumDepth = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
@@ -6265,14 +6292,14 @@ internal static partial class Av1IntraSuperblockEncoder
             int sampleCount = width * height;
             Span<TSample> samples = workspace.GetCandidateReconstruction(0)[..sampleCount];
             int sizeContext = Av1TileWriter.GetTransformSizeContext(
-                this.picture.TransformFunctionContexts[tileIndex], macroBlock, blockOrigin, blockSize);
+                this.picture.TransformFunctionContexts[tileIndex].GetEdges(), macroBlock, blockOrigin, blockSize);
 
             bool paletteAllowed = Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize);
             int paletteDisabledCost = paletteAllowed
                 ? writer.GetPaletteYModeCost(
                     false,
                     Av1TileWriter.GetPaletteBlockSizeContext(blockSize),
-                    Av1TileWriter.GetPaletteYModeContext(this.picture.PaletteContexts[tileIndex], macroBlock, blockOrigin))
+                    Av1TileWriter.GetPaletteYModeContext(this.picture.PaletteContexts[tileIndex].GetEdges(), macroBlock, blockOrigin))
                 : 0;
 
             Av1TransformSize maximumSize = lossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
@@ -7002,13 +7029,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> contexts = workspace.TransformContexts;
             Span<byte> topContexts = contexts[..contextWidth];
             Span<byte> leftContexts = contexts.Slice(contextWidth, contextHeight);
-            Av1NeighborArrayUnit<byte> coefficientNeighbors =
-                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
-
-            int topIndex = coefficientNeighbors.GetTopIndex(blockOrigin);
-            int leftIndex = coefficientNeighbors.GetLeftIndex(blockOrigin);
-            coefficientNeighbors.Top.Slice(topIndex, contextWidth).CopyTo(topContexts);
-            coefficientNeighbors.Left.Slice(leftIndex, contextHeight).CopyTo(leftContexts);
+            Av1NeighborEdges<byte> coefficientEdges = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+            int topIndex = coefficientEdges.GetTopIndex(blockOrigin);
+            int leftIndex = coefficientEdges.GetLeftIndex(blockOrigin);
+            coefficientEdges.Top.Slice(topIndex, contextWidth).CopyTo(topContexts);
+            coefficientEdges.Left.Slice(leftIndex, contextHeight).CopyTo(leftContexts);
 
             // The non-RD palette search of screen content codes DCT_DCT alone. Reference: dct_only_palette_nonrd.
             bool dctOnlyPalette = paletteSize > 0 && !this.picture.Parent.FrameHeader.IsIntra &&
@@ -7239,7 +7264,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 false,
                                 blockContext,
                                 Av1TileWriter.GetTransformBlockContexts(
-                                    Av1ComponentType.Luminance, coefficientNeighbors, blockOrigin, blockSize, transformSize),
+                                    Av1ComponentType.Luminance, in coefficientEdges, blockOrigin, blockSize, transformSize),
                                 sourceTransform,
                                 sourcePlane.Stride,
                                 transformOrigin,

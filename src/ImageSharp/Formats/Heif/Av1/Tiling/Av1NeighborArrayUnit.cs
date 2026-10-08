@@ -87,33 +87,20 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     }
 
     /// <summary>
-    /// Gets the left-neighbor storage.
-    /// </summary>
-    public Span<T> Left
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(this.isDisposed, this);
-            return this.memory.Span[..this.leftLength];
-        }
-    }
-
-    /// <summary>
-    /// Gets the top-neighbor storage.
-    /// </summary>
-    public Span<T> Top
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(this.isDisposed, this);
-            return this.memory.Span.Slice(this.leftLength, this.topLength);
-        }
-    }
-
-    /// <summary>
     /// Gets or sets the base-2 logarithm of the top and left context granularity in samples.
     /// </summary>
     public required int GranularityNormalLog2 { get; set; }
+
+    /// <summary>
+    /// Reads the storage once and returns both edges, for a caller that passes them to the code of many blocks.
+    /// </summary>
+    /// <returns>The top and left edges with their unit size.</returns>
+    public Av1NeighborEdges<T> GetEdges()
+    {
+        ObjectDisposedException.ThrowIf(this.isDisposed, this);
+        Span<T> storage = this.memory.Span;
+        return new Av1NeighborEdges<T>(storage.Slice(this.leftLength, this.topLength), storage[..this.leftLength], this.GranularityNormalLog2);
+    }
 
     /// <summary>
     /// Gets the left-neighbor unit index for a sample position.
@@ -128,6 +115,25 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     /// <param name="loc">The sample position.</param>
     /// <returns>The top-neighbor unit index.</returns>
     public int GetTopIndex(Point loc) => loc.X >> this.GranularityNormalLog2;
+
+    /// <summary>
+    /// Clears both edges, as the start of a tile requires.
+    /// </summary>
+    public void Clear()
+    {
+        ObjectDisposedException.ThrowIf(this.isDisposed, this);
+        this.memory.Span.Clear();
+    }
+
+    /// <summary>
+    /// Sets every unit of both edges to one value, as the start of a tile requires.
+    /// </summary>
+    /// <param name="value">The value to store.</param>
+    public void Fill(T value)
+    {
+        ObjectDisposedException.ThrowIf(this.isDisposed, this);
+        this.memory.Span.Fill(value);
+    }
 
     /// <summary>
     /// Returns the neighbor storage to the configured memory allocator.
@@ -147,52 +153,10 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     /// <param name="origin">The block origin in samples.</param>
     /// <param name="blockSize">The block dimensions in samples.</param>
     /// <param name="mask">The neighbor arrays to update.</param>
+    /// <remarks>
+    /// This reads the storage on each call. A caller that writes inside a loop takes <see cref="GetEdges"/> once and
+    /// writes through <see cref="Av1NeighborEdges{T}.Write"/>.
+    /// </remarks>
     public void UnitModeWrite(T value, Point origin, Size blockSize, UnitMask mask)
-    {
-        if ((mask & UnitMask.Top) == UnitMask.Top)
-        {
-            // Top Neighbor Array
-            //     ----------12345678---------------------
-            //                ^    ^
-            //                |    |
-            //                |    |
-            //               xxxxxxxx
-            //               x      x
-            //               x      x
-            //               12345678
-            //
-            //  The top neighbor array is updated with the samples from the
-            //    bottom row of the source block
-            //
-            //  Index = org_x
-            int offset = this.GetTopIndex(origin);
-            int count = blockSize.Width >> this.GranularityNormalLog2;
-
-            // One packed value represents each AV1 edge unit. Filling the covered range mirrors the
-            // contiguous above-context update without retaining a caller-owned span.
-            this.Top.Slice(offset, count).Fill(value);
-        }
-
-        if ((mask & UnitMask.Left) == UnitMask.Left)
-        {
-            // Left Neighbor Array
-            //
-            //    |
-            //    |
-            //    1         xxxxxxx1
-            //    2  <----  x      2
-            //    3  <----  x      3
-            //    4         xxxxxxx4
-            //    |
-            //    |
-            //
-            //  The left neighbor array is updated with the samples from the
-            //    right column of the source block
-            //
-            //  Index = org_y
-            int offset = this.GetLeftIndex(origin);
-            int count = blockSize.Height >> this.GranularityNormalLog2;
-            this.Left.Slice(offset, count).Fill(value);
-        }
-    }
+        => this.GetEdges().Write(value, origin, blockSize, mask);
 }

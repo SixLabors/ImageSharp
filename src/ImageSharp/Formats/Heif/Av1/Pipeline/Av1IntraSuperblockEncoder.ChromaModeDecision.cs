@@ -111,12 +111,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
                 Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
 
-                Av1NeighborArrayUnit<byte> neighbors = plane == Av1Plane.U
-                    ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex]
-                    : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
+                Av1NeighborEdges<byte> neighbors = plane == Av1Plane.U
+                    ? this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges()
+                    : this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
 
                 neighbors.Top.Slice(neighbors.GetTopIndex(origin), contextWidth).CopyTo(topContexts);
-
                 neighbors.Left.Slice(neighbors.GetLeftIndex(origin), contextHeight).CopyTo(leftContexts);
                 int planeRate;
                 if (usesChromaFromLuma)
@@ -561,16 +560,18 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> blueLeft = blueLeftStorage.Slice(1, width + height);
             ReadOnlySpan<TSample> redAbove = redAboveStorage.Slice(1, width + height);
             ReadOnlySpan<TSample> redLeft = redLeftStorage.Slice(1, width + height);
+            Av1NeighborEdges<byte> blueEdges = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+            Av1NeighborEdges<byte> redEdges = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             Av1TransformBlockContext blueContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Chroma,
-                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                in blueEdges,
                 chromaOrigin,
                 chromaBlockSize,
                 transformSize);
 
             Av1TransformBlockContext redContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Chroma,
-                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                in redEdges,
                 chromaOrigin,
                 chromaBlockSize,
                 transformSize);
@@ -1156,12 +1157,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 (2 * contextWidth) + contextHeight,
                 contextHeight);
 
-            Av1NeighborArrayUnit<byte> blueNeighbors =
-                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex];
-
-            Av1NeighborArrayUnit<byte> redNeighbors =
-                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
-
+            // Every candidate starts from the same tile edges, so they are read once.
+            Av1NeighborEdges<byte> blueNeighbors = this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
+            Av1NeighborEdges<byte> redNeighbors = this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             int blueTopIndex = blueNeighbors.GetTopIndex(chromaOrigin);
             int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
             int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);

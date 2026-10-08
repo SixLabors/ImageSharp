@@ -606,15 +606,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int contextWidth = planeBlockSize.Get4x4WideCount();
             int contextHeight = planeBlockSize.Get4x4HighCount();
-            Span<byte> topContexts = workspace.TransformContexts[..contextWidth];
-            Span<byte> leftContexts = workspace.TransformContexts.Slice(contextWidth, contextHeight);
-            Av1NeighborArrayUnit<byte> neighbors = plane switch
+            Span<byte> transformContexts = workspace.TransformContexts;
+            Span<byte> topContexts = transformContexts[..contextWidth];
+            Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
+            Av1NeighborArrayUnit<byte> neighborArray = plane switch
             {
                 Av1Plane.Y => this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                 Av1Plane.U => this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
                 _ => this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex]
             };
 
+            Av1NeighborEdges<byte> neighbors = neighborArray.GetEdges();
             neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
             neighbors.Left.Slice(neighbors.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
             Av1ComponentType component = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;

@@ -109,9 +109,9 @@ public class Av1EncoderModeInfoBufferTests
         picture.ModeInfoGrid.Span[0] = 7;
         picture.ModeInfoAllocation.Span[0].Block.Mode = Av1PredictionMode.Paeth;
         picture.SegmentationNeighborMap.Span[0] = 3;
-        picture.PartitionContexts[0].Left[0] = new Av1PartitionContext(5, 7);
-        picture.TransformFunctionContexts[0].Top[0] = 8;
-        picture.PaletteContexts[0].Left[0].PaletteSizes[0] = 2;
+        picture.PartitionContexts[0].GetEdges().Left[0] = new Av1PartitionContext(5, 7);
+        picture.TransformFunctionContexts[0].GetEdges().Top[0] = 8;
+        picture.PaletteContexts[0].GetEdges().Left[0].PaletteSizes[0] = 2;
         picture.DisplacementVectors.Span[0] = new Av1EncoderDisplacementVector { Row = -8, Column = 16 };
         picture.BlockEncodings.Span[0].QuantizationIndex = 53;
         picture.BlockPalettes.Span[0].PaletteSizes[0] = 3;
@@ -145,9 +145,9 @@ public class Av1EncoderModeInfoBufferTests
         Assert.Equal(0, picture.ModeInfoGrid.Span[0]);
         Assert.Equal(Av1PredictionMode.DC, picture.ModeInfoAllocation.Span[0].Block.Mode);
         Assert.Equal(0, picture.SegmentationNeighborMap.Span[0]);
-        Assert.Equal(default, picture.PartitionContexts[0].Left[0]);
-        Assert.Equal(Av1Constants.MaxTransformSize, picture.TransformFunctionContexts[0].Top[0]);
-        Assert.Equal(0, picture.PaletteContexts[0].Left[0].PaletteSizes[0]);
+        Assert.Equal(default, picture.PartitionContexts[0].GetEdges().Left[0]);
+        Assert.Equal(Av1Constants.MaxTransformSize, picture.TransformFunctionContexts[0].GetEdges().Top[0]);
+        Assert.Equal(0, picture.PaletteContexts[0].GetEdges().Left[0].PaletteSizes[0]);
         Assert.Equal(default, picture.DisplacementVectors.Span[0]);
         Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockEncodings.Span).IndexOfAnyExcept((byte)0));
         Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockPalettes.Span).IndexOfAnyExcept((byte)0));
@@ -165,8 +165,8 @@ public class Av1EncoderModeInfoBufferTests
         picture.BlockPalettes.Span[0].PaletteSizes[0] = 3;
         picture.PaletteTokens.Span[0] = 0x42;
         picture.ReferenceContexts.Span[0].ModeContext = 37;
-        picture.LuminanceDcSignLevelCoefficientNeighbors[0].Top[0] = 0x41;
-        picture.TransformFunctionContexts[0].Left[0] = 4;
+        picture.LuminanceDcSignLevelCoefficientNeighbors[0].GetEdges().Top[0] = 0x41;
+        picture.TransformFunctionContexts[0].GetEdges().Left[0] = 4;
         picture.ResetEntropyContexts();
 
         Assert.Equal(allocationCount, allocator.AllocationLog.Count);
@@ -176,7 +176,7 @@ public class Av1EncoderModeInfoBufferTests
         Assert.Equal(3, picture.BlockPalettes.Span[0].PaletteSizes[0]);
         Assert.Equal(0x42, picture.PaletteTokens.Span[0]);
         Assert.Equal(37, picture.ReferenceContexts.Span[0].ModeContext);
-        Assert.Equal(0, picture.LuminanceDcSignLevelCoefficientNeighbors[0].Top[0]);
-        Assert.Equal(Av1Constants.MaxTransformSize, picture.TransformFunctionContexts[0].Left[0]);
+        Assert.Equal(0, picture.LuminanceDcSignLevelCoefficientNeighbors[0].GetEdges().Top[0]);
+        Assert.Equal(Av1Constants.MaxTransformSize, picture.TransformFunctionContexts[0].GetEdges().Left[0]);
     }
 }

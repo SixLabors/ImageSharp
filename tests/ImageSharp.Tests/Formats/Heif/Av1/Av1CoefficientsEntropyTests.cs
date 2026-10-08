@@ -67,7 +67,7 @@ public class Av1CoefficientsEntropyTests
             disallow4x4AllFrames: false);
 
         Av1PictureControlSet picture = pictureBuffer.Picture;
-        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = Assert.Single(picture.PaletteContexts);
+        Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts = Assert.Single(picture.PaletteContexts).GetEdges();
         ref Av1EncoderPaletteInfo above = ref paletteContexts.Top[paletteContexts.GetTopIndex(blockOrigin)];
         above.PaletteSizes[0] = 2;
         above.PaletteSizes[1] = 2;
@@ -163,10 +163,11 @@ public class Av1CoefficientsEntropyTests
             GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
         };
 
-        int topIndex = transforms.GetTopIndex(blockOrigin);
-        int leftIndex = transforms.GetLeftIndex(blockOrigin);
-        transforms.Top[topIndex] = 16;
-        transforms.Left[leftIndex] = 16;
+        Av1NeighborEdges<byte> edges = transforms.GetEdges();
+        int topIndex = edges.GetTopIndex(blockOrigin);
+        int leftIndex = edges.GetLeftIndex(blockOrigin);
+        edges.Top[topIndex] = 16;
+        edges.Left[leftIndex] = 16;
         picture.TransformFunctionContexts = [transforms];
 
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
@@ -187,16 +188,16 @@ public class Av1CoefficientsEntropyTests
             Av1TransformSize.Size8x8,
             reader.ReadTransformSize(Av1BlockSize.Block16x32, context: 1));
 
-        for (int index = 0; index < transforms.Top.Length; index++)
+        for (int index = 0; index < edges.Top.Length; index++)
         {
             byte expected = index >= topIndex && index < topIndex + 4 ? (byte)8 : (byte)0;
-            Assert.Equal(expected, transforms.Top[index]);
+            Assert.Equal(expected, edges.Top[index]);
         }
 
-        for (int index = 0; index < transforms.Left.Length; index++)
+        for (int index = 0; index < edges.Left.Length; index++)
         {
             byte expected = index >= leftIndex && index < leftIndex + 8 ? (byte)8 : (byte)0;
-            Assert.Equal(expected, transforms.Left[index]);
+            Assert.Equal(expected, edges.Left[index]);
         }
     }
 

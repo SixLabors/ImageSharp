@@ -1599,6 +1599,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 // get_vartx_max_txsize() returns for a lossless segment.
                 Av1TransformSize rootSize = planeIndex == 0 && !lossless ? planeBlock.GetMaximumTransformSize() : transformSize;
                 int count = stride * planeBlock.GetHeight() / sampleCount;
+
+                // Every transform block of the plane uses the same workspace buffers and rate tables.
+                Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
                 for (int index = 0; index < count; index++)
                 {
                     Point local = rootSize.GetBlockPartitionOrigin(planeBlock, transformSize, index, subX, subY);
@@ -1640,8 +1643,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     else
                     {
                         Av1TransformBlockEncoder.EncodeLossyCandidate(
-                            this.blockWorkspace,
-                            writer,
+                            in transformBuffers,
                             context,
                             workspace.Residual[inputOffset..],
                             stride,

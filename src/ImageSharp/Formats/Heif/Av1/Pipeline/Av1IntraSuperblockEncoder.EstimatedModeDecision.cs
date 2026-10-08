@@ -645,6 +645,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int unitWidth = Math.Min(maximumUnit.GetWidth(), extent.Width);
             int unitHeight = Math.Min(maximumUnit.GetHeight(), extent.Height);
+
+            // Every transform block of the plane uses the same workspace buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
             for (int unitY = 0; unitY < extent.Height; unitY += unitHeight)
             {
                 for (int unitX = 0; unitX < extent.Width; unitX += unitWidth)
@@ -739,8 +742,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 // for a noise pattern. Reference: is_noise_pattern in av1_optimize_txb(), from encode_block_intra().
                                 this.blockWorkspace.LumaNoisePattern = plane == Av1Plane.Y && this.IsLumaNoisePattern(destination, blockOrigin, blockSize);
                                 Av1TransformBlockEncoder.EncodeLossyCandidate(
-                                    this.blockWorkspace,
-                                    writer,
+                                    in transformBuffers,
                                     context,
                                     residual,
                                     width,

@@ -8396,6 +8396,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Rectangle> lumaBlocks = stackalloc Rectangle[64];
             Span<Av1TransformType> lumaTypes = stackalloc Av1TransformType[64];
             int lumaBlockCount = 0;
+
+            // Every transform block of every plane uses the same workspace buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -8527,7 +8530,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     this.ReconstructSelectedTransform(
-                        writer,
+                        in transformBuffers,
                         context,
                         true,
                         blockOrigin,

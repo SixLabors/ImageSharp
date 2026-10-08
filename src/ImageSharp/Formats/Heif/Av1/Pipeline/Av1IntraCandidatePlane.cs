@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -17,14 +16,9 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     where TSample : unmanaged
 {
     /// <summary>
-    /// Gets the block workspace, which holds the quantizer matrices and the coding stage.
+    /// Gets the workspace, the writer, its rate tables and the transform buffers, read once for the block.
     /// </summary>
-    public Av1EncoderBlockWorkspace Workspace { get; init; }
-
-    /// <summary>
-    /// Gets the tile symbol encoder that prices the coefficients.
-    /// </summary>
-    public Av1SymbolEncoder Writer { get; init; }
+    public Av1TransformBlockBuffers Buffers { get; init; }
 
     /// <summary>
     /// Gets the coefficient contexts of the transform block.
@@ -145,19 +139,4 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     /// Gets the residual buffer of the workspace.
     /// </summary>
     public Span<short> Residual { get; init; }
-
-    /// <summary>
-    /// Gets the forward transform coefficient buffer of the workspace.
-    /// </summary>
-    public Span<int> TransformCoefficients { get; init; }
-
-    /// <summary>
-    /// Gets the dequantized coefficient buffer of the workspace.
-    /// </summary>
-    public Span<int> DequantizedCoefficients { get; init; }
-
-    /// <summary>
-    /// Gets the intermediate buffer of the transforms.
-    /// </summary>
-    public Span<int> TransformWorkspace { get; init; }
 }

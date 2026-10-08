@@ -599,15 +599,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingY);
 
             Span<long> angleCosts = stackalloc long[7];
-            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
+
+            // The workspace buffers and the rate tables of every chroma candidate of the block, read once.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            Span<int> blockTransformCoefficients = transformBuffers.TransformCoefficients;
+            Span<int> blockTransformWorkspace = transformBuffers.TransformWorkspace;
 
             // Every spatial chroma candidate of the block uses the same planes, references, contexts and buffers.
             // Only the mode, the angle and the transform type change, so each plane is described once here.
             Av1IntraCandidatePlane<TSample> bluePlane = new()
             {
-                Workspace = this.blockWorkspace,
-                Writer = writer,
+                Buffers = transformBuffers,
                 Context = blueContext,
                 RateMultiplier = this.rateMultiplier,
                 UseChromaWeights = this.picture.Sequence.SequenceHeader.IsStillPicture,
@@ -631,16 +633,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.U],
                 BitDepth = this.bitDepth,
                 DistortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(this.blockWorkspace, speedSettings),
-                Residual = this.blockWorkspace.Residual,
-                TransformCoefficients = blockTransformCoefficients,
-                DequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients,
-                TransformWorkspace = blockTransformWorkspace
+                Residual = this.blockWorkspace.Residual
             };
 
             Av1IntraCandidatePlane<TSample> redPlane = new()
             {
-                Workspace = this.blockWorkspace,
-                Writer = writer,
+                Buffers = transformBuffers,
                 Context = redContext,
                 RateMultiplier = this.rateMultiplier,
                 UseChromaWeights = bluePlane.UseChromaWeights,
@@ -664,10 +662,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.V],
                 BitDepth = this.bitDepth,
                 DistortionPolicy = bluePlane.DistortionPolicy,
-                Residual = bluePlane.Residual,
-                TransformCoefficients = blockTransformCoefficients,
-                DequantizedCoefficients = bluePlane.DequantizedCoefficients,
-                TransformWorkspace = blockTransformWorkspace
+                Residual = bluePlane.Residual
             };
 
             for (int modeIndex = 0; modeIndex < ChromaModeSearchOrder.Length; modeIndex++)

@@ -5108,6 +5108,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int planeCount = snapshot.Block.HasChroma ? 3 : 1;
             int chromaArea = 0;
 
+            // Every transform block of every plane uses the same workspace buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -5313,7 +5315,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformSize);
 
                                 this.ReconstructSelectedTransform(
-                                    writer,
+                                    in transformBuffers,
                                     blockContext,
                                     false,
                                     blockOrigin,
@@ -8046,8 +8048,25 @@ internal static partial class Av1IntraSuperblockEncoder
                 threshold);
         }
 
+        /// <summary>
+        /// Codes one transform block of the selected mode and adds its reconstruction to the frame.
+        /// </summary>
+        /// <param name="buffers">The workspace buffers and rate tables, which the caller reads once for its loops.</param>
+        /// <param name="context">The coefficient context of the transform block.</param>
+        /// <param name="isInter">Whether the block is an inter block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="planeOrigin">The transform block origin in plane samples.</param>
+        /// <param name="plane">The plane.</param>
+        /// <param name="transformSize">The transform size.</param>
+        /// <param name="prediction">The prediction of the transform block.</param>
+        /// <param name="residual">The residual of the transform block.</param>
+        /// <param name="inputStride">The stride of the prediction and the residual.</param>
+        /// <param name="selectedState">The transform type and contexts that the search selected.</param>
+        /// <param name="skipTransform">Whether the block skips its residual.</param>
+        /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
         private void ReconstructSelectedTransform(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             Av1TransformBlockContext context,
             bool isInter,
             Point blockOrigin,
@@ -8064,7 +8083,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             long workStart = Av1WorkCounters.Start();
             this.ReconstructSelectedTransformCore(
-                writer,
+                in buffers,
                 context,
                 isInter,
                 blockOrigin,
@@ -8086,7 +8105,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Codes one transform block of the selected mode and adds its reconstruction to the frame.
         /// Reference: the transform block steps of encode_block_intra() and encode_block().
         /// </summary>
-        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="buffers">The workspace buffers and rate tables, which the caller reads once for its loops.</param>
         /// <param name="context">The coefficient context of the transform block.</param>
         /// <param name="isInter">Whether the block is an inter block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -8101,7 +8120,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="skipTransform">Whether the block skips its residual.</param>
         /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
         private void ReconstructSelectedTransformCore(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             Av1TransformBlockContext context,
             bool isInter,
             Point blockOrigin,
@@ -8160,8 +8179,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // after it. Reference: is_noise_pattern in av1_optimize_txb(), from encode_block_intra() and encode_block().
             this.blockWorkspace.LumaNoisePattern = plane == Av1Plane.Y && this.IsLumaNoisePattern(destinationPlane, blockOrigin, blockSize);
             Av1TransformBlockEncoder.EncodeLossyCandidate(
-                this.blockWorkspace,
-                writer,
+                in buffers,
                 context,
                 residual,
                 inputStride,

@@ -138,7 +138,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// </summary>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The type-specific block encoding operations.</typeparam>
-    internal partial struct ModeDecision<TSample, TOperator> : Av1TileWriter.IBlockEncodingHandler
+    internal partial struct ModeDecision<TSample, TOperator> : Av1TileWriter.IBlockEncodingHandler<TSample>
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
@@ -758,6 +758,26 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public Av1PartitionType SelectPartition(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
+            Span<int> searchCoefficients,
+            Span<int> searchReconstructions,
+            Span<int> estimationRowCoefficients,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> motionSearchPrediction,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Span<TSample> transformPrediction,
+            Span<TSample> interIntraAbove,
+            Span<TSample> interIntraLeft,
+            Span<ushort> firstIntermediate,
+            Span<ushort> secondIntermediate,
+            Span<byte> compoundMask,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -784,34 +804,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 localX &= nodeWidth - 1;
                 localY &= nodeWidth - 1;
             }
-
-            // The rate tables and the transform buffers of every search below, read once here and passed down.
-            Av1CoefficientTables tables = writer.GetCoefficientTables();
-            Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
-            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
-            Span<short> blockResidual = this.blockWorkspace.Residual;
-            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
-            Span<int> estimationRowCoefficients = this.blockWorkspace.EstimationRowCoefficients;
-
-            // The inter prediction buffers of the searches. An intra frame prices no motion vector, and a worker that
-            // encodes only intra frames keeps no motion vector rates.
-            Av1EncoderInterPredictionWorkspace<TSample> interWorkspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-            Span<TSample> motionSearchPrediction = this.blockWorkspace.GetMotionSearchPrediction<TSample>();
-            ObuFrameHeader motionFrameHeader = this.picture.Parent.FrameHeader;
-            Av1MotionVectorCosts motionVectorCosts = motionFrameHeader.IsIntra
-                ? default
-                : this.blockWorkspace.GetMotionVectorCosts(motionFrameHeader.MotionVectorPrecision);
-
-            this.blockWorkspace.GetInterIntraStorage<TSample>(
-                out Span<TSample> transformPrediction, out Span<TSample> interIntraAbove, out Span<TSample> interIntraLeft);
-
-            this.blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> firstIntermediate, out Span<ushort> secondIntermediate);
-            Span<byte> compoundMask = this.blockWorkspace.GetCompoundPredictionMask();
 
             if (UsesGivenPartition(this.picture))
             {
@@ -4479,6 +4471,26 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         public void EncodeBlock(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
+            Span<int> searchCoefficients,
+            Span<int> searchReconstructions,
+            Span<int> estimationRowCoefficients,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> motionSearchPrediction,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Span<TSample> transformPrediction,
+            Span<TSample> interIntraAbove,
+            Span<TSample> interIntraLeft,
+            Span<ushort> firstIntermediate,
+            Span<ushort> secondIntermediate,
+            Span<byte> compoundMask,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -4506,34 +4518,6 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 this.blockWorkspace.ErrorPerBitRateMultiplier = this.rateMultiplier;
             }
-
-            // The rate tables and the transform buffers of every search of the block, read once here and passed down.
-            Av1CoefficientTables tables = writer.GetCoefficientTables();
-            Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
-            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
-            Span<short> blockResidual = this.blockWorkspace.Residual;
-            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
-            Span<int> estimationRowCoefficients = this.blockWorkspace.EstimationRowCoefficients;
-
-            // The inter prediction buffers of the block. An intra frame prices no motion vector, and a worker that
-            // encodes only intra frames keeps no motion vector rates.
-            Av1EncoderInterPredictionWorkspace<TSample> interWorkspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-            Span<TSample> motionSearchPrediction = this.blockWorkspace.GetMotionSearchPrediction<TSample>();
-            ObuFrameHeader motionFrameHeader = this.picture.Parent.FrameHeader;
-            Av1MotionVectorCosts motionVectorCosts = motionFrameHeader.IsIntra
-                ? default
-                : this.blockWorkspace.GetMotionVectorCosts(motionFrameHeader.MotionVectorPrecision);
-
-            this.blockWorkspace.GetInterIntraStorage<TSample>(
-                out Span<TSample> transformPrediction, out Span<TSample> interIntraAbove, out Span<TSample> interIntraLeft);
-
-            this.blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> firstIntermediate, out Span<ushort> secondIntermediate);
-            Span<byte> compoundMask = this.blockWorkspace.GetCompoundPredictionMask();
 
             this.EncodeSelectedBlock(
                 writer,

@@ -1256,6 +1256,31 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // The inter search state exists only for inter frames.
         Span<Av1InterModeRateDistortionModel> interModeModels = frameHeader.IsIntra ? default : blockWorkspace.InterModeModels;
         Span<int> modeThresholdFactors = frameHeader.IsIntra ? default : blockWorkspace.ModeThresholdFactors;
+
+        // The rate tables and the transform buffers of every block search of the frame, read once here and passed down.
+        Av1CoefficientTables tables = writer.GetCoefficientTables();
+        Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = blockWorkspace.GetModeDecisionWorkspace<TSample>();
+        Span<int> transformCoefficients = blockWorkspace.TransformCoefficients;
+        Span<int> dequantizedCoefficients = blockWorkspace.DequantizedCoefficients;
+        Span<int> searchDequantizedCoefficients = blockWorkspace.SearchDequantizedCoefficients;
+        Span<int> transformWorkspace = blockWorkspace.TransformWorkspace;
+        ReadOnlySpan<int> transformTypeProbabilities = blockWorkspace.TransformTypeProbabilities;
+        Span<short> blockResidual = blockWorkspace.Residual;
+        Span<int> searchCoefficients = blockWorkspace.SearchCoefficients;
+        Span<int> searchReconstructions = blockWorkspace.SearchReconstructions;
+        Span<int> estimationRowCoefficients = blockWorkspace.EstimationRowCoefficients;
+
+        // The inter prediction buffers of the block searches. An intra frame prices no motion vector, and a worker
+        // that encodes only intra frames keeps no motion vector rates.
+        Av1EncoderInterPredictionWorkspace<TSample> interWorkspace = blockWorkspace.GetInterPredictionWorkspace<TSample>();
+        Span<TSample> motionSearchPrediction = blockWorkspace.GetMotionSearchPrediction<TSample>();
+        Av1MotionVectorCosts motionVectorCosts = frameHeader.IsIntra ? default : blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision);
+        blockWorkspace.GetInterIntraStorage<TSample>(
+            out Span<TSample> transformPrediction, out Span<TSample> interIntraAbove, out Span<TSample> interIntraLeft);
+
+        blockWorkspace.GetCompoundPredictionIntermediates(out Span<ushort> firstIntermediate, out Span<ushort> secondIntermediate);
+        Span<byte> compoundMask = blockWorkspace.GetCompoundPredictionMask();
+
         for (int tileRow = 0; tileRow < tileLayout.TileRowCount; tileRow++)
         {
             tile.SetTileRow(tileLayout, frameHeader.ModeInfoRowCount, tileRow);
@@ -1325,12 +1350,32 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
                         if (TSymbolOperation.WritesOutput)
                         {
-                            Av1TileWriter.RetainedBlockEncodingHandler blockEncoder = new(picture);
-                            Av1TileWriter.WriteSuperblock<TSymbolOperation, Av1TileWriter.RetainedBlockEncodingHandler>(
+                            Av1TileWriter.RetainedBlockEncodingHandler<TSample> blockEncoder = new(picture);
+                            Av1TileWriter.WriteSuperblock<TSymbolOperation, Av1TileWriter.RetainedBlockEncodingHandler<TSample>, TSample>(
                                 ref output,
                                 picture,
                                 entropyContext,
                                 writer,
+                                in tables,
+                                in modeWorkspace,
+                                transformCoefficients,
+                                dequantizedCoefficients,
+                                searchDequantizedCoefficients,
+                                transformWorkspace,
+                                transformTypeProbabilities,
+                                blockResidual,
+                                searchCoefficients,
+                                searchReconstructions,
+                                estimationRowCoefficients,
+                                in interWorkspace,
+                                motionSearchPrediction,
+                                in motionVectorCosts,
+                                transformPrediction,
+                                interIntraAbove,
+                                interIntraLeft,
+                                firstIntermediate,
+                                secondIntermediate,
+                                compoundMask,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1385,13 +1430,31 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 coefficientBuffer,
                                 blockWorkspace);
 
-                            Av1TileWriter.WriteSuperblock<
-                                TSymbolOperation,
-                                Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>>(
+                            Av1TileWriter.WriteSuperblock<TSymbolOperation, Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>, TSample>(
                                 ref output,
                                 picture,
                                 entropyContext,
                                 writer,
+                                in tables,
+                                in modeWorkspace,
+                                transformCoefficients,
+                                dequantizedCoefficients,
+                                searchDequantizedCoefficients,
+                                transformWorkspace,
+                                transformTypeProbabilities,
+                                blockResidual,
+                                searchCoefficients,
+                                searchReconstructions,
+                                estimationRowCoefficients,
+                                in interWorkspace,
+                                motionSearchPrediction,
+                                in motionVectorCosts,
+                                transformPrediction,
+                                interIntraAbove,
+                                interIntraLeft,
+                                firstIntermediate,
+                                secondIntermediate,
+                                compoundMask,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

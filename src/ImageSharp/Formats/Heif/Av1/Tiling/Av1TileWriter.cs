@@ -60,25 +60,67 @@ internal partial class Av1TileWriter
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
+    /// <typeparam name="TSample">The frame's unsigned sample storage type.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="tables">The rate tables of the tile.</param>
+    /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
+    /// <param name="transformCoefficients">The forward transform output buffer.</param>
+    /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+    /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+    /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+    /// <param name="blockResidual">The residual buffer of the motion search.</param>
+    /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+    /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+    /// <param name="estimationRowCoefficients">The coefficients of one row of estimation transforms.</param>
+    /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+    /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+    /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+    /// <param name="transformPrediction">The prediction storage of one transform block.</param>
+    /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
+    /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
+    /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
+    /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
+    /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
     /// <param name="blockEncoder">The handler invoked for each final block.</param>
-    public static void WriteSuperblock<TOperation, TBlockEncoder>(
+    public static void WriteSuperblock<TOperation, TBlockEncoder, TSample>(
         ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
         Av1SymbolEncoder writer,
+        in Av1CoefficientTables tables,
+        in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+        Span<int> transformCoefficients,
+        Span<int> dequantizedCoefficients,
+        Span<int> searchDequantizedCoefficients,
+        Span<int> transformWorkspace,
+        ReadOnlySpan<int> transformTypeProbabilities,
+        Span<short> blockResidual,
+        Span<int> searchCoefficients,
+        Span<int> searchReconstructions,
+        Span<int> estimationRowCoefficients,
+        in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+        Span<TSample> motionSearchPrediction,
+        in Av1MotionVectorCosts motionVectorCosts,
+        Span<TSample> transformPrediction,
+        Span<TSample> interIntraAbove,
+        Span<TSample> interIntraLeft,
+        Span<ushort> firstIntermediate,
+        Span<ushort> secondIntermediate,
+        Span<byte> compoundMask,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
         ref TBlockEncoder blockEncoder)
-        where TBlockEncoder : struct, IBlockEncodingHandler
+        where TBlockEncoder : struct, IBlockEncodingHandler<TSample>
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
+        where TSample : unmanaged
     {
         ec_ctx.CodedAreaSuperblock = 0;
         ec_ctx.CodedAreaSuperblockUv = 0;
@@ -139,11 +181,31 @@ internal partial class Av1TileWriter
 
         // Partition decisions are stored in preorder, so recursive traversal keeps the current geometry
         // on the stack and visits each selected child after its parent.
-        WritePartitionTree<TOperation, TBlockEncoder>(
+        WritePartitionTree<TOperation, TBlockEncoder, TSample>(
             ref output,
             pcs,
             ec_ctx,
             writer,
+            in tables,
+            in modeWorkspace,
+            transformCoefficients,
+            dequantizedCoefficients,
+            searchDequantizedCoefficients,
+            transformWorkspace,
+            transformTypeProbabilities,
+            blockResidual,
+            searchCoefficients,
+            searchReconstructions,
+            estimationRowCoefficients,
+            in interWorkspace,
+            motionSearchPrediction,
+            in motionVectorCosts,
+            transformPrediction,
+            interIntraAbove,
+            interIntraLeft,
+            firstIntermediate,
+            secondIntermediate,
+            compoundMask,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -159,10 +221,31 @@ internal partial class Av1TileWriter
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
+    /// <typeparam name="TSample">The frame's unsigned sample storage type.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="tables">The rate tables of the tile.</param>
+    /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
+    /// <param name="transformCoefficients">The forward transform output buffer.</param>
+    /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+    /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+    /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+    /// <param name="blockResidual">The residual buffer of the motion search.</param>
+    /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+    /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+    /// <param name="estimationRowCoefficients">The coefficients of one row of estimation transforms.</param>
+    /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+    /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+    /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+    /// <param name="transformPrediction">The prediction storage of one transform block.</param>
+    /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
+    /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
+    /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
+    /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
+    /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -171,11 +254,31 @@ internal partial class Av1TileWriter
     /// <param name="partitionIndex">The index of the next partition decision of the superblock, advanced for each node.</param>
     /// <param name="finalBlockIndex">The index of the next final block of the superblock, advanced for each final block.</param>
     /// <param name="blockEncoder">The handler invoked for each final block.</param>
-    private static void WritePartitionTree<TOperation, TBlockEncoder>(
+    private static void WritePartitionTree<TOperation, TBlockEncoder, TSample>(
         ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
+        in Av1CoefficientTables tables,
+        in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+        Span<int> transformCoefficients,
+        Span<int> dequantizedCoefficients,
+        Span<int> searchDequantizedCoefficients,
+        Span<int> transformWorkspace,
+        ReadOnlySpan<int> transformTypeProbabilities,
+        Span<short> blockResidual,
+        Span<int> searchCoefficients,
+        Span<int> searchReconstructions,
+        Span<int> estimationRowCoefficients,
+        in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+        Span<TSample> motionSearchPrediction,
+        in Av1MotionVectorCosts motionVectorCosts,
+        Span<TSample> transformPrediction,
+        Span<TSample> interIntraAbove,
+        Span<TSample> interIntraLeft,
+        Span<ushort> firstIntermediate,
+        Span<ushort> secondIntermediate,
+        Span<byte> compoundMask,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -184,8 +287,9 @@ internal partial class Av1TileWriter
         ref int partitionIndex,
         ref int finalBlockIndex,
         ref TBlockEncoder blockEncoder)
-        where TBlockEncoder : struct, IBlockEncodingHandler
+        where TBlockEncoder : struct, IBlockEncodingHandler<TSample>
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
+        where TSample : unmanaged
     {
         Av1EncoderCommon common = pcs.Parent.Common;
         int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
@@ -201,6 +305,26 @@ internal partial class Av1TileWriter
 
         Av1PartitionType partition = blockEncoder.SelectPartition(
             writer,
+            in tables,
+            in modeWorkspace,
+            transformCoefficients,
+            dequantizedCoefficients,
+            searchDequantizedCoefficients,
+            transformWorkspace,
+            transformTypeProbabilities,
+            blockResidual,
+            searchCoefficients,
+            searchReconstructions,
+            estimationRowCoefficients,
+            in interWorkspace,
+            motionSearchPrediction,
+            in motionVectorCosts,
+            transformPrediction,
+            interIntraAbove,
+            interIntraLeft,
+            firstIntermediate,
+            secondIntermediate,
+            compoundMask,
             entropyCodingContext.MacroBlock,
             blockOrigin,
             tileIndex,
@@ -230,11 +354,31 @@ internal partial class Av1TileWriter
         switch (partition)
         {
             case Av1PartitionType.None:
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -244,11 +388,31 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.Horizontal:
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -258,11 +422,31 @@ internal partial class Av1TileWriter
 
                 if (modeInfoRow + (blockSize.Get4x4HighCount() >> 1) < common.ModeInfoRowCount)
                 {
-                    WriteFinalBlock<TOperation, TBlockEncoder>(
+                    WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -273,11 +457,31 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.Vertical:
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -287,11 +491,31 @@ internal partial class Av1TileWriter
 
                 if (modeInfoColumn + (blockSize.Get4x4WideCount() >> 1) < common.ModeInfoColumnCount)
                 {
-                    WriteFinalBlock<TOperation, TBlockEncoder>(
+                    WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -319,11 +543,31 @@ internal partial class Av1TileWriter
                             continue;
                         }
 
-                        WriteFinalBlock<TOperation, TBlockEncoder>(
+                        WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                             ref output,
                             pcs,
                             entropyCodingContext,
                             writer,
+                            in tables,
+                            in modeWorkspace,
+                            transformCoefficients,
+                            dequantizedCoefficients,
+                            searchDequantizedCoefficients,
+                            transformWorkspace,
+                            transformTypeProbabilities,
+                            blockResidual,
+                            searchCoefficients,
+                            searchReconstructions,
+                            estimationRowCoefficients,
+                            in interWorkspace,
+                            motionSearchPrediction,
+                            in motionVectorCosts,
+                            transformPrediction,
+                            interIntraAbove,
+                            interIntraLeft,
+                            firstIntermediate,
+                            secondIntermediate,
+                            compoundMask,
                             superblock,
                             coefficientBuffer,
                             tileIndex,
@@ -334,11 +578,31 @@ internal partial class Av1TileWriter
                 }
                 else
                 {
-                    WritePartitionTree<TOperation, TBlockEncoder>(
+                    WritePartitionTree<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -348,11 +612,31 @@ internal partial class Av1TileWriter
                         ref finalBlockIndex,
                         ref blockEncoder);
 
-                    WritePartitionTree<TOperation, TBlockEncoder>(
+                    WritePartitionTree<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -362,11 +646,31 @@ internal partial class Av1TileWriter
                         ref finalBlockIndex,
                         ref blockEncoder);
 
-                    WritePartitionTree<TOperation, TBlockEncoder>(
+                    WritePartitionTree<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -376,11 +680,31 @@ internal partial class Av1TileWriter
                         ref finalBlockIndex,
                         ref blockEncoder);
 
-                    WritePartitionTree<TOperation, TBlockEncoder>(
+                    WritePartitionTree<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -393,11 +717,31 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.HorizontalA:
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -405,11 +749,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -417,11 +781,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -431,11 +815,31 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.HorizontalB:
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -443,11 +847,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -455,11 +879,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -469,11 +913,31 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.VerticalA:
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -481,11 +945,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -493,11 +977,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -507,11 +1011,31 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.VerticalB:
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -519,11 +1043,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -531,11 +1075,31 @@ internal partial class Av1TileWriter
                     ref finalBlockIndex,
                     ref blockEncoder);
 
-                WriteFinalBlock<TOperation, TBlockEncoder>(
+                WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                     ref output,
                     pcs,
                     entropyCodingContext,
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    searchDequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    blockResidual,
+                    searchCoefficients,
+                    searchReconstructions,
+                    estimationRowCoefficients,
+                    in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
+                    transformPrediction,
+                    interIntraAbove,
+                    interIntraLeft,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -554,11 +1118,31 @@ internal partial class Av1TileWriter
                         break;
                     }
 
-                    WriteFinalBlock<TOperation, TBlockEncoder>(
+                    WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -578,11 +1162,31 @@ internal partial class Av1TileWriter
                         break;
                     }
 
-                    WriteFinalBlock<TOperation, TBlockEncoder>(
+                    WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
                         ref output,
                         pcs,
                         entropyCodingContext,
                         writer,
+                        in tables,
+                        in modeWorkspace,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        searchDequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchReconstructions,
+                        estimationRowCoefficients,
+                        in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
+                        transformPrediction,
+                        interIntraAbove,
+                        interIntraLeft,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -612,36 +1216,98 @@ internal partial class Av1TileWriter
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
+    /// <typeparam name="TSample">The frame's unsigned sample storage type.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="tables">The rate tables of the tile.</param>
+    /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
+    /// <param name="transformCoefficients">The forward transform output buffer.</param>
+    /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+    /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+    /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+    /// <param name="blockResidual">The residual buffer of the motion search.</param>
+    /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+    /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+    /// <param name="estimationRowCoefficients">The coefficients of one row of estimation transforms.</param>
+    /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+    /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+    /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+    /// <param name="transformPrediction">The prediction storage of one transform block.</param>
+    /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
+    /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
+    /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
+    /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
+    /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
     /// <param name="blockOrigin">The absolute luma-sample origin of the block.</param>
     /// <param name="finalBlockIndex">The index of the next final block of the superblock, advanced for this block.</param>
     /// <param name="blockEncoder">The handler invoked for each final block.</param>
-    private static void WriteFinalBlock<TOperation, TBlockEncoder>(
+    private static void WriteFinalBlock<TOperation, TBlockEncoder, TSample>(
         ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
+        in Av1CoefficientTables tables,
+        in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+        Span<int> transformCoefficients,
+        Span<int> dequantizedCoefficients,
+        Span<int> searchDequantizedCoefficients,
+        Span<int> transformWorkspace,
+        ReadOnlySpan<int> transformTypeProbabilities,
+        Span<short> blockResidual,
+        Span<int> searchCoefficients,
+        Span<int> searchReconstructions,
+        Span<int> estimationRowCoefficients,
+        in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+        Span<TSample> motionSearchPrediction,
+        in Av1MotionVectorCosts motionVectorCosts,
+        Span<TSample> transformPrediction,
+        Span<TSample> interIntraAbove,
+        Span<TSample> interIntraLeft,
+        Span<ushort> firstIntermediate,
+        Span<ushort> secondIntermediate,
+        Span<byte> compoundMask,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
         Point blockOrigin,
         ref int finalBlockIndex,
         ref TBlockEncoder blockEncoder)
-        where TBlockEncoder : struct, IBlockEncodingHandler
+        where TBlockEncoder : struct, IBlockEncodingHandler<TSample>
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
+        where TSample : unmanaged
     {
         ref Av1EncoderBlockStruct block = ref superblock.FinalBlocks[finalBlockIndex++];
-        WriteModesBlock<TOperation, TBlockEncoder>(
+        WriteModesBlock<TOperation, TBlockEncoder, TSample>(
             ref output,
             pcs,
             entropyCodingContext,
             writer,
+            in tables,
+            in modeWorkspace,
+            transformCoefficients,
+            dequantizedCoefficients,
+            searchDequantizedCoefficients,
+            transformWorkspace,
+            transformTypeProbabilities,
+            blockResidual,
+            searchCoefficients,
+            searchReconstructions,
+            estimationRowCoefficients,
+            in interWorkspace,
+            motionSearchPrediction,
+            in motionVectorCosts,
+            transformPrediction,
+            interIntraAbove,
+            interIntraLeft,
+            firstIntermediate,
+            secondIntermediate,
+            compoundMask,
             superblock,
             ref block,
             tileIndex,
@@ -885,6 +1551,26 @@ internal partial class Av1TileWriter
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="tables">The rate tables of the tile.</param>
+    /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
+    /// <param name="transformCoefficients">The forward transform output buffer.</param>
+    /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+    /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+    /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+    /// <param name="blockResidual">The residual buffer of the motion search.</param>
+    /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+    /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+    /// <param name="estimationRowCoefficients">The coefficients of one row of estimation transforms.</param>
+    /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+    /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+    /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+    /// <param name="transformPrediction">The prediction storage of one transform block.</param>
+    /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
+    /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
+    /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
+    /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
+    /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
@@ -893,19 +1579,41 @@ internal partial class Av1TileWriter
     /// <param name="blockEncoder">The final-block decision producer.</param>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
-    private static void WriteModesBlock<TOperation, TBlockEncoder>(
+    /// <typeparam name="TSample">The frame's unsigned sample storage type.</typeparam>
+    private static void WriteModesBlock<TOperation, TBlockEncoder, TSample>(
         ref Span<byte> output,
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
+        in Av1CoefficientTables tables,
+        in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+        Span<int> transformCoefficients,
+        Span<int> dequantizedCoefficients,
+        Span<int> searchDequantizedCoefficients,
+        Span<int> transformWorkspace,
+        ReadOnlySpan<int> transformTypeProbabilities,
+        Span<short> blockResidual,
+        Span<int> searchCoefficients,
+        Span<int> searchReconstructions,
+        Span<int> estimationRowCoefficients,
+        in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+        Span<TSample> motionSearchPrediction,
+        in Av1MotionVectorCosts motionVectorCosts,
+        Span<TSample> transformPrediction,
+        Span<TSample> interIntraAbove,
+        Span<TSample> interIntraLeft,
+        Span<ushort> firstIntermediate,
+        Span<ushort> secondIntermediate,
+        Span<byte> compoundMask,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
         Point blockOrigin,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ref TBlockEncoder blockEncoder)
-        where TBlockEncoder : struct, IBlockEncodingHandler
+        where TBlockEncoder : struct, IBlockEncodingHandler<TSample>
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
+        where TSample : unmanaged
     {
         Av1SequenceControlSet scs = pcs.Sequence;
         ObuFrameHeader frm_hdr = pcs.Parent.FrameHeader;
@@ -936,6 +1644,26 @@ internal partial class Av1TileWriter
         ref Av1EncoderPaletteInfo paletteInfo = ref tb_ptr.Workspace.PaletteInfo;
         blockEncoder.EncodeBlock(
             writer,
+            in tables,
+            in modeWorkspace,
+            transformCoefficients,
+            dequantizedCoefficients,
+            searchDequantizedCoefficients,
+            transformWorkspace,
+            transformTypeProbabilities,
+            blockResidual,
+            searchCoefficients,
+            searchReconstructions,
+            estimationRowCoefficients,
+            in interWorkspace,
+            motionSearchPrediction,
+            in motionVectorCosts,
+            transformPrediction,
+            interIntraAbove,
+            interIntraLeft,
+            firstIntermediate,
+            secondIntermediate,
+            compoundMask,
             macroBlock,
             blockOrigin,
             tile_idx,

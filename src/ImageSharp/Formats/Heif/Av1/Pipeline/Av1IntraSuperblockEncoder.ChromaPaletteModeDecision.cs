@@ -176,7 +176,15 @@ internal static partial class Av1IntraSuperblockEncoder
             bool paletteSelected = false;
 
             // Every palette size of the block reads the same mode rates.
-            Av1ModeCosts modeCosts = writer.ModeCosts;
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Av1ModeCosts modeCosts = tables.ModeCosts;
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
+            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
+            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
+            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
 
             // A paired centroid assigns one index to both components. Larger palettes are considered only
             // while their shared syntax can still beat the current complete chroma decision.
@@ -315,6 +323,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
                 long distortion = this.GetTiledPlaneCost(
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    searchCoefficients,
+                    searchDequantizedCoefficients,
+                    searchReconstructions,
                     macroBlock,
                     lumaOrigin,
                     chromaOrigin,
@@ -353,6 +370,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 long redDistortion = this.GetTiledPlaneCost(
                     writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
+                    searchCoefficients,
+                    searchDequantizedCoefficients,
+                    searchReconstructions,
                     macroBlock,
                     lumaOrigin,
                     chromaOrigin,

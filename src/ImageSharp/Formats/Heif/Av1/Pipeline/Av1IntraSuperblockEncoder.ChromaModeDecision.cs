@@ -100,8 +100,16 @@ internal static partial class Av1IntraSuperblockEncoder
             long distortion = 0;
             bool hasCoefficients = false;
 
-            // Both chroma planes read the same transform buffers and rate tables.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            // Both chroma planes read the same rate tables and workspace buffers.
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> blockDequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
+            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
+            Span<short> blockResidual = this.blockWorkspace.Residual;
+            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
+            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
+            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
             for (int planeIndex = 1; planeIndex < 3; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -177,7 +185,16 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     states[0] = default;
                     distortion += this.GetChromaFromLumaPlaneCost(
-                        in transformBuffers,
+                        writer,
+                        in tables,
+                        blockTransformCoefficients,
+                        blockDequantizedCoefficients,
+                        blockTransformWorkspace,
+                        transformTypeProbabilities,
+                        blockResidual,
+                        searchCoefficients,
+                        searchDequantizedCoefficients,
+                        searchReconstructions,
                         modeInfo.Block.Mode,
                         plane,
                         origin,
@@ -203,6 +220,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     distortion += this.GetTiledPlaneCost(
                         writer,
+                        in tables,
+                        in workspace,
+                        blockTransformCoefficients,
+                        blockDequantizedCoefficients,
+                        blockTransformWorkspace,
+                        transformTypeProbabilities,
+                        searchCoefficients,
+                        searchDequantizedCoefficients,
+                        searchReconstructions,
                         macroBlock,
                         blockOrigin,
                         origin,
@@ -615,9 +641,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetSourceVariance(blueSource, chromaOrigin, width, height, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, width, height, this.bitDepth) < 20;
 
-            // The workspace buffers and the rate tables of every chroma candidate of the block, read once.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
-            Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
+            // The rate tables and the workspace buffers of every chroma candidate of the block, read once.
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Av1ModeCosts modeCosts = tables.ModeCosts;
+            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> blockDequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
+            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
+            Span<short> blockResidual = this.blockWorkspace.Residual;
+            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
+            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
+            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
 
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
@@ -632,14 +666,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingY);
 
             Span<long> angleCosts = stackalloc long[7];
-            Span<int> blockTransformCoefficients = transformBuffers.TransformCoefficients;
-            Span<int> blockTransformWorkspace = transformBuffers.TransformWorkspace;
 
             // Every spatial chroma candidate of the block uses the same planes, references, contexts and buffers.
             // Only the mode, the angle and the transform type change, so each plane is described once here.
             Av1IntraCandidatePlane<TSample> bluePlane = new()
             {
-                Buffers = transformBuffers,
+                Workspace = this.blockWorkspace,
+                Writer = writer,
+                Tables = tables,
+                TransformCoefficients = blockTransformCoefficients,
+                DequantizedCoefficients = blockDequantizedCoefficients,
+                TransformWorkspace = blockTransformWorkspace,
                 Context = blueContext,
                 RateMultiplier = this.rateMultiplier,
                 UseChromaWeights = this.picture.Sequence.SequenceHeader.IsStillPicture,
@@ -663,12 +700,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.U],
                 BitDepth = this.bitDepth,
                 DistortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(this.blockWorkspace, speedSettings),
-                Residual = transformBuffers.Residual
+                Residual = blockResidual
             };
 
             Av1IntraCandidatePlane<TSample> redPlane = new()
             {
-                Buffers = transformBuffers,
+                Workspace = this.blockWorkspace,
+                Writer = writer,
+                Tables = tables,
+                TransformCoefficients = blockTransformCoefficients,
+                DequantizedCoefficients = blockDequantizedCoefficients,
+                TransformWorkspace = blockTransformWorkspace,
                 Context = redContext,
                 RateMultiplier = this.rateMultiplier,
                 UseChromaWeights = bluePlane.UseChromaWeights,
@@ -829,7 +871,16 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             Av1EncoderTransformBlockState candidateBlueState = default;
                             blueDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
-                                in transformBuffers,
+                                writer,
+                                in tables,
+                                blockTransformCoefficients,
+                                blockDequantizedCoefficients,
+                                blockTransformWorkspace,
+                                transformTypeProbabilities,
+                                blockResidual,
+                                searchCoefficients,
+                                searchDequantizedCoefficients,
+                                searchReconstructions,
                                 lumaMode,
                                 Av1Plane.U,
                                 chromaOrigin,
@@ -856,7 +907,16 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             Av1EncoderTransformBlockState candidateRedState = default;
                             redDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
-                                in transformBuffers,
+                                writer,
+                                in tables,
+                                blockTransformCoefficients,
+                                blockDequantizedCoefficients,
+                                blockTransformWorkspace,
+                                transformTypeProbabilities,
+                                blockResidual,
+                                searchCoefficients,
+                                searchDequantizedCoefficients,
+                                searchReconstructions,
                                 lumaMode,
                                 Av1Plane.V,
                                 chromaOrigin,
@@ -963,7 +1023,16 @@ internal static partial class Av1IntraSuperblockEncoder
                             // their coefficients. This is not a libaom trial, so it does not write the frame.
                             Av1EncoderTransformBlockState candidateBlueState = default;
                             _ = this.GetChromaFromLumaPlaneCost(
-                                in transformBuffers,
+                                writer,
+                                in tables,
+                                blockTransformCoefficients,
+                                blockDequantizedCoefficients,
+                                blockTransformWorkspace,
+                                transformTypeProbabilities,
+                                blockResidual,
+                                searchCoefficients,
+                                searchDequantizedCoefficients,
+                                searchReconstructions,
                                 lumaMode,
                                 Av1Plane.U,
                                 chromaOrigin,
@@ -983,7 +1052,16 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             Av1EncoderTransformBlockState candidateRedState = default;
                             _ = this.GetChromaFromLumaPlaneCost(
-                                in transformBuffers,
+                                writer,
+                                in tables,
+                                blockTransformCoefficients,
+                                blockDequantizedCoefficients,
+                                blockTransformWorkspace,
+                                transformTypeProbabilities,
+                                blockResidual,
+                                searchCoefficients,
+                                searchDequantizedCoefficients,
+                                searchReconstructions,
                                 lumaMode,
                                 Av1Plane.V,
                                 chromaOrigin,
@@ -1199,8 +1277,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetSourceVariance(blueSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20;
 
-            // Every chroma mode of the block reads the same mode rates.
-            Av1ModeCosts modeCosts = writer.ModeCosts;
+            // Every chroma mode of the block reads the same rate tables and workspace buffers.
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Av1ModeCosts modeCosts = tables.ModeCosts;
+            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> blockDequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
+            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
+            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
+            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
+            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
                 this.picture.Parent.FrameHeader.AllowScreenContentTools,
@@ -1273,6 +1359,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
                     long distortion = this.GetTiledPlaneCost(
                         writer,
+                        in tables,
+                        in workspace,
+                        blockTransformCoefficients,
+                        blockDequantizedCoefficients,
+                        blockTransformWorkspace,
+                        transformTypeProbabilities,
+                        searchCoefficients,
+                        searchDequantizedCoefficients,
+                        searchReconstructions,
                         macroBlock,
                         lumaOrigin,
                         chromaOrigin,
@@ -1320,6 +1415,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     long redDistortion = this.GetTiledPlaneCost(
                         writer,
+                        in tables,
+                        in workspace,
+                        blockTransformCoefficients,
+                        blockDequantizedCoefficients,
+                        blockTransformWorkspace,
+                        transformTypeProbabilities,
+                        searchCoefficients,
+                        searchDequantizedCoefficients,
+                        searchReconstructions,
                         macroBlock,
                         lumaOrigin,
                         chromaOrigin,
@@ -1454,6 +1558,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// writes it. Reference: av1_txfm_rd_in_plane() and block_rd_txfm() for an intra block.
         /// </summary>
         /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="workspace">The mode decision workspace, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="macroBlock">The block neighborhood.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in plane samples.</param>
@@ -1484,6 +1597,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The distortion, or <see cref="long.MaxValue"/> after an early exit.</returns>
         private long GetTiledPlaneCost(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Point lumaOrigin,
             Point chromaOrigin,
@@ -1512,9 +1634,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out long predictionDistortion,
             out int rate)
         {
-            Av1EncoderModeDecisionWorkspace<TSample> workspace =
-                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-
             int blockWidth = chromaBlockSize.GetWidth();
             int blockHeight = chromaBlockSize.GetHeight();
             int transformWidth = transformSize.GetWidth();
@@ -1552,17 +1671,14 @@ internal static partial class Av1IntraSuperblockEncoder
             predictionDistortion = 0;
             rate = 0;
 
-            // Every transform block of the plane reads the same transform buffers and rate tables.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
-
             // Both candidate planes hold this block, so the type search swaps its candidate and winner through the
             // block workspace.
-            Span<TSample> typeCandidateReconstruction = transformBuffers.GetSearchReconstruction<TSample>(0)[..transformSampleCount];
-            Span<TSample> typeWinnerReconstruction = transformBuffers.GetSearchReconstruction<TSample>(1)[..transformSampleCount];
-            Span<int> typeWinnerCoefficients = transformBuffers.SearchCoefficients;
-            Span<int> dequantizedStorage = transformBuffers.DequantizedCoefficients;
-            Span<int> searchDequantizedStorage = transformBuffers.SearchDequantizedCoefficients;
-            Span<int> transformWorkspace = transformBuffers.TransformWorkspace;
+            Span<TSample> typeCandidateReconstruction =
+                Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 0)[..transformSampleCount];
+
+            Span<TSample> typeWinnerReconstruction =
+                Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 1)[..transformSampleCount];
+
 
             // A predicted empty block is priced with the contexts at the block origin, before any transform block
             // of this plane updates them. Reference: av1_get_entropy_contexts() in predict_dc_only_block().
@@ -1663,9 +1779,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             Span<TSample> candidateTransformReconstruction = typeCandidateReconstruction;
                             Span<TSample> bestTransformReconstruction = typeWinnerReconstruction;
                             Span<int> candidateTransformCoefficients = candidateCoefficients[..transformSampleCount];
-                            Span<int> bestTransformCoefficients = typeWinnerCoefficients;
-                            Span<int> candidateDequantized = dequantizedStorage;
-                            Span<int> bestDequantized = searchDequantizedStorage;
+                            Span<int> bestTransformCoefficients = searchCoefficients;
+                            Span<int> candidateDequantized = dequantizedCoefficients;
+                            Span<int> bestDequantized = searchDequantizedCoefficients;
 
                             // A later transform block of the plane block predicts from this one unless this one is the last.
                             // Reference: the position test of recon_intra().
@@ -1674,7 +1790,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             // A chroma block of an intra mode searches the one type that it derives from its mode.
                             // Reference: the uv_tx_type of get_tx_mask(), from av1_get_tx_type().
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
-                                in transformBuffers,
+                                writer,
+                                in tables,
+                                transformCoefficients,
+                                dequantizedCoefficients,
+                                transformWorkspace,
+                                transformTypeProbabilities,
                                 plane,
                                 false,
                                 blockContext,
@@ -1791,7 +1912,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Codes one chroma-from-luma alpha for one chroma plane, as one transform block at the block origin.
         /// Reference: cfl_compute_rd() with full transform search.
         /// </summary>
-        /// <param name="buffers">The transform buffers, rate tables and symbol encoder that the caller read once.</param>
+        /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="residual">The residual buffer of one transform block.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="lumaMode">The luma prediction mode of the block.</param>
         /// <param name="plane">The chroma plane.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
@@ -1811,7 +1941,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="rate">The coefficient rate.</param>
         /// <returns>The distortion.</returns>
         private long GetChromaFromLumaPlaneCost(
-            in Av1TransformBlockBuffers buffers,
+            Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> residual,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1PredictionMode lumaMode,
             Av1Plane plane,
             Point chromaOrigin,
@@ -1838,20 +1977,25 @@ internal static partial class Av1IntraSuperblockEncoder
             // The prediction goes into the frame. The block is one transform block, so the frame keeps the prediction.
             // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
             Av1TransformBlockEncoder.WriteFrameSamples(frame, frame.Samples, chromaOrigin, prediction, width, width, height);
-            Span<short> residual = buffers.Residual[..sampleCount];
-            TOperator.SubtractPrediction(Av1TransformBlockEncoder.GetPlaneSpan(source, chromaOrigin), source.Stride, prediction, residual, width, height);
+            Span<short> blockResidual = residual[..sampleCount];
+            TOperator.SubtractPrediction(Av1TransformBlockEncoder.GetPlaneSpan(source, chromaOrigin), source.Stride, prediction, blockResidual, width, height);
 
-            Span<TSample> candidateReconstruction = buffers.GetSearchReconstruction<TSample>(0)[..sampleCount];
-            Span<TSample> bestReconstruction = buffers.GetSearchReconstruction<TSample>(1)[..sampleCount];
+            Span<TSample> candidateReconstruction = Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 0)[..sampleCount];
+            Span<TSample> bestReconstruction = Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 1)[..sampleCount];
             Span<int> candidateCoefficients = coefficients;
-            Span<int> bestCoefficients = buffers.SearchCoefficients;
-            Span<int> candidateDequantized = buffers.DequantizedCoefficients;
-            Span<int> bestDequantized = buffers.SearchDequantizedCoefficients;
+            Span<int> bestCoefficients = searchCoefficients;
+            Span<int> candidateDequantized = dequantizedCoefficients;
+            Span<int> bestDequantized = searchDequantizedCoefficients;
 
             // A CfL block is one transform at the block origin, and searches the DCT_DCT that its chroma mode
             // derives. Reference: av1_txfm_rd_in_plane() of cfl_compute_rd().
             TransformTypeSearchResult result = this.SearchTransformType(
-                in buffers,
+                writer,
+                in tables,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
                 plane,
                 false,
                 context,
@@ -1867,7 +2011,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 long.MaxValue,
                 false,
                 prediction,
-                residual,
+                blockResidual,
                 width,
                 ref candidateReconstruction,
                 ref bestReconstruction,
@@ -2151,7 +2295,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             long distortion = TOperator.EncodeCandidate(in blue, predictionMode, angleDelta, transformType, ref candidateBlueState, out long blueSse);
             int blueRate = writer.GetCoefficientCost(
-                blue.Buffers.Tables,
+                blue.Tables,
                 transformSize,
                 transformType,
                 lumaMode,
@@ -2189,7 +2333,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The mode and angle are written once for the UV pair; coefficient syntax remains independent
             // because each plane has its own EOB, scan values, and neighboring coefficient context.
             int rate = Av1TileWriter.GetChromaModeCost(
-                blue.Buffers.Tables.ModeCosts,
+                blue.Tables.ModeCosts,
                 this.picture.Parent.FrameHeader,
                 this.picture.Sequence.SequenceHeader.ColorConfig,
                 modeInfo,
@@ -2204,7 +2348,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int redRate = writer.GetCoefficientCost(
-                red.Buffers.Tables,
+                red.Tables,
                 transformSize,
                 transformType,
                 lumaMode,

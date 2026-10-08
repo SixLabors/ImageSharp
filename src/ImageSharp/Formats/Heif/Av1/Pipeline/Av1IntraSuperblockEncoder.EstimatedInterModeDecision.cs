@@ -1607,8 +1607,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformSize rootSize = planeIndex == 0 && !lossless ? planeBlock.GetMaximumTransformSize() : transformSize;
                 int count = stride * planeBlock.GetHeight() / sampleCount;
 
-                // Every transform block of the plane uses the same workspace buffers and rate tables.
-                Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+                // Every transform block of the plane uses the same rate tables and workspace buffers.
+                Av1CoefficientTables tables = writer.GetCoefficientTables();
+                Span<int> forwardCoefficients = this.blockWorkspace.TransformCoefficients;
+                Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+                Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
                 for (int index = 0; index < count; index++)
                 {
                     Point local = rootSize.GetBlockPartitionOrigin(planeBlock, transformSize, index, subX, subY);
@@ -1650,7 +1653,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     else
                     {
                         Av1TransformBlockEncoder.EncodeLossyCandidate(
-                            in transformBuffers,
+                            this.blockWorkspace,
+                            writer,
+                            in tables,
+                            forwardCoefficients,
+                            dequantizedCoefficients,
+                            transformWorkspace,
                             context,
                             workspace.Residual[inputOffset..],
                             stride,

@@ -652,8 +652,11 @@ internal static partial class Av1IntraSuperblockEncoder
             int unitWidth = Math.Min(maximumUnit.GetWidth(), extent.Width);
             int unitHeight = Math.Min(maximumUnit.GetHeight(), extent.Height);
 
-            // Every transform block of the plane uses the same workspace buffers and rate tables.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            // Every transform block of the plane uses the same rate tables and workspace buffers.
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
             for (int unitY = 0; unitY < extent.Height; unitY += unitHeight)
             {
                 for (int unitX = 0; unitX < extent.Width; unitX += unitWidth)
@@ -709,7 +712,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             else
                             {
                                 TOperator.PrepareIntra(
-                                    transformBuffers.TransformWorkspace,
+                                    transformWorkspace,
                                     sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                                     source.Stride,
                                     transform,
@@ -748,7 +751,12 @@ internal static partial class Av1IntraSuperblockEncoder
                                 // for a noise pattern. Reference: is_noise_pattern in av1_optimize_txb(), from encode_block_intra().
                                 this.blockWorkspace.LumaNoisePattern = plane == Av1Plane.Y && this.IsLumaNoisePattern(destination, blockOrigin, blockSize);
                                 Av1TransformBlockEncoder.EncodeLossyCandidate(
-                                    in transformBuffers,
+                                    this.blockWorkspace,
+                                    writer,
+                                    in tables,
+                                    transformCoefficients,
+                                    dequantizedCoefficients,
+                                    transformWorkspace,
                                     context,
                                     residual,
                                     width,

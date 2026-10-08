@@ -116,7 +116,7 @@ internal static partial class Av1TransformBlockEncoder
         out long sse)
     {
         // The source block and the candidate reconstruction.
-        Av1EncoderBlockWorkspace workspace = candidate.Buffers.Workspace;
+        Av1EncoderBlockWorkspace workspace = candidate.Workspace;
         ReadOnlySpan<byte> source = candidate.Source;
         int sourceStride = candidate.SourceStride;
         Point blockOrigin = candidate.BlockOrigin;
@@ -135,9 +135,9 @@ internal static partial class Av1TransformBlockEncoder
         // The coefficient and workspace buffers, which the caller read once for all candidates.
         Span<int> quantizedCoefficients = candidate.QuantizedCoefficients;
         Span<short> residual = candidate.Residual;
-        Span<int> transformCoefficients = candidate.Buffers.TransformCoefficients;
-        Span<int> dequantizedCoefficients = candidate.Buffers.DequantizedCoefficients;
-        Span<int> transformWorkspace = candidate.Buffers.TransformWorkspace;
+        Span<int> transformCoefficients = candidate.TransformCoefficients;
+        Span<int> dequantizedCoefficients = candidate.DequantizedCoefficients;
+        Span<int> transformWorkspace = candidate.TransformWorkspace;
 
         PrepareIntraPrediction(
             transformWorkspace,
@@ -213,7 +213,12 @@ internal static partial class Av1TransformBlockEncoder
         PadBorderResidual(workspace, plane, blockOrigin, residual, width, width, height, transformType);
 
         EncodeLossyCandidate(
-            candidate.Buffers,
+            workspace,
+            candidate.Writer,
+            candidate.Tables,
+            transformCoefficients,
+            dequantizedCoefficients,
+            transformWorkspace,
             candidate.Context,
             residual,
             width,
@@ -528,7 +533,7 @@ internal static partial class Av1TransformBlockEncoder
         out long sse)
     {
         // The source block and the candidate reconstruction.
-        Av1EncoderBlockWorkspace workspace = candidate.Buffers.Workspace;
+        Av1EncoderBlockWorkspace workspace = candidate.Workspace;
         ReadOnlySpan<ushort> source = candidate.Source;
         int sourceStride = candidate.SourceStride;
         Point blockOrigin = candidate.BlockOrigin;
@@ -548,9 +553,9 @@ internal static partial class Av1TransformBlockEncoder
         // The coefficient and workspace buffers, which the caller read once for all candidates.
         Span<int> quantizedCoefficients = candidate.QuantizedCoefficients;
         Span<short> residual = candidate.Residual;
-        Span<int> transformCoefficients = candidate.Buffers.TransformCoefficients;
-        Span<int> dequantizedCoefficients = candidate.Buffers.DequantizedCoefficients;
-        Span<int> transformWorkspace = candidate.Buffers.TransformWorkspace;
+        Span<int> transformCoefficients = candidate.TransformCoefficients;
+        Span<int> dequantizedCoefficients = candidate.DequantizedCoefficients;
+        Span<int> transformWorkspace = candidate.TransformWorkspace;
 
         PrepareIntraPrediction(
             transformWorkspace,
@@ -626,7 +631,12 @@ internal static partial class Av1TransformBlockEncoder
         // search_tx_type() subtracts with the border padding of the candidate type.
         PadBorderResidual(workspace, plane, blockOrigin, residual, width, width, height, transformType);
         EncodeLossyCandidate(
-            candidate.Buffers,
+            workspace,
+            candidate.Writer,
+            candidate.Tables,
+            transformCoefficients,
+            dequantizedCoefficients,
+            transformWorkspace,
             candidate.Context,
             residual,
             width,
@@ -1400,7 +1410,12 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Transforms and quantizes one candidate using the current coefficient-optimization policy.
     /// </summary>
-    /// <param name="buffers">The workspace buffers and rate tables, which the caller reads once for its loop.</param>
+    /// <param name="workspace">The block workspace, which holds the quantizer matrices and the coding stage.</param>
+    /// <param name="writer">The tile symbol encoder that prices the coefficients.</param>
+    /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+    /// <param name="transformCoefficients">The forward transform output buffer.</param>
+    /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
     /// <param name="context">The neighboring coefficient contexts.</param>
     /// <param name="residual">The source-minus-prediction block.</param>
     /// <param name="residualStride">The number of residual samples between rows.</param>
@@ -1421,7 +1436,12 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="dcOnly">Whether the block codes its residual mean as the DC coefficient alone.</param>
     /// <param name="perPixelMean">The signed transform-domain residual mean of a DC-only block.</param>
     public static void EncodeLossyCandidate(
-        in Av1TransformBlockBuffers buffers,
+        Av1EncoderBlockWorkspace workspace,
+        Av1SymbolEncoder writer,
+        in Av1CoefficientTables tables,
+        Span<int> transformCoefficients,
+        Span<int> dequantizedCoefficients,
+        Span<int> transformWorkspace,
         Av1TransformBlockContext context,
         ReadOnlySpan<short> residual,
         int residualStride,
@@ -1442,17 +1462,11 @@ internal static partial class Av1TransformBlockEncoder
         bool dcOnly = false,
         long perPixelMean = 0)
     {
-        // The workspace, the writer and its rate tables, which the caller read once.
-        Av1EncoderBlockWorkspace workspace = buffers.Workspace;
-        Av1SymbolEncoder writer = buffers.Writer;
-        Av1CoefficientTables tables = buffers.Tables;
-
         // The coefficient buffers of this block.
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
-        Span<int> transformed = buffers.TransformCoefficients[..coefficientCount];
+        Span<int> transformed = transformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
-        Span<int> dequantized = buffers.DequantizedCoefficients[..coefficientCount];
-        Span<int> transformWorkspace = buffers.TransformWorkspace;
+        Span<int> dequantized = dequantizedCoefficients[..coefficientCount];
 
         if (qIndex == 0)
         {

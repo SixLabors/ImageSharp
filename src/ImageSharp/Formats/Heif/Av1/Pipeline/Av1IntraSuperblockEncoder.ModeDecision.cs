@@ -5101,11 +5101,18 @@ internal static partial class Av1IntraSuperblockEncoder
             int planeCount = snapshot.Block.HasChroma ? 3 : 1;
             int chromaArea = 0;
 
-            // Every transform block of every plane uses the same workspace buffers and rate tables.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            // Every transform block of every plane uses the same rate tables and workspace buffers.
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
+
+                // Every transform block of the plane writes into the same plane coefficients and states.
+                Span<int> planeCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
+                Span<Av1EncoderTransformBlockState> planeStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
                 int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                 int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
                 Size frameContextSize = new(
@@ -5190,8 +5197,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // The coefficient storage of the plane and the edge filter strength of the block serve every
                 // transform block, so they are read once.
-                Span<Av1EncoderTransformBlockState> outputStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
-                Span<int> outputCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
+                Span<Av1EncoderTransformBlockState> outputStates = planeStates;
+                Span<int> outputCoefficients = planeCoefficients;
                 bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane);
                 ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
                 Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
@@ -5262,7 +5269,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     else if (planeIndex == 0 && snapshot.Block.FilterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
                                     {
                                         TOperator.PrepareFilterIntra(
-                                            transformBuffers.TransformWorkspace,
+                                            transformWorkspace,
                                             sourceTransform,
                                             sourcePlane.Stride,
                                             prediction,
@@ -5280,7 +5287,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             : snapshot.ModeInfo.Block.UvMode.ToLumaMode();
 
                                         TOperator.PrepareIntra(
-                                            transformBuffers.TransformWorkspace,
+                                            transformWorkspace,
                                             sourceTransform,
                                             sourcePlane.Stride,
                                             prediction,
@@ -5310,7 +5317,13 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformSize);
 
                                 this.ReconstructSelectedTransform(
-                                    in transformBuffers,
+                                    writer,
+                                    in tables,
+                                    transformCoefficients,
+                                    dequantizedCoefficients,
+                                    transformWorkspace,
+                                    planeCoefficients,
+                                    planeStates,
                                     blockContext,
                                     false,
                                     blockOrigin,
@@ -6154,6 +6167,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Every retained predictor of the block shares these neighbor values, so they are read once.
                 LumaBlockState blockState = this.GetLumaBlockState(writer, macroBlock, blockOrigin, blockSize);
 
+                // Every retained predictor reads the same rate tables and workspace buffers.
+                Av1CoefficientTables tables = writer.GetCoefficientTables();
+                Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+                Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+                Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+                ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
+
                 // Repeat transform search for every retained predictor with winner-stage settings.
                 // Each trial starts from the same external block edges and its own palette map.
                 for (int index = 0; index < this.lumaCandidateCount; index++)
@@ -6170,6 +6190,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     long candidateLimit = selectedStatistics.Cost;
                     Av1RateDistortionStatistics statistics = this.ChooseUniformTransformSize(
                         writer,
+                        in tables,
+                        transformCoefficients,
+                        dequantizedCoefficients,
+                        transformWorkspace,
+                        transformTypeProbabilities,
                         macroBlock,
                         sourcePlane,
                         reconstructionPlane,
@@ -6296,8 +6321,13 @@ internal static partial class Av1IntraSuperblockEncoder
             int sizeContext = Av1TileWriter.GetTransformSizeContext(
                 this.picture.TransformFunctionContexts[tileIndex].GetEdges(), macroBlock, blockOrigin, blockSize);
 
-            // Every luma mode of the block reads the same mode rates.
-            Av1ModeCosts modeCosts = writer.ModeCosts;
+            // Every luma mode of the block reads the same rate tables and workspace buffers.
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Av1ModeCosts modeCosts = tables.ModeCosts;
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
             bool paletteAllowed = Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize);
             int paletteDisabledCost = paletteAllowed
                 ? Av1SymbolEncoder.GetPaletteYModeCost(
@@ -6576,6 +6606,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 // av1_pick_uniform_tx_size_type_yrd().
                 Av1RateDistortionStatistics modeStatistics = this.ChooseUniformTransformSize(
                     writer,
+                    in tables,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
                     macroBlock,
                     sourcePlane,
                     reconstructionPlane,
@@ -6770,6 +6805,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// and the retained storage always holds the final best depth when that depth passes the selection limit.
         /// </remarks>
         /// <param name="writer">The tile symbol encoder.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="macroBlock">The block's neighbor state.</param>
         /// <param name="sourcePlane">The source luma plane.</param>
         /// <param name="reconstructionPlane">The reconstruction luma plane.</param>
@@ -6797,6 +6837,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The statistics of the best depth, or invalid statistics when no depth completed.</returns>
         private Av1RateDistortionStatistics ChooseUniformTransformSize(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
             Av1MacroBlockD macroBlock,
             Av1PlaneRegion<TSample> sourcePlane,
             Av1PlaneRegion<TSample> reconstructionPlane,
@@ -6834,6 +6879,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 long costLimit = breakout ? Math.Min(referenceLimit, best.TransformCost) : referenceLimit;
                 Av1RateDistortionStatistics statistics = this.GetUniformLumaCandidateCost(
                     writer,
+                    in tables,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    transformWorkspace,
+                    transformTypeProbabilities,
                     macroBlock,
                     sourcePlane,
                     reconstructionPlane,
@@ -6886,6 +6936,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Evaluates an intra transform grid with local reconstruction and coefficient contexts, stopping at the supplied cost bound.
         /// </summary>
         /// <param name="writer">The tile symbol encoder.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="macroBlock">The block's neighbor state.</param>
         /// <param name="sourcePlane">The source luma plane.</param>
         /// <param name="reconstructionPlane">The reconstruction luma plane.</param>
@@ -6910,6 +6965,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The statistics of the grid, or invalid statistics when the cost limit stopped it.</returns>
         private Av1RateDistortionStatistics GetUniformLumaCandidateCost(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
             Av1MacroBlockD macroBlock,
             Av1PlaneRegion<TSample> sourcePlane,
             Av1PlaneRegion<TSample> reconstructionPlane,
@@ -6934,6 +6994,11 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             return this.GetUniformLumaCandidateCostCore(
                 writer,
+                in tables,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
                 macroBlock,
                 sourcePlane,
                 reconstructionPlane,
@@ -6960,6 +7025,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc cref="GetUniformLumaCandidateCost"/>
         private Av1RateDistortionStatistics GetUniformLumaCandidateCostCore(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
             Av1MacroBlockD macroBlock,
             Av1PlaneRegion<TSample> sourcePlane,
             Av1PlaneRegion<TSample> reconstructionPlane,
@@ -7061,9 +7131,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool selectsTransformSize = !this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
                 this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate;
 
-            // The mode syntax and every transform block of the candidate read the same buffers and rate tables.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
-            Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
+            Av1ModeCosts modeCosts = tables.ModeCosts;
             int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 && selectsTransformSize &&
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
                 ? Av1SymbolEncoder.GetTransformSizeCost(modeCosts, blockSize, transformSize, transformSizeContext)
@@ -7135,7 +7203,6 @@ internal static partial class Av1IntraSuperblockEncoder
             // The prediction scratch and the reference edge slots serve every transform block, so they are read
             // once. The parent mode search retains reference slots 0 and 1. Use the other pair here because these
             // transform edges also include earlier reconstructions in this candidate.
-            Span<int> transformWorkspace = transformBuffers.TransformWorkspace;
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
             Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
             for (int regionY = 0; regionY < codedExtent.Height; regionY += Av1Constants.MaxTransformSize)
@@ -7268,7 +7335,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             bool laterBlockPredicts = (y + transformHeight) < blockHeight || (x + transformWidth) < blockWidth;
                             this.blockWorkspace.LumaNoisePattern = this.IsLumaNoisePattern(reconstructionPlane, blockOrigin, blockSize);
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
-                                in transformBuffers,
+                                writer,
+                                in tables,
+                                transformCoefficients,
+                                dequantizedCoefficients,
+                                transformWorkspace,
+                                transformTypeProbabilities,
                                 Av1Plane.Y,
                                 false,
                                 blockContext,
@@ -8089,7 +8161,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Codes one transform block of the selected mode and adds its reconstruction to the frame.
         /// </summary>
-        /// <param name="buffers">The workspace buffers and rate tables, which the caller reads once for its loops.</param>
+        /// <param name="writer">The tile symbol encoder that prices the coefficients.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="planeCoefficients">The coefficients of the plane of the superblock.</param>
+        /// <param name="planeStates">The transform block states of the plane of the superblock.</param>
         /// <param name="context">The coefficient context of the transform block.</param>
         /// <param name="isInter">Whether the block is an inter block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -8104,7 +8182,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="skipTransform">Whether the block skips its residual.</param>
         /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
         private void ReconstructSelectedTransform(
-            in Av1TransformBlockBuffers buffers,
+            Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            Span<int> planeCoefficients,
+            Span<Av1EncoderTransformBlockState> planeStates,
             Av1TransformBlockContext context,
             bool isInter,
             Point blockOrigin,
@@ -8120,7 +8204,13 @@ internal static partial class Av1IntraSuperblockEncoder
             int coefficientOffset)
         {
             this.ReconstructSelectedTransformCore(
-                in buffers,
+                writer,
+                in tables,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                planeCoefficients,
+                planeStates,
                 context,
                 isInter,
                 blockOrigin,
@@ -8140,7 +8230,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Codes one transform block of the selected mode and adds its reconstruction to the frame.
         /// Reference: the transform block steps of encode_block_intra() and encode_block().
         /// </summary>
-        /// <param name="buffers">The workspace buffers and rate tables, which the caller reads once for its loops.</param>
+        /// <param name="writer">The tile symbol encoder that prices the coefficients.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="planeCoefficients">The coefficients of the plane of the superblock.</param>
+        /// <param name="planeStates">The transform block states of the plane of the superblock.</param>
         /// <param name="context">The coefficient context of the transform block.</param>
         /// <param name="isInter">Whether the block is an inter block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -8155,7 +8251,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="skipTransform">Whether the block skips its residual.</param>
         /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
         private void ReconstructSelectedTransformCore(
-            in Av1TransformBlockBuffers buffers,
+            Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            Span<int> planeCoefficients,
+            Span<Av1EncoderTransformBlockState> planeStates,
             Av1TransformBlockContext context,
             bool isInter,
             Point blockOrigin,
@@ -8179,11 +8281,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 prediction.Slice(row * inputStride, width).CopyTo(destination.Slice(row * destinationPlane.Stride, width));
             }
 
-            Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)
-                .Slice(coefficientOffset, transformSize.GetSize2d());
-
-            ref Av1EncoderTransformBlockState state = ref this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
-                coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
+            Span<int> coefficients = planeCoefficients.Slice(coefficientOffset, transformSize.GetSize2d());
+            ref Av1EncoderTransformBlockState state = ref planeStates[coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
 
             bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
             state = default;
@@ -8213,7 +8312,12 @@ internal static partial class Av1IntraSuperblockEncoder
             // after it. Reference: is_noise_pattern in av1_optimize_txb(), from encode_block_intra() and encode_block().
             this.blockWorkspace.LumaNoisePattern = plane == Av1Plane.Y && this.IsLumaNoisePattern(destinationPlane, blockOrigin, blockSize);
             Av1TransformBlockEncoder.EncodeLossyCandidate(
-                in buffers,
+                this.blockWorkspace,
+                writer,
+                in tables,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
                 context,
                 residual,
                 inputStride,

@@ -156,6 +156,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 DcModeCost = dcModeCost
             };
 
+            // Every palette candidate reads the same rate tables and workspace buffers.
+            Av1CoefficientTables tables = writer.GetCoefficientTables();
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
+
             // Frequency seeds precede range-seeded clustering. Each family finishes its coarse/fine
             // or ascending/descending search before the next family reuses the sample workspace.
             for (int family = 0; family < 2; family++)
@@ -190,7 +197,18 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         int candidatePruneLevel = gateHeader ? headerPruneLevel : 0;
                         bool improved = this.EvaluateLumaPaletteCandidate(
-                            in search, centroids, candidatePruneLevel, ref bestStatistics, ref paletteInfo, ref selectedTransformSize, out bool headerBreakout);
+                            in tables,
+                            transformCoefficients,
+                            dequantizedCoefficients,
+                            transformWorkspace,
+                            transformTypeProbabilities,
+                            in search,
+                            centroids,
+                            candidatePruneLevel,
+                            ref bestStatistics,
+                            ref paletteInfo,
+                            ref selectedTransformSize,
+                            out bool headerBreakout);
 
                         selected |= improved;
                         lastSearched = paletteSize;
@@ -259,6 +277,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Codes one luma palette candidate: snaps its colors to the neighbor cache, builds the color map, prices the
         /// palette syntax and searches its transform sizes. The candidate replaces the best result if it costs less.
         /// </summary>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="search">The block values that every candidate of the palette search shares.</param>
         /// <param name="centroids">The palette colors of the candidate, which this method sorts and compacts.</param>
         /// <param name="headerPruneLevel">How strongly the palette syntax cost alone can reject the candidate.</param>
@@ -268,6 +291,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="headerBreakout">Whether the palette syntax cost alone rejected the candidate.</param>
         /// <returns><see langword="true"/> if the candidate became the best result.</returns>
         private bool EvaluateLumaPaletteCandidate(
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
             in LumaPaletteSearch search,
             Span<short> centroids,
             int headerPruneLevel,
@@ -277,11 +305,27 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool headerBreakout)
         {
             return this.EvaluateLumaPaletteCandidateCore(
-                in search, centroids, headerPruneLevel, ref bestStatistics, ref paletteInfo, ref selectedTransformSize, out headerBreakout);
+                in tables,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
+                in search,
+                centroids,
+                headerPruneLevel,
+                ref bestStatistics,
+                ref paletteInfo,
+                ref selectedTransformSize,
+                out headerBreakout);
         }
 
         /// <inheritdoc cref="EvaluateLumaPaletteCandidate"/>
         private bool EvaluateLumaPaletteCandidateCore(
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
             in LumaPaletteSearch search,
             Span<short> centroids,
             int headerPruneLevel,
@@ -391,7 +435,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The intra reference cost of an inter frame joins the total only after the search, so the header gate
             // and the candidate comparison leave it out. Reference: intra_mode_info_cost_y() in palette_rd_y(), and
             // the ref_frame_cost that av1_search_palette_mode() adds to rate2.
-            Av1ModeCosts modeCosts = writer.ModeCosts;
+            Av1ModeCosts modeCosts = tables.ModeCosts;
             int rate = dcModeCost;
             rate += Av1SymbolEncoder.GetPaletteYModeCost(modeCosts, true, blockSizeContext, neighborContext);
             rate += Av1SymbolEncoder.GetPaletteSizeCost(modeCosts, paletteSize, blockSizeContext, Av1PlaneType.Y);
@@ -430,6 +474,11 @@ internal static partial class Av1IntraSuperblockEncoder
             long candidateLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
             Av1RateDistortionStatistics candidateStatistics = this.ChooseUniformTransformSize(
                 writer,
+                in tables,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
                 macroBlock,
                 sourcePlane,
                 reconstructionPlane,

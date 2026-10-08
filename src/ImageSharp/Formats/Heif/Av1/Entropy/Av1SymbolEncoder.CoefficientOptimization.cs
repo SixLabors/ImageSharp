@@ -29,7 +29,8 @@ internal sealed partial class Av1SymbolEncoder
     /// <summary>
     /// Estimates luma coefficient rates from quantized magnitudes and the transform's entropy context.
     /// </summary>
-    /// <param name="tables">The rate tables, from <see cref="GetCoefficientTables"/>, that the caller read once.</param>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
     /// <param name="coefficients">The quantized coefficients in raster order.</param>
     /// <param name="endOfBlock">The one-based last nonzero scan position.</param>
     /// <param name="transformSize">The transform dimensions.</param>
@@ -41,7 +42,8 @@ internal sealed partial class Av1SymbolEncoder
     /// <param name="isInter">Whether inter transform syntax applies.</param>
     /// <returns>The estimated rate in 1/512-bit units.</returns>
     public int EstimateLumaCoefficientRate(
-        in Av1CoefficientTables tables,
+        Av1ModeCosts modeCosts,
+        Av1CoefficientCosts coefficientCosts,
         ReadOnlySpan<int> coefficients,
         ushort endOfBlock,
         Av1TransformSize transformSize,
@@ -53,7 +55,7 @@ internal sealed partial class Av1SymbolEncoder
         bool isInter)
     {
         Av1TransformSize sizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
-        Av1CoefficientCosts allCosts = tables.CoefficientCosts;
+        Av1CoefficientCosts allCosts = coefficientCosts;
         ReadOnlySpan<int> costs = allCosts.GetPlane((int)sizeContext, (int)Av1ComponentType.Luminance);
         int rate = Av1CoefficientCosts.GetSkip(costs, context.SkipContext, endOfBlock == 0 ? 1 : 0);
         if (endOfBlock == 0)
@@ -61,7 +63,7 @@ internal sealed partial class Av1SymbolEncoder
             return rate;
         }
 
-        rate += GetTransformTypeCost(tables.ModeCosts, transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterMode, intraMode, isInter);
+        rate += GetTransformTypeCost(modeCosts, transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterMode, intraMode, isInter);
 
         rate += GetOptimizationEndOfBlockRate(
             allCosts, endOfBlock, transformSize, Av1ComponentType.Luminance, transformType.ToClass(), costs);
